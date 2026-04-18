@@ -6994,6 +6994,58 @@ function buildRegistrySummaryJSON() {
   };
 }
 
+function buildRoutingByMealJSON() {
+  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
+  const menuData = getMenuData();
+  const result = {};
+
+  ['1','2','3','4'].forEach(wk => {
+    result[wk] = {};
+    const wkData = menuData[wk] || {};
+    DAYS.forEach(day => {
+      const dayData = wkData[day] || {};
+      result[wk][day] = {};
+
+      ['breakfast','lunch','dinner'].forEach(period => {
+        const mealFlags = dayData[period+'_flags'] || emptyFlags;
+
+        // Anaphylactic pre-processing: separate conflict rooms from routing pool
+        // Per-period check (same as plating sheet logic)
+        const conflictRooms = getAnaphConflictRooms(mealFlags, emptyFlags);
+        const routingRegistry = [];
+        let anaphCount = 0;
+        REGISTRY_LIST.forEach(r => {
+          if (conflictRooms.has(r.room)) {
+            anaphCount++;
+          } else {
+            routingRegistry.push(r);
+          }
+        });
+
+        // Run routing engine on non-anaphylactic pool
+        const sections = computeSections(mealFlags, routingRegistry);
+        const counts = {};
+        sections.forEach(s => {
+          if (s.residents.length > 0 || s.rule.key === 'regular') {
+            counts[s.rule.label] = s.residents.length;
+          }
+        });
+        if (anaphCount > 0) {
+          counts['Anaphylactic Alternative'] = anaphCount;
+        }
+
+        result[wk][day][period] = counts;
+      });
+    });
+  });
+
+  return {
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:1 },
+    routing: result
+  };
+}
+
 async function ghPushFile(repo, path, content, token) {
   const url = 'https://api.github.com/repos/'+repo+'/contents/'+path;
   const headers = { 'Authorization':'token '+token, 'Content-Type':'application/json', 'Accept':'application/vnd.github.v3+json' };
@@ -7016,6 +7068,7 @@ async function publishToGitHub(manual) {
   try {
     await ghPushFile(repo,'menu_current.json',JSON.stringify(buildMenuJSON(),null,2),token);
     await ghPushFile(repo,'registry_summary.json',JSON.stringify(buildRegistrySummaryJSON(),null,2),token);
+    await ghPushFile(repo,'routing_by_meal.json',JSON.stringify(buildRoutingByMealJSON(),null,2),token);
     if(statusEl){ statusEl.textContent='Published \u2713 '+new Date().toLocaleTimeString(); statusEl.style.color='var(--forest)'; }
     if(manual) showToast('Published to GitHub \u2713');
   } catch(err) {
