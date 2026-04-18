@@ -1,0 +1,257 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Kitchen DOOR Push</title>
+<HTA:APPLICATION
+  ID="ConcKitchenDoorPush"
+  APPLICATIONNAME="CONC Kitchen DOOR Push"
+  BORDER="thin"
+  CAPTION="yes"
+  CONTEXTMENU="no"
+  INNERBORDER="no"
+  MAXIMIZEBUTTON="no"
+  MINIMIZEBUTTON="yes"
+  SCROLL="no"
+  SELECTION="no"
+  SINGLEINSTANCE="yes"
+  SYSMENU="yes"
+  VERSION="1.0"
+  WINDOWSTATE="normal"
+/>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #1e2a3a;
+    color: #f0f2f5;
+    padding: 16px;
+    user-select: none;
+  }
+  h1 { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: #fff; letter-spacing: .3px; }
+  .sub { font-size: 11px; color: #7a90a8; margin-bottom: 14px; }
+  .path-box {
+    background: #131c26;
+    border: 1px solid #2a3a4e;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-family: 'Consolas', monospace;
+    color: #8ab4f8;
+    margin-bottom: 14px;
+    word-break: break-all;
+  }
+  .path-label { color: #7a90a8; margin-bottom: 2px; font-size: 10px; }
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: #4a6080;
+    margin-bottom: 6px;
+  }
+  .btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  button {
+    flex: 1;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { opacity: .85; }
+  button:active { opacity: .7; }
+  .btn-simple  { background: #1a6b9a; color: #fff; }
+  .btn-complex { background: #2e6b4a; color: #fff; }
+  .btn-open    { background: #2a3a4e; color: #c8d4e0; font-weight: 500; font-size: 11px; }
+  .divider     { border: none; border-top: 1px solid #2a3a4e; margin: 12px 0; }
+  #status      { font-size: 11px; color: #7a90a8; min-height: 16px; margin-top: 4px; }
+  #status.ok   { color: #70b86c; }
+  #status.err  { color: #e06c6c; }
+</style>
+<script language="JScript">
+var FILES = [
+  { label: "Open Kitchen DOOR", file: "KitchenDOOR_v19.html" }
+  // Add companion files here as needed, e.g.:
+  // { label: "Open Recipe Data", file: "DOOR_RECIPE_DATA.json" }
+];
+
+var PATHS = [
+  { label: "Home  (OneDrive)", dir: "C:\\Users\\Jason\\OneDrive - CHRISTIE OSSINGTON NEIGHBOURHOOD CENTRE\\conc-kitchen-door" },
+  { label: "Work  (OneDrive)", dir: "C:\\Users\\JasonKennedy\\OneDrive - CHRISTIE OSSINGTON NEIGHBOURHOOD CENTRE\\conc-kitchen-door" }
+];
+var LOG_NAME = "push-log.txt";
+
+function detectRepo() {
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+  for (var i = 0; i < PATHS.length; i++) {
+    if (fso.FolderExists(PATHS[i].dir)) return PATHS[i];
+  }
+  return null;
+}
+
+function findGit() {
+  var fso   = new ActiveXObject("Scripting.FileSystemObject");
+  var shell = new ActiveXObject("WScript.Shell");
+
+  var regKeys = [
+    "HKLM\\SOFTWARE\\GitForWindows\\InstallPath",
+    "HKLM\\SOFTWARE\\WOW6432Node\\GitForWindows\\InstallPath",
+    "HKCU\\SOFTWARE\\GitForWindows\\InstallPath"
+  ];
+  for (var i = 0; i < regKeys.length; i++) {
+    try {
+      var installPath = shell.RegRead(regKeys[i]);
+      var candidate = installPath + "\\cmd\\git.exe";
+      if (fso.FileExists(candidate)) return candidate;
+    } catch(e) {}
+  }
+
+  var common = [
+    "C:\\Program Files\\Git\\cmd\\git.exe",
+    "C:\\Program Files\\Git\\bin\\git.exe",
+    "C:\\Program Files (x86)\\Git\\cmd\\git.exe",
+    "C:\\Users\\JasonKennedy\\AppData\\Local\\Programs\\Git\\cmd\\git.exe",
+    "C:\\Users\\Jason\\AppData\\Local\\Programs\\Git\\cmd\\git.exe"
+  ];
+  for (var j = 0; j < common.length; j++) {
+    if (fso.FileExists(common[j])) return common[j];
+  }
+  return null;
+}
+
+window.onload = function() {
+  window.resizeTo(420, 270);
+  buildFileButtons();
+  var r = detectRepo();
+  if (r) {
+    document.getElementById("pathLabel").innerText = r.label;
+    document.getElementById("pathVal").innerText   = r.dir;
+  } else {
+    document.getElementById("pathLabel").innerText = "Not found";
+    document.getElementById("pathVal").innerText   = "Neither home nor work path detected";
+    document.getElementById("pathVal").style.color = "#e06c6c";
+  }
+};
+
+function dateStr() {
+  var d = new Date();
+  return (d.getMonth()+1) + "-" + d.getDate() + "-" + d.getFullYear();
+}
+
+function runGit(repoDir, msg, logFile) {
+  var gitExe = findGit();
+  if (!gitExe) {
+    setStatus("Git not found. Is Git for Windows installed?", "err");
+    return;
+  }
+
+  var fso    = new ActiveXObject("Scripting.FileSystemObject");
+  var shell  = new ActiveXObject("WScript.Shell");
+  var tmpBat = shell.ExpandEnvironmentStrings("%TEMP%") + "\\__conc_door_push_tmp.bat";
+  var safeMsg = msg.replace(/"/g, "'");
+
+  var logLines = logFile
+    ? "echo ======================================== >> \"" + logFile + "\"\r\n" +
+      "echo Push: %DATE% %TIME% >> \"" + logFile + "\"\r\n" +
+      "echo Msg:  " + safeMsg + " >> \"" + logFile + "\"\r\n" +
+      "echo ======================================== >> \"" + logFile + "\"\r\n"
+    : "";
+
+  var bat =
+    "@echo off\r\n" +
+    "cd /d \"" + repoDir + "\"\r\n" +
+    logLines +
+    "echo Staging...\r\n" +
+    "\"" + gitExe + "\" add -A\r\n" +
+    "echo Committing...\r\n" +
+    "\"" + gitExe + "\" commit -m \"" + safeMsg + "\"\r\n" +
+    "echo Pulling...\r\n" +
+    "\"" + gitExe + "\" pull --rebase\r\n" +
+    "if errorlevel 1 (echo [ERROR] Pull failed & pause & exit /b 1)\r\n" +
+    "echo Pushing...\r\n" +
+    "\"" + gitExe + "\" push\r\n" +
+    "if errorlevel 1 (echo [ERROR] Push failed & pause & exit /b 1)\r\n" +
+    "echo.\r\n" +
+    "echo [SUCCESS] Push complete!\r\n" +
+    "del \"" + tmpBat + "\"\r\n" +
+    "pause\r\n";
+
+  var ts = fso.CreateTextFile(tmpBat, true);
+  ts.Write(bat);
+  ts.Close();
+
+  shell.Run("cmd /k \"" + tmpBat + "\"", 1, false);
+  setStatus("Running -- see cmd window for output.", "");
+}
+
+function pushSimple() {
+  var r = detectRepo();
+  if (!r) { setStatus("Repo not found.", "err"); return; }
+  runGit(r.dir, "Kitchen DOOR update " + dateStr(), null);
+}
+
+function pushComplex() {
+  var r = detectRepo();
+  if (!r) { setStatus("Repo not found.", "err"); return; }
+  var msg = prompt("Commit message:", "Kitchen DOOR update " + dateStr());
+  if (msg === null || msg === "") { setStatus("Cancelled.", ""); return; }
+  runGit(r.dir, msg, r.dir + "\\" + LOG_NAME);
+}
+
+function openInEdge(filename) {
+  var r = detectRepo();
+  if (!r) { setStatus("Repo not found.", "err"); return; }
+  var shell = new ActiveXObject("WScript.Shell");
+  shell.Run("msedge \"" + r.dir + "\\" + filename + "\"", 1, false);
+}
+
+function buildFileButtons() {
+  var row = document.getElementById("fileButtons");
+  for (var i = 0; i < FILES.length; i++) {
+    var btn = document.createElement("button");
+    btn.className = "btn-open";
+    btn.innerText = FILES[i].label;
+    (function(f) { btn.onclick = function() { openInEdge(f); }; })(FILES[i].file);
+    row.appendChild(btn);
+  }
+}
+
+function setStatus(msg, cls) {
+  var el = document.getElementById("status");
+  el.innerText  = msg;
+  el.className  = cls;
+}
+</script>
+</head>
+<body>
+
+  <h1>Kitchen DOOR &mdash; Push to GitHub</h1>
+  <p class="sub">Git push helper &ndash; auto-detects home vs work path</p>
+
+  <div class="path-box">
+    <div class="path-label" id="pathLabel">Detecting...</div>
+    <div id="pathVal">...</div>
+  </div>
+
+  <div class="section-label">Push</div>
+  <div class="btn-row">
+    <button class="btn-simple" onclick="pushSimple()">
+      &gt;&gt; Simple Push<br>
+      <span style="font-weight:400;font-size:10px">auto-timestamp &ndash; no prompt</span>
+    </button>
+    <button class="btn-complex" onclick="pushComplex()">
+      + Complex Push<br>
+      <span style="font-weight:400;font-size:10px">custom message &ndash; logs to file</span>
+    </button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-label">Open in Edge</div>
+  <div class="btn-row" id="fileButtons"></div>
+
+  <div id="status"></div>
+
+</body>
+</html>
