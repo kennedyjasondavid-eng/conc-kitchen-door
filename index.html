@@ -509,6 +509,7 @@
   }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
 <script>
 // Recipe Hub data — loaded dynamically from hosted DOOR_RECIPE_DATA.json
@@ -11910,17 +11911,40 @@ function buildAllFileList() {
 
 async function downloadAllFiles() {
   const btn = document.getElementById('dl-all-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
-  const files = buildAllFileList();
-  for (const f of files) {
-    try {
-      const wb = f.fn();
-      if (wb) XLSX.writeFile(wb, f.name);
-      await new Promise(res => setTimeout(res, 120)); // small gap between downloads
-    } catch(e) { console.warn('Failed to build', f.name, e); }
+  if (btn) { btn.disabled = true; btn.textContent = 'Building zip…'; }
+
+  try {
+    const zip = new JSZip();
+    const files = buildAllFileList();
+
+    for (const f of files) {
+      try {
+        const wb = f.fn();
+        if (!wb) continue;
+        // Write workbook to array buffer
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        zip.file(f.name, buf);
+      } catch(e) { console.warn('Failed to build', f.name, e); }
+    }
+
+    const ds = getDateStamp();
+    const zipName = 'CONC_Rexdale_Plating_' + ds.replace(' ','_') + '.zip';
+
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = zipName;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Downloaded ' + files.length + ' files as ' + zipName);
+  } catch(e) {
+    console.error('Zip failed:', e);
+    showToast('Zip failed — try downloading files individually.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Download All (zip)'; }
   }
-  if (btn) { btn.disabled = false; btn.textContent = '⬇ Download All Files'; }
-  showToast('All files downloaded ✓');
 }
 
 function downloadSpecialFile(type) {
@@ -11979,7 +12003,7 @@ function populateRecentGenerated() {
   if (confirmFiles) {
     confirmFiles.innerHTML = filesHtml
       + '<div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">'
-      + '<button id="dl-all-btn" class="btn btn-mint" onclick="downloadAllFiles()">&#x2B07; Download All Files</button>'
+      + '<button id="dl-all-btn" class="btn btn-mint" onclick="downloadAllFiles()">⬇ Download All (zip)</button>'
       + '</div>';
   }
 
