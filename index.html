@@ -11109,6 +11109,12 @@ function renderImportReview() {
   document.getElementById('import-step-review').style.display = 'block';
   document.getElementById('import-footer').style.display = 'flex';
 
+  // Mark today's roster as imported as soon as staff reaches the review step.
+  // Commit may not happen (zero changes), but the roster has been checked.
+  localStorage.setItem('concLastImportDate', new Date().toDateString());
+  localStorage.setItem('concLastImportFile', (IMPORT_STATE && IMPORT_STATE.fileName) || '');
+  updateDailyImportPrompt();
+
   const { diff } = IMPORT_STATE;
 
   // Seed banner — show when no persisted registry state exists (first run)
