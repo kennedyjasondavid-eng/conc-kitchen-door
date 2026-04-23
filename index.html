@@ -1504,7 +1504,12 @@ let _recipeDataSource = 'fallback';
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
         <div>
           <div id="mc-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
-          <div style="margin-top:14px;display:flex;gap:8px;">
+          <div style="margin-top:14px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Meal-level flags</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Set per-component allergens above by clicking the labels. These meal-level flags activate routing sections regardless of ingredients.</div>
+            <div id="mc-edit-flag-grid" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+          </div>
+          <div style="display:flex;gap:8px;">
             <button class="btn btn-primary btn-sm" onclick="saveMenuEdit()">Save Edit</button>
             <button class="btn btn-ghost btn-sm" onclick="revertMenuEdit()" id="mc-menu-revert-btn" style="display:none;">Reset to Original</button>
           </div>
@@ -9073,15 +9078,24 @@ function submitLeftovers() {
 const DAYS_ORDER = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const FLAG_DEFS = [
-  {key:'hasDairy',  label:'Dairy',     color:'#9333ea', tip:'Meal contains significant dairy. Activates No Dairy routing (merges into Vegan section).'},
-  {key:'hasGluten', label:'Gluten',    color:'#d97706', tip:'Meal contains gluten. Activates Gluten Free section.'},
-  {key:'hasPork',   label:'Pork',      color:'#dc2626', tip:'Meal contains pork. Activates Halal section — Halal and No Pork residents receive halal alternative.'},
-  {key:'hasBeef',   label:'Beef',      color:'#b45309', tip:'Meal contains beef where halal integrity requires a separate option. Activates Halal section. Use only when preparation requires it — all CONC beef is halal but some meal formats may need this.'},
-  {key:'hasFish',   label:'Fish',      color:'#0ea5e9', tip:'Meal contains fish or shellfish. No Fish and No Shellfish residents merge into Vegan section.'},
-  {key:'hasEgg',    label:'Egg',       color:'#ca8a04', tip:'Meal contains egg or egg-based condiments (aioli, mayo, egg bun). Activates No Egg section — residents receive modified main without egg components.'},
-  {key:'hasPeanuts',label:'Peanuts',   color:'#b91c1c', tip:'Meal contains peanuts. Anaphylactic routing — room-level containment.'},
-  {key:'isSpicy',   label:'Spicy',     color:'#f97316', tip:'Meal is spicy. Activates Bland section — No Spicy residents receive lightly seasoned version.'},
-  {key:'isCarb',    label:'Carb-swap', color:'#2563eb', tip:'Main component is a high-carb format. Activates Diabetic section.'},
+  // Primary — shown by default in slot flag row
+  {key:'hasGluten',   label:'Gluten',     color:'#d97706', primary:true,  tip:'Meal contains gluten. Activates Gluten Free section.'},
+  {key:'hasDairy',    label:'Dairy',      color:'#9333ea', primary:true,  tip:'Meal contains significant dairy. Activates No Dairy routing (merges into Vegan section).'},
+  {key:'hasEgg',      label:'Egg',        color:'#ca8a04', primary:true,  tip:'Meal contains egg or egg-based condiments. Activates No Egg section.'},
+  {key:'hasFish',     label:'Fish',       color:'#0ea5e9', primary:true,  tip:'Meal contains fish. No Fish residents merge into Vegan section.'},
+  {key:'hasPeanuts',  label:'Peanuts',    color:'#b91c1c', primary:true,  tip:'Meal contains peanuts. Anaphylactic routing — room-level containment.'},
+  {key:'hasSoy',      label:'Soy',        color:'#84cc16', primary:true,  tip:'Meal contains soy or soy-based products (tofu, edamame, soy sauce).'},
+  {key:'hasTreeNuts', label:'Tree Nuts',  color:'#a16207', primary:true,  tip:'Meal contains tree nuts (coconut, almonds, cashews, etc.).'},
+  // Secondary — behind "+ More"
+  {key:'hasSesame',   label:'Sesame',     color:'#f59e0b', primary:false, tip:'Meal contains sesame seeds or sesame oil.'},
+  {key:'hasMustard',  label:'Mustard',    color:'#eab308', primary:false, tip:'Meal contains mustard or mustard seeds.'},
+  {key:'hasShellfish',label:'Shellfish',  color:'#06b6d4', primary:false, tip:'Meal contains shellfish or crustaceans.'},
+  {key:'hasSulphites',label:'Sulphites',  color:'#8b5cf6', primary:false, tip:'Meal contains sulphites (wine, vinegar, dried fruit).'},
+  {key:'hasPork',     label:'Pork',       color:'#dc2626', primary:false, tip:'Meal contains pork. Activates Halal section.'},
+  {key:'hasBeef',     label:'Beef',       color:'#b45309', primary:false, tip:'Meal contains beef. Activates Halal section on applicable days.'},
+  // Routing flags — meal-level only (shown in bottom grid, not per-slot)
+  {key:'isSpicy',     label:'Spicy',      color:'#f97316', primary:false, mealLevel:true, tip:'Meal is spicy. Activates Bland section.'},
+  {key:'isCarb',      label:'Carb-swap',  color:'#2563eb', primary:false, mealLevel:true, tip:'Main component is a high-carb format. Activates Diabetic section.'},
 ];
 const SECTION_COLORS = {
   'Halal':'#059669','Vegan / Vegetarian':'#16a34a','Gluten Free':'#d97706',
@@ -9104,7 +9118,11 @@ function getSelectedSite() {
 function renderSectionPreview(flags) {
   const el = document.getElementById('mc-section-preview');
   if (!el) return;
-  const sections = computeSections(flags, REGISTRY_LIST);
+  const sections = computeSections(flags, REGISTRY_LIST).slice().sort((a, b) => {
+    if (a.rule.key === 'regular') return -1;
+    if (b.rule.key === 'regular') return 1;
+    return (a.rule.p || 99) - (b.rule.p || 99);
+  });
   el.innerHTML = sections.map(s => {
     const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
     const count = s.residents.length;
@@ -9908,13 +9926,13 @@ function goHome() {
 // ============================================================
 
 const MEAL_SLOT_DEFS = [
-  { id:'extras',   label:'Meal Title',  required:false, manual:true,                           streams:null,            ph:'e.g. Jerk Night, Thanksgiving Dinner — leads the meal name' },
   { id:'main',     label:'Main',        required:false, cats:['protein','stew_main','salad'], streams:['regular',''],  ph:'Search main dish…' },
   { id:'mainalt',  label:'Main Alt',    required:false, cats:['protein','stew_main'],          streams:['regular',''],  ph:'Halal or alternate main…' },
   { id:'veganalt', label:'Vegan Alt',   required:false, cats:['protein','stew_main'],          streams:['vegan'],       ph:'Vegan alternative…' },
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
   { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side'],                     streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
   { id:'xtra',     label:'Extras',      required:false, manual:true,                           streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
+  { id:'extras',   label:'Event Name',  required:false, manual:true,                           streams:null,            ph:'Named events only — e.g. Jerk Night, Thanksgiving Dinner. Leave blank if components describe the meal.' },
 ];
 
 let MEAL_SLOT_STATE = {};
@@ -9950,6 +9968,139 @@ function renderSlots() {
   const container = document.getElementById('mc-slot-panel');
   if (!container) return;
   container.innerHTML = MEAL_SLOT_DEFS.map(def => renderSlotCard(def, 'slot')).join('');
+}
+
+function buildMealName() {
+  // extras (Event Name) leads if set, then components
+  const extraVal = MEAL_SLOT_STATE['extras'];
+  const extra = extraVal ? (extraVal.recipeName || extraVal.manual || '') : '';
+  const components = ['main','mainalt','starch','vegside','xtra']
+    .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
+    .filter(Boolean).join(', ');
+  return [extra, components].filter(Boolean).join(' — ');
+}
+
+function buildVegAlt() {
+  return ['veganalt','starch','vegside','xtra']
+    .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
+    .filter(Boolean).join(', ');
+}
+
+function buildUnionFlags() {
+  const union = {};
+  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
+  Object.values(MEAL_SLOT_STATE).forEach(s => {
+    if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
+  });
+  return union;
+}
+
+function buildVegAltFlags() {
+  const union = {};
+  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
+  ['veganalt','starch','vegside','xtra'].forEach(id => {
+    const s = MEAL_SLOT_STATE[id];
+    if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
+  });
+  return union;
+}
+
+function flagsToAllergenStr(flags) {
+  const MAP = {
+    hasGluten:'Gluten', hasDairy:'Dairy', hasPork:'Pork', hasBeef:'Beef',
+    hasFish:'Fish', hasEgg:'Eggs', hasPeanuts:'Peanuts', hasSesame:'Sesame',
+    hasSoy:'Soy', hasMustard:'Mustard', hasTreeNuts:'Tree Nuts',
+    hasShellfish:'Shellfish', hasSulphites:'Sulphites'
+  };
+  return Object.entries(MAP)
+    .filter(([k]) => flags && flags[k])
+    .map(([,label]) => label)
+    .join(', ');
+}
+
+function getVegAltAllergenStr(mealVeg) {
+  const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : null) || DOOR_RECIPE_DATA_FALLBACK || [];
+  const veganRecipes = recipeData.filter(r => r.stream === 'vegan');
+  if (!mealVeg || !veganRecipes.length) return '';
+  const normalize = s => s.toLowerCase().replace(/['']/g,"'").replace(/\s+/g,' ').trim();
+  const sigWords = s => s.split(/\W+/).filter(w => w.length > 3);
+  const allergenSet = new Set();
+  mealVeg.split(',').map(c => normalize(c)).forEach(comp => {
+    let best = null, bestScore = 0;
+    veganRecipes.forEach(r => {
+      const rn = normalize(r.recipeName);
+      if (rn === comp || rn.includes(comp) || comp.includes(rn)) {
+        const score = Math.max(rn.length, comp.length);
+        if (score > bestScore) { bestScore = score; best = r; }
+        return;
+      }
+      const overlap = [...new Set(sigWords(comp))].filter(w => new Set(sigWords(rn)).has(w)).length;
+      if (overlap >= 2 && overlap > bestScore) { bestScore = overlap; best = r; }
+    });
+    if (best && best.allergens) {
+      best.allergens.forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
+    }
+  });
+  return [...allergenSet].join(', ').toUpperCase();
+}
+
+function updateSlotSummary() {
+  const slotFlags = buildUnionFlags();
+  const flags = {};
+  FLAG_DEFS.forEach(f => {
+    const cb = document.getElementById('mc-edit-flag-' + f.key);
+    flags[f.key] = cb ? cb.checked : (slotFlags[f.key] || false);
+  });
+  const prev = document.getElementById('mc-menu-edit-preview');
+  if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
+  const name = buildMealName();
+  const veg = buildVegAlt();
+  const summaryEl = document.getElementById('mc-slot-name-preview');
+  if (summaryEl) {
+    if (name || veg) {
+      summaryEl.style.display = 'block';
+      summaryEl.innerHTML =
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Will save as</div>' +
+        (name ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${name}</div>` : '') +
+        (veg  ? `<div style="font-size:12px;color:var(--muted);">Alt: ${veg}</div>` : '');
+    } else {
+      summaryEl.style.display = 'none';
+    }
+  }
+}
+
+document.addEventListener('click', function(e) {
+  MEAL_SLOT_DEFS.forEach(def => {
+    if (def.manual) return;
+    ['slot-dd-', 'sm-slot-dd-'].forEach(prefix => {
+      const dd  = document.getElementById(prefix + def.id);
+      const inp = document.getElementById(prefix.replace('dd','search') + def.id);
+      if (dd && inp && !inp.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+    });
+  });
+});
+
+function toggleEditMenuMode() {
+  editMenuMode = !editMenuMode;
+  const btn = document.getElementById('mc-edit-menu-btn');
+  const banner = document.getElementById('mc-edit-menu-banner');
+  if (editMenuMode) {
+    btn.textContent = '✓ Done';
+    btn.style.background = '#dbeafe';
+    btn.style.color = '#1e40af';
+    btn.style.border = '1.5px solid #2563eb';
+    if (banner) banner.style.display = 'block';
+    closeMealEdit();
+    closeMenuEdit();
+  } else {
+    btn.textContent = '✏ Edit Menu';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.border = '';
+    if (banner) banner.style.display = 'none';
+    closeMenuEdit();
+  }
+  renderMenuConfig();
 }
 
 function renderSlotCard(def, ns) {
@@ -9991,7 +10142,8 @@ function renderSlotCard(def, ns) {
     <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#e0f2fe;border-radius:6px;margin-bottom:6px;">
       <span style="font-size:12px;font-weight:600;flex:1;color:#0369a1;">${state.manual}</span>
       <button onclick="${fn}Clear('${def.id}')" style="background:none;border:none;cursor:pointer;font-size:15px;color:#0369a1;padding:0;line-height:1;" title="Clear">×</button>
-    </div>` : '');
+    </div>
+    ${slotManualFlagRow(def.id, state.flags, ns)}` : '');
 
   const borderColor = hasValue ? '#10b981' : 'var(--border)';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
@@ -10019,270 +10171,115 @@ function slotAllergenPills(flags) {
     '</div>';
 }
 
-// ── Slot search ───────────────────────────────────────────────
-function slotSearch(slotId, query) {
-  const dd = document.getElementById('slot-dd-' + slotId);
-  if (!dd) return;
-  const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
-  if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
-
-  const q = (query || '').trim().toLowerCase();
-  const results = DOOR_RECIPE_DATA.filter(r => {
-    if (!def.cats.includes(r.category)) return false;
-    if (def.streams && !def.streams.includes(r.stream)) return false;
-    if (q.length < 1) return true;
-    return r.recipeName.toLowerCase().includes(q);
-  }).slice(0, 50);
-
-  if (!results.length && !q) { dd.style.display = 'none'; return; }
-
-  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  dd.innerHTML = results.length
-    ? results.map(r => {
-        const hilite = q ? r.recipeName.replace(new RegExp('('+esc(q)+')','gi'),'<strong>$1</strong>') : r.recipeName;
-        const safeN = r.recipeName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return `<div onclick="slotSelect('${slotId}','${safeN}')"
-          style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
-          onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">${hilite}</div>`;
-      }).join('')
-    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches</div>';
-
-  dd.style.display = 'block';
-}
-
-function slotSelect(slotId, recipeName) {
-  const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
-  if (!recipe) return;
-  MEAL_SLOT_STATE[slotId] = { recipeName, flags: hubAllergenToFlags(recipe.allergens) };
-  const dd = document.getElementById('slot-dd-' + slotId);
-  if (dd) dd.style.display = 'none';
-  renderSlots();
-  updateSlotSummary();
-}
-
-function slotClear(slotId) {
-  MEAL_SLOT_STATE[slotId] = null;
-  renderSlots();
-  updateSlotSummary();
-}
-
-function slotSetManual(slotId, val) {
-  MEAL_SLOT_STATE[slotId] = val ? { manual: val } : null;
-  updateSlotSummary();
-}
-
-function slotKey(e, slotId) {
-  const dd = document.getElementById('slot-dd-' + slotId);
-  if (e.key === 'Escape') { if (dd) dd.style.display = 'none'; }
-  if (e.key === 'Enter') {
-    const first = dd && dd.querySelector('div[onclick]');
-    if (first) { first.click(); return; }
-    slotSaveManual(slotId);
-  }
-}
-function slotSaveManual(slotId, val) {
-  if (!val) {
-    const inp = document.getElementById('slot-search-' + slotId);
-    val = inp ? inp.value.trim() : '';
-  }
-  if (!val) return;
-  const dd = document.getElementById('slot-dd-' + slotId);
-  if (dd) dd.style.display = 'none';
-  MEAL_SLOT_STATE[slotId] = { manual: val };
-  renderSlots();
-  updateSlotSummary();
-}
-
-// ── Meal building ─────────────────────────────────────────────
-function buildMealName() {
-  // Meal Title (extras) leads — then all other components
-  return ['extras','main','mainalt','starch','vegside','xtra']
-    .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
-    .filter(Boolean).join(', ');
-}
-
-function buildVegAlt() {
-  // Vegan alt + all shared sides — Meal Title (extras) stays on top line only
-  return ['veganalt','starch','vegside','xtra']
-    .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
-    .filter(Boolean).join(', ');
-}
-
-function buildUnionFlags() {
-  const union = {};
-  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
-  Object.values(MEAL_SLOT_STATE).forEach(s => {
-    if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
-  });
-  return union;
-}
-
-function buildVegAltFlags() {
-  // Only union flags from veg-stream slots: vegan alt + shared sides
-  const union = {};
-  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
-  ['veganalt','starch','vegside','xtra'].forEach(id => {
-    const s = MEAL_SLOT_STATE[id];
-    if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
-  });
-  return union;
-}
-
-function flagsToAllergenStr(flags) {
-  // Convert boolean flag object back to human-readable allergen string
-  const MAP = {
-    hasGluten:'Gluten', hasDairy:'Dairy', hasPork:'Pork', hasBeef:'Beef',
-    hasFish:'Fish', hasEgg:'Eggs', hasPeanuts:'Peanuts', hasSesame:'Sesame',
-    hasSoy:'Soy', hasMustard:'Mustard'
-  };
-  return Object.entries(MAP)
-    .filter(([k]) => flags && flags[k])
-    .map(([,label]) => label)
-    .join(', ');
-}
-
-function getVegAltAllergenStr(mealVeg) {
-  // Strict recipe lookup — only matches against vegan-stream recipes in DOOR_RECIPE_DATA.
-  // Requires 2+ significant word overlaps to avoid false positives.
-  // Returns allergen string or '' if no confident match.
-  const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : null) || DOOR_RECIPE_DATA_FALLBACK || [];
-  const veganRecipes = recipeData.filter(r => r.stream === 'vegan');
-  if (!mealVeg || !veganRecipes.length) return '';
-
-  const normalize = s => s.toLowerCase().replace(/['']/g, "'").replace(/\s+/g,' ').trim();
-  const sigWords = s => s.split(/\W+/).filter(w => w.length > 3);
-
-  const allergenSet = new Set();
-  const components = mealVeg.split(',').map(c => normalize(c));
-
-  components.forEach(comp => {
-    let best = null, bestScore = 0;
-    veganRecipes.forEach(r => {
-      const rn = normalize(r.recipeName);
-      // Exact substring match
-      if (rn === comp || rn.includes(comp) || comp.includes(rn)) {
-        const score = Math.max(rn.length, comp.length);
-        if (score > bestScore) { bestScore = score; best = r; }
-        return;
-      }
-      // Word overlap — require at least 2 significant words
-      const compWords = new Set(sigWords(comp));
-      const recWords = new Set(sigWords(rn));
-      const overlap = [...compWords].filter(w => recWords.has(w)).length;
-      if (overlap >= 2 && overlap > bestScore) { bestScore = overlap; best = r; }
-    });
-    if (best && best.allergens) {
-      best.allergens.forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
-    }
-  });
-
-  return [...allergenSet].join(', ').toUpperCase();
-}
-
-function updateSlotSummary() {
-  const flags = buildUnionFlags();
-  const prev = document.getElementById('mc-menu-edit-preview');
-  if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
-
-  const name = buildMealName();
-  const veg = buildVegAlt();
-  const summaryEl = document.getElementById('mc-slot-name-preview');
-  if (summaryEl) {
-    if (name || veg) {
-      summaryEl.style.display = 'block';
-      summaryEl.innerHTML =
-        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Will save as</div>' +
-        (name ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${name}</div>` : '') +
-        (veg  ? `<div style="font-size:12px;color:var(--muted);">Alt: ${veg}</div>` : '');
+// Split compound veg alt string into slot components
+// "Vegetarian Jamaican Patties, Seasonal Soup" -> veganalt + vegside slots
+function splitVegAltIntoSlots(vegAlt) {
+  if (!vegAlt) return;
+  const STARCH_QP = ['rice','naan','bread','pasta','mashed potato','couscous','biscuit','roti','potato','pita'];
+  const VEG_QP = ['seasonal veg','broccoli','green beans','coleslaw','corn','cabbage','peas','salad','soup',
+                  'steamed veg','seasonal vegetables','mixed veg','garlic peas','seasonal soup'];
+  const parts = vegAlt.split(',').map(p => p.trim()).filter(Boolean);
+  if (!parts.length) return;
+  MEAL_SLOT_STATE['veganalt'] = { manual: parts[0] };
+  for (let i = 1; i < parts.length; i++) {
+    const p = parts[i];
+    const pLow = p.toLowerCase();
+    const isStarch = STARCH_QP.some(s => pLow.includes(s));
+    const isVeg = VEG_QP.some(s => pLow.includes(s));
+    if (isStarch && !MEAL_SLOT_STATE['starch']) {
+      MEAL_SLOT_STATE['starch'] = { manual: p };
+    } else if (isVeg && !MEAL_SLOT_STATE['vegside']) {
+      MEAL_SLOT_STATE['vegside'] = { manual: p };
     } else {
-      summaryEl.style.display = 'none';
+      MEAL_SLOT_STATE['veganalt'] = { manual: MEAL_SLOT_STATE['veganalt'].manual + ', ' + p };
     }
   }
 }
 
-// Close all slot dropdowns (Edit Menu + Special Meal) on outside click
-document.addEventListener('click', function(e) {
-  MEAL_SLOT_DEFS.forEach(def => {
-    if (def.manual) return;
-    ['slot-dd-', 'sm-slot-dd-'].forEach(prefix => {
-      const dd  = document.getElementById(prefix + def.id);
-      const inp = document.getElementById(prefix.replace('dd','search') + def.id);
-      if (dd && inp && !inp.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
-    });
-  });
-});
-
-function toggleEditMenuMode() {
-  editMenuMode = !editMenuMode;
-  const btn = document.getElementById('mc-edit-menu-btn');
-  const banner = document.getElementById('mc-edit-menu-banner');
-  if (editMenuMode) {
-    btn.textContent = '✓ Done';
-    btn.style.background = '#dbeafe';
-    btn.style.color = '#1e40af';
-    btn.style.border = '1.5px solid #2563eb';
-    if (banner) banner.style.display = 'block';
-    closeMealEdit();
-    closeMenuEdit();
-  } else {
-    btn.textContent = '✏ Edit Menu';
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.style.border = '';
-    if (banner) banner.style.display = 'none';
-    closeMenuEdit();
+function slotManualFlagRow(slotId, currentFlags, ns) {
+  const f = currentFlags || {};
+  const fn = ns === 'sm-slot' ? 'smSlotToggleFlag' : 'slotToggleFlag';
+  const expandFn = ns === 'sm-slot' ? 'smSlotExpandFlags' : 'slotExpandFlags';
+  const expanded = SLOT_FLAGS_EXPANDED.has(ns + ':' + slotId);
+  const allergenFlags = FLAG_DEFS.filter(fd => !fd.mealLevel);
+  const primary = allergenFlags.filter(fd => fd.primary);
+  const secondary = allergenFlags.filter(fd => !fd.primary);
+  const anySecondaryActive = secondary.some(fd => f[fd.key]);
+  function pill(fd) {
+    const active = !!f[fd.key];
+    const bg = active ? fd.color : 'transparent';
+    const border = active ? fd.color : '#d1d5db';
+    const text = active ? '#fff' : '#9ca3af';
+    return '<span onclick="'+fn+'(\''+slotId+'\',\''+fd.key+'\')" title="'+fd.tip+'"'
+      + ' style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'
+      + 'background:'+bg+';color:'+text+';border:1px solid '+border+';transition:all .12s;">'
+      + fd.label+'</span>';
   }
-  renderMenuConfig();
+  const primaryPills = primary.map(pill).join('');
+  const secondaryPills = (expanded || anySecondaryActive) ? secondary.map(pill).join('') : '';
+  const morePill = (!expanded && !anySecondaryActive)
+    ? '<span onclick="'+expandFn+'(\''+slotId+'\')"'
+      + ' style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'
+      + 'background:transparent;color:#6b7280;border:1px dashed #d1d5db;" title="Show more allergens">+ More</span>'
+    : (expanded
+      ? '<span onclick="'+expandFn+'(\''+slotId+'\')"'
+        + ' style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'
+        + 'background:transparent;color:#9ca3af;border:1px dashed #e5e7eb;">Less</span>'
+      : '');
+  return '<div style="margin-top:5px;">'
+    + '<div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px;">Allergens — click to set</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:3px;">'+primaryPills+secondaryPills+morePill+'</div>'
+    + '</div>';
 }
 
-function openMenuEdit(week, day, period) {
-  const wkData = getMenuData()[String(week)];
-  const dayData = (wkData && wkData[day]) || {};
-  const existing = getMenuEdit(week, day, period);
+const SLOT_FLAGS_EXPANDED = new Set();
 
-  mcMenuEditKey = week+'-'+day+'-'+period;
-  const panel = document.getElementById('mc-menu-edit-panel');
-  if (panel) panel.style.display = 'block';
+function slotExpandFlags(slotId) {
+  const k = 'slot:' + slotId;
+  if (SLOT_FLAGS_EXPANDED.has(k)) SLOT_FLAGS_EXPANDED.delete(k);
+  else SLOT_FLAGS_EXPANDED.add(k);
+  renderSlots(); updateSlotSummary();
+}
 
-  const dayDisplay = day.charAt(0) + day.slice(1).toLowerCase();
-  const periodDisplay = period.charAt(0).toUpperCase() + period.slice(1);
-  const ctx = document.getElementById('mc-menu-edit-context');
-  const title = document.getElementById('mc-menu-edit-title');
-  if (ctx) ctx.textContent = 'Week ' + week + ' \u2014 ' + dayDisplay + ' ' + periodDisplay;
-  if (title) title.textContent = existing ? existing.name + ' (edited)' : (dayData[period] || '\u2014');
+function smSlotExpandFlags(slotId) {
+  const k = 'sm-slot:' + slotId;
+  if (SLOT_FLAGS_EXPANDED.has(k)) SLOT_FLAGS_EXPANDED.delete(k);
+  else SLOT_FLAGS_EXPANDED.add(k);
+  renderSmSlots(); updateSmSlotSummary();
+}
 
-  const revertBtn = document.getElementById('mc-menu-revert-btn');
-  if (revertBtn) revertBtn.style.display = existing ? 'inline-flex' : 'none';
+function slotToggleFlag(slotId, key) {
+  if (!MEAL_SLOT_STATE[slotId]) MEAL_SLOT_STATE[slotId] = { manual: '' };
+  if (!MEAL_SLOT_STATE[slotId].flags) MEAL_SLOT_STATE[slotId].flags = {};
+  MEAL_SLOT_STATE[slotId].flags[key] = !MEAL_SLOT_STATE[slotId].flags[key];
+  renderSlots(); updateSlotSummary();
+}
 
-  // Initialise slots
-  initSlotState();
-  if (existing && existing.linkedRecipes) {
-    // Restore from saved slot data
-    Object.entries(existing.linkedRecipes).forEach(([slotId, recipeName]) => {
-      const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
-      MEAL_SLOT_STATE[slotId] = recipe
-        ? { recipeName, flags: hubAllergenToFlags(recipe.allergens) }
-        : { manual: recipeName };
-    });
-  } else if (existing && existing.name) {
-    // Legacy edit — put name in Meal Title, veg in Vegan Alt
-    MEAL_SLOT_STATE['extras'] = { manual: existing.name };
-    if (existing.veg) MEAL_SLOT_STATE['veganalt'] = { manual: existing.veg };
-  } else if (dayData[period]) {
-    // Pre-fill Meal Title from rotation data
-    MEAL_SLOT_STATE['extras'] = { manual: dayData[period] };
-    if (dayData[period+'_veg']) MEAL_SLOT_STATE['veganalt'] = { manual: dayData[period+'_veg'] };
-  }
+function smSlotToggleFlag(slotId, key) {
+  if (!SM_SLOT_STATE[slotId]) SM_SLOT_STATE[slotId] = { manual: '' };
+  if (!SM_SLOT_STATE[slotId].flags) SM_SLOT_STATE[slotId].flags = {};
+  SM_SLOT_STATE[slotId].flags[key] = !SM_SLOT_STATE[slotId].flags[key];
+  renderSmSlots(); updateSmSlotSummary();
+}
 
-  renderSlots();
-  updateSlotSummary();
-
-  // Focus Meal Title input (extras slot is first)
-  setTimeout(() => { const s = document.getElementById('slot-manual-extras'); if (s) s.focus(); }, 80);
+function renderEditFlagGrid(currentFlags) {
+  const grid = document.getElementById('mc-edit-flag-grid');
+  if (!grid) return;
+  const mealLevelFlags = FLAG_DEFS.filter(f => f.mealLevel);
+  grid.innerHTML = mealLevelFlags.map(f => {
+    const checked = currentFlags && currentFlags[f.key] ? 'checked' : '';
+    return '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--cream);">'
+      + '<input type="checkbox" id="mc-edit-flag-'+f.key+'" '+checked+' style="accent-color:'+f.color+';" onchange="updateSlotSummary()"> '+f.label
+      + '</label>';
+  }).join('');
 }
 
 function renderSectionPreviewInto(flags, el) {
-  const sections = computeSections(flags, REGISTRY_LIST);
+  const sections = computeSections(flags, REGISTRY_LIST).slice().sort((a, b) => {
+    if (a.rule.key === 'regular') return -1;
+    if (b.rule.key === 'regular') return 1;
+    return (a.rule.p || 99) - (b.rule.p || 99);
+  });
   el.innerHTML = sections.map(s => {
     const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
     const count = s.residents.length;
@@ -10299,32 +10296,44 @@ function saveMenuEdit() {
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   const veg  = buildVegAlt();
-  const flags = buildUnionFlags();
+  const slotFlags = buildUnionFlags();
+  const flags = { ...slotFlags };
+  FLAG_DEFS.forEach(f => {
+    const cb = document.getElementById('mc-edit-flag-' + f.key);
+    if (cb) flags[f.key] = flags[f.key] || cb.checked;
+  });
   const vegFlags = buildVegAltFlags();
   const vegAllergens = flagsToAllergenStr(vegFlags);
-
-  // Build linkedRecipes map from slot state
-  const linkedRecipes = {};
-  Object.entries(MEAL_SLOT_STATE).forEach(([slotId, s]) => {
-    if (s && s.recipeName) linkedRecipes[slotId] = s.recipeName;
-    else if (s && s.manual)  linkedRecipes[slotId] = s.manual;
-  });
 
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
   const wkData = getMenuData()[String(week)];
   const origName = (wkData && wkData[day] && wkData[day][period]) || '\u2014';
 
+  // Write directly to base overlay - Edit Menu mode is permanent by design
+  const overlay = loadMenuBaseOverlay();
+  if (!overlay[week]) overlay[week] = {};
+  if (!overlay[week][day]) overlay[week][day] = {};
+  overlay[week][day][period]              = name;
+  overlay[week][day][period + '_veg']     = veg;
+  overlay[week][day][period + '_flags']   = flags;
+  saveMenuBaseOverlay(overlay);
+
+  // Clear any competing swap or legacy edit for this slot
+  const swaps = loadMealSwaps();
+  const targetDate = nextDateForSlot(Number(week), day);
+  if (targetDate) {
+    const k = targetDate.toISOString().slice(0,10) + '-' + period;
+    if (swaps[k]) { delete swaps[k]; saveMealSwaps(swaps); }
+  }
   const edits = loadMenuEdits();
-  edits[mcMenuEditKey] = {
-    name, veg, flags, vegFlags, vegAllergens, linkedRecipes,
-    editedAt: new Date().toISOString(),
-    editedBySite: getSelectedSite() || 'unknown'
-  };
-  saveMenuEdits(edits);
+  if (edits[mcMenuEditKey]) { delete edits[mcMenuEditKey]; saveMenuEdits(edits); }
+
   appendChangeLog({ type: 'permanent_edit', week, day, period, oldName: origName, newName: name, flags });
   closeMenuEdit();
   renderMenuConfig();
+  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
+  showToast('Saved permanently to rotation \u2714');
   publishToGitHub(false);
 }
 
@@ -10332,24 +10341,81 @@ function revertMenuEdit() {
   if (!mcMenuEditKey) return;
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
+  const overlay = loadMenuBaseOverlay();
+  const hasOverlay = overlay[week] && overlay[week][day] && (period in overlay[week][day]);
   const existing = getMenuEdit(week, day, period);
-  if (!existing) return;
+  if (!hasOverlay && !existing) return;
+  const currentName = (hasOverlay ? overlay[week][day][period] : (existing && existing.name)) || '\u2014';
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
   const origName = dayData[period] || '\u2014';
-  if (!confirm('Reset "' + existing.name + '" back to "' + origName + '"?')) return;
-  const edits = loadMenuEdits();
-  delete edits[mcMenuEditKey];
-  saveMenuEdits(edits);
-  appendChangeLog({ type: 'revert', week, day, period, oldName: existing.name, newName: origName });
+  if (!confirm('Reset "' + currentName + '" back to "' + origName + '"?')) return;
+  if (hasOverlay) {
+    delete overlay[week][day][period];
+    delete overlay[week][day][period + '_veg'];
+    delete overlay[week][day][period + '_flags'];
+    if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
+    if (!Object.keys(overlay[week]).length) delete overlay[week];
+    saveMenuBaseOverlay(overlay);
+  }
+  if (existing) {
+    const edits = loadMenuEdits();
+    delete edits[mcMenuEditKey];
+    saveMenuEdits(edits);
+  }
+  appendChangeLog({ type: 'revert', week, day, period, oldName: currentName, newName: origName });
   closeMenuEdit();
   renderMenuConfig();
 }
-
 function closeMenuEdit() {
   const panel = document.getElementById('mc-menu-edit-panel');
   if (panel) panel.style.display = 'none';
   mcMenuEditKey = null;
+}
+
+function openMenuEdit(week, day, period) {
+  const wkData = getMenuData()[String(week)];
+  const dayData = (wkData && wkData[day]) || {};
+  const existing = getMenuEdit(week, day, period);
+
+  mcMenuEditKey = week + '-' + day + '-' + period;
+  const panel = document.getElementById('mc-menu-edit-panel');
+  if (panel) panel.style.display = 'block';
+
+  const dayDisplay = day.charAt(0) + day.slice(1).toLowerCase();
+  const periodDisplay = period.charAt(0).toUpperCase() + period.slice(1);
+  const ctx = document.getElementById('mc-menu-edit-context');
+  const title = document.getElementById('mc-menu-edit-title');
+  if (ctx) ctx.textContent = 'Week ' + week + ' \u2014 ' + dayDisplay + ' ' + periodDisplay;
+  if (title) title.textContent = existing ? existing.name + ' (edited)' : (dayData[period] || '\u2014');
+
+  const revertBtn = document.getElementById('mc-menu-revert-btn');
+  if (revertBtn) revertBtn.style.display = existing ? 'inline-flex' : 'none';
+
+  // Initialise slots
+  initSlotState();
+  if (existing && existing.linkedRecipes) {
+    Object.entries(existing.linkedRecipes).forEach(([slotId, recipeName]) => {
+      const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
+      MEAL_SLOT_STATE[slotId] = recipe
+        ? { recipeName, flags: hubAllergenToFlags(recipe.allergens) }
+        : { manual: recipeName };
+    });
+  } else if (existing && existing.name) {
+    MEAL_SLOT_STATE['extras'] = { manual: existing.name };
+    if (existing.veg) splitVegAltIntoSlots(existing.veg);
+  } else if (dayData[period]) {
+    MEAL_SLOT_STATE['extras'] = { manual: dayData[period] };
+    if (dayData[period + '_veg']) splitVegAltIntoSlots(dayData[period + '_veg']);
+  }
+
+  // Populate allergen flag grid from saved flags or rotation defaults
+  const initFlags = (existing && existing.flags) ? existing.flags : (dayData[period + '_flags'] || {});
+  renderEditFlagGrid(initFlags);
+
+  renderSlots();
+  updateSlotSummary();
+  setTimeout(() => { const s = document.getElementById('slot-search-main'); if (s) s.focus(); }, 80);
 }
 
 // ============================================================
@@ -10551,6 +10617,77 @@ function smSlotSelect(slotId, recipeName) {
   if (dd) dd.style.display = 'none';
   renderSmSlots();
   updateSmSlotSummary();
+}
+
+function slotSearch(slotId, query) {
+  const dd = document.getElementById('slot-dd-' + slotId);
+  if (!dd) return;
+  const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
+  if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
+  const q = (query || '').trim().toLowerCase();
+  const results = DOOR_RECIPE_DATA.filter(r => {
+    if (!def.cats.includes(r.category)) return false;
+    if (def.streams && !def.streams.includes(r.stream)) return false;
+    if (q.length < 1) return true;
+    return r.recipeName.toLowerCase().includes(q);
+  }).slice(0, 50);
+  if (!results.length && !q) { dd.style.display = 'none'; return; }
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  dd.innerHTML = results.length
+    ? results.map(r => {
+        const hilite = q ? r.recipeName.replace(new RegExp('('+esc(q)+')','gi'),'<strong>$1</strong>') : r.recipeName;
+        const safeN = r.recipeName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return `<div onclick="slotSelect('${slotId}','${safeN}')"
+          style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
+          onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">${hilite}</div>`;
+      }).join('')
+    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="slotSaveManual(\''+slotId+'\')" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "'+query+'" manually (no allergen data)</span></div>';
+  dd.style.display = 'block';
+}
+
+function slotSelect(slotId, recipeName) {
+  const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
+  if (!recipe) return;
+  MEAL_SLOT_STATE[slotId] = { recipeName, flags: hubAllergenToFlags(recipe.allergens) };
+  const dd = document.getElementById('slot-dd-' + slotId);
+  if (dd) dd.style.display = 'none';
+  renderSlots();
+  updateSlotSummary();
+}
+
+function slotClear(slotId) {
+  MEAL_SLOT_STATE[slotId] = null;
+  SLOT_FLAGS_EXPANDED.delete('slot:' + slotId);
+  renderSlots();
+  updateSlotSummary();
+}
+
+function slotSetManual(slotId, val) {
+  MEAL_SLOT_STATE[slotId] = val ? { manual: val } : null;
+  updateSlotSummary();
+}
+
+function slotKey(e, slotId) {
+  const dd = document.getElementById('slot-dd-' + slotId);
+  if (e.key === 'Escape') { if (dd) dd.style.display = 'none'; }
+  if (e.key === 'Enter') {
+    const first = dd && dd.querySelector('div[onclick]');
+    if (first) { first.click(); return; }
+    slotSaveManual(slotId);
+  }
+}
+
+function slotSaveManual(slotId, val) {
+  if (!val) {
+    const inp = document.getElementById('slot-search-' + slotId);
+    val = inp ? inp.value.trim() : '';
+  }
+  if (!val) return;
+  const dd = document.getElementById('slot-dd-' + slotId);
+  if (dd) dd.style.display = 'none';
+  MEAL_SLOT_STATE[slotId] = { manual: val };
+  renderSlots();
+  updateSlotSummary();
 }
 
 function smSlotClear(slotId) {
