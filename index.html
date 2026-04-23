@@ -6675,13 +6675,6 @@ function generateFiles() {
   const n2 = new Date();
   document.getElementById('confirm-sub').textContent = `${months2[n2.getMonth()]} ${n2.getDate()}, ${n2.getFullYear()} · ${net} residents · 14 files updated`;
 
-  const _d = new Date(), _dm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()], _dd = _d.getDate();
-  const _ds = _dm + ' ' + _dd;
-  const FILES = ['01 Breakfast Week 1&3 '+_ds+'.xlsx','02 Breakfast Week 2&4 '+_ds+'.xlsx','05 Lunch Week One '+_ds+'.xlsx','06 Lunch Week Two '+_ds+'.xlsx','07 Lunch Week Three '+_ds+'.xlsx','08 Lunch Week Four '+_ds+'.xlsx','09 Dinner Week One '+_ds+'.xlsx','10 Dinner Week Two '+_ds+'.xlsx','11 Dinner Week Three '+_ds+'.xlsx','12 Dinner Week Four '+_ds+'.xlsx','Restriction List '+_ds+'.xlsx','Diabetic List '+_ds+'.xlsx','Anaphylactic List '+_ds+'.xlsx','Labels '+_ds+'.xlsx'];
-  document.getElementById('confirm-files').innerHTML = FILES.map((f, i) => {
-    return `<div class="file-item downloadable" onclick="openDemoFile('${f}', ${i})"><span class="file-icon">📊</span><span class="file-name">${f}</span><span class="file-dl">↗ Open</span></div>`;
-  }).join('');
-
   const parts = [];
   if (intakes) parts.push(`${intakes} intake${intakes>1?'s':''}`);
   if (discharges) parts.push(`${discharges} discharge${discharges>1?'s':''}`);
@@ -11515,67 +11508,336 @@ function downloadPlatingSheet(filename, period, weekNum) {
 }
 
 // ============================================================
+// SPECIAL FILE BUILDERS — Restriction List, Diabetic, Anaph, Labels
+// ============================================================
+
+function buildRestrictionListXlsx(ds) {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([]);
+  const rows = [];
+  const merges = [];
+  let R = 0;
+
+  // Header
+  const title = xCell('CONC Rexdale — Restriction List  ·  '+ds, F.whB, '1B4332', B.thick);
+  rows[R] = [title, xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick)];
+  merges.push({s:{r:R,c:0},e:{r:R,c:3}}); R++;
+
+  rows[R] = [xCell('Room',F.stdB,'FFFF00',B.thin), xCell('Restrictions',F.stdB,'FFFF00',B.thin), xCell('Section',F.stdB,'FFFF00',B.thin), xCell('Status',F.stdB,'FFFF00',B.thin)]; R++;
+
+  const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t => t === 'Regular')).sort((a,b) => {
+    const na = parseInt(a.room), nb = parseInt(b.room);
+    return na !== nb ? na - nb : a.room.localeCompare(b.room);
+  });
+
+  restricted.forEach(r => {
+    const bg = r.isAnaph ? 'F2DCDC' : r.isModerate ? 'FFF3E0' : null;
+    const font = r.isAnaph ? F.anaph : r.isModerate ? F.amber : F.std;
+    const flag = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : '';
+    rows[R] = [
+      xCell(r.room, font, bg, B.thin),
+      xCell(r.rawRestriction || (r.tags||[]).join(', '), font, bg, B.thin),
+      xCell(r.section || 'Regular', font, bg, B.thin),
+      xCell(flag || (r.confirm || '—'), font, bg, B.thin)
+    ]; R++;
+  });
+
+  rows[R] = [xCell('Total Residents with Restrictions', F.stdB, 'FFFF00', B.thin), xCell('', F.std, 'FFFF00', B.thin), xCell('', F.std, 'FFFF00', B.thin), xCell(String(restricted.length), F.stdB, 'FFFF00', B.thin)]; R++;
+
+  rows.forEach((row, ri) => { row.forEach((cell, ci) => { ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:3}});
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:10},{wch:52},{wch:18},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Restriction List');
+  return wb;
+}
+
+function buildDiabeticListXlsx(ds) {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([]);
+  const rows = [];
+  const merges = [];
+  let R = 0;
+
+  rows[R] = [xCell('CONC Rexdale — Diabetic List  ·  '+ds, F.whB, '1B4332', B.thick), xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick)];
+  merges.push({s:{r:R,c:0},e:{r:R,c:3}}); R++;
+
+  rows[R] = [xCell('Room',F.stdB,'92D050',B.thin), xCell('Restrictions',F.stdB,'92D050',B.thin), xCell('Section',F.stdB,'92D050',B.thin), xCell('Meal Note',F.stdB,'92D050',B.thin)]; R++;
+
+  const diabetics = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).sort((a,b) => {
+    const na = parseInt(a.room), nb = parseInt(b.room);
+    return na !== nb ? na - nb : a.room.localeCompare(b.room);
+  });
+
+  diabetics.forEach(r => {
+    rows[R] = [
+      xCell(r.room, F.stdB, 'D9EAD3', B.thin),
+      xCell(r.rawRestriction || (r.tags||[]).join(', '), F.std, 'D9EAD3', B.thin),
+      xCell(r.section || 'Regular', F.std, 'D9EAD3', B.thin),
+      xCell('Less starch · more veg', F.std, 'D9EAD3', B.thin)
+    ]; R++;
+  });
+
+  rows[R] = [xCell('Total Diabetics', F.stdB, 'FFFF00', B.thin), xCell('', F.std, 'FFFF00', B.thin), xCell('', F.std, 'FFFF00', B.thin), xCell(String(diabetics.length), F.stdB, 'FFFF00', B.thin)]; R++;
+
+  rows.forEach((row, ri) => { row.forEach((cell, ci) => { ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:3}});
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:10},{wch:52},{wch:18},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Diabetic List');
+  return wb;
+}
+
+function buildAnaphListXlsx(ds) {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([]);
+  const rows = [];
+  const merges = [];
+  let R = 0;
+
+  // Banner
+  rows[R] = [xCell('⚠  ANAPHYLACTIC RESIDENTS — '+ds+'  ·  DO NOT SUBSTITUTE — PREPARE SEPARATELY', F.whB, 'CC0000', B.thick), xCell('',F.whB,'CC0000',B.thick), xCell('',F.whB,'CC0000',B.thick), xCell('',F.whB,'CC0000',B.thick)];
+  merges.push({s:{r:R,c:0},e:{r:R,c:3}}); R++;
+
+  rows[R] = [xCell('Room',F.stdB,'FFFF00',B.thin), xCell('Allergen / Restriction',F.stdB,'FFFF00',B.thin), xCell('Section',F.stdB,'FFFF00',B.thin), xCell('Emergency Note',F.stdB,'FFFF00',B.thin)]; R++;
+
+  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room)).sort((a,b) => parseInt(a.room) - parseInt(b.room));
+  const anaphRoomSet = new Set(anaphResidents.map(r => getRoomBase(r.room)));
+
+  // Anaphylactic residents
+  anaphResidents.forEach(r => {
+    rows[R] = [
+      xCell(r.room, F.anaph, 'F2DCDC', B.anaph),
+      xCell(r.rawRestriction || (r.tags||[]).join(', '), F.anaph, 'F2DCDC', B.anaph),
+      xCell(r.section || 'Halal', F.anaph, 'F2DCDC', B.anaph),
+      xCell('⚠ ANAPHYLACTIC — epi-pen required', F.noteRed, 'F2DCDC', B.anaph)
+    ]; R++;
+  });
+
+  // Roommates of anaphylactic residents
+  const roommates = REGISTRY_LIST.filter(r => {
+    if (r.isAnaph || anaphRooms.includes(r.room)) return false;
+    return anaphRoomSet.has(getRoomBase(r.room)) && getRoomBase(r.room) !== r.room || 
+           anaphResidents.some(a => getRoomBase(a.room) === getRoomBase(r.room) && a.room !== r.room);
+  });
+  if (roommates.length) {
+    const rHdr = xCell('Roommates (receive alternative on conflict days)', F.stdB, 'FFF3E0', B.amber);
+    rows[R] = [rHdr, xCell('',F.std,'FFF3E0',B.amber), xCell('',F.std,'FFF3E0',B.amber), xCell('',F.std,'FFF3E0',B.amber)];
+    merges.push({s:{r:R,c:0},e:{r:R,c:3}}); R++;
+    roommates.forEach(r => {
+      const anaphRoom = anaphResidents.find(a => getRoomBase(a.room) === getRoomBase(r.room));
+      rows[R] = [
+        xCell(r.room, F.amber, 'FFF3E0', B.amber),
+        xCell(r.rawRestriction || 'Regular', F.amber, 'FFF3E0', B.amber),
+        xCell(r.section || 'Regular', F.amber, 'FFF3E0', B.amber),
+        xCell('Roommate of ' + (anaphRoom ? anaphRoom.room : '—'), F.noteAmb, 'FFF3E0', B.amber)
+      ]; R++;
+    });
+  }
+
+  rows[R] = [xCell('Total Anaphylactic Residents', F.stdB, 'FFFF00', B.thin), xCell('', F.std, 'FFFF00', B.thin), xCell('', F.std, 'FFFF00', B.thin), xCell(String(anaphResidents.length), F.stdB, 'FFFF00', B.thin)]; R++;
+
+  rows.forEach((row, ri) => { row.forEach((cell, ci) => { ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:3}});
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:10},{wch:52},{wch:18},{wch:32}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Anaphylactic List');
+  return wb;
+}
+
+function buildLabelsXlsx(ds) {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([]);
+  const rows = [];
+  const merges = [];
+  let R = 0;
+
+  // Header row
+  rows[R] = [
+    xCell('CONC Rexdale — Dietary Labels  ·  '+ds, F.whB, '1B4332', B.thick),
+    xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick),
+    xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick)
+  ];
+  merges.push({s:{r:R,c:0},e:{r:R,c:5}}); R++;
+
+  const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t => t === 'Regular')).sort((a,b) => {
+    const na = parseInt(a.room), nb = parseInt(b.room);
+    return na !== nb ? na - nb : a.room.localeCompare(b.room);
+  });
+
+  // 3 labels per row: cols 0-1 = label 1, cols 2-3 = label 2, cols 4-5 = label 3
+  for (let i = 0; i < restricted.length; i += 3) {
+    const lblRow1 = [null,null,null,null,null,null];
+    const lblRow2 = [null,null,null,null,null,null];
+    const lblRow3 = [null,null,null,null,null,null];
+
+    [0,1,2].forEach(slot => {
+      const r = restricted[i + slot];
+      const col = slot * 2;
+      if (!r) {
+        lblRow1[col] = xCell('', F.std, null, B.thin);
+        lblRow1[col+1] = xCell('', F.std, null, B.thin);
+        lblRow2[col] = xCell('', F.std, null, B.thin);
+        lblRow2[col+1] = xCell('', F.std, null, B.thin);
+        lblRow3[col] = xCell('', F.std, null, B.thin);
+        lblRow3[col+1] = xCell('', F.std, null, B.thin);
+        return;
+      }
+      const bg = r.isAnaph ? 'F2DCDC' : (r.tags||[]).includes('Diabetic') ? 'D9EAD3' : r.section === 'Halal' ? 'E8F5E9' : r.section === 'Vegan' ? 'E3F2FD' : 'FFFFCC';
+      const roomFont = {name:'Calibri', sz:18, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
+      const sectionFont = {name:'Calibri', sz:9, bold:true, color:{rgb: '555555'}};
+      const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
+
+      // Row 1: room number (large) | section
+      lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, border:B.thin.top ? {top:B.thin.top,left:B.thin.left} : B.thin, alignment:{vertical:'center'}}};
+      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, border:{top:B.thin.top,right:B.thin.right}, alignment:{vertical:'center',horizontal:'right'}}};
+      // Row 2: restrictions (spans 2)
+      lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, border:{left:B.thin.left,right:B.thin.right}, alignment:{wrapText:true,vertical:'top'}}};
+      lblRow2[col+1] = xCell('', restFont, bg, {left:B.thin.left,right:B.thin.right});
+      // Row 3: flag + bottom border
+      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '🥗 Less starch / more veg' : '';
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, border:{bottom:B.thin.bottom,left:B.thin.left}, alignment:{vertical:'center'}}};
+      lblRow3[col+1] = xCell('', F.std, bg, {bottom:B.thin.bottom,right:B.thin.right});
+
+      // Merge restriction cells across 2 columns
+      merges.push({s:{r:R+1,c:col},e:{r:R+1,c:col+1}});
+    });
+
+    rows[R] = lblRow1; R++;
+    rows[R] = lblRow2; R++;
+    rows[R] = lblRow3; R++;
+    // Small gap row
+    rows[R] = [xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null)]; R++;
+  }
+
+  rows.forEach((row, ri) => { row.forEach((cell, ci) => { if(cell) ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:5}});
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:22}];
+  ws['!rows'] = [];
+  for (let r=0; r<R; r++) {
+    const mod3 = (r - 1) % 4;
+    if (r === 0) ws['!rows'][r] = {hpt:18};
+    else if (mod3 === 0) ws['!rows'][r] = {hpt:22}; // room row
+    else if (mod3 === 1) ws['!rows'][r] = {hpt:32}; // restriction row
+    else if (mod3 === 2) ws['!rows'][r] = {hpt:16}; // flag row
+    else ws['!rows'][r] = {hpt:4};                  // gap row
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Labels');
+  return wb;
+}
+
+// ============================================================
+// DOWNLOAD ALL FILES
+// ============================================================
+function getDateStamp() {
+  const d = new Date();
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate();
+}
+
+function buildAllFileList() {
+  const ds = getDateStamp();
+  const weekLabels = ['One','Two','Three','Four'];
+  const files = [];
+  for (let w=1;w<=4;w++) files.push({name:`0${w} Breakfast Week ${weekLabels[w-1]} ${ds}.xlsx`, fn:()=>buildPlatingXlsx('breakfast',w)});
+  for (let w=1;w<=4;w++) files.push({name:`0${w+4} Lunch Week ${weekLabels[w-1]} ${ds}.xlsx`,    fn:()=>buildPlatingXlsx('lunch',w)});
+  for (let w=1;w<=4;w++) files.push({name:`${w+8} Dinner Week ${weekLabels[w-1]} ${ds}.xlsx`,    fn:()=>buildPlatingXlsx('dinner',w)});
+  files.push(
+    {name:`Restriction List ${ds}.xlsx`,  fn:()=>buildRestrictionListXlsx(ds)},
+    {name:`Diabetic List ${ds}.xlsx`,     fn:()=>buildDiabeticListXlsx(ds)},
+    {name:`Anaphylactic List ${ds}.xlsx`, fn:()=>buildAnaphListXlsx(ds)},
+    {name:`Labels ${ds}.xlsx`,            fn:()=>buildLabelsXlsx(ds)}
+  );
+  return files;
+}
+
+async function downloadAllFiles() {
+  const btn = document.getElementById('dl-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
+  const files = buildAllFileList();
+  for (const f of files) {
+    try {
+      const wb = f.fn();
+      if (wb) XLSX.writeFile(wb, f.name);
+      await new Promise(res => setTimeout(res, 120)); // small gap between downloads
+    } catch(e) { console.warn('Failed to build', f.name, e); }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '⬇ Download All Files'; }
+  showToast('All files downloaded ✓');
+}
+
+function downloadSpecialFile(type) {
+  const ds = getDateStamp();
+  const builders = {
+    restriction: () => buildRestrictionListXlsx(ds),
+    diabetic:    () => buildDiabeticListXlsx(ds),
+    anaph:       () => buildAnaphListXlsx(ds),
+    labels:      () => buildLabelsXlsx(ds),
+  };
+  const names = {
+    restriction: `Restriction List ${ds}.xlsx`,
+    diabetic:    `Diabetic List ${ds}.xlsx`,
+    anaph:       `Anaphylactic List ${ds}.xlsx`,
+    labels:      `Labels ${ds}.xlsx`,
+  };
+  const wb = builders[type]();
+  if (wb) XLSX.writeFile(wb, names[type]);
+}
+
+// ============================================================
 // RECENTLY GENERATED FILES PANEL
 // ============================================================
 function populateRecentGenerated() {
+  const ds = getDateStamp();
   const now = new Date();
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const ds = months[now.getMonth()]+' '+now.getDate();
   const ts = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-  const wk = MEAL_DATA.week;
-  const day = MEAL_DATA.day;
-  const dayLabel = day.charAt(0) + day.slice(1).toLowerCase();
-
-  // Build file list — matches the 14 real output files
   const weekLabels = ['One','Two','Three','Four'];
   const fileList = [];
-  for (let w=1;w<=4;w++) {
-    fileList.push({name:`${w<10?'0':''}${w} Breakfast Week ${weekLabels[w-1]} ${ds}.xlsx`, period:'breakfast', week:w, canBuild:true});
-  }
-  for (let w=1;w<=4;w++) {
-    fileList.push({name:`${w+4<10?'0':''}${w+4} Lunch Week ${weekLabels[w-1]} ${ds}.xlsx`, period:'lunch', week:w, canBuild:true});
-  }
-  for (let w=1;w<=4;w++) {
-    fileList.push({name:`${w+8<10?'0':''}${w+8} Dinner Week ${weekLabels[w-1]} ${ds}.xlsx`, period:'dinner', week:w, canBuild:true});
-  }
+  for (let w=1;w<=4;w++) fileList.push({name:'0'+w+' Breakfast Week '+weekLabels[w-1]+' '+ds+'.xlsx', period:'breakfast', week:w, type:'plating'});
+  for (let w=1;w<=4;w++) fileList.push({name:'0'+(w+4)+' Lunch Week '+weekLabels[w-1]+' '+ds+'.xlsx',    period:'lunch',     week:w, type:'plating'});
+  for (let w=1;w<=4;w++) fileList.push({name:(w+8)+' Dinner Week '+weekLabels[w-1]+' '+ds+'.xlsx',    period:'dinner',    week:w, type:'plating'});
   fileList.push(
-    {name:`Restriction List ${ds}.xlsx`},
-    {name:`Diabetic List ${ds}.xlsx`},
-    {name:`Anaphylactic List ${ds}.xlsx`},
-    {name:`Labels ${ds}.xlsx`}
+    {name:'Restriction List '+ds+'.xlsx',  type:'special', specialKey:'restriction'},
+    {name:'Diabetic List '+ds+'.xlsx',     type:'special', specialKey:'diabetic'},
+    {name:'Anaphylactic List '+ds+'.xlsx', type:'special', specialKey:'anaph'},
+    {name:'Labels '+ds+'.xlsx',            type:'special', specialKey:'labels'}
   );
-
   generatedFiles.length = 0;
   generatedFiles.push(...fileList);
 
-  const filesHtml = fileList.map((f, i) => {
-    const canDL = f.canBuild;
-    const click = canDL ? ` onclick="downloadPlatingSheet('${f.name}','${f.period}',${f.week})"` : '';
-    return `<div class="file-item${canDL?' downloadable':''}"${click}>
-      <span class="file-icon">${canDL?'📊':'📄'}</span>
-      <span class="file-name">${f.name}</span>
-      ${canDL?'<span class="file-dl">⬇ Download</span>':'<span class="file-check">✓</span>'}
-    </div>`;
-  }).join('');
+  function fileItemHtml(f) {
+    let click = '';
+    if (f.type === 'plating') click = ' onclick="downloadPlatingSheet(\''+f.name+'\',\''+f.period+'\','+f.week+')"';
+    else if (f.type === 'special') click = ' onclick="downloadSpecialFile(\''+f.specialKey+'\')"';
+    return '<div class="file-item downloadable"'+click+'>'
+      +'<span class="file-icon">&#x1F4CA;</span>'
+      +'<span class="file-name">'+f.name+'</span>'
+      +'<span class="file-dl">&#x2B07; Download</span>'
+      +'</div>';
+  }
 
-  // Review & Generate panel
+  const filesHtml = fileList.map(fileItemHtml).join('');
+
+  const confirmFiles = document.getElementById('confirm-files');
+  if (confirmFiles) {
+    confirmFiles.innerHTML = filesHtml
+      + '<div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">'
+      + '<button id="dl-all-btn" class="btn btn-mint" onclick="downloadAllFiles()">&#x2B07; Download All Files</button>'
+      + '</div>';
+  }
+
   const container = document.getElementById('recent-generated');
   const body = document.getElementById('recent-gen-body');
   const timeEl = document.getElementById('recent-gen-time');
-  timeEl.textContent = `Generated ${ts}`;
-  body.innerHTML = filesHtml;
-  container.style.display = 'block';
+  if (container) { timeEl.textContent = 'Generated '+ts; body.innerHTML = filesHtml; container.style.display = 'block'; }
 
-  // Plating Sheets screen panel
   const pContainer = document.getElementById('plating-recent-generated');
   const pBody = document.getElementById('plating-gen-body');
   const pTime = document.getElementById('plating-gen-time');
-  if (pContainer) {
-    pTime.textContent = `Generated ${ts}`;
-    pBody.innerHTML = filesHtml;
-    pContainer.style.display = 'block';
-  }
+  if (pContainer) { pTime.textContent = 'Generated '+ts; pBody.innerHTML = filesHtml; pContainer.style.display = 'block'; }
 }
+
 
 // ============================================================
 // CURRENT PLATING SHEETS DASHBOARD
