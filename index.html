@@ -6553,12 +6553,12 @@ function loadRegistryState() {
 
 function seedRegistryFromRoster(entries) {
   const newResidents = entries.map(e => {
-    const tagLabels = importTagLabels(e.parsed.tags);
+    const isRegular = tagLabels.length === 0 || (tagLabels.length === 1 && tagLabels[0] === 'Regular');
     return {
       room: e.room,
-      section: tagLabels.length ? importSectionForTags(e.parsed.tags) : 'Regular',
-      tags: tagLabels.length ? tagLabels : ['Regular'],
-      confirm: 'Provisional',
+      section: isRegular ? 'Regular' : importSectionForTags(e.parsed.tags),
+      tags: isRegular ? ['Regular'] : tagLabels,
+      confirm: isRegular ? 'N/A' : 'Provisional',
       confirmBy: '—',
       isAnaph: false,
       rawRestriction: e.parsed.rawText || 'Regular',
@@ -6839,7 +6839,11 @@ function renderComplianceView() {
   const body = document.getElementById('compliance-body');
   const today = new Date(); today.setHours(0,0,0,0);
   const relevant = REGISTRY_LIST.filter(r =>
-    (r.complianceDeadline || r.confirm === 'Provisional' || r.isModerate) && !r.complianceResolved
+    !r.complianceResolved && (
+      r.complianceDeadline ||
+      r.isModerate ||
+      (r.confirm === 'Provisional' && r.tags && !r.tags.every(t => t === 'Regular'))
+    )
   ).sort((a,b) => {
     if (a.complianceDeadline && b.complianceDeadline) return a.complianceDeadline.localeCompare(b.complianceDeadline);
     if (a.complianceDeadline) return -1;
@@ -7015,7 +7019,8 @@ function exportComplianceXlsx() {
   }
   const today = new Date(); today.setHours(0,0,0,0);
   const rows = REGISTRY_LIST.filter(r =>
-    r.complianceDeadline || r.confirm === 'Provisional' || r.isModerate
+    r.complianceDeadline || r.isModerate ||
+    (r.confirm === 'Provisional' && r.tags && !r.tags.every(t => t === 'Regular'))
   ).map(r => {
     const dl = r.complianceDeadline ? new Date(r.complianceDeadline) : null;
     if (dl) dl.setHours(0,0,0,0);
