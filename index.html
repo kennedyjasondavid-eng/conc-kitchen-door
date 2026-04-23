@@ -10105,6 +10105,68 @@ function buildUnionFlags() {
   return union;
 }
 
+function buildVegAltFlags() {
+  // Only union flags from veg-stream slots: vegan alt + shared sides
+  const union = {};
+  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
+  ['veganalt','starch','vegside','xtra'].forEach(id => {
+    const s = MEAL_SLOT_STATE[id];
+    if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
+  });
+  return union;
+}
+
+function flagsToAllergenStr(flags) {
+  // Convert boolean flag object back to human-readable allergen string
+  const MAP = {
+    hasGluten:'Gluten', hasDairy:'Dairy', hasPork:'Pork', hasBeef:'Beef',
+    hasFish:'Fish', hasEgg:'Eggs', hasPeanuts:'Peanuts', hasSesame:'Sesame',
+    hasSoy:'Soy', hasMustard:'Mustard'
+  };
+  return Object.entries(MAP)
+    .filter(([k]) => flags && flags[k])
+    .map(([,label]) => label)
+    .join(', ');
+}
+
+function getVegAltAllergenStr(mealVeg) {
+  // Strict recipe lookup — only matches against vegan-stream recipes in DOOR_RECIPE_DATA.
+  // Requires 2+ significant word overlaps to avoid false positives.
+  // Returns allergen string or '' if no confident match.
+  const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : null) || DOOR_RECIPE_DATA_FALLBACK || [];
+  const veganRecipes = recipeData.filter(r => r.stream === 'vegan');
+  if (!mealVeg || !veganRecipes.length) return '';
+
+  const normalize = s => s.toLowerCase().replace(/['']/g, "'").replace(/\s+/g,' ').trim();
+  const sigWords = s => s.split(/\W+/).filter(w => w.length > 3);
+
+  const allergenSet = new Set();
+  const components = mealVeg.split(',').map(c => normalize(c));
+
+  components.forEach(comp => {
+    let best = null, bestScore = 0;
+    veganRecipes.forEach(r => {
+      const rn = normalize(r.recipeName);
+      // Exact substring match
+      if (rn === comp || rn.includes(comp) || comp.includes(rn)) {
+        const score = Math.max(rn.length, comp.length);
+        if (score > bestScore) { bestScore = score; best = r; }
+        return;
+      }
+      // Word overlap — require at least 2 significant words
+      const compWords = new Set(sigWords(comp));
+      const recWords = new Set(sigWords(rn));
+      const overlap = [...compWords].filter(w => recWords.has(w)).length;
+      if (overlap >= 2 && overlap > bestScore) { bestScore = overlap; best = r; }
+    });
+    if (best && best.allergens) {
+      best.allergens.forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
+    }
+  });
+
+  return [...allergenSet].join(', ').toUpperCase();
+}
+
 function updateSlotSummary() {
   const flags = buildUnionFlags();
   const prev = document.getElementById('mc-menu-edit-preview');
@@ -10226,6 +10288,8 @@ function saveMenuEdit() {
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   const veg  = buildVegAlt();
   const flags = buildUnionFlags();
+  const vegFlags = buildVegAltFlags();
+  const vegAllergens = flagsToAllergenStr(vegFlags);
 
   // Build linkedRecipes map from slot state
   const linkedRecipes = {};
@@ -10241,7 +10305,7 @@ function saveMenuEdit() {
 
   const edits = loadMenuEdits();
   edits[mcMenuEditKey] = {
-    name, veg, flags, linkedRecipes,
+    name, veg, flags, vegFlags, vegAllergens, linkedRecipes,
     editedAt: new Date().toISOString(),
     editedBySite: getSelectedSite() || 'unknown'
   };
@@ -11410,6 +11474,15 @@ function buildDaySheet(period, weekNum, dayName) {
   const mealFlags = dayData[period+'_flags'] || {};
   const allergenStr = (dayData['allergens_'+period] || '').toUpperCase();
 
+  // Veg alt allergen string — hierarchy:
+  // 1. Stored in menu edit (computed from slot allergen flags when meal was saved via Menu Config)
+  // 2. DOOR_RECIPE_DATA lookup against vegan-stream recipes (strict matching only)
+  // 3. Fallback: "VERIFY ALLERGENS FOR THIS ALTERNATIVE"
+  const menuEdit = getMenuEdit(weekNum, dayName, period);
+  const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
+  const vegAllergenLookup = getVegAltAllergenStr(mealVeg);
+  const vegAllergenStr = vegAllergenStored || vegAllergenLookup || null;
+
   // Anaphylactic conflict detection — only applies to lunch/dinner pairs
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
   const lunchFlags  = period==='lunch'     ? mealFlags : (period==='breakfast' ? emptyFlags : emptyFlags);
@@ -11500,8 +11573,27 @@ function buildDaySheet(period, weekNum, dayName) {
   sections.filter(s => s.rule.key !== 'regular').forEach(s => {
     const altMeal = getAltMeal(s.rule.altType, ctx);
     const title = 'Special Meal '+specialIdx+' ('+s.rule.label+')';
+    // Allergen string per section type:
+    // halal_alt / modified_main: main meal allergens carry over (same dish)
+    // vegan_alt: from slot-computed vegAllergens or recipe lookup
+    // gf_alt: main allergens minus gluten (GF by definition)
+    // bland / soft: supervisor specifies — don't show main allergens
+    let sectionAllergenStr;
+    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'modified_main') {
+      sectionAllergenStr = allergenStr;
+    } else if (s.rule.altType === 'vegan_alt') {
+      sectionAllergenStr = vegAllergenStr;
+    } else if (s.rule.altType === 'gf_alt') {
+      const gfAllergens = allergenStr.split(',').map(a=>a.trim()).filter(a => a && !/gluten/i.test(a)).join(', ');
+      sectionAllergenStr = gfAllergens || null;
+    } else {
+      sectionAllergenStr = null;
+    }
+    const altMealLine = sectionAllergenStr
+      ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
+      : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
     addMerged(title, F.stdB, 'FFFF00', B.thick, 20);
-    addMerged(altMeal + (allergenStr ? '  |  CONTAINS: ' + allergenStr : ''), F.stdB, 'FCE4D6', B.thin, 30);
+    addMerged(altMealLine, F.stdB, 'FCE4D6', B.thin, 30);
     s.residents.forEach(r => {
       const isDiab = (r.tags||[]).includes('Diabetic');
       const bg = isDiab ? '92D050' : null;
