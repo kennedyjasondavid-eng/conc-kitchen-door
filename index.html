@@ -6668,16 +6668,18 @@ function openSharePointPilot() {
 
 async function pullStateFromGitHub(manual) {
   const repo = appSettings['gh-repo'] || 'kennedyjasondavid-eng/conc-kitchen-door';
-  const url = 'https://raw.githubusercontent.com/' + repo + '/main/door_state.json?t=' + Date.now();
+  const url = 'https://api.github.com/repos/' + repo + '/contents/door_state.json';
+  const headers = { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' };
   updateSyncBar('Syncing…', 'var(--muted)');
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       if (manual) showToast('No state file found yet — run Generate from the primary device first.');
       updateSyncBar('No remote state yet', 'var(--muted)');
       return;
     }
-    const state = await res.json();
+    const envelope = await res.json();
+    const state = JSON.parse(atob(envelope.content.replace(/\n/g, '')));
     if (!state.residents || !state.residents.length) {
       if (manual) showToast('Remote state file is empty.');
       return;
@@ -11547,8 +11549,13 @@ initDynamic();
   } else {
     // No local state — try silent pull from public GitHub repo
     const repo = (typeof appSettings !== 'undefined' && appSettings['gh-repo']) || 'kennedyjasondavid-eng/conc-kitchen-door';
-    fetch('https://raw.githubusercontent.com/' + repo + '/main/door_state.json?t=' + Date.now())
+    fetch('https://api.github.com/repos/' + repo + '/contents/door_state.json',
+      { headers: { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' } })
       .then(r => r.ok ? r.json() : null)
+      .then(envelope => {
+        if (!envelope || !envelope.content) return null;
+        try { return JSON.parse(atob(envelope.content.replace(/\n/g, ''))); } catch(e) { return null; }
+      })
       .then(state => {
         if (state && state.residents && state.residents.length) {
           REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
