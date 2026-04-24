@@ -10135,31 +10135,35 @@ function renderSlotCard(def, ns) {
     </div>`;
   }
 
-  const chipHtml = hasValue && state.recipeName ? `
-    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#d1fae5;border-radius:6px;margin-bottom:6px;">
-      <span style="font-size:12px;font-weight:600;flex:1;color:#065f46;">${state.recipeName}</span>
-      <button onclick="${fn}Clear('${def.id}')" style="background:none;border:none;cursor:pointer;font-size:15px;color:#065f46;padding:0;line-height:1;" title="Clear">×</button>
-    </div>
-    ${slotAllergenPills(state.flags)}` : (hasValue && state.manual ? `
-    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#e0f2fe;border-radius:6px;margin-bottom:6px;">
-      <span style="font-size:12px;font-weight:600;flex:1;color:#0369a1;">${state.manual}</span>
-      <button onclick="${fn}Clear('${def.id}')" style="background:none;border:none;cursor:pointer;font-size:15px;color:#0369a1;padding:0;line-height:1;" title="Clear">×</button>
-    </div>
-    ${slotManualFlagRow(def.id, state.flags, ns)}` : '');
+  const chipHtml = hasValue ? (
+    state.recipeName
+      ? slotAllergenPills(state.flags)
+      : slotManualFlagRow(def.id, state.flags, ns)
+  ) : '';
 
-  const borderColor = hasValue ? '#10b981' : 'var(--border)';
+  const currentVal = hasValue ? (state.recipeName || state.manual || '') : '';
+  const matchBadge = hasValue && state.recipeName
+    ? `<span style="font-size:10px;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:8px;font-weight:600;margin-left:6px;">✓ recipe matched</span>`
+    : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:#e0f2fe;color:#0369a1;border-radius:8px;font-weight:600;margin-left:6px;">manual</span>` : '');
+
+  const borderColor = hasValue ? (state.recipeName ? '#10b981' : '#60a5fa') : 'var(--border)';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;">${def.label}${optLabel}</div>
-    ${chipHtml}
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;">
+      ${def.label}${optLabel}${matchBadge}
+      ${hasValue ? `<button onclick="${fn}Clear('${def.id}')" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear">×</button>` : ''}
+    </div>
     <div style="position:relative;">
       <input type="text" id="${pfx}-search-${def.id}" autocomplete="off"
-        placeholder="${hasValue ? 'Change…' : def.ph}"
+        placeholder="${def.ph}"
+        value="${currentVal.replace(/"/g,'&quot;')}"
         style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;"
         oninput="${fn}Search('${def.id}',this.value)"
         onfocus="${fn}Search('${def.id}',this.value)"
+        onblur="${fn}AutoSave('${def.id}',this.value)"
         onkeydown="${fn}Key(event,'${def.id}')">
       <div id="${pfx}-dd-${def.id}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
     </div>
+    ${chipHtml}
     ${qpHtml}
   </div>`;
 }
@@ -10404,10 +10408,10 @@ function openMenuEdit(week, day, period) {
         : { manual: recipeName };
     });
   } else if (existing && existing.name) {
-    MEAL_SLOT_STATE['extras'] = { manual: existing.name };
+    MEAL_SLOT_STATE['main'] = { manual: existing.name };
     if (existing.veg) splitVegAltIntoSlots(existing.veg);
   } else if (dayData[period]) {
-    MEAL_SLOT_STATE['extras'] = { manual: dayData[period] };
+    MEAL_SLOT_STATE['main'] = { manual: dayData[period] };
     if (dayData[period + '_veg']) splitVegAltIntoSlots(dayData[period + '_veg']);
   }
 
@@ -10664,6 +10668,58 @@ function slotClear(slotId) {
   updateSlotSummary();
 }
 
+function slotAutoSave(slotId, val) {
+  val = (val || '').trim();
+  const dd = document.getElementById('slot-dd-' + slotId);
+  if (dd && dd.style.display !== 'none') return; // dropdown selection takes priority
+  if (!val) { MEAL_SLOT_STATE[slotId] = null; renderSlots(); updateSlotSummary(); return; }
+  const current = MEAL_SLOT_STATE[slotId];
+  // Don't overwrite a recipe-linked entry with the same name
+  if (current && current.recipeName && current.recipeName === val) return;
+  // Try to match against DOOR_RECIPE_DATA
+  const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
+  const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
+  const pool = def && def.cats ? recipes.filter(r => def.cats.includes(r.category)) : recipes;
+  const exact = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
+  const partial = !exact && val.length > 4 && pool.find(r =>
+    r.recipeName.toLowerCase().includes(val.toLowerCase()) ||
+    val.toLowerCase().includes(r.recipeName.toLowerCase())
+  );
+  const match = exact || partial;
+  if (match) {
+    MEAL_SLOT_STATE[slotId] = { recipeName: match.recipeName, flags: hubAllergenToFlags(match.allergens) };
+  } else {
+    MEAL_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
+  }
+  renderSlots();
+  updateSlotSummary();
+}
+
+function smSlotAutoSave(slotId, val) {
+  val = (val || '').trim();
+  const dd = document.getElementById('sm-slot-dd-' + slotId);
+  if (dd && dd.style.display !== 'none') return;
+  if (!val) { SM_SLOT_STATE[slotId] = null; renderSmSlots(); updateSmSlotSummary(); return; }
+  const current = SM_SLOT_STATE[slotId];
+  if (current && current.recipeName && current.recipeName === val) return;
+  const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
+  const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
+  const pool = def && def.cats ? recipes.filter(r => def.cats.includes(r.category)) : recipes;
+  const exact = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
+  const partial = !exact && val.length > 4 && pool.find(r =>
+    r.recipeName.toLowerCase().includes(val.toLowerCase()) ||
+    val.toLowerCase().includes(r.recipeName.toLowerCase())
+  );
+  const match = exact || partial;
+  if (match) {
+    SM_SLOT_STATE[slotId] = { recipeName: match.recipeName, flags: hubAllergenToFlags(match.allergens) };
+  } else {
+    SM_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
+  }
+  renderSmSlots();
+  updateSmSlotSummary();
+}
+
 function slotSetManual(slotId, val) {
   MEAL_SLOT_STATE[slotId] = val ? { manual: val } : null;
   updateSlotSummary();
@@ -10675,7 +10731,8 @@ function slotKey(e, slotId) {
   if (e.key === 'Enter') {
     const first = dd && dd.querySelector('div[onclick]');
     if (first) { first.click(); return; }
-    slotSaveManual(slotId);
+    const inp = document.getElementById('slot-search-' + slotId);
+    if (inp) { if (dd) dd.style.display = 'none'; slotAutoSave(slotId, inp.value); }
   }
 }
 
