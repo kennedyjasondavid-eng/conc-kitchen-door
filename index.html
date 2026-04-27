@@ -6908,7 +6908,7 @@ function applyQueueToRegistry() {
         moderateNote: c.moderateNote || '',
         complianceDeadline: '',
         pendingReversion: false,
-        serviceNote: c.serviceNote || ''
+        serviceNote: c.serviceNote || c.notes || ''
       };
       if (existing !== -1) {
         REGISTRY_LIST[existing] = newResident;
@@ -6928,7 +6928,8 @@ function applyQueueToRegistry() {
         r.moderateNote = c.moderateNote || '';
         r.rawRestriction = tagLabels.join(', ') || 'Regular';
         r.confirm = 'Provisional';
-        if (c.serviceNote !== undefined) r.serviceNote = c.serviceNote;
+        if (c.serviceNote) r.serviceNote = c.serviceNote;
+        else if (c.notes) r.serviceNote = (r.serviceNote ? r.serviceNote + '; ' : '') + c.notes;
       }
 
     } else if (c.type === 'switch') {
@@ -12566,15 +12567,15 @@ function xCell(v, font, fill, border, align) {
 }
 
 const F = { // font presets
-  std: {name:'Calibri',sz:11},
-  stdB: {name:'Calibri',sz:11,bold:true},
-  redB: {name:'Calibri',sz:11,bold:true,color:{rgb:'CC0000'}},
-  whB: {name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},
-  whSm: {name:'Calibri',sz:9,bold:true,color:{rgb:'FFFFFF'}},
-  anaph: {name:'Calibri',sz:11,bold:true,color:{rgb:'8B0000'}},
-  amber: {name:'Calibri',sz:11,bold:true,color:{rgb:'994400'}},
-  noteRed: {name:'Calibri',sz:9,bold:true,color:{rgb:'8B0000'}},
-  noteAmb: {name:'Calibri',sz:9,bold:true,color:{rgb:'994400'}},
+  std:     {name:'Calibri',sz:10},
+  stdB:    {name:'Calibri',sz:10,bold:true},
+  redB:    {name:'Calibri',sz:10,bold:true,color:{rgb:'CC0000'}},
+  whB:     {name:'Calibri',sz:11,bold:true,color:{rgb:'FFFFFF'}},
+  whSm:    {name:'Calibri',sz:9, bold:true,color:{rgb:'FFFFFF'}},
+  anaph:   {name:'Calibri',sz:10,bold:true,color:{rgb:'8B0000'}},
+  amber:   {name:'Calibri',sz:10,bold:true,color:{rgb:'994400'}},
+  noteRed: {name:'Calibri',sz:9, bold:true,color:{rgb:'8B0000'}},
+  noteAmb: {name:'Calibri',sz:9, bold:true,color:{rgb:'994400'}},
 };
 const B = { // border presets
   thin: xBorder(XS.thin),
@@ -12656,7 +12657,7 @@ function buildDaySheet(period, weekNum, dayName) {
     rowHeights[R] = hpt || 18;
     R++;
   }
-  function addRow(a,b,c,hpt) { rows[R]=[a,b,c]; rowHeights[R] = hpt || 16; R++; }
+  function addRow(a,b,c,hpt) { rows[R]=[a,b,c]; rowHeights[R] = hpt || 15; R++; }
 
   // Anaphylactic banner
   if (conflictRooms.size > 0) {
@@ -12672,9 +12673,11 @@ function buildDaySheet(period, weekNum, dayName) {
   addMerged('CONTAINS: '+(allergenStr||'\u2014'), F.redB, 'FCE4D6', B.thin, 18);
 
   // Stats
-  addRow(xCell('',F.std,null,B.thin), xCell('Total Meals',F.stdB,null,B.thin), xCell(String(REGISTRY_LIST.length),F.stdB,'FFFF00',B.thin), 16);
-  addRow(xCell('',F.std,null,B.thin), xCell('Regular',F.stdB,null,B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin), 16);
-  addRow(xCell('',F.std,null,B.thin), xCell('Diabetics',F.stdB,null,B.thin), xCell(String(diabCount),F.stdB,'FFFF00',B.thin), 16);
+  const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
+  addRow(xCell('',F.std,null,B.thin), xCell('Total Meals',F.stdB,null,B.thin), xCell(String(REGISTRY_LIST.length),F.stdB,'FFFF00',B.thin), 15);
+  addRow(xCell('',F.std,null,B.thin), xCell('Regular',    F.stdB,null,B.thin), xCell(String(regCount),            F.stdB,'FFFF00',B.thin), 15);
+  addRow(xCell('',F.std,null,B.thin), xCell('Halal',      F.stdB,null,B.thin), xCell(String(halalCount),          F.stdB,'FFFF00',B.thin), 15);
+  addRow(xCell('',F.std,null,B.thin), xCell('Diabetics',  F.stdB,null,B.thin), xCell(String(diabCount),           F.stdB,'FFFF00',B.thin), 15);
 
   // Anaphylactic section
   if (anaphSect.length) {
@@ -12751,9 +12754,19 @@ function buildDaySheet(period, weekNum, dayName) {
   rows.forEach((row, ri) => { row.forEach((cell, ci) => { ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
   ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:2}});
   ws['!merges'] = merges;
-  ws['!cols'] = [{wch:50},{wch:9},{wch:20}];
+  ws['!cols'] = [{wch:62},{wch:10},{wch:22}];
   ws['!rows'] = rowHeights.map(h => ({hpt: h, hpx: Math.round(h * 1.33)}));
-  ws['!margins'] = {left:0.35,right:0.35,top:0.3,bottom:0.3,header:0.15,footer:0.15};
+  ws['!margins'] = {left:0.3,right:0.3,top:0.3,bottom:0.3,header:0.15,footer:0.15};
+  ws['!pageSetup'] = {
+    paperSize: 1,        // Letter
+    orientation: 'portrait',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,      // Let height flow — don't force single page vertically
+    horizontalDpi: 300,
+    verticalDpi: 300,
+  };
+  ws['!printOptions'] = {gridLines: false, headings: false};
 
   const tabName = (dayLabel.substring(0,3).toUpperCase()+' '+mealName.substring(0,26)).substring(0,31);
   return {ws, tabName};
