@@ -85,7 +85,7 @@
   .content { padding: 24px 28px; }
   .screen { display: none; }
   .screen.active { display: block; }
-  .two-col-65 { display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start; }
+  .two-col-65 { display: grid; grid-template-columns: 1fr 420px; gap: 16px; align-items: start; }
   .mb-16 { margin-bottom: 16px; }
 
   /* CARDS */
@@ -5388,7 +5388,8 @@ const MENU_DATA = {
                         "hasSoy": false,
                         "hasBeef": false,
                         "isSpicy": true,
-                        "isCarb": false
+                        "isCarb": false,
+                        "hasProcessedMeat": true
                   },
                   "dinner_flags": {
                         "hasGluten": false,
@@ -6050,7 +6051,7 @@ const MENU_DATA = {
                   }
             }
       }
-};;
+};;;
 
 
 // Recent changes log (simulated — last 3 days)
@@ -8608,7 +8609,7 @@ function computeBaseSections() {
   }
 
   sections.forEach(s => {
-    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative'};
+    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', mealFlags: MEAL_DATA.lunch};
     result.push({
       name: s.rule.label,
       count: s.residents.length,
@@ -8632,7 +8633,7 @@ function computeBaseSections() {
 const ROUTING_RULES = [
   {p:1,  key:'vegan',   label:'Vegan / Vegetarian', tags:['Vegan','Vegetarian'],   always:true,                    altType:'vegan_alt'},
   {p:2,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef'], altType:'halal_alt'},
-  {p:2.5, key:'no_processed', label:'No Processed Meat', tags:['No Processed Food'], triggers:['hasProcessedMeat'], altType:'halal_alt', mergeInto:'halal'},
+  {p:2.5, key:'no_processed', label:'No Processed Food', tags:['No Processed Food'], triggers:['hasProcessedMeat'], altType:'noproc_alt'},
   {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish'], triggers:['hasFish'],         altType:'vegan_alt', mergeInto:'vegan'},
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
   {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy'],             triggers:['hasDairy'],          altType:'vegan_alt', mergeInto:'vegan'},
@@ -8652,6 +8653,7 @@ function getAltMeal(altType, ctx) {
     case 'gf_alt':        return (ctx && ctx.mealFlags && ctx.mealFlags.hasPork && ctx.mealFlags.hasGluten) ? 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg' : 'Gluten free alternative';
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
     case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
+    case 'noproc_alt':    return ctx && ctx.softAlt ? ctx.softAlt : 'Non-processed alternative — plain protein, rice \u0026 veg';
     case 'soft':          return ctx && ctx.softAlt ? ctx.softAlt : '[Supervisor: specify soft meal]';
     case 'main':          return ctx.mealName;
     default:              return ctx.mealName;
@@ -8700,6 +8702,10 @@ function computeSections(mealFlags, registry) {
   // - Soft Meals residents join Halal (they receive the same alternative protein)
   // - Bland/No Spicy residents join GF (same plain meal — Roast Chicken, Rice, Veg)
   if (mealFlags && mealFlags.hasPork) {
+    if (pools['no_processed'] && pools['halal'] && pools['no_processed'].length) {
+      pools['halal'].push(...pools['no_processed']);
+      pools['no_processed'] = [];
+    }
     if (pools['soft'] && pools['halal'] && pools['soft'].length) {
       pools['halal'].push(...pools['soft']);
       pools['soft'] = [];
@@ -9013,11 +9019,11 @@ function getMealForDate(date) {
 
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
   let lunchBase = { name: dayData.lunch || 'Lunch', veg: dayData.lunch_veg || '',
-    ...(dayData.lunch_flags || emptyFlags) };
+    softAlt: dayData.lunch_softAlt || '', ...(dayData.lunch_flags || emptyFlags) };
   let dinnerBase = { name: dayData.dinner || 'Dinner', veg: dayData.dinner_veg || '',
-    ...(dayData.dinner_flags || emptyFlags) };
+    softAlt: dayData.dinner_softAlt || '', ...(dayData.dinner_flags || emptyFlags) };
   let breakfastBase = { name: dayData.breakfast || 'Breakfast', veg: dayData.breakfast_veg || '',
-    ...(dayData.breakfast_flags || emptyFlags) };
+    softAlt: dayData.breakfast_softAlt || '', ...(dayData.breakfast_flags || emptyFlags) };
 
   lunchBase     = applyEdit('lunch', lunchBase);
   dinnerBase    = applyEdit('dinner', dinnerBase);
