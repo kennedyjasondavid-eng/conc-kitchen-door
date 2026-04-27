@@ -6332,6 +6332,20 @@ function toggleModerate(btn) {
   }
 }
 
+function openEditFromRegistry(room) {
+  // Navigate to Enter Changes, set room + type, trigger lookup
+  showScreen('enter', document.querySelector('[data-screen=enter]'));
+  setTimeout(() => {
+    const typeEl = document.getElementById('change-type');
+    const roomEl = document.getElementById('room-number');
+    if (typeEl) { typeEl.value = 'update'; onTypeChange(); }
+    if (roomEl) {
+      roomEl.value = room;
+      lookupRoom(room);
+    }
+  }, 80);
+}
+
 function clearQueue() {
   if (!changesQueue.length) { showToast('Queue is already empty.'); return; }
   if (!confirm(`Clear all ${changesQueue.length} change${changesQueue.length!==1?'s':''} from the queue?`)) return;
@@ -7185,7 +7199,7 @@ function resetAndGoHome() {
 function renderRegistry(data) {
   const sectionColors = { 'Halal':'#ecfdf5','Vegan':'#f0fdf4','Gluten Free':'#fefce8','No Dairy':'#fdf4ff','Diabetic':'#eff6ff','Regular':'#fff' };
   const body = document.getElementById('registry-body');
-  if (!data.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No residents match.</td></tr>'; return; }
+  if (!data.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No residents match.</td></tr>'; return; }
   const today = new Date(); today.setHours(0,0,0,0);
   body.innerHTML = data.map(r => {
     const tags = r.tags.map(t=>`<span class="tag ${getTagClass(t)}">${t}</span>`).join(' ');
@@ -7206,6 +7220,9 @@ function renderRegistry(data) {
       <td><span style="font-size:12px;color:${r.confirm==='Provisional'?'#d97706':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid)'};font-weight:600">${r.confirm}</span></td>
       <td>${deadlineHtml}</td>
       <td style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">${r.confirmBy}</td>
+      <td><button onclick="openEditFromRegistry('${r.room}')"
+        style="font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--forest);font-weight:600;white-space:nowrap;"
+        title="Edit restrictions in Enter Changes">Edit</button></td>
     </tr>`;
   }).join('');
 }
