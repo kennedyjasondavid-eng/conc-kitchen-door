@@ -8560,8 +8560,8 @@ function computeBaseSections() {
 // always = rule active regardless of meal flags
 // mergeInto = if set, residents added to that section's pool instead of own section
 const ROUTING_RULES = [
-  {p:1,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef'], altType:'halal_alt'},
-  {p:2,  key:'vegan',   label:'Vegan / Vegetarian', tags:['Vegan','Vegetarian'],   always:true,                    altType:'vegan_alt'},
+  {p:1,  key:'vegan',   label:'Vegan / Vegetarian', tags:['Vegan','Vegetarian'],   always:true,                    altType:'vegan_alt'},
+  {p:2,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef'], altType:'halal_alt'},
   {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish'], triggers:['hasFish'],         altType:'vegan_alt', mergeInto:'vegan'},
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
   {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy'],             triggers:['hasDairy'],          altType:'vegan_alt', mergeInto:'vegan'},
@@ -8578,7 +8578,7 @@ function getAltMeal(altType, ctx) {
   switch(altType) {
     case 'vegan_alt':     return ctx.mealVeg || 'Vegan / vegetarian alternative';
     case 'halal_alt':     return 'Halal alternative — ' + ctx.mealName;
-    case 'gf_alt':        return 'Gluten free alternative';
+    case 'gf_alt':        return (ctx && ctx.mealFlags && ctx.mealFlags.hasPork && ctx.mealFlags.hasGluten) ? 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg' : 'Gluten free alternative';
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
     case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
     case 'soft':          return ctx && ctx.softAlt ? ctx.softAlt : '[Supervisor: specify soft meal]';
@@ -8624,6 +8624,20 @@ function computeSections(mealFlags, registry) {
       pools[rule.key] = [];
     }
   });
+
+  // Pork-day alignment with manual plating sheet practice:
+  // - Soft Meals residents join Halal (they receive the same alternative protein)
+  // - Bland/No Spicy residents join GF (same plain meal — Roast Chicken, Rice, Veg)
+  if (mealFlags && mealFlags.hasPork) {
+    if (pools['soft'] && pools['halal'] && pools['soft'].length) {
+      pools['halal'].push(...pools['soft']);
+      pools['soft'] = [];
+    }
+    if (pools['bland'] && pools['gf'] && pools['bland'].length) {
+      pools['gf'].push(...pools['bland']);
+      pools['bland'] = [];
+    }
+  }
 
   // Sort all pools
   Object.values(pools).forEach(arr => arr.sort(sortR));
@@ -12117,7 +12131,7 @@ function buildDaySheet(period, weekNum, dayName) {
   anaphSect.sort(sortR);
 
   // Compute dynamic sections
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, mealFlags};
   const sections = computeSections(mealFlags, routingRegistry);
   const regularSection = sections.find(s => s.rule.key === 'regular');
   const regCount = regularSection ? regularSection.residents.length : 0;
@@ -12191,7 +12205,8 @@ function buildDaySheet(period, weekNum, dayName) {
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
     } else if (s.rule.altType === 'gf_alt') {
-      const gfAllergens = allergenStr.split(',').map(a=>a.trim()).filter(a => a && !/gluten/i.test(a)).join(', ');
+      const gfAllergens = allergenStr.split(',').map(a=>a.trim())
+        .filter(a => a && !/gluten/i.test(a) && !(mealFlags.hasPork && /\bpork\b/i.test(a))).join(', ');
       sectionAllergenStr = gfAllergens || null;
     } else {
       sectionAllergenStr = null;
