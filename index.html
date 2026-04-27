@@ -6555,6 +6555,68 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
 // ============================================================
 // REVIEW
 // ============================================================
+function nrApplyReview(room, sid) {
+  const action = document.getElementById('nr-action-'+sid)?.value || 'skip';
+  const tagEl  = document.getElementById('nr-tag-'+sid);
+  const value  = (action === 'map' && tagEl) ? tagEl.value : '';
+  let nrRes = {};
+  try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
+  nrRes[room] = { action, value };
+
+  // If mapping to a tag, also update the resident's record in the registry
+  if (action === 'map' && value) {
+    const r = REGISTRY_MAP[room.toLowerCase()];
+    if (r) {
+      const existingTags = r.tags || [];
+      const newLabel = TAG_LABELS_MAP[value];
+      if (newLabel && !existingTags.includes(newLabel)) {
+        existingTags.push(newLabel);
+        r.tags = existingTags;
+      }
+    }
+  }
+  // If service note, append to resident's serviceNote
+  if (action === 'note') {
+    const r = REGISTRY_MAP[room.toLowerCase()];
+    if (r) {
+      const nrItem = (JSON.parse(localStorage.getItem('concUnresolvedNR')||'[]')).find(x=>x.room===room);
+      if (nrItem) r.serviceNote = (r.serviceNote ? r.serviceNote + '; ' : '') + nrItem.text;
+    }
+  }
+
+  localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
+
+  // Check if all done — if so clear the NR gate
+  const nrItems = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
+  const allDone = nrItems.every(x => nrRes[x.room]);
+  if (allDone) localStorage.removeItem('concUnresolvedNR');
+
+  buildReview(); // re-render
+}
+
+function nrUndoReview(room) {
+  let nrRes = {};
+  try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
+  delete nrRes[room];
+  localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
+  // Restore to unresolved
+  const existing = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
+  if (!existing.find(x => x.room === room)) {
+    // Find text from registry log or just use room
+    const r = REGISTRY_MAP[room.toLowerCase()];
+    existing.push({ room, text: (r && r.rawRestriction) || room });
+    localStorage.setItem('concUnresolvedNR', JSON.stringify(existing));
+  }
+  buildReview();
+}
+
+// Show/hide tag select based on action choice
+function nrToggleTagSelect(sid) {
+  const action = document.getElementById('nr-action-'+sid)?.value;
+  const tagEl  = document.getElementById('nr-tag-'+sid);
+  if (tagEl) tagEl.style.display = action === 'map' ? 'inline-block' : 'none';
+}
+
 function goToNeedsReview() {
   // Navigate to Enter Changes and re-open the last import at the Needs Review tab
   showScreen('enter', document.querySelector('[data-screen=enter]'));
@@ -6608,34 +6670,78 @@ function buildReview() {
   const nrRaw = localStorage.getItem('concUnresolvedNR');
   const nrItems = nrRaw ? JSON.parse(nrRaw) : [];
   let nrHtml = '';
+  // Load any resolutions already made on this screen
+  let nrResolutions = {};
+  try { nrResolutions = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
+
   if (nrItems.length) {
+    const allTagOptions = Object.entries(TAG_LABELS_MAP)
+      .filter(([k]) => k !== 'other')
+      .map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+
+    const remaining = nrItems.filter(r => !nrResolutions[r.room]);
+    const resolved  = nrItems.filter(r =>  nrResolutions[r.room]);
+
+    const rowsHtml = nrItems.map((r,i) => {
+      const res = nrResolutions[r.room];
+      if (res) {
+        const resLabel = res.action === 'skip' ? '— not applicable'
+          : res.action === 'note' ? '📝 saved as service note'
+          : '→ ' + (TAG_LABELS_MAP[res.value] || res.value);
+        return `<tr style="background:#f0fdf4;">
+          <td style="padding:6px 8px;font-family:monospace;font-weight:700;color:#166534;">${r.room}</td>
+          <td style="padding:6px 8px;color:#166534;font-size:11px;">${r.text}</td>
+          <td style="padding:6px 8px;font-size:11px;color:#166534;">${resLabel}</td>
+          <td style="padding:6px 8px;"><button onclick="nrUndoReview('${r.room}')" style="font-size:10px;color:#92400e;background:none;border:none;cursor:pointer;text-decoration:underline;">Undo</button></td>
+        </tr>`;
+      }
+      const sid = 'rvw_' + r.room.replace(/[^a-z0-9]/gi,'_');
+      return `<tr style="background:${i%2?'#fef9c3':'#fefce8'};" id="nr-row-${sid}">
+        <td style="padding:6px 8px;font-family:monospace;font-weight:700;color:#78350f;">${r.room}</td>
+        <td style="padding:6px 8px;color:#92400e;font-size:11px;">${r.text}</td>
+        <td style="padding:6px 8px;" colspan="2">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <select id="nr-action-${sid}" onchange="nrToggleTagSelect('${sid}')" style="font-size:11px;padding:2px 4px;border:1px solid #fcd34d;border-radius:4px;background:#fffbeb;">
+              <option value="map">→ Assign tag</option>
+              <option value="note">📝 Service note</option>
+              <option value="skip">— Not applicable</option>
+            </select>
+            <select id="nr-tag-${sid}" style="font-size:11px;padding:2px 4px;border:1px solid #fcd34d;border-radius:4px;background:#fffbeb;">${allTagOptions}</select>
+            <button onclick="nrApplyReview('${r.room}','${sid}')"
+              style="font-size:11px;padding:2px 10px;background:#166534;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Apply</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const doneCount = resolved.length;
+    const totalCount = nrItems.length;
+    const allDone = doneCount === totalCount;
+
     nrHtml = `<div id="nr-block-banner" style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;padding:14px 16px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <span style="font-size:18px">⚠️</span>
-        <div>
-          <strong style="color:#78350f;font-size:13px;">Unresolved Restriction Text — ${nrItems.length} resident${nrItems.length>1?'s':''}</strong><br>
-          <span style="font-size:11px;color:#92400e;">The following residents had restriction text in the daily roster that could not be matched to a known dietary category and was not resolved during import. They have been imported as <strong>Regular with no restrictions applied</strong>. Review carefully before generating.</span>
+        <span style="font-size:18px">${allDone ? '✅' : '⚠️'}</span>
+        <div style="flex:1;">
+          <strong style="color:#78350f;font-size:13px;">${allDone ? 'All restrictions resolved — ready to generate.' : `Unresolved Restrictions — ${remaining.length} of ${totalCount} remaining`}</strong><br>
+          <span style="font-size:11px;color:#92400e;">Assign each restriction to a known category, save as a service note, or mark as not applicable. Changes apply when you generate.</span>
         </div>
       </div>
-      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px;">
         <thead><tr style="background:#fde68a;">
-          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;">Room</th>
-          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;">Unresolved restriction text from roster</th>
+          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;width:60px;">Room</th>
+          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;">Restriction text from roster</th>
+          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;" colspan="2">Decision</th>
         </tr></thead>
-        <tbody>${nrItems.map((r,i) => `<tr style="background:${i%2?'#fef9c3':'#fefce8'}">
-          <td style="padding:4px 8px;font-family:monospace;font-weight:700;color:#78350f;">${r.room}</td>
-          <td style="padding:4px 8px;color:#92400e;">${r.text}</td>
-        </tr>`).join('')}</tbody>
+        <tbody id="nr-review-tbody">${rowsHtml}</tbody>
       </table>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-mint btn-sm" onclick="goToNeedsReview()" style="flex-shrink:0;">
-          → Resolve in Enter Changes
-        </button>
-        <span style="font-size:11px;color:#92400e;">Open the last import's Needs Review tab to classify these restrictions before generating.</span>
-      </div>
     </div>`;
+
     const btn = document.getElementById('generate-btn');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.title = 'Resolve unresolved restriction text in Enter Changes before generating'; }
+    if (btn) {
+      btn.disabled = !allDone;
+      btn.style.opacity = allDone ? '' : '0.45';
+      btn.title = allDone ? '' : 'Resolve all restrictions above before generating';
+    }
   } else {
     const btn = document.getElementById('generate-btn');
     if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.title = ''; }
@@ -6985,6 +7091,7 @@ function generateFiles() {
 
   // Clear unresolved NR flag — operator has acknowledged and generated
   localStorage.removeItem('concUnresolvedNR');
+  localStorage.removeItem('concNRResolutions');
 
   // Track last generated time
   localStorage.setItem('concLastGenerated', new Date().toISOString());
