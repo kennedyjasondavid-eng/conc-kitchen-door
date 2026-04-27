@@ -722,6 +722,8 @@ let _recipeDataSource = 'fallback';
                 <div class="cb-item" onclick="toggleCb(this,'noOats')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Oats</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noSulphites')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Sulphites</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noMustard')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Mustard</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noBeans')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Beans</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noCorn')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Corn</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noNightshades')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Nightshades</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noBrassicas')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Brassicas</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'other')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Other…</span></div>
@@ -6242,9 +6244,10 @@ function lookupRoom(val) {
       box.innerHTML = `<div class="lookup-header" style="color:#166534">✓ Found: Room ${exact.room}</div>
         <div class="lookup-section">Current section: <strong>${exact.section}</strong> · Status: ${exact.confirm}</div>
         <div class="lookup-tags">${exact.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-        <div style="font-size:12px;margin-top:6px;color:var(--muted);">Select the new restrictions below. These will replace the existing profile.</div>`;
+        <div style="font-size:12px;margin-top:6px;color:var(--muted);">Existing restrictions are pre-checked below — tick or untick to update, then add change.</div>`;
       box.style.display = 'block';
       dcBox.style.display = 'none';
+      prePopulateCheckboxes(exact.tags);
     }
   } else {
     if (type === 'intake') {
@@ -6270,6 +6273,19 @@ function selectRoom(room) {
 // ============================================================
 // FORM
 // ============================================================
+function prePopulateCheckboxes(tagLabels) {
+  // Clear all first
+  document.querySelectorAll('.cb-item').forEach(el => el.classList.remove('checked'));
+  checkedBoxes = {};
+  // Map each label back to its key and tick it
+  tagLabels.forEach(label => {
+    const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
+    if (!key) return;
+    const el = document.querySelector(`.cb-item[onclick*="'${key}'"]`);
+    if (el) { el.classList.add('checked'); checkedBoxes[key] = true; }
+  });
+}
+
 function onTypeChange() {
   const type = document.getElementById('change-type').value;
   document.getElementById('restriction-fields').style.display = (type === 'discharge') ? 'none' : 'block';
@@ -6448,7 +6464,7 @@ const TAG_LABELS_MAP = {
   noPeanuts:'No Peanuts', noCoconut:'No Coconut', noBeef:'No Beef',
   noSpicy:'No Spicy', noMushroom:'No Mushroom', noSoy:'No Soy', noSesame:'No Sesame',
   noTreeNuts:'No Tree Nuts', noMolluscs:'No Molluscs', noOats:'No Oats',
-  noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', noProcessedFood:'No Processed Food', lactoIntolerant:'Lactose Intolerant', lowFat:'Low Fat', lowPotassium:'Low Potassium', noNightshades:'No Nightshades', noBrassicas:'No Brassicas', other:'Other'
+  noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', noProcessedFood:'No Processed Food', lactoIntolerant:'Lactose Intolerant', lowFat:'Low Fat', lowPotassium:'Low Potassium', noNightshades:'No Nightshades', noBrassicas:'No Brassicas', noBeans:'No Beans', noCorn:'No Corn', other:'Other'
 };
 function getTagLabels(tags) {
   return Object.keys(tags).filter(k => tags[k] && TAG_LABELS_MAP[k]).map(k => TAG_LABELS_MAP[k]);
@@ -6601,7 +6617,32 @@ function buildReview() {
     const btn = document.getElementById('generate-btn');
     if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.title = ''; }
   }
-  document.getElementById('review-flags-area').innerHTML = nrHtml + flagsHtml;
+  // Ingredient conflict alerts for today's meals
+  const todayConflicts = [
+    ...getIngredientConflicts(MEAL_DATA.lunch, REGISTRY_LIST).map(x => ({...x, period:'Lunch'})),
+    ...getIngredientConflicts(MEAL_DATA.dinner, REGISTRY_LIST).map(x => ({...x, period:'Dinner'})),
+  ].filter(x => x.residents.length);
+  // Deduplicate by mealFlag+period
+  let conflictHtml = '';
+  if (todayConflicts.length) {
+    const grouped = {};
+    todayConflicts.forEach(x => {
+      const k = x.period + '-' + x.mealFlag;
+      if (!grouped[k]) grouped[k] = { ...x, rooms: [] };
+      x.residents.forEach(r => { if (!grouped[k].rooms.includes(r.room)) grouped[k].rooms.push(r.room); });
+    });
+    conflictHtml = Object.values(grouped).map(g =>
+      `<div class="alert ${g.severity==='red' ? 'alert-danger' : 'alert-warn'}" style="margin-bottom:8px;">
+        <span class="alert-icon">${g.severity==='red'?'🚨':'⚠'}</span>
+        <div class="alert-body">
+          <strong>${g.period}: ${g.label} — ${g.rooms.length} resident${g.rooms.length!==1?'s':''} affected.</strong>
+          Rooms: ${g.rooms.sort().join(', ')}
+          <span style="font-size:11px;color:var(--muted);margin-left:8px;">Plating note: ${g.note}</span>
+        </div>
+      </div>`
+    ).join('');
+  }
+  document.getElementById('review-flags-area').innerHTML = nrHtml + conflictHtml + flagsHtml;
 
   // Changes table
   const body = document.getElementById('review-changes-body');
@@ -8159,17 +8200,19 @@ function runCustomReport() {
         if (!meal || !meal.name) return;
         const dayConflicts = [];
 
-        if (meal.hasFish) {
-          const noFish = REGISTRY_LIST.filter(r => r.tags && r.tags.includes('No Fish'));
-          if (noFish.length) dayConflicts.push({ type: 'No Fish', residents: noFish.length, rooms: noFish.slice(0,4).map(r=>r.room).join(', '), severity: 'amber' });
-        }
+        getIngredientConflicts(meal, REGISTRY_LIST).forEach(x => {
+          const isCrit = x.severity === 'red';
+          dayConflicts.push({
+            type: x.label + (isCrit ? ' — CRITICAL' : ''),
+            residents: x.residents.length,
+            rooms: x.residents.slice(0,5).map(r=>r.room).join(', '),
+            severity: x.severity
+          });
+        });
+        // Anaphylactic check as override
         if (meal.hasPeanuts) {
-          const noPeanut = REGISTRY_LIST.filter(r => r.isAnaph || (r.tags && r.tags.includes('No Peanuts')));
-          if (noPeanut.length) dayConflicts.push({ type: 'Peanuts — ANAPHYLACTIC', residents: noPeanut.length, rooms: noPeanut.map(r=>r.room).join(', '), severity: 'red' });
-        }
-        if (meal.hasGluten) {
-          const gf = REGISTRY_LIST.filter(r => r.section === 'Gluten Free');
-          if (gf.length) dayConflicts.push({ type: 'Gluten Free required', residents: gf.length, rooms: gf.slice(0,4).map(r=>r.room).join(', '), severity: 'amber' });
+          const anaph = REGISTRY_LIST.filter(r => r.isAnaph);
+          if (anaph.length) dayConflicts.push({ type: 'Peanuts — ANAPHYLACTIC', residents: anaph.length, rooms: anaph.map(r=>r.room).join(', '), severity: 'red' });
         }
 
         if (dayConflicts.length) conflicts.push({ date: dateStr, period, meal: meal.name, conflicts: dayConflicts });
@@ -9318,6 +9361,13 @@ const FLAG_DEFS = [
   {key:'isSpicy',     label:'Spicy',      color:'#f97316', primary:false, mealLevel:true, tip:'Meal is spicy. Activates Bland section.'},
   {key:'isCarb',        label:'Carb-swap',       color:'#2563eb', primary:false, mealLevel:true, tip:'Main component is a high-carb format. Activates Diabetic section.'},
   {key:'hasProcessedMeat', label:'Processed Meat',   color:'#7c3aed', primary:false, mealLevel:true, tip:'Meal contains processed meat products (sausages, ham, deli meat, hot dogs, pepperoni). Activates routing for No Processed Foods residents. Do NOT set for scratch-cooked pork or beef.'},
+  // Ingredient-level flags — conflict detection and plating sheet notes, no routing section
+  {key:'hasBeans',      label:'Beans',        color:'#15803d', primary:false, tip:'Meal contains beans or legumes. Flags No Beans residents.'},
+  {key:'hasMushroom',   label:'Mushroom',     color:'#78716c', primary:false, tip:'Meal contains mushrooms. Flags No Mushroom residents.'},
+  {key:'hasCoconut',    label:'Coconut',      color:'#a16207', primary:false, tip:'Meal contains coconut or coconut-derived ingredients. Flags No Coconut residents.'},
+  {key:'hasNightshades',label:'Nightshades',  color:'#b45309', primary:false, tip:'Meal contains nightshades (tomatoes, potatoes, peppers, eggplant). Flags No Nightshades residents.'},
+  {key:'hasBrassicas',  label:'Brassicas',    color:'#166534', primary:false, tip:'Meal contains brassicas (broccoli, cauliflower, cabbage, kale). Flags No Brassicas residents.'},
+  {key:'hasCorn',       label:'Corn',         color:'#ca8a04', primary:false, tip:'Meal contains corn or corn-derived ingredients. Flags No Corn residents.'},
 ];
 const SECTION_COLORS = {
   'Halal':'#059669','Vegan / Vegetarian':'#16a34a','Gluten Free':'#d97706',
@@ -9331,6 +9381,43 @@ const SECTION_COLOR_MAP = {
   diabetic:'#2563eb', bland:'#dc2626', soft:'#0891b2', no_egg:'#ca8a04',
   no_fish:'#0ea5e9', no_beef:'#b45309', regular:'#9ca3af'
 };
+
+// ─── CONFLICT_MAP ─────────────────────────────────────────────────────────────
+// Drives conflict detection, Screen 2 alerts, and plating sheet ingredient notes.
+// Routing-level flags (hasPork, hasGluten, etc.) are handled by the routing engine;
+// CONFLICT_MAP adds ingredient-level visibility on top.
+const CONFLICT_MAP = [
+  { mealFlag:'hasFish',        residentTag:'No Fish',          label:'Fish',          note:'no fish',                            severity:'amber' },
+  { mealFlag:'hasFish',        residentTag:'No Shellfish',      label:'Shellfish',     note:'no shellfish',                       severity:'amber' },
+  { mealFlag:'hasPeanuts',     residentTag:'No Peanuts',        label:'Peanuts',       note:'NO PEANUTS',                         severity:'red'   },
+  { mealFlag:'hasSoy',         residentTag:'No Soy',            label:'Soy',           note:'no soy',                             severity:'amber' },
+  { mealFlag:'hasTreeNuts',    residentTag:'No Tree Nuts',      label:'Tree Nuts',     note:'no tree nuts',                       severity:'amber' },
+  { mealFlag:'hasCoconut',     residentTag:'No Coconut',        label:'Coconut',       note:'no coconut',                         severity:'amber' },
+  { mealFlag:'hasSesame',      residentTag:'No Sesame',         label:'Sesame',        note:'no sesame',                          severity:'amber' },
+  { mealFlag:'hasMustard',     residentTag:'No Mustard',        label:'Mustard',       note:'no mustard',                         severity:'amber' },
+  { mealFlag:'hasShellfish',   residentTag:'No Shellfish',      label:'Shellfish',     note:'no shellfish',                       severity:'amber' },
+  { mealFlag:'hasSulphites',   residentTag:'No Sulphites',      label:'Sulphites',     note:'no sulphites',                       severity:'amber' },
+  { mealFlag:'hasBeans',       residentTag:'No Beans',          label:'Beans',         note:'no beans',                           severity:'amber' },
+  { mealFlag:'hasMushroom',    residentTag:'No Mushroom',       label:'Mushroom',      note:'no mushroom',                        severity:'amber' },
+  { mealFlag:'hasCoconut',     residentTag:'No Coconut',        label:'Coconut',       note:'no coconut',                         severity:'amber' },
+  { mealFlag:'hasNightshades', residentTag:'No Nightshades',    label:'Nightshades',   note:'no tomato/potato/pepper',            severity:'amber' },
+  { mealFlag:'hasBrassicas',   residentTag:'No Brassicas',      label:'Brassicas',     note:'no broccoli/cauliflower/cabbage',    severity:'amber' },
+  { mealFlag:'hasCorn',        residentTag:'No Corn',           label:'Corn',          note:'no corn',                            severity:'amber' },
+  { mealFlag:'hasEgg',         residentTag:'No Eggs',           label:'Egg',           note:'no egg',                             severity:'amber' },
+  { mealFlag:'hasGluten',      residentTag:'Gluten Free',       label:'Gluten',        note:'gluten-free',                        severity:'amber' },
+  { mealFlag:'hasDairy',       residentTag:'No Dairy',          label:'Dairy',         note:'dairy-free',                         severity:'amber' },
+  { mealFlag:'hasDairy',       residentTag:'Lactose Intolerant',label:'Dairy',         note:'no dairy',                           severity:'amber' },
+];
+
+function getIngredientConflicts(mealFlags, residents) {
+  const results = [];
+  CONFLICT_MAP.forEach(rule => {
+    if (!mealFlags[rule.mealFlag]) return;
+    const affected = residents.filter(r => (r.tags||[]).includes(rule.residentTag));
+    if (affected.length) results.push({ ...rule, residents: affected });
+  });
+  return results;
+}
 
 // Safe localStorage helper for site key
 function getSelectedSite() {
@@ -11273,7 +11360,7 @@ const IMPORT_TAG_RULES = [
 
   // Proteins
   { re: /\bno\s+pork\b/i,                            tag: 'noPork' },
-  { re: /\bno\s+beef\b/i,                            tag: 'noBeef' },
+  { re: /\bno\s+(beef|red\s+meat)\b/i,             tag: 'noBeef' },
   { re: /\bno\s+fish\b/i,                            tag: 'noFish' },
   { re: /\bno\s+shell\s*fish\b/i,                    tag: 'noShellfish' },
   { re: /\bshellfish\s*(&|and)\s*mollusks?\b/i,      tag: 'noShellfish' },
@@ -11304,6 +11391,8 @@ const IMPORT_TAG_RULES = [
   { re: /\blow[- ]fat\b/i,                                        tag: 'lowFat' },
   { re: /\b(low[- ]potassium|no\s+potassium)\b/i,                  tag: 'lowPotassium' },
   { re: /\bno[- ]nightshades?\b|\bnightshade[- ]free\b/i,            tag: 'noNightshades' },
+  { re: /\bno[- ]beans?\b/i,                                           tag: 'noBeans' },
+  { re: /\bno[- ]corn\b/i,                                              tag: 'noCorn' },
   { re: /\bno[- ]brassicas?\b|\bbrassica[- ]free\b|\bno\s+cruciferous\b/i, tag: 'noBrassicas' },
 
   // Medical
@@ -11336,24 +11425,29 @@ const IMPORT_FUZZY_VOCAB = [
   ['halal','halal'], ['vegan','vegan'], ['vegetarian','vegetarian'], ['diabetic','diabetic'],
   ['gluten free','glutenFree'], ['no wheat','glutenFree'],
   ['no dairy','noDairy'], ['no diary','noDairy'], ['lactose','noDairy'],
-  ['no pork','noPork'], ['no beef','noBeef'], ['no fish','noFish'],
+  ['no pork','noPork'], ['no beef','noBeef'], ['no red meat','noBeef'], ['no fish','noFish'],
   ['no eggs','noEggs'], ['no peanuts','noPeanuts'], ['no coconut','noCoconut'],
   ['soft meals','softMeals'], ['no spicy','noSpicy'], ['low sodium','lowSodium'],
-  ['no fried food','noFriedFood'], ['no turkey','noTurkey'], ['no processed food','noProcessedFood'], ['lactose intolerant','lactoIntolerant'], ['lactose free','lactoIntolerant'], ['low fat','lowFat'], ['low potassium','lowPotassium'], ['no potassium','lowPotassium'], ['no nightshades','noNightshades'], ['no brassicas','noBrassicas'], ['no cruciferous','noBrassicas'],
+  ['no fried food','noFriedFood'], ['no turkey','noTurkey'], ['no processed food','noProcessedFood'], ['lactose intolerant','lactoIntolerant'], ['lactose free','lactoIntolerant'], ['low fat','lowFat'], ['low potassium','lowPotassium'], ['no potassium','lowPotassium'], ['no nightshades','noNightshades'], ['no brassicas','noBrassicas'], ['no beans','noBeans'], ['no corn','noCorn'], ['no cruciferous','noBrassicas'],
 ];
 
 // ─── Slash expansion ────────────────────────────────────────────────────────
 // "No Cauliflower/Tomatoes/Cucumber" → "No Cauliflower, No Tomatoes, No Cucumber"
 function expandSlashNegations(text) {
-  const QUALIFIED = /^(no |halal|vegan|vegetarian|diabetic|gluten|lactose|low |soft )/i;
+  const QUALIFIED   = /^(no |halal|vegan|vegetarian|diabetic|gluten|lactose|low |soft )/i;
+  const SIMPLE_NEG  = /^no\s+[a-zA-Z]{2,20}(\s+[a-zA-Z]{2,15})?$/i;  // "No Fish", "No Pork" — simple only
+  const SIMPLE_NOUN = /^[a-zA-Z]{2,20}(\s+[a-zA-Z]{2,15})?$/;
   const parts = text.split('/');
-  let lastWasNo = false;
+  let lastWasSimpleNo = false;
   return parts.map((part, i) => {
     const t = part.trim();
     if (!t) return t;
-    if (QUALIFIED.test(t)) { lastWasNo = /^no /i.test(t); return t; }
-    if (lastWasNo && i > 0) return 'No ' + t;
-    lastWasNo = false;
+    if (QUALIFIED.test(t)) {
+      lastWasSimpleNo = SIMPLE_NEG.test(t); // only true for clean "No Noun" — not long sentences
+      return t;
+    }
+    if (lastWasSimpleNo && i > 0 && SIMPLE_NOUN.test(t) && !t.includes(',')) { lastWasSimpleNo = false; return 'No ' + t; }
+    lastWasSimpleNo = false;
     return t;
   }).join(', ');
 }
@@ -11790,7 +11884,8 @@ function renderNeedsReviewPane() {
       const sid = (r.room + '_' + u).replace(/[^a-zA-Z0-9]/g,'_');
       const resolved = resolvedTokens[u];
       if (resolved) {
-        const rl = resolved.action==='note' ? '\uD83D\uDCDD service note'
+        const rl = resolved.action==='skip' ? '\u2014 not applicable'
+          : resolved.action==='note' ? '\uD83D\uDCDD service note'
           : resolved.action==='map' ? '\u2192 '+(TAG_LABELS_MAP[resolved.value]||resolved.value)
           : '\u2605 new rule: '+(resolved.label||resolved.value);
         return `<div class="nr-chip resolved">
@@ -11817,6 +11912,9 @@ function renderNeedsReviewPane() {
             <input type="text" class="nr-rule-label" id="rp-lbl-${sid}" placeholder='Label, e.g. "No Fried Food"' value="${initLabel}" oninput="updatePatternPreview('${sid}')">
             <div class="nr-pattern-preview" id="rp-pat-${sid}"></div>
           </div>
+          <div class="nr-option-group">
+            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="skip"> Not applicable — preference language or contextual note, not a restriction</label>
+          </div>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <button class="btn btn-mint btn-sm" onclick="applyResolution('${r.room}','${u.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}','${sid}')">Apply</button>
             <button class="btn btn-ghost btn-sm" onclick="toggleResolvePanel('rp-${sid}')">Cancel</button>
@@ -11827,9 +11925,10 @@ function renderNeedsReviewPane() {
     const statusBadge = allResolved
       ? '<span style="font-size:11px;background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-weight:600;margin-left:6px;">\u2713 All resolved</span>' : '';
 
-    return `<div class="import-row" style="background:${allResolved?'#f0fdf4':'#fffbeb'};flex-direction:column;align-items:stretch;">
+    const allDone2 = r.unmatched.every(u => resolvedTokens[u]);
+    return `<div class="import-row" style="background:${allDone2?'#f0fdf4':'#fffbeb'};flex-direction:column;align-items:stretch;">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <div class="import-row-room">Room ${r.room}${statusBadge}</div>
+        <div class="import-row-room">Room ${r.room}${allDone2 ? '<span style="font-size:11px;background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-weight:600;margin-left:6px;">\u2713 Done</span>' : ''}</div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px;">Source: <em>${r.rawText}</em></div>
       <div style="margin-top:8px;">${chips}</div>
@@ -11837,7 +11936,18 @@ function renderNeedsReviewPane() {
     </div>`;
   }).join('');
 
-  pane.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Unrecognized restrictions found. Resolve each token — map to an existing category, save as a service note, or create a reusable rule for future imports.</div>${cards}`;
+  const allDone = rows.every(r => {
+    const res = IMPORT_STATE.resolutions.get(r.room)||{};
+    const rt = res.resolvedTokens||{};
+    return r.unmatched.every(u => rt[u]);
+  });
+  const instrStyle = allDone
+    ? 'color:#166534;background:#f0fdf4;border:1px solid #86efac;'
+    : 'color:#92400e;background:#fef3c7;border:1px solid #fcd34d;';
+  const instrText = allDone
+    ? '\u2713 All restrictions reviewed. You can now commit.'
+    : 'Each unrecognised restriction below needs a decision before you can commit. Assign it to a known category, save it as a note, create a rule for next time, or mark it as not applicable.';
+  pane.innerHTML = `<div style="font-size:12px;border-radius:6px;padding:8px 12px;margin-bottom:10px;${instrStyle}">${instrText}</div>${cards}`;
 
   // Init pattern previews
   rows.forEach(r => r.unmatched.forEach(u => {
@@ -11885,6 +11995,7 @@ function applyResolution(room, token, sid) {
   res.resolvedTokens[token] = resolution;
   if (action === 'map' || action === 'rule') res.tags[resolution.value] = true;
   if (action === 'note' && !res.serviceNotes.includes(token)) res.serviceNotes.push(token);
+  // 'skip' = explicitly reviewed and dismissed — no tag, no note
 
   renderNeedsReviewPane();
   updateImportFooterCount();
@@ -11943,7 +12054,21 @@ function updateImportFooterCount() {
   const resolvedNote = resolvedCount ? `, ${resolvedCount} resolved` : '';
   document.getElementById('import-selected-count').textContent =
     `${total} selected (${intakes} intake${intakes!==1?'s':''}, ${discharges} discharge${discharges!==1?'s':''}, ${updatesWithChanges} update${updatesWithChanges!==1?'s':''}${resolvedNote})`;
-  document.getElementById('import-commit-btn').disabled = total === 0;
+  let unresolvedNRCount = 0;
+  if (IMPORT_STATE && IMPORT_STATE.diff) {
+    unresolvedNRCount = IMPORT_STATE.diff.needsReview.reduce((sum, r) => {
+      const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
+      return sum + r.unmatched.filter(u => !(res && res.resolvedTokens && res.resolvedTokens[u])).length;
+    }, 0);
+  }
+  const commitBtn = document.getElementById('import-commit-btn');
+  if (unresolvedNRCount > 0) {
+    commitBtn.disabled = true;
+    commitBtn.title = unresolvedNRCount + ' token' + (unresolvedNRCount!==1?'s':'') + ' in Needs Review tab must be classified before committing';
+  } else {
+    commitBtn.disabled = total === 0;
+    commitBtn.title = '';
+  }
   // Decrement Needs Review badge as tokens get resolved
   if (IMPORT_STATE && IMPORT_STATE.diff) {
     const unresolvedNR = IMPORT_STATE.diff.needsReview.filter(r => {
@@ -12023,6 +12148,31 @@ function commitImportToQueue() {
       isAnaph: false, isModerate: false, moderateNote: '',
       hadSection: existing ? existing.section : null
     });
+    pushed++;
+  });
+
+  // Auto-apply modifier-only tag additions (lowSodium, lowFat, lactoIntolerant, etc.)
+  // These don't change routing sections — apply without requiring manual field acceptance.
+  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','noPork','noBeef','noFish','noShellfish','diabetic','softMeals','noSpicy','noProcessedFood']);
+  diff.updates.forEach(u => {
+    const fieldSel = selections.updates.get(u.room);
+    if (fieldSel && Object.values(fieldSel).some(v => v)) return; // operator already made selections
+    const addedKeys = Object.keys(u.newTags).filter(k => u.newTags[k] && !u.oldTags[k]);
+    const removedKeys = Object.keys(u.oldTags).filter(k => u.oldTags[k] && !u.newTags[k]);
+    if (addedKeys.length === 0 || removedKeys.length > 0) return; // removals need manual review
+    if (!addedKeys.every(k => !MODIFIER_AUTO_ROUTING.has(k))) return; // routing tag added — manual review
+    const existing_r = REGISTRY_MAP[u.room.toLowerCase()];
+    if (!existing_r || changesQueue.find(q => q.room.toLowerCase()===u.room.toLowerCase())) return;
+    const baseTags = {};
+    (existing_r.tags||[]).forEach(label => {
+      const key = Object.keys(TAG_LABELS_MAP).find(k=>TAG_LABELS_MAP[k]===label);
+      if (key) baseTags[key] = true;
+    });
+    const resultTags = { ...baseTags, ...u.newTags };
+    changesQueue.push({ room:u.room, type:'update', tags:resultTags,
+      tagLabels:importTagLabels(resultTags), route:routeResident(resultTags,MEAL.lunch,u.room,false),
+      notes:'Auto-applied modifier tags from import (' + addedKeys.map(k=>TAG_LABELS_MAP[k]||k).join(', ') + ')',
+      isAnaph:false, isModerate:false, moderateNote:'', hadSection:existing_r.section });
     pushed++;
   });
 
@@ -12323,8 +12473,14 @@ function buildDaySheet(period, weekNum, dayName) {
     s.residents.forEach(r => {
       const isDiab = (r.tags||[]).includes('Diabetic');
       const bg = isDiab ? '92D050' : null;
-      const note = isDiab ? 'extra veg less starch' : '';
-      addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin), xCell(note,F.std,bg,B.thin), 16);
+      const baseNote = isDiab ? 'extra veg less starch' : '';
+      const ingredientNote = CONFLICT_MAP
+        .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
+        .map(rule => rule.note)
+        .filter((n,i,a) => a.indexOf(n)===i) // dedupe
+        .join(', ');
+      const allNotes = [baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
+      addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin), xCell(allNotes,F.std,bg,B.thin), 16);
     });
     addRow(xCell('Total',F.stdB,null,B.thin), xCell('',F.std,null,B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin), 16);
     totalRestrictions += s.residents.length;
