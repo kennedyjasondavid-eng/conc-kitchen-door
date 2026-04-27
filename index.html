@@ -700,6 +700,9 @@ let _recipeDataSource = 'fallback';
                 <div class="cb-item" onclick="toggleCb(this,'noPork')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Pork</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'diabetic')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Diabetic</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'lowSodium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Sodium</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lactoIntolerant')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Lactose Intolerant</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowFat')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Fat</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowPotassium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Potassium</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noProcessedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Processed Food</span></div>
               </div>
               <div class="cb-section-label">Specific Avoidances</div>
@@ -719,6 +722,8 @@ let _recipeDataSource = 'fallback';
                 <div class="cb-item" onclick="toggleCb(this,'noOats')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Oats</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noSulphites')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Sulphites</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noMustard')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Mustard</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noNightshades')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Nightshades</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noBrassicas')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Brassicas</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'other')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Other…</span></div>
               </div>
               <div class="form-row">
@@ -6443,7 +6448,7 @@ const TAG_LABELS_MAP = {
   noPeanuts:'No Peanuts', noCoconut:'No Coconut', noBeef:'No Beef',
   noSpicy:'No Spicy', noMushroom:'No Mushroom', noSoy:'No Soy', noSesame:'No Sesame',
   noTreeNuts:'No Tree Nuts', noMolluscs:'No Molluscs', noOats:'No Oats',
-  noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', noProcessedFood:'No Processed Food', other:'Other'
+  noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', noProcessedFood:'No Processed Food', lactoIntolerant:'Lactose Intolerant', lowFat:'Low Fat', lowPotassium:'Low Potassium', noNightshades:'No Nightshades', noBrassicas:'No Brassicas', other:'Other'
 };
 function getTagLabels(tags) {
   return Object.keys(tags).filter(k => tags[k] && TAG_LABELS_MAP[k]).map(k => TAG_LABELS_MAP[k]);
@@ -8636,7 +8641,7 @@ const ROUTING_RULES = [
   {p:2.5, key:'no_processed', label:'No Processed Food', tags:['No Processed Food'], triggers:['hasProcessedMeat'], altType:'noproc_alt'},
   {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish'], triggers:['hasFish'],         altType:'vegan_alt', mergeInto:'vegan'},
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
-  {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy'],             triggers:['hasDairy'],          altType:'vegan_alt', mergeInto:'vegan'},
+  {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy','Lactose Intolerant'], triggers:['hasDairy'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:6,  key:'no_beef', label:'No Beef',            tags:['No Beef'],              triggers:['hasBeef'],           altType:'vegan_alt', mergeInto:'vegan'},
   {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic'],             triggers:['isCarb'],            altType:'modified_main'},
   {p:8,  key:'bland',   label:'Bland',              tags:['No Spicy'],             triggers:['isSpicy'],           altType:'bland_alt'},
@@ -11295,6 +11300,11 @@ const IMPORT_TAG_RULES = [
   { re: /\bno\s+fried(\s+foods?)?\b/i,              tag: 'noFriedFood' },
   { re: /\bno\s+turkey\b/i,                          tag: 'noTurkey' },
   { re: /\bno\s+processed\s*(foods?|meats?)?\b/i,   tag: 'noProcessedFood' },
+  { re: /\b(lactose[- ]?(intolerant|free)|no\s+lactose)\b/i, tag: 'lactoIntolerant' },
+  { re: /\blow[- ]fat\b/i,                                        tag: 'lowFat' },
+  { re: /\b(low[- ]potassium|no\s+potassium)\b/i,                  tag: 'lowPotassium' },
+  { re: /\bno[- ]nightshades?\b|\bnightshade[- ]free\b/i,            tag: 'noNightshades' },
+  { re: /\bno[- ]brassicas?\b|\bbrassica[- ]free\b|\bno\s+cruciferous\b/i, tag: 'noBrassicas' },
 
   // Medical
   { re: /\blow\s*[-\/ ]*\s*no\s+sodium\b/i,          tag: 'lowSodium' },
@@ -11329,7 +11339,7 @@ const IMPORT_FUZZY_VOCAB = [
   ['no pork','noPork'], ['no beef','noBeef'], ['no fish','noFish'],
   ['no eggs','noEggs'], ['no peanuts','noPeanuts'], ['no coconut','noCoconut'],
   ['soft meals','softMeals'], ['no spicy','noSpicy'], ['low sodium','lowSodium'],
-  ['no fried food','noFriedFood'], ['no turkey','noTurkey'], ['no processed food','noProcessedFood'],
+  ['no fried food','noFriedFood'], ['no turkey','noTurkey'], ['no processed food','noProcessedFood'], ['lactose intolerant','lactoIntolerant'], ['lactose free','lactoIntolerant'], ['low fat','lowFat'], ['low potassium','lowPotassium'], ['no potassium','lowPotassium'], ['no nightshades','noNightshades'], ['no brassicas','noBrassicas'], ['no cruciferous','noBrassicas'],
 ];
 
 // ─── Slash expansion ────────────────────────────────────────────────────────
