@@ -632,7 +632,7 @@ let _recipeDataSource = 'fallback';
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Pull latest registry state from GitHub">🔄 Sync</button>
       <button class="btn btn-ghost btn-sm" onclick="openUploadDialog()" title="Upload today's meal list xlsx and generate changes automatically">📤 Import Daily List</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearForm()">Clear</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearQueue()">Clear Queue</button>
       <button class="btn btn-mint" onclick="addChange()">+ Add Change</button>
     </div>
   </div>
@@ -6332,6 +6332,15 @@ function toggleModerate(btn) {
   }
 }
 
+function clearQueue() {
+  if (!changesQueue.length) { showToast('Queue is already empty.'); return; }
+  if (!confirm(`Clear all ${changesQueue.length} change${changesQueue.length!==1?'s':''} from the queue?`)) return;
+  changesQueue = [];
+  renderQueue();
+  updateBadge();
+  showToast('Queue cleared.');
+}
+
 function clearForm() {
   document.getElementById('room-number').value = '';
   document.getElementById('room-dest') && (document.getElementById('room-dest').value = '');
@@ -6546,14 +6555,26 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
 // ============================================================
 // REVIEW
 // ============================================================
+function goToNeedsReview() {
+  // Navigate to Enter Changes and re-open the last import at the Needs Review tab
+  showScreen('enter', document.querySelector('[data-screen=enter]'));
+  // If IMPORT_STATE is still live from this session, re-open the review dialog
+  setTimeout(() => {
+    if (window.IMPORT_STATE && window.IMPORT_STATE.diff) {
+      document.getElementById('upload-dialog').style.display = 'flex';
+      document.getElementById('import-step-pick').style.display = 'none';
+      document.getElementById('import-step-review').style.display = 'block';
+      document.getElementById('import-footer').style.display = 'flex';
+      switchImportTab('review');
+    } else {
+      showToast('Import session has expired — re-import the daily list to classify restrictions.');
+    }
+  }, 100);
+}
+
 function updateGenerateBtn() {
-  const cb = document.getElementById('nr-ack-checkbox');
-  const btn = document.getElementById('generate-btn');
-  if (!btn) return;
-  const acked = !cb || cb.checked;
-  btn.disabled = !acked;
-  btn.style.opacity = acked ? '' : '0.45';
-  btn.title = acked ? '' : 'Acknowledge unresolved roster items above before generating';
+  // Generate button state is controlled by the NR block banner presence only
+  // (no checkbox — user must resolve via Enter Changes)
 }
 
 function buildReview() {
@@ -6606,13 +6627,15 @@ function buildReview() {
           <td style="padding:4px 8px;color:#92400e;">${r.text}</td>
         </tr>`).join('')}</tbody>
       </table>
-      <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:11.5px;color:#78350f;font-weight:600;">
-        <input type="checkbox" id="nr-ack-checkbox" onchange="updateGenerateBtn()" style="margin-top:2px;flex-shrink:0;">
-        I have reviewed the residents above. I confirm they should proceed as Regular residents, or I will update their restrictions separately via Enter Changes.
-      </label>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-mint btn-sm" onclick="goToNeedsReview()" style="flex-shrink:0;">
+          → Resolve in Enter Changes
+        </button>
+        <span style="font-size:11px;color:#92400e;">Open the last import's Needs Review tab to classify these restrictions before generating.</span>
+      </div>
     </div>`;
     const btn = document.getElementById('generate-btn');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.title = 'Acknowledge unresolved roster items above before generating'; }
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.title = 'Resolve unresolved restriction text in Enter Changes before generating'; }
   } else {
     const btn = document.getElementById('generate-btn');
     if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.title = ''; }
