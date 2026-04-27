@@ -800,7 +800,7 @@ let _recipeDataSource = 'fallback';
     <div><div class="topbar-title">Review & Generate</div><div class="topbar-sub">Confirm routing, resolve flags, generate all files</div></div>
     <div class="topbar-right">
       <button class="btn btn-ghost" onclick="showScreen('enter',document.querySelector('[data-screen=enter]'))">← Back</button>
-      <button class="btn btn-mint" onclick="generateFiles()">⚡ Generate All Files</button>
+      <button class="btn btn-mint" id="generate-btn" onclick="generateFiles()">⚡ Generate All Files</button>
     </div>
   </div>
   <div class="content">
@@ -6524,6 +6524,16 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
 // ============================================================
 // REVIEW
 // ============================================================
+function updateGenerateBtn() {
+  const cb = document.getElementById('nr-ack-checkbox');
+  const btn = document.getElementById('generate-btn');
+  if (!btn) return;
+  const acked = !cb || cb.checked;
+  btn.disabled = !acked;
+  btn.style.opacity = acked ? '' : '0.45';
+  btn.title = acked ? '' : 'Acknowledge unresolved roster items above before generating';
+}
+
 function buildReview() {
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
   const discharges = changesQueue.filter(c => c.type === 'discharge').length;
@@ -6537,7 +6547,9 @@ function buildReview() {
   document.getElementById('stat-total').textContent = net;
   document.getElementById('stat-intakes').textContent = intakes;
   document.getElementById('stat-discharges').textContent = discharges;
-  document.getElementById('stat-flags').textContent = totalFlags;
+  const nrPendingRaw = localStorage.getItem('concUnresolvedNR');
+  const nrPendingCount = nrPendingRaw ? JSON.parse(nrPendingRaw).length : 0;
+  document.getElementById('stat-flags').textContent = totalFlags + nrPendingCount;
 
   // Flags — queue-based anaphylactic + standing room-level info
   let flagsHtml = changesQueue.filter(c => c.isAnaph).map(c => `
@@ -6549,7 +6561,41 @@ function buildReview() {
     Room ${a.anaphRoom} (${a.allergen}) and ${a.roommateRooms.length ? 'roommate ' + a.roommateRooms.join(', ') : 'no roommate'} routed to Anaphylactic Alternative for today\u2019s ${a.mealsAffected}. Alternative meal: no ${a.allergen.replace('No ','').toLowerCase()}.</div></div>
   `).join('');
 
-  document.getElementById('review-flags-area').innerHTML = flagsHtml;
+  // Unresolved Needs Review — mandatory acknowledgment before Generate
+  const nrRaw = localStorage.getItem('concUnresolvedNR');
+  const nrItems = nrRaw ? JSON.parse(nrRaw) : [];
+  let nrHtml = '';
+  if (nrItems.length) {
+    nrHtml = `<div id="nr-block-banner" style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:18px">⚠️</span>
+        <div>
+          <strong style="color:#78350f;font-size:13px;">Unresolved Restriction Text — ${nrItems.length} resident${nrItems.length>1?'s':''}</strong><br>
+          <span style="font-size:11px;color:#92400e;">The following residents had restriction text in the daily roster that could not be matched to a known dietary category and was not resolved during import. They have been imported as <strong>Regular with no restrictions applied</strong>. Review carefully before generating.</span>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">
+        <thead><tr style="background:#fde68a;">
+          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;">Room</th>
+          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;">Unresolved restriction text from roster</th>
+        </tr></thead>
+        <tbody>${nrItems.map((r,i) => `<tr style="background:${i%2?'#fef9c3':'#fefce8'}">
+          <td style="padding:4px 8px;font-family:monospace;font-weight:700;color:#78350f;">${r.room}</td>
+          <td style="padding:4px 8px;color:#92400e;">${r.text}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:11.5px;color:#78350f;font-weight:600;">
+        <input type="checkbox" id="nr-ack-checkbox" onchange="updateGenerateBtn()" style="margin-top:2px;flex-shrink:0;">
+        I have reviewed the residents above. I confirm they should proceed as Regular residents, or I will update their restrictions separately via Enter Changes.
+      </label>
+    </div>`;
+    const btn = document.getElementById('generate-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.45'; btn.title = 'Acknowledge unresolved roster items above before generating'; }
+  } else {
+    const btn = document.getElementById('generate-btn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.title = ''; }
+  }
+  document.getElementById('review-flags-area').innerHTML = nrHtml + flagsHtml;
 
   // Changes table
   const body = document.getElementById('review-changes-body');
@@ -6866,6 +6912,9 @@ function generateFiles() {
   // Populate the recently generated files panel on review screen
   populateRecentGenerated();
   renderPlatingDashboard();
+
+  // Clear unresolved NR flag — operator has acknowledged and generated
+  localStorage.removeItem('concUnresolvedNR');
 
   // Track last generated time
   localStorage.setItem('concLastGenerated', new Date().toISOString());
@@ -11992,6 +12041,21 @@ function commitImportToQueue() {
   logMenuEvent('upload_import', `Imported daily list (${IMPORT_STATE.fileName}): ${pushed} change${pushed!==1?'s':''} added to queue${skipped ? `, ${skipped} skipped (already queued)` : ''}${diff.needsReview.length ? `, ${diff.needsReview.length} flagged for review` : ''}`);
   
   showToast(`${pushed} change${pushed!==1?'s':''} added to queue${skipped ? ` (${skipped} skipped)` : ''}.`);
+
+  // Save unresolved NR items so Review & Generate can block until acknowledged
+  if (IMPORT_STATE && IMPORT_STATE.diff && IMPORT_STATE.diff.needsReview.length) {
+    const unresolved = IMPORT_STATE.diff.needsReview.filter(r => {
+      const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
+      return r.unmatched.some(u => !(res && res.resolvedTokens && res.resolvedTokens[u]));
+    });
+    if (unresolved.length) {
+      localStorage.setItem('concUnresolvedNR', JSON.stringify(
+        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', ') }))
+      ));
+    } else {
+      localStorage.removeItem('concUnresolvedNR');
+    }
+  }
 
   // Track import for daily prompt and output stamping
   localStorage.setItem('concLastImportDate', new Date().toDateString());
