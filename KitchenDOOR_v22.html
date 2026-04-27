@@ -12054,21 +12054,23 @@ function updateImportFooterCount() {
   const resolvedNote = resolvedCount ? `, ${resolvedCount} resolved` : '';
   document.getElementById('import-selected-count').textContent =
     `${total} selected (${intakes} intake${intakes!==1?'s':''}, ${discharges} discharge${discharges!==1?'s':''}, ${updatesWithChanges} update${updatesWithChanges!==1?'s':''}${resolvedNote})`;
-  let unresolvedNRCount = 0;
-  if (IMPORT_STATE && IMPORT_STATE.diff) {
-    unresolvedNRCount = IMPORT_STATE.diff.needsReview.reduce((sum, r) => {
-      const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
-      return sum + r.unmatched.filter(u => !(res && res.resolvedTokens && res.resolvedTokens[u])).length;
-    }, 0);
-  }
+  const unresolvedNRCount = IMPORT_STATE && IMPORT_STATE.diff
+    ? IMPORT_STATE.diff.needsReview.reduce((sum, r) => {
+        const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
+        return sum + r.unmatched.filter(u => !(res && res.resolvedTokens && res.resolvedTokens[u])).length;
+      }, 0)
+    : 0;
   const commitBtn = document.getElementById('import-commit-btn');
-  if (unresolvedNRCount > 0) {
-    commitBtn.disabled = true;
-    commitBtn.title = unresolvedNRCount + ' token' + (unresolvedNRCount!==1?'s':'') + ' in Needs Review tab must be classified before committing';
-  } else {
-    commitBtn.disabled = total === 0;
-    commitBtn.title = '';
+  commitBtn.disabled = total === 0;
+  // Surface NR count on the button label so it's visible
+  const nrWarnEl = document.getElementById('import-nr-warning');
+  if (nrWarnEl) {
+    nrWarnEl.style.display = unresolvedNRCount > 0 ? 'inline-block' : 'none';
+    nrWarnEl.textContent = unresolvedNRCount > 0
+      ? `⚠ ${unresolvedNRCount} restriction${unresolvedNRCount!==1?'s':''} in Needs Review`
+      : '';
   }
+  commitBtn.title = unresolvedNRCount > 0 ? 'Go to the Needs Review tab to classify unrecognised restriction text before committing.' : '';
   // Decrement Needs Review badge as tokens get resolved
   if (IMPORT_STATE && IMPORT_STATE.diff) {
     const unresolvedNR = IMPORT_STATE.diff.needsReview.filter(r => {
@@ -12103,6 +12105,16 @@ function commitImportToQueue() {
   const { diff, selections } = IMPORT_STATE;
 
   let pushed = 0, skipped = 0;
+
+  // If there are unresolved NR items, switch to that tab and warn — but still proceed
+  const unresolvedNR = diff.needsReview.filter(r => {
+    const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
+    return r.unmatched.some(u => !(res && res.resolvedTokens && res.resolvedTokens[u]));
+  });
+  if (unresolvedNR.length) {
+    switchImportTab('review');
+    showToast(`⚠ ${unresolvedNR.length} restriction${unresolvedNR.length!==1?'s':''} still need classification in the Needs Review tab. Clean items will be committed — return here to resolve the rest.`, 6000);
+  }
 
   // Intakes
   diff.intakes.forEach(r => {
@@ -13522,6 +13534,7 @@ window.addEventListener('load', initSiteSelector);
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost" onclick="closeImportDialog()">Cancel</button>
         <button class="btn btn-ghost" id="import-goto-generate-btn" style="display:none;" onclick="closeImportDialog();showScreen('review',document.querySelector('[data-screen=review]'));">Go to Generate →</button>
+        <span id="import-nr-warning" style="font-size:11px;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:5px;padding:3px 8px;display:none;">⚠ Resolve Needs Review first</span>
         <button class="btn btn-mint" onclick="commitImportToQueue()" id="import-commit-btn">Add selected to queue</button>
       </div>
     </div>
