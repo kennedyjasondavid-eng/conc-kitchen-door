@@ -1723,6 +1723,11 @@ function selectSite(siteKey) {
   DEFAULT_SETTINGS['sp-reports'] = currentSite.spReports;
   DEFAULT_SETTINGS['sp-menu'] = currentSite.spMenu;
   appSettings = { ...DEFAULT_SETTINGS };
+  // Restore user-saved settings on top of site defaults
+  try {
+    const saved = localStorage.getItem('conc-door-settings');
+    if (saved) { const parsed = JSON.parse(saved); Object.assign(appSettings, parsed); }
+  } catch(e) {}
 
   // Update settings site label if visible
   const settingsSiteLabel = document.getElementById('settings-site-label');
@@ -7147,7 +7152,16 @@ const DEFAULT_SETTINGS = {
 };
 
 let appSettings = { ...DEFAULT_SETTINGS };
+// Restore persisted settings from localStorage
+try {
+  const saved = localStorage.getItem('conc-door-settings');
+  if (saved) { const parsed = JSON.parse(saved); Object.assign(appSettings, parsed); }
+} catch(e) { console.warn('Settings load failed:', e); }
 let anaphRooms = ['213']; // 213=confirmed Apr22 via H&W audit
+try {
+  const savedAnaph = localStorage.getItem('conc-door-anaph');
+  if (savedAnaph) anaphRooms = JSON.parse(savedAnaph);
+} catch(e) { /* keep default */ }
 
 function loadSettings() {
   Object.entries(DEFAULT_SETTINGS).forEach(([id, val]) => {
@@ -7162,6 +7176,11 @@ function saveSettings() {
     const el = document.getElementById(id);
     if (el) appSettings[id] = el.value;
   });
+  // Persist to localStorage
+  try {
+    localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
+    localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms));
+  } catch(e) { console.warn('Settings save failed:', e); }
   // Show saved indicator
   const btn = document.querySelector('[onclick="saveSettings()"]');
   if (btn) {
@@ -7191,11 +7210,13 @@ function addAnaphRoom() {
   anaphRooms.push(room);
   renderAnaphList();
   input.value = '';
+  try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
 }
 
 function removeAnaphRoom(room) {
   anaphRooms = anaphRooms.filter(r => r !== room);
   renderAnaphList();
+  try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
 }
 
 // ============================================================
