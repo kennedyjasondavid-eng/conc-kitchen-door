@@ -175,6 +175,19 @@
   .import-field-change { font-size:11px; padding:1px 7px; border-radius:3px; font-weight:600; }
   .import-field-change.added { background:#dcfce7; color:#166534; }
   .import-field-change.removed { background:#fee2e2; color:#991b1b; }
+  /* ── Needs Review resolve UI ─────────────────────────────────────── */
+  .nr-chip { display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:6px; margin-bottom:6px; font-size:12px; }
+  .nr-chip.unresolved { background:#fef3c7; border:1px solid #fcd34d; color:#78350f; }
+  .nr-chip.resolved { background:#dcfce7; border:1px solid #86efac; color:#166534; }
+  .nr-chip-text { font-family:monospace; font-weight:600; flex-shrink:0; }
+  .nr-chip-resolution { flex:1; font-size:11px; }
+  .nr-chip-undo { background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:0 2px; flex-shrink:0; }
+  .nr-resolve-btn { background:var(--mint); color:#fff; border:none; border-radius:4px; padding:2px 10px; font-size:11px; font-weight:600; cursor:pointer; margin-left:auto; flex-shrink:0; }
+  .nr-resolve-panel { background:var(--cream); border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:8px; font-size:12px; }
+  .nr-option-group { margin-bottom:8px; }
+  .nr-option { display:flex; align-items:flex-start; gap:6px; cursor:pointer; line-height:1.4; }
+  .nr-map-select,.nr-rule-label { width:100%; margin-top:4px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; box-sizing:border-box; }
+  .nr-pattern-preview { font-size:10px; color:var(--muted); font-family:monospace; margin-top:3px; }
   .change-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
   .change-item:last-child { border-bottom: none; }
   .change-room { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; width: 52px; flex-shrink: 0; }
@@ -6327,7 +6340,7 @@ const TAG_LABELS_MAP = {
   noPeanuts:'No Peanuts', noCoconut:'No Coconut', noBeef:'No Beef',
   noSpicy:'No Spicy', noMushroom:'No Mushroom', noSoy:'No Soy', noSesame:'No Sesame',
   noTreeNuts:'No Tree Nuts', noMolluscs:'No Molluscs', noOats:'No Oats',
-  noSulphites:'No Sulphites', noMustard:'No Mustard', other:'Other'
+  noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', other:'Other'
 };
 function getTagLabels(tags) {
   return Object.keys(tags).filter(k => tags[k] && TAG_LABELS_MAP[k]).map(k => TAG_LABELS_MAP[k]);
@@ -6499,7 +6512,8 @@ function applyQueueToRegistry() {
         isModerate: c.isModerate || false,
         moderateNote: c.moderateNote || '',
         complianceDeadline: '',
-        pendingReversion: false
+        pendingReversion: false,
+        serviceNote: c.serviceNote || ''
       };
       if (existing !== -1) {
         REGISTRY_LIST[existing] = newResident;
@@ -6519,6 +6533,7 @@ function applyQueueToRegistry() {
         r.moderateNote = c.moderateNote || '';
         r.rawRestriction = tagLabels.join(', ') || 'Regular';
         r.confirm = 'Provisional';
+        if (c.serviceNote !== undefined) r.serviceNote = c.serviceNote;
       }
 
     } else if (c.type === 'switch') {
@@ -11068,6 +11083,10 @@ const IMPORT_TAG_RULES = [
   { re: /\bno\s+pepper\b/i,                          tag: 'noSpicy' },
   { re: /\bno\s+mushrooms?\b/i,                      tag: 'noMushroom' },
 
+  // Preferences
+  { re: /\bno\s+fried(\s+foods?)?\b/i,              tag: 'noFriedFood' },
+  { re: /\bno\s+turkey\b/i,                          tag: 'noTurkey' },
+
   // Medical
   { re: /\blow\s*[-\/ ]*\s*no\s+sodium\b/i,          tag: 'lowSodium' },
   { re: /\blow\s+sodium\b/i,                         tag: 'lowSodium' },
@@ -11101,22 +11120,83 @@ const IMPORT_FUZZY_VOCAB = [
   ['no pork','noPork'], ['no beef','noBeef'], ['no fish','noFish'],
   ['no eggs','noEggs'], ['no peanuts','noPeanuts'], ['no coconut','noCoconut'],
   ['soft meals','softMeals'], ['no spicy','noSpicy'], ['low sodium','lowSodium'],
+  ['no fried food','noFriedFood'], ['no turkey','noTurkey'],
 ];
+
+// ─── Slash expansion ────────────────────────────────────────────────────────
+// "No Cauliflower/Tomatoes/Cucumber" → "No Cauliflower, No Tomatoes, No Cucumber"
+function expandSlashNegations(text) {
+  const QUALIFIED = /^(no |halal|vegan|vegetarian|diabetic|gluten|lactose|low |soft )/i;
+  const parts = text.split('/');
+  let lastWasNo = false;
+  return parts.map((part, i) => {
+    const t = part.trim();
+    if (!t) return t;
+    if (QUALIFIED.test(t)) { lastWasNo = /^no /i.test(t); return t; }
+    if (lastWasNo && i > 0) return 'No ' + t;
+    lastWasNo = false;
+    return t;
+  }).join(', ');
+}
+
+// ─── Custom tag rules (user-defined, persisted to localStorage) ─────────────
+let CUSTOM_TAG_RULES = [];
+
+function loadCustomTagRules() {
+  try {
+    const raw = localStorage.getItem('concCustomTagRules');
+    CUSTOM_TAG_RULES = raw ? JSON.parse(raw) : [];
+    CUSTOM_TAG_RULES.forEach(r => { if (r.tag && r.label) TAG_LABELS_MAP[r.tag] = r.label; });
+  } catch(e) { CUSTOM_TAG_RULES = []; }
+}
+
+function saveCustomTagRule(pattern, tag, label) {
+  loadCustomTagRules();
+  if (!CUSTOM_TAG_RULES.find(r => r.tag === tag)) {
+    CUSTOM_TAG_RULES.push({ pattern, tag, label });
+    localStorage.setItem('concCustomTagRules', JSON.stringify(CUSTOM_TAG_RULES));
+    TAG_LABELS_MAP[tag] = label;
+  }
+}
+
+function getEffectiveTagRules() {
+  const base = IMPORT_TAG_RULES.slice();
+  CUSTOM_TAG_RULES.forEach(r => {
+    try { base.push({ re: new RegExp(r.pattern, 'gi'), tag: r.tag }); } catch(e) {}
+  });
+  return base;
+}
+
+function labelToTagKey(label) {
+  return label.trim().replace(/[^a-zA-Z0-9 ]/g,'')
+    .split(/\s+/).map((w,i) => i===0 ? w.toLowerCase() : w[0].toUpperCase()+w.slice(1).toLowerCase()).join('');
+}
+
+function labelToPattern(label) {
+  const words = label.trim().toLowerCase().replace(/[^a-z0-9 ]/g,'').split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  return words.map((w,i) => {
+    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    return (i===words.length-1 && !w.endsWith('s')) ? '\\b'+escaped+'s?\\b' : '\\b'+escaped+'\\b';
+  }).join('\\s+');
+}
 
 // Main normalizer. Input: raw restriction string from col C. Output: { tags, unmatched, isAnaphCandidate, rawText }
 function normalizeRestriction(raw) {
   if (!raw) return { tags: {}, unmatched: [], isAnaphCandidate: false, rawText: '' };
   const rawText = String(raw).trim();
+  const expanded = expandSlashNegations(rawText);
   const tags = {};
-  const matched = new Set();  // character index ranges we've consumed (as offset strings)
+  const matched = new Set();
   const unmatched = [];
   let isAnaphCandidate = false;
 
-  // 1. Exact regex pass — each rule scans the full string, writes match ranges
-  IMPORT_TAG_RULES.forEach(rule => {
+  // 1. Exact regex pass — use expanded text + custom rules
+  const effectiveRules = getEffectiveTagRules();
+  effectiveRules.forEach(rule => {
     const re = new RegExp(rule.re.source, rule.re.flags.includes('g') ? rule.re.flags : rule.re.flags + 'g');
     let m;
-    while ((m = re.exec(rawText)) !== null) {
+    while ((m = re.exec(expanded)) !== null) {
       tags[rule.tag] = true;
       // Mark span as consumed
       matched.add(m.index + ':' + (m.index + m[0].length));
@@ -11124,13 +11204,12 @@ function normalizeRestriction(raw) {
   });
 
   // Check for allergic/anaphylactic signal
-  if (/\ballergic\b/i.test(rawText) || /\banaphy/i.test(rawText) || /\bepi[- ]?pen\b/i.test(rawText)) {
+  if (/\ballergic\b/i.test(expanded) || /\banaphy/i.test(expanded) || /\bepi[- ]?pen\b/i.test(expanded)) {
     isAnaphCandidate = true;
   }
 
-  // 2. Tokenize unmatched portions — split on slash/comma/paren, filter noise
-  // Build a "remaining text" by blanking out matched spans
-  let remaining = rawText;
+  // 2. Tokenize unmatched portions
+  let remaining = expanded;
   Array.from(matched).forEach(span => {
     const [s, e] = span.split(':').map(Number);
     remaining = remaining.slice(0, s) + ' '.repeat(e - s) + remaining.slice(e);
@@ -11292,6 +11371,7 @@ function handleImportFile(file) {
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
+      loadCustomTagRules();
       const data = new Uint8Array(ev.target.result);
       const wb = XLSX.read(data, { type: 'array' });
       const entries = parseImportWorkbook(wb);
@@ -11313,7 +11393,7 @@ function handleImportFile(file) {
         selections.updates.set(u.room, fieldSelections);
       });
 
-      IMPORT_STATE = { entries, diff, selections, fileName: file.name };
+      IMPORT_STATE = { entries, diff, selections, fileName: file.name, resolutions: new Map() };
       renderImportReview();
     } catch (err) {
       console.error(err);
@@ -11475,21 +11555,134 @@ function renderNeedsReviewPane() {
   const pane = document.getElementById('import-pane-review');
   const rows = IMPORT_STATE.diff.needsReview;
   if (!rows.length) { pane.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">All rows parsed cleanly. Nothing to review.</div>'; return; }
-  pane.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">These rows have unrecognized restriction text or an anaphylactic signal. They are not included in the import — handle them manually through Enter Changes after the import completes.</div>
-    ${rows.map(r => {
-      const anaphNote = r.isAnaphCandidate ? '<div style="font-size:11px;background:#fef2f2;color:#991b1b;padding:4px 8px;border-radius:3px;font-weight:600;margin-top:4px;display:inline-block;">Possible anaphylactic — confirm with H&amp;W</div>' : '';
-      const unmatchedNote = r.unmatched.length ? `<div style="font-size:12px;color:#92400e;margin-top:4px;">Unmatched: ${r.unmatched.map(u => '<code>'+u+'</code>').join(', ')}</div>` : '';
-      return `<div class="import-row" style="background:#fffbeb;">
-        <div class="import-row-body">
-          <div class="import-row-room">Room ${r.room}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Source: <em>${r.rawText}</em></div>
-          ${unmatchedNote}
-          ${anaphNote}
+
+  const allTagOptions = Object.entries(TAG_LABELS_MAP)
+    .filter(([k]) => k !== 'other')
+    .map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+
+  const cards = rows.map(r => {
+    const res = IMPORT_STATE.resolutions.get(r.room) || {};
+    const resolvedTokens = res.resolvedTokens || {};
+    const allResolved = r.unmatched.length > 0 && r.unmatched.every(u => resolvedTokens[u]);
+    const anaphNote = r.isAnaphCandidate
+      ? '<div style="font-size:11px;background:#fef2f2;color:#991b1b;padding:4px 8px;border-radius:3px;font-weight:600;margin-top:6px;">⚠ Possible anaphylactic — confirm with H&amp;W before committing</div>' : '';
+
+    const chips = r.unmatched.map(u => {
+      const sid = (r.room + '_' + u).replace(/[^a-zA-Z0-9]/g,'_');
+      const resolved = resolvedTokens[u];
+      if (resolved) {
+        const rl = resolved.action==='note' ? '\uD83D\uDCDD service note'
+          : resolved.action==='map' ? '\u2192 '+(TAG_LABELS_MAP[resolved.value]||resolved.value)
+          : '\u2605 new rule: '+(resolved.label||resolved.value);
+        return `<div class="nr-chip resolved">
+          <span class="nr-chip-text">"${u}"</span>
+          <span class="nr-chip-resolution">${rl}</span>
+          <button class="nr-chip-undo" onclick="undoResolution('${r.room}','${u.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">&#x2715;</button>
+        </div>`;
+      }
+      const initLabel = u.charAt(0).toUpperCase()+u.slice(1);
+      return `<div class="nr-chip unresolved">
+          <span class="nr-chip-text">"${u}"</span>
+          <button class="nr-resolve-btn" onclick="toggleResolvePanel('rp-${sid}')">Resolve \u2192</button>
         </div>
-      </div>`;
-    }).join('')}
-  `;
+        <div class="nr-resolve-panel" id="rp-${sid}" style="display:none;">
+          <div class="nr-option-group">
+            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="map" checked> Map to existing category</label>
+            <select class="nr-map-select" id="rp-map-${sid}">${allTagOptions}</select>
+          </div>
+          <div class="nr-option-group">
+            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="note"> Save as service note <span style="font-size:10px;color:var(--muted)">(restriction list only, no routing change)</span></label>
+          </div>
+          <div class="nr-option-group">
+            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="rule"> Create new rule for future imports</label>
+            <input type="text" class="nr-rule-label" id="rp-lbl-${sid}" placeholder='Label, e.g. "No Fried Food"' value="${initLabel}" oninput="updatePatternPreview('${sid}')">
+            <div class="nr-pattern-preview" id="rp-pat-${sid}"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-mint btn-sm" onclick="applyResolution('${r.room}','${u.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}','${sid}')">Apply</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleResolvePanel('rp-${sid}')">Cancel</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const statusBadge = allResolved
+      ? '<span style="font-size:11px;background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-weight:600;margin-left:6px;">\u2713 All resolved</span>' : '';
+
+    return `<div class="import-row" style="background:${allResolved?'#f0fdf4':'#fffbeb'};flex-direction:column;align-items:stretch;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <div class="import-row-room">Room ${r.room}${statusBadge}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Source: <em>${r.rawText}</em></div>
+      <div style="margin-top:8px;">${chips}</div>
+      ${anaphNote}
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Unrecognized restrictions found. Resolve each token — map to an existing category, save as a service note, or create a reusable rule for future imports.</div>${cards}`;
+
+  // Init pattern previews
+  rows.forEach(r => r.unmatched.forEach(u => {
+    const sid = (r.room+'_'+u).replace(/[^a-zA-Z0-9]/g,'_');
+    updatePatternPreview(sid);
+  }));
+}
+
+function toggleResolvePanel(panelId) {
+  const el = document.getElementById(panelId);
+  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function updatePatternPreview(sid) {
+  const lbl = document.getElementById('rp-lbl-'+sid);
+  const pat = document.getElementById('rp-pat-'+sid);
+  if (lbl && pat) pat.textContent = lbl.value ? 'Pattern: /'+labelToPattern(lbl.value)+'/i' : '';
+}
+
+function applyResolution(room, token, sid) {
+  const radios = document.querySelectorAll('input[name="rp-a-'+sid+'"]');
+  let action = 'map';
+  radios.forEach(r => { if (r.checked) action = r.value; });
+  const resolution = { action };
+
+  if (action === 'map') {
+    const sel = document.getElementById('rp-map-'+sid);
+    resolution.value = sel ? sel.value : '';
+  } else if (action === 'note') {
+    resolution.value = token;
+  } else if (action === 'rule') {
+    const lblEl = document.getElementById('rp-lbl-'+sid);
+    const label = lblEl ? lblEl.value.trim() : token;
+    if (!label) { showToast('Enter a label for the new rule.'); return; }
+    const tag = labelToTagKey(label);
+    const pattern = labelToPattern(label);
+    if (!pattern) { showToast('Could not build a pattern from that label.'); return; }
+    saveCustomTagRule(pattern, tag, label);
+    resolution.value = tag; resolution.label = label;
+  }
+
+  if (!IMPORT_STATE.resolutions.has(room))
+    IMPORT_STATE.resolutions.set(room, { resolvedTokens: {}, tags: {}, serviceNotes: [] });
+  const res = IMPORT_STATE.resolutions.get(room);
+  res.resolvedTokens[token] = resolution;
+  if (action === 'map' || action === 'rule') res.tags[resolution.value] = true;
+  if (action === 'note' && !res.serviceNotes.includes(token)) res.serviceNotes.push(token);
+
+  renderNeedsReviewPane();
+  updateImportFooterCount();
+}
+
+function undoResolution(room, token) {
+  const res = IMPORT_STATE.resolutions.get(room);
+  if (!res) return;
+  const prev = res.resolvedTokens[token];
+  if (prev) {
+    if (prev.action==='map'||prev.action==='rule') delete res.tags[prev.value];
+    if (prev.action==='note') res.serviceNotes = res.serviceNotes.filter(n=>n!==token);
+    delete res.resolvedTokens[token];
+    if (!Object.keys(res.resolvedTokens).length) IMPORT_STATE.resolutions.delete(room);
+  }
+  renderNeedsReviewPane();
+  updateImportFooterCount();
 }
 
 function toggleImportSelect(tab, room, checked) {
@@ -11526,9 +11719,11 @@ function updateImportFooterCount() {
   // Count updates with at least one accepted field
   let updatesWithChanges = 0;
   sel.updates.forEach(fs => { if (Object.values(fs).some(v => v)) updatesWithChanges++; });
-  const total = intakes + discharges + updatesWithChanges;
+  const resolvedCount = IMPORT_STATE && IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.size : 0;
+  const total = intakes + discharges + updatesWithChanges + resolvedCount;
+  const resolvedNote = resolvedCount ? `, ${resolvedCount} resolved` : '';
   document.getElementById('import-selected-count').textContent =
-    `${total} selected (${intakes} intake${intakes!==1?'s':''}, ${discharges} discharge${discharges!==1?'s':''}, ${updatesWithChanges} update${updatesWithChanges!==1?'s':''})`;
+    `${total} selected (${intakes} intake${intakes!==1?'s':''}, ${discharges} discharge${discharges!==1?'s':''}, ${updatesWithChanges} update${updatesWithChanges!==1?'s':''}${resolvedNote})`;
   document.getElementById('import-commit-btn').disabled = total === 0;
 
   // If nothing to commit but registry is seeded, offer direct path to Generate
@@ -11597,8 +11792,36 @@ function commitImportToQueue() {
     pushed++;
   });
 
+  // Apply resolutions from Needs Review
+  if (IMPORT_STATE.resolutions && IMPORT_STATE.resolutions.size) {
+    IMPORT_STATE.resolutions.forEach((res, room) => {
+      if (!res || (!Object.keys(res.tags||{}).length && !(res.serviceNotes||[]).length)) return;
+      const existing_q = changesQueue.find(q => q.room.toLowerCase()===room.toLowerCase());
+      if (existing_q) {
+        Object.assign(existing_q.tags, res.tags||{});
+        existing_q.tagLabels = importTagLabels(existing_q.tags);
+        if ((res.serviceNotes||[]).length) existing_q.serviceNote = (existing_q.serviceNote?existing_q.serviceNote+'; ':'')+res.serviceNotes.join('; ');
+        return;
+      }
+      const existing_r = REGISTRY_MAP[room.toLowerCase()];
+      const baseTags = {};
+      if (existing_r) (existing_r.tags||[]).forEach(label => {
+        const key = Object.keys(TAG_LABELS_MAP).find(k=>TAG_LABELS_MAP[k]===label);
+        if (key) baseTags[key] = true;
+      });
+      const resultTags = { ...baseTags, ...(res.tags||{}) };
+      const tagLabels = importTagLabels(resultTags);
+      const route = routeResident(resultTags, MEAL.lunch, room, false);
+      changesQueue.push({ room, type:'update', tags:resultTags, tagLabels, route,
+        notes:'Resolved from import review', serviceNote:(res.serviceNotes||[]).join('; '),
+        isAnaph:false, isModerate:false, moderateNote:'', hadSection:existing_r?existing_r.section:null });
+      pushed++;
+    });
+  }
+
   // Log summary
   logMenuEvent('upload_import', `Imported daily list (${IMPORT_STATE.fileName}): ${pushed} change${pushed!==1?'s':''} added to queue${skipped ? `, ${skipped} skipped (already queued)` : ''}${diff.needsReview.length ? `, ${diff.needsReview.length} flagged for review` : ''}`);
+  
   showToast(`${pushed} change${pushed!==1?'s':''} added to queue${skipped ? ` (${skipped} skipped)` : ''}.`);
 
   // Track import for daily prompt and output stamping
@@ -11904,7 +12127,7 @@ function buildRestrictionListXlsx(ds) {
 
   rows[R] = [xCell('Room',F.stdB,'FFFF00',B.thin), xCell('Restrictions',F.stdB,'FFFF00',B.thin), xCell('Section',F.stdB,'FFFF00',B.thin), xCell('Status',F.stdB,'FFFF00',B.thin)]; R++;
 
-  const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t => t === 'Regular')).sort((a,b) => {
+  const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t => t === 'Regular')) || r.serviceNote).sort((a,b) => {
     const na = parseInt(a.room), nb = parseInt(b.room);
     return na !== nb ? na - nb : a.room.localeCompare(b.room);
   });
@@ -11915,7 +12138,7 @@ function buildRestrictionListXlsx(ds) {
     const flag = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : '';
     rows[R] = [
       xCell(r.room, font, bg, B.thin),
-      xCell(r.rawRestriction || (r.tags||[]).join(', '), font, bg, B.thin),
+      xCell((r.rawRestriction || (r.tags||[]).join(', ')) + (r.serviceNote ? '  [Note: '+r.serviceNote+']' : ''), font, bg, B.thin),
       xCell(r.section || 'Regular', font, bg, B.thin),
       xCell(flag || (r.confirm || '—'), font, bg, B.thin)
     ]; R++;
