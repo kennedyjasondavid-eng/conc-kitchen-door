@@ -6616,6 +6616,24 @@ function nrDoneReview(room) {
   localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
   const nrItems = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
   if (nrItems.every(x => nrRes[x.room])) localStorage.removeItem('concUnresolvedNR');
+
+  // Audit log — record every decision so there's a trail regardless of action type
+  const nrItem = nrItems.find(x => x.room === room);
+  const rawText = nrItem ? nrItem.text : room;
+  const dateStr = new Date().toLocaleDateString('en-CA', { month:'short', day:'numeric' });
+  pending.forEach(d => {
+    let desc;
+    if (d.action === 'skip') {
+      desc = `Import text reviewed — marked not applicable: "${rawText.slice(0,60)}${rawText.length>60?'…':''}"`;
+    } else if (d.action === 'note') {
+      desc = `Import text saved as service note: "${rawText.slice(0,60)}${rawText.length>60?'…':''}"`;
+    } else {
+      desc = `Import text classified as ${TAG_LABELS_MAP[d.value]||d.value}: "${rawText.slice(0,60)}${rawText.length>60?'…':''}"`;
+    }
+    RECENT_LOG.unshift({ date: dateStr, room, type: 'import_review', desc, color: '#6b7280' });
+  });
+  renderRecentLog();
+
   buildReview();
 }
 
