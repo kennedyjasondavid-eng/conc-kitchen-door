@@ -1477,7 +1477,8 @@ let _recipeDataSource = 'fallback';
           <div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Replace this meal when the planned item is unavailable. The routing engine recalculates sections based on the new flags.</div>
             <input id="mc-swap-name" placeholder="Replacement meal name" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:8px;">
-            <input id="mc-swap-veg" placeholder="Veg/vegan alternative" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:12px;">
+            <input id="mc-swap-veg" placeholder="Veg/vegan alternative" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:8px;">
+            <input id="mc-swap-softalt" placeholder="Plain/soft meal alternative (optional)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:12px;color:#0891b2;">
 
             <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Allergen &amp; Routing Flags</div>
             <div id="mc-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
@@ -4536,12 +4537,15 @@ const MENU_DATA = {
             "SUNDAY": {
                   "breakfast": "Pork Breakfast sandwich",
                   "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, egg, dairy, pork",
                   "lunch": "Turkey & Cheese , Seasonal Soup",
                   "lunch_veg": "Vegetarian Sandwich, Seasonal Soup",
+                  "lunch_softAlt": "Plain Turkey, Soft Bread & Seasonal Soup",
                   "allergens_lunch": "gluten, Turkey , dairy",
                   "dinner": "Beef Strogonoff, Noodles",
                   "dinner_veg": "Mushroom strogonoff, Noodles",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "gluten, beef",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -4586,12 +4590,15 @@ const MENU_DATA = {
             "MONDAY": {
                   "breakfast": "Pancakes, turkey bacon",
                   "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg, turkey",
                   "lunch": "Halal Sausages,Baked Beans, Peas and Potatoes",
                   "lunch_veg": "Vegan Sausages, Baked beans, Peas and Potatoes",
+                  "lunch_softAlt": "Mashed Potato, Baked Beans & Peas",
                   "allergens_lunch": "gluten, beef",
                   "dinner": "Jerk Chicken, Cabbage Stirfry, Rice and Beans",
                   "dinner_veg": "Jerk Cauliflower, Cabbage stirfry, Rice and Beans",
+                  "dinner_softAlt": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -4639,9 +4646,11 @@ const MENU_DATA = {
                   "allergens_breakfast": "dairy, gluten",
                   "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
                   "lunch_veg": "Roasted Tofu, Sweet potatoes, Seasonal Vegetables",
+                  "lunch_softAlt": "Baked Plain Fish, Mashed Sweet Potato & Seasonal Veg",
                   "allergens_lunch": "fish, soy",
                   "dinner": "Pork Carnitas, Spanish rice and vegetables",
                   "dinner_veg": "Vegetarian carnitas, Spanish rice and vegetables",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "dinner_halal": "Halal Chicken carnitas",
                   "allergens_dinner": "pork",
                   "breakfast_flags": {
@@ -4687,12 +4696,15 @@ const MENU_DATA = {
             "WEDNESDAY": {
                   "breakfast": "Vegetarian Frittata",
                   "breakfast_veg": "Vegetarian Frittata",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Ham Mac & Cheese, Pea and Carrot",
                   "lunch_veg": "Vegan Cauliflower Mac & Cheese, Pea and Carrot",
+                  "lunch_softAlt": "Plain Mac & Cheese (no ham), Peas & Carrots",
                   "allergens_lunch": "pork, gluten, dairy",
                   "dinner": "Roast Chicken, Chickpea Shakshuka, Couscous",
                   "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous",
+                  "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
                   "allergens_dinner": "Gluten,",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -4737,12 +4749,15 @@ const MENU_DATA = {
             "THURSDAY": {
                   "breakfast": "Scrambled eggs & sausage",
                   "breakfast_veg": "Scrambled eggs & veg sausage",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg, pork",
                   "lunch": "Chicken burger, Home Fries",
                   "lunch_veg": "Crispy Quinoa Cake, Home Fries",
+                  "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Butter Chicken, Naan, Vegetables",
                   "dinner_veg": "Butter Chickpeas, Naan , Vegetables",
+                  "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "Halal Chicken",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -4787,12 +4802,15 @@ const MENU_DATA = {
             "FRIDAY": {
                   "breakfast": "Turkey, Cheese and Eggs yoghurt",
                   "breakfast_veg": "Oatmeal",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "turkey, gluten, dairy ,egg",
                   "lunch": "Honey BBQ Halal Chicken Drumsticks, Potato Salad",
                   "lunch_veg": "Vegan Drumsticks, Potato Salad",
+                  "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
                   "allergens_lunch": "Halal Chicken, Gluten, Egg",
                   "dinner": "Pork Adobo with Vegetarian and Pineapple Rice",
                   "dinner_veg": "Vegetarian Adobo with Vegetarian and Pineapple Rice",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "dinner_halal": "Halal Chicken Adobo",
                   "allergens_dinner": "Pork",
                   "breakfast_flags": {
@@ -4838,12 +4856,15 @@ const MENU_DATA = {
             "SATURDAY": {
                   "breakfast": "Bagel, Cream cheese and Granola.",
                   "breakfast_veg": "Bagel, Cream cheese and Granola.",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Chicken Fajitas, Tortillas, Peas and Corn",
                   "lunch_veg": "Vegetarian Fajitas, Tortillas, Peas and Corn",
+                  "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_lunch": "Halal Chicken, Gluten",
                   "dinner": "Gomen Besiga, Carrot Cabbage Fry, Rice",
                   "dinner_veg": "Vegetarin Collard Stew, Carrot Cabbage Fry, Rice",
+                  "dinner_softAlt": "Roasted Chicken Leg, Vegetable Stir-fry & Plain Rice",
                   "allergens_dinner": "Beef",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -4890,12 +4911,15 @@ const MENU_DATA = {
             "SUNDAY": {
                   "breakfast": "Turkey Breakfast sandwich",
                   "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, egg, dairy,",
                   "lunch": "Philly Cheese Melt",
                   "lunch_veg": "Portobello Cheese Melt",
+                  "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Sausage and Vegetable Pasta",
                   "dinner_veg": "Vegan Sausage and Vegetable Pasta",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "dinner_halal": "Halal Turkey Sausage",
                   "allergens_dinner": "pork, gluten",
                   "breakfast_flags": {
@@ -4941,12 +4965,15 @@ const MENU_DATA = {
             "MONDAY": {
                   "breakfast": "Pancakes, turkey bacon",
                   "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg,",
                   "lunch": "Vegan Chilli ,  garlic bread",
                   "lunch_veg": "Vegan Chilli ,  garlic bread",
+                  "lunch_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "West African Peanut Stew , Seasonal Vegetables, Rice",
                   "dinner_veg": "Vegetarian  Peanut Stew , Seasonal Vegetables, Rice",
+                  "dinner_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
                   "allergens_dinner": "PEANUTS",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -4994,9 +5021,11 @@ const MENU_DATA = {
                   "allergens_breakfast": "dairy, gluten",
                   "lunch": "Roast Chicken Leg, Chana Masala, Couscous",
                   "lunch_veg": "Tofu Vegetable Curry, Chana Masala, Couscous",
+                  "lunch_softAlt": "Plain Roasted Chicken Leg, Veg & Rice (no tomato, potato or mushroom)",
                   "allergens_lunch": "gluten",
                   "dinner": "Pork Vindaloo, Seasonal Vegetables, Steamed Rice",
                   "dinner_veg": "Vegetarian Vindaloo, Seasonal Vegetables, Steamed Rice",
+                  "dinner_softAlt": "Plain Roasted Chicken Leg, Steamed Rice & Veg (no broccoli or cauliflower)",
                   "dinner_halal": "Chicken Vindaloo",
                   "allergens_dinner": "pork",
                   "breakfast_flags": {
@@ -5042,13 +5071,16 @@ const MENU_DATA = {
             "WEDNESDAY": {
                   "breakfast": "Vegetarian Frittata",
                   "breakfast_veg": "Vegetarian Frittata",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables",
                   "lunch_veg": "Vegan Chik'n Tenders  & Sweet Potato Biscuit, Seasonal Vegetables",
+                  "lunch_softAlt": "Plain Chicken Leg, Mashed Sweet Potato & Seasonal Veg",
                   "lunch_halal": "Halal breaded chicken burgers",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Yetisse Fish, Okra and cassava stew,Coconut Rice and peas",
                   "dinner_veg": "Spiced Tofu, Okra and cassava stew,Coconut Rice and peas",
+                  "dinner_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "Fish",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5093,12 +5125,15 @@ const MENU_DATA = {
             "THURSDAY": {
                   "breakfast": "Scrambled eggs & sausage",
                   "breakfast_veg": "Scrambled eggs & veg sausage",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg, pork",
                   "lunch": "CONC Salad - Beef, lettuce,  beans, red cabbage, carrots, cheese, pickled onion,  naan",
                   "lunch_veg": "CONC Salad - Vegan Beef,lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
+                  "lunch_softAlt": "Roasted Chicken Leg, Steamed Rice & Soft Veg Stir-fry",
                   "allergens_lunch": "Gluten, dairy",
                   "dinner": "Sausages & Mash, Gravy, Green peas",
                   "dinner_veg": "Vegan Sausages & Mash, Gravy, Green Peas",
+                  "dinner_softAlt": "Plain Roasted Chicken Leg, Steamed Rice, Peas, Carrots & Onions",
                   "dinner_halal": "Halal beef sausages",
                   "allergens_dinner": "pork",
                   "breakfast_flags": {
@@ -5144,12 +5179,15 @@ const MENU_DATA = {
             "FRIDAY": {
                   "breakfast": "Ham, Cheese and Eggs yoghurt",
                   "breakfast_veg": "Oatmeal",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "pork, gluten, dairy ,egg",
                   "lunch": "Tuna Salad Sandwich & Seasonal  Soup",
                   "lunch_veg": "\u0651\u0651Falafel Sandwich & Seasonal Soup",
+                  "lunch_softAlt": "Plain Fish or Tuna, Soft Bread & Seasonal Soup",
                   "allergens_lunch": "fish, gluten",
                   "dinner": "Arroz con Pollo,  Refried beans",
                   "dinner_veg": "Vegan Arroz con pollo, Refried beans",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5194,13 +5232,16 @@ const MENU_DATA = {
             "SATURDAY": {
                   "breakfast": "Bagel, Cream cheese and Granola.",
                   "breakfast_veg": "Bagel, Cream cheese and Granola.",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Chicken tenders, Roasted Yams, Seasonal Veg",
                   "lunch_veg": "Vegan Nuggets, Roasted Yams , Seasonal Veg",
+                  "lunch_softAlt": "Plain Roasted Chicken Leg, Roasted Yam & Seasonal Veg",
                   "lunch_halal": "Halal breaded chicken burgers",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Beef Meatloaf, Steamed vegetables, Potatoes",
                   "dinner_veg": "Vegan Meatloaf, Steamed vegetables, Potatoes",
+                  "dinner_softAlt": "Plain Chicken Leg, Rice & Squash",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5247,12 +5288,15 @@ const MENU_DATA = {
             "SUNDAY": {
                   "breakfast": "Pork Breakfast sandwich",
                   "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, egg, dairy,",
                   "lunch": "Coronation Chicken Salad Sandwich",
                   "lunch_veg": "Roasted Vegetable Sandwich",
+                  "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
                   "allergens_lunch": "gluten, egg,",
                   "dinner": "Halal Beef Meatballs Pasta",
                   "dinner_veg": "Vegan Meatballs Pasta",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "gluten",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5297,12 +5341,15 @@ const MENU_DATA = {
             "MONDAY": {
                   "breakfast": "Pancakes, turkey bacon",
                   "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg,",
                   "lunch": "Vegan Chilli Cheese dogs",
                   "lunch_veg": "Vegan Chilli Cheese dogs",
+                  "lunch_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Roast Chicken, Morrocan rice and Seasonal Vegetables",
                   "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice and Seasonal Vegetables",
+                  "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5350,9 +5397,11 @@ const MENU_DATA = {
                   "allergens_breakfast": "dairy, gluten",
                   "lunch": "Glazed Ham, Roast Potatoes, Garlic peas & corn",
                   "lunch_veg": "Roast Potato and Tofu Hash, Garlic peas & Corn",
+                  "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Garlic Peas",
                   "allergens_lunch": "pork",
                   "dinner": "Caribbean Chicken Curry, Naan",
                   "dinner_veg": "Caribbean Chickpea Curry, Naan",
+                  "dinner_softAlt": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
                   "allergens_dinner": "gluten",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5397,12 +5446,15 @@ const MENU_DATA = {
             "WEDNESDAY": {
                   "breakfast": "Ham Frittata",
                   "breakfast_veg": "Vegetarian Frittata",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Crispy Chicken Tender Wrap",
                   "lunch_veg": "Crispy Vegan Tender Wrap",
+                  "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_lunch": "dairy, gluten",
                   "dinner": "Baked Tomato Fish, Couscous, Seasonal Vegetables",
                   "dinner_veg": "Baked Tomato Tofu, Couscous , Seasonal Vegetables",
+                  "dinner_softAlt": "Plain Basa, Plain Rice & Seasonal Veg",
                   "allergens_dinner": "fish, gluten",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5447,12 +5499,15 @@ const MENU_DATA = {
             "THURSDAY": {
                   "breakfast": "Scrambled eggs & sausage",
                   "breakfast_veg": "Scrambled eggs & veg sausage",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg, pork",
                   "lunch": "Beef Nachos Supreme, Tortilla chips, Sour Cream",
                   "lunch_veg": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+                  "lunch_softAlt": "Baked Plain Fish, Plain Rice & Stir-fried Veg",
                   "allergens_lunch": "gluten,  dairy",
                   "dinner": "Pork Griot, Chakalaka, Rice",
                   "dinner_veg": "Citrus Tofu, Chakalaka, Rice",
+                  "dinner_softAlt": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
                   "allergens_dinner": "pork",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5497,12 +5552,15 @@ const MENU_DATA = {
             "FRIDAY": {
                   "breakfast": "Ham, Cheese and Eggs yoghurt",
                   "breakfast_veg": "Oatmeal",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "pork, gluten, dairy ,egg",
                   "lunch": "Jamaican Beef Patties , Seasonal Soup",
                   "lunch_veg": "Vegetarian Jamaican Patties , Seasonal Soup",
+                  "lunch_softAlt": "Roasted Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_lunch": "gluten",
                   "dinner": "Chicken and Mushroom Fried Rice, Seasonal Vegetables",
                   "dinner_veg": "Chicken and Mushroom Fried Rice, Seasonal Vegetables",
+                  "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5547,12 +5605,15 @@ const MENU_DATA = {
             "SATURDAY": {
                   "breakfast": "Bagel, Cream cheese and Granola.",
                   "breakfast_veg": "Bagel, Cream cheese and Granola.",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Sesame Chicken Stirfry, Seasonal Vegetables, Steamed Rice",
                   "lunch_veg": "Sesame Tofu and Vegetable Stirfry, Steamed Rice",
+                  "lunch_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
                   "allergens_lunch": "sesame, soy",
                   "dinner": "Pepperoni Pizza, Wedges, Seasonal soup",
                   "dinner_veg": "Vegetarian Pizza, Wedges, Seasonal Soup",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "gluten, pork, dairy",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5599,12 +5660,15 @@ const MENU_DATA = {
             "SUNDAY": {
                   "breakfast": "Turkey Breakfast sandwich",
                   "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, egg, dairy,",
                   "lunch": "Pork Souvlaki, Naan, Seasonal Vegetables, Tzatziki",
                   "lunch_veg": "Black bean patty, Naan, Seasonal Vegetables,Tzatziki",
+                  "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_lunch": "pork, gluten, dairy",
                   "dinner": "White Chilli Chicken Pasta Casserole",
                   "dinner_veg": "White Chilli Pasta Casserole",
+                  "dinner_softAlt": "Plain Chicken Leg, Rice & Broccoli",
                   "allergens_dinner": "gluten",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5649,12 +5713,15 @@ const MENU_DATA = {
             "MONDAY": {
                   "breakfast": "Pancakes, turkey bacon",
                   "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg,",
                   "lunch": "Chicken Ranch Salad Sandwich and Seasonal Soup",
                   "lunch_veg": "Falafel  Sandwich and Seasonal Soup",
+                  "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Fish Curry, Steamed Rice, Seasonal Vegetables",
                   "dinner_veg": "Tofu Curry, Steamed Rice, Seasonal Vegetables",
+                  "dinner_softAlt": "Plain Fish, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "fish",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5702,9 +5769,11 @@ const MENU_DATA = {
                   "allergens_breakfast": "dairy, gluten",
                   "lunch": "Pork Tacos Al Pastor, Garlic Corn",
                   "lunch_veg": "Vegetarian Tacos, Garlic Corn",
+                  "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Garlic Corn",
                   "allergens_lunch": "pork, gluten, dairy",
                   "dinner": "BBQ Chicken Leg, Roasted Sweet Potatoes, Seasonal Veg",
                   "dinner_veg": "BBQ Chik'n Tenders, Roasted Sweet Potatoes, Seasonal Veg",
+                  "dinner_softAlt": "Plain Chicken Leg, Roasted Sweet Potato & Seasonal Veg",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5749,12 +5818,15 @@ const MENU_DATA = {
             "WEDNESDAY": {
                   "breakfast": "Vegetarian Frittata",
                   "breakfast_veg": "Vegetarian Frittata",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Tuna Rex Salad",
                   "lunch_veg": "Chickpea Rex Salad",
+                  "lunch_softAlt": "Plain Fish, Plain Rice & Seasonal Veg",
                   "allergens_lunch": "fish",
                   "dinner": "Beef and Vegetable Stew, Potatoes",
                   "dinner_veg": "Vegan Pot Pie and Vegetable Medley",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5799,12 +5871,15 @@ const MENU_DATA = {
             "THURSDAY": {
                   "breakfast": "Scrambled eggs & sausage",
                   "breakfast_veg": "Scrambled eggs & veg sausage",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy, egg, pork",
                   "lunch": "Chicken Schwarma, Coleslaw. Mujadarrah Rice, Garlic Sauce",
                   "lunch_veg": "Vegetarian Schwarma, Coleslaw. Mujadarrah Rice, Garlic Sauce",
+                  "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Soft Veg",
                   "allergens_lunch": "gluten",
                   "dinner": "Teriyaki Chicken,  Vegetable Egg Noodles",
                   "dinner_veg": "Teriyaki Tofu, Vegetable Egg Noodles",
+                  "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables",
                   "allergens_dinner": "Egg,soy,gluten,sesame",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -5849,12 +5924,15 @@ const MENU_DATA = {
             "FRIDAY": {
                   "breakfast": "Ham, Cheese and Eggs yoghurt",
                   "breakfast_veg": "Oatmeal",
+                  "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
                   "allergens_breakfast": "pork, gluten, dairy ,egg",
                   "lunch": "Beef lasagna,  Seasonal Vegetables",
                   "lunch_veg": "Beef lasagna,  Seasonal Vegetables",
+                  "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Tandoori Pork, Vegetable Briyani",
                   "dinner_veg": "Tandoori Tofu, Vegetable Briyani",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "dinner_halal": "Tandoori Chicken",
                   "allergens_dinner": "Pork",
                   "breakfast_flags": {
@@ -5900,12 +5978,15 @@ const MENU_DATA = {
             "SATURDAY": {
                   "breakfast": "Bagel, Cream cheese and Granola.",
                   "breakfast_veg": "Bagel, Cream cheese and Granola.",
+                  "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
                   "allergens_breakfast": "gluten, dairy",
                   "lunch": "Lime-Spiced Chicken Legs, Garlic Bread, Seasonal Veg",
                   "lunch_veg": "Roasted Veg and Tofu Medley, Tumeric Quinoa, Garlic Bread",
+                  "lunch_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
                   "allergens_lunch": "gluten, dairy",
                   "dinner": "Beef Massaman Curry, Rice",
                   "dinner_veg": "Vegetarian Massaman Curry, Rice",
+                  "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
                   "allergens_dinner": "",
                   "breakfast_flags": {
                         "hasGluten": true,
@@ -8622,6 +8703,7 @@ function renderMenuConfig() {
       const nextSpecial = slotSpecials[0] || null;
 
       const mealVeg = swap ? (swap.veg || '') : (menuEdit ? (menuEdit.veg || '') : (dayData[period+'_veg'] || ''));
+      const mealCellSoftAlt = dayData[period+'_softAlt'] || '';
 
       let flagBadges = FLAG_DEFS.filter(f => activeFlags[f.key]).map(f =>
         `<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:${f.color}15;color:${f.color};margin:1px;">${f.label}</span>`
@@ -8629,6 +8711,10 @@ function renderMenuConfig() {
 
       const swapBadge = swap ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#fef3c7;color:#92400e;margin:1px;">Swapped</span>' : '';
       const editBadge = (!swap && menuEdit) ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#dbeafe;color:#1e40af;margin:1px;">Edited</span>' : '';
+      const hasSoftResidents = REGISTRY_LIST.some(r => (r.tags||[]).includes('Soft Meals'));
+      const softAltBadge = mealCellSoftAlt
+        ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#e0f7fa;color:#0891b2;margin:1px;">🍲 soft</span>'
+        : (hasSoftResidents ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#fef3c7;color:#92400e;margin:1px;" title="Soft meal residents active — no description set">⚠ soft</span>' : '');
       const specialBadge = nextSpecial ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#d1fae5;color:#065f46;margin:1px;">🎉 ' + nextSpecial.date + '</span>' : '';
       const specialNote = nextSpecial ? '<div style="font-size:9px;color:#065f46;margin-top:2px;">' + nextSpecial.specialName + (slotSpecials.length > 1 ? ' (+' + (slotSpecials.length-1) + ' more)' : '') + '</div>' : '';
 
@@ -8640,7 +8726,7 @@ function renderMenuConfig() {
       if (editMenuMode) td.style.outline = '1.5px dashed #93c5fd';
       td.innerHTML = `<div style="font-size:12px;font-weight:500;margin-bottom:3px;line-height:1.3;">${mealName}</div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${mealVeg}</div>
-        <div>${flagBadges}${swapBadge}${editBadge}${specialBadge}</div>${specialNote}`;
+        <div>${flagBadges}${swapBadge}${editBadge}${softAltBadge}${specialBadge}</div>${specialNote}`;
       td.onclick = () => handleMealCellClick(mcWeek, dayName, period);
       if (slotSwapMode) {
         const isFirst = slotSwapFirst && slotSwapFirst.week === mcWeek && slotSwapFirst.day === dayName && slotSwapFirst.period === period;
@@ -8703,6 +8789,7 @@ function openMealEdit(week, day, period) {
   }
   document.getElementById('mc-swap-name').value = nameVal;
   document.getElementById('mc-swap-veg').value = vegVal;
+  document.getElementById('mc-swap-softalt').value = dayData[period+'_softAlt'] || '';
 
   const flagGrid = document.getElementById('mc-flag-grid');
   flagGrid.innerHTML = FLAG_DEFS.map(f => {
@@ -9234,6 +9321,7 @@ function makePermanent() {
   const name = document.getElementById('mc-swap-name').value.trim();
   if (!name) { alert('Enter a replacement meal name before making it permanent.'); return; }
   const veg = document.getElementById('mc-swap-veg').value.trim();
+  const softAlt = document.getElementById('mc-swap-softalt') ? document.getElementById('mc-swap-softalt').value.trim() : '';
   const flags = {};
   FLAG_DEFS.forEach(f => {
     flags[f.key] = document.getElementById('mc-flag-'+f.key).checked;
@@ -9257,6 +9345,7 @@ function makePermanent() {
   overlay[String(week)][day][period] = name;
   overlay[String(week)][day][period + '_veg'] = veg;
   overlay[String(week)][day][period + '_flags'] = flags;
+  overlay[String(week)][day][period + '_softAlt'] = softAlt;
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing one-time swap for the next occurrence of this slot
@@ -9302,6 +9391,7 @@ function revertMealSwap() {
     delete overlay[String(week)][day][period];
     delete overlay[String(week)][day][period + '_veg'];
     delete overlay[String(week)][day][period + '_flags'];
+    delete overlay[String(week)][day][period + '_softAlt'];
     // Clean up empty day/week objects
     if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
     if (!Object.keys(overlay[String(week)]).length) delete overlay[String(week)];
@@ -11981,13 +12071,17 @@ function buildDaySheet(period, weekNum, dayName) {
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
   const mealFlags   = dayData[period+'_flags'] || {};
-  const allergenStr = (dayData['allergens_'+period] || '').toUpperCase();
 
   // Veg alt allergen string — hierarchy:
   // 1. Stored in menu edit (computed from slot allergen flags when meal was saved via Menu Config)
   // 2. DOOR_RECIPE_DATA lookup against vegan-stream recipes (strict matching only)
   // 3. Fallback: "VERIFY ALLERGENS FOR THIS ALTERNATIVE"
   const menuEdit = getMenuEdit(weekNum, dayName, period);
+  // When a menu edit exists the overlay wrote explicit allergen flags — use those.
+  // For unedited rotation meals fall back to the raw hardcoded allergens_* string.
+  const allergenStr = menuEdit
+    ? flagsToAllergenStr(mealFlags).toUpperCase()
+    : (dayData['allergens_'+period] || '').toUpperCase();
   const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
   const vegAllergenLookup = getVegAltAllergenStr(mealVeg);
   const vegAllergenStr = vegAllergenStored || vegAllergenLookup || null;
