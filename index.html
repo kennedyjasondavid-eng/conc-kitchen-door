@@ -11647,7 +11647,7 @@ function expandSlashNegations(text) {
       lastWasSimpleNo = SIMPLE_NEG.test(t); // only true for clean "No Noun" — not long sentences
       return t;
     }
-    if (lastWasSimpleNo && i > 0 && SIMPLE_NOUN.test(t) && !t.includes(',')) { lastWasSimpleNo = false; return 'No ' + t; }
+    if (lastWasSimpleNo && i > 0 && SIMPLE_NOUN.test(t) && !t.includes(',')) { return 'No ' + t; }
     lastWasSimpleNo = false;
     return t;
   }).join(', ');
@@ -12491,6 +12491,47 @@ initDynamic();
       })
       .catch(() => updateSyncBar('Registry using built-in data', 'var(--muted)'));
   }
+})();
+
+// ── Registry data patch (Apr 27 2026) ────────────────────────────────────────
+// Applies known tag corrections that weren't captured via import.
+// Runs on every load but only modifies if the patch hasn't been applied yet.
+(function applyRegistryPatch() {
+  const PATCH_KEY = 'concRegistryPatch_20260427';
+  if (localStorage.getItem(PATCH_KEY)) return; // already applied
+
+  const PATCHES = [
+    // 813: No Wheat parses as GF — tag was missing from registry
+    { room: '813',  addTags: ['Gluten Free'], section: 'Gluten Free',
+      note: 'GF tag applied — No Wheat restriction confirmed from meal list' },
+    // 1006: No Pork confirmed in meal list — wasn't routing to Halal on pork days
+    { room: '1006', addTags: ['No Pork'],
+      note: 'No Pork tag applied — confirmed from meal list Apr 27' },
+  ];
+
+  let changed = 0;
+  PATCHES.forEach(patch => {
+    const r = REGISTRY_MAP[patch.room.toLowerCase()];
+    if (!r) return;
+    patch.addTags.forEach(label => {
+      if (!(r.tags||[]).includes(label)) {
+        r.tags = r.tags || [];
+        r.tags.push(label);
+        changed++;
+      }
+    });
+    if (patch.section && !r.section) r.section = patch.section;
+    // Log to recent changes
+    const dateStr = new Date().toLocaleDateString('en-CA', { month:'short', day:'numeric' });
+    RECENT_LOG.unshift({ date: dateStr, room: patch.room, type: 'update',
+      desc: patch.note, color: '#6b7280' });
+  });
+
+  if (changed > 0) {
+    saveRegistryState();
+    console.log('[DOOR patch] Applied registry corrections for Apr 27:', changed, 'tag(s) added');
+  }
+  localStorage.setItem(PATCH_KEY, '1');
 })();
 
 renderRegistry(REGISTRY_LIST);
