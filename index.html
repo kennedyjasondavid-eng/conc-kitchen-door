@@ -6555,43 +6555,74 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
 // ============================================================
 // REVIEW
 // ============================================================
-function nrApplyReview(room, sid) {
-  const action = document.getElementById('nr-action-'+sid)?.value || 'skip';
-  const tagEl  = document.getElementById('nr-tag-'+sid);
-  const value  = (action === 'map' && tagEl) ? tagEl.value : '';
+function nrGetAction(sid) {
+  return document.getElementById('nr-action-'+sid)?.value || 'map';
+}
+function nrGetTag(sid) {
+  return document.getElementById('nr-tag-'+sid)?.value || '';
+}
+
+function nrAddPending(room, sid) {
+  const action = nrGetAction(sid);
+  const value  = action === 'map' ? nrGetTag(sid) : '';
+  if (action === 'map' && !value) { showToast('Select a tag first.'); return; }
   let nrRes = {};
   try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
-  nrRes[room] = { action, value };
+  const key = '_pending_' + room;
+  const pending = nrRes[key] || [];
+  // Avoid exact dupes
+  if (!pending.find(d => d.action === action && d.value === value)) {
+    pending.push({ action, value });
+    nrRes[key] = pending;
+    localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
+  }
+  buildReview();
+}
 
-  // If mapping to a tag, also update the resident's record in the registry
-  if (action === 'map' && value) {
+function nrRemovePending(room, idx) {
+  let nrRes = {};
+  try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
+  const key = '_pending_' + room;
+  const pending = nrRes[key] || [];
+  pending.splice(idx, 1);
+  if (pending.length) nrRes[key] = pending; else delete nrRes[key];
+  localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
+  buildReview();
+}
+
+function nrDoneReview(room) {
+  let nrRes = {};
+  try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
+  const pending = nrRes['_pending_' + room] || [];
+  if (!pending.length) { showToast('Add at least one classification first.'); return; }
+  // Commit pending to final
+  nrRes[room] = pending;
+  delete nrRes['_pending_' + room];
+
+  // Apply each decision to registry
+  pending.forEach(d => {
     const r = REGISTRY_MAP[room.toLowerCase()];
-    if (r) {
-      const existingTags = r.tags || [];
-      const newLabel = TAG_LABELS_MAP[value];
-      if (newLabel && !existingTags.includes(newLabel)) {
-        existingTags.push(newLabel);
-        r.tags = existingTags;
-      }
+    if (!r) return;
+    if (d.action === 'map' && d.value) {
+      const label = TAG_LABELS_MAP[d.value];
+      if (label && !(r.tags||[]).includes(label)) (r.tags = r.tags||[]).push(label);
     }
-  }
-  // If service note, append to resident's serviceNote
-  if (action === 'note') {
-    const r = REGISTRY_MAP[room.toLowerCase()];
-    if (r) {
+    if (d.action === 'note') {
       const nrItem = (JSON.parse(localStorage.getItem('concUnresolvedNR')||'[]')).find(x=>x.room===room);
-      if (nrItem) r.serviceNote = (r.serviceNote ? r.serviceNote + '; ' : '') + nrItem.text;
+      if (nrItem) r.serviceNote = (r.serviceNote ? r.serviceNote+'; ' : '') + nrItem.text;
     }
-  }
+  });
 
   localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
-
-  // Check if all done — if so clear the NR gate
   const nrItems = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
-  const allDone = nrItems.every(x => nrRes[x.room]);
-  if (allDone) localStorage.removeItem('concUnresolvedNR');
+  if (nrItems.every(x => nrRes[x.room])) localStorage.removeItem('concUnresolvedNR');
+  buildReview();
+}
 
-  buildReview(); // re-render
+// nrApplyReview — delegates to nrAddPending + nrDoneReview
+function nrApplyReview(room, sid) {
+  nrAddPending(room, sid);
+  // Don't auto-close — user clicks Done when finished
 }
 
 function nrUndoReview(room) {
@@ -6682,36 +6713,64 @@ function buildReview() {
     const remaining = nrItems.filter(r => !nrResolutions[r.room]);
     const resolved  = nrItems.filter(r =>  nrResolutions[r.room]);
 
-    const rowsHtml = nrItems.map((r,i) => {
+    const cardsHtml = nrItems.map(r => {
       const res = nrResolutions[r.room];
-      if (res) {
-        const resLabel = res.action === 'skip' ? '— not applicable'
-          : res.action === 'note' ? '📝 saved as service note'
-          : '→ ' + (TAG_LABELS_MAP[res.value] || res.value);
-        return `<tr style="background:#f0fdf4;">
-          <td style="padding:6px 8px;font-family:monospace;font-weight:700;color:#166534;">${r.room}</td>
-          <td style="padding:6px 8px;color:#166534;font-size:11px;">${r.text}</td>
-          <td style="padding:6px 8px;font-size:11px;color:#166534;">${resLabel}</td>
-          <td style="padding:6px 8px;"><button onclick="nrUndoReview('${r.room}')" style="font-size:10px;color:#92400e;background:none;border:none;cursor:pointer;text-decoration:underline;">Undo</button></td>
-        </tr>`;
-      }
       const sid = 'rvw_' + r.room.replace(/[^a-z0-9]/gi,'_');
-      return `<tr style="background:${i%2?'#fef9c3':'#fefce8'};" id="nr-row-${sid}">
-        <td style="padding:6px 8px;font-family:monospace;font-weight:700;color:#78350f;">${r.room}</td>
-        <td style="padding:6px 8px;color:#92400e;font-size:11px;">${r.text}</td>
-        <td style="padding:6px 8px;" colspan="2">
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select id="nr-action-${sid}" onchange="nrToggleTagSelect('${sid}')" style="font-size:11px;padding:2px 4px;border:1px solid #fcd34d;border-radius:4px;background:#fffbeb;">
-              <option value="map">→ Assign tag</option>
-              <option value="note">📝 Service note</option>
-              <option value="skip">— Not applicable</option>
-            </select>
-            <select id="nr-tag-${sid}" style="font-size:11px;padding:2px 4px;border:1px solid #fcd34d;border-radius:4px;background:#fffbeb;">${allTagOptions}</select>
-            <button onclick="nrApplyReview('${r.room}','${sid}')"
-              style="font-size:11px;padding:2px 10px;background:#166534;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Apply</button>
+
+      if (res) {
+        // res is now an array of decisions
+        const decisions = Array.isArray(res) ? res : [res];
+        const badgesHtml = decisions.map(d => {
+          if (d.action === 'skip') return `<span style="background:#e2e8f0;color:#475569;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">Not applicable</span>`;
+          if (d.action === 'note') return `<span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">📝 Note</span>`;
+          return `<span style="background:#dcfce7;color:#166534;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">→ ${TAG_LABELS_MAP[d.value]||d.value}</span>`;
+        }).join('');
+        const allSkip = decisions.every(d => d.action === 'skip');
+        return `<div style="background:${allSkip?'#f1f5f9':'#f0fdf4'};border:1px solid ${allSkip?'#e2e8f0':'#86efac'};border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:12px;">
+          <div style="font-family:monospace;font-size:16px;font-weight:700;color:${allSkip?'#475569':'#166534'};min-width:48px;">${r.room}</div>
+          <div style="flex:1;font-size:11px;color:#64748b;font-style:italic;">"${r.text}"</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${badgesHtml}
+            <button onclick="nrUndoReview('${r.room}')" style="font-size:10px;color:#94a3b8;background:none;border:none;cursor:pointer;padding:0;margin-left:4px;" title="Undo">✕</button>
           </div>
-        </td>
-      </tr>`;
+        </div>`;
+      }
+
+      // Pending decisions (added but card not yet marked Done)
+      const pending = (nrResolutions['_pending_' + r.room] || []);
+      const pendingHtml = pending.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding-left:58px;margin-bottom:6px;">${
+        pending.map((d,di) => {
+          const lbl = d.action==='skip' ? 'Not applicable'
+            : d.action==='note' ? 'Service note'
+            : (TAG_LABELS_MAP[d.value] || d.value);
+          return `<span style="background:#fde68a;color:#78350f;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+            ${lbl}
+            <button onclick="nrRemovePending('${r.room}',${di})" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:10px;padding:0;line-height:1;">✕</button>
+          </span>`;
+        }).join('')
+      }</div>` : '';
+
+      return `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;" id="nr-row-${sid}">
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px;">
+          <span style="font-family:monospace;font-size:16px;font-weight:700;color:#92400e;min-width:48px;">Rm ${r.room}</span>
+          <span style="font-size:11px;color:#78350f;font-style:italic;flex:1;">"${r.text}"</span>
+        </div>
+        ${pendingHtml}
+        <div style="display:flex;gap:6px;align-items:center;padding-left:58px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:#92400e;font-weight:600;white-space:nowrap;">${pending.length ? 'Add another:' : 'Classify as:'}</span>
+          <select id="nr-action-${sid}" onchange="nrToggleTagSelect('${sid}')"
+            style="font-size:11px;padding:3px 6px;border:1px solid #fcd34d;border-radius:4px;background:#fff;color:#374151;">
+            <option value="map">Known tag</option>
+            <option value="note">Service note</option>
+            <option value="skip">Not applicable</option>
+          </select>
+          <select id="nr-tag-${sid}"
+            style="font-size:11px;padding:3px 6px;border:1px solid #fcd34d;border-radius:4px;background:#fff;color:#374151;">${allTagOptions}</select>
+          <button onclick="nrAddPending('${r.room}','${sid}')"
+            style="font-size:11px;padding:3px 10px;background:#92400e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;">+ Add</button>
+          ${pending.length ? `<button onclick="nrDoneReview('${r.room}')"
+            style="font-size:11px;padding:3px 12px;background:#166534;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;white-space:nowrap;">✓ Done</button>` : ''}
+        </div>
+      </div>`;
     }).join('');
 
     const doneCount = resolved.length;
@@ -6719,21 +6778,15 @@ function buildReview() {
     const allDone = doneCount === totalCount;
 
     nrHtml = `<div id="nr-block-banner" style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;padding:14px 16px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <span style="font-size:18px">${allDone ? '✅' : '⚠️'}</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:18px;">${allDone ? '✅' : '⚠️'}</span>
         <div style="flex:1;">
-          <strong style="color:#78350f;font-size:13px;">${allDone ? 'All restrictions resolved — ready to generate.' : `Unresolved Restrictions — ${remaining.length} of ${totalCount} remaining`}</strong><br>
-          <span style="font-size:11px;color:#92400e;">Assign each restriction to a known category, save as a service note, or mark as not applicable. Changes apply when you generate.</span>
+          <strong style="color:#78350f;font-size:13px;">${allDone ? 'All restrictions resolved — ready to generate.' : `${remaining.length} restriction${remaining.length!==1?'s':''} need a decision before generating`}</strong><br>
+          <span style="font-size:11px;color:#92400e;">Each item below is a resident whose restriction text couldn't be matched automatically. Classify it, then generate.</span>
         </div>
+        <span style="font-size:11px;background:#fde68a;color:#78350f;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap;">${doneCount}/${totalCount} done</span>
       </div>
-      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px;">
-        <thead><tr style="background:#fde68a;">
-          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;width:60px;">Room</th>
-          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;">Restriction text from roster</th>
-          <th style="padding:4px 8px;text-align:left;color:#78350f;font-weight:700;" colspan="2">Decision</th>
-        </tr></thead>
-        <tbody id="nr-review-tbody">${rowsHtml}</tbody>
-      </table>
+      <div style="display:flex;flex-direction:column;gap:6px;">${cardsHtml}</div>
     </div>`;
 
     const btn = document.getElementById('generate-btn');
