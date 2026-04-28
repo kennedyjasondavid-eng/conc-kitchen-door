@@ -4592,6 +4592,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             }
@@ -4915,6 +4916,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             }
@@ -5175,6 +5177,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             },
@@ -5297,6 +5300,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             }
@@ -5557,6 +5561,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": true
             },
@@ -5611,6 +5616,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             },
@@ -5892,6 +5898,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             }
@@ -5988,6 +5995,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": true
             },
@@ -6054,6 +6062,7 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": true,
+                "halalCertifiedMeat": true,
                 "isSpicy": false,
                 "isCarb": false
             }
@@ -7769,14 +7778,14 @@ function removeAnaphRoom(room) {
 // ============================================================
 function buildMenuJSON() {
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:23 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:24 },
     menu: getMenuData()
   };
 }
 
 function buildStateJSON() {
   return {
-    _meta: { source:'KitchenDOOR', version:23, exported:new Date().toISOString(),
+    _meta: { source:'KitchenDOOR', version:24, exported:new Date().toISOString(),
              site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length },
     residents: REGISTRY_LIST,
     anaphRooms: anaphRooms,
@@ -7795,7 +7804,7 @@ function buildRegistrySummaryJSON() {
     if(r.isModerate) mc++;
   });
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:23 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:24 },
     headcounts: { total:REGISTRY_LIST.length, regular:sc['Regular']||0, halal:sc['Halal']||0, vegan:sc['Vegan / Vegetarian']||0, diabetic:sc['Diabetic']||0, glutenFree:sc['Gluten Free']||0, noDairy:sc['No Dairy']||0 },
     tagDistribution: tc,
     flags: { anaphylactic:ac, moderate:mc }
@@ -7849,7 +7858,7 @@ function buildRoutingByMealJSON() {
   });
 
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:23 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:24 },
     routing: result
   };
 }
@@ -10634,18 +10643,36 @@ function getMenuEdit(week, day, period) {
 }
 
 function goHome() {
-  // Swaps are now persistent (loadMealSwaps), so leaving Menu Config no longer loses them.
-  // Only warn about Edit Menu mode, which remains a modal session state.
+  // Edit Menu mode is a modal session — warn before leaving
   if (editMenuMode) {
-    if (!confirm('Edit Menu mode is active. Leave the page and exit Edit Menu mode?\n\nAlready-saved menu edits are kept.')) return;
+    if (!confirm('Edit Menu mode is active. Leave and exit Edit Menu mode?\n\nAlready-saved menu edits are kept.')) return;
     toggleEditMenuMode();
   }
 
-  // Clear transient render hints (source of truth stays persisted)
-  mealSwaps = {};
+  // Clear queue if anything is pending
+  if (changesQueue.length) {
+    if (!confirm('You have ' + changesQueue.length + ' change' + (changesQueue.length!==1?'s':'') + ' in the queue. Going home will clear them.\n\nProceed?')) return;
+    changesQueue = [];
+  }
+
+  // Close any open dialogs / panels
   closeMealEdit();
   closeMenuEdit();
   closeSpecialMealPanel();
+  closeImportDialog();
+
+  // Clear transient render hints
+  mealSwaps = {};
+
+  // Reset Enter Changes form
+  clearForm();
+
+  // Re-render
+  renderQueue();
+  updateBadge();
+  renderRecentLog();
+  updateDailyImportPrompt();
+  updateGeneratedIndicator();
 
   showScreen('enter', document.querySelector('[data-screen=enter]'));
 }
@@ -12982,7 +13009,7 @@ function buildDaySheet(period, weekNum, dayName) {
   // Stats
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   addRow(xCell('',F.std,null,B.thin), xCell('Total Meals',F.stdB,null,B.thin), xCell(String(REGISTRY_LIST.length),F.stdB,'FFFF00',B.thin), 15);
-  addRow(xCell('',F.std,null,B.thin), xCell('Regular',    F.stdB,null,B.thin), xCell(String(regCount),            F.stdB,'FFFF00',B.thin), 15);
+  addRow(xCell('',F.std,null,B.thin), xCell('Standard Meal',F.stdB,null,B.thin), xCell(String(regCount),            F.stdB,'FFFF00',B.thin), 15);
   addRow(xCell('',F.std,null,B.thin), xCell('Halal',      F.stdB,null,B.thin), xCell(String(halalCount),          F.stdB,'FFFF00',B.thin), 15);
   addRow(xCell('',F.std,null,B.thin), xCell('Diabetics',  F.stdB,null,B.thin), xCell(String(diabCount),           F.stdB,'FFFF00',B.thin), 15);
 
@@ -13053,7 +13080,7 @@ function buildDaySheet(period, weekNum, dayName) {
 
   // Footer
   addRow(xCell('Total Restrictions',F.stdB,null,B.thin), xCell('',F.std,null,B.thin), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thin), 16);
-  addRow(xCell('Total Regular',F.stdB,null,B.thin), xCell('',F.std,null,B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin), 16);
+  addRow(xCell('Total Standard',F.stdB,null,B.thin), xCell('',F.std,null,B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin), 16);
   addMerged('Diabetics - Less starch, more veg', F.stdB, '92D050', B.thin, 18);
 
   // Build worksheet
@@ -13702,7 +13729,7 @@ function renderPlatingPreview() {
   h += `<tr><td colspan="3" class="ps-meal">${mealName}</td></tr>`;
   h += `<tr><td colspan="3" class="ps-allergen">CONTAINS: ${allergenStr||'\u2014'}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Total Meals</td><td class="ps-total-val">${REGISTRY_LIST.length}</td></tr>`;
-  h += `<tr><td></td><td class="ps-total">Regular</td><td class="ps-total-val">${regCount}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Standard Meal</td><td class="ps-total-val">${regCount}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Halal</td><td class="ps-total-val">${halalCount}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Diabetics</td><td class="ps-total-val">${diabCount}</td></tr>`;
 
@@ -13759,7 +13786,7 @@ function renderPlatingPreview() {
     h += `<tr class="ps-sect-total"><td>${s.rule.label} Total</td><td></td><td>${res.length}</td></tr>`;
   });
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
-  h += `<tr class="ps-sect-total"><td>Total Regular</td><td></td><td>${regCount}</td></tr>`;
+  h += `<tr class="ps-sect-total"><td>Total Standard</td><td></td><td>${regCount}</td></tr>`;
   h += '</table>';
 
   preview.innerHTML = h;
