@@ -6655,7 +6655,7 @@ function nrDoneReview(room) {
   // Push to GitHub immediately so other devices get it without waiting for next Sync
   (async function pushLearnedNR() {
     try {
-      const settings = JSON.parse(localStorage.getItem('concDoorSettings') || '{}');
+      const settings = JSON.parse(localStorage.getItem('conc-door-settings') || '{}');
       const repo  = settings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
       const token = settings['gh-token'] || '';
       if (!token) return; // no token configured — skip push
@@ -7129,7 +7129,9 @@ function openSharePointPilot() {
   window.open(base + path, '_blank');
 }
 
-async function pullSecondaryState(repo, headers) {
+async function pullSecondaryState(repo) {
+  const base = 'https://raw.githubusercontent.com/' + repo + '/main/';
+  const bust = '?_=' + Date.now();
   const files = [
     ['meal_swaps.json',      d => saveMealSwaps(Object.assign({}, loadMealSwaps(), d), true)],
     ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
@@ -7164,26 +7166,16 @@ async function pullSecondaryState(repo, headers) {
   ];
   for (const [filename, apply] of files) {
     try {
-      const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + filename, { headers });
-      if (res.ok) {
-        const env = await res.json();
-        apply(JSON.parse(atob(env.content.replace(/\n/g, ''))));
-      }
+      const res = await fetch(base + filename + bust);
+      if (res.ok) { apply(await res.json()); }
     } catch(e) { console.warn('secondary pull [' + filename + ']:', e.message); }
   }
 }
 
 async function pullStateFromGitHub(manual) {
-  const repo  = appSettings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
-  const token = appSettings['gh-token'] || '';
-  const url   = 'https://api.github.com/repos/' + repo + '/contents/door_state.json';
-  const headers = { 'Accept': 'application/vnd.github.v3+json',
-    ...(token ? {'Authorization': 'token ' + token} : {}) };
+  const repo  = appSettings['gh-repo']  || (document.getElementById('gh-repo')||{}).value || 'kennedyjasondavid-eng/conc-kitchen-door';
+  const token = appSettings['gh-token'] || (document.getElementById('gh-token')||{}).value || '';
 
-  if (!token && manual) {
-    showToast('No GitHub token set — go to Settings and enter your token first.');
-    return;
-  }
   if (!repo && manual) {
     showToast('No GitHub repo set — go to Settings first.');
     return;
@@ -7191,14 +7183,16 @@ async function pullStateFromGitHub(manual) {
 
   updateSyncBar('Syncing…', 'var(--muted)');
   try {
-    const res = await fetch(url, { headers });
+    // Use raw.githubusercontent.com — no auth needed for public repo,
+    // no CORS preflight, no base64 envelope, works through work firewalls
+    const rawUrl = 'https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now();
+    const res = await fetch(rawUrl);
     if (!res.ok) {
       if (manual) showToast('No state file found yet — run Generate from the primary device first.');
       updateSyncBar('No remote state yet', 'var(--muted)');
       return;
     }
-    const envelope = await res.json();
-    const state = JSON.parse(atob(envelope.content.replace(/\n/g, '')));
+    const state = await res.json();
     if (!state.residents || !state.residents.length) {
       if (manual) showToast('Remote state file is empty.');
       return;
@@ -7221,7 +7215,7 @@ async function pullStateFromGitHub(manual) {
     updateDailyImportPrompt();
     // Secondary pulls (swaps, specials, log, overlay, rules, learned) — fire and forget
     // Isolated so any failure here never affects the registry sync result
-    pullSecondaryState(repo, headers).catch(e => console.warn('secondary pull:', e));
+    pullSecondaryState(repo).catch(e => console.warn('secondary pull:', e));
   } catch(e) {
     console.error('pullStateFromGitHub error:', e.name, e.message, e.stack);
     const msg = (e.message || e.name || 'unknown').slice(0, 80);
@@ -12759,7 +12753,7 @@ initDynamic();
 // Load learned NR from GitHub on boot — best-effort with 3s timeout, never blocks UI
 (function bootLearnedNR() {
   try {
-    const repo = (JSON.parse(localStorage.getItem('concDoorSettings') || '{}')||{})['gh-repo']
+    const repo = (JSON.parse(localStorage.getItem('conc-door-settings') || '{}')||{})['gh-repo']
                  || 'kennedyjasondavid-eng/conc-kitchen-door';
     const url = 'https://raw.githubusercontent.com/' + repo + '/main/learned_nr.json?_=' + Date.now();
     const controller = new AbortController();
@@ -12783,15 +12777,10 @@ initDynamic();
     const timeStr = saved ? saved.toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
     updateSyncBar('Registry loaded — ' + REGISTRY_LIST.length + ' residents' + (timeStr ? ' · saved ' + timeStr : ''), 'var(--forest-mid)');
   } else {
-    // No local state — try silent pull from public GitHub repo
+    // No local state — try silent pull from public GitHub repo (raw URL — no auth, no CORS)
     const repo = (typeof appSettings !== 'undefined' && appSettings['gh-repo']) || 'kennedyjasondavid-eng/conc-kitchen-door';
-    fetch('https://api.github.com/repos/' + repo + '/contents/door_state.json',
-      { headers: { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' } })
+    fetch('https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now())
       .then(r => r.ok ? r.json() : null)
-      .then(envelope => {
-        if (!envelope || !envelope.content) return null;
-        try { return JSON.parse(atob(envelope.content.replace(/\n/g, ''))); } catch(e) { return null; }
-      })
       .then(state => {
         if (state && state.residents && state.residents.length) {
           REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
