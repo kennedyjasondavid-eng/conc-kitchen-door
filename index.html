@@ -12118,9 +12118,11 @@ function diffImportAgainstRegistry(entries) {
     const existing = REGISTRY_MAP[e.room.toLowerCase()];
     const newTags = { ...e.parsed.tags };
     const newSig = importTagSignature(newTags);
+    let isNewOrChanged = false;
 
     if (!existing) {
       intakes.push({ room: e.room, newTags, unmatched: e.parsed.unmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
+      isNewOrChanged = true;
     } else {
       // Build tag set from existing record (inverse of TAG_LABELS_MAP)
       const existingTags = {};
@@ -12139,17 +12141,20 @@ function diffImportAgainstRegistry(entries) {
           rawText: e.parsed.rawText,
           fieldSelections: null  // populated in UI per field
         });
+        isNewOrChanged = true;
       }
     }
 
-    // Tag as needs-review if unmatched tokens or anaph candidate
-    // — but skip if the operator has already resolved this exact restriction text
+    // Only flag NR for new intakes or rooms where restrictions actually changed.
+    // Existing rooms with unchanged tags have the same unmatched fragments every time —
+    // those were already handled when the room was first set up.
+    if (!isNewOrChanged) continue;
+
     if (e.parsed.unmatched.length || e.parsed.isAnaphCandidate) {
       let learned = {};
       try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
       const roomLearned = learned[e.room.toLowerCase()] || {};
       // If the full raw text was previously resolved, skip this room entirely
-      // (text hasn't changed since last resolution — nothing new to review)
       const rawNorm = e.parsed.rawText.toLowerCase().trim();
       if (roomLearned['_resolved_text'] === rawNorm) continue;
       // Fallback: per-token check for partial matches
