@@ -5111,7 +5111,7 @@ const MENU_DATA = {
                         "isCarb": false
                   },
                   "lunch_flags": {
-                        "hasGluten": true,
+                        "hasGluten": false,
                         "hasDairy": true,
                         "hasPork": false,
                         "hasFish": false,
@@ -6058,7 +6058,7 @@ const MENU_DATA = {
                   }
             }
       }
-};;;
+};;;;
 
 
 // Recent changes log (simulated — last 3 days)
@@ -10963,6 +10963,49 @@ function closeMenuEdit() {
   mcMenuEditKey = null;
 }
 
+function parseMealNameIntoSlots(name) {
+  // Split a compound MENU_DATA meal name back into its slot components
+  // so the edit panel pre-fills correctly and buildMealName reconstructs the same string.
+  const STARCH_KW = ['rice','naan','bread','pasta','mashed potato','couscous','biscuit',
+                     'roti','potato','pita','rice and beans','roasted potato','sweet potato'];
+  const VEG_KW    = ['seasonal veg','seasonal vegetables','broccoli','green beans','coleslaw',
+                     'corn','cabbage','peas','salad','stir-fried veg','steamed veg','mixed veg',
+                     'garlic peas','pea and carrot','peas & corn'];
+  const EXTRA_KW  = ['seasonal soup','soup','fruit cup','dessert','yogurt','garlic bread',
+                     'pineapple rice'];
+
+  // Split on ", " and " & " — normalise double spaces
+  const raw = name.replace(/\s{2,}/g, ' ').trim();
+  const parts = raw.split(/,\s*|\s+&\s+/).map(p => p.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    // Simple name — just put in main
+    MEAL_SLOT_STATE['main'] = { manual: raw };
+    return;
+  }
+
+  // First part is always main
+  MEAL_SLOT_STATE['main'] = { manual: parts[0] };
+
+  for (let i = 1; i < parts.length; i++) {
+    const p = parts[i];
+    const pLow = p.toLowerCase();
+    const isStarch = STARCH_KW.some(s => pLow.includes(s));
+    const isVeg    = VEG_KW.some(s => pLow.includes(s));
+    const isExtra  = EXTRA_KW.some(s => pLow.includes(s));
+
+    if (isStarch && !MEAL_SLOT_STATE['starch']) {
+      MEAL_SLOT_STATE['starch'] = { manual: p };
+    } else if (isVeg && !MEAL_SLOT_STATE['vegside']) {
+      MEAL_SLOT_STATE['vegside'] = { manual: p };
+    } else if (isExtra && !MEAL_SLOT_STATE['xtra']) {
+      MEAL_SLOT_STATE['xtra'] = { manual: p };
+    } else if (!MEAL_SLOT_STATE['mainalt']) {
+      // Unclassified second component — could be a sub-dish, go into main as compound
+      MEAL_SLOT_STATE['main'] = { manual: MEAL_SLOT_STATE['main'].manual + ' & ' + p };
+    }
+  }
+}
+
 function openMenuEdit(week, day, period) {
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
@@ -10992,10 +11035,10 @@ function openMenuEdit(week, day, period) {
         : { manual: recipeName };
     });
   } else if (existing && existing.name) {
-    MEAL_SLOT_STATE['main'] = { manual: existing.name };
+    parseMealNameIntoSlots(existing.name);
     if (existing.veg) splitVegAltIntoSlots(existing.veg);
   } else if (dayData[period]) {
-    MEAL_SLOT_STATE['main'] = { manual: dayData[period] };
+    parseMealNameIntoSlots(dayData[period]);
     if (dayData[period + '_veg']) splitVegAltIntoSlots(dayData[period + '_veg']);
   }
 
