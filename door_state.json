@@ -1,8 +1,8 @@
 {
   "_meta": {
     "source": "KitchenDOOR",
-    "version": 1,
-    "exported": "2026-04-25T13:26:26.782Z",
+    "version": 23,
+    "exported": "2026-04-28T14:42:39.592Z",
     "site": "rexdale",
     "count": 174
   },
@@ -233,21 +233,6 @@
       "pendingReversion": false
     },
     {
-      "room": "605",
-      "section": "Regular",
-      "tags": [
-        "Regular"
-      ],
-      "confirm": "Provisional",
-      "confirmBy": "—",
-      "isAnaph": false,
-      "rawRestriction": "Regular",
-      "isModerate": false,
-      "moderateNote": "",
-      "complianceDeadline": "",
-      "pendingReversion": false
-    },
-    {
       "room": "616",
       "section": "Regular",
       "tags": [
@@ -354,14 +339,14 @@
     },
     {
       "room": "805",
-      "section": "Regular",
+      "section": "Halal",
       "tags": [
-        "Regular"
+        "Halal"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Regular",
+      "rawRestriction": "Halal",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -761,12 +746,14 @@
       "room": "213",
       "section": "Regular",
       "tags": [
-        "Soft Meals"
+        "No Coconut",
+        "No Tree Nuts",
+        "No Peanuts"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Soft meals, No Popcorn,  Corn,  Nuts,  Coconuts",
+      "rawRestriction": "No Coconut, No Tree Nuts, No Peanuts",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -911,15 +898,14 @@
     },
     {
       "room": "412",
-      "section": "No Dairy",
+      "section": "Regular",
       "tags": [
-        "No Dairy",
-        "No Eggs"
+        "Lactose Intolerant"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No Eggs, No Mayonaise, Lactose Intolerant",
+      "rawRestriction": "Lactose Intolerant",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -993,12 +979,12 @@
       "room": "509",
       "section": "Regular",
       "tags": [
-        "No Pork"
+        "Other"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No Pork / No Beans",
+      "rawRestriction": "Other",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1023,12 +1009,12 @@
       "room": "601",
       "section": "Regular",
       "tags": [
-        "Regular"
+        "No Fried Food"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No fried food",
+      "rawRestriction": "No Fried Food",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1114,13 +1100,12 @@
       "room": "709",
       "section": "Regular",
       "tags": [
-        "No Pork",
-        "No Spicy"
+        "Other"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No pork,/ No Spicy Meals/ No Pepper/ No Sauce) Prefered Rice , Roti , Bread , Chicken,/ Fish",
+      "rawRestriction": "Other",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1128,15 +1113,14 @@
     },
     {
       "room": "710",
-      "section": "Halal",
+      "section": "Regular",
       "tags": [
-        "Halal",
-        "Low Sodium"
+        "Low Fat"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Halal / Low/ No Sodium/Low Fat",
+      "rawRestriction": "Low Fat",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1267,14 +1251,16 @@
       "room": "813",
       "section": "Gluten Free",
       "tags": [
+        "Lactose Intolerant",
         "GF",
-        "No Dairy",
-        "No Shellfish"
+        "No Shellfish",
+        "Other",
+        "Gluten Free"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Lactose Free/  No Wheat / No Shellfish",
+      "rawRestriction": "Lactose Intolerant, GF, No Shellfish, Other",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1313,15 +1299,14 @@
     },
     {
       "room": "905",
-      "section": "Halal",
+      "section": "Regular",
       "tags": [
-        "Halal",
-        "Diabetic"
+        "Low Potassium"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Halal /Diabetic/No potassium foods",
+      "rawRestriction": "Low Potassium",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1408,12 +1393,13 @@
       "section": "Regular",
       "tags": [
         "No Pork",
-        "No Fish"
+        "No Fish",
+        "No Turkey"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No Turkey, No Fish, No Pork",
+      "rawRestriction": "No Pork, No Fish, No Turkey",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1466,14 +1452,16 @@
     },
     {
       "room": "1106",
-      "section": "Diabetic",
+      "section": "Regular",
       "tags": [
-        "Diabetic"
+        "No Beef",
+        "No Pork",
+        "Other"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Diabetic /No Red Meat /White Rice /Bread",
+      "rawRestriction": "No Beef, No Pork, Other",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1573,14 +1561,14 @@
     },
     {
       "room": "1204",
-      "section": "Regular",
+      "section": "Vegan / Vegetarian",
       "tags": [
-        "No Pork"
+        "Vegetarian"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No Pork",
+      "rawRestriction": "Vegetarian",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -2128,21 +2116,6 @@
       "pendingReversion": false
     },
     {
-      "room": "1207a",
-      "section": "Regular",
-      "tags": [
-        "Regular"
-      ],
-      "confirm": "Provisional",
-      "confirmBy": "—",
-      "isAnaph": false,
-      "rawRestriction": "Regular",
-      "isModerate": false,
-      "moderateNote": "",
-      "complianceDeadline": "",
-      "pendingReversion": false
-    },
-    {
       "room": "1207b",
       "section": "Regular",
       "tags": [
@@ -2417,15 +2390,16 @@
     },
     {
       "room": "614b",
-      "section": "Diabetic",
+      "section": "Regular",
       "tags": [
         "Diabetic",
-        "Low Sodium"
+        "Low Sodium",
+        "No Processed Food"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No Processed foods, Diabetic, Low Sodium",
+      "rawRestriction": "Diabetic, Low Sodium, No Processed Food",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -2632,21 +2606,56 @@
       "room": "1215b",
       "section": "Regular",
       "tags": [
+        "No Nightshades",
+        "No Brassicas",
+        "Other"
+      ],
+      "confirm": "Provisional",
+      "confirmBy": "—",
+      "isAnaph": false,
+      "rawRestriction": "No Nightshades, No Brassicas, Other",
+      "isModerate": false,
+      "moderateNote": "",
+      "complianceDeadline": "",
+      "pendingReversion": false
+    },
+    {
+      "room": "914",
+      "section": "Regular",
+      "tags": [
         "Regular"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "No Caulilower/ Tomatoes / Cucumber / Broccoli",
+      "rawRestriction": "Regular",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
-      "pendingReversion": false
+      "pendingReversion": false,
+      "serviceNote": ""
+    },
+    {
+      "room": "313",
+      "section": "Bland",
+      "tags": [
+        "Soft Meals"
+      ],
+      "confirm": "Provisional",
+      "confirmBy": "—",
+      "isAnaph": false,
+      "rawRestriction": "Soft Meals",
+      "isModerate": false,
+      "moderateNote": "",
+      "complianceDeadline": "",
+      "pendingReversion": false,
+      "serviceNote": ""
     }
   ],
   "anaphRooms": [
-    "213"
+    "1213",
+    "1205a"
   ],
-  "lastImportDate": "Thu Apr 23 2026",
-  "lastImportFile": "Meal List - April 24th, 2026.xlsx"
+  "lastImportDate": "Tue Apr 28 2026",
+  "lastImportFile": "Meal List - April 29th, 2026. Updated.xlsx"
 }
