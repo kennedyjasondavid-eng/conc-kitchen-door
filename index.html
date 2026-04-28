@@ -12511,20 +12511,23 @@ clearPastSwaps();
 initDynamic();
 
 // v20: Restore persisted registry state before first render
-// Load learned NR from GitHub on boot if available (public raw URL, no token needed)
-(async function bootLearnedNR() {
+// Load learned NR from GitHub on boot — best-effort with 3s timeout, never blocks UI
+(function bootLearnedNR() {
   try {
     const repo = (JSON.parse(localStorage.getItem('concDoorSettings') || '{}')||{})['gh-repo']
                  || 'kennedyjasondavid-eng/conc-kitchen-door';
-    const url = 'https://raw.githubusercontent.com/' + repo + '/main/learned_nr.json';
-    const res = await fetch(url + '?_=' + Date.now());
-    if (res.ok) {
-      const remote = await res.json();
-      const local  = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
-      const merged = Object.assign({}, local, remote);
-      localStorage.setItem('concLearnedNR', JSON.stringify(merged));
-    }
-  } catch(e) { /* no learned_nr.json yet — fine */ }
+    const url = 'https://raw.githubusercontent.com/' + repo + '/main/learned_nr.json?_=' + Date.now();
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 3000);
+    fetch(url, { signal: controller.signal })
+      .then(res => { clearTimeout(tid); return res.ok ? res.json() : null; })
+      .then(remote => {
+        if (!remote) return;
+        const local  = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
+        localStorage.setItem('concLearnedNR', JSON.stringify(Object.assign({}, local, remote)));
+      })
+      .catch(() => {}); // timeout or network error — silent, localStorage version used
+  } catch(e) {}
 })();
 
 (function bootRegistry() {
