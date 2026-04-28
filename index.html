@@ -12328,91 +12328,27 @@ function renderNeedsReviewPane() {
   const rows = IMPORT_STATE.diff.needsReview;
   if (!rows.length) { pane.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">All rows parsed cleanly. Nothing to review.</div>'; return; }
 
-  const allTagOptions = Object.entries(TAG_LABELS_MAP)
-    .filter(([k]) => k !== 'other')
-    .map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
-
   const cards = rows.map(r => {
-    const res = IMPORT_STATE.resolutions.get(r.room) || {};
-    const resolvedTokens = res.resolvedTokens || {};
-    const allResolved = r.unmatched.length > 0 && r.unmatched.every(u => resolvedTokens[u]);
+    const tokenChips = r.unmatched.map(u =>
+      `<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:4px;margin:2px 3px 2px 0;font-family:monospace;">${u}</span>`
+    ).join('');
     const anaphNote = r.isAnaphCandidate
-      ? '<div style="font-size:11px;background:#fef2f2;color:#991b1b;padding:4px 8px;border-radius:3px;font-weight:600;margin-top:6px;">⚠ Possible anaphylactic — confirm with H&amp;W before committing</div>' : '';
-
-    const chips = r.unmatched.map(u => {
-      const sid = (r.room + '_' + u).replace(/[^a-zA-Z0-9]/g,'_');
-      const resolved = resolvedTokens[u];
-      if (resolved) {
-        const rl = resolved.action==='skip' ? '\u2014 not applicable'
-          : resolved.action==='note' ? '\uD83D\uDCDD service note'
-          : resolved.action==='map' ? '\u2192 '+(TAG_LABELS_MAP[resolved.value]||resolved.value)
-          : '\u2605 new rule: '+(resolved.label||resolved.value);
-        return `<div class="nr-chip resolved">
-          <span class="nr-chip-text">"${u}"</span>
-          <span class="nr-chip-resolution">${rl}</span>
-          <button class="nr-chip-undo" onclick="undoResolution('${r.room}','${u.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">&#x2715;</button>
-        </div>`;
-      }
-      const initLabel = u.charAt(0).toUpperCase()+u.slice(1);
-      return `<div class="nr-chip unresolved">
-          <span class="nr-chip-text">"${u}"</span>
-          <button class="nr-resolve-btn" onclick="toggleResolvePanel('rp-${sid}')">Resolve \u2192</button>
-        </div>
-        <div class="nr-resolve-panel" id="rp-${sid}" style="display:none;">
-          <div class="nr-option-group">
-            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="map" checked> Map to existing category</label>
-            <select class="nr-map-select" id="rp-map-${sid}">${allTagOptions}</select>
-          </div>
-          <div class="nr-option-group">
-            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="note"> Save as service note <span style="font-size:10px;color:var(--muted)">(restriction list only, no routing change)</span></label>
-          </div>
-          <div class="nr-option-group">
-            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="rule"> Create new rule for future imports</label>
-            <input type="text" class="nr-rule-label" id="rp-lbl-${sid}" placeholder='Label, e.g. "No Fried Food"' value="${initLabel}" oninput="updatePatternPreview('${sid}')">
-            <div class="nr-pattern-preview" id="rp-pat-${sid}"></div>
-          </div>
-          <div class="nr-option-group">
-            <label class="nr-option"><input type="radio" name="rp-a-${sid}" value="skip"> Not applicable — preference language or contextual note, not a restriction</label>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button class="btn btn-mint btn-sm" onclick="applyResolution('${r.room}','${u.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}','${sid}')">Apply</button>
-            <button class="btn btn-ghost btn-sm" onclick="toggleResolvePanel('rp-${sid}')">Cancel</button>
-          </div>
-        </div>`;
-    }).join('');
-
-    const statusBadge = allResolved
-      ? '<span style="font-size:11px;background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-weight:600;margin-left:6px;">\u2713 All resolved</span>' : '';
-
-    const allDone2 = r.unmatched.every(u => resolvedTokens[u]);
-    return `<div class="import-row" style="background:${allDone2?'#f0fdf4':'#fffbeb'};flex-direction:column;align-items:stretch;">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <div class="import-row-room">Room ${r.room}${allDone2 ? '<span style="font-size:11px;background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-weight:600;margin-left:6px;">\u2713 Done</span>' : ''}</div>
-      </div>
+      ? '<div style="font-size:11px;background:#fef2f2;color:#991b1b;padding:4px 8px;border-radius:3px;font-weight:600;margin-top:6px;">\u26A0 Possible anaphylactic — confirm with H&amp;W</div>' : '';
+    return `<div class="import-row" style="background:#fffbeb;flex-direction:column;align-items:stretch;">
+      <div class="import-row-room">Room ${r.room}</div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px;">Source: <em>${r.rawText}</em></div>
-      <div style="margin-top:8px;">${chips}</div>
+      <div style="margin-top:6px;">${tokenChips}</div>
       ${anaphNote}
     </div>`;
   }).join('');
 
-  const allDone = rows.every(r => {
-    const res = IMPORT_STATE.resolutions.get(r.room)||{};
-    const rt = res.resolvedTokens||{};
-    return r.unmatched.every(u => rt[u]);
-  });
-  const instrStyle = allDone
-    ? 'color:#166534;background:#f0fdf4;border:1px solid #86efac;'
-    : 'color:#92400e;background:#fef3c7;border:1px solid #fcd34d;';
-  const instrText = allDone
-    ? '\u2713 All restrictions reviewed. You can now commit.'
-    : 'Each unrecognised restriction below needs a decision before you can commit. Assign it to a known category, save it as a note, create a rule for next time, or mark it as not applicable.';
-  pane.innerHTML = `<div style="font-size:12px;border-radius:6px;padding:8px 12px;margin-bottom:10px;${instrStyle}">${instrText}</div>${cards}`;
-
-  // Init pattern previews
-  rows.forEach(r => r.unmatched.forEach(u => {
-    const sid = (r.room+'_'+u).replace(/[^a-zA-Z0-9]/g,'_');
-    updatePatternPreview(sid);
-  }));
+  pane.innerHTML = `
+    <div style="font-size:12px;border-radius:6px;padding:10px 14px;margin-bottom:12px;background:#f0f9ff;border:1px solid #bae6fd;color:#0c4a6e;">
+      <strong>${rows.length} restriction${rows.length!==1?'s':''}</strong> contain text the parser couldn't classify automatically.
+      These will carry forward to <strong>Review &amp; Generate</strong> where you can map them to categories, save as service notes, or mark as not applicable.
+      <div style="margin-top:6px;font-size:11px;color:#0369a1;">You can commit this import now — clean changes will apply immediately. Unresolved items won't block you.</div>
+    </div>
+    ${cards}`;
 }
 
 function toggleResolvePanel(panelId) {
@@ -12520,16 +12456,16 @@ function updateImportFooterCount() {
       }, 0)
     : 0;
   const commitBtn = document.getElementById('import-commit-btn');
-  commitBtn.disabled = total === 0;
+  commitBtn.disabled = total === 0 && unresolvedNRCount === 0;
   // Surface NR count on the button label so it's visible
   const nrWarnEl = document.getElementById('import-nr-warning');
   if (nrWarnEl) {
     nrWarnEl.style.display = unresolvedNRCount > 0 ? 'inline-block' : 'none';
     nrWarnEl.textContent = unresolvedNRCount > 0
-      ? `⚠ ${unresolvedNRCount} restriction${unresolvedNRCount!==1?'s':''} in Needs Review`
+      ? `${unresolvedNRCount} item${unresolvedNRCount!==1?'s':''} → Review & Generate`
       : '';
   }
-  commitBtn.title = unresolvedNRCount > 0 ? 'Go to the Needs Review tab to classify unrecognised restriction text before committing.' : '';
+  commitBtn.title = unresolvedNRCount > 0 ? 'Unrecognised restrictions will carry forward to Review & Generate for classification.' : '';
   // Decrement Needs Review badge as tokens get resolved
   if (IMPORT_STATE && IMPORT_STATE.diff) {
     const unresolvedNR = IMPORT_STATE.diff.needsReview.filter(r => {
@@ -12553,7 +12489,10 @@ function updateImportFooterCount() {
     const noChanges = total === 0 && IMPORT_STATE && (IMPORT_STATE.diff.intakes.length + IMPORT_STATE.diff.discharges.length + IMPORT_STATE.diff.updates.length) === 0;
     gotoBtn.style.display = (noChanges && hasState) ? 'inline-flex' : 'none';
     if (noChanges && hasState) {
-      document.getElementById('import-selected-count').textContent = 'No changes — roster matches registry';
+      const nrCount = IMPORT_STATE.diff.needsReview.length;
+      document.getElementById('import-selected-count').textContent = nrCount
+        ? `No roster changes — ${nrCount} item${nrCount!==1?'s':''} for Review & Generate`
+        : 'No changes — roster matches registry';
     }
   }
 }
@@ -12565,15 +12504,11 @@ function commitImportToQueue() {
 
   let pushed = 0, skipped = 0;
 
-  // If there are unresolved NR items, switch to that tab and warn — but still proceed
+  // If there are unresolved NR items, note them — they'll carry to Review & Generate
   const unresolvedNR = diff.needsReview.filter(r => {
     const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
     return r.unmatched.some(u => !(res && res.resolvedTokens && res.resolvedTokens[u]));
   });
-  if (unresolvedNR.length) {
-    switchImportTab('review');
-    showToast(`⚠ ${unresolvedNR.length} restriction${unresolvedNR.length!==1?'s':''} still need classification in the Needs Review tab. Clean items will be committed — return here to resolve the rest.`, 6000);
-  }
 
   // Intakes
   diff.intakes.forEach(r => {
@@ -12677,7 +12612,8 @@ function commitImportToQueue() {
   // Log summary
   logMenuEvent('upload_import', `Imported daily list (${IMPORT_STATE.fileName}): ${pushed} change${pushed!==1?'s':''} added to queue${skipped ? `, ${skipped} skipped (already queued)` : ''}${diff.needsReview.length ? `, ${diff.needsReview.length} flagged for review` : ''}`);
   
-  showToast(`${pushed} change${pushed!==1?'s':''} added to queue${skipped ? ` (${skipped} skipped)` : ''}.`);
+  const nrNote = unresolvedNR.length ? ` ${unresolvedNR.length} restriction${unresolvedNR.length!==1?'s':''} → Review & Generate.` : '';
+  showToast(`${pushed} change${pushed!==1?'s':''} added to queue${skipped ? ` (${skipped} skipped)` : ''}.${nrNote}`);
 
   // Save unresolved NR items so Review & Generate can block until acknowledged
   if (IMPORT_STATE && IMPORT_STATE.diff && IMPORT_STATE.diff.needsReview.length) {
