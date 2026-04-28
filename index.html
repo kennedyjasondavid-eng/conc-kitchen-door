@@ -7131,7 +7131,9 @@ function openSharePointPilot() {
 async function pullStateFromGitHub(manual) {
   const repo = appSettings['gh-repo'] || 'kennedyjasondavid-eng/conc-kitchen-door';
   const url = 'https://api.github.com/repos/' + repo + '/contents/door_state.json';
-  const headers = { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' };
+  const token = appSettings['gh-token'] || '';
+  const headers = { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache',
+    ...(token ? {'Authorization': 'token ' + token} : {}) };
   updateSyncBar('Syncing…', 'var(--muted)');
   try {
     const res = await fetch(url, { headers });
@@ -7163,7 +7165,7 @@ async function pullStateFromGitHub(manual) {
     renderRegistry(REGISTRY_LIST);
     updateDailyImportPrompt();
     // Pull meal swaps + special meals + recent log
-    for (const [fn,saveFn] of [['meal_swaps.json',d=>saveMealSwaps(Object.assign({},loadMealSwaps(),d))],['special_meals.json',d=>saveSpecialMeals(Object.assign({},loadSpecialMeals(),d))]]) {
+    for (const [fn,saveFn] of [['meal_swaps.json',d=>saveMealSwaps(Object.assign({},loadMealSwaps(),d),true)],['special_meals.json',d=>saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true)]]) {
       try { const r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+fn,{headers});
         if(r.ok){const e=await r.json();saveFn(JSON.parse(atob(e.content.replace(/\n/g,''))));} } catch(e) {}
     }
@@ -11607,10 +11609,12 @@ function updateSmSlotSummary() {
 function loadSpecialMeals() {
   try { return JSON.parse(localStorage.getItem('concSpecialMeals') || '{}'); } catch(e) { return {}; }
 }
-function saveSpecialMeals(obj) {
+function saveSpecialMeals(obj, skipPush) {
   localStorage.setItem('concSpecialMeals', JSON.stringify(obj));
-  try { const s=JSON.parse(localStorage.getItem('conc-door-settings')||'{}');
-    if(s['gh-token']) ghPushFile(s['gh-repo']||'kennedyjasondavid-eng/conc-kitchen-door','special_meals.json',JSON.stringify(obj,null,2),s['gh-token']).catch(()=>{}); } catch(e) {}
+  if (!skipPush) {
+    try { const s=JSON.parse(localStorage.getItem('conc-door-settings')||'{}');
+      if(s['gh-token']) ghPushFile(s['gh-repo']||'kennedyjasondavid-eng/conc-kitchen-door','special_meals.json',JSON.stringify(obj,null,2),s['gh-token']).catch(()=>{}); } catch(e) {}
+  }
 }
 
 // Meal swaps — date-keyed, auto-expire. Separate from special meals.
@@ -11618,10 +11622,12 @@ function saveSpecialMeals(obj) {
 function loadMealSwaps() {
   try { return JSON.parse(localStorage.getItem('concMealSwaps') || '{}'); } catch(e) { return {}; }
 }
-function saveMealSwaps(obj) {
+function saveMealSwaps(obj, skipPush) {
   localStorage.setItem('concMealSwaps', JSON.stringify(obj));
-  try { const s=JSON.parse(localStorage.getItem('conc-door-settings')||'{}');
-    if(s['gh-token']) ghPushFile(s['gh-repo']||'kennedyjasondavid-eng/conc-kitchen-door','meal_swaps.json',JSON.stringify(obj,null,2),s['gh-token']).catch(()=>{}); } catch(e) {}
+  if (!skipPush) {
+    try { const s=JSON.parse(localStorage.getItem('conc-door-settings')||'{}');
+      if(s['gh-token']) ghPushFile(s['gh-repo']||'kennedyjasondavid-eng/conc-kitchen-door','meal_swaps.json',JSON.stringify(obj,null,2),s['gh-token']).catch(()=>{}); } catch(e) {}
+  }
 }
 function clearPastSwaps() {
   const swaps = loadMealSwaps();
@@ -12716,8 +12722,8 @@ initDynamic();
         localStorage.setItem('concMenuBase', JSON.stringify(merged));
       }).catch(() => {});
 
-    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveMealSwaps(Object.assign({},loadMealSwaps(),d));}).catch(()=>{});
-    fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d));}).catch(()=>{});
+    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}).catch(()=>{});
+    fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
       const local=RECENT_LOG.filter(e=>e._real!==false);const seen=new Set();
