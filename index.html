@@ -7129,11 +7129,55 @@ function openSharePointPilot() {
   window.open(base + path, '_blank');
 }
 
+async function pullSecondaryState(repo, headers) {
+  const files = [
+    ['meal_swaps.json',      d => saveMealSwaps(Object.assign({}, loadMealSwaps(), d), true)],
+    ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
+    ['menu_overlay.json',    d => {
+      const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
+      const merged = Object.assign({}, local);
+      Object.keys(d).forEach(wk => { merged[wk] = Object.assign({}, local[wk]||{}, d[wk]); });
+      localStorage.setItem('concMenuBase', JSON.stringify(merged));
+    }],
+    ['custom_tag_rules.json', d => {
+      if (!Array.isArray(d)) return;
+      const local = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
+      const seen = new Set(local.map(r => r.pattern));
+      const merged = [...local, ...d.filter(r => !seen.has(r.pattern))];
+      localStorage.setItem('concCustomTagRules', JSON.stringify(merged));
+      merged.forEach(r => { if (r.tag && r.label) TAG_LABELS_MAP[r.tag] = r.label; });
+    }],
+    ['learned_nr.json',      d => {
+      const local = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
+      localStorage.setItem('concLearnedNR', JSON.stringify(Object.assign({}, local, d)));
+    }],
+    ['recent_log.json',      d => {
+      if (!Array.isArray(d)) return;
+      const local = RECENT_LOG.filter(e => e._real !== false);
+      const seen = new Set();
+      const merged = [...d, ...local]
+        .filter(e => { const k=e.room+e.date+e.desc; return seen.has(k)?false:(seen.add(k),true); })
+        .slice(0, 200);
+      RECENT_LOG.length = 0; merged.forEach(e => RECENT_LOG.push(e));
+      saveRecentLog(); renderRecentLog();
+    }],
+  ];
+  for (const [filename, apply] of files) {
+    try {
+      const res = await fetch('https://api.github.com/repos/' + repo + '/contents/' + filename, { headers });
+      if (res.ok) {
+        const env = await res.json();
+        apply(JSON.parse(atob(env.content.replace(/\n/g, ''))));
+      }
+    } catch(e) { console.warn('secondary pull [' + filename + ']:', e.message); }
+  }
+}
+
 async function pullStateFromGitHub(manual) {
   const repo  = appSettings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
   const token = appSettings['gh-token'] || '';
   const url   = 'https://api.github.com/repos/' + repo + '/contents/door_state.json';
-  const headers = { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache',
+  const headers = { 'Accept': 'application/vnd.github.v3+json',
     ...(token ? {'Authorization': 'token ' + token} : {}) };
 
   if (!token && manual) {
@@ -7175,71 +7219,14 @@ async function pullStateFromGitHub(manual) {
     if (manual) showToast('Registry synced — ' + state.residents.length + ' residents loaded.');
     renderRegistry(REGISTRY_LIST);
     updateDailyImportPrompt();
-    // Pull meal swaps + special meals + recent log
-    for (const [fn,saveFn] of [['meal_swaps.json',d=>saveMealSwaps(Object.assign({},loadMealSwaps(),d),true)],['special_meals.json',d=>saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true)]]) {
-      try { const r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+fn,{headers});
-        if(r.ok){const e=await r.json();saveFn(JSON.parse(atob(e.content.replace(/\n/g,''))));} } catch(e) {}
-    }
-    try {
-      const rlR=await fetch('https://api.github.com/repos/'+repo+'/contents/recent_log.json',{headers});
-      if(rlR.ok){const rlE=await rlR.json();const remote=JSON.parse(atob(rlE.content.replace(/\n/g,'')));
-        const local=RECENT_LOG.filter(e=>e._real!==false);const seen=new Set();
-        const merged=[...remote,...local].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);}).slice(0,200);
-        RECENT_LOG.length=0;merged.forEach(e=>RECENT_LOG.push(e));saveRecentLog();renderRecentLog();}
-    } catch(e) {}
-    // Pull menu overlay — Menu Config edits (soft alts, flags, slot edits)
-    try {
-      const moUrl = 'https://api.github.com/repos/' + repo + '/contents/menu_overlay.json';
-      const moRes = await fetch(moUrl, { headers });
-      if (moRes.ok) {
-        const moEnvelope = await moRes.json();
-        const moData = JSON.parse(atob(moEnvelope.content.replace(/\n/g, '')));
-        // Deep merge: remote wins per-slot (last device to sync is authoritative)
-        const localMO = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
-        const mergedMO = Object.assign({}, localMO);
-        Object.keys(moData).forEach(wk => {
-          mergedMO[wk] = Object.assign({}, localMO[wk] || {}, moData[wk]);
-        });
-        localStorage.setItem('concMenuBase', JSON.stringify(mergedMO));
-      }
-    } catch(e) { console.warn('menu_overlay pull:', e); }
-    // Pull custom tag rules
-    try {
-      const crUrl = 'https://api.github.com/repos/' + repo + '/contents/custom_tag_rules.json';
-      const crRes = await fetch(crUrl, { headers });
-      if (crRes.ok) {
-        const crEnvelope = await crRes.json();
-        const crData = JSON.parse(atob(crEnvelope.content.replace(/\n/g, '')));
-        // Merge with local — add remote rules not already present by pattern
-        const localCR = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
-        const localPatterns = new Set(localCR.map(r => r.pattern));
-        const merged = [...localCR, ...crData.filter(r => !localPatterns.has(r.pattern))];
-        localStorage.setItem('concCustomTagRules', JSON.stringify(merged));
-        // Re-inject into TAG_LABELS_MAP so new rules take effect immediately
-        merged.forEach(rule => { if (rule.tag && rule.label) TAG_LABELS_MAP[rule.tag] = rule.label; });
-      }
-    } catch(e) { console.warn('custom_tag_rules pull:', e); }
-    // Pull learned NR classifications from GitHub
-    try {
-      const learnedUrl = 'https://api.github.com/repos/' + repo + '/contents/learned_nr.json';
-      const learnedRes = await fetch(learnedUrl, { headers });
-      if (learnedRes.ok) {
-        const learnedEnvelope = await learnedRes.json();
-        const learnedData = JSON.parse(atob(learnedEnvelope.content.replace(/\n/g, '')));
-        const local = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
-        const merged = Object.assign({}, local, learnedData);
-        localStorage.setItem('concLearnedNR', JSON.stringify(merged));
-      }
-    } catch(learnedErr) { console.warn('learned_nr pull:', learnedErr); }
+    // Secondary pulls (swaps, specials, log, overlay, rules, learned) — fire and forget
+    // Isolated so any failure here never affects the registry sync result
+    pullSecondaryState(repo, headers).catch(e => console.warn('secondary pull:', e));
   } catch(e) {
     console.error('pullStateFromGitHub error:', e.name, e.message, e.stack);
-    // 'Failed to fetch' means network-level block — test if GitHub is reachable at all
-    const isNetworkBlock = !e.message || e.message.includes('fetch') || e.message.includes('network') || e.name === 'TypeError';
-    const display = isNetworkBlock
-      ? 'GitHub API unreachable — check that api.github.com is accessible on this network'
-      : ('Error: ' + e.message);
-    if (manual) showToast('Sync failed — ' + display.slice(0, 100));
-    updateSyncBar('Sync failed — ' + (isNetworkBlock ? 'network blocked' : e.message.slice(0,30)), '#dc2626');
+    const msg = (e.message || e.name || 'unknown').slice(0, 80);
+    if (manual) showToast('Sync failed — ' + msg);
+    updateSyncBar('Sync failed — ' + msg.slice(0,35), '#dc2626');
   }
 }
 
