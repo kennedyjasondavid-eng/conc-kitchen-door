@@ -4964,7 +4964,7 @@ const MENU_DATA = {
             "dinner_flags": {
                 "hasGluten": true,
                 "hasDairy": false,
-                "hasPork": false,
+                "hasPork": true,
                 "hasFish": false,
                 "hasEgg": false,
                 "hasPeanuts": false,
@@ -5352,9 +5352,10 @@ const MENU_DATA = {
                 "hasPeanuts": false,
                 "hasSesame": false,
                 "hasSoy": false,
-                "hasBeef": false,
+                "hasBeef": true,
                 "isSpicy": false,
-                "isCarb": true
+                "isCarb": true,
+                "halalCertifiedMeat": true
             }
         },
         "MONDAY": {
@@ -6058,7 +6059,7 @@ const MENU_DATA = {
             }
         }
     }
-};;;;;
+};;;;;;
 
 
 // Recent changes log (simulated — last 3 days)
@@ -7129,11 +7130,21 @@ function openSharePointPilot() {
 }
 
 async function pullStateFromGitHub(manual) {
-  const repo = appSettings['gh-repo'] || 'kennedyjasondavid-eng/conc-kitchen-door';
-  const url = 'https://api.github.com/repos/' + repo + '/contents/door_state.json';
+  const repo  = appSettings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
   const token = appSettings['gh-token'] || '';
+  const url   = 'https://api.github.com/repos/' + repo + '/contents/door_state.json';
   const headers = { 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache',
     ...(token ? {'Authorization': 'token ' + token} : {}) };
+
+  if (!token && manual) {
+    showToast('No GitHub token set — go to Settings and enter your token first.');
+    return;
+  }
+  if (!repo && manual) {
+    showToast('No GitHub repo set — go to Settings first.');
+    return;
+  }
+
   updateSyncBar('Syncing…', 'var(--muted)');
   try {
     const res = await fetch(url, { headers });
@@ -7222,9 +7233,13 @@ async function pullStateFromGitHub(manual) {
     } catch(learnedErr) { console.warn('learned_nr pull:', learnedErr); }
   } catch(e) {
     console.error('pullStateFromGitHub error:', e.name, e.message, e.stack);
-    const errMsg = e.message || 'Unknown error';
-    if (manual) showToast('Sync failed: ' + errMsg.slice(0, 80));
-    updateSyncBar('Sync failed — ' + errMsg.slice(0, 40), '#dc2626');
+    // 'Failed to fetch' means network-level block — test if GitHub is reachable at all
+    const isNetworkBlock = !e.message || e.message.includes('fetch') || e.message.includes('network') || e.name === 'TypeError';
+    const display = isNetworkBlock
+      ? 'GitHub API unreachable — check that api.github.com is accessible on this network'
+      : ('Error: ' + e.message);
+    if (manual) showToast('Sync failed — ' + display.slice(0, 100));
+    updateSyncBar('Sync failed — ' + (isNetworkBlock ? 'network blocked' : e.message.slice(0,30)), '#dc2626');
   }
 }
 
@@ -9042,7 +9057,15 @@ function computeSections(mealFlags, registry) {
   // Determine which rules are currently active
   const activeKeys = new Set(
     ROUTING_RULES
-      .filter(r => r.always || (r.triggers && r.triggers.some(t => mealFlags[t])))
+      .filter(r => {
+        if (r.always) return true;
+        if (!r.triggers) return false;
+        // Halal section: hasBeef only triggers if meat is NOT halal-certified
+        if (r.key === 'halal') {
+          return mealFlags.hasPork || (mealFlags.hasBeef && !mealFlags.halalCertifiedMeat);
+        }
+        return r.triggers.some(t => mealFlags[t]);
+      })
       .map(r => r.key)
   );
 
@@ -9691,6 +9714,7 @@ const FLAG_DEFS = [
   // Routing flags — meal-level only (shown in bottom grid, not per-slot)
   {key:'isSpicy',     label:'Spicy',      color:'#f97316', primary:false, mealLevel:true, tip:'Meal is spicy. Activates Bland section.'},
   {key:'isCarb',        label:'Carb-swap',       color:'#2563eb', primary:false, mealLevel:true, tip:'Main component is a high-carb format. Activates Diabetic section.'},
+  {key:'halalCertifiedMeat', label:'Halal-Certified Meat', color:'#059669', primary:false, mealLevel:true, tip:'Main protein is halal-certified (e.g. Halal Beef Meatballs). Halal residents eat the regular meal. Use with hasBeef/hasPork to still route No Beef/No Pork residents to an alternative.'},
   {key:'hasProcessedMeat', label:'Processed Meat',   color:'#7c3aed', primary:false, mealLevel:true, tip:'Meal contains processed meat products (sausages, ham, deli meat, hot dogs, pepperoni). Activates routing for No Processed Foods residents. Do NOT set for scratch-cooked pork or beef.'},
   // Ingredient-level flags — conflict detection and plating sheet notes, no routing section
   {key:'hasBeans',      label:'Beans',        color:'#15803d', primary:false, tip:'Meal contains beans or legumes. Flags No Beans residents.'},
