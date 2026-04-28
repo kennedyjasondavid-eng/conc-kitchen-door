@@ -6645,20 +6645,23 @@ function nrDoneReview(room) {
   const nrItems = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
   if (nrItems.every(x => nrRes[x.room])) localStorage.removeItem('concUnresolvedNR');
 
-  // Persist to learned store so future imports skip already-classified tokens
+  // Persist to learned store so future imports skip already-classified rooms
   let learned = {};
   try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
   const roomKey = room.toLowerCase();
   if (!learned[roomKey]) learned[roomKey] = {};
   const nrItem2 = nrItems.find(x => x.room === room);
-  // Record the raw text as the token key (normalised)
   if (nrItem2) {
-    // Split by same delimiters the import parser uses (/,()) so tokens match on next import
+    // Store the full raw text as the primary resolution key — if the same text
+    // appears on next import, the room is skipped entirely (no token matching needed)
+    learned[roomKey]['_resolved_text'] = nrItem2.text.toLowerCase().trim();
+    // Also store individual tokens (both raw text splits and unmatched fragments)
+    // as fallback for partial matching
     nrItem2.text.split(/[\/,()]/).map(t => t.trim()).filter(Boolean).forEach(tok => {
       learned[roomKey][tok.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
     });
-    // Also store full raw text key for exact match
-    learned[roomKey][nrItem2.text.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
+    // If anaph candidate was resolved, record that too
+    if (nrItem2.isAnaphCandidate) learned[roomKey]['_anaph'] = { action: pending[0]?.action || 'skip', ts: Date.now() };
   }
   localStorage.setItem('concLearnedNR', JSON.stringify(learned));
 
@@ -12140,11 +12143,16 @@ function diffImportAgainstRegistry(entries) {
     }
 
     // Tag as needs-review if unmatched tokens or anaph candidate
-    // — but skip tokens the operator has already classified in a previous import
+    // — but skip if the operator has already resolved this exact restriction text
     if (e.parsed.unmatched.length || e.parsed.isAnaphCandidate) {
       let learned = {};
       try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
       const roomLearned = learned[e.room.toLowerCase()] || {};
+      // If the full raw text was previously resolved, skip this room entirely
+      // (text hasn't changed since last resolution — nothing new to review)
+      const rawNorm = e.parsed.rawText.toLowerCase().trim();
+      if (roomLearned['_resolved_text'] === rawNorm) continue;
+      // Fallback: per-token check for partial matches
       const stillUnmatched = e.parsed.unmatched.filter(tok => !roomLearned[tok.toLowerCase().trim()]);
       if (stillUnmatched.length || (e.parsed.isAnaphCandidate && !roomLearned['_anaph'])) {
         needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
@@ -12683,7 +12691,7 @@ function commitImportToQueue() {
     });
     if (unresolved.length) {
       localStorage.setItem('concUnresolvedNR', JSON.stringify(
-        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', ') }))
+        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', '), isAnaphCandidate: r.isAnaphCandidate || false }))
       ));
     } else {
       localStorage.removeItem('concUnresolvedNR');
