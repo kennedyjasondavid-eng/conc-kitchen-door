@@ -6100,7 +6100,14 @@ function buildRecentLog() {
     { date:'Mar 7',    room:'602',  type:'welfare',   desc:'Room 602 no answer at dinner — welfare follow-up completed, resident confirmed ok.', color:'#dc2626' },
   ];
 }
-const RECENT_LOG = buildRecentLog();
+function saveRecentLog() {
+  try { localStorage.setItem('concRecentLog', JSON.stringify(RECENT_LOG.filter(e=>e._real!==false).slice(0,200))); } catch(e) {}
+}
+function loadPersistedLog() {
+  try { const s=JSON.parse(localStorage.getItem('concRecentLog')||'[]'); if(s.length) return s; } catch(e) {}
+  return buildRecentLog();
+}
+const RECENT_LOG = loadPersistedLog();
 
 // ============================================================
 // STATE
@@ -6114,7 +6121,7 @@ let moderateActive = false;
 // ROUTING
 // ============================================================
 function routeResident(tags, meal, room, isAnaph) {
-  // Anaphylactic routing: if this resident is anaphylactic and today's meal contains their allergen
+  // Anaphylactic routing
   if (isAnaph) {
     const tagKeys = Object.keys(tags).filter(k => tags[k]);
     const tagLabels = tagKeys.map(k => TAG_LABELS_MAP[k]).filter(Boolean);
@@ -6125,19 +6132,16 @@ function routeResident(tags, meal, room, isAnaph) {
       }
     }
   }
-  // Roommate check: if being placed in a room with an existing anaphylactic resident on a conflict day
   if (room) {
     const conflictRooms = getAnaphConflictRooms(MEAL_DATA.lunch, MEAL_DATA.dinner);
     if (conflictRooms.has(room)) return 'Anaphylactic Alternative';
   }
-  if (tags.vegan || tags.vegetarian) return 'Vegan / Vegetarian';
-  if (tags.halal) return 'Halal';
-  if (tags.glutenFree && meal.hasGluten) return 'Gluten Free';
-  if (tags.noDairy && meal.hasDairy) return 'No Dairy';
-  if (tags.noPork && meal.hasPork) return 'Halal';
-  if ((tags.noSpicy || tags.softMeals) && meal.isSpicy) return 'Bland';
-  if (tags.diabetic && meal.isCarb) return 'Diabetic';
-  return 'Regular';
+  // Delegate to computeSections for consistent routing — uses a synthetic resident object
+  const syntheticTagLabels = Object.keys(tags).filter(k => tags[k]).map(k => TAG_LABELS_MAP[k]).filter(Boolean);
+  const syntheticResident = { room: room || '000', tags: syntheticTagLabels, section: 'Regular', rawRestriction: '', isAnaph: false };
+  const sections = computeSections(meal || MEAL_DATA.lunch, [syntheticResident]);
+  const assigned = sections.find(s => s.rule.key !== 'regular' && s.residents.length > 0);
+  return assigned ? assigned.rule.label : 'Regular';
 }
 
 // ============================================================
@@ -6647,6 +6651,17 @@ function nrDoneReview(room) {
   }
   localStorage.setItem('concLearnedNR', JSON.stringify(learned));
 
+  // Push to GitHub immediately so other devices get it without waiting for next Sync
+  (async function pushLearnedNR() {
+    try {
+      const settings = JSON.parse(localStorage.getItem('concDoorSettings') || '{}');
+      const repo  = settings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
+      const token = settings['gh-token'] || '';
+      if (!token) return; // no token configured — skip push
+      await ghPushFile(repo, 'learned_nr.json', JSON.stringify(learned, null, 2), token);
+    } catch(e) { console.warn('learned_nr push:', e); }
+  })();
+
   // Audit log — record every decision so there's a trail regardless of action type
   const nrItem = nrItems.find(x => x.room === room);
   const rawText = nrItem ? nrItem.text : room;
@@ -6660,9 +6675,9 @@ function nrDoneReview(room) {
     } else {
       desc = `Import text classified as ${TAG_LABELS_MAP[d.value]||d.value}: "${rawText.slice(0,60)}${rawText.length>60?'…':''}"`;
     }
-    RECENT_LOG.unshift({ date: dateStr, room, type: 'import_review', desc, color: '#6b7280' });
+    RECENT_LOG.unshift({ date: dateStr, room, type: 'import_review', desc, color: '#6b7280', _real:true });
   });
-  renderRecentLog();
+  saveRecentLog(); renderRecentLog();
 
   buildReview();
 }
@@ -6930,8 +6945,8 @@ function applyQueueToRegistry() {
         room: c.room,
         section,
         tags: tagLabels.length ? tagLabels : ['Regular'],
-        confirm: 'Provisional',
-        confirmBy: '—',
+        confirm: requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A'),
+        confirmBy: requiresDocumentation(tagLabels) ? '—' : 'Auto',
         isAnaph: c.isAnaph || false,
         rawRestriction: tagLabels.join(', ') || 'Regular',
         isModerate: c.isModerate || false,
@@ -6957,7 +6972,8 @@ function applyQueueToRegistry() {
         r.isModerate = c.isModerate || false;
         r.moderateNote = c.moderateNote || '';
         r.rawRestriction = tagLabels.join(', ') || 'Regular';
-        r.confirm = 'Provisional';
+        r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
+        r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
         if (c.serviceNote) r.serviceNote = c.serviceNote;
         else if (c.notes) r.serviceNote = (r.serviceNote ? r.serviceNote + '; ' : '') + c.notes;
       }
@@ -7010,8 +7026,8 @@ function seedRegistryFromRoster(entries) {
       room: e.room,
       section: isRegular ? 'Regular' : importSectionForTags(e.parsed.tags),
       tags: isRegular ? ['Regular'] : tagLabels,
-      confirm: isRegular ? 'N/A' : 'Provisional',
-      confirmBy: '—',
+      confirm: isRegular ? 'N/A' : (requiresDocumentation(tagLabels) ? 'Provisional' : 'Confirmed'),
+      confirmBy: isRegular ? '—' : (requiresDocumentation(tagLabels) ? '—' : 'Auto'),
       isAnaph: false,
       rawRestriction: e.parsed.rawText || 'Regular',
       isModerate: false, moderateNote: '',
@@ -7146,6 +7162,50 @@ async function pullStateFromGitHub(manual) {
     if (manual) showToast('Registry synced — ' + state.residents.length + ' residents loaded.');
     renderRegistry(REGISTRY_LIST);
     updateDailyImportPrompt();
+    // Pull meal swaps + special meals + recent log
+    for (const [fn,saveFn] of [['meal_swaps.json',d=>saveMealSwaps(Object.assign({},loadMealSwaps(),d))],['special_meals.json',d=>saveSpecialMeals(Object.assign({},loadSpecialMeals(),d))]]) {
+      try { const r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+fn,{headers});
+        if(r.ok){const e=await r.json();saveFn(JSON.parse(atob(e.content.replace(/\n/g,''))));} } catch(e) {}
+    }
+    try {
+      const rlR=await fetch('https://api.github.com/repos/'+repo+'/contents/recent_log.json',{headers});
+      if(rlR.ok){const rlE=await rlR.json();const remote=JSON.parse(atob(rlE.content.replace(/\n/g,'')));
+        const local=RECENT_LOG.filter(e=>e._real!==false);const seen=new Set();
+        const merged=[...remote,...local].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);}).slice(0,200);
+        RECENT_LOG.length=0;merged.forEach(e=>RECENT_LOG.push(e));saveRecentLog();renderRecentLog();}
+    } catch(e) {}
+    // Pull menu overlay — Menu Config edits (soft alts, flags, slot edits)
+    try {
+      const moUrl = 'https://api.github.com/repos/' + repo + '/contents/menu_overlay.json';
+      const moRes = await fetch(moUrl, { headers });
+      if (moRes.ok) {
+        const moEnvelope = await moRes.json();
+        const moData = JSON.parse(atob(moEnvelope.content.replace(/\n/g, '')));
+        // Deep merge: remote wins per-slot (last device to sync is authoritative)
+        const localMO = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
+        const mergedMO = Object.assign({}, localMO);
+        Object.keys(moData).forEach(wk => {
+          mergedMO[wk] = Object.assign({}, localMO[wk] || {}, moData[wk]);
+        });
+        localStorage.setItem('concMenuBase', JSON.stringify(mergedMO));
+      }
+    } catch(e) { console.warn('menu_overlay pull:', e); }
+    // Pull custom tag rules
+    try {
+      const crUrl = 'https://api.github.com/repos/' + repo + '/contents/custom_tag_rules.json';
+      const crRes = await fetch(crUrl, { headers });
+      if (crRes.ok) {
+        const crEnvelope = await crRes.json();
+        const crData = JSON.parse(atob(crEnvelope.content.replace(/\n/g, '')));
+        // Merge with local — add remote rules not already present by pattern
+        const localCR = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
+        const localPatterns = new Set(localCR.map(r => r.pattern));
+        const merged = [...localCR, ...crData.filter(r => !localPatterns.has(r.pattern))];
+        localStorage.setItem('concCustomTagRules', JSON.stringify(merged));
+        // Re-inject into TAG_LABELS_MAP so new rules take effect immediately
+        merged.forEach(rule => { if (rule.tag && rule.label) TAG_LABELS_MAP[rule.tag] = rule.label; });
+      }
+    } catch(e) { console.warn('custom_tag_rules pull:', e); }
     // Pull learned NR classifications from GitHub
     try {
       const learnedUrl = 'https://api.github.com/repos/' + repo + '/contents/learned_nr.json';
@@ -7153,7 +7213,6 @@ async function pullStateFromGitHub(manual) {
       if (learnedRes.ok) {
         const learnedEnvelope = await learnedRes.json();
         const learnedData = JSON.parse(atob(learnedEnvelope.content.replace(/\n/g, '')));
-        // Merge with local (remote wins on conflict — it's the primary device's decisions)
         const local = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
         const merged = Object.assign({}, local, learnedData);
         localStorage.setItem('concLearnedNR', JSON.stringify(merged));
@@ -7189,7 +7248,7 @@ function generateFiles() {
     const typeColors = { intake:'#16a34a', discharge:'#dc2626', update:'#2563eb', switch:'#d97706' };
     const typeDescs = { intake:`${c.tagLabels.join(', ')||'Regular'} — new intake → ${c.route}`, discharge:`Removed from all sheets`, update:`Updated restrictions → ${c.route}`, switch:`Room switch → ${c.route}` };
     const _logDate = new Date(); const _logLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate();
-    RECENT_LOG.unshift({ date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type] });
+    RECENT_LOG.unshift({ date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type], _real:true });
   });
 
   showScreen('confirm', document.querySelector('[data-screen=review]'));
@@ -7198,7 +7257,7 @@ function generateFiles() {
   applyQueueToRegistry();
 
   // Clear the queue — changes are now committed to the registry
-  changesQueue = []; renderQueue(); updateBadge();
+  changesQueue = []; renderQueue(); updateBadge(); saveRecentLog();
 
   // Populate the recently generated files panel on review screen
   populateRecentGenerated();
@@ -7686,14 +7745,14 @@ function removeAnaphRoom(room) {
 // ============================================================
 function buildMenuJSON() {
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:1 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:23 },
     menu: getMenuData()
   };
 }
 
 function buildStateJSON() {
   return {
-    _meta: { source:'KitchenDOOR', version:1, exported:new Date().toISOString(),
+    _meta: { source:'KitchenDOOR', version:23, exported:new Date().toISOString(),
              site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length },
     residents: REGISTRY_LIST,
     anaphRooms: anaphRooms,
@@ -7712,7 +7771,7 @@ function buildRegistrySummaryJSON() {
     if(r.isModerate) mc++;
   });
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:1 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:23 },
     headcounts: { total:REGISTRY_LIST.length, regular:sc['Regular']||0, halal:sc['Halal']||0, vegan:sc['Vegan / Vegetarian']||0, diabetic:sc['Diabetic']||0, glutenFree:sc['Gluten Free']||0, noDairy:sc['No Dairy']||0 },
     tagDistribution: tc,
     flags: { anaphylactic:ac, moderate:mc }
@@ -7766,7 +7825,7 @@ function buildRoutingByMealJSON() {
   });
 
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:1 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:23 },
     routing: result
   };
 }
@@ -7795,9 +7854,19 @@ async function publishToGitHub(manual) {
     await ghPushFile(repo,'registry_summary.json',JSON.stringify(buildRegistrySummaryJSON(),null,2),token);
     await ghPushFile(repo,'routing_by_meal.json',JSON.stringify(buildRoutingByMealJSON(),null,2),token);
     await ghPushFile(repo,'door_state.json',JSON.stringify(buildStateJSON(),null,2),token);
-    // Push learned NR classifications so other devices don't re-ask about already-reviewed tokens
+    // Menu overlay — edits made in Menu Config (soft alts, flag changes, slot edits)
+    const menuOverlay = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
+    await ghPushFile(repo,'menu_overlay.json',JSON.stringify(menuOverlay,null,2),token);
+    // Custom tag rules — user-created import rules
+    const customRules = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
+    await ghPushFile(repo,'custom_tag_rules.json',JSON.stringify(customRules,null,2),token);
+    // Learned NR classifications
     const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
     await ghPushFile(repo,'learned_nr.json',JSON.stringify(learnedNR,null,2),token);
+    await ghPushFile(repo,'meal_swaps.json',JSON.stringify(loadMealSwaps(),null,2),token);
+    await ghPushFile(repo,'special_meals.json',JSON.stringify(loadSpecialMeals(),null,2),token);
+    const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
+    await ghPushFile(repo,'recent_log.json',JSON.stringify(_logToSync,null,2),token);
     const timeStr = new Date().toLocaleTimeString();
     if(statusEl){ statusEl.textContent='Published ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
     updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr, 'var(--forest)');
@@ -9228,6 +9297,13 @@ function loadMenuBaseOverlay() {
 }
 function saveMenuBaseOverlay(obj) {
   localStorage.setItem('concMenuBase', JSON.stringify(obj));
+  // Push to GitHub so other devices get the updated menu overlay immediately
+  try {
+    const settings = JSON.parse(localStorage.getItem('conc-door-settings') || '{}');
+    const repo  = settings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
+    const token = settings['gh-token'] || '';
+    if (token) ghPushFile(repo, 'menu_overlay.json', JSON.stringify(obj, null, 2), token).catch(() => {});
+  } catch(e) {}
 }
 function loadUploadedMenu() {
   try { return JSON.parse(localStorage.getItem('concUploadedMenu') || 'null'); } catch(e) { return null; }
@@ -9669,6 +9745,62 @@ function getIngredientConflicts(mealFlags, residents) {
     if (affected.length) results.push({ ...rule, residents: affected });
   });
   return results;
+}
+
+// ─── COMPLIANCE TIERS ─────────────────────────────────────────────────────────
+// 'auto'  = self-declared lifestyle/religious preference — no documentation required.
+//            Confirmed immediately on intake/update.
+// 'doc'   = allergy, medical dietary need, or preference that requires confirmation
+//            (doctor's note, H&W sign-off, or site manager confirmation).
+//            Stays Provisional until manually confirmed in the compliance view.
+const COMPLIANCE_TIERS = {
+  // Auto-confirmed — no documentation needed
+  'Halal':              'auto',
+  'Vegan':              'auto',
+  'Vegetarian':         'auto',
+  'Gluten Free':        'auto',  // Many residents self-declare GF sensitivity; medical celiac is doc-tier but we can't distinguish at intake
+  'No Beef':            'auto',  // Religious / lifestyle
+  'No Fish':            'auto',  // Preference or religious
+  'No Turkey':          'auto',  // Preference
+  'No Mushroom':        'auto',  // Strong dislike / preference
+  'No Nightshades':     'auto',  // Dietary preference
+  'No Brassicas':       'auto',  // Dietary preference
+  'No Beans':           'auto',  // Preference
+
+  // Documentation required — stay Provisional
+  'No Pork':            'doc',   // Could be Halal (self-declared, auto) but may also be a non-religious dietary restriction requiring confirmation; flag for review
+  'No Shellfish':       'doc',   // Potential anaphylactic allergen
+  'No Peanuts':         'doc',   // Potential anaphylactic allergen
+  'No Eggs':            'doc',   // Allergen
+  'No Dairy':           'doc',   // Allergen / medical
+  'Lactose Intolerant': 'doc',   // Medical
+  'No Soy':             'doc',   // Allergen
+  'No Tree Nuts':       'doc',   // Potential anaphylactic allergen
+  'No Sesame':          'doc',   // Allergen
+  'No Mustard':         'doc',   // Allergen
+  'No Sulphites':       'doc',   // Medical / allergen
+  'No Coconut':         'doc',   // Allergen
+  'Diabetic':           'doc',   // Medical — requires H&W confirmation
+  'Soft Meals':         'doc',   // Medical / clinical — requires H&W or site manager confirmation
+  'Low Sodium':         'doc',   // Medical dietary restriction
+  'Low Fat':            'doc',   // Medical — doctor's note required
+  'Low Potassium':      'doc',   // Medical — doctor's note required
+  'No Processed Food':  'doc',   // Medical dietary restriction
+  'No Fried Food':      'doc',   // Could be preference or medical; flag for confirmation
+  'No Corn':            'doc',   // Requires documentation — could be allergen
+  'No Spicy':           'doc',   // Medical or preference; flag for confirmation
+};
+
+function requiresDocumentation(tagLabels) {
+  // Returns true if any tag in the list is doc-tier
+  // Regular residents and pure auto-tier residents are auto-confirmed
+  if (!tagLabels || !tagLabels.length) return false;
+  const nonRegular = tagLabels.filter(t => t !== 'Regular');
+  if (!nonRegular.length) return false;
+  return nonRegular.some(t => {
+    const tier = COMPLIANCE_TIERS[t];
+    return !tier || tier === 'doc'; // unknown tags default to doc-tier
+  });
 }
 
 // Safe localStorage helper for site key
@@ -10777,9 +10909,12 @@ function splitVegAltIntoSlots(vegAlt) {
       MEAL_SLOT_STATE['starch'] = { manual: p };
     } else if (isVeg && !MEAL_SLOT_STATE['vegside']) {
       MEAL_SLOT_STATE['vegside'] = { manual: p };
-    } else {
+    } else if (!isStarch && !isVeg) {
+      // Only append to veganalt if the component is genuinely unclassified —
+      // not a starch/veg keyword that's already covered by another slot
       MEAL_SLOT_STATE['veganalt'] = { manual: MEAL_SLOT_STATE['veganalt'].manual + ', ' + p };
     }
+    // If isStarch/isVeg but slot already set — component is already accounted for, skip it
   }
 }
 
@@ -11037,9 +11172,14 @@ function openMenuEdit(week, day, period) {
   } else if (existing && existing.name) {
     parseMealNameIntoSlots(existing.name);
     if (existing.veg) splitVegAltIntoSlots(existing.veg);
+    // Apply existing flags to main slot so allergen pills show correctly
+    if (existing.flags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...existing.flags};
   } else if (dayData[period]) {
     parseMealNameIntoSlots(dayData[period]);
     if (dayData[period + '_veg']) splitVegAltIntoSlots(dayData[period + '_veg']);
+    // Apply rotation flags to main slot so allergen pills show correctly
+    const rotFlags = dayData[period + '_flags'];
+    if (rotFlags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...rotFlags};
   }
 
   // Pre-populate soft alt slot
@@ -11469,6 +11609,8 @@ function loadSpecialMeals() {
 }
 function saveSpecialMeals(obj) {
   localStorage.setItem('concSpecialMeals', JSON.stringify(obj));
+  try { const s=JSON.parse(localStorage.getItem('conc-door-settings')||'{}');
+    if(s['gh-token']) ghPushFile(s['gh-repo']||'kennedyjasondavid-eng/conc-kitchen-door','special_meals.json',JSON.stringify(obj,null,2),s['gh-token']).catch(()=>{}); } catch(e) {}
 }
 
 // Meal swaps — date-keyed, auto-expire. Separate from special meals.
@@ -11478,6 +11620,8 @@ function loadMealSwaps() {
 }
 function saveMealSwaps(obj) {
   localStorage.setItem('concMealSwaps', JSON.stringify(obj));
+  try { const s=JSON.parse(localStorage.getItem('conc-door-settings')||'{}');
+    if(s['gh-token']) ghPushFile(s['gh-repo']||'kennedyjasondavid-eng/conc-kitchen-door','meal_swaps.json',JSON.stringify(obj,null,2),s['gh-token']).catch(()=>{}); } catch(e) {}
 }
 function clearPastSwaps() {
   const swaps = loadMealSwaps();
@@ -12553,6 +12697,47 @@ clearPastSwaps();
 initDynamic();
 
 // v20: Restore persisted registry state before first render
+// Boot: fetch persisted state files from GitHub (best-effort, non-blocking)
+(function bootRemoteState() {
+  try {
+    const settings = JSON.parse(localStorage.getItem('conc-door-settings') || '{}');
+    const repo = settings['gh-repo'] || 'kennedyjasondavid-eng/conc-kitchen-door';
+    const base = 'https://raw.githubusercontent.com/' + repo + '/main/';
+    const bust = '?_=' + Date.now();
+
+    // menu_overlay.json
+    fetch(base + 'menu_overlay.json' + bust)
+      .then(r => r.ok ? r.json() : null)
+      .then(remote => {
+        if (!remote) return;
+        const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
+        const merged = Object.assign({}, local);
+        Object.keys(remote).forEach(wk => { merged[wk] = Object.assign({}, local[wk]||{}, remote[wk]); });
+        localStorage.setItem('concMenuBase', JSON.stringify(merged));
+      }).catch(() => {});
+
+    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveMealSwaps(Object.assign({},loadMealSwaps(),d));}).catch(()=>{});
+    fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d));}).catch(()=>{});
+    fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
+      if(!remote||!Array.isArray(remote))return;
+      const local=RECENT_LOG.filter(e=>e._real!==false);const seen=new Set();
+      const merged=[...remote,...local].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);}).slice(0,200);
+      RECENT_LOG.length=0;merged.forEach(e=>RECENT_LOG.push(e));saveRecentLog();if(typeof renderRecentLog==='function')renderRecentLog();
+    }).catch(()=>{});
+    // custom_tag_rules.json
+    fetch(base + 'custom_tag_rules.json' + bust)
+      .then(r => r.ok ? r.json() : null)
+      .then(remote => {
+        if (!remote || !Array.isArray(remote)) return;
+        const local = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
+        const localPatterns = new Set(local.map(r => r.pattern));
+        const merged = [...local, ...remote.filter(r => !localPatterns.has(r.pattern))];
+        localStorage.setItem('concCustomTagRules', JSON.stringify(merged));
+        merged.forEach(rule => { if (rule.tag && rule.label) TAG_LABELS_MAP[rule.tag] = rule.label; });
+      }).catch(() => {});
+  } catch(e) {}
+})();
+
 // Load learned NR from GitHub on boot — best-effort with 3s timeout, never blocks UI
 (function bootLearnedNR() {
   try {
@@ -13532,28 +13717,44 @@ function renderPlatingPreview() {
     h += `<tr class="ps-sect-total"><td>\u26A0 Anaphylactic Total</td><td></td><td>${anaphSect.length}</td></tr>`;
   }
 
-  const sectDefs = [
-    ['Halal','Special Meal 1 (Halal)','Halal: '+mealName,'HALAL CHICKEN, SOY, MUSHROOM'],
-    ['Vegan / Vegetarian','Special Meal 2 (Vegan)',mealVeg,"VEGAN CHIK'N, TAMARI, MUSHROOM, VEG"],
-    ['Gluten Free','Special Meal 3 (Gluten Free)','GF alternative','CHICKEN, SOY'],
-    ['No Dairy','Special Meal 4 (No Dairy)','No dairy modification','CHICKEN, SOY, MUSHROOM'],
-    ['Diabetic','Diabetic','Less starch, more veg — standard meal',''],
-  ];
-  sectDefs.forEach(([key,title,desc,alg]) => {
-    const res = sects[key];
-    if (!res || !res.length) return;
+  // Use the routing engine — same as buildDaySheet
+  const softAlt = dayData[psPeriod+'_softAlt'] || '';
+  const ctx = { mealName, mealVeg, allergenStr, softAlt, mealFlags };
+  const routedSections = computeSections(mealFlags, REGISTRY_LIST);
+
+  let restCount = anaphSect.length;
+  routedSections.forEach((s, si) => {
+    if (s.rule.key === 'regular') return;
+    const res = s.residents;
+    if (!res.length) return;
+    restCount += res.length;
+    const sectNum = si + 1;
+    const altMeal = getAltMeal(s.rule.altType, ctx);
+    // Build allergen string for this section
+    const allergenFlags = {...mealFlags};
+    if (s.rule.key === 'halal' || s.rule.key === 'no_processed') {
+      allergenFlags.hasPork = false;
+    }
+    if (s.rule.key === 'gf') {
+      allergenFlags.hasGluten = false;
+      if (mealFlags.hasPork) allergenFlags.hasPork = false;
+    }
+    const sectAlg = Object.entries(allergenFlags)
+      .filter(([k,v]) => v && k.startsWith('has') && k !== 'hasProcessedMeat')
+      .map(([k]) => k.replace('has','').toUpperCase())
+      .join(', ');
+    const title = `Special Meal ${sectNum} (${s.rule.label})`;
     h += `<tr><td colspan="3" class="ps-sect-hdr">${title}</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-meal">${desc}  |  CONTAINS: ${alg}</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal">${altMeal}${sectAlg ? '  |  CONTAINS: '+sectAlg : ''}</td></tr>`;
     res.forEach(r => {
       const isAnaph = r.isAnaph || anaphRooms.includes(r.room);
-      const cls = isAnaph ? ' class="ps-anaph-row"' : (r.tags && r.tags.includes('Diabetic') ? ' class="ps-diabetic"' : '');
-      const flag = isAnaph ? '<td>⚠ ANAPHYLACTIC — no conflict today</td>' : '<td></td>';
-      h += `<tr${cls}><td>${r.rawRestriction}</td><td>${r.room}</td>${flag}</tr>`;
+      const isDiab  = r.tags && r.tags.includes('Diabetic');
+      const cls = isAnaph ? ' class="ps-anaph-row"' : (isDiab ? ' class="ps-diabetic"' : '');
+      const note = isAnaph ? '<td>⚠ ANAPHYLACTIC</td>' : '<td></td>';
+      h += `<tr${cls}><td>${r.rawRestriction}</td><td>${r.room}</td>${note}</tr>`;
     });
-    h += `<tr class="ps-sect-total"><td>${key} Total</td><td></td><td>${res.length}</td></tr>`;
+    h += `<tr class="ps-sect-total"><td>${s.rule.label} Total</td><td></td><td>${res.length}</td></tr>`;
   });
-
-  const restCount = anaphSect.length + sectDefs.reduce((s,[key])=>(sects[key]||[]).length+s, 0);
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
   h += `<tr class="ps-sect-total"><td>Total Regular</td><td></td><td>${regCount}</td></tr>`;
   h += '</table>';
