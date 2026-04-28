@@ -7221,9 +7221,10 @@ async function pullStateFromGitHub(manual) {
       }
     } catch(learnedErr) { console.warn('learned_nr pull:', learnedErr); }
   } catch(e) {
-    console.warn('pullStateFromGitHub:', e);
-    if (manual) showToast('Sync failed — check network.');
-    updateSyncBar('Sync failed', '#dc2626');
+    console.error('pullStateFromGitHub error:', e.name, e.message, e.stack);
+    const errMsg = e.message || 'Unknown error';
+    if (manual) showToast('Sync failed: ' + errMsg.slice(0, 80));
+    updateSyncBar('Sync failed — ' + errMsg.slice(0, 40), '#dc2626');
   }
 }
 
