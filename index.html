@@ -6631,6 +6631,22 @@ function nrDoneReview(room) {
   const nrItems = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
   if (nrItems.every(x => nrRes[x.room])) localStorage.removeItem('concUnresolvedNR');
 
+  // Persist to learned store so future imports skip already-classified tokens
+  let learned = {};
+  try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
+  const roomKey = room.toLowerCase();
+  if (!learned[roomKey]) learned[roomKey] = {};
+  const nrItem2 = nrItems.find(x => x.room === room);
+  // Record the raw text as the token key (normalised)
+  if (nrItem2) {
+    nrItem2.text.split(',').forEach(tok => {
+      learned[roomKey][tok.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
+    });
+    // Also store full raw text key for exact match
+    learned[roomKey][nrItem2.text.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
+  }
+  localStorage.setItem('concLearnedNR', JSON.stringify(learned));
+
   // Audit log — record every decision so there's a trail regardless of action type
   const nrItem = nrItems.find(x => x.room === room);
   const rawText = nrItem ? nrItem.text : room;
@@ -7130,6 +7146,20 @@ async function pullStateFromGitHub(manual) {
     if (manual) showToast('Registry synced — ' + state.residents.length + ' residents loaded.');
     renderRegistry(REGISTRY_LIST);
     updateDailyImportPrompt();
+    // Pull learned NR classifications from GitHub
+    try {
+      const learnedUrl = 'https://api.github.com/repos/' + repo + '/contents/learned_nr.json';
+      const learnedRes = await fetch(learnedUrl, { headers });
+      if (learnedRes.ok) {
+        const learnedEnvelope = await learnedRes.json();
+        const learnedData = JSON.parse(atob(learnedEnvelope.content.replace(/
+/g, '')));
+        // Merge with local (remote wins on conflict — it's the primary device's decisions)
+        const local = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
+        const merged = Object.assign({}, local, learnedData);
+        localStorage.setItem('concLearnedNR', JSON.stringify(merged));
+      }
+    } catch(learnedErr) { console.warn('learned_nr pull:', learnedErr); }
   } catch(e) {
     console.warn('pullStateFromGitHub:', e);
     if (manual) showToast('Sync failed — check network.');
@@ -7178,6 +7208,7 @@ function generateFiles() {
   // Clear unresolved NR flag — operator has acknowledged and generated
   localStorage.removeItem('concUnresolvedNR');
   localStorage.removeItem('concNRResolutions');
+  localStorage.removeItem('concLearnedNR');
 
   // Track last generated time
   localStorage.setItem('concLastGenerated', new Date().toISOString());
@@ -7765,6 +7796,9 @@ async function publishToGitHub(manual) {
     await ghPushFile(repo,'registry_summary.json',JSON.stringify(buildRegistrySummaryJSON(),null,2),token);
     await ghPushFile(repo,'routing_by_meal.json',JSON.stringify(buildRoutingByMealJSON(),null,2),token);
     await ghPushFile(repo,'door_state.json',JSON.stringify(buildStateJSON(),null,2),token);
+    // Push learned NR classifications so other devices don't re-ask about already-reviewed tokens
+    const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
+    await ghPushFile(repo,'learned_nr.json',JSON.stringify(learnedNR,null,2),token);
     const timeStr = new Date().toLocaleTimeString();
     if(statusEl){ statusEl.textContent='Published ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
     updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr, 'var(--forest)');
@@ -11856,8 +11890,15 @@ function diffImportAgainstRegistry(entries) {
     }
 
     // Tag as needs-review if unmatched tokens or anaph candidate
+    // — but skip tokens the operator has already classified in a previous import
     if (e.parsed.unmatched.length || e.parsed.isAnaphCandidate) {
-      needsReview.push({ room: e.room, unmatched: e.parsed.unmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
+      let learned = {};
+      try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
+      const roomLearned = learned[e.room.toLowerCase()] || {};
+      const stillUnmatched = e.parsed.unmatched.filter(tok => !roomLearned[tok.toLowerCase().trim()]);
+      if (stillUnmatched.length || (e.parsed.isAnaphCandidate && !roomLearned['_anaph'])) {
+        needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
+      }
     }
   }
 
@@ -12470,6 +12511,22 @@ clearPastSwaps();
 initDynamic();
 
 // v20: Restore persisted registry state before first render
+// Load learned NR from GitHub on boot if available (public raw URL, no token needed)
+(async function bootLearnedNR() {
+  try {
+    const repo = (JSON.parse(localStorage.getItem('concDoorSettings') || '{}')||{})['gh-repo']
+                 || 'kennedyjasondavid-eng/conc-kitchen-door';
+    const url = 'https://raw.githubusercontent.com/' + repo + '/main/learned_nr.json';
+    const res = await fetch(url + '?_=' + Date.now());
+    if (res.ok) {
+      const remote = await res.json();
+      const local  = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
+      const merged = Object.assign({}, local, remote);
+      localStorage.setItem('concLearnedNR', JSON.stringify(merged));
+    }
+  } catch(e) { /* no learned_nr.json yet — fine */ }
+})();
+
 (function bootRegistry() {
   const restored = loadRegistryState();
   if (restored) {
