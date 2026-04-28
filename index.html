@@ -6644,7 +6644,8 @@ function nrDoneReview(room) {
   const nrItem2 = nrItems.find(x => x.room === room);
   // Record the raw text as the token key (normalised)
   if (nrItem2) {
-    nrItem2.text.split(',').forEach(tok => {
+    // Split by same delimiters the import parser uses (/,()) so tokens match on next import
+    nrItem2.text.split(/[\/,()]/).map(t => t.trim()).filter(Boolean).forEach(tok => {
       learned[roomKey][tok.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
     });
     // Also store full raw text key for exact match
@@ -7124,9 +7125,8 @@ function openSharePointOutput() {
 }
 
 function openSharePointPilot() {
-  const base = appSettings['sp-base-url'] || 'https://conctoronto.sharepoint.com';
-  const path = appSettings['sp-pilot'] || '/sites/Kitchen/Shared Documents/DOOR-Pilot/';
-  window.open(base + path, '_blank');
+  const url = appSettings['sp-pilot'] || 'https://conctoronto.sharepoint.com/sites/Kitchen/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FKitchen%2FShared%20Documents%2FDietary%20Restrictions%20%2D%20Rexdale%20Catering%2FCurrent%20Updates%2FDOOR%20test%20files&viewid=ea4b81f6%2Dd95d%2D4df6%2D9a47%2De78ae2614ece';
+  window.open(url, '_blank');
 }
 
 async function pullSecondaryState(repo) {
@@ -7265,7 +7265,8 @@ function generateFiles() {
   // Clear unresolved NR flag — operator has acknowledged and generated
   localStorage.removeItem('concUnresolvedNR');
   localStorage.removeItem('concNRResolutions');
-  localStorage.removeItem('concLearnedNR');
+  // NOTE: concLearnedNR is intentionally NOT cleared — it persists across
+  // imports so previously-classified tokens don't reappear as amber cards
 
   // Track last generated time
   localStorage.setItem('concLastGenerated', new Date().toISOString());
@@ -7379,7 +7380,7 @@ function renderComplianceView() {
     !r.complianceResolved && (
       r.complianceDeadline ||
       r.isModerate ||
-      (r.confirm === 'Provisional' && r.tags && !r.tags.every(t => t === 'Regular'))
+      (r.confirm === 'Provisional' && r.tags && requiresDocumentation(r.tags))
     )
   ).sort((a,b) => {
     if (a.complianceDeadline && b.complianceDeadline) return a.complianceDeadline.localeCompare(b.complianceDeadline);
@@ -7661,7 +7662,7 @@ const DEFAULT_SETTINGS = {
   'sp-reports':  '/sites/Kitchen/Shared Documents/Rexdale/Reports/',
   'sp-menu':     '/sites/Kitchen/Shared Documents/Bloor/Menus/4_week_rotation-CURRENT.xlsx',
   'sp-base-url': 'https://conctoronto.sharepoint.com',
-  'sp-pilot':    '/sites/Kitchen/Shared Documents/DOOR-Pilot/',
+  'sp-pilot':    'https://conctoronto.sharepoint.com/sites/Kitchen/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FKitchen%2FShared%20Documents%2FDietary%20Restrictions%20%2D%20Rexdale%20Catering%2FCurrent%20Updates%2FDOOR%20test%20files&viewid=ea4b81f6%2Dd95d%2D4df6%2D9a47%2De78ae2614ece',
   'notif-contact': '',
   'notif-method': 'email',
   'sys-week': 'auto',
@@ -9781,7 +9782,7 @@ const COMPLIANCE_TIERS = {
   'No Peanuts':         'doc',   // Potential anaphylactic allergen
   'No Eggs':            'doc',   // Allergen
   'No Dairy':           'doc',   // Allergen / medical
-  'Lactose Intolerant': 'doc',   // Medical
+  'Lactose Intolerant': 'auto',  // Common self-reported intolerance — no documentation needed
   'No Soy':             'doc',   // Allergen
   'No Tree Nuts':       'doc',   // Potential anaphylactic allergen
   'No Sesame':          'doc',   // Allergen
@@ -12844,6 +12845,26 @@ initDynamic();
     console.log('[DOOR patch] Applied registry corrections for Apr 27:', changed, 'tag(s) added');
   }
   localStorage.setItem(PATCH_KEY, '1');
+})();
+
+// Auto-promote Provisional residents who only have auto-tier tags to Confirmed.
+// Runs on every load — handles seed data from before COMPLIANCE_TIERS existed
+// and registry pulls from devices that haven't applied the fix yet.
+(function autoPromoteAutoTier() {
+  let promoted = 0;
+  REGISTRY_LIST.forEach(r => {
+    if (r.confirm !== 'Provisional') return;
+    if (!r.tags || r.tags.every(t => t === 'Regular')) return;
+    if (!requiresDocumentation(r.tags)) {
+      r.confirm = 'Confirmed';
+      r.confirmBy = 'Auto';
+      promoted++;
+    }
+  });
+  if (promoted > 0) {
+    saveRegistryState();
+    console.log('[DOOR] Auto-promoted', promoted, 'residents from Provisional to Confirmed (auto-tier tags only)');
+  }
 })();
 
 renderRegistry(REGISTRY_LIST);
