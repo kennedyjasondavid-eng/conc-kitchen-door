@@ -639,6 +639,7 @@ let _recipeDataSource = 'fallback';
   <div class="sync-bar" id="enter-sync-bar">
     <span class="sync-bar-status" id="sync-status">Checking registry…</span>
     <span id="last-generated-indicator" style="font-size:12px;color:var(--muted);"></span>
+    <button id="revert-gen-btn" class="btn btn-ghost btn-sm" style="display:none;font-size:11px;padding:2px 8px;margin-left:auto;color:#dc2626;border-color:#fecaca;" onclick="revertLastGenerate()">↩ Undo last generate</button>
   </div>
   <div class="content">
     <div class="daily-prompt-wrap" id="daily-import-prompt"></div>
@@ -1359,6 +1360,20 @@ let _recipeDataSource = 'fallback';
             </div>
           </div>
 
+          <!-- OPERATOR IDENTITY -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-header"><span style="font-size:15px;">👤</span><h2>Operator</h2></div>
+            <div class="card-body">
+              <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+                Your name stamps on all changes for audit trail. Stored on this device only.
+              </div>
+              <div class="form-group mb-12">
+                <label>Your name</label>
+                <input type="text" id="operator-name" placeholder="e.g. Jason, Fiona, Joan" style="font-size:13px;">
+              </div>
+            </div>
+          </div>
+
           <!-- GITHUB PUBLISH -->
           <div class="card" style="margin-top:16px;">
             <div class="card-header"><span style="font-size:15px;">🔗</span><h2>Live Data Sync</h2></div>
@@ -1367,24 +1382,29 @@ let _recipeDataSource = 'fallback';
                 Publish menu and headcount data to the DOOR repo after Generate or menu changes.
                 Production Hub fetches this data on load. No resident names or PII are published.
               </div>
-              <div class="form-group mb-12">
-                <label>GitHub personal access token</label>
-                <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
-                <div class="form-hint">Fine-grained token with Contents read/write on conc-kitchen-door repo. <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--forest-mid);">Create token</a></div>
-              </div>
-              <div class="form-group mb-12">
-                <label>Repository</label>
-                <input type="text" id="gh-repo" placeholder="kennedyjasondavid-eng/conc-kitchen-door">
-                <div class="form-hint">owner/repo format. Files publish to repo root as menu_current.json and registry_summary.json.</div>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;margin-top:12px;">
-                <button class="btn btn-ghost btn-sm" onclick="testGHPublish()">Test Connection</button>
-                <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true)">Publish Now</button>
-                <span id="gh-status" style="font-size:12px;color:var(--muted);"></span>
-              </div>
-              <div class="cb-item" onclick="toggleCb(this,'gh_auto_publish')" style="margin-top:10px;">
+              <div class="cb-item" onclick="toggleCb(this,'gh_auto_publish')" style="margin-bottom:10px;">
                 <input type="checkbox" checked><div class="cb-box" style="background:var(--forest);"><span class="cb-check" style="display:block;">✓</span></div>
                 <span class="cb-label">Auto-publish after Generate and menu changes</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);padding:8px 0;border-top:1px solid var(--border);margin-top:8px;cursor:pointer;user-select:none;" onclick="const d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';this.querySelector('span').textContent=d.style.display==='none'?'▸':'▾';">
+                <span>▸</span> Advanced — token, repo, manual publish
+              </div>
+              <div style="display:none;">
+                <div class="form-group mb-12">
+                  <label>GitHub personal access token</label>
+                  <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+                  <div class="form-hint">Fine-grained token with Contents read/write on conc-kitchen-door repo. <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:var(--forest-mid);">Create token</a></div>
+                </div>
+                <div class="form-group mb-12">
+                  <label>Repository</label>
+                  <input type="text" id="gh-repo" placeholder="kennedyjasondavid-eng/conc-kitchen-door">
+                  <div class="form-hint">owner/repo format. Files publish to repo root as menu_current.json and registry_summary.json.</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:12px;">
+                  <button class="btn btn-ghost btn-sm" onclick="testGHPublish()">Test Connection</button>
+                  <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true)">Publish Now</button>
+                  <span id="gh-status" style="font-size:12px;color:var(--muted);"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -6490,6 +6510,7 @@ function renderRecentLog() {
       <div style="flex:1">
         ${e.room !== '—' && e.room !== '⚑' ? `<span class="log-room">${e.room}</span> ` : (e.room === '⚑' ? '<span style="color:var(--red);font-weight:700;">⚑</span> ' : '')}
         <span class="log-desc">${e.desc}</span>
+        ${e.by ? `<span style="font-size:10px;color:var(--muted);margin-left:4px;">— ${e.by}</span>` : ''}
       </div>
       <div class="log-date">${e.date}</div>
     </div>
@@ -7169,7 +7190,7 @@ function seedRegistryFromRoster(entries) {
   updateSyncBar('Registry seeded — ' + newResidents.length + ' residents · ' + new Date().toLocaleTimeString(), '#15803d');
   updateDailyImportPrompt();
   // v25: Publish seeded registry to GitHub for multi-device sync
-  publishToGitHub(false);
+  publishAndSync('registry seeded · ' + newResidents.length + ' residents');
 
   // Navigate to Review & Generate so user can hit Generate immediately.
   // Seed bypasses changesQueue by design — generateFiles() runs fine with empty queue.
@@ -7201,6 +7222,59 @@ function clearAndReseed() {
 function updateSyncBar(msg, color) {
   const el = document.getElementById('sync-status');
   if (el) { el.textContent = msg; el.style.color = color || 'var(--forest-mid)'; }
+}
+
+// v25: Unified publish + sync bar update helper
+function publishAndSync(context) {
+  const timeStr = new Date().toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
+  const op = getOperatorName();
+  updateSyncBar('Syncing…', 'var(--forest-mid)');
+  publishToGitHub(false).then(() => {
+    updateSyncBar('Synced ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
+  }).catch(() => {
+    updateSyncBar('Saved locally — sync failed · ' + timeStr, '#dc2626');
+  });
+}
+
+function updateRevertButton() {
+  const btn = document.getElementById('revert-gen-btn');
+  if (!btn) return;
+  const snap = localStorage.getItem('concRegistrySnapshot');
+  btn.style.display = snap ? 'inline-flex' : 'none';
+}
+
+// v25: Operator identity — persists in localStorage, stamps on all changes
+function getOperatorName() {
+  return localStorage.getItem('concOperatorName') || '';
+}
+function setOperatorName(name) {
+  localStorage.setItem('concOperatorName', (name || '').trim());
+}
+function ensureOperatorName() {
+  if (getOperatorName()) return true;
+  const name = prompt('Enter your name (stored on this device for change attribution):');
+  if (name && name.trim()) { setOperatorName(name); return true; }
+  return false;
+}
+
+// v25: Revert registry to pre-generate snapshot
+function revertLastGenerate() {
+  const raw = localStorage.getItem('concRegistrySnapshot');
+  if (!raw) { showToast('No snapshot available — nothing to revert.'); return; }
+  const snap = JSON.parse(raw);
+  const meta = snap._meta || {};
+  const ts = meta.snapshotAt ? new Date(meta.snapshotAt).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'unknown time';
+  if (!confirm('Revert registry to the snapshot from ' + ts + '?\n\nThis undoes the last Generate and restores ' + snap.residents.length + ' residents to their pre-generate state.')) return;
+  REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...snap.residents);
+  if (snap.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...snap.anaphRooms);
+  Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
+  REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
+  saveRegistryState();
+  renderRegistry(REGISTRY_LIST);
+  localStorage.removeItem('concRegistrySnapshot');
+  updateRevertButton();
+  publishAndSync('reverted to pre-generate snapshot');
+  showToast('Registry reverted to ' + ts);
 }
 
 function updateDailyImportPrompt() {
@@ -7372,6 +7446,9 @@ async function pullStateFromGitHub(manual) {
 }
 
 function generateFiles() {
+  // v25: Ensure operator is identified for change attribution
+  if (!ensureOperatorName()) return;
+
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
   const discharges = changesQueue.filter(c => c.type === 'discharge').length;
   const net = 181 + intakes - discharges;
@@ -7394,10 +7471,20 @@ function generateFiles() {
     const typeColors = { intake:'#16a34a', discharge:'#dc2626', update:'#2563eb', switch:'#d97706' };
     const typeDescs = { intake:`${c.tagLabels.join(', ')||'Regular'} — new intake → ${c.route}`, discharge:`Removed from all sheets`, update:`Updated restrictions → ${c.route}`, switch:`Room switch → ${c.route}` };
     const _logDate = new Date(); const _logLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate();
-    RECENT_LOG.unshift({ date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type], _real:true });
+    RECENT_LOG.unshift({ date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type], _real:true, by:getOperatorName() });
   });
 
   showScreen('confirm', document.querySelector('[data-screen=review]'));
+
+  // v25: Snapshot registry before applying changes — enables undo
+  try {
+    localStorage.setItem('concRegistrySnapshot', JSON.stringify({
+      _meta: { snapshotAt: new Date().toISOString(), by: getOperatorName(), queueSize: changesQueue.length },
+      residents: JSON.parse(JSON.stringify(REGISTRY_LIST)),
+      anaphRooms: [...anaphRooms]
+    }));
+  } catch(e) { console.warn('Registry snapshot failed:', e); }
+  updateRevertButton();
 
   // Apply queue changes to REGISTRY_LIST before rendering
   applyQueueToRegistry();
@@ -7437,7 +7524,7 @@ function generateFiles() {
   }
 
   // Publish menu + headcounts to GitHub for Production Hub
-  publishToGitHub(false);
+  publishAndSync('plating sheets generated');
 }
 
 function resetAndGoHome() {
@@ -7636,7 +7723,7 @@ function openSettleModal(room) {
   // Reset form
   document.getElementById('settle-revert-check').checked = false;
   document.getElementById('settle-revert-warning').style.display = 'none';
-  document.getElementById('settle-resolved-by').value = '';
+  document.getElementById('settle-resolved-by').value = getOperatorName();
   document.getElementById('settle-resolution-note').value = '';
   document.getElementById('settle-compliance-modal').classList.add('open');
 }
@@ -7697,14 +7784,15 @@ function submitSettle() {
     room: r.room,
     type: 'update',
     desc: doRevert ? `Compliance settled — reverted to Regular by ${resolvedBy}` : `Compliance settled — status updated to ${newStatus} by ${resolvedBy}`,
-    color: '#2563eb'
+    color: '#2563eb',
+    by: resolvedBy
   });
 
   closeSettleModal();
   saveRegistryState();
   renderComplianceView();
   // v25: Sync compliance changes to GitHub for multi-device access
-  publishToGitHub(false);
+  publishAndSync('compliance update');
 }
 
 function updateComplianceField(room, field, value) {
@@ -7864,6 +7952,9 @@ function loadSettings() {
     const el = document.getElementById(id);
     if (el) el.value = appSettings[id] || val;
   });
+  // v25: Load operator name
+  const opEl = document.getElementById('operator-name');
+  if (opEl) opEl.value = getOperatorName();
   renderAnaphList();
 }
 
@@ -7872,6 +7963,9 @@ function saveSettings() {
     const el = document.getElementById(id);
     if (el) appSettings[id] = el.value;
   });
+  // v25: Save operator name
+  const opEl = document.getElementById('operator-name');
+  if (opEl) setOperatorName(opEl.value);
   // Persist to localStorage
   try {
     localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
@@ -7907,18 +8001,16 @@ function addAnaphRoom() {
   renderAnaphList();
   input.value = '';
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
-  // v25: Sync anaphylactic room changes
   saveRegistryState();
-  publishToGitHub(false);
+  publishAndSync('anaphylactic room added: ' + room);
 }
 
 function removeAnaphRoom(room) {
   anaphRooms = anaphRooms.filter(r => r !== room);
   renderAnaphList();
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
-  // v25: Sync anaphylactic room changes
   saveRegistryState();
-  publishToGitHub(false);
+  publishAndSync('anaphylactic room removed: ' + room);
 }
 
 // ============================================================
@@ -7934,7 +8026,8 @@ function buildMenuJSON() {
 function buildStateJSON() {
   return {
     _meta: { source:'KitchenDOOR', version:25, exported:new Date().toISOString(),
-             site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length },
+             site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length,
+             lastModifiedBy: getOperatorName() || 'unknown' },
     residents: REGISTRY_LIST,
     anaphRooms: anaphRooms,
     lastImportDate: localStorage.getItem('concLastImportDate') || '',
@@ -10219,7 +10312,7 @@ function makePermanent() {
 
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-  publishToGitHub(false);
+  publishAndSync('menu swap made permanent');
 }
 
 function revertMealSwap() {
@@ -11012,10 +11105,16 @@ function detectIsCarb(mealName) { return CARB_KEYWORDS.test(mealName || ''); }
 
 function flagsToAllergenStr(flags) {
   const MAP = {
-    hasGluten:'Gluten', hasDairy:'Dairy', hasPork:'Pork', hasBeef:'Beef',
-    hasFish:'Fish', hasEgg:'Eggs', hasPeanuts:'Peanuts', hasSesame:'Sesame',
-    hasSoy:'Soy', hasMustard:'Mustard', hasTreeNuts:'Tree Nuts',
-    hasShellfish:'Shellfish', hasSulphites:'Sulphites'
+    // Priority allergens
+    hasPeanuts:'PEANUTS', hasTreeNuts:'TREE NUTS', hasSesame:'SESAME',
+    hasSoy:'SOY', hasMustard:'MUSTARD', hasShellfish:'SHELLFISH',
+    hasSulphites:'SULPHITES', hasGluten:'Gluten', hasDairy:'Dairy',
+    hasEgg:'Eggs', hasFish:'Fish', hasPork:'Pork', hasBeef:'Beef',
+    // Ingredient-level flags
+    hasMushroom:'Mushroom', hasBeans:'Beans', hasCoconut:'Coconut',
+    hasNightshades:'Nightshades', hasBrassicas:'Brassicas', hasCorn:'Corn',
+    // Routing flags
+    isSpicy:'SPICY', hasProcessedMeat:'Processed Meat'
   };
   return Object.entries(MAP)
     .filter(([k]) => flags && flags[k])
@@ -11358,7 +11457,7 @@ function saveMenuEdit() {
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
   showToast('Saved permanently to rotation \u2714');
-  publishToGitHub(false);
+  publishAndSync('menu edit saved');
 }
 
 function revertMenuEdit() {
@@ -13047,7 +13146,8 @@ initDynamic();
           }
           const exportedAt = state._meta && state._meta.exported ? new Date(state._meta.exported) : null;
           const ts = exportedAt ? exportedAt.toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
-          updateSyncBar('Auto-synced ✓ — ' + state.residents.length + ' residents' + (ts ? ' · ' + ts : ''), 'var(--forest)');
+          const modBy = state._meta && state._meta.lastModifiedBy ? ' by ' + state._meta.lastModifiedBy : '';
+          updateSyncBar('Auto-synced ✓ — ' + state.residents.length + ' residents' + (ts ? ' · ' + ts + modBy : ''), 'var(--forest)');
           renderRegistry(REGISTRY_LIST);
           updateDailyImportPrompt();
         } else {
@@ -13127,6 +13227,7 @@ initPlatingPreview();
 // v20: Boot UI state indicators
 updateDailyImportPrompt();
 updateGeneratedIndicator();
+updateRevertButton();
 
 // ============================================================
 // PLATING SHEET XLSX BUILDER (SheetJS / xlsx-js-style)
@@ -13186,8 +13287,10 @@ function buildDaySheet(period, weekNum, dayName) {
   const menuEdit = getMenuEdit(weekNum, dayName, period);
   // When a menu edit exists the overlay wrote explicit allergen flags — use those.
   // For unedited rotation meals fall back to the raw hardcoded allergens_* string.
-  const allergenStr = menuEdit
-    ? flagsToAllergenStr(mealFlags).toUpperCase()
+  // v25: Always build allergen string from flags when available — ensures all meal tags cascade
+  const flagBasedAllergens = flagsToAllergenStr(mealFlags);
+  const allergenStr = flagBasedAllergens
+    ? flagBasedAllergens.toUpperCase()
     : (dayData['allergens_'+period] || '').toUpperCase();
   const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
   const vegAllergenLookup = getVegAltAllergenStr(mealVeg);
