@@ -689,48 +689,43 @@ let _recipeDataSource = 'fallback';
 
             <!-- RESTRICTION FIELDS -->
             <div id="restriction-fields">
-              <div class="cb-section-label">Restrictions <span style="font-weight:400;font-size:11px;color:var(--muted);margin-left:6px;">Creates a separate section — routed automatically</span></div>
+              <div class="cb-section-label">Dietary Restrictions</div>
               <div class="cb-grid">
                 <div class="cb-item" onclick="toggleCb(this,'halal')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Halal</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'vegan')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Vegan</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'vegetarian')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Vegetarian</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'glutenFree')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Gluten Free</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'softMeals')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Soft Meals</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noDairy')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Dairy</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noPork')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Pork</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'diabetic')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Diabetic</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'softMeals')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Soft Meals</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noProcessedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Processed Food</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'glutenFree')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Gluten Free</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noDairy')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Dairy</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowSodium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Sodium</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'lactoIntolerant')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Lactose Intolerant</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noBeef')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Beef</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowFat')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Fat</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowPotassium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Potassium</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noProcessedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Processed Food</span></div>
+              </div>
+              <div class="cb-section-label">Specific Avoidances</div>
+              <div class="cb-grid">
                 <div class="cb-item" onclick="toggleCb(this,'noFish')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Fish</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noShellfish')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Shellfish</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noEggs')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Eggs</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noSpicy')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Spicy</span></div>
-              </div>
-              <div class="cb-section-label" style="margin-top:12px;">Allergen Flags <span style="font-weight:400;font-size:11px;color:#991b1b;margin-left:6px;">Checked against each meal — conflicts flagged automatically</span></div>
-              <div class="cb-grid">
                 <div class="cb-item" onclick="toggleCb(this,'noPeanuts')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Peanuts</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noTreeNuts')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Tree Nuts</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noCoconut')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Coconut</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noBeef')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Beef</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noSpicy')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Spicy</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noMushroom')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Mushroom</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noSoy')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Soy</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noSesame')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Sesame</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noMustard')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Mustard</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noSulphites')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Sulphites</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noTreeNuts')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Tree Nuts</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noMolluscs')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Molluscs</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noOats')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Oats</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noNightshades')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Nightshades</span></div>
-              </div>
-              <div class="cb-section-label" style="margin-top:12px;">Accommodations <span style="font-weight:400;font-size:11px;color:var(--muted);margin-left:6px;">Checked against each meal — requires H&W documentation</span></div>
-              <div class="cb-grid">
-                <div class="cb-item" onclick="toggleCb(this,'noMushroom')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Mushroom</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noSulphites')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Sulphites</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noMustard')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Mustard</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noBeans')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Beans</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noCorn')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Corn</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'noNightshades')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Nightshades</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noBrassicas')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Brassicas</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noTurkey')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Turkey</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'noFriedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Fried Food</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'lowSodium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Sodium</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'lowFat')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Fat</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'lowPotassium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Potassium</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'other')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Other…</span></div>
               </div>
               <div class="form-row">
@@ -4543,8 +4538,6 @@ const REGISTRY_LIST = [
 
 const REGISTRY_MAP = {};
 REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
-// v25: Migrate all residents to split restrictions/avoidances model
-REGISTRY_LIST.forEach(r => { if (typeof migrateResidentTiers === 'function') migrateResidentTiers(r); });
 
 // Full 4-week menu
 const MENU_DATA = {
@@ -6528,89 +6521,6 @@ const ANAPH_TAG_TO_MEAL_FLAG = {
   'GF': 'hasGluten'
 };
 
-// ============================================================
-// RESIDENT FLAG → MEAL FLAG MAPPING (v25)
-// ============================================================
-// Maps resident allergen flags and accommodations to meal-level flags.
-// Used by checkResidentMealConflicts() to auto-detect conflicts at Generate time.
-// Routing tags (Halal, Diabetic, etc.) are handled by computeSections — not here.
-const RESIDENT_TO_MEAL_FLAG = {
-  // Allergen flags (medically serious)
-  'No Peanuts':     'hasPeanuts',
-  'No Tree Nuts':   'hasTreeNuts',
-  'No Coconut':     'hasCoconut',
-  'No Soy':         'hasSoy',
-  'No Sesame':      'hasSesame',
-  'No Mustard':     'hasMustard',
-  'No Sulphites':   'hasSulphites',
-  'No Molluscs':    'hasShellfish',   // closest match — shellfish/molluscs share flag
-  'No Nightshades': 'hasNightshades',
-  // Accommodations (documented)
-  'No Mushroom':    'hasMushroom',
-  'No Beans':       'hasBeans',
-  'No Corn':        'hasCorn',
-  'No Brassicas':   'hasBrassicas',
-  // Also check routing tags that don't create their own section on every meal
-  'No Fish':        'hasFish',
-  'No Shellfish':   'hasShellfish',
-  'No Eggs':        'hasEgg',
-  'No Dairy':       'hasDairy',
-  'GF':             'hasGluten',
-  'No Spicy':       'isSpicy',
-  'No Beef':        'hasBeef',
-  'No Pork':        'hasPork'
-};
-
-// Check a single resident's flags against a meal's flags.
-// Returns array of { tag, mealFlag, tier } for each conflict found.
-// tier: 'restriction' | 'allergen' | 'accommodation'
-function checkResidentMealConflicts(mealFlags, resident) {
-  if (!mealFlags || !resident) return [];
-  const conflicts = [];
-  const checkTags = [
-    ...(resident.allergenFlags || []).map(t => ({tag: t, tier: 'allergen'})),
-    ...(resident.accommodations || []).map(t => ({tag: t, tier: 'accommodation'})),
-    // Also check routing tags — resident may be in Regular section but still have
-    // a conditional restriction that didn't activate (e.g. No Fish on a non-fish day
-    // that happens to have fish in a side component)
-  ];
-  // For routing tags, only flag if resident is NOT already routed to an alt section for this
-  const routingTagsToCheck = (resident.tags || []).filter(t => RESIDENT_TO_MEAL_FLAG[t] && ROUTING_TAGS.has(t));
-  routingTagsToCheck.forEach(t => checkTags.push({tag: t, tier: 'restriction'}));
-
-  for (const {tag, tier} of checkTags) {
-    const mealFlag = RESIDENT_TO_MEAL_FLAG[tag];
-    if (mealFlag && mealFlags[mealFlag]) {
-      conflicts.push({ tag, mealFlag, tier });
-    }
-  }
-  return conflicts;
-}
-
-// Check all residents against a meal. Returns Map<room, conflicts[]>
-function checkAllResidentConflicts(mealFlags) {
-  const conflictMap = new Map();
-  if (!mealFlags) return conflictMap;
-  for (const r of REGISTRY_LIST) {
-    // Migrate if needed
-    if (!r._tierMigrated && typeof migrateResidentTiers === 'function') migrateResidentTiers(r);
-    const conflicts = checkResidentMealConflicts(mealFlags, r);
-    if (conflicts.length) conflictMap.set(r.room, conflicts);
-  }
-  return conflictMap;
-}
-
-// Format conflict list for plating sheet note
-function formatConflictNote(conflicts) {
-  if (!conflicts || !conflicts.length) return '';
-  const allergens = conflicts.filter(c => c.tier === 'allergen').map(c => c.tag);
-  const accoms = conflicts.filter(c => c.tier === 'accommodation').map(c => c.tag);
-  const parts = [];
-  if (allergens.length) parts.push('⚠ ' + allergens.join(', '));
-  if (accoms.length) parts.push(accoms.join(', '));
-  return parts.join(' · ');
-}
-
 function getRoomBase(room) {
   return room.toLowerCase().replace(/[ab]$/i, '');
 }
@@ -6629,9 +6539,7 @@ function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
   const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
 
   for (const resident of anaphResidents) {
-    // v25: Check both tags (restrictions) and avoidances for allergen flags
-    const allTags = [...(resident.tags || []), ...(resident.avoidances || [])];
-    for (const tag of allTags) {
+    for (const tag of resident.tags) {
       const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[tag];
       if (!mealFlag) continue;
       if (lunchMeal[mealFlag] || dinnerMeal[mealFlag]) {
@@ -6651,9 +6559,7 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
   const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
 
   for (const resident of anaphResidents) {
-    // v25: Check both tags and avoidances
-    const allTags = [...(resident.tags || []), ...(resident.avoidances || [])];
-    for (const tag of allTags) {
+    for (const tag of resident.tags) {
       const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[tag];
       if (!mealFlag) continue;
 
@@ -6739,23 +6645,20 @@ function nrDoneReview(room) {
   const nrItems = JSON.parse(localStorage.getItem('concUnresolvedNR') || '[]');
   if (nrItems.every(x => nrRes[x.room])) localStorage.removeItem('concUnresolvedNR');
 
-  // Persist to learned store so future imports skip already-classified rooms
+  // Persist to learned store so future imports skip already-classified tokens
   let learned = {};
   try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
   const roomKey = room.toLowerCase();
   if (!learned[roomKey]) learned[roomKey] = {};
   const nrItem2 = nrItems.find(x => x.room === room);
+  // Record the raw text as the token key (normalised)
   if (nrItem2) {
-    // Store the full raw text as the primary resolution key — if the same text
-    // appears on next import, the room is skipped entirely (no token matching needed)
-    learned[roomKey]['_resolved_text'] = nrItem2.text.toLowerCase().trim();
-    // Also store individual tokens (both raw text splits and unmatched fragments)
-    // as fallback for partial matching
+    // Split by same delimiters the import parser uses (/,()) so tokens match on next import
     nrItem2.text.split(/[\/,()]/).map(t => t.trim()).filter(Boolean).forEach(tok => {
       learned[roomKey][tok.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
     });
-    // If anaph candidate was resolved, record that too
-    if (nrItem2.isAnaphCandidate) learned[roomKey]['_anaph'] = { action: pending[0]?.action || 'skip', ts: Date.now() };
+    // Also store full raw text key for exact match
+    learned[roomKey][nrItem2.text.toLowerCase().trim()] = { action: pending[0]?.action || 'skip', ts: Date.now() };
   }
   localStorage.setItem('concLearnedNR', JSON.stringify(learned));
 
@@ -7048,20 +6951,11 @@ function applyQueueToRegistry() {
     } else if (c.type === 'intake') {
       const existing = REGISTRY_LIST.findIndex(r => r.room.toLowerCase() === c.room.toLowerCase());
       const tagLabels = Object.entries(c.tags).filter(([,v])=>v).map(([k])=>TAG_LABELS_MAP[k]).filter(Boolean);
-      const restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
-      const allergenFlags = tagLabels.filter(t => ALLERGEN_TAGS.has(t));
-      const accommodations = tagLabels.filter(t => ACCOMMODATION_TAGS.has(t));
-      const avoidances = [...allergenFlags, ...accommodations];
       const section = c.route || 'Regular';
       const newResident = {
         room: c.room,
         section,
         tags: tagLabels.length ? tagLabels : ['Regular'],
-        restrictions: restrictions.length ? restrictions : ['Regular'],
-        allergenFlags: allergenFlags,
-        accommodations: accommodations,
-        preferences: accommodations,
-        avoidances: avoidances,
         confirm: requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A'),
         confirmBy: requiresDocumentation(tagLabels) ? '—' : 'Auto',
         isAnaph: c.isAnaph || false,
@@ -7070,8 +6964,7 @@ function applyQueueToRegistry() {
         moderateNote: c.moderateNote || '',
         complianceDeadline: '',
         pendingReversion: false,
-        serviceNote: c.serviceNote || c.notes || '',
-        _tierMigrated: true
+        serviceNote: c.serviceNote || c.notes || ''
       };
       if (existing !== -1) {
         REGISTRY_LIST[existing] = newResident;
@@ -7085,13 +6978,6 @@ function applyQueueToRegistry() {
       if (r) {
         const tagLabels = Object.entries(c.tags).filter(([,v])=>v).map(([k])=>TAG_LABELS_MAP[k]).filter(Boolean);
         r.tags = tagLabels.length ? tagLabels : ['Regular'];
-        r.restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
-        if (!r.restrictions.length) r.restrictions = ['Regular'];
-        r.allergenFlags = tagLabels.filter(t => ALLERGEN_TAGS.has(t));
-        r.accommodations = tagLabels.filter(t => ACCOMMODATION_TAGS.has(t));
-        r.preferences = r.accommodations;
-        r.avoidances = [...r.allergenFlags, ...r.accommodations];
-        r._tierMigrated = true;
         r.section = c.route || 'Regular';
         r.isAnaph = c.isAnaph || false;
         r.isModerate = c.isModerate || false;
@@ -7438,12 +7324,7 @@ function renderRegistry(data) {
   if (!data.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No residents match.</td></tr>'; return; }
   const today = new Date(); today.setHours(0,0,0,0);
   body.innerHTML = data.map(r => {
-    const tags = getResidentRestrictions(r).filter(t=>t!=='Regular').map(t=>`<span class="tag ${getTagClass(t)}">${t}</span>`).join(' ');
-    const allergens = getResidentAllergenFlags(r);
-    const prefs = getResidentAccommodations(r);
-    const allergenHtml = allergens.length ? `<div style="margin-top:3px;font-size:10px;color:#991b1b;"><span style="font-weight:600;">⚠ Allergens:</span> ${allergens.join(', ')}</div>` : '';
-    const prefHtml = prefs.length ? `<div style="margin-top:2px;font-size:10px;color:#78350f;"><span style="font-weight:600;">Accom:</span> ${prefs.join(', ')}</div>` : '';
-    const noteHtml = r.serviceNote ? `<div style="margin-top:2px;font-size:10px;color:var(--muted);font-style:italic;">${r.serviceNote}</div>` : '';
+    const tags = r.tags.map(t=>`<span class="tag ${getTagClass(t)}">${t}</span>`).join(' ');
     const moderateTag = r.isModerate ? `<span class="tag tag-moderate" title="${r.moderateNote || 'Moderate allergy — no epi-pen'}">⚠ Moderate</span>` : '';
     let deadlineHtml = '<span style="color:var(--muted);font-size:12px;">—</span>';
     if (r.complianceDeadline) {
@@ -7457,7 +7338,7 @@ function renderRegistry(data) {
     return `<tr>
       <td><span class="room-num">${r.room}</span></td>
       <td><span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:${sectionColors[r.section]||'#fff'}">${r.section}</span></td>
-      <td>${tags || '<span class="tag">Regular</span>'}${moderateTag}${allergenHtml}${prefHtml}${noteHtml}</td>
+      <td>${tags}${moderateTag}</td>
       <td><span style="font-size:12px;color:${r.confirm==='Provisional'?'#d97706':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid)'};font-weight:600">${r.confirm}</span></td>
       <td>${deadlineHtml}</td>
       <td style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">${r.confirmBy}</td>
@@ -7480,9 +7361,7 @@ function filterRegistry() {
         r.confirm,
         r.rawRestriction || '',
         r.moderateNote || '',
-        r.serviceNote || '',
-        ...(r.tags || []),
-        ...(r.avoidances || [])
+        ...(r.tags || [])
       ].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
     }
@@ -9167,93 +9046,6 @@ const ROUTING_RULES = [
   {p:10, key:'no_egg',  label:'No Egg / Mustard',   tags:['No Eggs'],              triggers:['hasEgg'],            altType:'modified_main'},
   {p:99, key:'regular', label:'Regular',            tags:[],                       always:true,                    altType:'main'},
 ];
-
-// ============================================================
-// RESTRICTION TIER CLASSIFICATION (v25)
-// ============================================================
-// Three categories with distinct operational meaning:
-//
-// SECTION RESTRICTIONS — Create sections on the plating sheet. The routing engine
-//   restructures service around these. A wrong answer means wrong section.
-//
-// ALLERGEN FLAGS — Health Canada priority allergens (+ related) that don't create
-//   sections but are medically serious. A wrong answer means a reaction.
-//   For anaphylactic residents, these also trigger room-level containment.
-//
-// PREFERENCES — Real requests worth tracking. Kitchen accommodates individually.
-//   A wrong answer means a complaint, not a medical event.
-
-const ROUTING_TAGS = new Set([
-  // Medical
-  'Diabetic', 'Soft Meals',
-  // Religious/Cultural
-  'Halal', 'Vegan', 'Vegetarian', 'No Pork',
-  // Conditional routing (activate sections when triggered by meal flags)
-  'GF', 'No Dairy', 'Lactose Intolerant', 'No Beef', 'No Fish', 'No Shellfish',
-  'No Eggs', 'No Spicy', 'No Processed Food'
-]);
-
-const ALLERGEN_TAGS = new Set([
-  // Health Canada priority allergens not already covered by ROUTING_TAGS
-  // (Milk→No Dairy, Eggs→No Eggs, Fish→No Fish, Shellfish→No Shellfish,
-  //  Wheat→GF, Mustard→below, Sulphites→below, Sesame→below, Soy→below,
-  //  Peanuts→below, Tree Nuts→below)
-  'No Peanuts', 'No Tree Nuts', 'No Soy', 'No Sesame',
-  'No Mustard', 'No Sulphites', 'No Molluscs',
-  // Related allergen categories
-  'No Coconut', 'No Oats', 'No Nightshades'
-]);
-
-const ACCOMMODATION_TAGS = new Set([
-  // Documented accommodations — requires H&W or care team support
-  'No Mushroom', 'No Beans', 'No Corn', 'No Brassicas',
-  'No Turkey', 'No Fried Food',
-  // Dietary accommodations (non-routing medical context)
-  'Low Sodium', 'Low Fat', 'Low Potassium',
-  'Other'
-]);
-
-// Legacy compat — union of non-routing tags
-const AVOIDANCE_TAGS = new Set([...ALLERGEN_TAGS, ...ACCOMMODATION_TAGS]);
-const PREFERENCE_TAGS = ACCOMMODATION_TAGS; // alias for backward compat
-
-// Migrate a resident record from flat tags[] to three-bucket model
-function migrateResidentTiers(r) {
-  if (r._tierMigrated) return;
-  const oldTags = r.tags || [];
-  r.restrictions = oldTags.filter(t => ROUTING_TAGS.has(t) || t === 'Regular');
-  r.allergenFlags = oldTags.filter(t => ALLERGEN_TAGS.has(t));
-  r.accommodations = oldTags.filter(t => ACCOMMODATION_TAGS.has(t));
-  // Legacy fields
-  r.preferences = r.accommodations;
-  r.avoidances = [...r.allergenFlags, ...r.accommodations];
-  // tags[] remains as the union for backward compatibility with routing engine
-  // (computeSections reads tags — no change needed there)
-  r._tierMigrated = true;
-}
-
-function getResidentAvoidances(r) {
-  if (r.avoidances && r.avoidances.length) return r.avoidances;
-  // Fallback: derive from tags if not yet migrated
-  return (r.tags || []).filter(t => AVOIDANCE_TAGS.has(t));
-}
-
-function getResidentAllergenFlags(r) {
-  if (r.allergenFlags && r.allergenFlags.length) return r.allergenFlags;
-  return (r.tags || []).filter(t => ALLERGEN_TAGS.has(t));
-}
-
-function getResidentPreferences(r) {
-  if (r.accommodations && r.accommodations.length) return r.accommodations;
-  if (r.preferences && r.preferences.length) return r.preferences;
-  return (r.tags || []).filter(t => ACCOMMODATION_TAGS.has(t));
-}
-function getResidentAccommodations(r) { return getResidentPreferences(r); }
-
-function getResidentRestrictions(r) {
-  if (r.restrictions && r.restrictions.length) return r.restrictions;
-  return (r.tags || []).filter(t => ROUTING_TAGS.has(t) || t === 'Regular');
-}
 
 function getAltMeal(altType, ctx) {
   // ctx = {mealName, mealVeg, allergenStr}
@@ -12323,11 +12115,9 @@ function diffImportAgainstRegistry(entries) {
     const existing = REGISTRY_MAP[e.room.toLowerCase()];
     const newTags = { ...e.parsed.tags };
     const newSig = importTagSignature(newTags);
-    let isNewOrChanged = false;
 
     if (!existing) {
       intakes.push({ room: e.room, newTags, unmatched: e.parsed.unmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
-      isNewOrChanged = true;
     } else {
       // Build tag set from existing record (inverse of TAG_LABELS_MAP)
       const existingTags = {};
@@ -12346,23 +12136,15 @@ function diffImportAgainstRegistry(entries) {
           rawText: e.parsed.rawText,
           fieldSelections: null  // populated in UI per field
         });
-        isNewOrChanged = true;
       }
     }
 
-    // Only flag NR for new intakes or rooms where restrictions actually changed.
-    // Existing rooms with unchanged tags have the same unmatched fragments every time —
-    // those were already handled when the room was first set up.
-    if (!isNewOrChanged) continue;
-
+    // Tag as needs-review if unmatched tokens or anaph candidate
+    // — but skip tokens the operator has already classified in a previous import
     if (e.parsed.unmatched.length || e.parsed.isAnaphCandidate) {
       let learned = {};
       try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
       const roomLearned = learned[e.room.toLowerCase()] || {};
-      // If the full raw text was previously resolved, skip this room entirely
-      const rawNorm = e.parsed.rawText.toLowerCase().trim();
-      if (roomLearned['_resolved_text'] === rawNorm) continue;
-      // Fallback: per-token check for partial matches
       const stillUnmatched = e.parsed.unmatched.filter(tok => !roomLearned[tok.toLowerCase().trim()]);
       if (stillUnmatched.length || (e.parsed.isAnaphCandidate && !roomLearned['_anaph'])) {
         needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
@@ -12901,7 +12683,7 @@ function commitImportToQueue() {
     });
     if (unresolved.length) {
       localStorage.setItem('concUnresolvedNR', JSON.stringify(
-        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', '), isAnaphCandidate: r.isAnaphCandidate || false }))
+        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', ') }))
       ));
     } else {
       localStorage.removeItem('concUnresolvedNR');
@@ -13295,35 +13077,6 @@ function buildDaySheet(period, weekNum, dayName) {
     totalRestrictions += s.residents.length;
     specialIdx++;
   });
-
-  // v25: Flagged Standard Meals — Regular residents with active allergen/accommodation conflicts
-  if (regularSection && regularSection.residents.length) {
-    const flaggedRegular = [];
-    regularSection.residents.forEach(r => {
-      const notes = CONFLICT_MAP
-        .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
-        .map(rule => ({ note: rule.note, severity: rule.severity }));
-      // Also include serviceNote
-      if (notes.length || r.serviceNote) {
-        flaggedRegular.push({ resident: r, conflictNotes: notes });
-      }
-    });
-    if (flaggedRegular.length) {
-      addMerged('\u26A0  Flagged Standard Meals \u2014 check before plating', F.stdB, 'FFF3E0', B.thick, 20);
-      flaggedRegular.forEach(({resident: r, conflictNotes}) => {
-        const allergenNotes = conflictNotes.filter(n => n.severity === 'red').map(n => n.note.toUpperCase());
-        const otherNotes = conflictNotes.filter(n => n.severity !== 'red').map(n => n.note);
-        const parts = [...allergenNotes, ...otherNotes];
-        if (r.serviceNote) parts.push(r.serviceNote);
-        const noteStr = parts.join(' · ');
-        const hasRed = allergenNotes.length > 0;
-        const bg = hasRed ? 'F2DCDC' : 'FFF3E0';
-        const font = hasRed ? F.anaph : F.std;
-        addRow(xCell((r.rawRestriction||'Standard Meal'),font,bg,B.thin), xCell(r.room,font,bg,B.thin), xCell(noteStr,font,bg,B.thin), 16);
-      });
-      addRow(xCell('Flagged',F.stdB,null,B.thin), xCell('',F.std,null,B.thin), xCell(String(flaggedRegular.length)+' of '+String(regCount),F.stdB,'FFF3E0',B.thin), 16);
-    }
-  }
 
   // Footer
   addRow(xCell('Total Restrictions',F.stdB,null,B.thin), xCell('',F.std,null,B.thin), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thin), 16);
