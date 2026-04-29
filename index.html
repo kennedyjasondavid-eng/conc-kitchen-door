@@ -13940,13 +13940,14 @@ function computePlatingData(period, weekNum, dayName) {
   const regularSection = sections.find(s => s.rule.key === 'regular');
   const regCount = regularSection ? regularSection.residents.length : 0;
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
+  const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, mealFlags};
 
   return {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
     allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-    regCount, halalCount, diabCount, ctx, sortR
+    regCount, halalCount, veganCount, diabCount, ctx, sortR
   };
 }
 
@@ -13955,7 +13956,7 @@ function buildDaySheet(period, weekNum, dayName) {
   if (!pd) return null;
   const { dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-          regCount, halalCount, diabCount, ctx } = pd;
+          regCount, halalCount, veganCount, diabCount, ctx } = pd;
 
   const COL_W = [62, 10, 36]; // column widths in chars: Restriction, Room, Notes
   const LINE_H = 15; // height per line of 10pt Calibri text
@@ -14006,6 +14007,7 @@ function buildDaySheet(period, weekNum, dayName) {
   addRow(xCell('',F.std,null,B.thin), xCell('Total Meals',F.stdB,null,B.thin), xCell(String(REGISTRY_LIST.length),F.stdB,'FFFF00',B.thin,A.center), 15);
   addRow(xCell('',F.std,null,B.thin), xCell('Standard Meal',F.stdB,null,B.thin), xCell(String(regCount),            F.stdB,'FFFF00',B.thin,A.center), 15);
   addRow(xCell('',F.std,null,B.thin), xCell('Halal',      F.stdB,null,B.thin), xCell(String(halalCount),          F.stdB,'FFFF00',B.thin,A.center), 15);
+  addRow(xCell('',F.std,null,B.thin), xCell('Vegan / Vegetarian',F.stdB,null,B.thin), xCell(String(veganCount),     F.stdB,'FFFF00',B.thin,A.center), 15);
   addRow(xCell('',F.std,null,B.thin), xCell('Diabetics',  F.stdB,null,B.thin), xCell(String(diabCount),           F.stdB,'FFFF00',B.thin,A.center), 15);
 
   // Anaphylactic section
@@ -14673,7 +14675,7 @@ function renderPlatingPreview() {
   }
 
   const { dayLabel, periodLabel, mealName, mealVeg, mealFlags, allergenStr, vegAllergenStr,
-          conflictRooms, anaphSect, sections, regCount, halalCount, diabCount, ctx } = pd;
+          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx } = pd;
 
   // Print header
   if (printHeader) {
@@ -14695,6 +14697,7 @@ function renderPlatingPreview() {
   h += `<tr><td></td><td class="ps-total">Total Meals</td><td class="ps-total-val">${REGISTRY_LIST.length}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Standard Meal</td><td class="ps-total-val">${regCount}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Halal</td><td class="ps-total-val">${halalCount}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Vegan / Vegetarian</td><td class="ps-total-val">${veganCount}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Diabetics</td><td class="ps-total-val">${diabCount}</td></tr>`;
 
   if (anaphSect.length) {
