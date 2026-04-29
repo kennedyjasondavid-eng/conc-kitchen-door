@@ -521,6 +521,17 @@
     /* Smaller section rows */
     .section-meal { display: none; }
   }
+
+  /* ── Intake Mode (?intake URL) ──────────────────────────────── */
+  body.intake-mode .nav-item:not([data-screen="enter"]) { display: none; }
+  body.intake-mode .nav-section-label { display: none; }
+  body.intake-mode #queue-footer { display: none !important; }
+  body.intake-mode #changes-queue { display: none; }
+  body.intake-mode .daily-prompt-wrap { display: none; }
+  body.intake-mode #screen-enter .topbar-right .btn:not(#intake-save-btn):not([title="Sync"]) { display: none; }
+  body.intake-mode #screen-enter .two-col-65 > div:last-child > .card:nth-child(2) { display: none; } /* meal context */
+  body.intake-mode .sidebar-footer { display: none; }
+  body.intake-mode .sidebar a.nav-item { display: none; } /* external links */
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -13648,6 +13659,119 @@ initPlatingPreview();
 updateDailyImportPrompt();
 updateGeneratedIndicator();
 updateRevertButton();
+
+// ============================================================
+// INTAKE MODE (?intake URL parameter)
+// ============================================================
+(function initIntakeMode() {
+  if (!window.location.search.includes('intake')) return;
+  document.body.classList.add('intake-mode');
+
+  // Update branding
+  const sub = document.querySelector('.sidebar-brand .brand-sub');
+  if (sub) sub.textContent = 'Intake Portal';
+
+  // Replace topbar buttons with single Save button
+  const topRight = document.querySelector('#screen-enter .topbar-right');
+  if (topRight) {
+    topRight.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Sync">🔄 Sync</button>
+      <button class="btn btn-mint" id="intake-save-btn" onclick="saveDirectFromForm()">💾 Save to Registry</button>`;
+  }
+
+  // Replace queue header with simpler label
+  const queueHeader = document.querySelector('#screen-enter .card-header:has(#queue-count-label)');
+  if (queueHeader) {
+    queueHeader.querySelector('h2').textContent = 'Recent Saves';
+    const countLabel = document.getElementById('queue-count-label');
+    if (countLabel) countLabel.style.display = 'none';
+  }
+
+  // Ensure Enter Changes is the active screen
+  showScreen('enter', document.querySelector('[data-screen=enter]'));
+})();
+
+// Direct save from Enter Changes form (intake mode)
+function saveDirectFromForm() {
+  const type = document.getElementById('change-type').value;
+  const room = (document.getElementById('room-number').value || '').trim();
+  if (!room) { showToast('Enter a room number first.'); return; }
+
+  if (type === 'discharge') {
+    const r = REGISTRY_MAP[room.toLowerCase()];
+    if (!r) { showToast('Room ' + room + ' not found in registry.'); return; }
+    if (!confirm('Discharge Room ' + room + '? This removes them from all plating sheets.')) return;
+    const idx = REGISTRY_LIST.findIndex(x => x.room.toLowerCase() === room.toLowerCase());
+    if (idx !== -1) REGISTRY_LIST.splice(idx, 1);
+    delete REGISTRY_MAP[room.toLowerCase()];
+    const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1);
+    saveRegistryState();
+    publishAndSync('intake discharge: Room ' + room);
+    const _d = new Date();
+    const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
+    RECENT_LOG.unshift({ date:_dl, room, type:'discharge', desc:'Discharged — removed from all sheets', color:'#dc2626', _real:true, by:getOperatorName() });
+    saveRecentLog(); renderRecentLog();
+    clearForm();
+    showToast('Room ' + room + ' discharged ✓');
+    return;
+  }
+
+  // Intake or Update — read from global checkedBoxes (maintained by toggleCb)
+  const tags = { ...checkedBoxes };
+  const tagLabels = getTagLabels(tags);
+  const isAnaph = document.getElementById('anaph-toggle').classList.contains('active');
+  const notes = document.getElementById('change-notes').value.trim();
+  const route = routeResident(checkedBoxes, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, room, isAnaph);
+
+  const existing = REGISTRY_MAP[room.toLowerCase()];
+
+  if (type === 'intake' && existing) {
+    if (!confirm('Room ' + room + ' already exists. Overwrite with new data?')) return;
+  }
+
+  // Build/update resident
+  const r = existing || {};
+  r.room = room;
+  r.tags = tagLabels.length ? tagLabels : ['Regular'];
+  r.restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
+  if (!r.restrictions.length) r.restrictions = ['Regular'];
+  r.allergenFlags = tagLabels.filter(t => ALLERGEN_TAGS.has(t));
+  r.accommodations = tagLabels.filter(t => ACCOMMODATION_TAGS.has(t));
+  r.preferences = r.accommodations;
+  r.avoidances = [...r.allergenFlags, ...r.accommodations];
+  r._tierMigrated = true;
+  r.section = route || 'Regular';
+  r.isAnaph = isAnaph;
+  if (notes) r.serviceNote = dedupeServiceNote(r.serviceNote, notes);
+  r.rawRestriction = tagLabels.join(', ') || 'Regular';
+  r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
+  r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
+  r.isModerate = r.isModerate || false;
+  r.moderateNote = r.moderateNote || '';
+  r.complianceDeadline = r.complianceDeadline || '';
+
+  if (isAnaph && !anaphRooms.includes(room)) anaphRooms.push(room);
+  if (!isAnaph) { const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+
+  if (!existing) {
+    REGISTRY_LIST.push(r);
+    REGISTRY_MAP[room.toLowerCase()] = r;
+  }
+
+  saveRegistryState();
+  publishAndSync('intake save: Room ' + room);
+
+  const _d = new Date();
+  const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
+  const logType = existing ? 'update' : 'intake';
+  const logDesc = existing
+    ? 'Updated — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route
+    : 'New intake — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route;
+  RECENT_LOG.unshift({ date:_dl, room, type:logType, desc:logDesc, color: existing ? '#2563eb' : '#16a34a', _real:true, by:getOperatorName() });
+  saveRecentLog(); renderRecentLog();
+  clearForm();
+  showToast('Room ' + room + ' saved to registry ✓');
+}
 
 // ============================================================
 // PLATING SHEET XLSX BUILDER (SheetJS / xlsx-js-style)
