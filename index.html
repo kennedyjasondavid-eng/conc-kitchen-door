@@ -1242,7 +1242,7 @@ let _recipeDataSource = 'fallback';
     <div class="topbar">
       <div>
         <div class="topbar-title">Settings</div>
-        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v26</span></div>
+        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v27</span></div>
       </div>
       <div class="topbar-right">
         <button class="btn btn-mint" onclick="saveSettings()">Save Changes</button>
@@ -8387,14 +8387,14 @@ function removeAnaphRoom(room) {
 // ============================================================
 function buildMenuJSON() {
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:26 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:27 },
     menu: getMenuData()
   };
 }
 
 function buildStateJSON() {
   return {
-    _meta: { source:'KitchenDOOR', version:26, exported:new Date().toISOString(),
+    _meta: { source:'KitchenDOOR', version:27, exported:new Date().toISOString(),
              site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length,
              lastModifiedBy: getOperatorName() || 'unknown' },
     residents: REGISTRY_LIST,
@@ -8414,7 +8414,7 @@ function buildRegistrySummaryJSON() {
     if(r.isModerate) mc++;
   });
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:26 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:27 },
     headcounts: { total:REGISTRY_LIST.length, regular:sc['Regular']||0, halal:sc['Halal']||0, vegan:sc['Vegan / Vegetarian']||0, diabetic:sc['Diabetic']||0, glutenFree:sc['Gluten Free']||0, noDairy:sc['No Dairy']||0 },
     tagDistribution: tc,
     flags: { anaphylactic:ac, moderate:mc }
@@ -8468,7 +8468,7 @@ function buildRoutingByMealJSON() {
   });
 
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:26 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:27 },
     routing: result
   };
 }
@@ -12731,6 +12731,24 @@ function loadCustomTagRules() {
   try {
     const raw = localStorage.getItem('concCustomTagRules');
     CUSTOM_TAG_RULES = raw ? JSON.parse(raw) : [];
+    // v27: Remove custom rules whose tag duplicates a standard IMPORT_TAG_RULES entry
+    // or whose label matches a standard TAG_LABELS_MAP label (e.g. custom "nuts" when "noTreeNuts" exists)
+    const standardTags = new Set(IMPORT_TAG_RULES.map(r => r.tag));
+    const standardLabels = new Set(Object.values(TAG_LABELS_MAP));
+    const before = CUSTOM_TAG_RULES.length;
+    CUSTOM_TAG_RULES = CUSTOM_TAG_RULES.filter(r => {
+      if (standardTags.has(r.tag)) return false; // exact tag key collision
+      // Check if label is a substring of a standard label (e.g. "Nuts" inside "No Tree Nuts")
+      const lbl = (r.label || '').toLowerCase();
+      for (const std of standardLabels) {
+        if (std.toLowerCase().endsWith(lbl) && std.toLowerCase() !== lbl) return false;
+      }
+      return true;
+    });
+    if (CUSTOM_TAG_RULES.length < before) {
+      localStorage.setItem('concCustomTagRules', JSON.stringify(CUSTOM_TAG_RULES));
+      console.log('[DOOR] Cleaned ' + (before - CUSTOM_TAG_RULES.length) + ' stale custom tag rule(s)');
+    }
     CUSTOM_TAG_RULES.forEach(r => { if (r.tag && r.label) TAG_LABELS_MAP[r.tag] = r.label; });
   } catch(e) { CUSTOM_TAG_RULES = []; }
 }
@@ -12871,6 +12889,47 @@ function importTagSignature(tags) {
 }
 
 // Diff parsed entries against REGISTRY_LIST. Returns { intakes, discharges, updates, needsReview }
+// ── Dismissed import diffs (v27) ────────────────────────────────
+// Stores {roomKey: rawText} — when the same source text produces a tag diff,
+// skip it silently. Clears automatically when source text changes (real update).
+function loadDismissedDiffs() {
+  try { return JSON.parse(localStorage.getItem('concDismissedDiffs') || '{}'); } catch(e) { return {}; }
+}
+function saveDismissedDiffs(obj) {
+  localStorage.setItem('concDismissedDiffs', JSON.stringify(obj));
+}
+function dismissImportDiff(room, rawText) {
+  const d = loadDismissedDiffs();
+  d[room.toLowerCase()] = (rawText || '').toLowerCase().trim();
+  saveDismissedDiffs(d);
+}
+
+function dismissImportUpdate(room, rawText) {
+  dismissImportDiff(room, rawText);
+  // Remove from diff state and re-render
+  if (IMPORT_STATE && IMPORT_STATE.diff) {
+    IMPORT_STATE.diff.updates = IMPORT_STATE.diff.updates.filter(u => u.room !== room);
+    document.getElementById('ic-updates').textContent = IMPORT_STATE.diff.updates.length;
+    // Update summary chips
+    const summaryChips = document.querySelectorAll('.import-summary-chip');
+    summaryChips.forEach(chip => {
+      if (chip.textContent.includes('Update')) {
+        chip.querySelector('.import-summary-chip-num').textContent = IMPORT_STATE.diff.updates.length;
+      }
+    });
+  }
+  // Animate out the row
+  const row = document.getElementById('import-upd-row-' + room);
+  if (row) {
+    row.style.transition = 'opacity 0.3s, max-height 0.3s';
+    row.style.opacity = '0';
+    row.style.maxHeight = '0';
+    row.style.overflow = 'hidden';
+    setTimeout(() => row.remove(), 300);
+  }
+  showToast('Room ' + room + ' dismissed — won\'t reappear unless source text changes');
+}
+
 function diffImportAgainstRegistry(entries) {
   const byRoom = new Map();
   entries.forEach(e => byRoom.set(e.room.toLowerCase(), e));
@@ -12899,6 +12958,13 @@ function diffImportAgainstRegistry(entries) {
       });
       const existingSig = importTagSignature(existingTags);
       if (existingSig !== newSig) {
+        // v27: Check if this diff was previously dismissed for the same source text
+        const dismissed = loadDismissedDiffs();
+        const rawNorm = (e.parsed.rawText || '').toLowerCase().trim();
+        if (dismissed[e.room.toLowerCase()] === rawNorm) {
+          // Same source text, previously dismissed — skip
+          continue;
+        }
         updates.push({
           room: e.room,
           oldTags: existingTags,
@@ -13127,10 +13193,13 @@ function renderUpdatesPane() {
       const union = Array.from(new Set([...Object.keys(u.oldTags), ...Object.keys(u.newTags)])).sort();
       const changedFields = union.filter(k => u.oldTags[k] !== u.newTags[k]);
       const unmatchedNote = u.unmatched.length ? `<div style="font-size:11px;color:#92400e;margin-top:6px;">Unmatched tokens: ${u.unmatched.map(x => '<code>'+x+'</code>').join(', ')}</div>` : '';
-      return `<div class="import-row" style="flex-direction:column;align-items:stretch;">
+      return `<div class="import-row" id="import-upd-row-${u.room}" style="flex-direction:column;align-items:stretch;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div class="import-row-room">Room ${u.room}</div>
-          <div style="font-size:11px;color:var(--muted);">${changedFields.length} field${changedFields.length!==1?'s':''} changed</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;color:var(--muted);">${changedFields.length} field${changedFields.length!==1?'s':''} changed</span>
+            <button onclick="dismissImportUpdate('${u.room}','${(u.rawText||'').replace(/'/g,"\\'")}')" style="font-size:10px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--muted);font-weight:600;" title="Registry is correct — don't show this diff again for the same source text">Dismiss</button>
+          </div>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Source: <em>${u.rawText || '(blank)'}</em></div>
         <div style="margin-top:8px;">
