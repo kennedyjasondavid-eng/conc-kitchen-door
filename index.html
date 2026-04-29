@@ -620,10 +620,10 @@ let _recipeDataSource = 'fallback';
     <div class="nav-item" style="opacity:.5;cursor:default"><span class="nav-icon">◷</span> Archive</div>
     <div class="nav-section-label">Tools</div>
     <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
-      <span class="nav-icon">🏭</span> Production Hub ↗
+      <span class="nav-icon">🏭</span> HUB ↗
     </a>
     <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-recipe-hub/" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
-      <span class="nav-icon">🍳</span> Recipe Hub ↗
+      <span class="nav-icon">🍳</span> CODEX ↗
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -9509,15 +9509,15 @@ function initDynamic() {
   if (sdv) sdv.textContent = dateStr;
   const sm = document.getElementById('sidebar-meal');
   if (sm) sm.innerHTML = `
-    <a class="sidebar-meal-item sidebar-meal-link" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" title="Open Production Hub for today">
+    <a class="sidebar-meal-item sidebar-meal-link" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" title="Open HUB">
       <div class="sidebar-meal-period">Lunch &nbsp;·&nbsp; Wk ${MEAL_DATA.week}</div>
       <div class="sidebar-meal-name" id="sidebar-lunch-name">${MEAL_DATA.lunch.name}</div>
-      <div class="sidebar-meal-hub-hint">↗ Production Hub</div>
+      <div class="sidebar-meal-hub-hint">↗ HUB</div>
     </a>
-    <a class="sidebar-meal-item sidebar-meal-link" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" title="Open Production Hub for today">
+    <a class="sidebar-meal-item sidebar-meal-link" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" title="Open HUB">
       <div class="sidebar-meal-period">Dinner &nbsp;·&nbsp; Wk ${MEAL_DATA.week}</div>
       <div class="sidebar-meal-name" id="sidebar-dinner-name">${MEAL_DATA.dinner.name}</div>
-      <div class="sidebar-meal-hub-hint">↗ Production Hub</div>
+      <div class="sidebar-meal-hub-hint">↗ HUB</div>
     </a>`;
 
   // Form date
