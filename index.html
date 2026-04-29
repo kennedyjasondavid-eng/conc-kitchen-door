@@ -248,6 +248,7 @@
   .changes-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--cream); }
   .changes-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .changes-table tr:last-child td { border-bottom: none; }
+  .changes-table tbody tr:hover { background: #f0fdf4; cursor: pointer; }
   .flag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: var(--amber-pale); color: #92400e; cursor: help; }
 
   /* PLATING DASHBOARD */
@@ -736,8 +737,8 @@ let _recipeDataSource = 'fallback';
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label>Notes (optional) — preferences, clarifications, H&W context</label>
-                  <textarea id="change-notes" placeholder="e.g. Prefers rice over bread. Confirmed by H&W nurse April 7."></textarea>
+                  <label>Service Note — preferences, clarifications, H&W context</label>
+                  <textarea id="change-notes" placeholder="e.g. Prefers rice over bread. No onions. Confirmed by H&W nurse April 7."></textarea>
                 </div>
               </div>
               <div class="anaph-section">
@@ -6346,6 +6347,9 @@ function lookupRoom(val) {
       box.style.display = 'block';
       dcBox.style.display = 'none';
       prePopulateCheckboxes(exact.tags);
+      // Pre-fill service note from existing resident
+      const notesEl = document.getElementById('change-notes');
+      if (notesEl && exact.serviceNote) notesEl.value = exact.serviceNote;
     }
   } else {
     if (type === 'intake') {
@@ -6560,6 +6564,122 @@ function updateBadge() {
   const b = document.getElementById('queue-badge');
   b.textContent = changesQueue.length;
   b.style.display = changesQueue.length ? 'inline' : 'none';
+}
+
+// ============================================================
+// CHANGE EDITOR MODAL (v26)
+// ============================================================
+let ceEditIndex = -1;
+
+function openChangeEditor(idx) {
+  if (idx < 0 || idx >= changesQueue.length) return;
+  ceEditIndex = idx;
+  const c = changesQueue[idx];
+  const modal = document.getElementById('change-editor-modal');
+
+  // Title
+  document.getElementById('ce-title').textContent = `Edit — Room ${c.room} (${c.type.toUpperCase()})`;
+
+  // Current state panel (for updates only)
+  const currentPanel = document.getElementById('ce-current');
+  const existing = REGISTRY_MAP[c.room.toLowerCase()];
+  if (existing && c.type === 'update') {
+    currentPanel.style.display = 'block';
+    document.getElementById('ce-current-detail').innerHTML = buildResidentDetailHTML(existing);
+  } else {
+    currentPanel.style.display = 'none';
+  }
+
+  // Build checkbox grids
+  const tags = c.tags || {};
+  buildCECheckboxes('ce-restrictions', ROUTING_TAGS, tags, '#dcfce7', '#166534');
+  buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
+  buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
+
+  // Anaph
+  document.getElementById('ce-anaph').checked = !!c.isAnaph;
+
+  // Notes — prefer queue entry notes, fall back to existing resident serviceNote
+  const existingNote = c.notes || (existing ? existing.serviceNote : '') || '';
+  document.getElementById('ce-notes').value = existingNote;
+
+  // Routing preview
+  updateCERoutePreview();
+
+  // Show
+  modal.classList.add('open');
+}
+
+function buildCECheckboxes(containerId, tagSet, currentTags, bgActive, colorActive) {
+  const container = document.getElementById(containerId);
+  // Map label → key for each tag in the set
+  const items = [];
+  Object.entries(TAG_LABELS_MAP).forEach(([key, label]) => {
+    if (tagSet.has(label)) items.push({key, label});
+  });
+  // Also add 'Regular' option for restrictions
+  container.innerHTML = items.map(({key, label}) => {
+    const checked = !!currentTags[key];
+    return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? colorActive : '#d1d5db'};background:${checked ? bgActive : 'transparent'};color:${checked ? colorActive : 'var(--muted)'};transition:all 0.15s;" 
+      onclick="this.style.background=this.querySelector('input').checked?'transparent':'${bgActive}';this.style.borderColor=this.querySelector('input').checked?'#d1d5db':'${colorActive}';this.style.color=this.querySelector('input').checked?'var(--muted)':'${colorActive}';setTimeout(updateCERoutePreview,10)">
+      <input type="checkbox" data-tag-key="${key}" ${checked ? 'checked' : ''} style="accent-color:${colorActive};width:14px;height:14px;">${label}</label>`;
+  }).join('');
+}
+
+function getCETags() {
+  const tags = {};
+  document.querySelectorAll('#change-editor-modal input[data-tag-key]').forEach(cb => {
+    tags[cb.dataset.tagKey] = cb.checked;
+  });
+  return tags;
+}
+
+function updateCERoutePreview() {
+  const tags = getCETags();
+  const c = changesQueue[ceEditIndex];
+  if (!c) return;
+  const isAnaph = document.getElementById('ce-anaph').checked;
+  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, c.room, isAnaph);
+  document.getElementById('ce-route-preview').textContent = '→ ' + route;
+}
+
+function saveChangeEdit() {
+  if (ceEditIndex < 0 || ceEditIndex >= changesQueue.length) return;
+  const c = changesQueue[ceEditIndex];
+  const tags = getCETags();
+  const tagLabels = getTagLabels(tags);
+  const isAnaph = document.getElementById('ce-anaph').checked;
+  if (isAnaph && !tagLabels.includes('Anaphylactic')) tagLabels.push('Anaphylactic');
+  const notes = document.getElementById('ce-notes').value.trim();
+  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, c.room, isAnaph);
+
+  c.tags = tags;
+  c.tagLabels = tagLabels;
+  c.route = route;
+  c.notes = notes;
+  c.isAnaph = isAnaph;
+
+  closeChangeEditor();
+  renderQueue();
+  if (typeof buildReview === 'function') buildReview();
+  showToast('Room ' + c.room + ' updated ✓');
+}
+
+function removeFromEditor() {
+  if (ceEditIndex < 0) return;
+  const c = changesQueue[ceEditIndex];
+  if (!confirm('Remove Room ' + c.room + ' from the queue?')) return;
+  changesQueue.splice(ceEditIndex, 1);
+  closeChangeEditor();
+  renderQueue();
+  updateBadge();
+  if (typeof buildReview === 'function') buildReview();
+  showToast('Room ' + c.room + ' removed');
+}
+
+function closeChangeEditor() {
+  ceEditIndex = -1;
+  document.getElementById('change-editor-modal').classList.remove('open');
 }
 
 function renderRecentLog() {
@@ -7082,7 +7202,7 @@ function buildReview() {
     body.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>No changes to review.</div>';
   } else {
     body.innerHTML = `<div class="changes-table-wrap"><table class="changes-table"><thead><tr><th>Room</th><th>Type</th><th>Restrictions</th><th>Routing (Lunch)</th><th>Status</th></tr></thead><tbody>
-      ${changesQueue.map(c => `<tr>
+      ${changesQueue.map((c, ci) => `<tr style="cursor:pointer;" onclick="openChangeEditor(${ci})" title="Click to edit">
         <td><strong style="font-family:'DM Mono',monospace">${c.room}</strong></td>
         <td><span class="change-type-badge badge-${c.type}">${c.type.toUpperCase()}</span></td>
         <td>${c.type === 'discharge' ? '—' : (c.tagLabels.length ? c.tagLabels.map(t=>`<span class="tag ${getTagClass(t)}">${t}</span>`).join(' ') : '<span class="tag">Regular</span>')}</td>
@@ -7606,7 +7726,10 @@ function renderRegistry(data) {
     const prefs = getResidentAccommodations(r);
     const allergenHtml = allergens.length ? `<div style="margin-top:3px;font-size:10px;color:#991b1b;"><span style="font-weight:600;">⚠ Allergens:</span> ${allergens.join(', ')}</div>` : '';
     const prefHtml = prefs.length ? `<div style="margin-top:2px;font-size:10px;color:#78350f;"><span style="font-weight:600;">Accom:</span> ${prefs.join(', ')}</div>` : '';
-    const noteHtml = r.serviceNote ? `<div style="margin-top:2px;font-size:10px;color:var(--muted);font-style:italic;">${r.serviceNote}</div>` : '';
+    const noteHtml = `<div style="margin-top:2px;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;" id="reg-note-${r.room}">
+      ${r.serviceNote ? `<span style="font-style:italic;">📝 ${r.serviceNote}</span>` : '<span style="color:#ccc;">no service note</span>'}
+      <button onclick="event.stopPropagation();openInlineNoteEdit('${r.room}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--forest);padding:0 2px;" title="Edit service note">✏</button>
+    </div>`;
     const moderateTag = r.isModerate ? `<span class="tag tag-moderate" title="${r.moderateNote || 'Moderate allergy — no epi-pen'}">⚠ Moderate</span>` : '';
     let deadlineHtml = '<span style="color:var(--muted);font-size:12px;">—</span>';
     if (r.complianceDeadline) {
@@ -7629,6 +7752,53 @@ function renderRegistry(data) {
         title="Edit restrictions in Enter Changes">Edit</button></td>
     </tr>`;
   }).join('');
+}
+
+// ── Inline service note editing (v26) ────────────────────────────
+function openInlineNoteEdit(room) {
+  const container = document.getElementById('reg-note-' + room);
+  if (!container) return;
+  const resident = REGISTRY_MAP[room.toLowerCase()];
+  const current = resident ? (resident.serviceNote || '') : '';
+  container.innerHTML = `
+    <input type="text" value="${current.replace(/"/g,'&quot;')}" id="reg-note-input-${room}"
+      style="font-size:11px;padding:2px 6px;border:1.5px solid var(--forest);border-radius:4px;width:200px;outline:none;"
+      onkeydown="if(event.key==='Enter')saveInlineNote('${room}');if(event.key==='Escape')cancelInlineNote('${room}')">
+    <button onclick="saveInlineNote('${room}')" style="font-size:10px;padding:1px 6px;background:var(--forest);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Save</button>
+    <button onclick="cancelInlineNote('${room}')" style="font-size:10px;padding:1px 6px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--muted);">✕</button>`;
+  const input = document.getElementById('reg-note-input-' + room);
+  if (input) { input.focus(); input.select(); }
+}
+
+function saveInlineNote(room) {
+  const input = document.getElementById('reg-note-input-' + room);
+  if (!input) return;
+  const note = input.value.trim();
+  const resident = REGISTRY_MAP[room.toLowerCase()];
+  if (resident) {
+    resident.serviceNote = note;
+    // Persist to localStorage
+    saveRegistryState();
+    // Publish to GitHub
+    if (typeof publishAndSync === 'function') publishAndSync('service note updated for ' + room);
+  }
+  // Re-render just this note cell
+  const container = document.getElementById('reg-note-' + room);
+  if (container) {
+    container.innerHTML = `${note ? `<span style="font-style:italic;">📝 ${note}</span>` : '<span style="color:#ccc;">no service note</span>'}
+      <button onclick="event.stopPropagation();openInlineNoteEdit('${room}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--forest);padding:0 2px;" title="Edit service note">✏</button>`;
+  }
+  showToast('Service note saved for Room ' + room);
+}
+
+function cancelInlineNote(room) {
+  const resident = REGISTRY_MAP[room.toLowerCase()];
+  const note = resident ? (resident.serviceNote || '') : '';
+  const container = document.getElementById('reg-note-' + room);
+  if (container) {
+    container.innerHTML = `${note ? `<span style="font-style:italic;">📝 ${note}</span>` : '<span style="color:#ccc;">no service note</span>'}
+      <button onclick="event.stopPropagation();openInlineNoteEdit('${room}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--forest);padding:0 2px;" title="Edit service note">✏</button>`;
+  }
 }
 
 function filterRegistry() {
@@ -14488,6 +14658,53 @@ window.addEventListener('load', initSiteSelector);
 <div id="labels-print-view">
   <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:4mm;" id="labels-print-header"></div>
   <div class="label-grid" id="labels-print-grid"></div>
+</div>
+
+<!-- ===== CHANGE EDITOR MODAL (v26) ===== -->
+<div class="modal-overlay" id="change-editor-modal" onclick="if(event.target===this)closeChangeEditor()">
+  <div class="modal-box" style="max-width:700px;">
+    <div class="modal-header">
+      <h2 id="ce-title">Edit Change</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeChangeEditor()">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;padding:16px 20px;">
+      <!-- Current state (for updates) -->
+      <div id="ce-current" style="display:none;margin-bottom:16px;padding:12px 14px;background:var(--warm);border:1px solid var(--border);border-radius:8px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--muted);margin-bottom:6px;">Current Registry State</div>
+        <div id="ce-current-detail"></div>
+      </div>
+      <!-- Editable tags -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--forest);margin-bottom:8px;">Restrictions <span style="color:var(--muted);font-weight:500;">(create plating sheet sections)</span></div>
+      <div id="ce-restrictions" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#dc2626;margin-bottom:8px;">Allergen Flags <span style="color:var(--muted);font-weight:500;">(medically serious)</span></div>
+      <div id="ce-allergens" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#d97706;margin-bottom:8px;">Accommodations <span style="color:var(--muted);font-weight:500;">(documented, requires H&W)</span></div>
+      <div id="ce-accommodations" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+      <!-- Anaph toggle -->
+      <div style="margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#dc2626;">
+          <input type="checkbox" id="ce-anaph"> ⚠ Anaphylactic (confirmed — triggers room-level containment)
+        </label>
+      </div>
+      <!-- Service note -->
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:600;color:var(--muted);">Service Note</label>
+        <input type="text" id="ce-notes" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="e.g., prefers extra sauce, no onions">
+      </div>
+      <!-- Live routing preview -->
+      <div style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+        <span style="font-size:11px;font-weight:700;color:var(--forest);">Routing preview:</span>
+        <span id="ce-route-preview" style="font-size:13px;font-weight:700;color:var(--forest-mid);margin-left:6px;">—</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);">
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" id="ce-remove-btn" onclick="removeFromEditor()">Remove from queue</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="closeChangeEditor()">Cancel</button>
+        <button class="btn btn-mint btn-sm" onclick="saveChangeEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ===== LABELS OPTIONS MODAL ===== -->
