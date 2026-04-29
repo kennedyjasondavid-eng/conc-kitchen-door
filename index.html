@@ -6435,17 +6435,7 @@ function toggleModerate(btn) {
 }
 
 function openEditFromRegistry(room) {
-  // Navigate to Enter Changes, set room + type, trigger lookup
-  showScreen('enter', document.querySelector('[data-screen=enter]'));
-  setTimeout(() => {
-    const typeEl = document.getElementById('change-type');
-    const roomEl = document.getElementById('room-number');
-    if (typeEl) { typeEl.value = 'update'; onTypeChange(); }
-    if (roomEl) {
-      roomEl.value = room;
-      lookupRoom(room);
-    }
-  }, 80);
+  openRegistryEditor(room);
 }
 
 function clearQueue() {
@@ -6567,11 +6557,14 @@ function updateBadge() {
 }
 
 // ============================================================
-// CHANGE EDITOR MODAL (v26)
+// CHANGE EDITOR MODAL (v26) — dual mode: queue edit + registry direct edit
 // ============================================================
 let ceEditIndex = -1;
+let ceMode = 'queue'; // 'queue' or 'registry'
+let ceRoom = '';       // room number for registry mode
 
 function openChangeEditor(idx) {
+  ceMode = 'queue';
   if (idx < 0 || idx >= changesQueue.length) return;
   ceEditIndex = idx;
   const c = changesQueue[idx];
@@ -6590,34 +6583,58 @@ function openChangeEditor(idx) {
     currentPanel.style.display = 'none';
   }
 
-  // Build checkbox grids
+  // Build checkbox grids from queue tags
   const tags = c.tags || {};
   buildCECheckboxes('ce-restrictions', ROUTING_TAGS, tags, '#dcfce7', '#166534');
   buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
-  // Anaph
   document.getElementById('ce-anaph').checked = !!c.isAnaph;
-
-  // Notes — prefer queue entry notes, fall back to existing resident serviceNote
   const existingNote = c.notes || (existing ? existing.serviceNote : '') || '';
   document.getElementById('ce-notes').value = existingNote;
 
-  // Routing preview
+  document.getElementById('ce-remove-btn').style.display = '';
+  document.getElementById('ce-save-btn').textContent = 'Save Changes';
   updateCERoutePreview();
+  modal.classList.add('open');
+}
 
-  // Show
+function openRegistryEditor(room) {
+  ceMode = 'registry';
+  ceRoom = room;
+  ceEditIndex = -1;
+  const r = REGISTRY_MAP[room.toLowerCase()];
+  if (!r) { showToast('Room ' + room + ' not found in registry.'); return; }
+  const modal = document.getElementById('change-editor-modal');
+
+  document.getElementById('ce-title').textContent = `Edit — Room ${r.room}`;
+  document.getElementById('ce-current').style.display = 'none'; // no "current" panel — we ARE editing current
+
+  // Build tags from resident record
+  migrateResidentTiers(r);
+  const tags = {};
+  Object.entries(TAG_LABELS_MAP).forEach(([key, label]) => {
+    if ((r.tags || []).includes(label)) tags[key] = true;
+  });
+  buildCECheckboxes('ce-restrictions', ROUTING_TAGS, tags, '#dcfce7', '#166534');
+  buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
+  buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
+
+  document.getElementById('ce-anaph').checked = r.isAnaph || anaphRooms.includes(r.room);
+  document.getElementById('ce-notes').value = r.serviceNote || '';
+
+  document.getElementById('ce-remove-btn').style.display = 'none'; // no "remove" in registry mode
+  document.getElementById('ce-save-btn').textContent = 'Save to Registry';
+  updateCERoutePreview();
   modal.classList.add('open');
 }
 
 function buildCECheckboxes(containerId, tagSet, currentTags, bgActive, colorActive) {
   const container = document.getElementById(containerId);
-  // Map label → key for each tag in the set
   const items = [];
   Object.entries(TAG_LABELS_MAP).forEach(([key, label]) => {
     if (tagSet.has(label)) items.push({key, label});
   });
-  // Also add 'Regular' option for restrictions
   container.innerHTML = items.map(({key, label}) => {
     const checked = !!currentTags[key];
     return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? colorActive : '#d1d5db'};background:${checked ? bgActive : 'transparent'};color:${checked ? colorActive : 'var(--muted)'};transition:all 0.15s;" 
@@ -6636,14 +6653,19 @@ function getCETags() {
 
 function updateCERoutePreview() {
   const tags = getCETags();
-  const c = changesQueue[ceEditIndex];
-  if (!c) return;
+  const room = ceMode === 'registry' ? ceRoom : (changesQueue[ceEditIndex] ? changesQueue[ceEditIndex].room : '');
+  if (!room) return;
   const isAnaph = document.getElementById('ce-anaph').checked;
-  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, c.room, isAnaph);
+  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, room, isAnaph);
   document.getElementById('ce-route-preview').textContent = '→ ' + route;
 }
 
 function saveChangeEdit() {
+  if (ceMode === 'registry') {
+    saveRegistryEdit();
+    return;
+  }
+  // Queue mode
   if (ceEditIndex < 0 || ceEditIndex >= changesQueue.length) return;
   const c = changesQueue[ceEditIndex];
   const tags = getCETags();
@@ -6665,7 +6687,51 @@ function saveChangeEdit() {
   showToast('Room ' + c.room + ' updated ✓');
 }
 
+function saveRegistryEdit() {
+  const r = REGISTRY_MAP[ceRoom.toLowerCase()];
+  if (!r) return;
+  const tags = getCETags();
+  const tagLabels = getTagLabels(tags);
+  const isAnaph = document.getElementById('ce-anaph').checked;
+  const notes = document.getElementById('ce-notes').value.trim();
+  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, ceRoom, isAnaph);
+
+  // Update resident directly
+  r.tags = tagLabels.length ? tagLabels : ['Regular'];
+  r.restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
+  if (!r.restrictions.length) r.restrictions = ['Regular'];
+  r.allergenFlags = tagLabels.filter(t => ALLERGEN_TAGS.has(t));
+  r.accommodations = tagLabels.filter(t => ACCOMMODATION_TAGS.has(t));
+  r.preferences = r.accommodations;
+  r.avoidances = [...r.allergenFlags, ...r.accommodations];
+  r._tierMigrated = true;
+  r.section = route || 'Regular';
+  r.isAnaph = isAnaph;
+  r.serviceNote = notes;
+  r.rawRestriction = tagLabels.join(', ') || 'Regular';
+  r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
+
+  // Anaph rooms list
+  if (isAnaph && !anaphRooms.includes(ceRoom)) anaphRooms.push(ceRoom);
+  if (!isAnaph) { const ai = anaphRooms.indexOf(ceRoom); if (ai !== -1) anaphRooms.splice(ai, 1); }
+
+  // Persist + publish
+  saveRegistryState();
+  publishAndSync('registry edit: Room ' + ceRoom);
+
+  // Log
+  const _d = new Date();
+  const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
+  RECENT_LOG.unshift({ date:_dl, room:ceRoom, type:'update', desc:'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, color:'#2563eb', _real:true, by:getOperatorName() });
+  saveRecentLog();
+
+  closeChangeEditor();
+  renderRegistry(REGISTRY_LIST);
+  showToast('Room ' + ceRoom + ' saved directly ✓');
+}
+
 function removeFromEditor() {
+  if (ceMode === 'registry') return; // not applicable
   if (ceEditIndex < 0) return;
   const c = changesQueue[ceEditIndex];
   if (!confirm('Remove Room ' + c.room + ' from the queue?')) return;
@@ -6679,6 +6745,8 @@ function removeFromEditor() {
 
 function closeChangeEditor() {
   ceEditIndex = -1;
+  ceMode = 'queue';
+  ceRoom = '';
   document.getElementById('change-editor-modal').classList.remove('open');
 }
 
@@ -6930,7 +6998,15 @@ function nrDoneReview(room) {
     }
     if (d.action === 'note') {
       const nrItem = (JSON.parse(localStorage.getItem('concUnresolvedNR')||'[]')).find(x=>x.room===room);
-      if (nrItem) r.serviceNote = (r.serviceNote ? r.serviceNote+'; ' : '') + nrItem.text;
+      if (nrItem) {
+        // Only save as note if it's not just the rawRestriction text (already stored there)
+        const noteText = nrItem.text || '';
+        if (noteText && r.rawRestriction && noteText.toLowerCase().trim() === r.rawRestriction.toLowerCase().trim()) {
+          // Skip — this is just the raw restriction, already captured in rawRestriction field
+        } else if (noteText) {
+          r.serviceNote = dedupeServiceNote(r.serviceNote, noteText);
+        }
+      }
     }
   });
 
@@ -7238,6 +7314,41 @@ function buildReview() {
 // ============================================================
 // GENERATE
 // ============================================================
+// ── Service note helpers (v26) ────────────────────────────────────
+// System-generated notes that should NOT be stored in serviceNote
+const SYSTEM_NOTE_PATTERNS = [
+  /^from daily list import$/i,
+  /^auto-applied modifier tags/i,
+  /^resolved from import review$/i,
+  /^displaced from /i,
+  /^swap from menu config/i,
+  /^slot swap from menu config/i,
+];
+
+function isSystemNote(text) {
+  if (!text) return false;
+  return SYSTEM_NOTE_PATTERNS.some(re => re.test(text.trim()));
+}
+
+// Returns the human-authored service note, filtering out system notes
+function filterServiceNote(explicitNote, fallbackNotes) {
+  if (explicitNote && !isSystemNote(explicitNote)) return explicitNote;
+  if (fallbackNotes && !isSystemNote(fallbackNotes)) return fallbackNotes;
+  return '';
+}
+
+// Append newNote to existing, deduplicating segments
+function dedupeServiceNote(existing, newNote) {
+  if (!newNote) return existing || '';
+  if (!existing) return newNote;
+  const parts = existing.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+  const newParts = newNote.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+  newParts.forEach(p => {
+    if (!parts.some(e => e.toLowerCase() === p.toLowerCase())) parts.push(p);
+  });
+  return parts.join('; ');
+}
+
 function applyQueueToRegistry() {
   changesQueue.forEach(c => {
     if (c.type === 'discharge') {
@@ -7269,7 +7380,7 @@ function applyQueueToRegistry() {
         moderateNote: c.moderateNote || '',
         complianceDeadline: '',
         pendingReversion: false,
-        serviceNote: c.serviceNote || c.notes || '',
+        serviceNote: filterServiceNote(c.serviceNote, c.notes),
         _tierMigrated: true
       };
       if (existing !== -1) {
@@ -7298,8 +7409,8 @@ function applyQueueToRegistry() {
         r.rawRestriction = tagLabels.join(', ') || 'Regular';
         r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
         r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
-        if (c.serviceNote) r.serviceNote = c.serviceNote;
-        else if (c.notes) r.serviceNote = (r.serviceNote ? r.serviceNote + '; ' : '') + c.notes;
+        const newNote = filterServiceNote(c.serviceNote, c.notes);
+        if (newNote) r.serviceNote = dedupeServiceNote(r.serviceNote, newNote);
       }
 
     } else if (c.type === 'switch') {
@@ -7339,6 +7450,23 @@ function loadRegistryState() {
     if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
+    // v26: Clean up legacy junk in service notes
+    REGISTRY_LIST.forEach(r => {
+      if (!r.serviceNote) return;
+      // Split, filter system notes and duplicates, filter rawRestriction echoes
+      const parts = r.serviceNote.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+      const clean = [];
+      const seen = new Set();
+      parts.forEach(p => {
+        const low = p.toLowerCase();
+        if (seen.has(low)) return; // dedupe
+        if (SYSTEM_NOTE_PATTERNS && SYSTEM_NOTE_PATTERNS.some(re => re.test(p))) return; // system note
+        if (r.rawRestriction && low === r.rawRestriction.toLowerCase().trim()) return; // echo of rawRestriction
+        seen.add(low);
+        clean.push(p);
+      });
+      r.serviceNote = clean.join('; ');
+    });
     return state._meta || true;
   } catch(e) { console.warn('loadRegistryState failed:', e); return false; }
 }
@@ -13291,7 +13419,7 @@ function commitImportToQueue() {
       if (existing_q) {
         Object.assign(existing_q.tags, res.tags||{});
         existing_q.tagLabels = importTagLabels(existing_q.tags);
-        if ((res.serviceNotes||[]).length) existing_q.serviceNote = (existing_q.serviceNote?existing_q.serviceNote+'; ':'')+res.serviceNotes.join('; ');
+        if ((res.serviceNotes||[]).length) existing_q.serviceNote = dedupeServiceNote(existing_q.serviceNote, res.serviceNotes.join('; '));
         return;
       }
       const existing_r = REGISTRY_MAP[room.toLowerCase()];
@@ -14701,7 +14829,7 @@ window.addEventListener('load', initSiteSelector);
       <button class="btn btn-ghost btn-sm" style="color:var(--red)" id="ce-remove-btn" onclick="removeFromEditor()">Remove from queue</button>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost btn-sm" onclick="closeChangeEditor()">Cancel</button>
-        <button class="btn btn-mint btn-sm" onclick="saveChangeEdit()">Save Changes</button>
+        <button class="btn btn-mint btn-sm" id="ce-save-btn" onclick="saveChangeEdit()">Save Changes</button>
       </div>
     </div>
   </div>
