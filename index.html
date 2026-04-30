@@ -719,6 +719,7 @@ let _recipeDataSource = 'fallback';
                 <div class="cb-item" onclick="toggleCb(this,'noShellfish')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Shellfish</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noEggs')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Eggs</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noSpicy')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Spicy</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'blandDiet')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Bland Diet</span></div>
               </div>
               <div class="cb-section-label" style="margin-top:12px;">Allergen Flags <span style="font-weight:400;font-size:11px;color:#991b1b;margin-left:6px;">Checked against each meal — conflicts flagged automatically</span></div>
               <div class="cb-grid">
@@ -970,17 +971,16 @@ let _recipeDataSource = 'fallback';
 
     <div id="registry-compliance-view" style="display:none;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:13px;color:var(--muted);">Residents with outstanding compliance requirements. Update inline or resolve individual items.</div>
+        <div style="font-size:13px;color:var(--muted);">Residents with outstanding compliance requirements. Settle items directly or update status and deadlines inline.</div>
         <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
       </div>
-      <div id="compliance-summary-bar" style="display:none;font-size:13px;margin-bottom:10px;padding:8px 12px;background:var(--bg-soft, #f9fafb);border-radius:8px;border:1px solid var(--border);"></div>
       <div id="compliance-pending-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
-        <strong style="color:#92400e;">Saving…</strong>
+        <strong style="color:#92400e;">Unsaved changes</strong> — export to xlsx to save your edits. Changes are session-only until SharePoint sync is active.
       </div>
       <div class="card">
         <div class="registry-scroll">
           <table class="reg-table">
-            <thead id="compliance-thead"><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Notes</th><th></th></tr></thead>
+            <thead><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reversion</th><th>Notes</th><th></th></tr></thead>
             <tbody id="compliance-body"></tbody>
           </table>
         </div>
@@ -996,7 +996,7 @@ let _recipeDataSource = 'fallback';
           <div class="card">
             <div class="registry-scroll">
               <table class="reg-table">
-                <thead><tr><th>Room</th><th>Restrictions</th><th>Action Taken</th><th>Resolved By</th><th>Date</th><th>Note</th><th></th></tr></thead>
+                <thead><tr><th>Room</th><th>Restrictions</th><th>Action Taken</th><th>Resolved By</th><th>Date</th><th>Note</th></tr></thead>
                 <tbody id="compliance-resolved-body"></tbody>
               </table>
             </div>
@@ -4618,7 +4618,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": true,
@@ -4632,7 +4632,7 @@ const MENU_DATA = {
                 "hasBeef": true,
                 "halalCertifiedMeat": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "MONDAY": {
@@ -4673,7 +4673,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false,
+                "isCarb": true,
                 "hasProcessedMeat": true
             },
             "dinner_flags": {
@@ -4688,7 +4688,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": true,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "TUESDAY": {
@@ -4728,7 +4728,7 @@ const MENU_DATA = {
                 "hasSoy": true,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": false,
@@ -4741,7 +4741,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "WEDNESDAY": {
@@ -4796,7 +4796,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "THURSDAY": {
@@ -4852,7 +4852,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "FRIDAY": {
@@ -4894,7 +4894,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false,
+                "isCarb": true,
                 "halalCertifiedMeat": true,
             },
             "dinner_flags": {
@@ -4908,7 +4908,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "SATURDAY": {
@@ -4963,7 +4963,7 @@ const MENU_DATA = {
                 "hasBeef": true,
                 "halalCertifiedMeat": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         }
     },
@@ -5006,7 +5006,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": true,
@@ -5061,7 +5061,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": true,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": false,
@@ -5074,7 +5074,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "TUESDAY": {
@@ -5115,7 +5115,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": false,
@@ -5128,7 +5128,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": true,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "WEDNESDAY": {
@@ -5182,8 +5182,9 @@ const MENU_DATA = {
                 "hasSesame": false,
                 "hasSoy": false,
                 "hasBeef": false,
+                "hasCoconut": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "THURSDAY": {
@@ -5239,7 +5240,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false,
+                "isCarb": true,
                 "hasProcessedMeat": true
             }
         },
@@ -5294,7 +5295,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "SATURDAY": {
@@ -5336,7 +5337,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": false,
@@ -5350,7 +5351,7 @@ const MENU_DATA = {
                 "hasBeef": true,
                 "halalCertifiedMeat": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         }
     },
@@ -5449,7 +5450,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": true,
-                "isCarb": false,
+                "isCarb": true,
                 "hasProcessedMeat": true
             },
             "dinner_flags": {
@@ -5464,7 +5465,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "TUESDAY": {
@@ -5503,7 +5504,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false,
+                "isCarb": true,
                 "hasProcessedMeat": true
             },
             "dinner_flags": {
@@ -5518,7 +5519,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "WEDNESDAY": {
@@ -5573,7 +5574,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "THURSDAY": {
@@ -5628,7 +5629,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "FRIDAY": {
@@ -5670,7 +5671,7 @@ const MENU_DATA = {
                 "hasBeef": true,
                 "halalCertifiedMeat": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": false,
@@ -5683,8 +5684,9 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "hasChicken": true,
+                "hasMushroom": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "SATURDAY": {
@@ -5725,7 +5727,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": true,
@@ -5850,7 +5852,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "TUESDAY": {
@@ -5903,7 +5905,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "WEDNESDAY": {
@@ -5957,7 +5959,7 @@ const MENU_DATA = {
                 "hasBeef": true,
                 "halalCertifiedMeat": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "THURSDAY": {
@@ -5999,7 +6001,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": true,
@@ -6013,7 +6015,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "FRIDAY": {
@@ -6069,7 +6071,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             }
         },
         "SATURDAY": {
@@ -6110,7 +6112,7 @@ const MENU_DATA = {
                 "hasBeef": false,
                 "hasChicken": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true
             },
             "dinner_flags": {
                 "hasGluten": false,
@@ -6124,7 +6126,9 @@ const MENU_DATA = {
                 "hasBeef": true,
                 "halalCertifiedMeat": true,
                 "isSpicy": false,
-                "isCarb": false
+                "isCarb": true,
+                "hasCoconut": true,
+                "hasPeanuts": true
             }
         }
     }
@@ -6784,7 +6788,7 @@ const TAG_LABELS_MAP = {
   softMeals:'Soft Meals', noDairy:'No Dairy', noPork:'No Pork', diabetic:'Diabetic',
   lowSodium:'Low Sodium', noFish:'No Fish', noShellfish:'No Shellfish', noEggs:'No Eggs',
   noPeanuts:'No Peanuts', noCoconut:'No Coconut', noBeef:'No Beef',
-  noSpicy:'No Spicy', noMushroom:'No Mushroom', noSoy:'No Soy', noSesame:'No Sesame',
+  noSpicy:'No Spicy', blandDiet:'Bland Diet', noMushroom:'No Mushroom', noSoy:'No Soy', noSesame:'No Sesame',
   noTreeNuts:'No Tree Nuts', noMolluscs:'No Molluscs', noOats:'No Oats',
   noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', noProcessedFood:'No Processed Food', lactoIntolerant:'Lactose Intolerant', lowFat:'Low Fat', lowPotassium:'Low Potassium', noNightshades:'No Nightshades', noBrassicas:'No Brassicas', noBeans:'No Beans', noCorn:'No Corn', other:'Other'
 };
@@ -7981,83 +7985,6 @@ function filterRegistry() {
 // ============================================================
 // COMPLIANCE VIEW
 // ============================================================
-
-// --- Shared compliance filter (fixes #3 — render + export use same logic) ---
-function getComplianceResidents(includeResolved) {
-  return REGISTRY_LIST.filter(r => {
-    if (!includeResolved && r.complianceResolved) return false;
-    if (includeResolved === 'resolved-only' && !r.complianceResolved) return false;
-    return r.complianceDeadline ||
-           r.isModerate ||
-           (r.confirm === 'Provisional' && r.tags && requiresDocumentation(r.tags));
-  });
-}
-
-// --- Compliance reason helper (#9 — explain why each resident appears) ---
-function getComplianceReason(r) {
-  const reasons = [];
-  if (r.complianceDeadline) {
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    const today = new Date(); today.setHours(0,0,0,0);
-    if (dl < today) reasons.push('Overdue deadline');
-    else if ((dl - today) <= 7 * 86400000) reasons.push('Deadline this week');
-    else reasons.push('Deadline set');
-  }
-  if (r.isModerate) reasons.push('Moderate allergy — confirm with H&W');
-  if (r.confirm === 'Provisional' && r.tags && requiresDocumentation(r.tags))
-    reasons.push('Provisional — documentation pending');
-  return reasons.join('; ') || '—';
-}
-
-// --- Compliance sort state (#8) ---
-let _complianceSortCol = 'deadline'; // 'room', 'status', 'deadline', 'reason'
-let _complianceSortAsc = true;
-
-function setComplianceSort(col) {
-  if (_complianceSortCol === col) _complianceSortAsc = !_complianceSortAsc;
-  else { _complianceSortCol = col; _complianceSortAsc = true; }
-  renderComplianceView();
-}
-
-// --- Compliance badge on tab button (#2) ---
-function updateComplianceBadge() {
-  const btn = document.getElementById('reg-view-compliance');
-  if (!btn) return;
-  const active = getComplianceResidents(false);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const overdue = active.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl < today;
-  }).length;
-  if (!active.length) {
-    btn.innerHTML = 'Compliance Review';
-  } else if (overdue > 0) {
-    btn.innerHTML = `Compliance Review <span style="display:inline-block;min-width:18px;text-align:center;font-size:11px;font-weight:700;background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;margin-left:4px;">${active.length}</span>`;
-  } else {
-    btn.innerHTML = `Compliance Review <span style="display:inline-block;min-width:18px;text-align:center;font-size:11px;font-weight:700;background:#d97706;color:#fff;border-radius:10px;padding:1px 6px;margin-left:4px;">${active.length}</span>`;
-  }
-}
-
-// --- Debounced compliance save (#1) ---
-let _complianceSaveTimer = null;
-function debouncedComplianceSave() {
-  if (_complianceSaveTimer) clearTimeout(_complianceSaveTimer);
-  _complianceSaveTimer = setTimeout(() => {
-    saveRegistryState();
-    publishAndSync('compliance field update');
-    _complianceSaveTimer = null;
-    // Update banner to saved state
-    const banner = document.getElementById('compliance-pending-banner');
-    if (banner && banner.style.display !== 'none') {
-      banner.innerHTML = '<strong style="color:#15803d;">✓ Saved</strong> — changes synced to registry.';
-      banner.style.background = '#f0fdf4';
-      banner.style.borderColor = '#86efac';
-      setTimeout(() => { banner.style.display = 'none'; banner.innerHTML = '<strong style="color:#92400e;">Unsaved changes</strong> — saving…'; banner.style.background = '#fef3c7'; banner.style.borderColor = '#f59e0b'; }, 2000);
-    }
-  }, 1500);
-}
-
 function setRegistryView(view) {
   const allView = document.getElementById('registry-all-view');
   const compView = document.getElementById('registry-compliance-view');
@@ -8079,65 +8006,19 @@ function setRegistryView(view) {
 
 function renderComplianceView() {
   const body = document.getElementById('compliance-body');
-  const thead = document.getElementById('compliance-thead');
   const today = new Date(); today.setHours(0,0,0,0);
-
-  // --- Shared filter (#3) ---
-  const relevant = getComplianceResidents(false);
-
-  // --- Sorting (#8) ---
-  const dir = _complianceSortAsc ? 1 : -1;
-  relevant.sort((a,b) => {
-    switch (_complianceSortCol) {
-      case 'room': return dir * a.room.localeCompare(b.room, undefined, {numeric: true});
-      case 'status': return dir * (a.confirm || '').localeCompare(b.confirm || '');
-      case 'reason': return dir * getComplianceReason(a).localeCompare(getComplianceReason(b));
-      case 'deadline': default: {
-        if (a.complianceDeadline && b.complianceDeadline) return dir * a.complianceDeadline.localeCompare(b.complianceDeadline);
-        if (a.complianceDeadline) return -1;
-        if (b.complianceDeadline) return 1;
-        return 0;
-      }
-    }
+  const relevant = REGISTRY_LIST.filter(r =>
+    !r.complianceResolved && (
+      r.complianceDeadline ||
+      r.isModerate ||
+      (r.confirm === 'Provisional' && r.tags && requiresDocumentation(r.tags))
+    )
+  ).sort((a,b) => {
+    if (a.complianceDeadline && b.complianceDeadline) return a.complianceDeadline.localeCompare(b.complianceDeadline);
+    if (a.complianceDeadline) return -1;
+    if (b.complianceDeadline) return 1;
+    return 0;
   });
-
-  // --- Sortable column headers (#8) ---
-  const arrow = (col) => _complianceSortCol === col ? (_complianceSortAsc ? ' ▲' : ' ▼') : '';
-  if (thead) {
-    thead.innerHTML = `<tr>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('room')">Room${arrow('room')}</th>
-      <th>Restrictions</th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('status')">Status${arrow('status')}</th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('deadline')">Deadline${arrow('deadline')}</th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('reason')">Reason${arrow('reason')}</th>
-      <th>Notes</th>
-      <th></th>
-    </tr>`;
-  }
-
-  // --- Group summary banner (#8) ---
-  const overdueCount = relevant.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl < today;
-  }).length;
-  const soonCount = relevant.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl >= today && (dl - today) <= 7 * 86400000;
-  }).length;
-  const noDeadline = relevant.filter(r => !r.complianceDeadline).length;
-  const summaryEl = document.getElementById('compliance-summary-bar');
-  if (summaryEl && relevant.length) {
-    const parts = [];
-    if (overdueCount) parts.push(`<span style="color:#dc2626;font-weight:600;">Overdue (${overdueCount})</span>`);
-    if (soonCount) parts.push(`<span style="color:#d97706;font-weight:600;">Due This Week (${soonCount})</span>`);
-    if (noDeadline) parts.push(`<span style="color:var(--muted);font-weight:600;">No Deadline (${noDeadline})</span>`);
-    summaryEl.innerHTML = parts.join(' · ');
-    summaryEl.style.display = 'block';
-  } else if (summaryEl) {
-    summaryEl.style.display = 'none';
-  }
 
   if (!relevant.length) {
     body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No residents with outstanding compliance requirements.</td></tr>';
@@ -8148,26 +8029,20 @@ function renderComplianceView() {
       const overdue = dl && dl < today;
       const soon = dl && !overdue && (dl - today) <= 7 * 86400000;
       const dlColor = overdue ? 'var(--red)' : soon ? '#d97706' : 'inherit';
-      // --- Row urgency highlighting (#7) ---
-      const rowBg = overdue ? 'background:#fef2f2;' : soon ? 'background:#fffbeb;' : '';
-      const rowBorder = overdue ? 'border-left:3px solid #dc2626;' : soon ? 'border-left:3px solid #d97706;' : 'border-left:3px solid transparent;';
       const moderateBadge = r.isModerate ? '<span class="tag tag-moderate" style="font-size:11px;">⚠ Moderate</span>' : '';
-      // --- Reason column (#9) ---
-      const reason = getComplianceReason(r);
-      const reasonColor = reason.includes('Overdue') ? '#dc2626' : reason.includes('this week') ? '#d97706' : 'var(--muted)';
-      return `<tr style="${rowBg}${rowBorder}">
+      return `<tr>
         <td><span class="room-num">${r.room}</span></td>
         <td style="font-size:12px;">${r.rawRestriction || r.tags.join(', ')} ${moderateBadge}</td>
         <td><span style="font-size:12px;font-weight:600;color:${r.confirm==='Provisional'?'#d97706':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid)'}">${r.confirm}</span></td>
         <td><input type="date" value="${r.complianceDeadline || ''}" style="font-size:12px;color:${dlColor};border:1px solid var(--border);border-radius:6px;padding:3px 6px;" onchange="updateComplianceField('${r.room}','complianceDeadline',this.value)"></td>
-        <td style="font-size:12px;color:${reasonColor};">${reason}</td>
-        <td><input type="text" value="${(r.moderateNote || '').replace(/"/g,'&quot;')}" placeholder="H&W notes…" style="font-size:12px;width:100%;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="updateComplianceField('${r.room}','moderateNote',this.value)"></td>
-        <td style="text-align:right;"><button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="openResolveModal('${r.room}')">Resolve…</button></td>
+        <td style="text-align:center;"><label style="display:flex;align-items:center;gap:4px;justify-content:center;font-size:12px;cursor:pointer;"><input type="checkbox" ${r.pendingReversion?'checked':''} onchange="updateComplianceField('${r.room}','pendingReversion',this.checked)"> Flag</label></td>
+        <td><input type="text" value="${r.moderateNote || ''}" placeholder="H&W notes…" style="font-size:12px;width:100%;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="updateComplianceField('${r.room}','moderateNote',this.value)"></td>
+        <td style="text-align:right;"><button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="openSettleModal('${r.room}')">Settle…</button></td>
       </tr>`;
     }).join('');
   }
 
-  // --- Resolved section with Re-open (#6) ---
+  // Resolved section
   const resolved = REGISTRY_LIST.filter(r => r.complianceResolved);
   const resolvedSection = document.getElementById('compliance-resolved-section');
   const resolvedBody = document.getElementById('compliance-resolved-body');
@@ -8182,39 +8057,10 @@ function renderComplianceView() {
       <td style="font-size:12px;">${r.complianceResolvedBy || '—'}</td>
       <td style="font-size:12px;">${r.complianceResolvedAt || '—'}</td>
       <td style="font-size:12px;color:var(--muted);">${r.complianceResolutionNote || ''}</td>
-      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="reopenComplianceItem('${r.room}')">Re-open</button></td>
     </tr>`).join('');
   } else {
     resolvedSection.style.display = 'none';
   }
-
-  // Update badge (#2)
-  updateComplianceBadge();
-}
-
-// --- Re-open resolved compliance item (#6) ---
-function reopenComplianceItem(room) {
-  const r = REGISTRY_LIST.find(x => x.room === room);
-  if (!r) return;
-  if (!confirm(`Re-open compliance review for Room ${room}? This will move them back to the active list.`)) return;
-  const prevAction = r.complianceResolved;
-  const prevBy = r.complianceResolvedBy || '';
-  r.complianceResolved = '';
-  r.complianceResolvedBy = '';
-  r.complianceResolvedAt = '';
-  r.complianceResolutionNote = '';
-  r.complianceResolvedRestrictions = '';
-  RECENT_LOG.unshift({
-    date: (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })(),
-    room: room,
-    type: 'update',
-    desc: `Compliance re-opened (was ${prevAction} by ${prevBy})`,
-    color: '#d97706',
-    by: getOperatorName()
-  });
-  saveRegistryState();
-  publishAndSync('compliance re-open');
-  renderComplianceView();
 }
 
 function toggleResolvedSection() {
@@ -8229,12 +8075,12 @@ function toggleResolvedSection() {
   }
 }
 
-let _resolveRoom = null;
+let _settleRoom = null;
 
-function openResolveModal(room) {
+function openSettleModal(room) {
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) return;
-  _resolveRoom = room;
+  _settleRoom = room;
   document.getElementById('settle-room-label').textContent = room;
   // Current restrictions display
   const restrictionEl = document.getElementById('settle-current-restrictions');
@@ -8256,9 +8102,9 @@ function openResolveModal(room) {
   document.getElementById('settle-compliance-modal').classList.add('open');
 }
 
-function closeResolveModal() {
+function closeSettleModal() {
   document.getElementById('settle-compliance-modal').classList.remove('open');
-  _resolveRoom = null;
+  _settleRoom = null;
 }
 
 function toggleRevertWarning() {
@@ -8266,8 +8112,8 @@ function toggleRevertWarning() {
   document.getElementById('settle-revert-warning').style.display = checked ? 'block' : 'none';
 }
 
-function submitResolve() {
-  const r = REGISTRY_LIST.find(x => x.room === _resolveRoom);
+function submitSettle() {
+  const r = REGISTRY_LIST.find(x => x.room === _settleRoom);
   if (!r) return;
 
   const resolvedBy = document.getElementById('settle-resolved-by').value.trim();
@@ -8311,12 +8157,12 @@ function submitResolve() {
     date: dateStr,
     room: r.room,
     type: 'update',
-    desc: doRevert ? `Compliance resolved — reverted to Regular by ${resolvedBy}` : `Compliance resolved — status updated to ${newStatus} by ${resolvedBy}`,
+    desc: doRevert ? `Compliance settled — reverted to Regular by ${resolvedBy}` : `Compliance settled — status updated to ${newStatus} by ${resolvedBy}`,
     color: '#2563eb',
     by: resolvedBy
   });
 
-  closeResolveModal();
+  closeSettleModal();
   saveRegistryState();
   renderComplianceView();
   // v25: Sync compliance changes to GitHub for multi-device access
@@ -8326,18 +8172,16 @@ function submitResolve() {
 function updateComplianceField(room, field, value) {
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (r) r[field] = value;
-  // Show saving banner
+  // Show pending banner and highlight export button
   const banner = document.getElementById('compliance-pending-banner');
-  if (banner) {
-    banner.innerHTML = '<strong style="color:#92400e;">Saving…</strong>';
-    banner.style.display = 'block';
-    banner.style.background = '#fef3c7';
-    banner.style.borderColor = '#f59e0b';
+  if (banner) banner.style.display = 'block';
+  const btn = document.getElementById('compliance-export-btn');
+  if (btn) {
+    btn.textContent = '↓ Export to save';
+    btn.style.fontWeight = '700';
+    btn.style.borderColor = '#f59e0b';
+    btn.style.color = '#92400e';
   }
-  // Debounced persist (#1)
-  debouncedComplianceSave();
-  // Update badge in case deadline change shifts counts
-  updateComplianceBadge();
 }
 
 function exportComplianceXlsx() {
@@ -8347,10 +8191,10 @@ function exportComplianceXlsx() {
     return;
   }
   const today = new Date(); today.setHours(0,0,0,0);
-
-  // --- Active items: shared filter (#3) ---
-  const activeResidents = getComplianceResidents(false);
-  const rows = activeResidents.map(r => {
+  const rows = REGISTRY_LIST.filter(r =>
+    r.complianceDeadline || r.isModerate ||
+    (r.confirm === 'Provisional' && r.tags && !r.tags.every(t => t === 'Regular'))
+  ).map(r => {
     const dl = r.complianceDeadline ? new Date(r.complianceDeadline) : null;
     if (dl) dl.setHours(0,0,0,0);
     return {
@@ -8359,81 +8203,56 @@ function exportComplianceXlsx() {
       'Status': r.confirm,
       'Deadline': r.complianceDeadline || '',
       'Overdue': (dl && dl < today) ? 'Yes' : '',
-      'Reason': getComplianceReason(r),
+      'Pending Reversion': r.pendingReversion ? 'Yes' : '',
       'Moderate Allergy': r.isModerate ? 'Yes' : '',
       'Notes': r.moderateNote || ''
     };
   });
+  if (!rows.length) { alert('No compliance records to export.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
 
-  // --- Resolved items sheet (#10) ---
-  const resolvedResidents = REGISTRY_LIST.filter(r => r.complianceResolved);
-  const resolvedRows = resolvedResidents.map(r => ({
-    'Room': r.room,
-    'Restrictions (at time)': r.complianceResolvedRestrictions || r.rawRestriction || r.tags.join(', '),
-    'Action': r.complianceResolved === 'reverted' ? 'Reverted to Regular' : 'Status updated',
-    'Resolved By': r.complianceResolvedBy || '',
-    'Date': r.complianceResolvedAt || '',
-    'Note': r.complianceResolutionNote || ''
-  }));
+  // Column widths
+  ws['!cols'] = [
+    { wch: 8 },  // Room
+    { wch: 40 }, // Restrictions
+    { wch: 14 }, // Status
+    { wch: 14 }, // Deadline
+    { wch: 10 }, // Overdue
+    { wch: 18 }, // Pending Reversion
+    { wch: 16 }, // Moderate Allergy
+    { wch: 50 }, // Notes
+  ];
 
-  if (!rows.length && !resolvedRows.length) { alert('No compliance records to export.'); return; }
+  // Bold header row
+  const headers = ['Room','Restrictions','Status','Deadline','Overdue','Pending Reversion','Moderate Allergy','Notes'];
+  const cols = 'ABCDEFGH';
+  headers.forEach((h, i) => {
+    const cell = ws[cols[i] + '1'];
+    if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'D6E4DD' } } };
+  });
+
+  // Highlight overdue rows in light red
+  rows.forEach((r, i) => {
+    const rowNum = i + 2; // 1-indexed, row 1 is header
+    if (r['Overdue'] === 'Yes') {
+      cols.split('').forEach(col => {
+        const cellRef = col + rowNum;
+        if (ws[cellRef]) ws[cellRef].s = { fill: { fgColor: { rgb: 'FEE2E2' } } };
+      });
+    } else if (r['Pending Reversion'] === 'Yes') {
+      cols.split('').forEach(col => {
+        const cellRef = col + rowNum;
+        if (ws[cellRef]) ws[cellRef].s = { fill: { fgColor: { rgb: 'FEF3C7' } } };
+      });
+    }
+  });
 
   const wb = XLSX.utils.book_new();
-
-  // Active sheet
-  if (rows.length) {
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [
-      { wch: 8 },  // Room
-      { wch: 40 }, // Restrictions
-      { wch: 14 }, // Status
-      { wch: 14 }, // Deadline
-      { wch: 10 }, // Overdue
-      { wch: 36 }, // Reason
-      { wch: 16 }, // Moderate Allergy
-      { wch: 50 }, // Notes
-    ];
-    const headers = ['Room','Restrictions','Status','Deadline','Overdue','Reason','Moderate Allergy','Notes'];
-    const cols = 'ABCDEFGH';
-    headers.forEach((h, i) => {
-      const cell = ws[cols[i] + '1'];
-      if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'D6E4DD' } } };
-    });
-    // Highlight overdue rows
-    rows.forEach((r, i) => {
-      const rowNum = i + 2;
-      if (r['Overdue'] === 'Yes') {
-        cols.split('').forEach(col => {
-          const cellRef = col + rowNum;
-          if (ws[cellRef]) ws[cellRef].s = { fill: { fgColor: { rgb: 'FEE2E2' } } };
-        });
-      }
-    });
-    XLSX.utils.book_append_sheet(wb, ws, 'Active');
-  }
-
-  // Resolved sheet (#10)
-  if (resolvedRows.length) {
-    const ws2 = XLSX.utils.json_to_sheet(resolvedRows);
-    ws2['!cols'] = [
-      { wch: 8 },  // Room
-      { wch: 40 }, // Restrictions
-      { wch: 22 }, // Action
-      { wch: 18 }, // Resolved By
-      { wch: 14 }, // Date
-      { wch: 50 }, // Note
-    ];
-    const h2 = ['Room','Restrictions (at time)','Action','Resolved By','Date','Note'];
-    const c2 = 'ABCDEF';
-    h2.forEach((h, i) => {
-      const cell = ws2[c2[i] + '1'];
-      if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'E0E7FF' } } };
-    });
-    XLSX.utils.book_append_sheet(wb, ws2, 'Resolved');
-  }
-
+  XLSX.utils.book_append_sheet(wb, ws, 'Compliance');
   XLSX.writeFile(wb, `Compliance_Audit_${new Date().toISOString().slice(0,10)}.xlsx`);
-  // Reset button
+  // Reset banner and button after successful export
+  const banner = document.getElementById('compliance-pending-banner');
+  if (banner) banner.style.display = 'none';
   const btn = document.getElementById('compliance-export-btn');
   if (btn) {
     btn.textContent = '✓ Exported';
@@ -8453,7 +8272,7 @@ function showScreen(name, navEl) {
   document.getElementById('screen-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
   if (name === 'review') buildReview();
-  if (name === 'registry') { renderRegistry(REGISTRY_LIST); updateComplianceBadge(); }
+  if (name === 'registry') renderRegistry(REGISTRY_LIST);
   if (name === 'plating') { renderPlatingDashboard(); initPlatingPreview(); }
   if (name === 'reports') renderReport();
   if (name === 'settings') loadSettings();
@@ -8609,7 +8428,7 @@ function buildRegistrySummaryJSON() {
 
 function buildRoutingByMealJSON() {
   const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
+  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   const menuData = getMenuData();
   const result = {};
 
@@ -9844,6 +9663,7 @@ const ROUTING_RULES = [
   {p:6,  key:'no_beef', label:'No Beef',            tags:['No Beef'],              triggers:['hasBeef'],           altType:'vegan_alt', mergeInto:'vegan'},
   {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic'],             triggers:['isCarb'],            altType:'modified_main'},
   {p:8,  key:'bland',   label:'Bland',              tags:['No Spicy'],             triggers:['isSpicy'],           altType:'bland_alt'},
+  {p:8.5,key:'bland',   label:'Bland',              tags:['Bland Diet'],           always:true,                    altType:'bland_alt'},
   {p:9,  key:'soft',    label:'Soft Meals',         tags:['Soft Meals'],           always:true,                    altType:'soft'},
   {p:10, key:'no_egg',  label:'No Egg / Mustard',   tags:['No Eggs'],              triggers:['hasEgg'],            altType:'modified_main'},
   {p:99, key:'regular', label:'Regular',            tags:[],                       always:true,                    altType:'main'},
@@ -9871,7 +9691,7 @@ const ROUTING_TAGS = new Set([
   'Halal', 'Vegan', 'Vegetarian', 'No Pork',
   // Conditional routing (activate sections when triggered by meal flags)
   'GF', 'No Dairy', 'Lactose Intolerant', 'No Beef', 'No Fish', 'No Shellfish',
-  'No Eggs', 'No Spicy', 'No Processed Food'
+  'No Eggs', 'No Spicy', 'Bland Diet', 'No Processed Food'
 ]);
 
 const ALLERGEN_TAGS = new Set([
@@ -10322,7 +10142,7 @@ function getMealForDate(date) {
     return { ...base, name: pe.name, veg: pe.veg || base.veg, ...pe.flags };
   }
 
-  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
+  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   let lunchBase = { name: dayData.lunch || 'Lunch', veg: dayData.lunch_veg || '',
     softAlt: dayData.lunch_softAlt || '', ...(dayData.lunch_flags || emptyFlags) };
   let dinnerBase = { name: dayData.dinner || 'Dinner', veg: dayData.dinner_veg || '',
@@ -11399,7 +11219,7 @@ function parseMenuWorkbook(wb) {
         day[p] = periods[p].meals[di] || '';
         day[p + '_veg'] = (periods[p].veg[di] || '');
         // Parse allergen flags
-        const flags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
+        const flags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
         const allergenStr = (periods[p].allergens[di] || '').toLowerCase();
         if (allergenStr) {
           allergenStr.split(/[,;]+/).forEach(token => {
@@ -12810,6 +12630,7 @@ const IMPORT_TAG_RULES = [
   // Sensitivities
   { re: /\bno\s+spic(y|e)\s*(meals?|foods?)?\b/i,    tag: 'noSpicy' },
   { re: /\bno\s+pepper\b/i,                          tag: 'noSpicy' },
+  { re: /\bbland\s*(diet|meals?|foods?)?\b/i,         tag: 'blandDiet' },
   { re: /\bno\s+mushrooms?\b/i,                      tag: 'noMushroom' },
 
   // Preferences
@@ -12857,7 +12678,7 @@ const IMPORT_FUZZY_VOCAB = [
   ['no pork','noPork'], ['no beef','noBeef'], ['no red meat','noBeef'], ['no fish','noFish'],
   ['no eggs','noEggs'], ['no peanuts','noPeanuts'], ['no coconut','noCoconut'],
   ['no nuts','noTreeNuts'], ['no popcorn','noCorn'],
-  ['soft meals','softMeals'], ['no spicy','noSpicy'], ['low sodium','lowSodium'],
+  ['soft meals','softMeals'], ['no spicy','noSpicy'], ['bland diet','blandDiet'], ['low sodium','lowSodium'],
   ['no fried food','noFriedFood'], ['no turkey','noTurkey'], ['no processed food','noProcessedFood'], ['lactose intolerant','lactoIntolerant'], ['lactose free','lactoIntolerant'], ['low fat','lowFat'], ['low potassium','lowPotassium'], ['no potassium','lowPotassium'], ['no nightshades','noNightshades'], ['no brassicas','noBrassicas'], ['no beans','noBeans'], ['no corn','noCorn'], ['no cruciferous','noBrassicas'],
 ];
 
@@ -13654,7 +13475,7 @@ function commitImportToQueue() {
 
   // Auto-apply modifier-only tag additions (lowSodium, lowFat, lactoIntolerant, etc.)
   // These don't change routing sections — apply without requiring manual field acceptance.
-  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','noPork','noBeef','noFish','noShellfish','diabetic','softMeals','noSpicy','noProcessedFood']);
+  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','noPork','noBeef','noFish','noShellfish','diabetic','softMeals','noSpicy','blandDiet','noProcessedFood']);
   diff.updates.forEach(u => {
     const fieldSel = selections.updates.get(u.room);
     if (fieldSel && Object.values(fieldSel).some(v => v)) return; // operator already made selections
@@ -13909,7 +13730,6 @@ renderRegistry(REGISTRY_LIST);
 renderRecentLog();
 renderPlatingDashboard();
 initPlatingPreview();
-updateComplianceBadge();
 
 // v20: Boot UI state indicators
 updateDailyImportPrompt();
@@ -14099,7 +13919,7 @@ function computePlatingData(period, weekNum, dayName) {
   const vegAllergenStr = vegAllergenStored || vegAllergenLookup || null;
 
   // Anaphylactic conflict detection
-  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false};
+  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   const conflictCheckFlags = mealFlags;
   const conflictRooms = getAnaphConflictRooms(conflictCheckFlags, emptyFlags);
 
@@ -14131,10 +13951,20 @@ function computePlatingData(period, weekNum, dayName) {
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, mealFlags};
 
+  // P2: Find Regular residents with active conflicts or service notes
+  const regularResidents = regularSection ? regularSection.residents : [];
+  const regularNotes = regularResidents.filter(r => {
+    const conflicts = typeof checkResidentMealConflicts === 'function' ? checkResidentMealConflicts(mealFlags, r) : [];
+    const hasConflict = conflicts.length > 0;
+    const hasNote = !!(r.serviceNote && r.serviceNote.trim());
+    if (hasConflict) r._activeConflicts = conflicts;
+    return hasConflict || hasNote;
+  }).sort(sortR);
+
   return {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
     allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-    regCount, halalCount, veganCount, diabCount, ctx, sortR
+    regCount, halalCount, veganCount, diabCount, regularNotes, ctx, sortR
   };
 }
 
@@ -14143,7 +13973,7 @@ function buildDaySheet(period, weekNum, dayName) {
   if (!pd) return null;
   const { dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-          regCount, halalCount, veganCount, diabCount, ctx } = pd;
+          regCount, halalCount, veganCount, diabCount, regularNotes, ctx } = pd;
 
   const COL_W = [62, 10, 36]; // column widths in chars: Restriction, Room, Notes
   const LINE_H = 15; // height per line of 10pt Calibri text
@@ -14263,6 +14093,17 @@ function buildDaySheet(period, weekNum, dayName) {
   });
 
   // Footer
+  // P2: Regular residents with notes (conflicts or service notes)
+  if (regularNotes && regularNotes.length) {
+    addMerged('Standard Meal — Notes', F.stdB, 'E2EFDA', B.thin, 18);
+    addMerged('These residents receive the standard meal. Check notes for modifications.', F.std, 'E2EFDA', B.thin, 14);
+    regularNotes.forEach(r => {
+      const conflictNote = (r._activeConflicts || []).map(c => c.tag).join(', ');
+      const allNotes = [conflictNote, r.serviceNote].filter(Boolean).join(' · ');
+      addRow(xCell(r.rawRestriction || (r.tags||[]).join(', '),F.std,null,B.thin), xCell(r.room,F.std,null,B.thin,A.center), xCell(allNotes,F.std,null,B.thin), 16);
+    });
+  }
+
   addRow(xCell('Total Restrictions',F.stdB,'F0F0F0',B.thick), xCell('',F.std,'F0F0F0',B.thick), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thick,A.center), 18);
   addRow(xCell('Total Standard',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin,A.center), 16);
   addMerged('Diabetics - Less starch, more veg', F.stdB, '92D050', B.thin, 18);
@@ -14705,7 +14546,7 @@ function renderPlatingDashboard() {
   const todayData = getMealForDate(today);
   const tomorrowData = getMealForDate(tomorrow);
 
-  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasPeanuts:false,isSpicy:false,isCarb:false};
+  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
 
   function mealCell(data, period, weekNum, dayName, dateLabel) {
     if (!data) return '<div class="pd-cell"><span style="color:var(--muted)">—</span></div>';
@@ -14862,7 +14703,7 @@ function renderPlatingPreview() {
   }
 
   const { dayLabel, periodLabel, mealName, mealVeg, mealFlags, allergenStr, vegAllergenStr,
-          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx } = pd;
+          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, regularNotes, ctx } = pd;
 
   // Print header
   if (printHeader) {
@@ -14947,6 +14788,17 @@ function renderPlatingPreview() {
     });
     h += `<tr class="ps-sect-total"><td>${s.rule.label} Total</td><td></td><td>${res.length}</td></tr>`;
   });
+  // P2: Regular residents with notes
+  if (regularNotes && regularNotes.length) {
+    h += `<tr class="ps-sect-header" style="background:#e2efda;"><td colspan="3"><strong>Standard Meal — Notes</strong></td></tr>`;
+    h += `<tr style="background:#e2efda;"><td colspan="3" style="font-size:11px;font-style:italic;">These residents receive the standard meal. Check notes for modifications.</td></tr>`;
+    regularNotes.forEach(r => {
+      const conflictNote = (r._activeConflicts || []).map(c => c.tag).join(', ');
+      const allNotes = [conflictNote, r.serviceNote].filter(Boolean).join(' · ');
+      h += `<tr><td>${r.rawRestriction || (r.tags||[]).join(', ')}</td><td>${r.room}</td><td>${allNotes}</td></tr>`;
+    });
+  }
+
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
   h += `<tr class="ps-sect-total"><td>Total Standard</td><td></td><td>${regCount}</td></tr>`;
   h += '</table>';
@@ -15252,11 +15104,11 @@ window.addEventListener('load', initSiteSelector);
 </div>
 
 <!-- ===== SETTLE COMPLIANCE MODAL ===== -->
-<div class="modal-overlay" id="settle-compliance-modal" onclick="if(event.target===this)closeResolveModal()">
+<div class="modal-overlay" id="settle-compliance-modal" onclick="if(event.target===this)closeSettleModal()">
   <div class="modal-box" style="max-width:500px;">
     <div class="modal-header">
-      <h2>Resolve — Room <span id="settle-room-label"></span></h2>
-      <button class="btn btn-ghost btn-sm" onclick="closeResolveModal()">✕</button>
+      <h2>✅ Settle Compliance — Room <span id="settle-room-label"></span></h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeSettleModal()">✕</button>
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;padding-top:4px;">
       <!-- Current restrictions display -->
@@ -15295,8 +15147,8 @@ window.addEventListener('load', initSiteSelector);
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--border);margin-top:8px;">
-      <button class="btn btn-ghost" onclick="closeResolveModal()">Cancel</button>
-      <button class="btn btn-mint" onclick="submitResolve()">Resolve</button>
+      <button class="btn btn-ghost" onclick="closeSettleModal()">Cancel</button>
+      <button class="btn btn-mint" onclick="submitSettle()">Settle</button>
     </div>
   </div>
 </div>
