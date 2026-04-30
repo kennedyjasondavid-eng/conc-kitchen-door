@@ -6736,8 +6736,28 @@ function updateCERoutePreview() {
   const room = ceMode === 'registry' ? ceRoom : (changesQueue[ceEditIndex] ? changesQueue[ceEditIndex].room : '');
   if (!room) return;
   const isAnaph = document.getElementById('ce-anaph').checked;
-  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, room, isAnaph);
-  document.getElementById('ce-route-preview').textContent = '→ ' + route;
+  const el = document.getElementById('ce-route-preview');
+  if (!el) return;
+
+  const hasMeal = typeof MEAL !== 'undefined' && typeof MEAL_DATA !== 'undefined';
+  if (!hasMeal) { el.innerHTML = '<span style="color:var(--muted);">No meal data loaded</span>'; return; }
+
+  const lunchRoute = routeResident(tags, MEAL_DATA.lunch || MEAL.lunch || {}, room, isAnaph);
+  const dinnerRoute = routeResident(tags, MEAL_DATA.dinner || MEAL.dinner || {}, room, isAnaph);
+
+  const lunchName = (MEAL_DATA.lunch || {}).name || MEAL.lunch?.name || 'Lunch';
+  const dinnerName = (MEAL_DATA.dinner || {}).name || MEAL.dinner?.name || 'Dinner';
+
+  const pill = (route) => {
+    const isRegular = route === 'Regular' || route === 'Standard Meal';
+    const color = isRegular ? 'var(--muted)' : 'var(--forest-mid)';
+    const weight = isRegular ? '500' : '700';
+    return `<span style="color:${color};font-weight:${weight};">→ ${route}</span>`;
+  };
+
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:baseline;"><span style="color:var(--muted);min-width:52px;">Lunch:</span> ${pill(lunchRoute)} <span style="color:var(--muted);font-size:11px;margin-left:4px;">${lunchName}</span></div>
+    <div style="display:flex;gap:8px;align-items:baseline;"><span style="color:var(--muted);min-width:52px;">Dinner:</span> ${pill(dinnerRoute)} <span style="color:var(--muted);font-size:11px;margin-left:4px;">${dinnerName}</span></div>`;
 }
 
 function saveChangeEdit() {
@@ -15778,9 +15798,9 @@ window.addEventListener('load', initSiteSelector);
         <input type="text" id="ce-notes" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="e.g., prefers extra sauce, no onions">
       </div>
       <!-- Live routing preview -->
-      <div style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
-        <span style="font-size:11px;font-weight:700;color:var(--forest);">Routing preview:</span>
-        <span id="ce-route-preview" style="font-size:13px;font-weight:700;color:var(--forest-mid);margin-left:6px;">—</span>
+      <div style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;line-height:1.8;">
+        <div style="font-size:11px;font-weight:700;color:var(--forest);margin-bottom:4px;">Routing for today's meals:</div>
+        <div id="ce-route-preview">—</div>
       </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);">
