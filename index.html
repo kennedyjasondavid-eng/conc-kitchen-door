@@ -7136,7 +7136,22 @@ function buildReview() {
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
   const discharges = changesQueue.filter(c => c.type === 'discharge').length;
   const flags = changesQueue.filter(c => c.isAnaph).length;
-  const net = 181 + intakes - discharges;
+
+  // v28: Detect rooms that disappeared from the registry without going through the queue
+  // (e.g. sync-based removal, previous session carryover, direct registry edit)
+  const currentRooms = new Set(REGISTRY_LIST.map(r => r.room.toLowerCase()));
+  const queueDischargeRooms = new Set(changesQueue.filter(c => c.type === 'discharge').map(c => c.room.toLowerCase()));
+  const autoDischarges = [];
+  if (typeof BOOT_REGISTRY_ROOMS !== 'undefined') {
+    BOOT_REGISTRY_ROOMS.forEach(room => {
+      if (!currentRooms.has(room) && !queueDischargeRooms.has(room)) {
+        autoDischarges.push(room.replace(/\b\w/g, c => c.toUpperCase())); // restore casing
+      }
+    });
+  }
+  const totalDischarges = discharges + autoDischarges.length;
+
+  const net = REGISTRY_LIST.length + intakes - discharges;
 
   // Room-level anaphylactic containment — informational (routing is automatic)
   const anaphAlerts = getAnaphAlertInfo(MEAL_DATA.lunch, MEAL_DATA.dinner);
@@ -7144,7 +7159,7 @@ function buildReview() {
 
   document.getElementById('stat-total').textContent = net;
   document.getElementById('stat-intakes').textContent = intakes;
-  document.getElementById('stat-discharges').textContent = discharges;
+  document.getElementById('stat-discharges').textContent = totalDischarges;
   const nrPendingRaw = localStorage.getItem('concUnresolvedNR');
   const nrPendingCount = nrPendingRaw ? JSON.parse(nrPendingRaw).length : 0;
   document.getElementById('stat-flags').textContent = totalFlags + nrPendingCount;
@@ -7286,7 +7301,24 @@ function buildReview() {
       </div>`
     ).join('');
   }
-  document.getElementById('review-flags-area').innerHTML = nrHtml + conflictHtml + flagsHtml;
+  // v28: Auto-detected discharges — informational, collapsed by default
+  let autoDischargeHtml = '';
+  if (autoDischarges.length) {
+    autoDischargeHtml = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:10px;">
+      <details>
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#991b1b;list-style:none;display:flex;align-items:center;gap:6px;">
+          <span style="font-size:14px;">📋</span>
+          ${autoDischarges.length} auto-detected discharge${autoDischarges.length!==1?'s':''} — not on current meal list
+          <span style="font-size:10px;color:#b91c1c;background:#fee2e2;padding:1px 6px;border-radius:8px;margin-left:auto;">Informational</span>
+        </summary>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fecaca;font-size:12px;color:#7f1d1d;line-height:1.8;">
+          ${autoDischarges.map(room => `<span style="font-family:'DM Mono',monospace;background:#fee2e2;padding:1px 8px;border-radius:4px;margin-right:4px;white-space:nowrap;">Rm ${room}</span>`).join('')}
+          <div style="margin-top:6px;font-size:11px;color:#991b1b;">These rooms were in the registry at session start but are no longer present. Removed via import, sync, or previous session.</div>
+        </div>
+      </details>
+    </div>`;
+  }
+  document.getElementById('review-flags-area').innerHTML = autoDischargeHtml + nrHtml + conflictHtml + flagsHtml;
 
   // Changes table
   const body = document.getElementById('review-changes-body');
@@ -7775,7 +7807,18 @@ function generateFiles() {
 
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
   const discharges = changesQueue.filter(c => c.type === 'discharge').length;
-  const net = 181 + intakes - discharges;
+
+  // v28: Detect auto-discharges (same logic as buildReview)
+  const _currentRooms = new Set(REGISTRY_LIST.map(r => r.room.toLowerCase()));
+  const _queueDC = new Set(changesQueue.filter(c => c.type === 'discharge').map(c => c.room.toLowerCase()));
+  const _autoDischarges = [];
+  if (typeof BOOT_REGISTRY_ROOMS !== 'undefined') {
+    BOOT_REGISTRY_ROOMS.forEach(room => {
+      if (!_currentRooms.has(room) && !_queueDC.has(room)) _autoDischarges.push(room);
+    });
+  }
+  const totalDischarges = discharges + _autoDischarges.length;
+  const net = REGISTRY_LIST.length + intakes - discharges;
 
   const months2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const n2 = new Date();
@@ -7783,7 +7826,7 @@ function generateFiles() {
 
   const parts = [];
   if (intakes) parts.push(`${intakes} intake${intakes>1?'s':''}`);
-  if (discharges) parts.push(`${discharges} discharge${discharges>1?'s':''}`);
+  if (totalDischarges) parts.push(`${totalDischarges} discharge${totalDischarges>1?'s':''}${_autoDischarges.length ? ' (' + _autoDischarges.length + ' auto-detected)' : ''}`);
   const others = changesQueue.filter(c => c.type !== 'intake' && c.type !== 'discharge').length;
   if (others) parts.push(`${others} update${others>1?'s':''}`);
   const clog = document.getElementById('confirm-changelog');
@@ -7797,6 +7840,15 @@ function generateFiles() {
     const _logDate = new Date(); const _logLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate();
     RECENT_LOG.unshift({ date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type], _real:true, by:getOperatorName() });
   });
+
+  // v28: Log auto-detected discharges
+  if (_autoDischarges.length) {
+    const _logDate = new Date();
+    const _logLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate();
+    _autoDischarges.forEach(room => {
+      RECENT_LOG.unshift({ date:_logLabel, room:room.toUpperCase(), type:'discharge', desc:'Auto-detected — not on current meal list', color:'#b91c1c', _real:true, by:'System' });
+    });
+  }
 
   showScreen('confirm', document.querySelector('[data-screen=review]'));
 
@@ -13909,6 +13961,10 @@ initDynamic();
     console.log('[DOOR] Auto-promoted', promoted, 'residents from Provisional to Confirmed (auto-tier tags only)');
   }
 })();
+
+// v28: Boot snapshot — captures registry rooms at page load so we can detect
+// silent removals (sync, session carryover) that bypass changesQueue.
+const BOOT_REGISTRY_ROOMS = new Set(REGISTRY_LIST.map(r => r.room.toLowerCase()));
 
 renderRegistry(REGISTRY_LIST);
 renderRecentLog();
