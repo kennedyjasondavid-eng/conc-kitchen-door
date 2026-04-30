@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 29,
-    "exported": "2026-04-30T15:12:41.290Z",
+    "exported": "2026-04-30T15:12:55.936Z",
     "site": "rexdale",
     "count": 174,
     "lastModifiedBy": "JK"
@@ -3645,15 +3645,15 @@
     },
     {
       "room": "607a",
-      "section": "No Dairy",
+      "section": "Anaphylactic Alternative",
       "tags": [
         "No Dairy",
         "No Peanuts"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
-      "isAnaph": false,
-      "rawRestriction": "No Peanuts / No Milk",
+      "isAnaph": true,
+      "rawRestriction": "No Dairy, No Peanuts",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -3669,7 +3669,8 @@
       "avoidances": [
         "No Peanuts"
       ],
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "serviceNote": ""
     },
     {
       "room": "608a",
@@ -4173,7 +4174,8 @@
   ],
   "anaphRooms": [
     "213",
-    "813"
+    "813",
+    "607a"
   ],
   "lastImportDate": "Thu Apr 30 2026",
   "lastImportFile": "Meal List - May 01, 2026..xlsx"
