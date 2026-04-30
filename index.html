@@ -8393,23 +8393,22 @@ function draftComplianceDigest() {
   <h2 style="margin-bottom:4px;">Compliance Digest</h2>
   <p style="font-size:12px;color:#666;margin-bottom:12px;">Review the email below. Copy it or open it in your mail app.</p>
   <div class="toolbar">
-    <button class="btn-primary" onclick="copyDigest()">📋 Copy to Clipboard</button>
+    <button class="btn-primary">📋 Copy to Clipboard</button>
     <a href="mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="text-decoration:none;"><button class="btn-secondary">📧 Open in Mail</button></a>
     <span class="copied" id="copied-msg">✓ Copied!</span>
   </div>
   <div class="subject">Subject: ${subject.replace(/</g,'&lt;')}</div>
   <pre id="digest-body">${body.replace(/</g,'&lt;')}</pre>
-  <script>
-    function copyDigest() {
-      const text = document.getElementById('digest-body').textContent;
-      navigator.clipboard.writeText('Subject: ' + ${JSON.stringify(subject)} + '\\n\\n' + text).then(() => {
-        const msg = document.getElementById('copied-msg');
-        msg.style.display = 'inline';
-        setTimeout(() => msg.style.display = 'none', 2000);
-      });
-    }
-  </script>
   </body></html>`);
+  // Add copy handler after document is written (avoids script-close issue in template literal)
+  w.document.querySelector('.btn-primary').onclick = function() {
+    const text = w.document.getElementById('digest-body').textContent;
+    navigator.clipboard.writeText('Subject: ' + subject + '\\n\\n' + text).then(() => {
+      const msg = w.document.getElementById('copied-msg');
+      msg.style.display = 'inline';
+      setTimeout(() => msg.style.display = 'none', 2000);
+    });
+  };
   w.document.close();
   w.focus();
 }
