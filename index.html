@@ -1505,6 +1505,7 @@ let _recipeDataSource = 'fallback';
       <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
         <button class="btn btn-sm" id="mc-tab-routing" onclick="switchMealEditTab('routing')" style="border-radius:6px 6px 0 0;border-bottom:none;font-weight:600;">Routing</button>
         <button class="btn btn-ghost btn-sm" id="mc-tab-swap" onclick="switchMealEditTab('swap')" style="border-radius:6px 6px 0 0;border-bottom:none;">Swap Meal</button>
+        <button class="btn btn-ghost btn-sm" id="mc-tab-editflags" onclick="switchMealEditTab('editflags')" style="border-radius:6px 6px 0 0;border-bottom:none;">Edit Flags</button>
       </div>
 
       <!-- TAB: Routing (default) -->
@@ -1542,6 +1543,34 @@ let _recipeDataSource = 'fallback';
             <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Activation Preview</div>
             <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">How sections change with the new flags.</div>
             <div id="mc-section-preview"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Edit Flags (v28) -->
+      <div id="mc-tab-editflags-content" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Edit this meal's allergen and routing flags. Changes save to the rotation and persist across sessions.</div>
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Allergen &amp; Routing Flags</div>
+            <div id="mc-editflags-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
+
+            <div style="margin-top:16px;">
+              <div style="font-weight:600;margin-bottom:6px;font-size:13px;">Soft / Plain Meal Alternative</div>
+              <input id="mc-editflags-softalt" placeholder="e.g. Plain Chicken Leg, Steamed Rice & Seasonal Veg" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            </div>
+
+            <div style="margin-top:16px;display:flex;gap:8px;">
+              <button class="btn btn-mint" onclick="saveEditFlags()">Save Flags</button>
+              <button class="btn btn-ghost btn-sm" onclick="switchMealEditTab('routing')">Cancel</button>
+            </div>
+            <div id="mc-editflags-status" style="font-size:11px;margin-top:8px;color:var(--forest-mid);display:none;"></div>
+          </div>
+
+          <div>
+            <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Activation Preview</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Live preview based on current flag selections.</div>
+            <div id="mc-editflags-section-preview"></div>
           </div>
         </div>
       </div>
@@ -6191,6 +6220,9 @@ let checkedBoxes = {};
 let anaphActive = false;
 let moderateActive = false;
 
+// v28: Session-level blocklist for reverted swaps — prevents sync from re-introducing them
+const REVERTED_SWAP_KEYS = new Set();
+
 // ============================================================
 // ROUTING
 // ============================================================
@@ -7712,7 +7744,7 @@ async function pullSecondaryState(repo) {
   const files = [
     ['meal_swaps.json',      d => {
       const today = new Date().toISOString().slice(0,10);
-      Object.keys(d).forEach(k => { if (k.slice(0,10) < today) delete d[k]; }); // v28: don't re-introduce expired swaps
+      Object.keys(d).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete d[k]; }); // v28: don't re-introduce expired or reverted swaps
       saveMealSwaps(Object.assign({}, loadMealSwaps(), d), true);
     }],
     ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
@@ -10913,7 +10945,7 @@ function makePermanent() {
   if (targetDate) {
     const swaps = loadMealSwaps();
     const skey = targetDate.toISOString().slice(0,10) + '-' + period;
-    if (swaps[skey]) { delete swaps[skey]; saveMealSwaps(swaps); }
+    if (swaps[skey]) { delete swaps[skey]; saveMealSwaps(swaps); REVERTED_SWAP_KEYS.add(skey); }
   }
   // Clear any lingering menuEdit for this slot (Edit Menu and Make Permanent both
   // target the same rotation slot — permanent supersedes)
@@ -10961,6 +10993,7 @@ function revertMealSwap() {
   if (hasSwap) {
     delete swaps[skey];
     saveMealSwaps(swaps);
+    REVERTED_SWAP_KEYS.add(skey); // v28: block sync from re-introducing
     logMenuEvent('menu_swap', `Swap reverted: Wk${week} ${dayLabel(day)} ${period} (was effective ${formatShortDate(targetDate)})`);
   }
   delete mealSwaps[mcEditKey];
@@ -10978,7 +11011,7 @@ function clearAllSwaps() {
   if (!total) { alert('No active swaps to clear.'); return; }
   if (!confirm(`Clear ${total} active swap${total!==1?'s':''}? Permanent menu changes are not affected.`)) return;
 
-  activeSwaps.forEach(k => delete swaps[k]);
+  activeSwaps.forEach(k => { delete swaps[k]; REVERTED_SWAP_KEYS.add(k); });
   saveMealSwaps(swaps);
   mealSwaps = {};
 
@@ -11038,21 +11071,16 @@ function closeMealEdit() {
 let mcEditTab = 'routing';
 function switchMealEditTab(tab) {
   mcEditTab = tab;
-  const routingContent = document.getElementById('mc-tab-routing-content');
-  const swapContent = document.getElementById('mc-tab-swap-content');
-  const routingBtn = document.getElementById('mc-tab-routing');
-  const swapBtn = document.getElementById('mc-tab-swap');
-
-  if (tab === 'routing') {
-    routingContent.style.display = 'block';
-    swapContent.style.display = 'none';
-    routingBtn.className = 'btn btn-sm';
-    swapBtn.className = 'btn btn-ghost btn-sm';
-  } else {
-    routingContent.style.display = 'none';
-    swapContent.style.display = 'block';
-    routingBtn.className = 'btn btn-ghost btn-sm';
-    swapBtn.className = 'btn btn-sm';
+  const tabs = ['routing', 'swap', 'editflags'];
+  tabs.forEach(t => {
+    const content = document.getElementById('mc-tab-' + t + '-content');
+    const btn = document.getElementById('mc-tab-' + t);
+    if (content) content.style.display = (t === tab) ? 'block' : 'none';
+    if (btn) btn.className = (t === tab) ? 'btn btn-sm' : 'btn btn-ghost btn-sm';
+  });
+  // Populate edit flags grid when switching to it
+  if (tab === 'editflags' && mcEditKey) {
+    populateEditFlagsTab();
   }
 }
 
@@ -11085,6 +11113,98 @@ function renderRoutingTab(flags, vegAlt) {
       <span style="font-size:11px;color:${textColor}">${count > 0 ? '● Active' : '○ Inactive'}</span>
     </div>`;
   }).join('');
+}
+
+// v28: Edit Flags tab — populate checkboxes from current meal flags
+function populateEditFlagsTab() {
+  if (!mcEditKey) return;
+  const [wkStr, day, period] = mcEditKey.split('-');
+  const week = parseInt(wkStr, 10);
+  const wkData = getMenuData()[String(week)];
+  const dayData = wkData[day] || {};
+  const flags = dayData[period + '_flags'] || {};
+
+  const grid = document.getElementById('mc-editflags-grid');
+  grid.innerHTML = FLAG_DEFS.map(f => {
+    const checked = flags[f.key] ? 'checked' : '';
+    return `<label title="${f.tip}" style="display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;">
+      <input type="checkbox" id="mc-ef-${f.key}" ${checked} onchange="updateEditFlagsPreview()" style="accent-color:${f.color}"> ${f.label}
+      <span style="color:var(--muted);font-size:11px;cursor:help;" title="${f.tip}">ⓘ</span>
+    </label>`;
+  }).join('');
+
+  // Soft alt
+  const softEl = document.getElementById('mc-editflags-softalt');
+  if (softEl) softEl.value = dayData[period + '_softAlt'] || '';
+
+  // Status
+  const statusEl = document.getElementById('mc-editflags-status');
+  if (statusEl) statusEl.style.display = 'none';
+
+  updateEditFlagsPreview();
+}
+
+function updateEditFlagsPreview() {
+  const flags = {};
+  FLAG_DEFS.forEach(f => { flags[f.key] = document.getElementById('mc-ef-' + f.key)?.checked || false; });
+  const el = document.getElementById('mc-editflags-section-preview');
+  if (!el) return;
+  const sections = computeSections(flags, REGISTRY_LIST);
+  el.innerHTML = sections.map(s => {
+    const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
+    const count = s.residents.length;
+    const active = s.rule.key !== 'regular' || count > 0;
+    const bg = active ? color + '18' : '#f5f5f5';
+    const border = active ? color : '#e0e0e0';
+    const textColor = active ? color : '#999';
+    const badge = count > 0 ? ` <span style="font-size:10px;background:${color};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
+      <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
+      <span style="font-size:11px;color:${textColor}">${count > 0 ? '● Active' : '○ Inactive'}</span>
+    </div>`;
+  }).join('');
+}
+
+function saveEditFlags() {
+  if (!mcEditKey) return;
+  const [wkStr, day, period] = mcEditKey.split('-');
+  const week = wkStr;
+
+  // Gather flags from checkboxes
+  const flags = {};
+  FLAG_DEFS.forEach(f => { flags[f.key] = document.getElementById('mc-ef-' + f.key)?.checked || false; });
+
+  // Save to overlay
+  const overlay = loadMenuBaseOverlay();
+  if (!overlay[week]) overlay[week] = {};
+  if (!overlay[week][day]) overlay[week][day] = {};
+  overlay[week][day][period + '_flags'] = flags;
+
+  // Save soft alt if present
+  const softVal = (document.getElementById('mc-editflags-softalt')?.value || '').trim();
+  if (softVal) overlay[week][day][period + '_softAlt'] = softVal;
+
+  saveMenuBaseOverlay(overlay);
+
+  // Log the change
+  logMenuEvent('flag_edit', `Flags updated: Wk${week} ${dayLabel(day)} ${period}`);
+
+  // Show confirmation
+  const statusEl = document.getElementById('mc-editflags-status');
+  if (statusEl) {
+    statusEl.textContent = '✓ Flags saved to rotation';
+    statusEl.style.display = 'block';
+    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+  }
+
+  // Refresh routing tab and grid
+  const wkData = getMenuData()[week];
+  const dayData = wkData[day] || {};
+  renderRoutingTab(flags, dayData[period + '_veg'] || '');
+  renderMenuConfig();
+
+  // Publish if sync is configured
+  if (typeof publishAndSync === 'function') publishAndSync('flag edit');
 }
 
 function renderSwapsBanner() {
@@ -11150,6 +11270,7 @@ function makeSwapPermanentFromBanner(swapKey) {
   // Remove the swap (permanent supersedes)
   delete swaps[swapKey];
   saveMealSwaps(swaps);
+  REVERTED_SWAP_KEYS.add(swapKey); // v28: block sync from re-introducing
 
   // Clear any lingering menu edit for this slot
   const slotKey = week + '-' + dayName + '-' + period;
@@ -11177,6 +11298,7 @@ function revertSwapFromBanner(swapKey) {
   delete swaps[swapKey];
   saveMealSwaps(swaps);
   delete mealSwaps[slotKey];
+  REVERTED_SWAP_KEYS.add(swapKey); // v28: block sync from re-introducing
 
   logMenuEvent('menu_swap', `Swap reverted: Wk${md.week} ${dayLabel(md.day)} ${period}`);
   renderMenuConfig();
@@ -12092,7 +12214,7 @@ function saveMenuEdit() {
   const targetDate = nextDateForSlot(Number(week), day);
   if (targetDate) {
     const k = targetDate.toISOString().slice(0,10) + '-' + period;
-    if (swaps[k]) { delete swaps[k]; saveMealSwaps(swaps); }
+    if (swaps[k]) { delete swaps[k]; saveMealSwaps(swaps); REVERTED_SWAP_KEYS.add(k); }
   }
   const edits = loadMenuEdits();
   if (edits[mcMenuEditKey]) { delete edits[mcMenuEditKey]; saveMenuEdits(edits); }
@@ -13828,7 +13950,7 @@ initDynamic();
         localStorage.setItem('concMenuBase', JSON.stringify(merged));
       }).catch(() => {});
 
-    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t)delete d[k];});saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}}).catch(()=>{});
+    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}}).catch(()=>{});
     fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
