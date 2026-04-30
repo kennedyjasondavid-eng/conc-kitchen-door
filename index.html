@@ -6670,6 +6670,8 @@ function openChangeEditor(idx) {
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
   document.getElementById('ce-anaph').checked = !!c.isAnaph;
+  populateAnaphTags(c);
+  toggleAnaphDetail();
   const existingNote = c.notes || (existing ? existing.serviceNote : '') || '';
   document.getElementById('ce-notes').value = existingNote;
 
@@ -6701,6 +6703,8 @@ function openRegistryEditor(room) {
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
   document.getElementById('ce-anaph').checked = r.isAnaph || anaphRooms.includes(r.room);
+  populateAnaphTags(r);
+  toggleAnaphDetail();
   document.getElementById('ce-notes').value = r.serviceNote || '';
 
   document.getElementById('ce-remove-btn').style.display = 'none'; // no "remove" in registry mode
@@ -6729,6 +6733,58 @@ function getCETags() {
     tags[cb.dataset.tagKey] = cb.checked;
   });
   return tags;
+}
+
+// v29: Per-allergen anaphylactic flagging
+function toggleAnaphDetail() {
+  const checked = document.getElementById('ce-anaph').checked;
+  document.getElementById('ce-anaph-detail').style.display = checked ? 'block' : 'none';
+  setTimeout(updateCERoutePreview, 10);
+}
+
+function populateAnaphTags(record) {
+  // record can be a resident (r.tags, r.anaphTags) or a queue item (c.tags, c.anaphTags)
+  const container = document.getElementById('ce-anaph-tags');
+  if (!container) return;
+  
+  // Get all allergen-type tags the resident has
+  const allergenKeys = [];
+  const allTags = record.tags || {};
+  // For resident records, tags is an array of labels; for queue items, tags is a key→bool map
+  if (Array.isArray(allTags)) {
+    allTags.forEach(label => {
+      const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
+      if (key && (ALLERGEN_TAGS.has(label) || ['No Dairy','No Fish','No Shellfish','No Eggs','No Beef','GF'].includes(label))) {
+        allergenKeys.push({ key, label });
+      }
+    });
+  } else {
+    Object.entries(allTags).forEach(([key, val]) => {
+      if (!val) return;
+      const label = TAG_LABELS_MAP[key];
+      if (label && (ALLERGEN_TAGS.has(label) || ['No Dairy','No Fish','No Shellfish','No Eggs','No Beef','GF'].includes(label))) {
+        allergenKeys.push({ key, label });
+      }
+    });
+  }
+
+  const existingAnaphTags = new Set(record.anaphTags || []);
+  
+  if (!allergenKeys.length) {
+    container.innerHTML = '<span style="font-size:11px;color:#991b1b;">No allergen tags set — add allergen flags above first.</span>';
+    return;
+  }
+
+  container.innerHTML = allergenKeys.map(({key, label}) => {
+    const checked = existingAnaphTags.has(key) ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? '#dc2626' : '#fca5a5'};background:${checked ? '#fef2f2' : 'transparent'};color:${checked ? '#dc2626' : '#b91c1c'};">
+      <input type="checkbox" class="ce-anaph-tag" data-key="${key}" ${checked} style="accent-color:#dc2626;"> ${label}
+    </label>`;
+  }).join('');
+}
+
+function getAnaphTagsFromEditor() {
+  return [...document.querySelectorAll('.ce-anaph-tag:checked')].map(el => el.dataset.key);
 }
 
 function updateCERoutePreview() {
@@ -6807,6 +6863,7 @@ function saveRegistryEdit() {
   r._tierMigrated = true;
   r.section = route || 'Regular';
   r.isAnaph = isAnaph;
+  r.anaphTags = isAnaph ? getAnaphTagsFromEditor() : [];
   r.serviceNote = notes;
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
   r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
@@ -6996,15 +7053,19 @@ function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
   const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
 
   for (const resident of anaphResidents) {
-    // v25: Check both tags (restrictions) and avoidances for allergen flags
-    const allTags = [...(resident.tags || []), ...(resident.avoidances || [])];
-    for (const tag of allTags) {
+    // v29: If anaphTags is set, only check those specific allergens against the meal.
+    // If anaphTags is empty/unset, fall back to checking all allergen tags (backward compat).
+    let tagsToCheck;
+    if (resident.anaphTags && resident.anaphTags.length) {
+      tagsToCheck = resident.anaphTags.map(key => TAG_LABELS_MAP[key]).filter(Boolean);
+    } else {
+      tagsToCheck = [...(resident.tags || []), ...(resident.avoidances || [])];
+    }
+    for (const tag of tagsToCheck) {
       const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[tag];
       if (!mealFlag) continue;
       if (lunchMeal[mealFlag] || dinnerMeal[mealFlag]) {
-        // This resident's allergen is in today's meal — pull them
         conflictRooms.add(resident.room);
-        // Pull roommates too
         findRoommates(resident.room).forEach(mate => conflictRooms.add(mate.room));
       }
     }
@@ -7018,9 +7079,14 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
   const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
 
   for (const resident of anaphResidents) {
-    // v25: Check both tags and avoidances
-    const allTags = [...(resident.tags || []), ...(resident.avoidances || [])];
-    for (const tag of allTags) {
+    // v29: Only check anaphylactic-specific allergens if set
+    let tagsToCheck;
+    if (resident.anaphTags && resident.anaphTags.length) {
+      tagsToCheck = resident.anaphTags.map(key => TAG_LABELS_MAP[key]).filter(Boolean);
+    } else {
+      tagsToCheck = [...(resident.tags || []), ...(resident.avoidances || [])];
+    }
+    for (const tag of tagsToCheck) {
       const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[tag];
       if (!mealFlag) continue;
 
@@ -15789,8 +15855,12 @@ window.addEventListener('load', initSiteSelector);
       <!-- Anaph toggle -->
       <div style="margin-bottom:12px;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#dc2626;">
-          <input type="checkbox" id="ce-anaph"> ⚠ Anaphylactic (confirmed — triggers room-level containment)
+          <input type="checkbox" id="ce-anaph" onchange="toggleAnaphDetail()"> ⚠ Anaphylactic (confirmed — triggers room-level containment)
         </label>
+        <div id="ce-anaph-detail" style="display:none;margin-top:8px;padding:10px 14px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;">
+          <div style="font-size:11px;font-weight:600;color:#991b1b;margin-bottom:6px;">Which allergens are anaphylactic? Only these trigger the red protocol when present in a meal.</div>
+          <div id="ce-anaph-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
       </div>
       <!-- Service note -->
       <div style="margin-bottom:12px;">
