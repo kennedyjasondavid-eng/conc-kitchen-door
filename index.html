@@ -609,6 +609,10 @@ let _recipeDataSource = 'fallback';
     <div class="nav-item" data-screen="registry" onclick="showScreen('registry',this)">
       <span class="nav-icon">≡</span> Resident Registry
     </div>
+    <div class="nav-item" data-screen="compliance" onclick="showScreen('compliance',this)">
+      <span class="nav-icon">✓</span> Compliance Review
+      <span class="nav-badge" id="compliance-nav-badge" style="display:none;background:#d97706;">0</span>
+    </div>
     <div class="nav-item" data-screen="menu-config" onclick="showScreen('menu-config',this)"><span class="nav-icon">≔</span> Menu Config</div>
     <div class="nav-item" data-screen="leftover" onclick="showScreen('leftover',this)">
       <span class="nav-icon">📋</span> Meal Log
@@ -937,8 +941,6 @@ let _recipeDataSource = 'fallback';
   <div class="topbar">
     <div><div class="topbar-title">Resident Registry</div><div class="topbar-sub">181 residents · 93 restricted · 88 regular · Read-only reference</div></div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" id="reg-view-all" onclick="setRegistryView('all')" style="font-weight:700;">All Residents</button>
-      <button class="btn btn-ghost btn-sm" id="reg-view-compliance" onclick="setRegistryView('compliance')">Compliance Review</button>
     </div>
   </div>
   <div class="content">
@@ -973,58 +975,64 @@ let _recipeDataSource = 'fallback';
       </div>
     </div>
     </div>
+  </div>
+</div>
 
-    <div id="registry-compliance-view" style="display:none;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:13px;color:var(--muted);">Residents with outstanding compliance requirements. Update inline or resolve individual items.</div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">📧 Draft Digest</button>
-          <button class="btn btn-ghost btn-sm" onclick="printComplianceList()">🖨 Print</button>
-          <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
-        </div>
+<!-- ===== COMPLIANCE REVIEW (v29 — standalone screen) ===== -->
+<div class="screen" id="screen-compliance">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Compliance Review</div>
+      <div class="topbar-sub" id="compliance-topbar-sub">Outstanding dietary restrictions requiring H&W documentation</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">📧 Draft Digest</button>
+      <button class="btn btn-ghost btn-sm" onclick="printComplianceList()">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
+    </div>
+  </div>
+  <div class="content">
+    <div id="compliance-summary-bar" style="display:none;font-size:13px;margin-bottom:10px;padding:8px 12px;background:var(--bg-soft, #f9fafb);border-radius:8px;border:1px solid var(--border);"></div>
+    <!-- Batch toolbar -->
+    <div id="compliance-batch-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" id="compliance-select-all" onchange="toggleAllCompliance(this.checked)"> Select all
+      </label>
+      <span id="compliance-selected-count" style="font-size:11px;color:var(--muted);white-space:nowrap;">0 selected</span>
+      <div style="height:16px;border-left:1px solid var(--border);"></div>
+      <select id="compliance-filter" onchange="renderComplianceView()" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;max-width:200px;">
+        <option value="all">All restrictions</option>
+      </select>
+      <div style="flex:1"></div>
+      <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);white-space:nowrap;" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Confirm Selected</button>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchResolveCompliance()" id="compliance-batch-resolve" disabled>Resolve Selected…</button>
+    </div>
+    <div id="compliance-pending-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
+      <strong style="color:#92400e;">Saving…</strong>
+    </div>
+    <div class="card">
+      <div class="registry-scroll">
+        <table class="reg-table">
+          <thead id="compliance-thead"><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="compliance-body"></tbody>
+        </table>
       </div>
-      <div id="compliance-summary-bar" style="display:none;font-size:13px;margin-bottom:10px;padding:8px 12px;background:var(--bg-soft, #f9fafb);border-radius:8px;border:1px solid var(--border);"></div>
-      <!-- v29: Batch toolbar -->
-      <div id="compliance-batch-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;">
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;">
-          <input type="checkbox" id="compliance-select-all" onchange="toggleAllCompliance(this.checked)"> Select all
-        </label>
-        <span id="compliance-selected-count" style="font-size:11px;color:var(--muted);white-space:nowrap;">0 selected</span>
-        <div style="height:16px;border-left:1px solid var(--border);"></div>
-        <select id="compliance-filter" onchange="renderComplianceView()" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;max-width:200px;">
-          <option value="all">All restrictions</option>
-        </select>
-        <div style="flex:1"></div>
-        <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);white-space:nowrap;" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Confirm Selected</button>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchResolveCompliance()" id="compliance-batch-resolve" disabled>Resolve Selected…</button>
+    </div>
+    <!-- Resolved section -->
+    <div id="compliance-resolved-section" style="display:none;margin-top:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;" onclick="toggleResolvedSection()">
+        <span style="font-size:13px;font-weight:600;color:var(--muted);">Resolved</span>
+        <span id="compliance-resolved-count" style="font-size:11px;background:#e5e7eb;color:#6b7280;border-radius:10px;padding:1px 8px;font-weight:600;"></span>
+        <span id="compliance-resolved-chevron" style="font-size:11px;color:var(--muted);margin-left:2px;">▼ Show</span>
       </div>
-      <div id="compliance-pending-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
-        <strong style="color:#92400e;">Saving…</strong>
-      </div>
-      <div class="card">
-        <div class="registry-scroll">
-          <table class="reg-table">
-            <thead id="compliance-thead"><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Notes</th><th></th></tr></thead>
-            <tbody id="compliance-body"></tbody>
-          </table>
-        </div>
-      </div>
-      <!-- Resolved section -->
-      <div id="compliance-resolved-section" style="display:none;margin-top:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;" onclick="toggleResolvedSection()">
-          <span style="font-size:13px;font-weight:600;color:var(--muted);">Resolved</span>
-          <span id="compliance-resolved-count" style="font-size:11px;background:#e5e7eb;color:#6b7280;border-radius:10px;padding:1px 8px;font-weight:600;"></span>
-          <span id="compliance-resolved-chevron" style="font-size:11px;color:var(--muted);margin-left:2px;">▼ Show</span>
-        </div>
-        <div id="compliance-resolved-body-wrap" style="display:none;">
-          <div class="card">
-            <div class="registry-scroll">
-              <table class="reg-table">
-                <thead><tr><th>Room</th><th>Restrictions</th><th>Action Taken</th><th>Resolved By</th><th>Date</th><th>Note</th><th></th></tr></thead>
-                <tbody id="compliance-resolved-body"></tbody>
-              </table>
-            </div>
+      <div id="compliance-resolved-body-wrap" style="display:none;">
+        <div class="card">
+          <div class="registry-scroll">
+            <table class="reg-table">
+              <thead><tr><th>Room</th><th>Restrictions</th><th>Action Taken</th><th>Resolved By</th><th>Date</th><th>Note</th><th></th></tr></thead>
+              <tbody id="compliance-resolved-body"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -8419,10 +8427,8 @@ function setComplianceSort(col) {
   renderComplianceView();
 }
 
-// --- Compliance badge on tab button (#2) ---
+// --- Compliance badge on sidebar nav + topbar subtitle ---
 function updateComplianceBadge() {
-  const btn = document.getElementById('reg-view-compliance');
-  if (!btn) return;
   const active = getComplianceResidents(false);
   const today = new Date(); today.setHours(0,0,0,0);
   const overdue = active.filter(r => {
@@ -8430,12 +8436,29 @@ function updateComplianceBadge() {
     const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
     return dl < today;
   }).length;
-  if (!active.length) {
-    btn.innerHTML = 'Compliance Review';
-  } else if (overdue > 0) {
-    btn.innerHTML = `Compliance Review <span style="display:inline-block;min-width:18px;text-align:center;font-size:11px;font-weight:700;background:#dc2626;color:#fff;border-radius:10px;padding:1px 6px;margin-left:4px;">${active.length}</span>`;
-  } else {
-    btn.innerHTML = `Compliance Review <span style="display:inline-block;min-width:18px;text-align:center;font-size:11px;font-weight:700;background:#d97706;color:#fff;border-radius:10px;padding:1px 6px;margin-left:4px;">${active.length}</span>`;
+
+  // Sidebar nav badge
+  const badge = document.getElementById('compliance-nav-badge');
+  if (badge) {
+    if (active.length) {
+      badge.textContent = active.length;
+      badge.style.display = '';
+      badge.style.background = overdue > 0 ? '#dc2626' : '#d97706';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // Topbar subtitle
+  const sub = document.getElementById('compliance-topbar-sub');
+  if (sub) {
+    if (!active.length) {
+      sub.textContent = 'All dietary restrictions documented — no outstanding items';
+    } else {
+      const parts = [active.length + ' outstanding'];
+      if (overdue) parts.push(overdue + ' overdue');
+      sub.textContent = parts.join(' · ') + ' — H&W documentation required';
+    }
   }
 }
 
@@ -8459,21 +8482,10 @@ function debouncedComplianceSave() {
 }
 
 function setRegistryView(view) {
-  const allView = document.getElementById('registry-all-view');
-  const compView = document.getElementById('registry-compliance-view');
-  const btnAll = document.getElementById('reg-view-all');
-  const btnComp = document.getElementById('reg-view-compliance');
   if (view === 'compliance') {
-    allView.style.display = 'none';
-    compView.style.display = 'block';
-    btnAll.style.fontWeight = '';
-    btnComp.style.fontWeight = '700';
-    renderComplianceView();
+    showScreen('compliance', document.querySelector('[data-screen=compliance]'));
   } else {
-    allView.style.display = 'block';
-    compView.style.display = 'none';
-    btnAll.style.fontWeight = '700';
-    btnComp.style.fontWeight = '';
+    showScreen('registry', document.querySelector('[data-screen=registry]'));
   }
 }
 
@@ -8885,7 +8897,8 @@ function showScreen(name, navEl) {
   document.getElementById('screen-' + name).classList.add('active');
   if (navEl) navEl.classList.add('active');
   if (name === 'review') buildReview();
-  if (name === 'registry') { renderRegistry(REGISTRY_LIST); updateComplianceBadge(); }
+  if (name === 'registry') { renderRegistry(REGISTRY_LIST); }
+  if (name === 'compliance') { renderComplianceView(); }
   if (name === 'plating') { renderPlatingDashboard(); initPlatingPreview(); }
   if (name === 'reports') renderReport();
   if (name === 'settings') loadSettings();
