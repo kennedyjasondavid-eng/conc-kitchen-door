@@ -7710,7 +7710,11 @@ async function pullSecondaryState(repo) {
   const base = 'https://raw.githubusercontent.com/' + repo + '/main/';
   const bust = '?_=' + Date.now();
   const files = [
-    ['meal_swaps.json',      d => saveMealSwaps(Object.assign({}, loadMealSwaps(), d), true)],
+    ['meal_swaps.json',      d => {
+      const today = new Date().toISOString().slice(0,10);
+      Object.keys(d).forEach(k => { if (k.slice(0,10) < today) delete d[k]; }); // v28: don't re-introduce expired swaps
+      saveMealSwaps(Object.assign({}, loadMealSwaps(), d), true);
+    }],
     ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
     ['menu_overlay.json',    d => {
       const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
@@ -13430,7 +13434,7 @@ function renderUpdatesPane() {
   const rows = IMPORT_STATE.diff.updates;
   if (!rows.length) { pane.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">No restriction changes detected.</div>'; return; }
   pane.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Check per-field to apply individual tag changes. Fields that match between registry and upload are not shown.</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Checked fields will update the registry to match the import. Uncheck to keep the registry as-is.</div>
     ${rows.map(u => {
       const fieldSel = IMPORT_STATE.selections.updates.get(u.room);
       const union = Array.from(new Set([...Object.keys(u.oldTags), ...Object.keys(u.newTags)])).sort();
@@ -13447,16 +13451,17 @@ function renderUpdatesPane() {
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Source: <em>${u.rawText || '(blank)'}</em></div>
         <div style="margin-top:8px;">
           ${changedFields.map(k => {
-            const inOld = u.oldTags[k] ? 'yes' : 'no';
-            const inNew = u.newTags[k] ? 'yes' : 'no';
             const action = u.newTags[k] ? 'added' : 'removed';
             const label = TAG_LABELS_MAP[k] || k;
             const checked = fieldSel[k] ? 'checked' : '';
+            const desc = u.newTags[k]
+              ? 'Not in registry — found in import'
+              : 'In registry — not in import';
             return `<div class="import-field-row">
               <input type="checkbox" id="imp-upd-${u.room}-${k}" ${checked} onchange="toggleUpdateField('${u.room}','${k}',this.checked)">
               <span class="import-field-name">${label}</span>
               <span class="import-field-change ${action}">${action}</span>
-              <span style="font-size:11px;color:var(--muted);">was: ${inOld} → now: ${inNew}</span>
+              <span style="font-size:11px;color:var(--muted);">${desc}</span>
             </div>`;
           }).join('')}
         </div>
@@ -13823,7 +13828,7 @@ initDynamic();
         localStorage.setItem('concMenuBase', JSON.stringify(merged));
       }).catch(() => {});
 
-    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}).catch(()=>{});
+    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t)delete d[k];});saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}}).catch(()=>{});
     fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
@@ -13976,6 +13981,11 @@ updateComplianceBadge();
 updateDailyImportPrompt();
 updateGeneratedIndicator();
 updateRevertButton();
+
+// v28: Auto-sync registry from GitHub on open/refresh.
+// Fires after initial render so UI is responsive immediately.
+// Silent (non-manual) — updates registry and re-renders if remote data is newer.
+setTimeout(() => pullStateFromGitHub(false), 500);
 
 // ============================================================
 // INTAKE MODE (?intake URL parameter)
