@@ -20,7 +20,7 @@
   body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; display: flex; font-size: 14px; }
 
   /* SIDEBAR */
-  .sidebar { width: var(--sidebar-w); background: var(--forest); min-height: 100vh; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 10; }
+  .sidebar { width: var(--sidebar-w); background: var(--forest); height: 100vh; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 10; overflow: hidden; }
   .sidebar-brand { padding: 20px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .brand-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
   .brand-icon { width: 32px; height: 32px; background: var(--mint); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
@@ -37,7 +37,12 @@
   .sidebar-meal-period { font-size: 9px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--mint); font-weight: 700; margin-bottom: 3px; opacity: 0.85; }
   .sidebar-meal-name { font-size: 11.5px; color: rgba(255,255,255,0.82); line-height: 1.35; font-weight: 400; }
   .sidebar-meal-hub-hint { font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 4px; opacity: 0; transition: opacity .15s; letter-spacing: 0.03em; }
-  .sidebar-nav { padding: 12px 0; flex: 1; }
+  .sidebar-nav { padding: 12px 0; flex: 1; overflow-y: auto; min-height: 0; }
+  .sidebar-nav::-webkit-scrollbar { width: 5px; }
+  .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+  .sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+  .sidebar-nav { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13.5px; font-weight: 500; transition: all 0.15s; border-left: 3px solid transparent; }
   .nav-item:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.05); }
   .nav-item.active { color: #fff; background: rgba(255,255,255,0.08); border-left-color: var(--mint); }
@@ -619,10 +624,10 @@ let _recipeDataSource = 'fallback';
     </div>
     <div class="nav-item" style="opacity:.5;cursor:default"><span class="nav-icon">◷</span> Archive</div>
     <div class="nav-section-label">Tools</div>
-    <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+    <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" style="text-decoration:none;">
       <span class="nav-icon">🏭</span> HUB ↗
     </a>
-    <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-recipe-hub/" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+    <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-recipe-hub/" target="_blank" style="text-decoration:none;">
       <span class="nav-icon">🍳</span> CODEX ↗
     </a>
   </nav>
@@ -972,9 +977,27 @@ let _recipeDataSource = 'fallback';
     <div id="registry-compliance-view" style="display:none;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div style="font-size:13px;color:var(--muted);">Residents with outstanding compliance requirements. Update inline or resolve individual items.</div>
-        <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="printComplianceList()">🖨 Print</button>
+          <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
+        </div>
       </div>
       <div id="compliance-summary-bar" style="display:none;font-size:13px;margin-bottom:10px;padding:8px 12px;background:var(--bg-soft, #f9fafb);border-radius:8px;border:1px solid var(--border);"></div>
+      <!-- v29: Batch toolbar -->
+      <div id="compliance-batch-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;">
+          <input type="checkbox" id="compliance-select-all" onchange="toggleAllCompliance(this.checked)"> Select all
+        </label>
+        <span id="compliance-selected-count" style="font-size:11px;color:var(--muted);min-width:70px;">0 selected</span>
+        <div style="height:16px;border-left:1px solid var(--border);"></div>
+        <select id="compliance-filter" onchange="renderComplianceView()" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;">
+          <option value="all">All restrictions</option>
+        </select>
+        <div style="flex:1"></div>
+        <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Confirm Selected</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="batchResolveCompliance()" id="compliance-batch-resolve" disabled>Resolve Selected…</button>
+      </div>
       <div id="compliance-pending-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
         <strong style="color:#92400e;">Saving…</strong>
       </div>
@@ -1244,7 +1267,7 @@ let _recipeDataSource = 'fallback';
     <div class="topbar">
       <div>
         <div class="topbar-title">Settings</div>
-        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v27</span></div>
+        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v29</span></div>
       </div>
       <div class="topbar-right">
         <button class="btn btn-mint" onclick="saveSettings()">Save Changes</button>
@@ -7563,7 +7586,8 @@ function seedRegistryFromRoster(entries) {
       isAnaph: false,
       rawRestriction: e.parsed.rawText || 'Regular',
       isModerate: false, moderateNote: '',
-      complianceDeadline: '', pendingReversion: false
+      complianceDeadline: '', pendingReversion: false,
+      lastImported: new Date().toISOString().slice(0, 10)
     };
   });
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...newResidents);
@@ -8105,6 +8129,186 @@ function getComplianceReason(r) {
 let _complianceSortCol = 'deadline'; // 'room', 'status', 'deadline', 'reason'
 let _complianceSortAsc = true;
 
+// v29: Batch selection state
+const _complianceSelected = new Set();
+
+function toggleComplianceSelect(room, checked) {
+  if (checked) _complianceSelected.add(room); else _complianceSelected.delete(room);
+  updateComplianceBatchBar();
+}
+
+function toggleAllCompliance(checked) {
+  const filterEl = document.getElementById('compliance-filter');
+  const activeFilter = filterEl ? filterEl.value : 'all';
+  const relevant = getComplianceResidents(false);
+  const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
+  _complianceSelected.clear();
+  if (checked) filtered.forEach(r => _complianceSelected.add(r.room));
+  renderComplianceView();
+}
+
+function updateComplianceBatchBar() {
+  const n = _complianceSelected.size;
+  const countEl = document.getElementById('compliance-selected-count');
+  if (countEl) countEl.textContent = n + ' selected';
+  ['compliance-batch-confirm', 'compliance-batch-deadline', 'compliance-batch-resolve'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = (n === 0);
+  });
+}
+
+function batchConfirmCompliance() {
+  const rooms = [..._complianceSelected];
+  if (!rooms.length) return;
+  if (!confirm(`Confirm ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as documentation verified?`)) return;
+  const by = getOperatorName();
+  const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
+  rooms.forEach(room => {
+    const r = REGISTRY_LIST.find(x => x.room === room);
+    if (!r) return;
+    r.confirm = 'Confirmed';
+    r.complianceResolved = 'updated';
+    r.complianceResolvedBy = by;
+    r.complianceResolvedAt = dateStr;
+    r.complianceResolutionNote = 'Batch confirmed';
+    r.complianceResolvedRestrictions = r.rawRestriction || r.tags.join(', ');
+    RECENT_LOG.unshift({ date: dateStr, room, type: 'update', desc: `Compliance confirmed (batch) by ${by}`, color: '#2563eb', by });
+  });
+  _complianceSelected.clear();
+  saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance confirm');
+}
+
+function batchSetDeadline() {
+  const rooms = [..._complianceSelected];
+  if (!rooms.length) return;
+  const deadline = prompt(`Set compliance deadline for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} (YYYY-MM-DD):`);
+  if (!deadline || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return;
+  rooms.forEach(room => {
+    const r = REGISTRY_LIST.find(x => x.room === room);
+    if (r) r.complianceDeadline = deadline;
+  });
+  saveRegistryState(); renderComplianceView(); publishAndSync('batch deadline set');
+}
+
+function batchResolveCompliance() {
+  const rooms = [..._complianceSelected];
+  if (!rooms.length) return;
+  const revert = confirm(`Resolve ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}?\n\nOK = Resolve as confirmed (keep restrictions)\nCancel = Abort`);
+  if (!revert) return;
+  const by = getOperatorName();
+  const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
+  rooms.forEach(room => {
+    const r = REGISTRY_LIST.find(x => x.room === room);
+    if (!r) return;
+    r.confirm = 'Confirmed';
+    r.complianceResolved = 'updated';
+    r.complianceResolvedBy = by;
+    r.complianceResolvedAt = dateStr;
+    r.complianceResolutionNote = 'Batch resolved';
+    r.complianceResolvedRestrictions = r.rawRestriction || r.tags.join(', ');
+    RECENT_LOG.unshift({ date: dateStr, room, type: 'update', desc: `Compliance resolved (batch) by ${by}`, color: '#2563eb', by });
+  });
+  _complianceSelected.clear();
+  saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance resolve');
+}
+
+// v29: Edit resident from compliance view — opens registry direct edit modal
+function openEditResident(room) {
+  if (typeof openRegistryEditor === 'function') {
+    openRegistryEditor(room);
+  }
+}
+
+// v29: Format ISO date as compact "Apr 30"
+function formatCompactDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr + 'T12:00:00');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+// v29: Resident history modal — shows all RECENT_LOG entries for a room
+function openResidentHistory(room) {
+  const entries = RECENT_LOG.filter(e => e.room && e.room.toLowerCase() === room.toLowerCase());
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay open';
+  modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+
+  const content = entries.length
+    ? entries.slice(0, 50).map(e => `
+      <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <span style="min-width:55px;color:var(--muted);font-size:12px;">${e.date || ''}</span>
+        <span style="min-width:60px;"><span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:${e.color || '#6b7280'}20;color:${e.color || '#6b7280'}">${e.type || ''}</span></span>
+        <span style="flex:1;">${e.desc || ''}</span>
+        <span style="color:var(--muted);font-size:11px;">${e.by || ''}</span>
+      </div>`).join('')
+    : '<div style="padding:20px;text-align:center;color:var(--muted);">No history found for this room.</div>';
+
+  modal.innerHTML = `<div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title">Room ${room} — Change History</div>
+      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:400px;overflow-y:auto;padding:12px 16px;">
+      ${content}
+    </div>
+    <div class="modal-footer" style="padding:10px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
+      ${entries.length} event${entries.length !== 1 ? 's' : ''} recorded
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+// v29: Print compliance list
+function printComplianceList() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const relevant = getComplianceResidents(false);
+  const filterEl = document.getElementById('compliance-filter');
+  const activeFilter = filterEl ? filterEl.value : 'all';
+  const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
+
+  const rows = filtered.map(r => {
+    const reason = getComplianceReason(r);
+    const dl = r.complianceDeadline ? formatCompactDate(r.complianceDeadline) : '—';
+    const imported = r.lastImported ? formatCompactDate(r.lastImported) : '—';
+    return `<tr>
+      <td style="font-family:monospace;font-weight:700;">${r.room}</td>
+      <td>${r.rawRestriction || r.tags.join(', ')}</td>
+      <td style="font-weight:600;">${r.confirm}</td>
+      <td>${dl}</td>
+      <td>${reason}</td>
+      <td>${r.assignedTo || ''}</td>
+      <td>${r.moderateNote || ''}</td>
+      <td>${imported}</td>
+    </tr>`;
+  }).join('');
+
+  const filterLabel = activeFilter === 'all' ? 'All restrictions' : activeFilter;
+  const dateStr = new Date().toLocaleDateString('en-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Compliance Review — ${dateStr}</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; padding: 6px 8px; border-bottom: 2px solid #ccc; }
+    td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; }
+    tr:nth-child(even) { background: #f9fafb; }
+    @media print { body { margin: 10px; } }
+  </style></head><body>
+  <h1>Compliance Review — CONC Rexdale Shelter</h1>
+  <div class="meta">${dateStr} · ${filtered.length} residents · Filter: ${filterLabel}</div>
+  <table>
+    <thead><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Assigned</th><th>Notes</th><th>Imported</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+}
+
 function setComplianceSort(col) {
   if (_complianceSortCol === col) _complianceSortAsc = !_complianceSortAsc;
   else { _complianceSortCol = col; _complianceSortAsc = true; }
@@ -8197,12 +8401,15 @@ function renderComplianceView() {
   const arrow = (col) => _complianceSortCol === col ? (_complianceSortAsc ? ' ▲' : ' ▼') : '';
   if (thead) {
     thead.innerHTML = `<tr>
+      <th style="width:32px;"></th>
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('room')">Room${arrow('room')}</th>
       <th>Restrictions</th>
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('status')">Status${arrow('status')}</th>
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('deadline')">Deadline${arrow('deadline')}</th>
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('reason')">Reason${arrow('reason')}</th>
+      <th>Assigned</th>
       <th>Notes</th>
+      <th style="font-size:10px;">Imported</th>
       <th></th>
     </tr>`;
   }
@@ -8231,30 +8438,55 @@ function renderComplianceView() {
     summaryEl.style.display = 'none';
   }
 
-  if (!relevant.length) {
-    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No residents with outstanding compliance requirements.</td></tr>';
+  // v29: Populate filter dropdown
+  const filterEl = document.getElementById('compliance-filter');
+  if (filterEl) {
+    const allTags = new Set();
+    relevant.forEach(r => (r.tags || []).forEach(t => { if (t !== 'Regular') allTags.add(t); }));
+    const sortedTags = [...allTags].sort();
+    const currentFilter = filterEl.value;
+    filterEl.innerHTML = '<option value="all">All restrictions (' + relevant.length + ')</option>' +
+      sortedTags.map(t => {
+        const count = relevant.filter(r => (r.tags || []).includes(t)).length;
+        return `<option value="${t}" ${currentFilter === t ? 'selected' : ''}>${t} (${count})</option>`;
+      }).join('');
+  }
+
+  // v29: Apply filter
+  const activeFilter = filterEl ? filterEl.value : 'all';
+  const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
+
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">No residents with outstanding compliance requirements.</td></tr>';
   } else {
-    body.innerHTML = relevant.map((r) => {
+    body.innerHTML = filtered.map((r) => {
       const dl = r.complianceDeadline ? new Date(r.complianceDeadline) : null;
       if (dl) dl.setHours(0,0,0,0);
       const overdue = dl && dl < today;
       const soon = dl && !overdue && (dl - today) <= 7 * 86400000;
       const dlColor = overdue ? 'var(--red)' : soon ? '#d97706' : 'inherit';
-      // --- Row urgency highlighting (#7) ---
       const rowBg = overdue ? 'background:#fef2f2;' : soon ? 'background:#fffbeb;' : '';
       const rowBorder = overdue ? 'border-left:3px solid #dc2626;' : soon ? 'border-left:3px solid #d97706;' : 'border-left:3px solid transparent;';
       const moderateBadge = r.isModerate ? '<span class="tag tag-moderate" style="font-size:11px;">⚠ Moderate</span>' : '';
-      // --- Reason column (#9) ---
       const reason = getComplianceReason(r);
       const reasonColor = reason.includes('Overdue') ? '#dc2626' : reason.includes('this week') ? '#d97706' : 'var(--muted)';
+      const isChecked = _complianceSelected.has(r.room) ? 'checked' : '';
+      const importedDate = r.lastImported ? formatCompactDate(r.lastImported) : '—';
       return `<tr style="${rowBg}${rowBorder}">
+        <td style="width:32px;text-align:center;"><input type="checkbox" ${isChecked} onchange="toggleComplianceSelect('${r.room}',this.checked)"></td>
         <td><span class="room-num">${r.room}</span></td>
         <td style="font-size:12px;">${r.rawRestriction || r.tags.join(', ')} ${moderateBadge}</td>
         <td><span style="font-size:12px;font-weight:600;color:${r.confirm==='Provisional'?'#d97706':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid)'}">${r.confirm}</span></td>
         <td><input type="date" value="${r.complianceDeadline || ''}" style="font-size:12px;color:${dlColor};border:1px solid var(--border);border-radius:6px;padding:3px 6px;" onchange="updateComplianceField('${r.room}','complianceDeadline',this.value)"></td>
         <td style="font-size:12px;color:${reasonColor};">${reason}</td>
+        <td><input type="text" value="${(r.assignedTo || '').replace(/"/g,'&quot;')}" placeholder="—" style="font-size:11px;width:80px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="updateComplianceField('${r.room}','assignedTo',this.value)"></td>
         <td><input type="text" value="${(r.moderateNote || '').replace(/"/g,'&quot;')}" placeholder="H&W notes…" style="font-size:12px;width:100%;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="updateComplianceField('${r.room}','moderateNote',this.value)"></td>
-        <td style="text-align:right;"><button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="openResolveModal('${r.room}')">Resolve…</button></td>
+        <td style="font-size:11px;color:var(--muted);white-space:nowrap;">${importedDate}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="openResidentHistory('${r.room}')" title="View change history">⏱</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="openEditResident('${r.room}')" title="Edit restrictions">Edit</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="openResolveModal('${r.room}')">Resolve…</button>
+        </td>
       </tr>`;
     }).join('');
   }
@@ -8282,6 +8514,10 @@ function renderComplianceView() {
 
   // Update badge (#2)
   updateComplianceBadge();
+  // v29: Update batch selection bar
+  updateComplianceBatchBar();
+  const selectAllEl = document.getElementById('compliance-select-all');
+  if (selectAllEl) selectAllEl.checked = (filtered.length > 0 && _complianceSelected.size >= filtered.length);
 }
 
 // --- Re-open resolved compliance item (#6) ---
@@ -8452,8 +8688,10 @@ function exportComplianceXlsx() {
       'Deadline': r.complianceDeadline || '',
       'Overdue': (dl && dl < today) ? 'Yes' : '',
       'Reason': getComplianceReason(r),
+      'Assigned To': r.assignedTo || '',
       'Moderate Allergy': r.isModerate ? 'Yes' : '',
-      'Notes': r.moderateNote || ''
+      'Notes': r.moderateNote || '',
+      'Last Imported': r.lastImported || ''
     };
   });
 
@@ -8482,11 +8720,13 @@ function exportComplianceXlsx() {
       { wch: 14 }, // Deadline
       { wch: 10 }, // Overdue
       { wch: 36 }, // Reason
+      { wch: 14 }, // Assigned To
       { wch: 16 }, // Moderate Allergy
       { wch: 50 }, // Notes
+      { wch: 14 }, // Last Imported
     ];
-    const headers = ['Room','Restrictions','Status','Deadline','Overdue','Reason','Moderate Allergy','Notes'];
-    const cols = 'ABCDEFGH';
+    const headers = ['Room','Restrictions','Status','Deadline','Overdue','Reason','Assigned To','Moderate Allergy','Notes','Last Imported'];
+    const cols = 'ABCDEFGHIJ';
     headers.forEach((h, i) => {
       const cell = ws[cols[i] + '1'];
       if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'D6E4DD' } } };
@@ -8665,14 +8905,14 @@ function removeAnaphRoom(room) {
 // ============================================================
 function buildMenuJSON() {
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:27 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:29 },
     menu: getMenuData()
   };
 }
 
 function buildStateJSON() {
   return {
-    _meta: { source:'KitchenDOOR', version:27, exported:new Date().toISOString(),
+    _meta: { source:'KitchenDOOR', version:29, exported:new Date().toISOString(),
              site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length,
              lastModifiedBy: getOperatorName() || 'unknown' },
     residents: REGISTRY_LIST,
@@ -8692,7 +8932,7 @@ function buildRegistrySummaryJSON() {
     if(r.isModerate) mc++;
   });
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:27 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:29 },
     headcounts: { total:REGISTRY_LIST.length, regular:sc['Regular']||0, halal:sc['Halal']||0, vegan:sc['Vegan / Vegetarian']||0, diabetic:sc['Diabetic']||0, glutenFree:sc['Gluten Free']||0, noDairy:sc['No Dairy']||0 },
     tagDistribution: tc,
     flags: { anaphylactic:ac, moderate:mc }
@@ -8746,7 +8986,7 @@ function buildRoutingByMealJSON() {
   });
 
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:27 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:29 },
     routing: result
   };
 }
@@ -13912,6 +14152,16 @@ function commitImportToQueue() {
   // Track import for daily prompt and output stamping
   localStorage.setItem('concLastImportDate', new Date().toDateString());
   localStorage.setItem('concLastImportFile', IMPORT_STATE.fileName || '');
+
+  // v29: Stamp lastImported on all residents present in the import file
+  const _importDate = new Date().toISOString().slice(0, 10);
+  if (IMPORT_STATE && IMPORT_STATE.entries) {
+    IMPORT_STATE.entries.forEach(e => {
+      const r = REGISTRY_MAP[e.room.toLowerCase()];
+      if (r) r.lastImported = _importDate;
+    });
+    saveRegistryState();
+  }
 
   closeImportDialog();
   renderQueue();
