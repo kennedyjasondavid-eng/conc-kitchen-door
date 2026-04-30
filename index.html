@@ -978,25 +978,26 @@ let _recipeDataSource = 'fallback';
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div style="font-size:13px;color:var(--muted);">Residents with outstanding compliance requirements. Update inline or resolve individual items.</div>
         <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">📧 Draft Digest</button>
           <button class="btn btn-ghost btn-sm" onclick="printComplianceList()">🖨 Print</button>
           <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
         </div>
       </div>
       <div id="compliance-summary-bar" style="display:none;font-size:13px;margin-bottom:10px;padding:8px 12px;background:var(--bg-soft, #f9fafb);border-radius:8px;border:1px solid var(--border);"></div>
       <!-- v29: Batch toolbar -->
-      <div id="compliance-batch-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;">
+      <div id="compliance-batch-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;">
         <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;">
           <input type="checkbox" id="compliance-select-all" onchange="toggleAllCompliance(this.checked)"> Select all
         </label>
-        <span id="compliance-selected-count" style="font-size:11px;color:var(--muted);min-width:70px;">0 selected</span>
+        <span id="compliance-selected-count" style="font-size:11px;color:var(--muted);white-space:nowrap;">0 selected</span>
         <div style="height:16px;border-left:1px solid var(--border);"></div>
-        <select id="compliance-filter" onchange="renderComplianceView()" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;">
+        <select id="compliance-filter" onchange="renderComplianceView()" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;max-width:200px;">
           <option value="all">All restrictions</option>
         </select>
         <div style="flex:1"></div>
-        <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Confirm Selected</button>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
-        <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="batchResolveCompliance()" id="compliance-batch-resolve" disabled>Resolve Selected…</button>
+        <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);white-space:nowrap;" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Confirm Selected</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchResolveCompliance()" id="compliance-batch-resolve" disabled>Resolve Selected…</button>
       </div>
       <div id="compliance-pending-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
         <strong style="color:#92400e;">Saving…</strong>
@@ -8244,15 +8245,15 @@ function openResidentHistory(room) {
       </div>`).join('')
     : '<div style="padding:20px;text-align:center;color:var(--muted);">No history found for this room.</div>';
 
-  modal.innerHTML = `<div class="modal" style="max-width:640px;">
+  modal.innerHTML = `<div class="modal-box" style="max-width:640px;">
     <div class="modal-header">
-      <div class="modal-title">Room ${room} — Change History</div>
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      <h2>Room ${room} — Change History</h2>
+      <button class="btn btn-ghost btn-sm" onclick="this.closest('.modal-overlay').remove()">✕</button>
     </div>
-    <div class="modal-body" style="max-height:400px;overflow-y:auto;padding:12px 16px;">
+    <div class="modal-body" style="max-height:400px;overflow-y:auto;">
       ${content}
     </div>
-    <div class="modal-footer" style="padding:10px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
+    <div style="padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
       ${entries.length} event${entries.length !== 1 ? 's' : ''} recorded
     </div>
   </div>`;
@@ -8277,7 +8278,6 @@ function printComplianceList() {
       <td style="font-weight:600;">${r.confirm}</td>
       <td>${dl}</td>
       <td>${reason}</td>
-      <td>${r.assignedTo || ''}</td>
       <td>${r.moderateNote || ''}</td>
       <td>${imported}</td>
     </tr>`;
@@ -8301,12 +8301,117 @@ function printComplianceList() {
   <h1>Compliance Review — CONC Rexdale Shelter</h1>
   <div class="meta">${dateStr} · ${filtered.length} residents · Filter: ${filterLabel}</div>
   <table>
-    <thead><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Assigned</th><th>Notes</th><th>Imported</th></tr></thead>
+    <thead><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Notes</th><th>Last on List</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></body></html>`);
   w.document.close();
   w.focus();
   setTimeout(() => w.print(), 300);
+}
+
+// v29: Draft compliance digest email for H&W team
+function draftComplianceDigest() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const relevant = getComplianceResidents(false);
+  if (!relevant.length) { showToast('No outstanding compliance items.'); return; }
+
+  // Group by restriction
+  const groups = {};
+  relevant.forEach(r => {
+    const key = r.rawRestriction || r.tags.join(', ');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  // Separate overdue/deadline/no-deadline
+  const overdue = relevant.filter(r => {
+    if (!r.complianceDeadline) return false;
+    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
+    return dl < today;
+  });
+  const withDeadline = relevant.filter(r => {
+    if (!r.complianceDeadline) return false;
+    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
+    return dl >= today;
+  });
+  const noDeadline = relevant.filter(r => !r.complianceDeadline);
+
+  const dateStr = new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Build email body
+  let body = `Hi,\n\nPlease find below the current dietary compliance review for Rexdale Shelter as of ${dateStr}.\n\n`;
+  body += `${relevant.length} resident${relevant.length !== 1 ? 's' : ''} have outstanding dietary restrictions requiring Health & Wellness documentation.\n\n`;
+
+  if (overdue.length) {
+    body += `--- OVERDUE (${overdue.length}) ---\n`;
+    overdue.forEach(r => {
+      body += `  Room ${r.room} — ${r.rawRestriction || r.tags.join(', ')} — deadline was ${formatCompactDate(r.complianceDeadline)}\n`;
+    });
+    body += '\n';
+  }
+
+  if (withDeadline.length) {
+    body += `--- UPCOMING DEADLINES (${withDeadline.length}) ---\n`;
+    withDeadline.forEach(r => {
+      body += `  Room ${r.room} — ${r.rawRestriction || r.tags.join(', ')} — due ${formatCompactDate(r.complianceDeadline)}\n`;
+    });
+    body += '\n';
+  }
+
+  if (noDeadline.length) {
+    body += `--- NO DEADLINE SET (${noDeadline.length}) ---\n`;
+    // Group these by restriction for readability
+    const ndGroups = {};
+    noDeadline.forEach(r => {
+      const key = r.rawRestriction || r.tags.join(', ');
+      if (!ndGroups[key]) ndGroups[key] = [];
+      ndGroups[key].push(r.room);
+    });
+    Object.entries(ndGroups).sort((a,b) => b[1].length - a[1].length).forEach(([restriction, rooms]) => {
+      body += `  ${restriction}: Rooms ${rooms.sort((a,b) => a.localeCompare(b, undefined, {numeric:true})).join(', ')}\n`;
+    });
+    body += '\n';
+  }
+
+  body += `Could you please provide documentation for these residents so we can update their records?\n\nThank you,\n${getOperatorName() || 'Food Services'}`;
+
+  const subject = `Dietary Compliance Review — ${relevant.length} residents need H&W documentation (${dateStr})`;
+
+  // Open in a preview window with Copy and Open in Mail buttons
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Compliance Digest</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 14px; margin: 20px; max-width: 700px; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 16px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; }
+    .toolbar button { padding: 8px 16px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .btn-primary { background: #1b4332; color: #fff; border-color: #1b4332; }
+    .btn-secondary { background: #fff; }
+    .subject { font-weight: 700; font-size: 13px; color: #333; margin-bottom: 8px; }
+    pre { white-space: pre-wrap; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; background: #fafafa; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .copied { color: #16a34a; font-size: 12px; font-weight: 600; display: none; }
+  </style></head><body>
+  <h2 style="margin-bottom:4px;">Compliance Digest</h2>
+  <p style="font-size:12px;color:#666;margin-bottom:12px;">Review the email below. Copy it or open it in your mail app.</p>
+  <div class="toolbar">
+    <button class="btn-primary" onclick="copyDigest()">📋 Copy to Clipboard</button>
+    <a href="mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="text-decoration:none;"><button class="btn-secondary">📧 Open in Mail</button></a>
+    <span class="copied" id="copied-msg">✓ Copied!</span>
+  </div>
+  <div class="subject">Subject: ${subject.replace(/</g,'&lt;')}</div>
+  <pre id="digest-body">${body.replace(/</g,'&lt;')}</pre>
+  <script>
+    function copyDigest() {
+      const text = document.getElementById('digest-body').textContent;
+      navigator.clipboard.writeText('Subject: ' + ${JSON.stringify(subject)} + '\\n\\n' + text).then(() => {
+        const msg = document.getElementById('copied-msg');
+        msg.style.display = 'inline';
+        setTimeout(() => msg.style.display = 'none', 2000);
+      });
+    }
+  </script>
+  </body></html>`);
+  w.document.close();
+  w.focus();
 }
 
 function setComplianceSort(col) {
@@ -8407,9 +8512,8 @@ function renderComplianceView() {
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('status')">Status${arrow('status')}</th>
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('deadline')">Deadline${arrow('deadline')}</th>
       <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('reason')">Reason${arrow('reason')}</th>
-      <th>Assigned</th>
       <th>Notes</th>
-      <th style="font-size:10px;">Imported</th>
+      <th style="font-size:10px;">Last on List</th>
       <th></th>
     </tr>`;
   }
@@ -8457,7 +8561,7 @@ function renderComplianceView() {
   const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
 
   if (!filtered.length) {
-    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">No residents with outstanding compliance requirements.</td></tr>';
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No residents with outstanding compliance requirements.</td></tr>';
   } else {
     body.innerHTML = filtered.map((r) => {
       const dl = r.complianceDeadline ? new Date(r.complianceDeadline) : null;
@@ -8479,7 +8583,6 @@ function renderComplianceView() {
         <td><span style="font-size:12px;font-weight:600;color:${r.confirm==='Provisional'?'#d97706':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid)'}">${r.confirm}</span></td>
         <td><input type="date" value="${r.complianceDeadline || ''}" style="font-size:12px;color:${dlColor};border:1px solid var(--border);border-radius:6px;padding:3px 6px;" onchange="updateComplianceField('${r.room}','complianceDeadline',this.value)"></td>
         <td style="font-size:12px;color:${reasonColor};">${reason}</td>
-        <td><input type="text" value="${(r.assignedTo || '').replace(/"/g,'&quot;')}" placeholder="—" style="font-size:11px;width:80px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="updateComplianceField('${r.room}','assignedTo',this.value)"></td>
         <td><input type="text" value="${(r.moderateNote || '').replace(/"/g,'&quot;')}" placeholder="H&W notes…" style="font-size:12px;width:100%;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="updateComplianceField('${r.room}','moderateNote',this.value)"></td>
         <td style="font-size:11px;color:var(--muted);white-space:nowrap;">${importedDate}</td>
         <td style="text-align:right;white-space:nowrap;">
@@ -8688,10 +8791,9 @@ function exportComplianceXlsx() {
       'Deadline': r.complianceDeadline || '',
       'Overdue': (dl && dl < today) ? 'Yes' : '',
       'Reason': getComplianceReason(r),
-      'Assigned To': r.assignedTo || '',
       'Moderate Allergy': r.isModerate ? 'Yes' : '',
       'Notes': r.moderateNote || '',
-      'Last Imported': r.lastImported || ''
+      'Last on List': r.lastImported || ''
     };
   });
 
@@ -8720,13 +8822,12 @@ function exportComplianceXlsx() {
       { wch: 14 }, // Deadline
       { wch: 10 }, // Overdue
       { wch: 36 }, // Reason
-      { wch: 14 }, // Assigned To
       { wch: 16 }, // Moderate Allergy
       { wch: 50 }, // Notes
-      { wch: 14 }, // Last Imported
+      { wch: 14 }, // Last on List
     ];
-    const headers = ['Room','Restrictions','Status','Deadline','Overdue','Reason','Assigned To','Moderate Allergy','Notes','Last Imported'];
-    const cols = 'ABCDEFGHIJ';
+    const headers = ['Room','Restrictions','Status','Deadline','Overdue','Reason','Moderate Allergy','Notes','Last on List'];
+    const cols = 'ABCDEFGHI';
     headers.forEach((h, i) => {
       const cell = ws[cols[i] + '1'];
       if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'D6E4DD' } } };
@@ -14336,6 +14437,25 @@ initDynamic();
   if (promoted > 0) {
     saveRegistryState();
     console.log('[DOOR] Auto-promoted', promoted, 'residents from Provisional to Confirmed (auto-tier tags only)');
+  }
+})();
+
+// v29: Backfill lastImported for residents that don't have it yet.
+// Uses the last known import date — if they're still in the registry, they were on that list.
+(function backfillLastImported() {
+  const lastDate = localStorage.getItem('concLastImportDate');
+  if (!lastDate) return;
+  // Parse "Thu Apr 30 2026" format to ISO
+  const d = new Date(lastDate);
+  if (isNaN(d)) return;
+  const iso = d.toISOString().slice(0, 10);
+  let filled = 0;
+  REGISTRY_LIST.forEach(r => {
+    if (!r.lastImported) { r.lastImported = iso; filled++; }
+  });
+  if (filled > 0) {
+    saveRegistryState();
+    console.log('[DOOR] Backfilled lastImported on', filled, 'residents with', iso);
   }
 })();
 
