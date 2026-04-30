@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 27,
-    "exported": "2026-04-29T23:02:08.555Z",
+    "exported": "2026-04-30T00:11:11.675Z",
     "site": "rexdale",
     "count": 174,
     "lastModifiedBy": "JK"
@@ -1823,20 +1823,22 @@
     },
     {
       "room": "801",
-      "section": "Regular",
+      "section": "Bland",
       "tags": [
-        "No Spicy"
+        "No Spicy",
+        "Bland Diet"
       ],
       "confirm": "Provisional",
       "confirmBy": "Auto",
       "isAnaph": false,
-      "rawRestriction": "No Spicy",
+      "rawRestriction": "No Spicy, Bland Diet",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
       "pendingReversion": false,
       "restrictions": [
-        "No Spicy"
+        "No Spicy",
+        "Bland Diet"
       ],
       "allergenFlags": [],
       "accommodations": [],
@@ -3486,7 +3488,14 @@
       "avoidances": [
         "No Mushroom"
       ],
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "_activeConflicts": [
+        {
+          "tag": "No Mushroom",
+          "mealFlag": "hasMushroom",
+          "tier": "accommodation"
+        }
+      ]
     },
     {
       "room": "315b",
@@ -3666,7 +3675,14 @@
       "avoidances": [
         "No Peanuts"
       ],
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "_activeConflicts": [
+        {
+          "tag": "No Peanuts",
+          "mealFlag": "hasPeanuts",
+          "tier": "allergen"
+        }
+      ]
     },
     {
       "room": "608a",
