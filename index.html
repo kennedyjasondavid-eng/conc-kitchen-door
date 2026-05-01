@@ -320,39 +320,64 @@
     body.printing-labels .screen,
     body.printing-labels .modal-overlay { display: none !important; }
     body.printing-labels #labels-print-view { display: block !important; }
+    body.printing-labels #labels-print-header { display: none !important; }
     body.printing-labels #screen-plating { display: none !important; }
   }
+  /* Avery 5160/8160 — 1" × 2-5/8", 3 cols × 10 rows, Letter sheet */
   #labels-print-view {
     display: none;
     font-family: Calibri, Arial, sans-serif;
-    padding: 10mm;
+    padding: 0;
   }
   .label-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 3mm;
+    grid-template-columns: repeat(3, 66.675mm);
+    gap: 0mm 3.175mm;
+    justify-content: center;
   }
   .label-cell {
-    border: 1.5px solid #999;
-    padding: 6px 8px;
-    min-height: 58px;
+    border: none;
+    padding: 4px 6px 3px;
+    height: 25.4mm;
+    box-sizing: border-box;
+    overflow: hidden;
     page-break-inside: avoid;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    position: relative;
   }
   .label-room {
     font-size: 16px;
     font-weight: 700;
-    display: block;
-    margin-bottom: 3px;
+    display: inline-block;
     font-family: Calibri, Arial, sans-serif;
   }
-  .label-restriction {
-    font-size: 11px;
+  .label-section {
+    font-size: 9px;
     font-weight: 700;
-    line-height: 1.3;
+    color: #555;
+    float: right;
+    text-align: right;
+    font-family: Calibri, Arial, sans-serif;
+    margin-top: 2px;
+  }
+  .label-restriction {
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.25;
     font-family: Calibri, Arial, sans-serif;
     display: block;
+    margin-top: 1px;
+    color: #222;
+  }
+  .label-flag {
+    font-size: 9px;
+    font-weight: 700;
+    font-family: Calibri, Arial, sans-serif;
+    display: block;
+    position: absolute;
+    bottom: 3px;
+    left: 6px;
   }
 
   /* ROUTING PREVIEW */
@@ -15166,7 +15191,7 @@ function buildLabelsXlsx(ds) {
         lblRow3[col+1] = xCell('', F.std, null, B.thin);
         return;
       }
-      const bg = r.isAnaph ? 'F2DCDC' : (r.tags||[]).includes('Diabetic') ? 'D9EAD3' : r.section === 'Halal' ? 'E8F5E9' : r.section === 'Vegan' ? 'E3F2FD' : 'FFFFCC';
+      const bg = r.isAnaph ? 'FFC7CE' : (r.tags||[]).includes('Diabetic') ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
       const roomFont = {name:'Calibri', sz:18, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
       const sectionFont = {name:'Calibri', sz:9, bold:true, color:{rgb: '555555'}};
       const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
@@ -15681,21 +15706,19 @@ function printLabels() {
     site + ' · Dietary Labels · ' + dateStr + (mealInfo ? ' · ' + mealInfo : '') + ' · ' + restricted.length + ' residents';
 
   function getLabelBg(r) {
-    if (r.isAnaph) return '#FF0000';
+    if (r.isAnaph) return '#FFC7CE';
+    if ((r.tags||[]).includes('Diabetic')) return '#92D050';
     const s = r.section || '';
-    const tags = (r.tags || []).join(' ').toLowerCase();
-    const raw = (r.rawRestriction || '').toLowerCase();
-    if (s === 'Vegan / Vegetarian' || tags.includes('vegan') || tags.includes('vegetarian')) {
-      if (tags.includes('diabetic') || raw.includes('diabetic')) return '#92D050';
-      return '#FFFFFF';
-    }
-    if (s === 'Diabetic' || tags.includes('diabetic')) return '#92D050';
-    if (r.isModerate || r.confirm === 'Provisional' || r.pendingReversion) return '#FFFF00';
-    return '#FFFFFF';
+    if (s === 'Halal' || (r.tags||[]).includes('Halal')) return '#C6EFCE';
+    if (/vegan|vegetarian/i.test(s) || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) return '#BDD7EE';
+    return '#FFFFCC';
   }
 
-  function getLabelTextColor(bg) {
-    return bg === '#FF0000' ? '#FFFFFF' : '#000000';
+  function getLabelFlag(r) {
+    if (r.isAnaph) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
+    if (r.isModerate) return {text:'⚡ Moderate allergy', color:'#994400'};
+    if ((r.tags||[]).includes('Diabetic')) return {text:'🥗 Less starch / more veg', color:'#444'};
+    return null;
   }
 
   const extraRaw = (document.getElementById('labels-extra-names') || {}).value || '';
@@ -15703,11 +15726,14 @@ function printLabels() {
 
   const restrictedHtml = restricted.map(r => {
     const bg = getLabelBg(r);
-    const fg = getLabelTextColor(bg);
     const restriction = r.rawRestriction || r.tags.filter(t => t !== 'Regular').join(', ');
-    return `<div class="label-cell" style="background:${bg};color:${fg};">
-      <span class="label-room" style="color:${fg};">${r.room}</span>
-      <span class="label-restriction" style="color:${fg};">${restriction}</span>
+    const sectionLabel = r.section || 'Regular';
+    const flag = getLabelFlag(r);
+    return `<div class="label-cell" style="background:${bg};">
+      <span class="label-room">${r.room}</span>
+      <span class="label-section">${sectionLabel}</span>
+      <span class="label-restriction">${restriction}</span>
+      ${flag ? `<span class="label-flag" style="color:${flag.color};">${flag.text}</span>` : ''}
     </div>`;
   }).join('');
 
@@ -15718,9 +15744,16 @@ function printLabels() {
 
   document.getElementById('labels-print-grid').innerHTML = restrictedHtml + extraHtml;
 
+  // Inject Avery 5160 page margins for label printing only
+  const averyStyle = document.createElement('style');
+  averyStyle.id = 'avery-page-style';
+  averyStyle.textContent = '@page { size: letter portrait; margin: 12.7mm 4.7625mm; }';
+  document.head.appendChild(averyStyle);
+
   document.body.classList.add('printing-labels');
   window.print();
   document.body.classList.remove('printing-labels');
+  document.getElementById('avery-page-style')?.remove();
 }
 
 function openDemoFile(filename, idx) {
@@ -15892,6 +15925,10 @@ window.addEventListener('load', initSiteSelector);
     </div>
     <div class="modal-body" style="overflow:visible;">
       <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">Dietary labels will be generated for all restricted residents. Add extra labels below for events, board dinners, or catering.</p>
+      <div style="font-size:11px;color:var(--muted);background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:14px;line-height:1.5;">
+        <strong style="color:#444;">Template:</strong> Label size 1″×2⅝″ — Avery 5160 / 8160 (30 per sheet, 3×10)<br>
+        <strong style="color:#444;">Print settings:</strong> Margins → None · Scale → 100% · Background graphics → On
+      </div>
       <div class="form-group">
         <label>Extra labels (optional)</label>
         <textarea id="labels-extra-names" placeholder="One name or label per line&#10;e.g.&#10;Katrina Chan&#10;Rob Lavelle&#10;Leslie O'Reilly" style="min-height:120px;font-size:13px;"></textarea>
