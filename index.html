@@ -15160,20 +15160,16 @@ function buildLabelsXlsx(ds) {
   const merges = [];
   let R = 0;
 
-  // Header row
-  rows[R] = [
-    xCell('CONC Rexdale — Dietary Labels  ·  '+ds, F.whB, '1B4332', B.thick),
-    xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick),
-    xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick), xCell('',F.whB,'1B4332',B.thick)
-  ];
-  merges.push({s:{r:R,c:0},e:{r:R,c:5}}); R++;
+  // No header row — pixel-perfect Avery 5160 label stock alignment
 
   const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t => t === 'Regular')).sort((a,b) => {
     const na = parseInt(a.room), nb = parseInt(b.room);
     return na !== nb ? na - nb : a.room.localeCompare(b.room);
   });
 
-  // 3 labels per row: cols 0-1 = label 1, cols 2-3 = label 2, cols 4-5 = label 3
+  // 3 labels across: cols 0-1, 2-3, 4-5
+  // Each label = 3 xlsx rows (room, restriction, flag), NO gap row
+  // 24 + 28 + 20 = 72pt = 1" per label = Avery 5160 row height
   for (let i = 0; i < restricted.length; i += 3) {
     const lblRow1 = [null,null,null,null,null,null];
     const lblRow2 = [null,null,null,null,null,null];
@@ -15183,54 +15179,62 @@ function buildLabelsXlsx(ds) {
       const r = restricted[i + slot];
       const col = slot * 2;
       if (!r) {
-        lblRow1[col] = xCell('', F.std, null, B.thin);
-        lblRow1[col+1] = xCell('', F.std, null, B.thin);
-        lblRow2[col] = xCell('', F.std, null, B.thin);
-        lblRow2[col+1] = xCell('', F.std, null, B.thin);
-        lblRow3[col] = xCell('', F.std, null, B.thin);
-        lblRow3[col+1] = xCell('', F.std, null, B.thin);
+        lblRow1[col] = xCell('', F.std, null, null);
+        lblRow1[col+1] = xCell('', F.std, null, null);
+        lblRow2[col] = xCell('', F.std, null, null);
+        lblRow2[col+1] = xCell('', F.std, null, null);
+        lblRow3[col] = xCell('', F.std, null, null);
+        lblRow3[col+1] = xCell('', F.std, null, null);
         return;
       }
       const bg = r.isAnaph ? 'FFC7CE' : (r.tags||[]).includes('Diabetic') ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
-      const roomFont = {name:'Calibri', sz:18, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
+      const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
       const sectionFont = {name:'Calibri', sz:9, bold:true, color:{rgb: '555555'}};
       const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
 
-      // Row 1: room number (large) | section
-      lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, border:B.thin.top ? {top:B.thin.top,left:B.thin.left} : B.thin, alignment:{vertical:'center'}}};
-      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, border:{top:B.thin.top,right:B.thin.right}, alignment:{vertical:'center',horizontal:'right'}}};
-      // Row 2: restrictions (spans 2)
-      lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, border:{left:B.thin.left,right:B.thin.right}, alignment:{wrapText:true,vertical:'top'}}};
-      lblRow2[col+1] = xCell('', restFont, bg, {left:B.thin.left,right:B.thin.right});
-      // Row 3: flag + bottom border
+      // Row 1: room number | section label
+      lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
+      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
+      // Row 2: restrictions (merged across 2 cols)
+      lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
+      lblRow2[col+1] = xCell('', restFont, bg, null);
+      // Row 3: flag note
       const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '🥗 Less starch / more veg' : '';
-      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, border:{bottom:B.thin.bottom,left:B.thin.left}, alignment:{vertical:'center'}}};
-      lblRow3[col+1] = xCell('', F.std, bg, {bottom:B.thin.bottom,right:B.thin.right});
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
+      lblRow3[col+1] = xCell('', F.std, bg, null);
 
-      // Merge restriction cells across 2 columns
       merges.push({s:{r:R+1,c:col},e:{r:R+1,c:col+1}});
     });
 
     rows[R] = lblRow1; R++;
     rows[R] = lblRow2; R++;
     rows[R] = lblRow3; R++;
-    // Small gap row
-    rows[R] = [xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null),xCell('',F.std,null,null)]; R++;
+    // No gap row — Avery 5160 vertical gap is 0
   }
 
   rows.forEach((row, ri) => { row.forEach((cell, ci) => { if(cell) ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
   ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:5}});
   ws['!merges'] = merges;
-  ws['!cols'] = [{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:22}];
+  // Each label pair ≈ 2.625" wide (wch 13 + 22 = 35 ≈ 2.6")
+  ws['!cols'] = [{wch:13},{wch:22},{wch:13},{wch:22},{wch:13},{wch:22}];
+  // Row heights: 3 rows per label = 72pt = 1" (Avery 5160)
   ws['!rows'] = [];
   for (let r=0; r<R; r++) {
-    const mod3 = (r - 1) % 4;
-    if (r === 0) ws['!rows'][r] = {hpt:18};
-    else if (mod3 === 0) ws['!rows'][r] = {hpt:22}; // room row
-    else if (mod3 === 1) ws['!rows'][r] = {hpt:32}; // restriction row
-    else if (mod3 === 2) ws['!rows'][r] = {hpt:16}; // flag row
-    else ws['!rows'][r] = {hpt:4};                  // gap row
+    const mod3 = r % 3;
+    if (mod3 === 0) ws['!rows'][r] = {hpt:24};       // room row
+    else if (mod3 === 1) ws['!rows'][r] = {hpt:28};   // restriction row
+    else ws['!rows'][r] = {hpt:20};                    // flag row
   }
+  // Avery 5160: letter portrait, 0.5" top/bottom, 3/16" sides, no header/footer
+  ws['!margins'] = {left:0.1875, right:0.1875, top:0.5, bottom:0.5, header:0, footer:0};
+  ws['!pageSetup'] = {
+    paperSize: 1,
+    orientation: 'portrait',
+    fitToPage: false,
+    horizontalDpi: 300,
+    verticalDpi: 300,
+  };
+  ws['!printOptions'] = {gridLines: false, headings: false};
 
   XLSX.utils.book_append_sheet(wb, ws, 'Labels');
   return wb;
