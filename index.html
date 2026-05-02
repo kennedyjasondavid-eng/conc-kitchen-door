@@ -613,8 +613,6 @@
   /* ── Intake Mode (?intake URL) ──────────────────────────────── */
   body.intake-mode .nav-item:not([data-screen="enter"]) { display: none; }
   body.intake-mode .nav-section-label { display: none; }
-  body.intake-mode #queue-footer { display: none !important; }
-  body.intake-mode #changes-queue { display: none; }
   body.intake-mode .daily-prompt-wrap { display: none; }
   body.intake-mode #screen-enter .topbar-right .btn:not(#intake-save-btn):not([title="Sync"]) { display: none; }
   body.intake-mode #screen-enter .two-col-65 > div:last-child > .card:nth-child(2) { display: none; } /* meal context */
@@ -6802,6 +6800,10 @@ function addChange() {
 // QUEUE
 // ============================================================
 function renderQueue() {
+  // v31: In intake mode, delegate to intake queue renderer
+  if (document.body.classList.contains('intake-mode') && typeof renderIntakeQueue === 'function') {
+    renderIntakeQueue(); return;
+  }
   const el = document.getElementById('changes-queue');
   const footer = document.getElementById('queue-footer');
   const countLabel = document.getElementById('queue-count-label');
