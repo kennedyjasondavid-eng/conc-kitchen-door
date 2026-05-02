@@ -504,8 +504,8 @@
         "hasCorn": false
       },
       "lunch_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
-      "dinner": "Roast Chicken, Morrocan rice and Seasonal Vegetables, Moroccan Rice and Seasonal Vegetables",
-      "dinner_veg": "Roasted Portobello Mushrooms, Morrocan rice and Seasonal Vegetables, Moroccan Rice and Seasonal Vegetables",
+      "dinner": "Roast Chicken, Morrocan Rice, Seasonal Vegetables",
+      "dinner_veg": "Roasted Portobello Mushrooms, Morrocan Rice, Seasonal Vegetables",
       "dinner_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -533,7 +533,59 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg"
+      "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Roast Chicken",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Morrocan Rice, Seasonal Vegetables",
+      "dinner_slots": {
+        "main": {
+          "manual": "Roast Chicken",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Roasted Portobello Mushrooms",
+          "flags": {}
+        },
+        "starch": {
+          "manual": "Morrocan Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Seasonal Vegetables",
+          "flags": {}
+        },
+        "softalt": {
+          "manual": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
+          "flags": {}
+        }
+      }
     },
     "SUNDAY": {
       "lunch": "Coronation Chicken Salad Sandwich",
