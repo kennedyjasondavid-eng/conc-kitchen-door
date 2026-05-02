@@ -15139,32 +15139,194 @@ setTimeout(() => pullStateFromGitHub(false), 500);
 
 // ============================================================
 // INTAKE MODE (?intake URL parameter)
+// v31: Queue-based staging — changes reviewed before commit
 // ============================================================
+const INTAKE_QUEUE = JSON.parse(localStorage.getItem('concIntakeQueue') || '[]');
+
+function saveIntakeQueue() {
+  try { localStorage.setItem('concIntakeQueue', JSON.stringify(INTAKE_QUEUE)); } catch(e) {}
+}
+
+function addToIntakeQueue() {
+  const type = document.getElementById('change-type').value;
+  const room = (document.getElementById('room-number').value || '').trim();
+  if (!room) { showToast('Enter a room number first.'); return; }
+
+  const tags = { ...checkedBoxes };
+  const tagLabels = getTagLabels(tags);
+  const isAnaph = document.getElementById('anaph-toggle').classList.contains('active');
+  const notes = document.getElementById('change-notes').value.trim();
+  const route = routeResident(checkedBoxes, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, room, isAnaph);
+
+  const existing = REGISTRY_MAP[room.toLowerCase()];
+  const isOverwrite = type === 'intake' && existing;
+
+  // Remove prior queue entry for same room
+  const dupeIdx = INTAKE_QUEUE.findIndex(q => q.room.toLowerCase() === room.toLowerCase());
+  if (dupeIdx !== -1) INTAKE_QUEUE.splice(dupeIdx, 1);
+
+  INTAKE_QUEUE.push({
+    id: 'iq_' + Date.now(), type, room,
+    tags: tagLabels, rawTags: { ...tags },
+    isAnaph, notes, route, isOverwrite,
+    existingRoute: existing ? existing.section : null,
+    ts: new Date().toISOString(), by: getOperatorName(),
+  });
+
+  saveIntakeQueue();
+  renderIntakeQueue();
+  clearForm();
+  showToast((type === 'discharge' ? '\u{1f534} ' : '\u{1f7e2} ') + 'Room ' + room + ' queued \u2014 ' + INTAKE_QUEUE.length + ' pending');
+}
+
+function removeFromQueue(id) {
+  const idx = INTAKE_QUEUE.findIndex(q => q.id === id);
+  if (idx !== -1) {
+    const item = INTAKE_QUEUE[idx];
+    INTAKE_QUEUE.splice(idx, 1);
+    saveIntakeQueue(); renderIntakeQueue();
+    showToast('Removed Room ' + item.room + ' from queue');
+  }
+}
+
+function editQueueItem(id) {
+  const item = INTAKE_QUEUE.find(q => q.id === id);
+  if (!item) return;
+  document.getElementById('change-type').value = item.type;
+  document.getElementById('change-type').dispatchEvent(new Event('change'));
+  document.getElementById('room-number').value = item.room;
+  document.getElementById('room-number').dispatchEvent(new Event('input'));
+  if (item.rawTags && typeof resetAllCheckboxes === 'function') {
+    resetAllCheckboxes();
+    Object.entries(item.rawTags).forEach(([key, val]) => {
+      if (val) { const cb = document.querySelector('[data-tag="' + key + '"]'); if (cb && !cb.classList.contains('active')) cb.click(); }
+    });
+  }
+  if (item.isAnaph) { const at = document.getElementById('anaph-toggle'); if (at && !at.classList.contains('active')) at.click(); }
+  if (item.notes) document.getElementById('change-notes').value = item.notes;
+  removeFromQueue(id);
+}
+
+function commitIntakeQueue() {
+  if (!INTAKE_QUEUE.length) { showToast('Queue is empty.'); return; }
+  const parts = [];
+  const ic = INTAKE_QUEUE.filter(q => q.type === 'intake').length;
+  const uc = INTAKE_QUEUE.filter(q => q.type === 'update').length;
+  const dc = INTAKE_QUEUE.filter(q => q.type === 'discharge').length;
+  if (ic) parts.push(ic + ' intake' + (ic > 1 ? 's' : ''));
+  if (uc) parts.push(uc + ' update' + (uc > 1 ? 's' : ''));
+  if (dc) parts.push(dc + ' discharge' + (dc > 1 ? 's' : ''));
+  if (!confirm('Commit ' + INTAKE_QUEUE.length + ' changes to registry?\n\n' + parts.join(', ') + '\n\nThis updates the live registry and plating sheets.')) return;
+
+  let applied = 0; const errors = [];
+  INTAKE_QUEUE.forEach(q => {
+    try {
+      if (q.type === 'discharge') {
+        const r = REGISTRY_MAP[q.room.toLowerCase()];
+        if (r) {
+          const idx = REGISTRY_LIST.findIndex(x => x.room.toLowerCase() === q.room.toLowerCase());
+          if (idx !== -1) { clearResidentHistory(REGISTRY_LIST[idx]); REGISTRY_LIST.splice(idx, 1); }
+          delete REGISTRY_MAP[q.room.toLowerCase()];
+          const ai = anaphRooms.indexOf(q.room); if (ai !== -1) anaphRooms.splice(ai, 1);
+        }
+        logQueueCommit(q, 'Discharged \u2014 removed from all sheets', '#dc2626');
+        applied++; return;
+      }
+      const existing = REGISTRY_MAP[q.room.toLowerCase()];
+      const r = existing || {};
+      if (existing) pushResidentHistory(r, (q.type === 'intake' ? 'Intake overwrite' : 'Queue commit') + ' \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route, q.by);
+      r.room = q.room;
+      r.tags = q.tags.length ? q.tags : ['Regular'];
+      r.restrictions = q.tags.filter(t => ROUTING_TAGS.has(t));
+      if (!r.restrictions.length) r.restrictions = ['Regular'];
+      r.allergenFlags = q.tags.filter(t => ALLERGEN_TAGS.has(t));
+      r.accommodations = q.tags.filter(t => ACCOMMODATION_TAGS.has(t));
+      r.preferences = r.accommodations;
+      r.avoidances = [...r.allergenFlags, ...r.accommodations];
+      r._tierMigrated = true;
+      r.section = q.route || 'Regular';
+      r.isAnaph = q.isAnaph;
+      if (q.notes) r.serviceNote = dedupeServiceNote(r.serviceNote, q.notes);
+      r.rawRestriction = q.tags.join(', ') || 'Regular';
+      r.confirm = requiresDocumentation(q.tags) ? 'Provisional' : (q.tags.length && !q.tags.every(t => t === 'Regular') ? 'Confirmed' : 'N/A');
+      r.confirmBy = requiresDocumentation(q.tags) ? (r.confirmBy || '\u2014') : 'Auto';
+      r.isModerate = r.isModerate || false;
+      r.moderateNote = r.moderateNote || '';
+      r.complianceDeadline = r.complianceDeadline || '';
+      if (q.isAnaph && !anaphRooms.includes(q.room)) anaphRooms.push(q.room);
+      if (!q.isAnaph) { const ai = anaphRooms.indexOf(q.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+      if (!existing) { REGISTRY_LIST.push(r); REGISTRY_MAP[q.room.toLowerCase()] = r; }
+      const logDesc = existing ? 'Updated \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route : 'New intake \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route;
+      logQueueCommit(q, logDesc, existing ? '#2563eb' : '#16a34a');
+      applied++;
+    } catch(e) { errors.push(q.room + ': ' + e.message); }
+  });
+  saveRegistryState();
+  publishAndSync('intake batch commit: ' + applied + ' changes');
+  INTAKE_QUEUE.length = 0;
+  saveIntakeQueue(); renderIntakeQueue(); renderRecentLog();
+  if (errors.length) showToast('\u26a0 ' + applied + ' applied, ' + errors.length + ' errors');
+  else showToast('\u2705 ' + applied + ' changes committed to registry');
+}
+
+function logQueueCommit(q, desc, color) {
+  const _d = new Date();
+  const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
+  RECENT_LOG.unshift({ ts: new Date().toISOString(), date: _dl, room: q.room, type: q.type, desc: desc, color: color, _real: true, by: q.by });
+  saveRecentLog();
+}
+
+function renderIntakeQueue() {
+  const container = document.getElementById('changes-queue');
+  const countLabel = document.getElementById('queue-count-label');
+  const footer = document.getElementById('queue-footer');
+  if (!container) return;
+  if (countLabel) { countLabel.style.display = ''; countLabel.textContent = INTAKE_QUEUE.length + ' pending'; countLabel.style.color = INTAKE_QUEUE.length > 0 ? '#16a34a' : 'var(--muted)'; countLabel.style.fontWeight = INTAKE_QUEUE.length > 0 ? '700' : '400'; }
+  if (!INTAKE_QUEUE.length) {
+    container.innerHTML = '<div class="queue-empty">No changes queued. Fill the form and tap \u201cAdd to Queue\u201d.</div>';
+    if (footer) footer.style.display = 'none';
+    return;
+  }
+  let h = '';
+  INTAKE_QUEUE.forEach(q => {
+    const icon = q.type === 'discharge' ? '\u{1f534}' : q.type === 'intake' ? '\u{1f7e2}' : '\u{1f535}';
+    const typeLabel = q.type.charAt(0).toUpperCase() + q.type.slice(1);
+    const tagsStr = q.tags.length ? q.tags.join(', ') : 'Regular';
+    const routeStr = q.route || 'Regular';
+    const warn = q.isOverwrite ? '<span style="color:#e65100;font-size:10px;font-weight:600"> \u26a0 OVERWRITES EXISTING</span>' : '';
+    const time = new Date(q.ts).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false });
+    h += '<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px">' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:13px;font-weight:600">' + icon + ' <b>' + q.room + '</b> \u00b7 ' + typeLabel + warn + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + tagsStr + ' \u2192 ' + routeStr + '</div>' +
+      (q.notes ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;font-style:italic">' + q.notes + '</div>' : '') +
+      '<div style="font-size:9px;color:var(--muted);margin-top:2px">' + time + ' \u00b7 ' + (q.by || 'Unknown') + '</div>' +
+      '</div>' +
+      '<button onclick="editQueueItem(\'' + q.id + '\')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--ink)">Edit</button>' +
+      '<button onclick="removeFromQueue(\'' + q.id + '\')" style="background:none;border:1px solid #fecaca;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;color:#dc2626">\u2715</button>' +
+      '</div>';
+  });
+  container.innerHTML = h;
+  if (footer) {
+    footer.style.display = '';
+    footer.innerHTML = '<button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;font-weight:700" onclick="commitIntakeQueue()">\u2705 Commit ' + INTAKE_QUEUE.length + ' Change' + (INTAKE_QUEUE.length > 1 ? 's' : '') + ' to Registry</button>' +
+      '<div style="text-align:center;margin-top:6px;font-size:10px;color:var(--muted)">Changes are staged \u2014 not live until committed</div>';
+  }
+}
+
 (function initIntakeMode() {
   if (!window.location.search.includes('intake')) return;
   document.body.classList.add('intake-mode');
-
-  // Update branding
   const sub = document.querySelector('.sidebar-brand .brand-sub');
   if (sub) sub.textContent = 'Intake Portal';
-
-  // Replace topbar buttons with single Save button
   const topRight = document.querySelector('#screen-enter .topbar-right');
   if (topRight) {
-    topRight.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Sync">🔄 Sync</button>
-      <button class="btn btn-mint" id="intake-save-btn" onclick="saveDirectFromForm()">💾 Save to Registry</button>`;
+    topRight.innerHTML = '<button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Sync">\u{1f504} Sync</button>' +
+      '<button class="btn btn-mint" id="intake-save-btn" onclick="addToIntakeQueue()">\uff0b Add to Queue</button>';
   }
-
-  // Replace queue header with simpler label
   const queueHeader = document.querySelector('#screen-enter .card-header:has(#queue-count-label)');
-  if (queueHeader) {
-    queueHeader.querySelector('h2').textContent = 'Recent Saves';
-    const countLabel = document.getElementById('queue-count-label');
-    if (countLabel) countLabel.style.display = 'none';
-  }
-
-  // Ensure Enter Changes is the active screen
+  if (queueHeader) queueHeader.querySelector('h2').textContent = "Today\'s Queue";
+  renderIntakeQueue();
   showScreen('enter', document.querySelector('[data-screen=enter]'));
 })();
 
