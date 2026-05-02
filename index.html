@@ -10563,7 +10563,7 @@ function computeBaseSections() {
   }
 
   sections.forEach(s => {
-    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', mealFlags: MEAL_DATA.lunch};
+    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', noPorkAlt: MEAL_DATA.lunch.noPorkAlt || '', mealFlags: MEAL_DATA.lunch};
     result.push({
       name: s.rule.label,
       count: s.residents.length,
@@ -10690,6 +10690,7 @@ function getAltMeal(altType, ctx) {
   switch(altType) {
     case 'vegan_alt':     return ctx.mealVeg || 'Vegan / vegetarian alternative';
     case 'halal_alt':     return 'Halal alternative — ' + ctx.mealName;
+    case 'nopork_alt':    return ctx.noPorkAlt || 'No pork alternative — ' + ctx.mealName;
     case 'gf_alt':        return (ctx && ctx.mealFlags && ctx.mealFlags.hasPork && ctx.mealFlags.hasGluten) ? 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg' : 'Gluten free alternative';
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
     case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
@@ -10764,6 +10765,20 @@ function computeSections(mealFlags, registry) {
     }
   }
 
+  // v30: No Pork Alt split — when a non-halal alternative is specified,
+  // pull No Pork (non-Halal) residents out of the Halal pool into their own section.
+  // Without noPorkAlt, No Pork residents fold into Halal as before.
+  if (mealFlags && mealFlags.noPorkAlt && pools['halal'] && pools['halal'].length) {
+    const noPorkOnly = pools['halal'].filter(r => {
+      const t = r.tags || [];
+      return t.includes('No Pork') && !t.includes('Halal');
+    });
+    if (noPorkOnly.length) {
+      pools['halal'] = pools['halal'].filter(r => !noPorkOnly.includes(r));
+      pools['_nopork'] = noPorkOnly;
+    }
+  }
+
   // Sort all pools
   Object.values(pools).forEach(arr => arr.sort(sortR));
 
@@ -10774,6 +10789,13 @@ function computeSections(mealFlags, registry) {
     if (rule.mergeInto) return; // these residents now in target pool
     if (rule.key !== 'regular' && pools[rule.key].length === 0) return;
     result.push({ rule, residents: pools[rule.key] });
+    // v30: Insert No Pork section right after Halal when split is active
+    if (rule.key === 'halal' && pools['_nopork'] && pools['_nopork'].length) {
+      result.push({
+        rule: { key:'_nopork', label:'No Pork', altType:'nopork_alt', p:2.1 },
+        residents: pools['_nopork']
+      });
+    }
   });
 
   return result;
@@ -11074,11 +11096,11 @@ function getMealForDate(date) {
 
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   let lunchBase = { name: dayData.lunch || 'Lunch', veg: dayData.lunch_veg || '',
-    softAlt: dayData.lunch_softAlt || '', ...(dayData.lunch_flags || emptyFlags) };
+    softAlt: dayData.lunch_softAlt || '', noPorkAlt: dayData.lunch_noPorkAlt || '', ...(dayData.lunch_flags || emptyFlags) };
   let dinnerBase = { name: dayData.dinner || 'Dinner', veg: dayData.dinner_veg || '',
-    softAlt: dayData.dinner_softAlt || '', ...(dayData.dinner_flags || emptyFlags) };
+    softAlt: dayData.dinner_softAlt || '', noPorkAlt: dayData.dinner_noPorkAlt || '', ...(dayData.dinner_flags || emptyFlags) };
   let breakfastBase = { name: dayData.breakfast || 'Breakfast', veg: dayData.breakfast_veg || '',
-    softAlt: dayData.breakfast_softAlt || '', ...(dayData.breakfast_flags || emptyFlags) };
+    softAlt: dayData.breakfast_softAlt || '', noPorkAlt: dayData.breakfast_noPorkAlt || '', ...(dayData.breakfast_flags || emptyFlags) };
 
   lunchBase     = applyEdit('lunch', lunchBase);
   dinnerBase    = applyEdit('dinner', dinnerBase);
@@ -11644,6 +11666,7 @@ function revertMealSwap() {
     delete overlay[String(week)][day][period + '_veg'];
     delete overlay[String(week)][day][period + '_flags'];
     delete overlay[String(week)][day][period + '_softAlt'];
+    delete overlay[String(week)][day][period + '_noPorkAlt']; // v30
     // Clean up empty day/week objects
     if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
     if (!Object.keys(overlay[String(week)]).length) delete overlay[String(week)];
@@ -12417,6 +12440,7 @@ function goHome() {
 const MEAL_SLOT_DEFS = [
   { id:'main',     label:'Main',        required:false, cats:['protein','stew_main','salad'], streams:['regular',''],  ph:'Search main dish…' },
   { id:'mainalt',  label:'Main Alt',    required:false, cats:['protein','stew_main'],          streams:['regular',''],  ph:'Halal or alternate main…' },
+  { id:'noporkalt',label:'No Pork Alt', required:false, cats:['protein','stew_main'],          streams:['regular',''],  ph:'Non-halal alt for No Pork residents…', hidden:true },
   { id:'veganalt', label:'Vegan Alt',   required:false, cats:['protein','stew_main'],          streams:['vegan'],       ph:'Vegan alternative…' },
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
   { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side'],                     streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
@@ -12457,8 +12481,19 @@ function hubAllergenToFlags(allergens) {
 function renderSlots() {
   const container = document.getElementById('mc-slot-panel');
   if (!container) return;
-  container.innerHTML = MEAL_SLOT_DEFS.map(def => renderSlotCard(def, 'slot')).join('');
+  container.innerHTML = MEAL_SLOT_DEFS.map(def => {
+    // v30: Hidden slots only show when toggled visible or have content
+    if (def.hidden) {
+      const hasContent = MEAL_SLOT_STATE[def.id] && (MEAL_SLOT_STATE[def.id].recipeName || MEAL_SLOT_STATE[def.id].manual);
+      const visible = hasContent || _noPorkAltVisible;
+      if (!visible) return `<div id="nopork-alt-toggle" style="padding:4px 12px;">
+        <button onclick="_noPorkAltVisible=true;renderSlots();updateSlotSummary();" class="btn btn-ghost btn-sm" style="font-size:11px;color:#7c3aed;">＋ Add No Pork Alt</button>
+      </div>`;
+    }
+    return renderSlotCard(def, 'slot');
+  }).join('');
 }
+let _noPorkAltVisible = false;
 
 function buildMealName() {
   // extras (Event Name) leads if set, then components
@@ -12498,6 +12533,11 @@ function buildVegAltFlags() {
 function buildSoftAlt() {
   const s = MEAL_SLOT_STATE['softalt'];
   return s ? (s.manual || '') : '';
+}
+
+function buildNoPorkAlt() {
+  const s = MEAL_SLOT_STATE['noporkalt'];
+  return s ? (s.recipeName || s.manual || '') : '';
 }
 
 const CARB_KEYWORDS = /\b(rice|pasta|noodles?|potato|potatoes|mac|macaroni|bread|roti|couscous|pita|naan|spaghetti|linguine|fettuccine|orzo|gnocchi|polenta|quinoa|farro|bulgur|barley|pilaf|biryani|fried rice|congee|porridge|oat|oatmeal|pancake|waffle|bagel|biscuit|wrap|tortilla|dumpling|pierogi|lasagna|grits)\b/i;
@@ -12560,15 +12600,17 @@ function updateSlotSummary() {
   const name = buildMealName();
   const veg = buildVegAlt();
   const softAlt = buildSoftAlt();
+  const noPorkAlt = buildNoPorkAlt(); // v30
   const summaryEl = document.getElementById('mc-slot-name-preview');
   if (summaryEl) {
-    if (name || veg || softAlt) {
+    if (name || veg || softAlt || noPorkAlt) {
       summaryEl.style.display = 'block';
       summaryEl.innerHTML =
         '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Will save as</div>' +
-        (name    ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${name}</div>` : '') +
-        (veg     ? `<div style="font-size:12px;color:var(--muted);">Veg alt: ${veg}</div>` : '') +
-        (softAlt ? `<div style="font-size:12px;color:#0891b2;margin-top:2px;">Soft/plain: ${softAlt}</div>` : '');
+        (name       ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${name}</div>` : '') +
+        (veg        ? `<div style="font-size:12px;color:var(--muted);">Veg alt: ${veg}</div>` : '') +
+        (noPorkAlt  ? `<div style="font-size:12px;color:#7c3aed;margin-top:2px;">No Pork alt: ${noPorkAlt}</div>` : '') +
+        (softAlt    ? `<div style="font-size:12px;color:#0891b2;margin-top:2px;">Soft/plain: ${softAlt}</div>` : '');
     } else {
       summaryEl.style.display = 'none';
     }
@@ -12843,14 +12885,42 @@ function saveMenuEdit() {
   // If meat detected (not pork) and halalCertifiedMeat not already checked, prompt
   if (detectedProteins.length && !flags.halalCertifiedMeat) {
     const proteins = detectedProteins.join(' & ');
-    const isHalal = confirm(
-      `This meal contains ${proteins}.\n\nIs the ${proteins} halal-certified?\n\n` +
-      `YES → Halal residents receive the regular meal\n` +
-      `NO → Halal section activates with an alternative`
-    );
-    flags.halalCertifiedMeat = isHalal;
+    _showHalalCertDialog(proteins, (isHalal) => {
+      flags.halalCertifiedMeat = isHalal;
+      _finishMenuSave(name, veg, flags);
+    });
+    return; // dialog will call _finishMenuSave when answered
   }
   // ── end P0 ──
+  _finishMenuSave(name, veg, flags);
+}
+
+// v30: Custom YES/NO dialog for halal certification
+function _showHalalCertDialog(proteins, callback) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.onclick = (ev) => { if (ev.target === overlay) { overlay.remove(); } };
+  overlay.innerHTML = `<div class="modal-box" style="max-width:480px;">
+    <div class="modal-header"><h2>Halal Certification Check</h2></div>
+    <div class="modal-body" style="padding:16px 20px;">
+      <p style="margin:0 0 12px;font-size:14px;">This meal contains <strong>${proteins}</strong>.</p>
+      <p style="margin:0 0 16px;font-size:14px;">Is the ${proteins} halal-certified?</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="_halal-yes" class="btn" style="padding:10px;font-size:13px;background:#059669;color:#fff;border-color:#059669;text-align:left;border-radius:6px;">
+          <strong>Yes — halal-certified</strong><br><span style="font-weight:400;font-size:12px;">Halal residents receive the regular meal</span>
+        </button>
+        <button id="_halal-no" class="btn" style="padding:10px;font-size:13px;background:#dc2626;color:#fff;border-color:#dc2626;text-align:left;border-radius:6px;">
+          <strong>No — not halal</strong><br><span style="font-weight:400;font-size:12px;">Halal section activates with an alternative</span>
+        </button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_halal-yes').onclick = () => { overlay.remove(); callback(true); };
+  overlay.querySelector('#_halal-no').onclick = () => { overlay.remove(); callback(false); };
+}
+
+function _finishMenuSave(name, veg, flags) {
 
   const vegFlags = buildVegAltFlags();
   const vegAllergens = flagsToAllergenStr(vegFlags);
@@ -12868,6 +12938,7 @@ function saveMenuEdit() {
   overlay[week][day][period + '_veg']     = veg;
   overlay[week][day][period + '_flags']   = flags;
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
+  overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing swap or legacy edit for this slot
@@ -12906,6 +12977,7 @@ function revertMenuEdit() {
     delete overlay[week][day][period + '_veg'];
     delete overlay[week][day][period + '_flags'];
     delete overlay[week][day][period + '_softAlt'];
+    delete overlay[week][day][period + '_noPorkAlt']; // v30
     if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
     if (!Object.keys(overlay[week]).length) delete overlay[week];
     saveMenuBaseOverlay(overlay);
@@ -12923,6 +12995,7 @@ function closeMenuEdit() {
   const panel = document.getElementById('mc-menu-edit-panel');
   if (panel) panel.style.display = 'none';
   mcMenuEditKey = null;
+  _noPorkAltVisible = false; // v30
 }
 
 function parseMealNameIntoSlots(name) {
@@ -13012,6 +13085,11 @@ function openMenuEdit(week, day, period) {
   // Pre-populate soft alt slot
   const initSoftAlt = (existing && existing.softAlt) ? existing.softAlt : (dayData[period + '_softAlt'] || '');
   if (initSoftAlt) MEAL_SLOT_STATE['softalt'] = { manual: initSoftAlt };
+
+  // Pre-populate no-pork alt slot (v30)
+  const initNoPorkAlt = (existing && existing.noPorkAlt) ? existing.noPorkAlt : (dayData[period + '_noPorkAlt'] || '');
+  if (initNoPorkAlt) MEAL_SLOT_STATE['noporkalt'] = { manual: initNoPorkAlt };
+  _noPorkAltVisible = !!initNoPorkAlt;
 
   // Populate allergen flag grid from saved flags or rotation defaults
   const initFlags = (existing && existing.flags) ? existing.flags : (dayData[period + '_flags'] || {});
@@ -14989,6 +15067,7 @@ function computePlatingData(period, weekNum, dayName) {
   const mealName    = dayData[period] || 'Meal';
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
+  const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || ''; // v30
   const mealFlags   = dayData[period+'_flags'] || {};
 
   // Allergen string — flags-first, fallback to hardcoded
@@ -15025,6 +15104,9 @@ function computePlatingData(period, weekNum, dayName) {
   });
   anaphSect.sort(sortR);
 
+  // v30: Attach noPorkAlt to mealFlags so computeSections can use it for No Pork split
+  if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
+
   // Compute dynamic sections — using routingRegistry (anaph residents excluded)
   const sections = computeSections(mealFlags, routingRegistry);
   const regularSection = sections.find(s => s.rule.key === 'regular');
@@ -15032,7 +15114,7 @@ function computePlatingData(period, weekNum, dayName) {
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, mealFlags};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, noPorkAlt: mealNoPorkAlt, mealFlags};
 
   return {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
