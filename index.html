@@ -10563,7 +10563,7 @@ function computeBaseSections() {
   }
 
   sections.forEach(s => {
-    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', noPorkAlt: MEAL_DATA.lunch.noPorkAlt || '', mealFlags: MEAL_DATA.lunch};
+    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', noPorkAlt: MEAL_DATA.lunch.noPorkAlt || '', mainAlt: MEAL_DATA.lunch.mainAlt || '', sides: MEAL_DATA.lunch.sides || '', mealFlags: MEAL_DATA.lunch};
     result.push({
       name: s.rule.label,
       count: s.residents.length,
@@ -10686,11 +10686,20 @@ function getResidentRestrictions(r) {
 }
 
 function getAltMeal(altType, ctx) {
-  // ctx = {mealName, mealVeg, allergenStr}
+  // v30: Build section-specific meal descriptions using per-slot data
+  const sides = ctx.sides || '';
+  const withSides = (protein) => [protein, sides].filter(Boolean).join(', ');
+
   switch(altType) {
     case 'vegan_alt':     return ctx.mealVeg || 'Vegan / vegetarian alternative';
-    case 'halal_alt':     return 'Halal alternative — ' + ctx.mealName;
-    case 'nopork_alt':    return ctx.noPorkAlt || 'No pork alternative — ' + ctx.mealName;
+    case 'halal_alt':
+      // Use Main Alt item + sides. Fallback to full meal name if mainAlt not saved yet
+      if (ctx.mainAlt) return withSides(ctx.mainAlt);
+      return 'Halal alternative — ' + ctx.mealName;
+    case 'nopork_alt':
+      // Use No Pork Alt item + sides
+      if (ctx.noPorkAlt) return withSides(ctx.noPorkAlt);
+      return 'No pork alternative — ' + ctx.mealName;
     case 'gf_alt':        return (ctx && ctx.mealFlags && ctx.mealFlags.hasPork && ctx.mealFlags.hasGluten) ? 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg' : 'Gluten free alternative';
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
     case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
@@ -11096,11 +11105,17 @@ function getMealForDate(date) {
 
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   let lunchBase = { name: dayData.lunch || 'Lunch', veg: dayData.lunch_veg || '',
-    softAlt: dayData.lunch_softAlt || '', noPorkAlt: dayData.lunch_noPorkAlt || '', ...(dayData.lunch_flags || emptyFlags) };
+    softAlt: dayData.lunch_softAlt || '', noPorkAlt: dayData.lunch_noPorkAlt || '',
+    mainItem: dayData.lunch_mainItem || '', mainAlt: dayData.lunch_mainAlt || '', sides: dayData.lunch_sides || '',
+    ...(dayData.lunch_flags || emptyFlags) };
   let dinnerBase = { name: dayData.dinner || 'Dinner', veg: dayData.dinner_veg || '',
-    softAlt: dayData.dinner_softAlt || '', noPorkAlt: dayData.dinner_noPorkAlt || '', ...(dayData.dinner_flags || emptyFlags) };
+    softAlt: dayData.dinner_softAlt || '', noPorkAlt: dayData.dinner_noPorkAlt || '',
+    mainItem: dayData.dinner_mainItem || '', mainAlt: dayData.dinner_mainAlt || '', sides: dayData.dinner_sides || '',
+    ...(dayData.dinner_flags || emptyFlags) };
   let breakfastBase = { name: dayData.breakfast || 'Breakfast', veg: dayData.breakfast_veg || '',
-    softAlt: dayData.breakfast_softAlt || '', noPorkAlt: dayData.breakfast_noPorkAlt || '', ...(dayData.breakfast_flags || emptyFlags) };
+    softAlt: dayData.breakfast_softAlt || '', noPorkAlt: dayData.breakfast_noPorkAlt || '',
+    mainItem: dayData.breakfast_mainItem || '', mainAlt: dayData.breakfast_mainAlt || '', sides: dayData.breakfast_sides || '',
+    ...(dayData.breakfast_flags || emptyFlags) };
 
   lunchBase     = applyEdit('lunch', lunchBase);
   dinnerBase    = applyEdit('dinner', dinnerBase);
@@ -11667,6 +11682,9 @@ function revertMealSwap() {
     delete overlay[String(week)][day][period + '_flags'];
     delete overlay[String(week)][day][period + '_softAlt'];
     delete overlay[String(week)][day][period + '_noPorkAlt']; // v30
+    delete overlay[String(week)][day][period + '_mainItem']; // v30
+    delete overlay[String(week)][day][period + '_mainAlt']; // v30
+    delete overlay[String(week)][day][period + '_sides']; // v30
     delete overlay[String(week)][day][period + '_slots']; // v30
     // Clean up empty day/week objects
     if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
@@ -12506,6 +12524,21 @@ function buildMealName() {
   return [extra, components].filter(Boolean).join(' — ');
 }
 
+// v30: Per-slot name builders for section-specific plating sheet headers
+function buildMainItem() {
+  const s = MEAL_SLOT_STATE['main'];
+  return s ? (s.recipeName || s.manual || '') : '';
+}
+function buildMainAltItem() {
+  const s = MEAL_SLOT_STATE['mainalt'];
+  return s ? (s.recipeName || s.manual || '') : '';
+}
+function buildSides() {
+  return ['starch','vegside','xtra']
+    .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
+    .filter(Boolean).join(', ');
+}
+
 function buildVegAlt() {
   return ['veganalt','starch','vegside','xtra']
     .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
@@ -13018,6 +13051,9 @@ function _finishMenuSave(name, veg, flags) {
   overlay[week][day][period + '_flags']   = flags;
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
   overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
+  overlay[week][day][period + '_mainItem'] = buildMainItem(); // v30
+  overlay[week][day][period + '_mainAlt'] = buildMainAltItem(); // v30
+  overlay[week][day][period + '_sides']   = buildSides(); // v30
   // v30: Save individual slot values for lossless re-open
   overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
   saveMenuBaseOverlay(overlay);
@@ -13059,6 +13095,9 @@ function revertMenuEdit() {
     delete overlay[week][day][period + '_flags'];
     delete overlay[week][day][period + '_softAlt'];
     delete overlay[week][day][period + '_noPorkAlt']; // v30
+    delete overlay[week][day][period + '_mainItem']; // v30
+    delete overlay[week][day][period + '_mainAlt']; // v30
+    delete overlay[week][day][period + '_sides']; // v30
     delete overlay[week][day][period + '_slots']; // v30
     if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
     if (!Object.keys(overlay[week]).length) delete overlay[week];
@@ -15153,6 +15192,9 @@ function computePlatingData(period, weekNum, dayName) {
   const mealName    = dayData[period] || 'Meal';
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
+  const mealMainItem  = dayData[period+'_mainItem'] || ''; // v30
+  const mealMainAlt   = dayData[period+'_mainAlt'] || ''; // v30
+  const mealSides     = dayData[period+'_sides'] || ''; // v30
   const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || ''; // v30
   const mealFlags   = dayData[period+'_flags'] || {};
 
@@ -15200,7 +15242,7 @@ function computePlatingData(period, weekNum, dayName) {
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, noPorkAlt: mealNoPorkAlt, mealFlags};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags};
 
   return {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
