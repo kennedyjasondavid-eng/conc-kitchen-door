@@ -15328,7 +15328,7 @@ function buildDaySheet(period, weekNum, dayName) {
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
           regCount, halalCount, veganCount, diabCount, ctx } = pd;
 
-  const COL_W = [46, 8, 26]; // column widths in chars — fits letter page (80 chars total, matches 55/12/33 ratio)
+  const COL_W = [52, 8, 20]; // column widths — wider restriction col for routing labels, tighter notes
   const LINE_H = 13; // height per line — tighter for 1-2 page fit
 
   // Estimate row height based on longest cell text vs column width
