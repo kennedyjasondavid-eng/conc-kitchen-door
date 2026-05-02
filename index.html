@@ -1301,7 +1301,7 @@ let _recipeDataSource = 'fallback';
     <div class="topbar">
       <div>
         <div class="topbar-title">Settings</div>
-        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v29</span></div>
+        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v30</span></div>
       </div>
       <div class="topbar-right">
         <button class="btn btn-mint" onclick="saveSettings()">Save Changes</button>
@@ -6270,6 +6270,89 @@ function loadPersistedLog() {
 const RECENT_LOG = loadPersistedLog();
 
 // ============================================================
+// RESIDENT HISTORY (v30)
+// ============================================================
+// Each resident gets a _history array (max 2 entries) storing snapshots
+// of their state before each change. Enables revert from registry editor
+// and context display in change review / import review screens.
+
+const _HISTORY_SNAPSHOT_KEYS = ['room','section','tags','restrictions','allergenFlags',
+  'accommodations','preferences','avoidances','confirm','confirmBy','isAnaph','anaphTags',
+  'rawRestriction','isModerate','moderateNote','complianceDeadline','pendingReversion',
+  'serviceNote','_tierMigrated'];
+
+function snapshotResident(r) {
+  const snap = {};
+  _HISTORY_SNAPSHOT_KEYS.forEach(k => {
+    if (r[k] !== undefined) snap[k] = JSON.parse(JSON.stringify(r[k]));
+  });
+  return snap;
+}
+
+function pushResidentHistory(r, desc, by) {
+  if (!r) return;
+  if (!r._history) r._history = [];
+  const _d = new Date();
+  r._history.unshift({
+    snapshot: snapshotResident(r),
+    ts: _d.toISOString(),
+    date: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate(),
+    desc: desc || '',
+    by: by || getOperatorName()
+  });
+  if (r._history.length > 2) r._history.length = 2;
+}
+
+function clearResidentHistory(r) {
+  if (r) r._history = [];
+}
+
+function revertResident(room, historyIndex) {
+  const r = REGISTRY_MAP[room.toLowerCase()];
+  if (!r || !r._history || !r._history[historyIndex]) { showToast('No history to revert.'); return false; }
+  const target = r._history[historyIndex].snapshot;
+  // Snapshot current state before revert (so user can undo)
+  pushResidentHistory(r, 'Before revert', getOperatorName());
+  // Apply snapshot — overwrite all snapshotted fields
+  _HISTORY_SNAPSHOT_KEYS.forEach(k => {
+    if (target[k] !== undefined) r[k] = JSON.parse(JSON.stringify(target[k]));
+  });
+  // Sync anaph rooms
+  if (r.isAnaph && !anaphRooms.includes(r.room)) anaphRooms.push(r.room);
+  if (!r.isAnaph) { const ai = anaphRooms.indexOf(r.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+  // Log
+  const _d = new Date();
+  const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
+  RECENT_LOG.unshift({ date:_dl, room, type:'revert', desc:'Reverted to prior state (' + (r._history[1] ? r._history[1].desc : 'previous') + ')', color:'#7c3aed', _real:true, by:getOperatorName() });
+  saveRecentLog();
+  saveRegistryState();
+  publishAndSync('revert: Room ' + room);
+  return true;
+}
+
+// Build a compact diff summary between two snapshots or a snapshot and current state
+function diffResidentStates(before, after) {
+  const changes = [];
+  const bTags = (before.tags || []).join(', ') || 'Regular';
+  const aTags = (after.tags || []).join(', ') || 'Regular';
+  if (bTags !== aTags) changes.push({ field: 'Restrictions', from: bTags, to: aTags });
+  if (before.section !== after.section) changes.push({ field: 'Section', from: before.section, to: after.section });
+  if (before.isAnaph !== after.isAnaph) changes.push({ field: 'Anaphylactic', from: before.isAnaph ? 'Yes' : 'No', to: after.isAnaph ? 'Yes' : 'No' });
+  if (JSON.stringify(before.anaphTags||[]) !== JSON.stringify(after.anaphTags||[])) changes.push({ field: 'Anaph Tags', from: (before.anaphTags||[]).join(', ')||'—', to: (after.anaphTags||[]).join(', ')||'—' });
+  if (before.confirm !== after.confirm) changes.push({ field: 'Status', from: before.confirm || '—', to: after.confirm || '—' });
+  const bNote = before.serviceNote || '';
+  const aNote = after.serviceNote || '';
+  if (bNote !== aNote) changes.push({ field: 'Service Note', from: bNote || '—', to: aNote || '—' });
+  return changes;
+}
+
+function renderHistoryDiffHtml(entry, current) {
+  const diffs = diffResidentStates(entry.snapshot, current);
+  if (!diffs.length) return '<span style="font-size:11px;color:var(--muted);">No field differences</span>';
+  return diffs.map(d => `<div style="font-size:11px;line-height:1.5;"><span style="color:var(--muted);min-width:80px;display:inline-block;">${d.field}:</span> <span style="text-decoration:line-through;color:#b91c1c;">${d.from}</span> → <span style="color:#166534;font-weight:600;">${d.to}</span></div>`).join('');
+}
+
+// ============================================================
 // STATE
 // ============================================================
 let changesQueue = [];
@@ -6703,6 +6786,7 @@ function openChangeEditor(idx) {
   document.getElementById('ce-remove-btn').style.display = '';
   document.getElementById('ce-save-btn').textContent = 'Save Changes';
   updateCERoutePreview();
+  populateCEHistory(c.room); // v30
   modal.classList.add('open');
 }
 
@@ -6735,6 +6819,7 @@ function openRegistryEditor(room) {
   document.getElementById('ce-remove-btn').style.display = 'none'; // no "remove" in registry mode
   document.getElementById('ce-save-btn').textContent = 'Save to Registry';
   updateCERoutePreview();
+  populateCEHistory(room); // v30
   modal.classList.add('open');
 }
 
@@ -6812,6 +6897,44 @@ function getAnaphTagsFromEditor() {
   return [...document.querySelectorAll('.ce-anaph-tag:checked')].map(el => el.dataset.key);
 }
 
+// v30: Populate resident history section in editor modal
+function populateCEHistory(room) {
+  const el = document.getElementById('ce-history');
+  if (!el) return;
+  const r = REGISTRY_MAP[room.toLowerCase()];
+  if (!r || !r._history || !r._history.length) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  el.style.display = 'block';
+  const entries = r._history;
+  el.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.ce-hist-arrow').textContent=this.nextElementSibling.style.display==='none'?'▸':'▾'" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--warm);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">
+        <span class="ce-hist-arrow">▾</span> Change History <span style="font-weight:500;text-transform:none;letter-spacing:0;">(${entries.length} prior state${entries.length !== 1 ? 's' : ''})</span>
+      </div>
+      <div style="padding:0;">
+        ${entries.map((entry, idx) => {
+          const diffs = diffResidentStates(entry.snapshot, r);
+          const diffHtml = diffs.length
+            ? diffs.map(d => `<div style="font-size:11px;line-height:1.6;"><span style="color:var(--muted);min-width:80px;display:inline-block;">${d.field}:</span> <span style="text-decoration:line-through;color:#b91c1c;">${d.from}</span> <span style="color:var(--muted);">→</span> <span style="color:#166534;font-weight:600;">${d.to}</span></div>`).join('')
+            : '<span style="font-size:11px;color:var(--muted);">No differences from current</span>';
+          return `<div style="padding:10px 14px;border-top:1px solid var(--border);${idx > 0 ? 'border-top:1px dashed var(--border);' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div>
+                <span style="font-size:12px;font-weight:600;color:var(--fg);">${entry.desc || 'Previous state'}</span>
+                <span style="font-size:11px;color:var(--muted);margin-left:8px;">${entry.date || ''} · ${entry.by || ''}</span>
+              </div>
+              ${ceMode === 'registry' ? `<button class="btn btn-ghost btn-sm" style="font-size:11px;color:#7c3aed;font-weight:600;padding:2px 10px;" onclick="if(confirm('Revert Room ${room} to this prior state?')){revertResident('${room}',${idx});closeChangeEditor();renderRegistry(REGISTRY_LIST);showToast('Room ${room} reverted ✓');}">↩ Revert</button>` : ''}
+            </div>
+            <div style="padding:4px 0;">${diffHtml}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 function updateCERoutePreview() {
   const tags = getCETags();
   const room = ceMode === 'registry' ? ceRoom : (changesQueue[ceEditIndex] ? changesQueue[ceEditIndex].room : '');
@@ -6876,6 +6999,9 @@ function saveRegistryEdit() {
   const isAnaph = document.getElementById('ce-anaph').checked;
   const notes = document.getElementById('ce-notes').value.trim();
   const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, ceRoom, isAnaph);
+
+  // v30: Snapshot before mutation
+  pushResidentHistory(r, 'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, getOperatorName());
 
   // Update resident directly
   r.tags = tagLabels.length ? tagLabels : ['Regular'];
@@ -7501,13 +7627,29 @@ function buildReview() {
     body.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>No changes to review.</div>';
   } else {
     body.innerHTML = `<div class="changes-table-wrap"><table class="changes-table"><thead><tr><th>Room</th><th>Type</th><th>Restrictions</th><th>Routing (Lunch)</th><th>Status</th></tr></thead><tbody>
-      ${changesQueue.map((c, ci) => `<tr style="cursor:pointer;" onclick="openChangeEditor(${ci})" title="Click to edit">
-        <td><strong style="font-family:'DM Mono',monospace">${c.room}</strong></td>
+      ${changesQueue.map((c, ci) => {
+        const _histR = REGISTRY_MAP[c.room.toLowerCase()];
+        const _hist = _histR && _histR._history && _histR._history.length ? _histR._history : null;
+        const mainRow = `<tr style="cursor:pointer;" onclick="openChangeEditor(${ci})" title="Click to edit">
+        <td><strong style="font-family:'DM Mono',monospace">${c.room}</strong>${_hist ? '<div style="font-size:10px;color:#7c3aed;margin-top:2px;">▾ history</div>' : ''}</td>
         <td><span class="change-type-badge badge-${c.type}">${c.type.toUpperCase()}</span></td>
-        <td>${c.type === 'discharge' ? '—' : (c.tagLabels.length ? c.tagLabels.map(t=>`<span class="tag ${getTagClass(t)}">${t}</span>`).join(' ') : '<span class="tag">Regular</span>')}</td>
-        <td>${c.type === 'discharge' ? '<span style="color:var(--red)">Removed from all sheets</span>' : `<strong style="color:var(--forest-mid)">→ ${c.route}</strong>`}</td>
-        <td>${c.isAnaph ? '<span class="flag" title="Anaphylactic resident — highest-priority alert. Red flag on all generated plating sheets. Confirm allergen details with Health & Wellness before generating.">⚠ Flag</span>' : '<span style="color:var(--mint);font-size:12px;font-weight:700" title="Routed automatically based on dietary restrictions and today\u2019s meal.">✓ Auto</span>'}</td>
-      </tr>`).join('')}
+        <td>${c.type === 'discharge' ? '—' : (c.tagLabels.length ? c.tagLabels.map(t=>'<span class="tag '+getTagClass(t)+'">'+t+'</span>').join(' ') : '<span class="tag">Regular</span>')}</td>
+        <td>${c.type === 'discharge' ? '<span style="color:var(--red)">Removed from all sheets</span>' : '<strong style="color:var(--forest-mid)">→ '+c.route+'</strong>'}</td>
+        <td>${c.isAnaph ? '<span class="flag" title="Anaphylactic">⚠ Flag</span>' : '<span style="color:var(--mint);font-size:12px;font-weight:700" title="Auto-routed">✓ Auto</span>'}</td>
+      </tr>`;
+        const histRow = _hist ? '<tr style="cursor:default;"><td colspan="5" style="padding:4px 12px 10px;background:var(--warm);border-bottom:1px solid var(--border);">' +
+          '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#7c3aed;margin-bottom:4px;">Prior States</div>' +
+          _hist.map(h => {
+            const diffs = diffResidentStates(h.snapshot, _histR);
+            return '<div style="font-size:11px;line-height:1.5;margin-bottom:4px;padding:4px 8px;background:var(--bg);border-radius:4px;border:1px solid var(--border);">' +
+              '<span style="font-weight:600;">' + (h.desc||'Previous') + '</span>' +
+              '<span style="color:var(--muted);margin-left:6px;">' + (h.date||'') + ' · ' + (h.by||'') + '</span>' +
+              (diffs.length ? '<div style="margin-top:2px;">' + diffs.map(d => '<span style="color:var(--muted);">' + d.field + ':</span> <span style="text-decoration:line-through;color:#b91c1c;">' + d.from + '</span> → <span style="color:#166534;">' + d.to + '</span>').join(' · ') + '</div>' : '') +
+            '</div>';
+          }).join('') +
+        '</td></tr>' : '';
+        return mainRow + histRow;
+      }).join('')}
     </tbody></table></div>`;
   }
 
@@ -7576,7 +7718,10 @@ function applyQueueToRegistry() {
   changesQueue.forEach(c => {
     if (c.type === 'discharge') {
       const idx = REGISTRY_LIST.findIndex(r => r.room.toLowerCase() === c.room.toLowerCase());
-      if (idx !== -1) REGISTRY_LIST.splice(idx, 1);
+      if (idx !== -1) {
+        clearResidentHistory(REGISTRY_LIST[idx]); // v30: clear history — room numbers recycle
+        REGISTRY_LIST.splice(idx, 1);
+      }
 
     } else if (c.type === 'intake') {
       const existing = REGISTRY_LIST.findIndex(r => r.room.toLowerCase() === c.room.toLowerCase());
@@ -7607,6 +7752,9 @@ function applyQueueToRegistry() {
         _tierMigrated: true
       };
       if (existing !== -1) {
+        // v30: Snapshot before overwrite
+        pushResidentHistory(REGISTRY_LIST[existing], 'Intake overwrite', getOperatorName());
+        newResident._history = REGISTRY_LIST[existing]._history; // carry history forward
         REGISTRY_LIST[existing] = newResident;
       } else {
         REGISTRY_LIST.push(newResident);
@@ -7616,7 +7764,9 @@ function applyQueueToRegistry() {
     } else if (c.type === 'update') {
       const r = REGISTRY_LIST.find(r => r.room.toLowerCase() === c.room.toLowerCase());
       if (r) {
+        // v30: Snapshot before update
         const tagLabels = Object.entries(c.tags).filter(([,v])=>v).map(([k])=>TAG_LABELS_MAP[k]).filter(Boolean);
+        pushResidentHistory(r, 'Queue update — ' + (tagLabels.join(', ')||'Regular') + ' → ' + (c.route||'Regular'), getOperatorName());
         r.tags = tagLabels.length ? tagLabels : ['Regular'];
         r.restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
         if (!r.restrictions.length) r.restrictions = ['Regular'];
@@ -8286,6 +8436,7 @@ function batchConfirmCompliance() {
   rooms.forEach(room => {
     const r = REGISTRY_LIST.find(x => x.room === room);
     if (!r) return;
+    pushResidentHistory(r, 'Compliance confirmed (batch)', by); // v30
     r.confirm = 'Confirmed';
     r.complianceResolved = 'updated';
     r.complianceResolvedBy = by;
@@ -8320,6 +8471,7 @@ function batchResolveCompliance() {
   rooms.forEach(room => {
     const r = REGISTRY_LIST.find(x => x.room === room);
     if (!r) return;
+    pushResidentHistory(r, 'Compliance resolved (batch)', by); // v30
     r.confirm = 'Confirmed';
     r.complianceResolved = 'updated';
     r.complianceResolvedBy = by;
@@ -8840,6 +8992,9 @@ function submitResolve() {
   // Snapshot restrictions before any change
   const prevRestrictions = r.rawRestriction || r.tags.join(', ');
 
+  // v30: Snapshot before compliance status change
+  pushResidentHistory(r, 'Compliance: ' + newStatus + (doRevert ? ' (reverted)' : ''), resolvedBy);
+
   // Apply status change
   r.confirm = newStatus;
 
@@ -9129,14 +9284,14 @@ function removeAnaphRoom(room) {
 // ============================================================
 function buildMenuJSON() {
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:29 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
     menu: getMenuData()
   };
 }
 
 function buildStateJSON() {
   return {
-    _meta: { source:'KitchenDOOR', version:29, exported:new Date().toISOString(),
+    _meta: { source:'KitchenDOOR', version:30, exported:new Date().toISOString(),
              site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length,
              lastModifiedBy: getOperatorName() || 'unknown' },
     residents: REGISTRY_LIST,
@@ -9156,7 +9311,7 @@ function buildRegistrySummaryJSON() {
     if(r.isModerate) mc++;
   });
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:29 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
     headcounts: { total:REGISTRY_LIST.length, regular:sc['Regular']||0, halal:sc['Halal']||0, vegan:sc['Vegan / Vegetarian']||0, diabetic:sc['Diabetic']||0, glutenFree:sc['Gluten Free']||0, noDairy:sc['No Dairy']||0 },
     tagDistribution: tc,
     flags: { anaphylactic:ac, moderate:mc }
@@ -9210,7 +9365,7 @@ function buildRoutingByMealJSON() {
   });
 
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:29 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
     routing: result
   };
 }
@@ -14052,6 +14207,21 @@ function renderUpdatesPane() {
           }).join('')}
         </div>
         ${unmatchedNote}
+        ${(() => {
+          const _ir = REGISTRY_MAP[u.room.toLowerCase()];
+          if (!_ir || !_ir._history || !_ir._history.length) return '';
+          return '<div style="margin-top:8px;padding:8px 10px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:6px;">' +
+            '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#7c3aed;margin-bottom:4px;">Prior Changes</div>' +
+            _ir._history.map(h => {
+              const diffs = diffResidentStates(h.snapshot, _ir);
+              return '<div style="font-size:11px;line-height:1.5;">' +
+                '<span style="font-weight:600;">' + (h.desc||'Previous') + '</span>' +
+                '<span style="color:var(--muted);margin-left:6px;">' + (h.date||'') + ' · ' + (h.by||'') + '</span>' +
+                (diffs.length ? ' — ' + diffs.map(d => d.field + ': ' + d.from + ' → ' + d.to).join(', ') : '') +
+              '</div>';
+            }).join('') +
+          '</div>';
+        })()}
       </div>`;
     }).join('')}
   `;
@@ -14644,7 +14814,10 @@ function saveDirectFromForm() {
     if (!r) { showToast('Room ' + room + ' not found in registry.'); return; }
     if (!confirm('Discharge Room ' + room + '? This removes them from all plating sheets.')) return;
     const idx = REGISTRY_LIST.findIndex(x => x.room.toLowerCase() === room.toLowerCase());
-    if (idx !== -1) REGISTRY_LIST.splice(idx, 1);
+    if (idx !== -1) {
+      clearResidentHistory(REGISTRY_LIST[idx]); // v30: clear history — room numbers recycle
+      REGISTRY_LIST.splice(idx, 1);
+    }
     delete REGISTRY_MAP[room.toLowerCase()];
     const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1);
     saveRegistryState();
@@ -14673,6 +14846,8 @@ function saveDirectFromForm() {
 
   // Build/update resident
   const r = existing || {};
+  // v30: Snapshot before mutation (only if existing — new intakes have no history)
+  if (existing) pushResidentHistory(r, (type === 'intake' ? 'Intake overwrite' : 'Direct update') + ' — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, getOperatorName());
   r.room = room;
   r.tags = tagLabels.length ? tagLabels : ['Regular'];
   r.restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
@@ -15909,6 +16084,8 @@ window.addEventListener('load', initSiteSelector);
         <div style="font-size:11px;font-weight:700;color:var(--forest);margin-bottom:4px;">Routing for today's meals:</div>
         <div id="ce-route-preview">—</div>
       </div>
+      <!-- v30: Resident history -->
+      <div id="ce-history" style="margin-top:14px;"></div>
     </div>
     <div style="display:flex;gap:10px;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);">
       <button class="btn btn-ghost btn-sm" style="color:var(--red)" id="ce-remove-btn" onclick="removeFromEditor()">Remove from queue</button>
