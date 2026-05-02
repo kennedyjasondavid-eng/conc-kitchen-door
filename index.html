@@ -11667,6 +11667,7 @@ function revertMealSwap() {
     delete overlay[String(week)][day][period + '_flags'];
     delete overlay[String(week)][day][period + '_softAlt'];
     delete overlay[String(week)][day][period + '_noPorkAlt']; // v30
+    delete overlay[String(week)][day][period + '_slots']; // v30
     // Clean up empty day/week objects
     if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
     if (!Object.keys(overlay[String(week)]).length) delete overlay[String(week)];
@@ -12540,6 +12541,32 @@ function buildNoPorkAlt() {
   return s ? (s.recipeName || s.manual || '') : '';
 }
 
+// v30: Save/restore individual slot values so re-opening doesn't rely on parsing
+function _buildSlotSnapshot() {
+  const snap = {};
+  MEAL_SLOT_DEFS.forEach(d => {
+    const s = MEAL_SLOT_STATE[d.id];
+    if (s) {
+      if (s.recipeName) snap[d.id] = { recipeName: s.recipeName, flags: s.flags || {} };
+      else if (s.manual) snap[d.id] = { manual: s.manual, flags: s.flags || {} };
+    }
+  });
+  return snap;
+}
+
+function _restoreSlotSnapshot(slots) {
+  if (!slots || typeof slots !== 'object') return false;
+  const keys = Object.keys(slots);
+  if (!keys.length) return false;
+  keys.forEach(id => {
+    const val = slots[id];
+    if (val && (val.recipeName || val.manual)) {
+      MEAL_SLOT_STATE[id] = { ...val };
+    }
+  });
+  return true;
+}
+
 const CARB_KEYWORDS = /\b(rice|pasta|noodles?|potato|potatoes|mac|macaroni|bread|roti|couscous|pita|naan|spaghetti|linguine|fettuccine|orzo|gnocchi|polenta|quinoa|farro|bulgur|barley|pilaf|biryani|fried rice|congee|porridge|oat|oatmeal|pancake|waffle|bagel|biscuit|wrap|tortilla|dumpling|pierogi|lasagna|grits)\b/i;
 function detectIsCarb(mealName) { return CARB_KEYWORDS.test(mealName || ''); }
 
@@ -12867,50 +12894,102 @@ function saveMenuEdit() {
     if (cb) flags[f.key] = flags[f.key] || cb.checked;
   });
 
-  // ── P0 v26: Protein detection + halal certification prompt ──
-  const nameLow = name.toLowerCase();
+  // ── P0 v26 / v30: Per-slot protein detection + halal certification prompt ──
   const MEAT_DETECT = [
     { kw: /\bchicken\b|\bchik'?n\b|\bdrum\w*\b|\btender\b|\bwing\b/i, flag: 'hasChicken', label: 'chicken' },
     { kw: /\bbeef\b|\bsteak\b|\bmeatloaf\b|\bmeatball\b/i, flag: 'hasBeef', label: 'beef' },
     { kw: /\bturkey\b/i, flag: 'hasTurkey', label: 'turkey' },
     { kw: /\bpork\b|\bham\b|\bsausage\b|\bbacon\b|\bcarnitas\b/i, flag: 'hasPork', label: 'pork' },
   ];
-  const detectedProteins = [];
-  MEAT_DETECT.forEach(m => {
-    if (m.kw.test(name)) {
-      flags[m.flag] = true;
-      if (m.flag !== 'hasPork') detectedProteins.push(m.label); // pork always triggers halal regardless
-    }
-  });
-  // If meat detected (not pork) and halalCertifiedMeat not already checked, prompt
-  if (detectedProteins.length && !flags.halalCertifiedMeat) {
-    const proteins = detectedProteins.join(' & ');
-    _showHalalCertDialog(proteins, (isHalal) => {
+
+  // Detect per slot
+  function _detectInSlot(slotId) {
+    const s = MEAL_SLOT_STATE[slotId];
+    const val = s ? (s.recipeName || s.manual || '') : '';
+    if (!val) return [];
+    return MEAT_DETECT.filter(m => m.kw.test(val)).map(m => ({ ...m }));
+  }
+
+  const mainProteins    = _detectInSlot('main');
+  const altProteins     = _detectInSlot('mainalt');
+  const noPorkProteins  = _detectInSlot('noporkalt');
+
+  // Set flags from ALL detected proteins (drives routing)
+  [...mainProteins, ...altProteins, ...noPorkProteins].forEach(m => { flags[m.flag] = true; });
+
+  // Halal cert question is about the Main Alt protein specifically:
+  // - On pork days: halal section activates regardless, question is about Main Alt
+  // - On non-pork days: question is about Main protein (does halal section need to activate?)
+  const hasPorkInMain = mainProteins.some(m => m.flag === 'hasPork');
+  const altMeatProteins = altProteins.filter(m => m.flag !== 'hasPork').map(m => m.label);
+  const mainMeatProteins = mainProteins.filter(m => m.flag !== 'hasPork').map(m => m.label);
+
+  const needsHalalPrompt = hasPorkInMain
+    ? (altMeatProteins.length > 0 && !flags.halalCertifiedMeat)  // pork day: ask about alt protein
+    : (mainMeatProteins.length > 0 && !flags.halalCertifiedMeat); // no pork: ask about main protein
+
+  if (needsHalalPrompt) {
+    const slotBreakdown = {
+      main: mainProteins.map(m => m.label),
+      mainalt: altProteins.map(m => m.label),
+      noporkalt: noPorkProteins.map(m => m.label)
+    };
+    const askAbout = hasPorkInMain ? altMeatProteins : mainMeatProteins;
+    _showHalalCertDialog(askAbout.join(' & '), hasPorkInMain, slotBreakdown, (isHalal) => {
       flags.halalCertifiedMeat = isHalal;
       _finishMenuSave(name, veg, flags);
     });
-    return; // dialog will call _finishMenuSave when answered
+    return;
   }
   // ── end P0 ──
   _finishMenuSave(name, veg, flags);
 }
 
-// v30: Custom YES/NO dialog for halal certification
-function _showHalalCertDialog(proteins, callback) {
+// v30: Custom YES/NO dialog for halal certification — per-slot context
+function _showHalalCertDialog(proteins, hasPorkInMain, slotBreakdown, callback) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
   overlay.onclick = (ev) => { if (ev.target === overlay) { overlay.remove(); } };
-  overlay.innerHTML = `<div class="modal-box" style="max-width:480px;">
+
+  // Build slot breakdown display
+  const slots = [];
+  if (slotBreakdown.main.length) slots.push({ label:'Main', proteins:slotBreakdown.main, color:'var(--fg)' });
+  if (slotBreakdown.mainalt.length) slots.push({ label:'Main Alt (Halal)', proteins:slotBreakdown.mainalt, color:'#059669' });
+  if (slotBreakdown.noporkalt.length) slots.push({ label:'No Pork Alt', proteins:slotBreakdown.noporkalt, color:'#7c3aed' });
+
+  const breakdownHtml = slots.length > 1
+    ? `<div style="background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:14px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:var(--muted);margin-bottom:6px;">Proteins detected per slot</div>
+        ${slots.map(s => `<div style="font-size:12px;line-height:1.6;"><span style="font-weight:600;color:${s.color};">${s.label}:</span> ${s.proteins.join(', ')}</div>`).join('')}
+      </div>`
+    : '';
+
+  const porkNote = hasPorkInMain
+    ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#92400e;">
+        <strong>Pork detected in Main.</strong> The Halal section will activate automatically. This question is about the <strong>${proteins}</strong> in the Main Alt.
+      </div>`
+    : '';
+
+  const questionTarget = hasPorkInMain ? `${proteins} in the Main Alt` : proteins;
+  const yesLabel = hasPorkInMain
+    ? 'Halal residents receive the Main Alt'
+    : 'Halal residents receive the regular meal';
+  const noLabel = hasPorkInMain
+    ? 'Main Alt is not halal-certified — needs a halal alternative'
+    : 'Halal section activates with an alternative';
+
+  overlay.innerHTML = `<div class="modal-box" style="max-width:500px;">
     <div class="modal-header"><h2>Halal Certification Check</h2></div>
     <div class="modal-body" style="padding:16px 20px;">
-      <p style="margin:0 0 12px;font-size:14px;">This meal contains <strong>${proteins}</strong>.</p>
-      <p style="margin:0 0 16px;font-size:14px;">Is the ${proteins} halal-certified?</p>
+      ${breakdownHtml}
+      ${porkNote}
+      <p style="margin:0 0 16px;font-size:14px;">Is the <strong>${questionTarget}</strong> halal-certified?</p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button id="_halal-yes" class="btn" style="padding:10px;font-size:13px;background:#059669;color:#fff;border-color:#059669;text-align:left;border-radius:6px;">
-          <strong>Yes — halal-certified</strong><br><span style="font-weight:400;font-size:12px;">Halal residents receive the regular meal</span>
+          <strong>Yes — halal-certified</strong><br><span style="font-weight:400;font-size:12px;">${yesLabel}</span>
         </button>
         <button id="_halal-no" class="btn" style="padding:10px;font-size:13px;background:#dc2626;color:#fff;border-color:#dc2626;text-align:left;border-radius:6px;">
-          <strong>No — not halal</strong><br><span style="font-weight:400;font-size:12px;">Halal section activates with an alternative</span>
+          <strong>No — not halal</strong><br><span style="font-weight:400;font-size:12px;">${noLabel}</span>
         </button>
       </div>
     </div>
@@ -12939,6 +13018,8 @@ function _finishMenuSave(name, veg, flags) {
   overlay[week][day][period + '_flags']   = flags;
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
   overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
+  // v30: Save individual slot values for lossless re-open
+  overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing swap or legacy edit for this slot
@@ -12978,6 +13059,7 @@ function revertMenuEdit() {
     delete overlay[week][day][period + '_flags'];
     delete overlay[week][day][period + '_softAlt'];
     delete overlay[week][day][period + '_noPorkAlt']; // v30
+    delete overlay[week][day][period + '_slots']; // v30
     if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
     if (!Object.keys(overlay[week]).length) delete overlay[week];
     saveMenuBaseOverlay(overlay);
@@ -13062,7 +13144,13 @@ function openMenuEdit(week, day, period) {
 
   // Initialise slots
   initSlotState();
-  if (existing && existing.linkedRecipes) {
+  // v30: Try slot snapshot first (lossless restore from previous save)
+  const savedSlots = dayData[period + '_slots'];
+  if (savedSlots && _restoreSlotSnapshot(savedSlots)) {
+    // Slot snapshot restored — apply flags from snapshot
+    const rotFlags = dayData[period + '_flags'];
+    if (rotFlags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...(MEAL_SLOT_STATE['main'].flags || {}), ...rotFlags};
+  } else if (existing && existing.linkedRecipes) {
     Object.entries(existing.linkedRecipes).forEach(([slotId, recipeName]) => {
       const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
       MEAL_SLOT_STATE[slotId] = recipe
@@ -13072,12 +13160,10 @@ function openMenuEdit(week, day, period) {
   } else if (existing && existing.name) {
     parseMealNameIntoSlots(existing.name);
     if (existing.veg) splitVegAltIntoSlots(existing.veg);
-    // Apply existing flags to main slot so allergen pills show correctly
     if (existing.flags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...existing.flags};
   } else if (dayData[period]) {
     parseMealNameIntoSlots(dayData[period]);
     if (dayData[period + '_veg']) splitVegAltIntoSlots(dayData[period + '_veg']);
-    // Apply rotation flags to main slot so allergen pills show correctly
     const rotFlags = dayData[period + '_flags'];
     if (rotFlags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...rotFlags};
   }
