@@ -16,6 +16,55 @@
     --blue: #2563eb; --blue-pale: #dbeafe;
     --green-pale: #dcfce7; --sidebar-w: 220px;
   }
+  [data-theme="dark"] {
+    --forest: #1b4332; --forest-mid: #2d6a4f; --forest-light: #52b788;
+    --mint: #74c69d; --mint-pale: #1b3a2a;
+    --cream: #16191d; --paper: #1c2026;
+    --ink: #b8bfc7; --ink-mid: #8a919a; --muted: #6c7580; --border: #272d35;
+    --amber: #d4a017; --amber-pale: #2a2208;
+    --red: #f87171; --red-pale: #3a1818;
+    --blue: #7db4f0; --blue-pale: #1a2535;
+    --green-pale: #1b3a2a;
+  }
+
+  /* ── Dark mode overrides (hardcoded colors) ─────────────────── */
+  [data-theme="dark"] .sync-bar { background:#1c2026; border-bottom-color:#272d35; }
+  [data-theme="dark"] .sync-bar-status { color:var(--mint); }
+  [data-theme="dark"] .sync-bar-btn { border-color:#272d35; color:var(--mint); }
+  [data-theme="dark"] .sync-bar-btn:hover { background:var(--forest); color:#fff; }
+  [data-theme="dark"] .modal-box { background:#1c2026; box-shadow:0 8px 32px rgba(0,0,0,0.5); }
+  [data-theme="dark"] .modal-overlay { background:rgba(0,0,0,0.65); }
+  [data-theme="dark"] select,
+  [data-theme="dark"] input,
+  [data-theme="dark"] textarea { background:#21262d; border-color:#272d35; color:var(--ink); }
+  [data-theme="dark"] select:focus,
+  [data-theme="dark"] input:focus,
+  [data-theme="dark"] textarea:focus { background:#21262d; border-color:var(--mint); }
+  [data-theme="dark"] .lookup-found { background:#1b3a2a; border-color:#2d6a4f; }
+  [data-theme="dark"] .ambig-btn { background:#21262d; border-color:#272d35; color:var(--ink); }
+  [data-theme="dark"] .cb-item:hover { background:#21262d; }
+  [data-theme="dark"] .cb-box { background:#21262d; border-color:#3a4250; }
+  [data-theme="dark"] .toggle { background:#3a4250; }
+  [data-theme="dark"] .toggle::after { background:#b8bfc7; }
+  [data-theme="dark"] .toggle.on { background:var(--mint); }
+  [data-theme="dark"] .toggle.on::after { background:#fff; }
+  [data-theme="dark"] table td,
+  [data-theme="dark"] table th { border-color:#272d35; }
+  [data-theme="dark"] .changes-table tbody tr:hover { background:#1b3a2a; }
+  [data-theme="dark"] .toolbar { background:#1c2026; border-color:#272d35; }
+  [data-theme="dark"] .tag-vegan { background:#1b3a2a; color:#74c69d; border-color:#2d6a4f; }
+  [data-theme="dark"] .sp-shortcut-btn { background:#1a5276; }
+  [data-theme="dark"] .preview-header { background:var(--forest); }
+  [data-theme="dark"] .ps-tab { border-color:#272d35; color:var(--ink); }
+  [data-theme="dark"] .ps-tab.active { background:var(--forest-mid); color:#fff; }
+  [data-theme="dark"] .section-card,
+  [data-theme="dark"] .panel,
+  [data-theme="dark"] .card { background:var(--paper); border-color:#272d35; }
+  [data-theme="dark"] hr { border-color:#272d35; }
+  [data-theme="dark"] .dm-toggle { cursor:pointer; font-size:14px; padding:5px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6); transition:.15s; }
+  [data-theme="dark"] .dm-toggle:hover { background:rgba(255,255,255,0.12); color:#fff; }
+  .dm-toggle { cursor:pointer; font-size:14px; padding:5px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6); transition:.15s; display:inline-block; margin-top:8px; }
+  .dm-toggle:hover { background:rgba(255,255,255,0.12); color:#fff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; display: flex; font-size: 14px; }
 
@@ -672,6 +721,7 @@ let _recipeDataSource = 'fallback';
   <div class="sidebar-footer">
     <div class="total-label site-name-label">Residents</div>
     <div class="total-count" id="total-count">181</div>
+    <div class="dm-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</div>
   </div>
 </aside>
 
@@ -1310,7 +1360,7 @@ let _recipeDataSource = 'fallback';
     <div class="topbar">
       <div>
         <div class="topbar-title">Settings</div>
-        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v30</span></div>
+        <div class="topbar-sub">System configuration and SharePoint paths · <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--forest-mid);font-weight:600;">v31</span></div>
       </div>
       <div class="topbar-right">
         <button class="btn btn-mint" onclick="saveSettings()">Save Changes</button>
@@ -16561,6 +16611,16 @@ window.addEventListener('load', initSiteSelector);
 </div>
 
 </div><!-- end app-shell -->
+<script>
+function toggleDarkMode(){
+  const el=document.documentElement;
+  const isDark=el.getAttribute('data-theme')==='dark';
+  if(isDark){el.removeAttribute('data-theme');localStorage.removeItem('kdo-dark');}
+  else{el.setAttribute('data-theme','dark');localStorage.setItem('kdo-dark','1');}
+  document.querySelector('.dm-toggle').textContent=isDark?'🌙':'☀️';
+}
+(function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀️';}})();
+</script>
 </body>
 </html>
 <!-- 
