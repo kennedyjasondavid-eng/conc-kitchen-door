@@ -297,7 +297,7 @@
   .ps-sect-total td:last-child { background: #ffff00; font-weight: 700; text-align: right; font-size: 14px; }
 
   @media print {
-    @page { size: letter portrait; margin: 0.4in 0.5in; }
+    @page { size: letter portrait; margin: 0.3in 0.4in; }
     .sidebar, .topbar, .card-header, #ps-when-tabs, #ps-period-tabs, #ps-day-tabs,
     #plating-recent-generated, .nav-item, #mobile-menu-btn,
     .content > div:not(#ps-preview):not(#ps-print-header) { display: none !important; }
@@ -308,17 +308,17 @@
     #ps-print-header {
       display: block !important;
       font-family: Calibri, sans-serif;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      padding: 4px 0 6px;
+      padding: 2px 0 4px;
       border-bottom: 2px solid #333;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
-    #ps-print-header .ph-org { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-    #ps-print-header .ph-detail { font-size: 14px; color: #000; margin-top: 2px; }
+    #ps-print-header .ph-org { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+    #ps-print-header .ph-detail { font-size: 13px; color: #000; margin-top: 1px; }
     #ps-preview { padding: 0 !important; }
-    .ps-table { width: 100%; font-size: 11px; table-layout: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ps-table td, .ps-table th { padding: 3px 6px; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; }
+    .ps-table { width: 100%; font-size: 10px; table-layout: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ps-table td, .ps-table th { padding: 2px 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; line-height: 1.2; }
     .ps-table col.ps-col-restriction { width: 55%; }
     .ps-table col.ps-col-room { width: 12%; }
     .ps-table col.ps-col-notes { width: 33%; }
@@ -15329,7 +15329,7 @@ function buildDaySheet(period, weekNum, dayName) {
           regCount, halalCount, veganCount, diabCount, ctx } = pd;
 
   const COL_W = [62, 10, 36]; // column widths in chars: Restriction, Room, Notes
-  const LINE_H = 15; // height per line of 10pt Calibri text
+  const LINE_H = 13; // height per line — tighter for 1-2 page fit
 
   // Estimate row height based on longest cell text vs column width
   function calcHeight(texts, colWidths, minH) {
@@ -15457,13 +15457,13 @@ function buildDaySheet(period, weekNum, dayName) {
   ws['!merges'] = merges;
   ws['!cols'] = COL_W.map(w => ({wch: w}));
   ws['!rows'] = rowHeights.map(h => ({hpt: h, hpx: Math.round(h * 1.33)}));
-  ws['!margins'] = {left:0.3,right:0.3,top:0.3,bottom:0.3,header:0.15,footer:0.15};
+  ws['!margins'] = {left:0.25,right:0.25,top:0.25,bottom:0.25,header:0.1,footer:0.1};
   ws['!pageSetup'] = {
     paperSize: 1,        // Letter
     orientation: 'portrait',
     fitToPage: true,
     fitToWidth: 1,
-    fitToHeight: 0,      // Let height flow — don't force single page vertically
+    fitToHeight: 2,      // Fit within 2 pages max
     horizontalDpi: 300,
     verticalDpi: 300,
   };
