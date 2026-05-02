@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-02T11:52:51.640Z",
+    "exported": "2026-05-02T13:09:08.574Z",
     "version": 30
   },
   "menu": {
@@ -1095,8 +1095,8 @@
         "breakfast": "Cereal and milk",
         "breakfast_veg": "Cereal and milk",
         "allergens_breakfast": "dairy, gluten",
-        "lunch": "Glazed Ham with Pineapple, Glazed Chicken with Pineapple, Roast Potatoes, Garlic peas",
-        "lunch_veg": "Roast Potato and Tofu Hash, Roast Potatoes, Garlic peas",
+        "lunch": "Glazed Ham with Pineapple, Glazed Chicken with Pineapple, Roast Potatoes, Garlic Peas & Corn",
+        "lunch_veg": "Roast Potato and Tofu Hash, Roast Potatoes, Garlic Peas & Corn",
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Garlic Peas",
         "allergens_lunch": "pork",
         "dinner": "Caribbean Chicken Curry, Naan",
@@ -1131,7 +1131,7 @@
           "hasPork": true,
           "hasBeef": false,
           "hasChicken": true,
-          "hasTurkey": false,
+          "hasTurkey": true,
           "isSpicy": false,
           "isCarb": true,
           "halalCertifiedMeat": false,
@@ -1169,6 +1169,89 @@
           "hasNightshades": false,
           "hasBrassicas": false,
           "hasCorn": false
+        },
+        "lunch_noPorkAlt": "Glazed Turkey with Pineapple",
+        "lunch_slots": {
+          "main": {
+            "recipeName": "Glazed Ham with Pineapple",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "mainalt": {
+            "recipeName": "Glazed Chicken with Pineapple",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "noporkalt": {
+            "manual": "Glazed Turkey with Pineapple",
+            "flags": {}
+          },
+          "veganalt": {
+            "manual": "Roast Potato and Tofu Hash",
+            "flags": {}
+          },
+          "starch": {
+            "manual": "Roast Potatoes",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Garlic Peas & Corn",
+            "flags": {}
+          },
+          "softalt": {
+            "manual": "Plain Chicken Leg, Mashed Potato & Garlic Peas",
+            "flags": {}
+          }
         }
       },
       "WEDNESDAY": {
