@@ -7131,6 +7131,67 @@ const TAG_LABELS_MAP = {
   noTreeNuts:'No Tree Nuts', noMolluscs:'No Molluscs', noOats:'No Oats',
   noSulphites:'No Sulphites', noMustard:'No Mustard', noFriedFood:'No Fried Food', noTurkey:'No Turkey', noProcessedFood:'No Processed Food', lactoIntolerant:'Lactose Intolerant', lowFat:'Low Fat', lowPotassium:'Low Potassium', noNightshades:'No Nightshades', noBrassicas:'No Brassicas', noBeans:'No Beans', noCorn:'No Corn', other:'Other'
 };
+
+// v30: Enrich rotation MENU_DATA with per-slot fields (_mainItem, _sides)
+// so plating sheet section headers work correctly for meals that haven't been
+// manually re-saved through the edit flow yet.
+(function _enrichMenuSlots() {
+  const STARCH = ['rice','naan','bread','pasta','noodles','potatoes','potato','couscous','biscuit',
+    'roti','pita','tortilla','chips','home fries','fries','mash','wedges','yams','sweet potato'];
+  const VEG = ['seasonal veg','seasonal vegetables','broccoli','green beans','coleslaw',
+    'corn','cabbage','peas','salad','stir-fried veg','steamed veg','mixed veg',
+    'garlic peas','pea and carrot','peas & corn','seasonal soup','soup','vegetables','veg',
+    'okra','cassava stew','chakalaka','refried beans','baked beans','steamed vegetables'];
+  const EXTRA = ['sour cream','gravy','tzatziki','garlic sauce','pickled onion'];
+
+  // Manual overrides for meals that need special handling
+  const MANUAL = {
+    '1-WEDNESDAY-dinner':   { m:'Roast Chicken', s:'Chickpea Shakshuka, Couscous' },
+    '2-TUESDAY-lunch':      { m:'Roast Chicken Leg', s:'Chana Masala, Couscous' },
+    '2-THURSDAY-lunch':     { m:'CONC Salad - Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan', s:'' },
+    '1-FRIDAY-dinner':      { m:'Pork Adobo with Vegetarian and Pineapple Rice', s:'' },
+    '2-SUNDAY-dinner':      { m:'Sausage and Vegetable Pasta', s:'' },
+    '2-FRIDAY-lunch':       { m:'Tuna Salad Sandwich & Seasonal Soup', s:'' },
+    '3-SUNDAY-dinner':      { m:'Halal Beef Meatballs Pasta', s:'' },
+    '3-MONDAY-lunch':       { m:'Vegan Chilli Cheese dogs', s:'' },
+    '4-SUNDAY-dinner':      { m:'White Chilli Chicken Pasta Casserole', s:'' },
+    '4-MONDAY-lunch':       { m:'Chicken Ranch Salad Sandwich and Seasonal Soup', s:'' },
+    '4-WEDNESDAY-lunch':    { m:'Tuna Rex Salad', s:'' },
+  };
+
+  function classify(name) {
+    if (!name) return null;
+    const raw = name.replace(/\s{2,}/g,' ').trim();
+    const parts = raw.split(/,\s*/).map(p=>p.trim()).filter(Boolean);
+    if (parts.length <= 1) return { m:raw, s:'' };
+    const sides = [];
+    for (let i=1;i<parts.length;i++) {
+      sides.push(parts[i]); // all non-first components are sides
+    }
+    return { m:parts[0], s:sides.join(', ') };
+  }
+
+  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  ['1','2','3','4'].forEach(wk => {
+    if (!MENU_DATA[wk]) return;
+    DAYS.forEach(day => {
+      const d = MENU_DATA[wk][day];
+      if (!d) return;
+      ['lunch','dinner','breakfast'].forEach(period => {
+        if (!d[period]) return;
+        // Don't overwrite if overlay already set these
+        if (d[period+'_mainItem']) return;
+        const key = wk+'-'+day+'-'+period;
+        const c = MANUAL[key] || classify(d[period]);
+        if (c) {
+          d[period+'_mainItem'] = c.m;
+          d[period+'_sides'] = c.s;
+        }
+      });
+    });
+  });
+})();
+
 function getTagLabels(tags) {
   return Object.keys(tags).filter(k => tags[k] && TAG_LABELS_MAP[k]).map(k => TAG_LABELS_MAP[k]);
 }
