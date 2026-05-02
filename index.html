@@ -6490,8 +6490,12 @@ function routeResident(tags, meal, room, isAnaph) {
 let lookupDebounce = null;
 
 function onRoomInput(val) {
+  // v31: Sanitize room number — digits + optional single letter suffix only
+  const input = document.getElementById('room-number');
+  const clean = val.replace(/[^0-9a-zA-Z]/g, '').replace(/^(\d+[a-zA-Z]?).*$/, '$1');
+  if (clean !== val.trim()) input.value = clean;
   clearTimeout(lookupDebounce);
-  lookupDebounce = setTimeout(() => lookupRoom(val.trim()), 250);
+  lookupDebounce = setTimeout(() => lookupRoom(clean), 250);
 }
 
 function onDestInput(val) {
