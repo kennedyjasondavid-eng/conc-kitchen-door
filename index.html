@@ -15328,7 +15328,7 @@ function buildDaySheet(period, weekNum, dayName) {
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
           regCount, halalCount, veganCount, diabCount, ctx } = pd;
 
-  const COL_W = [62, 10, 36]; // column widths in chars: Restriction, Room, Notes
+  const COL_W = [46, 8, 26]; // column widths in chars — fits letter page (80 chars total, matches 55/12/33 ratio)
   const LINE_H = 13; // height per line — tighter for 1-2 page fit
 
   // Estimate row height based on longest cell text vs column width
@@ -15364,35 +15364,35 @@ function buildDaySheet(period, weekNum, dayName) {
   if (conflictRooms.size > 0) {
     const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
     const allergens = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph).flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
-    addMerged('\u26A0  ANAPHYLACTIC ALERT \u2014 Rooms '+anaphNames+' ('+allergens+')', F.whB, '993333', B.thick, 22);
-    addMerged('Today\u2019s meal contains allergen \u2014 Do not deliver to these rooms or roommates', F.whSm, '993333', B.thick, 18);
+    addMerged('\u26A0  ANAPHYLACTIC ALERT \u2014 Rooms '+anaphNames+' ('+allergens+')', F.whB, '993333', B.thick, 18);
+    addMerged('Today\u2019s meal contains allergen \u2014 Do not deliver to these rooms or roommates', F.whSm, '993333', B.thick, 14);
   }
 
   // Title
-  addMerged(dayLabel+' '+periodLabel, F.stdB, 'FFFF00', B.thin, 20);
-  addMerged(mealName, F.stdB, 'FCE4D6', B.thin, 20);
-  addMerged('CONTAINS: '+(allergenStr||'\u2014'), F.redB, 'FCE4D6', B.thin, 18);
+  addMerged(dayLabel+' '+periodLabel, F.stdB, 'FFFF00', B.thin, 16);
+  addMerged(mealName, F.stdB, 'FCE4D6', B.thin, 16);
+  addMerged('CONTAINS: '+(allergenStr||'\u2014'), F.redB, 'FCE4D6', B.thin, 14);
 
   // Stats
-  addRow(xCell('',F.std,null,B.thin), xCell('Total Meals',F.stdB,null,B.thin), xCell(String(REGISTRY_LIST.length),F.stdB,'FFFF00',B.thin,A.center), 15);
-  addRow(xCell('',F.std,null,B.thin), xCell('Standard Meal',F.stdB,null,B.thin), xCell(String(regCount),            F.stdB,'FFFF00',B.thin,A.center), 15);
-  addRow(xCell('',F.std,null,B.thin), xCell('Halal',      F.stdB,null,B.thin), xCell(String(halalCount),          F.stdB,'FFFF00',B.thin,A.center), 15);
-  addRow(xCell('',F.std,null,B.thin), xCell('Vegan / Vegetarian',F.stdB,null,B.thin), xCell(String(veganCount),     F.stdB,'FFFF00',B.thin,A.center), 15);
-  addRow(xCell('',F.std,null,B.thin), xCell('Diabetics',  F.stdB,null,B.thin), xCell(String(diabCount),           F.stdB,'FFFF00',B.thin,A.center), 15);
+  addRow(xCell('',F.std,null,B.thin), xCell('Total Meals',F.stdB,null,B.thin), xCell(String(REGISTRY_LIST.length),F.stdB,'FFFF00',B.thin,A.center), 13);
+  addRow(xCell('',F.std,null,B.thin), xCell('Standard Meal',F.stdB,null,B.thin), xCell(String(regCount),            F.stdB,'FFFF00',B.thin,A.center), 13);
+  addRow(xCell('',F.std,null,B.thin), xCell('Halal',      F.stdB,null,B.thin), xCell(String(halalCount),          F.stdB,'FFFF00',B.thin,A.center), 13);
+  addRow(xCell('',F.std,null,B.thin), xCell('Vegan / Vegetarian',F.stdB,null,B.thin), xCell(String(veganCount),     F.stdB,'FFFF00',B.thin,A.center), 13);
+  addRow(xCell('',F.std,null,B.thin), xCell('Diabetics',  F.stdB,null,B.thin), xCell(String(diabCount),           F.stdB,'FFFF00',B.thin,A.center), 13);
 
   // Anaphylactic section
   if (anaphSect.length) {
     const allergens = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
-    addMerged('\u26A0  Anaphylactic Alternative ('+allergens+')', F.whB, '993333', B.thick, 20);
-    addMerged(mealName.replace(/peanut/i,'(no peanut oil)')+' \u2014 prepared separately  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 30);
+    addMerged('\u26A0  Anaphylactic Alternative ('+allergens+')', F.whB, '993333', B.thick, 16);
+    addMerged(mealName.replace(/peanut/i,'(no peanut oil)')+' \u2014 prepared separately  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
-        addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell('\u26A0 ANAPHYLACTIC',F.noteRed,'F2DCDC',B.anaph,A.center), 16);
+        addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell('\u26A0 ANAPHYLACTIC',F.noteRed,'F2DCDC',B.anaph,A.center), 14);
       } else {
-        addRow(xCell(r.rawRestriction,F.amber,'FFF3E0',B.amber), xCell(r.room,F.amber,'FFF3E0',B.amber,A.center), xCell('\u26A0 Room ('+r._anaph_room+')',F.noteAmb,'FFF3E0',B.amber,A.center), 16);
+        addRow(xCell(r.rawRestriction,F.amber,'FFF3E0',B.amber), xCell(r.room,F.amber,'FFF3E0',B.amber,A.center), xCell('\u26A0 Room ('+r._anaph_room+')',F.noteAmb,'FFF3E0',B.amber,A.center), 14);
       }
     });
-    addRow(xCell('Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(anaphSect.length),F.stdB,'FFFF00',B.thin,A.center), 16);
+    addRow(xCell('Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(anaphSect.length),F.stdB,'FFFF00',B.thin,A.center), 14);
   }
 
   // Dynamic sections (all non-regular)
@@ -15426,8 +15426,8 @@ function buildDaySheet(period, weekNum, dayName) {
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
       : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
-    addMerged(title, F.stdB, 'FFFF00', B.thick, 20);
-    addMerged(altMealLine, F.stdB, 'FCE4D6', B.thin, 30);
+    addMerged(title, F.stdB, 'FFFF00', B.thick, 16);
+    addMerged(altMealLine, F.stdB, 'FCE4D6', B.thin, 22);
     s.residents.forEach(r => {
       const isDiab = (r.tags||[]).includes('Diabetic');
       const bg = isDiab ? '92D050' : null;
@@ -15438,17 +15438,17 @@ function buildDaySheet(period, weekNum, dayName) {
         .filter((n,i,a) => a.indexOf(n)===i) // dedupe
         .join(', ');
       const allNotes = [baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
-      addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 16);
+      addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
     });
-    addRow(xCell('Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 16);
+    addRow(xCell('Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
     totalRestrictions += s.residents.length;
     specialIdx++;
   });
 
   // Footer
-  addRow(xCell('Total Restrictions',F.stdB,'F0F0F0',B.thick), xCell('',F.std,'F0F0F0',B.thick), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thick,A.center), 18);
-  addRow(xCell('Total Standard',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin,A.center), 16);
-  addMerged('Diabetics - Less starch, more veg', F.stdB, '92D050', B.thin, 18);
+  addRow(xCell('Total Restrictions',F.stdB,'F0F0F0',B.thick), xCell('',F.std,'F0F0F0',B.thick), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thick,A.center), 15);
+  addRow(xCell('Total Standard',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin,A.center), 14);
+  addMerged('Diabetics - Less starch, more veg', F.stdB, '92D050', B.thin, 14);
 
   // Build worksheet
   const ws = XLSX.utils.aoa_to_sheet([]);
