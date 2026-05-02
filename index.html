@@ -835,7 +835,7 @@ let _recipeDataSource = 'fallback';
 
           <!-- RECENT CHANGES LOG -->
           <div class="log-section">
-            <div class="log-section-header">📅 Recent Changes (last 3 days)</div>
+            <div class="log-section-header">📅 Recent Changes (last 5 days)</div>
             <div id="recent-log"></div>
           </div>
         </div>
@@ -6221,53 +6221,90 @@ const MENU_DATA = {
 };;;;;;
 
 
-// Recent changes log (simulated — last 3 days)
-// Build recent log with dates relative to today
-function buildRecentLog() {
+// Recent changes log — v30 rewrite
+// All entries get a `ts` ISO timestamp for reliable sorting and pruning.
+// Entries older than 5 days are dropped on save, load, and merge.
+
+const _LOG_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const _LOG_MAX_AGE_DAYS = 5;
+
+// Parse "May 2" style date labels into a Date object (assumes current year)
+function _parseLogDate(dateStr) {
+  if (!dateStr) return null;
+  const m = dateStr.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})$/);
+  if (!m) return null;
+  const monthIdx = _LOG_MONTHS.indexOf(m[1]);
+  const day = parseInt(m[2], 10);
   const now = new Date();
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function daysAgo(n) {
-    const d = new Date(now); d.setDate(d.getDate()-n);
-    return `${monthNames[d.getMonth()]} ${d.getDate()}`;
+  const d = new Date(now.getFullYear(), monthIdx, day, 12, 0, 0);
+  // If parsed date is in the future by more than 1 day, assume last year
+  if (d > now && (d - now) > 2 * 86400000) d.setFullYear(d.getFullYear() - 1);
+  return d;
+}
+
+// Ensure every entry has a ts field; backfill from date label if missing
+function _backfillTs(entry) {
+  if (entry.ts) return;
+  const d = _parseLogDate(entry.date);
+  if (d) entry.ts = d.toISOString();
+}
+
+// Drop entries older than 5 days, sort most recent first
+function pruneRecentLog() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - _LOG_MAX_AGE_DAYS);
+  cutoff.setHours(0, 0, 0, 0);
+  // Backfill timestamps
+  RECENT_LOG.forEach(_backfillTs);
+  // Remove entries we can't date or that are too old
+  for (let i = RECENT_LOG.length - 1; i >= 0; i--) {
+    const e = RECENT_LOG[i];
+    if (!e.ts) { RECENT_LOG.splice(i, 1); continue; }
+    const d = new Date(e.ts);
+    if (d < cutoff) RECENT_LOG.splice(i, 1);
   }
+  // Sort most recent first
+  RECENT_LOG.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+}
+
+function buildRecentLog() {
+  // Seed data for first-run only — all within 5-day window
+  const now = new Date();
+  function daysAgo(n) {
+    const d = new Date(now); d.setDate(d.getDate() - n);
+    return {
+      date: `${_LOG_MONTHS[d.getMonth()]} ${d.getDate()}`,
+      ts: d.toISOString()
+    };
+  }
+  const d1 = daysAgo(1), d2 = daysAgo(2), d3 = daysAgo(3);
   return [
-    // Today / yesterday
-    { date:daysAgo(1), room:'1009', type:'discharge', desc:'Halal, removed from all sheets', color:'#dc2626' },
-    { date:daysAgo(1), room:'815',  type:'intake',    desc:'Regular, no restrictions', color:'#16a34a' },
-    { date:daysAgo(1), room:'709',  type:'update',    desc:'Updated: No Spicy added, re-routed to Halal section', color:'#2563eb' },
-    // 2 days ago
-    { date:daysAgo(2), room:'301b', type:'intake',    desc:'No Shellfish, provisional — H&W confirmation pending', color:'#16a34a' },
-    { date:daysAgo(2), room:'512',  type:'discharge', desc:'Gluten Free, No Dairy — removed from all sheets', color:'#dc2626' },
-    { date:daysAgo(2), room:'208',  type:'update',    desc:'Updated: Diabetic added, Carb-swap sections now active', color:'#2563eb' },
-    // 3 days ago
-    { date:daysAgo(3), room:'504',  type:'intake',    desc:'Halal, Diabetic, No Fish, No Shellfish — routed to Halal + Diabetic flag', color:'#16a34a' },
-    { date:daysAgo(3), room:'1101', type:'discharge', desc:'Vegan, Gluten Free — removed', color:'#dc2626' },
-    // 4 days ago
-    { date:daysAgo(4), room:'614a', type:'discharge', desc:'614a discharged. 614b remains, Diabetic Low Sodium', color:'#dc2626' },
-    { date:daysAgo(4), room:'317',  type:'intake',    desc:'Halal, No Pork — routed to Halal section', color:'#16a34a' },
-    { date:daysAgo(4), room:'720',  type:'update',    desc:'Updated: Low Sodium added — notes flag for H&W review', color:'#2563eb' },
-    // 5 days ago
-    { date:daysAgo(5), room:'903',  type:'intake',    desc:'Vegan, Gluten Free — routed to Vegan section', color:'#16a34a' },
-    { date:daysAgo(5), room:'411',  type:'discharge', desc:'Halal, Diabetic — removed from all sheets', color:'#dc2626' },
-    // 6 days ago
-    { date:daysAgo(6), room:'1004', type:'intake',    desc:'Regular, No Pork, No Spicy — routed Regular; No Pork folds into Halal on pork days', color:'#16a34a' },
-    { date:daysAgo(6), room:'605',  type:'update',    desc:'Updated: No Fish added. Re-routed to Vegan section on fish days', color:'#2563eb' },
-    // Welfare flags
-    { date:daysAgo(3), room:'407',  type:'welfare',   desc:'Room 407 refused dinner — welfare follow-up requested. Notified client care.', color:'#dc2626' },
-    { date:'Mar 28',   room:'812',  type:'welfare',   desc:'Room 812 refused lunch — no answer at door. Welfare follow-up requested.', color:'#dc2626' },
-    { date:'Mar 21',   room:'407',  type:'welfare',   desc:'Room 407 refused lunch — second refusal this week. Escalated to client care.', color:'#dc2626' },
-    { date:'Mar 14',   room:'1103', type:'welfare',   desc:'Room 1103 refused dinner — resident noted unwell. Welfare note logged.', color:'#dc2626' },
-    { date:'Mar 7',    room:'602',  type:'welfare',   desc:'Room 602 no answer at dinner — welfare follow-up completed, resident confirmed ok.', color:'#dc2626' },
+    { ...d1, room:'1009', type:'discharge', desc:'Halal, removed from all sheets', color:'#dc2626' },
+    { ...d1, room:'815',  type:'intake',    desc:'Regular, no restrictions', color:'#16a34a' },
+    { ...d1, room:'709',  type:'update',    desc:'Updated: No Spicy added, re-routed to Halal section', color:'#2563eb' },
+    { ...d2, room:'301b', type:'intake',    desc:'No Shellfish, provisional — H&W confirmation pending', color:'#16a34a' },
+    { ...d2, room:'512',  type:'discharge', desc:'Gluten Free, No Dairy — removed from all sheets', color:'#dc2626' },
+    { ...d2, room:'208',  type:'update',    desc:'Updated: Diabetic added, Carb-swap sections now active', color:'#2563eb' },
+    { ...d3, room:'504',  type:'intake',    desc:'Halal, Diabetic, No Fish, No Shellfish — routed to Halal + Diabetic flag', color:'#16a34a' },
+    { ...d3, room:'1101', type:'discharge', desc:'Vegan, Gluten Free — removed', color:'#dc2626' },
   ];
 }
+
 function saveRecentLog() {
-  try { localStorage.setItem('concRecentLog', JSON.stringify(RECENT_LOG.filter(e=>e._real!==false).slice(0,200))); } catch(e) {}
+  pruneRecentLog();
+  try { localStorage.setItem('concRecentLog', JSON.stringify(RECENT_LOG.filter(e => e._real !== false).slice(0, 200))); } catch(e) {}
 }
+
 function loadPersistedLog() {
-  try { const s=JSON.parse(localStorage.getItem('concRecentLog')||'[]'); if(s.length) return s; } catch(e) {}
+  try {
+    const s = JSON.parse(localStorage.getItem('concRecentLog') || '[]');
+    if (s.length) return s;
+  } catch(e) {}
   return buildRecentLog();
 }
+
 const RECENT_LOG = loadPersistedLog();
+pruneRecentLog(); // clean up on boot
 
 // ============================================================
 // RESIDENT HISTORY (v30)
@@ -6323,7 +6360,7 @@ function revertResident(room, historyIndex) {
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
-  RECENT_LOG.unshift({ date:_dl, room, type:'revert', desc:'Reverted to prior state (' + (r._history[1] ? r._history[1].desc : 'previous') + ')', color:'#7c3aed', _real:true, by:getOperatorName() });
+  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room, type:'revert', desc:'Reverted to prior state (' + (r._history[1] ? r._history[1].desc : 'previous') + ')', color:'#7c3aed', _real:true, by:getOperatorName() });
   saveRecentLog();
   saveRegistryState();
   publishAndSync('revert: Room ' + room);
@@ -7031,7 +7068,7 @@ function saveRegistryEdit() {
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
-  RECENT_LOG.unshift({ date:_dl, room:ceRoom, type:'update', desc:'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, color:'#2563eb', _real:true, by:getOperatorName() });
+  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room:ceRoom, type:'update', desc:'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, color:'#2563eb', _real:true, by:getOperatorName() });
   saveRecentLog();
 
   closeChangeEditor();
@@ -7376,7 +7413,7 @@ function nrDoneReview(room) {
     } else {
       desc = `Import text classified as ${TAG_LABELS_MAP[d.value]||d.value}: "${rawText.slice(0,60)}${rawText.length>60?'…':''}"`;
     }
-    RECENT_LOG.unshift({ date: dateStr, room, type: 'import_review', desc, color: '#6b7280', _real:true });
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'import_review', desc, color: '#6b7280', _real:true });
   });
   saveRecentLog(); renderRecentLog();
 
@@ -8065,11 +8102,10 @@ async function pullSecondaryState(repo) {
       if (!Array.isArray(d)) return;
       const local = RECENT_LOG.filter(e => e._real !== false);
       const seen = new Set();
-      const merged = [...d, ...local]
-        .filter(e => { const k=e.room+e.date+e.desc; return seen.has(k)?false:(seen.add(k),true); })
-        .slice(0, 200);
+      const merged = [...local, ...d]
+        .filter(e => { const k=e.room+e.date+e.desc; return seen.has(k)?false:(seen.add(k),true); });
       RECENT_LOG.length = 0; merged.forEach(e => RECENT_LOG.push(e));
-      saveRecentLog(); renderRecentLog();
+      saveRecentLog(); renderRecentLog(); // saveRecentLog prunes + sorts
     }],
   ];
   for (const [filename, apply] of files) {
@@ -8169,7 +8205,7 @@ function generateFiles() {
     const typeColors = { intake:'#16a34a', discharge:'#dc2626', update:'#2563eb', switch:'#d97706' };
     const typeDescs = { intake:`${c.tagLabels.join(', ')||'Regular'} — new intake → ${c.route}`, discharge:`Removed from all sheets`, update:`Updated restrictions → ${c.route}`, switch:`Room switch → ${c.route}` };
     const _logDate = new Date(); const _logLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate();
-    RECENT_LOG.unshift({ date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type], _real:true, by:getOperatorName() });
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_logLabel, room:c.room, type:c.type, desc:typeDescs[c.type], color:typeColors[c.type], _real:true, by:getOperatorName() });
   });
 
   // v28: Log auto-detected discharges
@@ -8177,7 +8213,7 @@ function generateFiles() {
     const _logDate = new Date();
     const _logLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate();
     _autoDischarges.forEach(room => {
-      RECENT_LOG.unshift({ date:_logLabel, room:room.toUpperCase(), type:'discharge', desc:'Auto-detected — not on current meal list', color:'#b91c1c', _real:true, by:'System' });
+      RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_logLabel, room:room.toUpperCase(), type:'discharge', desc:'Auto-detected — not on current meal list', color:'#b91c1c', _real:true, by:'System' });
     });
   }
 
@@ -8444,7 +8480,7 @@ function batchConfirmCompliance() {
     r.complianceResolvedAt = dateStr;
     r.complianceResolutionNote = 'Batch confirmed';
     r.complianceResolvedRestrictions = r.rawRestriction || r.tags.join(', ');
-    RECENT_LOG.unshift({ date: dateStr, room, type: 'update', desc: `Compliance confirmed (batch) by ${by}`, color: '#2563eb', by });
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Compliance confirmed (batch) by ${by}`, color: '#2563eb', by });
   });
   _complianceSelected.clear();
   saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance confirm');
@@ -8479,7 +8515,7 @@ function batchResolveCompliance() {
     r.complianceResolvedAt = dateStr;
     r.complianceResolutionNote = 'Batch resolved';
     r.complianceResolvedRestrictions = r.rawRestriction || r.tags.join(', ');
-    RECENT_LOG.unshift({ date: dateStr, room, type: 'update', desc: `Compliance resolved (batch) by ${by}`, color: '#2563eb', by });
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Compliance resolved (batch) by ${by}`, color: '#2563eb', by });
   });
   _complianceSelected.clear();
   saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance resolve');
@@ -8911,6 +8947,7 @@ function reopenComplianceItem(room) {
   r.complianceResolutionNote = '';
   r.complianceResolvedRestrictions = '';
   RECENT_LOG.unshift({
+    ts:new Date().toISOString(),
     date: (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })(),
     room: room,
     type: 'update',
@@ -9017,6 +9054,7 @@ function submitResolve() {
 
   // Log to RECENT_LOG
   RECENT_LOG.unshift({
+    ts:new Date().toISOString(),
     date: dateStr,
     room: r.room,
     type: 'update',
@@ -11269,6 +11307,7 @@ function submitLeftovers() {
 
   if (totalNotServed > 0) {
     RECENT_LOG.unshift({
+      ts: new Date().toISOString(),
       date: dateStr, room: '—', type: 'leftover',
       desc: `${mealLabel} not served: ${returnParts.join(', ')}${activeFlags.length ? ' · ' + activeFlags.join(', ') : ''}${notes ? ' · ' + notes : ''}`,
       color: '#d97706'
@@ -11280,6 +11319,7 @@ function submitLeftovers() {
     const followUp = checkedBoxes['flag_followup'];
     const followNote = (document.getElementById('followup-note') || {}).value || '';
     RECENT_LOG.unshift({
+      ts: new Date().toISOString(),
       date: dateStr, room: '⚑', type: 'welfare',
       desc: `${mealLabel} refusals: rooms ${roomList}${followUp ? ' — ⚑ Follow-up flagged for client care' : ''}${followNote ? ': ' + followNote : ''}`,
       color: '#dc2626'
@@ -11659,6 +11699,7 @@ function logMenuEvent(type, desc) {
     upload_import:  '#0891b2'   // cyan — bulk event
   };
   RECENT_LOG.unshift({
+    ts:new Date().toISOString(),
     date: dateStr,
     room: '—',
     type,
@@ -14600,7 +14641,7 @@ initDynamic();
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
       const local=RECENT_LOG.filter(e=>e._real!==false);const seen=new Set();
-      const merged=[...remote,...local].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);}).slice(0,200);
+      const merged=[...local,...remote].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);});
       RECENT_LOG.length=0;merged.forEach(e=>RECENT_LOG.push(e));saveRecentLog();if(typeof renderRecentLog==='function')renderRecentLog();
     }).catch(()=>{});
     // custom_tag_rules.json
@@ -14703,7 +14744,7 @@ initDynamic();
     if (patch.section && !r.section) r.section = patch.section;
     // Log to recent changes
     const dateStr = new Date().toLocaleDateString('en-CA', { month:'short', day:'numeric' });
-    RECENT_LOG.unshift({ date: dateStr, room: patch.room, type: 'update',
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room: patch.room, type: 'update',
       desc: patch.note, color: '#6b7280' });
   });
 
@@ -14825,7 +14866,7 @@ function saveDirectFromForm() {
     publishAndSync('intake discharge: Room ' + room);
     const _d = new Date();
     const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
-    RECENT_LOG.unshift({ date:_dl, room, type:'discharge', desc:'Discharged — removed from all sheets', color:'#dc2626', _real:true, by:getOperatorName() });
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room, type:'discharge', desc:'Discharged — removed from all sheets', color:'#dc2626', _real:true, by:getOperatorName() });
     saveRecentLog(); renderRecentLog();
     clearForm();
     showToast('Room ' + room + ' discharged ✓');
@@ -14885,7 +14926,7 @@ function saveDirectFromForm() {
   const logDesc = existing
     ? 'Updated — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route
     : 'New intake — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route;
-  RECENT_LOG.unshift({ date:_dl, room, type:logType, desc:logDesc, color: existing ? '#2563eb' : '#16a34a', _real:true, by:getOperatorName() });
+  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room, type:logType, desc:logDesc, color: existing ? '#2563eb' : '#16a34a', _real:true, by:getOperatorName() });
   saveRecentLog(); renderRecentLog();
   clearForm();
   showToast('Room ' + room + ' saved to registry ✓');
