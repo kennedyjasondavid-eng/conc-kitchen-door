@@ -446,36 +446,6 @@
       },
       "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)"
     },
-    "WEDNESDAY": {
-      "lunch": "Crispy Chicken Tender Wrap",
-      "lunch_veg": "",
-      "lunch_flags": {
-        "hasGluten": true,
-        "hasDairy": true,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "isSpicy": false,
-        "isCarb": true,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": true,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg"
-    },
     "MONDAY": {
       "lunch": "Vegan Chilli Cheese dogs",
       "lunch_veg": "Vegan Chilli Cheese dogs",
@@ -586,6 +556,36 @@
           "flags": {}
         }
       }
+    },
+    "WEDNESDAY": {
+      "lunch": "Crispy Chicken Tender Wrap",
+      "lunch_veg": "",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": true,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg"
     },
     "SUNDAY": {
       "lunch": "Coronation Chicken Salad Sandwich",
@@ -987,7 +987,78 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup"
+      "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
+      "dinner": "Fish Curry, Steamed Rice, Seasonal Vegetables",
+      "dinner_veg": "Tofu Curry, Steamed Rice, Seasonal Vegetables",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": true,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Fish, Plain Rice & Stir-fried Veg",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Fish Curry",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Steamed Rice, Seasonal Vegetables",
+      "dinner_slots": {
+        "main": {
+          "manual": "Fish Curry",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasPork": false,
+            "hasFish": true,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "hasSesame": false,
+            "hasSoy": false,
+            "hasBeef": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": true
+          }
+        },
+        "veganalt": {
+          "manual": "Tofu Curry",
+          "flags": {
+            "hasCoconut": true
+          }
+        },
+        "starch": {
+          "manual": "Steamed Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Seasonal Vegetables",
+          "flags": {}
+        },
+        "softalt": {
+          "manual": "Plain Fish, Plain Rice & Stir-fried Veg",
+          "flags": {}
+        }
+      }
     },
     "THURSDAY": {
       "lunch": "Chicken Schwarma & Garlic Sauce, Coleslaw. Mujadarrah Rice, Coleslaw. Mujadarrah Rice",
