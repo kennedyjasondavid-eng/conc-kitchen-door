@@ -698,7 +698,7 @@
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
-        "hasCoconut": false,
+        "hasCoconut": true,
         "hasNightshades": false,
         "hasBrassicas": false,
         "hasCorn": false
@@ -819,7 +819,57 @@
       },
       "lunch_mainItem": "Glazed Ham with Pineapple",
       "lunch_mainAlt": "Glazed Chicken with Pineapple",
-      "lunch_sides": "Roast Potatoes, Garlic Peas & Corn"
+      "lunch_sides": "Roast Potatoes, Garlic Peas & Corn",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Caribbean Chicken Curry",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Naan",
+      "dinner_slots": {
+        "main": {
+          "manual": "Caribbean Chicken Curry",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": true,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Caribbean Chickpea Curry",
+          "flags": {
+            "hasCoconut": true
+          }
+        },
+        "starch": {
+          "manual": "Naan",
+          "flags": {}
+        },
+        "softalt": {
+          "manual": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
+          "flags": {}
+        }
+      }
     },
     "SATURDAY": {
       "lunch": "Sesame Chicken Stirfry, Steamed Rice, Seasonal Vegetables",
