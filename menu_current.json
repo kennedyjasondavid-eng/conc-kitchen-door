@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-03T12:24:26.096Z",
+    "exported": "2026-05-03T12:31:18.205Z",
     "version": 30
   },
   "menu": {
@@ -158,7 +158,7 @@
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
-          "hasCoconut": false,
+          "hasCoconut": true,
           "hasNightshades": false,
           "hasBrassicas": false,
           "hasCorn": false
@@ -166,9 +166,61 @@
         "lunch_mainItem": "Halal Sausages",
         "lunch_sides": "Baked Beans, Peas and Potatoes",
         "dinner_mainItem": "Jerk Chicken",
-        "dinner_sides": "Cabbage Stirfry, Rice and Beans",
+        "dinner_sides": "Rice and Beans, Cabbage Stirfry",
         "breakfast_mainItem": "Pancakes",
-        "breakfast_sides": "turkey bacon"
+        "breakfast_sides": "turkey bacon",
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "manual": "Jerk Chicken",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Jerk Cauliflower",
+            "flags": {}
+          },
+          "starch": {
+            "manual": "Rice and Beans",
+            "flags": {
+              "hasCoconut": true
+            }
+          },
+          "vegside": {
+            "manual": "Cabbage Stirfry",
+            "flags": {}
+          },
+          "softalt": {
+            "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
+            "flags": {}
+          }
+        }
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk",
