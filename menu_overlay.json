@@ -311,12 +311,66 @@
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
-        "hasCoconut": false,
+        "hasCoconut": true,
         "hasNightshades": false,
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)"
+      "dinner_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "African Peanut Chicken Stew",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Rice, Seasonal Vegetables",
+      "dinner_slots": {
+        "main": {
+          "manual": "African Peanut Chicken Stew",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": true,
+            "hasSoy": false,
+            "hasTreeNuts": true,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": true,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "African Chickpea Peanut Stew",
+          "flags": {
+            "hasCoconut": true
+          }
+        },
+        "starch": {
+          "manual": "Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Seasonal Vegetables",
+          "flags": {}
+        },
+        "softalt": {
+          "manual": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
+          "flags": {}
+        }
+      }
     },
     "TUESDAY": {
       "lunch": "Roast Chicken Leg & Chana Masala, Couscous",
