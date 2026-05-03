@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-03T11:46:25.833Z",
+    "exported": "2026-05-03T12:22:33.382Z",
     "version": 30
   },
   "menu": {
@@ -1848,22 +1848,75 @@
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
-          "hasPork": false,
-          "hasFish": true,
           "hasEgg": false,
+          "hasFish": true,
           "hasPeanuts": false,
-          "hasSesame": false,
           "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
+          "hasPork": false,
           "hasBeef": false,
+          "hasChicken": false,
+          "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": false
+          "isCarb": true,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
+          "hasMushroom": false,
+          "hasCoconut": true,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_mainItem": "Chicken Ranch Salad Sandwich and Seasonal Soup",
         "lunch_sides": "",
         "dinner_mainItem": "Fish Curry",
         "dinner_sides": "Steamed Rice, Seasonal Vegetables",
         "breakfast_mainItem": "Pancakes",
-        "breakfast_sides": "turkey bacon"
+        "breakfast_sides": "turkey bacon",
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "manual": "Fish Curry",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasPork": false,
+              "hasFish": true,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "hasSesame": false,
+              "hasSoy": false,
+              "hasBeef": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": true
+            }
+          },
+          "veganalt": {
+            "manual": "Tofu Curry",
+            "flags": {
+              "hasCoconut": true
+            }
+          },
+          "starch": {
+            "manual": "Steamed Rice",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Seasonal Vegetables",
+            "flags": {}
+          },
+          "softalt": {
+            "manual": "Plain Fish, Plain Rice & Stir-fried Veg",
+            "flags": {}
+          }
+        }
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk",
