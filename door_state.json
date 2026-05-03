@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 30,
-    "exported": "2026-05-03T10:26:56.895Z",
+    "exported": "2026-05-03T11:46:28.853Z",
     "site": "rexdale",
     "count": 173,
     "lastModifiedBy": "JK"
@@ -1876,18 +1876,22 @@
       "room": "801",
       "section": "Vegan / Vegetarian",
       "tags": [
-        "Vegetarian"
+        "Vegetarian",
+        "No Spicy",
+        "Bland Diet"
       ],
-      "confirm": "Confirmed",
+      "confirm": "Provisional",
       "confirmBy": "Auto",
       "isAnaph": false,
-      "rawRestriction": "Vegetarian",
+      "rawRestriction": "Vegetarian, No Spicy, Bland Diet",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
       "pendingReversion": false,
       "restrictions": [
-        "Vegetarian"
+        "Vegetarian",
+        "No Spicy",
+        "Bland Diet"
       ],
       "allergenFlags": [],
       "accommodations": [],
@@ -1895,7 +1899,40 @@
       "avoidances": [],
       "_tierMigrated": true,
       "serviceNote": "",
-      "lastImported": "2026-05-02"
+      "lastImported": "2026-05-02",
+      "_history": [
+        {
+          "snapshot": {
+            "room": "801",
+            "section": "Vegan / Vegetarian",
+            "tags": [
+              "Vegetarian"
+            ],
+            "restrictions": [
+              "Vegetarian"
+            ],
+            "allergenFlags": [],
+            "accommodations": [],
+            "preferences": [],
+            "avoidances": [],
+            "confirm": "Confirmed",
+            "confirmBy": "Auto",
+            "isAnaph": false,
+            "rawRestriction": "Vegetarian",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "",
+            "_tierMigrated": true
+          },
+          "ts": "2026-05-03T11:46:25.832Z",
+          "date": "May 3",
+          "desc": "Direct edit — Vegetarian, No Spicy, Bland Diet → Vegan / Vegetarian",
+          "by": "JK"
+        }
+      ],
+      "anaphTags": []
     },
     {
       "room": "802",
