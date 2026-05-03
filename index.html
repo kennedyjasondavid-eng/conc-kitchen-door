@@ -15532,10 +15532,24 @@ function computePlatingData(period, weekNum, dayName) {
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags};
 
+  // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
+  const regularNotes = [];
+  if (regularSection) {
+    regularSection.residents.forEach(r => {
+      const conflicts = checkResidentMealConflicts(mealFlags, r);
+      const conflictNote = formatConflictNote(conflicts);
+      const svcNote = r.serviceNote || '';
+      if (conflicts.length || svcNote) {
+        regularNotes.push({ room: r.room, rawRestriction: r.rawRestriction || '', tags: r.tags || [], conflictNote, serviceNote: svcNote });
+      }
+    });
+    regularNotes.sort((a,b) => { const na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); });
+  }
+
   return {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
     allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-    regCount, halalCount, veganCount, diabCount, ctx, sortR
+    regCount, halalCount, veganCount, diabCount, ctx, sortR, regularNotes
   };
 }
 
@@ -15544,7 +15558,7 @@ function buildDaySheet(period, weekNum, dayName) {
   if (!pd) return null;
   const { dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-          regCount, halalCount, veganCount, diabCount, ctx } = pd;
+          regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
 
   const COL_W = [52, 8, 20]; // column widths — wider restriction col for routing labels, tighter notes
   const LINE_H = 13; // height per line — tighter for 1-2 page fit
@@ -15662,6 +15676,16 @@ function buildDaySheet(period, weekNum, dayName) {
     totalRestrictions += s.residents.length;
     specialIdx++;
   });
+
+  // v31: Regular Meal — Notes (residents with active conflicts or service notes)
+  if (regularNotes && regularNotes.length) {
+    addMerged('Regular Meal \u2014 Notes', F.stdB, 'D9E2F3', B.thick, 16);
+    addMerged('Standard meal with the following modifications', F.std, 'D9E2F3', B.thin, 14);
+    regularNotes.forEach(r => {
+      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' \u00B7 ');
+      addRow(xCell(r.rawRestriction, F.std, 'E8EDF5', B.thin), xCell(r.room, F.std, 'E8EDF5', B.thin, A.center), xCell(note, F.std, 'E8EDF5', B.thin), 14);
+    });
+  }
 
   // Footer
   addRow(xCell('Total Restrictions',F.stdB,'F0F0F0',B.thick), xCell('',F.std,'F0F0F0',B.thick), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thick,A.center), 15);
@@ -16267,7 +16291,7 @@ function renderPlatingPreview() {
   }
 
   const { dayLabel, periodLabel, mealName, mealVeg, mealFlags, allergenStr, vegAllergenStr,
-          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx } = pd;
+          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
 
   // Print header
   if (printHeader) {
@@ -16352,6 +16376,15 @@ function renderPlatingPreview() {
     });
     h += `<tr class="ps-sect-total"><td>${s.rule.label} Total</td><td></td><td>${res.length}</td></tr>`;
   });
+  // v31: Regular Meal — Notes
+  if (regularNotes && regularNotes.length) {
+    h += `<tr><td colspan="3" class="ps-sect-hdr" style="background:#D9E2F3;">Regular Meal \u2014 Notes</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal" style="background:#E8EDF5;">Standard meal with the following modifications</td></tr>`;
+    regularNotes.forEach(r => {
+      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' \u00B7 ');
+      h += `<tr style="background:#E8EDF5;"><td>${r.rawRestriction}</td><td>${r.room}</td><td>${note}</td></tr>`;
+    });
+  }
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
   h += `<tr class="ps-sect-total"><td>Total Standard</td><td></td><td>${regCount}</td></tr>`;
   h += '</table>';
