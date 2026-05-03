@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-03T12:22:57.844Z",
+    "exported": "2026-05-03T12:24:26.096Z",
     "version": 30
   },
   "menu": {
@@ -1363,7 +1363,7 @@
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
-          "hasCoconut": false,
+          "hasCoconut": true,
           "hasNightshades": false,
           "hasBrassicas": false,
           "hasCorn": false
@@ -1457,7 +1457,55 @@
             "flags": {}
           }
         },
-        "lunch_mainAlt": "Glazed Chicken with Pineapple"
+        "lunch_mainAlt": "Glazed Chicken with Pineapple",
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "manual": "Caribbean Chicken Curry",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": true,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Caribbean Chickpea Curry",
+            "flags": {
+              "hasCoconut": true
+            }
+          },
+          "starch": {
+            "manual": "Naan",
+            "flags": {}
+          },
+          "softalt": {
+            "manual": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Ham Frittata",
