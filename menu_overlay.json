@@ -57,7 +57,7 @@
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
-        "hasCoconut": false,
+        "hasCoconut": true,
         "hasNightshades": false,
         "hasBrassicas": false,
         "hasCorn": false
@@ -92,7 +92,61 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Mashed Potato, Baked Beans & Peas"
+      "lunch_softAlt": "Mashed Potato, Baked Beans & Peas",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Jerk Chicken",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Rice and Beans, Cabbage Stirfry",
+      "dinner_slots": {
+        "main": {
+          "manual": "Jerk Chicken",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Jerk Cauliflower",
+          "flags": {}
+        },
+        "starch": {
+          "manual": "Rice and Beans",
+          "flags": {
+            "hasCoconut": true
+          }
+        },
+        "vegside": {
+          "manual": "Cabbage Stirfry",
+          "flags": {}
+        },
+        "softalt": {
+          "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
+          "flags": {}
+        }
+      }
     },
     "WEDNESDAY": {
       "dinner": "Roast Chicken & Chickpea Shakshuka, Couscous",
