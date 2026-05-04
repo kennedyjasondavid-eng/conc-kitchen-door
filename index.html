@@ -6686,6 +6686,9 @@ function onTypeChange() {
 function toggleCb(el, key) {
   el.classList.toggle('checked');
   checkedBoxes[key] = el.classList.contains('checked');
+  // v32 fix: sync the actual <input> checked property — publishToGitHub gate reads it
+  const inp = el.querySelector('input[type="checkbox"]');
+  if (inp) inp.checked = checkedBoxes[key];
 }
 
 function toggleAnaph(btn) {
@@ -8382,18 +8385,13 @@ function generateFiles() {
   const autoPublishCb = document.querySelector('[onclick*="gh_auto_publish"]');
   const autoPublishOn = hasToken && autoPublishCb && autoPublishCb.querySelector('input') && autoPublishCb.querySelector('input').checked;
   if (autoPublishOn) {
-    updateSyncBar('Publishing… — ' + REGISTRY_LIST.length + ' residents', 'var(--forest-mid)');
-    publishToGitHub(false).then(() => {
-      updateSyncBar('Synced ✓ — ' + REGISTRY_LIST.length + ' residents · ' + genTimeStr, 'var(--forest)');
-    }).catch(() => {
-      updateSyncBar('Registry saved locally — publish failed · ' + genTimeStr, '#dc2626');
-    });
+    // v32 fix: publishAndSync was also called below, causing two concurrent publishToGitHub
+    // calls that raced on GitHub SHA — second call would 409 and skip remaining files.
+    // Now only publishAndSync fires (single publish path).
+    publishAndSync('plating sheets generated');
   } else {
     updateSyncBar('Saved locally — ' + REGISTRY_LIST.length + ' residents · ' + genTimeStr + (hasToken ? '' : ' · enable auto-publish in Settings for multi-device sync'), 'var(--forest-mid)');
   }
-
-  // Publish menu + headcounts to GitHub for Production Hub
-  publishAndSync('plating sheets generated');
 }
 
 function resetAndGoHome() {
@@ -9371,6 +9369,8 @@ try {
   if (saved) { const parsed = JSON.parse(saved); Object.assign(appSettings, parsed); }
   // v25: Fall back to embedded token if stored token is empty (stale localStorage from pre-v25)
   if (!appSettings['gh-token'] && DEFAULT_SETTINGS['gh-token']) appSettings['gh-token'] = DEFAULT_SETTINGS['gh-token'];
+  // v32 fix: Fall back to shared DOOR token key (EXPO/Hub use conc_gh_token)
+  if (!appSettings['gh-token']) { const shared = localStorage.getItem('conc_gh_token'); if (shared) appSettings['gh-token'] = shared; }
 } catch(e) { console.warn('Settings load failed:', e); }
 let anaphRooms = ['213']; // 213=confirmed Apr22 via H&W audit
 try {
@@ -9401,6 +9401,9 @@ function saveSettings() {
   try {
     localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
     localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms));
+    // v32 fix: Sync token to shared key used by EXPO and Hub
+    if (appSettings['gh-token']) { localStorage.setItem('conc_gh_token', appSettings['gh-token']); }
+    else { localStorage.removeItem('conc_gh_token'); }
   } catch(e) { console.warn('Settings save failed:', e); }
   // Show saved indicator
   const btn = document.querySelector('[onclick="saveSettings()"]');
