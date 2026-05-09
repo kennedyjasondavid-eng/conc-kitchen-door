@@ -630,21 +630,51 @@ const DOOR_RECIPE_DATA_FALLBACK = [{"recipeName": "Adobo Pork/Chicken/Tofu (Adob
 let DOOR_RECIPE_DATA = DOOR_RECIPE_DATA_FALLBACK;
 let _recipeDataSource = 'fallback';
 
-(function loadRecipeData() {
+(async function loadRecipeData() {
   const HUB_URL = 'https://kennedyjasondavid-eng.github.io/conc-recipe-hub/DOOR_RECIPE_DATA.json';
-  fetch(HUB_URL, { cache: 'no-cache' })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(data => {
-      if (Array.isArray(data) && data.length > 0) {
-        DOOR_RECIPE_DATA = data;
-        _recipeDataSource = 'live';
-        console.log('[DOOR] Recipe data loaded from Recipe Hub (' + data.length + ' recipes)');
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(HUB_URL, { cache: 'no-cache', signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      DOOR_RECIPE_DATA = data;
+      _recipeDataSource = 'live';
+      try { localStorage.setItem('door_recipe_data_cache', JSON.stringify(data)); } catch(e) {}
+      console.log('[DOOR] CODEX recipe data loaded live (' + data.length + ' recipes)');
+      updateCODEXBadge();
+      return;
+    }
+    throw new Error('Empty response');
+  } catch(e) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('door_recipe_data_cache') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) {
+        DOOR_RECIPE_DATA = cached;
+        _recipeDataSource = 'cached';
+        console.log('[DOOR] Using cached CODEX recipe data (' + cached.length + ' recipes)');
+        updateCODEXBadge();
+        return;
       }
-    })
-    .catch(err => {
-      console.warn('[DOOR] Recipe Hub fetch failed, using embedded fallback:', err.message);
-    });
+    } catch(e2) {}
+    _recipeDataSource = 'fallback';
+    console.warn('[DOOR] CODEX fetch failed, using embedded fallback:', e.message);
+    updateCODEXBadge();
+  }
 })();
+
+function updateCODEXBadge() {
+  const el = document.getElementById('codex-source-badge');
+  if (!el) return;
+  const labels = { live: 'CODEX Live', cached: 'CODEX Cached', fallback: 'CODEX Offline' };
+  const colors = { live: '#059669', cached: '#f59e0b', fallback: 'rgba(255,255,255,.3)' };
+  el.textContent = labels[_recipeDataSource] || 'CODEX';
+  el.style.background = colors[_recipeDataSource] || 'rgba(255,255,255,.3)';
+  el.style.color = _recipeDataSource === 'live' ? '#fff' : (_recipeDataSource === 'cached' ? '#fff' : '#aaa');
+  el.title = DOOR_RECIPE_DATA.length + ' recipes (' + _recipeDataSource + ')';
+}
 </script>
 </head>
 <body>
@@ -717,8 +747,11 @@ let _recipeDataSource = 'fallback';
     </a>
   </nav>
   <div class="sidebar-footer">
-    <div class="total-label site-name-label">Residents</div>
-    <div class="total-count" id="total-count">181</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div><div class="total-label site-name-label">Residents</div>
+      <div class="total-count" id="total-count">181</div></div>
+      <span id="codex-source-badge" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.3);color:#aaa;">CODEX</span>
+    </div>
     <div class="dm-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</div>
   </div>
 </aside>
@@ -12609,6 +12642,7 @@ const HUB_ALLERGEN_MAP = {
   'Gluten':'hasGluten','Milk':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
   'Eggs':'hasEgg','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
   'Tree Nuts':'hasTreeNuts','Sulphites':'hasSulphites','Spicy':'isSpicy',
+  'Nightshades':'hasNightshades','Shellfish':'hasShellfish',
 };
 
 function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA); }
