@@ -714,7 +714,7 @@ function updateCODEXBadge() {
       <span class="nav-icon">↗</span> Review & Generate
     </div>
     <div class="nav-item" data-screen="plating" onclick="showScreen('plating',this)">
-      <span class="nav-icon">🖨</span> Plating Sheets
+      <span class="nav-icon">&#x229F;</span> Plating Sheets
     </div>
     <div class="nav-section-label">Reference</div>
     <div class="nav-item" data-screen="registry" onclick="showScreen('registry',this)">
@@ -726,13 +726,13 @@ function updateCODEXBadge() {
     </div>
     <div class="nav-item" data-screen="menu-config" onclick="showScreen('menu-config',this)"><span class="nav-icon">≔</span> Menu Config</div>
     <div class="nav-item" data-screen="leftover" onclick="showScreen('leftover',this)">
-      <span class="nav-icon">📋</span> Meal Log
+      <span class="nav-icon">&#x25C9;</span> Meal Log
     </div>
     <div class="nav-item" data-screen="reports" onclick="showScreen('reports',this)">
-      <span class="nav-icon">📊</span> Meal Service Overview
+      <span class="nav-icon">&#x25A6;</span> Meal Service Overview
     </div>
     <div class="nav-item" data-screen="custom-reports" onclick="showScreen('custom-reports',this)">
-      <span class="nav-icon">🔧</span> Custom Reports
+      <span class="nav-icon">&#x25C8;</span> Custom Reports
     </div>
     <div class="nav-item" data-screen="settings" onclick="showScreen('settings',this)">
       <span class="nav-icon">⚙</span> Settings
@@ -740,10 +740,10 @@ function updateCODEXBadge() {
     <div class="nav-item" style="opacity:.5;cursor:default"><span class="nav-icon">◷</span> Archive</div>
     <div class="nav-section-label">Tools</div>
     <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/" target="_blank" style="text-decoration:none;">
-      <span class="nav-icon">🏭</span> HUB ↗
+      <span class="nav-icon">&#x25C8;</span> HUB ↗
     </a>
     <a class="nav-item" href="https://kennedyjasondavid-eng.github.io/conc-recipe-hub/" target="_blank" style="text-decoration:none;">
-      <span class="nav-icon">🍳</span> CODEX ↗
+      <span class="nav-icon">&#x25C6;</span> CODEX ↗
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -752,7 +752,7 @@ function updateCODEXBadge() {
       <div class="total-count" id="total-count">181</div></div>
       <span id="codex-source-badge" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.3);color:#aaa;">CODEX</span>
     </div>
-    <div class="dm-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</div>
+    <div class="dm-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">&#x263D;</div>
   </div>
 </aside>
 
@@ -766,8 +766,8 @@ function updateCODEXBadge() {
       <div class="topbar-sub">Record today's intakes, discharges, and restriction updates</div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Pull latest registry state from GitHub">🔄 Sync</button>
-      <button class="btn btn-ghost btn-sm" onclick="openUploadDialog()" title="Upload today's meal list xlsx and generate changes automatically">📤 Import Daily List</button>
+      <button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Pull latest registry state from GitHub">&#x21BB; Sync</button>
+      <button class="btn btn-ghost btn-sm" onclick="openUploadDialog()" title="Upload today's meal list xlsx and generate changes automatically">&#x2191; Import Daily List</button>
       <button class="btn btn-ghost btn-sm" onclick="clearQueue()">Clear Queue</button>
       <button class="btn btn-mint" onclick="addChange()">+ Add Change</button>
     </div>
@@ -784,7 +784,7 @@ function updateCODEXBadge() {
       <div>
         <div class="card mb-16">
           <div class="card-header">
-            <span style="font-size:18px">📋</span>
+            <span style="font-size:18px">&#x2261;</span>
             <h2>New Change</h2>
             <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="form-date"></span>
           </div>
@@ -820,7 +820,7 @@ function updateCODEXBadge() {
 
             <!-- DISCHARGE CONFIRM -->
             <div class="discharge-confirm" id="discharge-confirm">
-              <div class="discharge-confirm-title">⚠️ Confirm discharge</div>
+              <div class="discharge-confirm-title">&#x26A0; Confirm discharge</div>
               <div class="discharge-confirm-body" id="discharge-confirm-body"></div>
             </div>
 
@@ -879,7 +879,7 @@ function updateCODEXBadge() {
               </div>
               <div class="anaph-section">
                 <div class="anaph-left">
-                  <span class="anaph-icon">⚠️</span>
+                  <span class="anaph-icon">&#x26A0;</span>
                   <div class="anaph-text">
                     <strong>Confirmed Anaphylactic (epi-pen)</strong>
                     <small>Flags red on all sheets · Added to Anaphylactic List · Room-level routing lockout · Confirm with H&W</small>
@@ -912,7 +912,7 @@ function updateCODEXBadge() {
       <div style="position:sticky;top:80px;">
         <div class="card">
           <div class="card-header">
-            <span style="font-size:16px">📋</span>
+            <span style="font-size:16px">&#x2261;</span>
             <h2>Today's Queue</h2>
             <span id="queue-count-label" style="margin-left:auto;font-size:12px;color:var(--muted)">0 changes</span>
           </div>
@@ -925,13 +925,13 @@ function updateCODEXBadge() {
 
           <!-- RECENT CHANGES LOG -->
           <div class="log-section">
-            <div class="log-section-header">📅 Recent Changes (last 5 days)</div>
+            <div class="log-section-header">&#x25C6; Recent Changes (last 5 days)</div>
             <div id="recent-log"></div>
           </div>
         </div>
 
         <div class="card" style="margin-top:14px;">
-          <div class="card-header"><span style="font-size:15px">🍽</span><h2>Today's Meal Context</h2></div>
+          <div class="card-header"><span style="font-size:15px">&#x25CE;</span><h2>Today's Meal Context</h2></div>
           <div class="card-body" style="font-size:13px;">
             <div id="meal-context-lunch" style="margin-bottom:10px;"></div>
             <div id="meal-context-dinner" style="margin-bottom:10px;"></div>
@@ -963,7 +963,7 @@ function updateCODEXBadge() {
     <div id="review-flags-area"></div>
     <div class="card mb-16">
       <div class="card-header"><span style="font-size:16px">↗</span><h2>Today's Changes</h2></div>
-      <div id="review-changes-body"><div class="empty"><div class="empty-icon">📭</div>No changes entered.</div></div>
+      <div id="review-changes-body"><div class="empty"><div class="empty-icon">&#x25A1;</div>No changes entered.</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
       <div class="routing-preview" id="routing-preview">
@@ -974,20 +974,20 @@ function updateCODEXBadge() {
         <div id="preview-sections"></div>
       </div>
       <div class="card">
-        <div class="card-header"><span>📂</span><h2>Files to Generate</h2></div>
+        <div class="card-header"><span>&#x25C7;</span><h2>Files to Generate</h2></div>
         <div style="padding:14px 16px;font-size:12px;color:var(--muted);line-height:2.1;">
-          📊 01 Breakfast Week 1&3 <span class="today-file-date"></span>.xlsx<br>📊 02 Breakfast Week 2&4 <span class="today-file-date"></span>.xlsx<br>
-          📊 05–08 Lunch Weeks 1–4 <span class="today-file-date"></span>.xlsx<br>📊 09–12 Dinner Weeks 1–4 <span class="today-file-date"></span>.xlsx<br>
-          📊 Restriction List <span class="today-file-date"></span>.xlsx<br>📊 Diabetic List <span class="today-file-date"></span>.xlsx<br>
-          📊 Anaphylactic List <span class="today-file-date"></span>.xlsx<br>🏷️ Labels <span class="today-file-date"></span>.xlsx
+          &#x25A6; 01 Breakfast Week 1&3 <span class="today-file-date"></span>.xlsx<br>&#x25A6; 02 Breakfast Week 2&4 <span class="today-file-date"></span>.xlsx<br>
+          &#x25A6; 05–08 Lunch Weeks 1–4 <span class="today-file-date"></span>.xlsx<br>&#x25A6; 09–12 Dinner Weeks 1–4 <span class="today-file-date"></span>.xlsx<br>
+          &#x25A6; Restriction List <span class="today-file-date"></span>.xlsx<br>&#x25A6; Diabetic List <span class="today-file-date"></span>.xlsx<br>
+          &#x25A6; Anaphylactic List <span class="today-file-date"></span>.xlsx<br>&#x2261; Labels <span class="today-file-date"></span>.xlsx
         </div>
       </div>
     </div>
     <div id="recent-generated" class="card" style="margin-top:16px;display:none;">
-      <div class="card-header"><span>📁</span><h2>Recently Generated Files</h2><span id="recent-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
+      <div class="card-header"><span>&#x25C7;</span><h2>Recently Generated Files</h2><span id="recent-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
       <div id="recent-gen-body" style="padding:8px 16px;"></div>
       <div style="padding:8px 16px 14px;">
-        <button class="btn btn-mint" onclick="showScreen('plating',document.querySelector('[data-screen=plating]'))">🖨 View Plating Sheets →</button>
+        <button class="btn btn-mint" onclick="showScreen('plating',document.querySelector('[data-screen=plating]'))">&#x229F; View Plating Sheets &#x2192;</button>
       </div>
     </div>
   </div>
@@ -1007,17 +1007,17 @@ function updateCODEXBadge() {
         <div class="confirm-sub" id="confirm-sub">Loading…</div>
       </div>
       <div class="file-list" id="confirm-files"></div>
-      <div class="archive-note"><span>📁</span><span>Previous files archived to <strong id="archive-path">Archive/…/</strong></span></div>
-      <div class="archive-note" id="confirm-changelog" style="display:none"><span>📝</span><span id="confirm-changelog-text"></span></div>
+      <div class="archive-note"><span>&#x25C7;</span><span>Previous files archived to <strong id="archive-path">Archive/…/</strong></span></div>
+      <div class="archive-note" id="confirm-changelog" style="display:none"><span>&#x270E;</span><span id="confirm-changelog-text"></span></div>
       <div style="padding:14px 20px;background:#eff6ff;border-top:1px solid #bfdbfe;">
-        <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px;">📁 Save outputs to SharePoint pilot folder</div>
+        <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px;">&#x25C7; Save outputs to SharePoint pilot folder</div>
         <div style="font-size:12px;color:#3b82f6;margin-bottom:10px;">Download the files above, then drag them to the parallel-run folder to complete this step.</div>
         <button class="sp-shortcut-btn" onclick="openSharePointPilot()">Open SharePoint Pilot Folder →</button>
       </div>
       <div class="confirm-actions">
         <button class="btn btn-ghost" onclick="openSharePointOutput()">Open SP Output Folder</button>
         <button class="btn btn-ghost" onclick="showChangeLog()">View Change Log</button>
-        <button class="btn btn-mint" onclick="showScreen('plating',document.querySelector('[data-screen=plating]'))">🖨 View Plating Sheets</button>
+        <button class="btn btn-mint" onclick="showScreen('plating',document.querySelector('[data-screen=plating]'))">&#x229F; View Plating Sheets</button>
         <button class="btn btn-ghost" onclick="resetAndGoHome()">Done</button>
       </div>
     </div>
@@ -1029,8 +1029,8 @@ function updateCODEXBadge() {
   <div class="topbar">
     <div><div class="topbar-title">Plating Sheets</div><div class="topbar-sub" id="plating-topbar-sub">View, download, and print current plating sheets</div></div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="printPlatingPreview()">🖨 Print Sheet</button>
-      <button class="btn btn-ghost btn-sm" onclick="openLabelsModal()">🏷 Print Labels</button>
+      <button class="btn btn-ghost btn-sm" onclick="printPlatingPreview()">&#x229F; Print Sheet</button>
+      <button class="btn btn-ghost btn-sm" onclick="openLabelsModal()">&#x2261; Print Labels</button>
       <button class="btn btn-mint btn-sm" id="ps-dl-btn">⬇ Download Week</button>
     </div>
   </div>
@@ -1045,7 +1045,7 @@ function updateCODEXBadge() {
     <div id="ps-print-header" style="display:none;"></div>
     <div id="ps-preview" style="overflow-x:auto;"></div>
     <div id="plating-recent-generated" class="card" style="margin-top:16px;display:none;">
-      <div class="card-header"><span>📁</span><h2>All Generated Files</h2><span id="plating-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
+      <div class="card-header"><span>&#x25C7;</span><h2>All Generated Files</h2><span id="plating-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
       <div id="plating-gen-body" style="padding:8px 16px;"></div>
     </div>
   </div>
@@ -1101,8 +1101,8 @@ function updateCODEXBadge() {
       <div class="topbar-sub" id="compliance-topbar-sub">Outstanding dietary restrictions requiring H&W documentation</div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">📧 Draft Digest</button>
-      <button class="btn btn-ghost btn-sm" onclick="printComplianceList()">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">&#x203A; Draft Digest</button>
+      <button class="btn btn-ghost btn-sm" onclick="printComplianceList()">&#x229F; Print</button>
       <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
     </div>
   </div>
@@ -1174,7 +1174,7 @@ function updateCODEXBadge() {
         <div>
           <!-- STEP 1: MEAL SELECTOR -->
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:15px;">📅</span><h2>Which service?</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x25C6;</span><h2>Which service?</h2></div>
             <div class="card-body">
               <div class="form-row">
                 <div class="form-group">
@@ -1199,7 +1199,7 @@ function updateCODEXBadge() {
 
           <!-- STEP 2: NOT SERVED COUNTS (shown after meal selected) -->
           <div class="card mb-16" id="log-counts-card" style="display:none;">
-            <div class="card-header"><span style="font-size:15px;">🔢</span><h2>Portions not served</h2>
+            <div class="card-header"><span style="font-size:15px;">#</span><h2>Portions not served</h2>
               <span style="margin-left:auto;font-size:12px;color:var(--muted);">Leave blank if fully served</span>
             </div>
             <div class="card-body" id="log-counts-body"></div>
@@ -1236,7 +1236,7 @@ function updateCODEXBadge() {
 
           <!-- STEP 4: CONTEXT FLAGS -->
           <div class="card mb-16" id="log-context-card" style="display:none;">
-            <div class="card-header"><span style="font-size:15px;">📝</span><h2>Context</h2>
+            <div class="card-header"><span style="font-size:15px;">&#x270E;</span><h2>Context</h2>
               <span style="margin-left:auto;font-size:12px;color:var(--muted);">Optional</span>
             </div>
             <div class="card-body">
@@ -1254,7 +1254,7 @@ function updateCODEXBadge() {
         <!-- SIDEBAR -->
         <div>
           <div class="card">
-            <div class="card-header"><span style="font-size:14px;">💡</span><h2>How to use</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25C8;</span><h2>How to use</h2></div>
             <div class="card-body" style="font-size:13px;color:var(--ink-mid);line-height:1.75;">
               <p style="margin-bottom:10px;"><strong>No rush.</strong> You can log any service from the past week, not just today.</p>
               <p style="margin-bottom:10px;">Start by selecting the date and meal. The form fills in based on what was served.</p>
@@ -1286,7 +1286,7 @@ function updateCODEXBadge() {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px;" id="report-stats"></div>
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;">
         <div class="card">
-          <div class="card-header"><span style="font-size:15px;">📈</span><h2>Meal uptake by service</h2>
+          <div class="card-header"><span style="font-size:15px;">&#x25A6;</span><h2>Meal uptake by service</h2>
             <span style="margin-left:auto;font-size:12px;color:var(--muted);">% of portions taken</span>
           </div>
           <div class="card-body" style="padding-bottom:8px;">
@@ -1295,7 +1295,7 @@ function updateCODEXBadge() {
         </div>
         <div>
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:14px;">🥗</span><h2>By section</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25CB;</span><h2>By section</h2></div>
             <div class="card-body" id="report-by-section"></div>
           </div>
           <div class="card">
@@ -1305,7 +1305,7 @@ function updateCODEXBadge() {
         </div>
       </div>
       <div class="card" style="margin-top:16px;">
-        <div class="card-header"><span style="font-size:14px;">📋</span><h2>Logged entries</h2></div>
+        <div class="card-header"><span style="font-size:14px;">&#x2261;</span><h2>Logged entries</h2></div>
         <div class="card-body" id="report-log-table"></div>
       </div>
     </div>
@@ -1329,7 +1329,7 @@ function updateCODEXBadge() {
         <!-- FILTERS PANEL -->
         <div>
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:14px;">📅</span><h2>Date range</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25C6;</span><h2>Date range</h2></div>
             <div class="card-body">
               <div class="form-group" style="margin-bottom:10px;">
                 <label>From</label>
@@ -1343,21 +1343,21 @@ function updateCODEXBadge() {
           </div>
 
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:14px;">🍽</span><h2>Meal period</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25CE;</span><h2>Meal period</h2></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:8px;" id="cr-period-flags">
               <!-- populated by JS -->
             </div>
           </div>
 
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:14px;">👥</span><h2>Sections</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25CE;</span><h2>Sections</h2></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:8px;" id="cr-section-flags">
               <!-- populated by JS -->
             </div>
           </div>
 
           <div class="card">
-            <div class="card-header"><span style="font-size:14px;">📊</span><h2>Report type</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25A6;</span><h2>Report type</h2></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:8px;" id="cr-type-flags">
               <!-- populated by JS -->
             </div>
@@ -1367,18 +1367,18 @@ function updateCODEXBadge() {
         <!-- OUTPUT PANEL -->
         <div>
           <div class="card">
-            <div class="card-header"><span style="font-size:14px;">📋</span><h2 id="cr-output-title">Results</h2>
+            <div class="card-header"><span style="font-size:14px;">&#x2261;</span><h2 id="cr-output-title">Results</h2>
               <span id="cr-output-meta" style="margin-left:auto;font-size:12px;color:var(--muted);"></span>
             </div>
             <div class="card-body" id="cr-output">
               <div style="text-align:center;padding:40px 20px;color:var(--muted);">
-                <div style="font-size:32px;margin-bottom:12px;">🔧</div>
+                <div style="font-size:32px;margin-bottom:12px;">&#x270E;</div>
                 <div style="font-size:14px;">Configure filters and click Run Report.</div>
               </div>
             </div>
           </div>
           <div class="card" style="margin-top:16px;display:none;" id="cr-chart-card">
-            <div class="card-header"><span style="font-size:14px;">📈</span><h2>Chart</h2></div>
+            <div class="card-header"><span style="font-size:14px;">&#x25A6;</span><h2>Chart</h2></div>
             <div class="card-body"><canvas id="cr-chart" height="180"></canvas></div>
           </div>
         </div>
@@ -1403,7 +1403,7 @@ function updateCODEXBadge() {
         <!-- SHAREPOINT PATHS -->
         <div>
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:15px;">📁</span><h2>SharePoint paths</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x25C7;</span><h2>SharePoint paths</h2></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
                 Configure where each data type reads from and writes to on the shared drive. Changes take effect immediately.
@@ -1445,7 +1445,7 @@ function updateCODEXBadge() {
         <div>
           <!-- NOTIFICATIONS -->
           <div class="card mb-16">
-            <div class="card-header"><span style="font-size:15px;">🔔</span><h2>Notifications</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x25C8;</span><h2>Notifications</h2></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
                 Welfare flags and follow-up entries can notify client care staff automatically.
@@ -1507,7 +1507,7 @@ function updateCODEXBadge() {
 
           <!-- ANAPHYLACTIC -->
           <div class="card">
-            <div class="card-header"><span style="font-size:15px;">⚠️</span><h2>Anaphylactic residents</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x26A0;</span><h2>Anaphylactic residents</h2></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
                 Rooms flagged here receive highest-priority alerts on all generated plating files.
@@ -1523,7 +1523,7 @@ function updateCODEXBadge() {
 
           <!-- OPERATOR IDENTITY -->
           <div class="card" style="margin-top:16px;">
-            <div class="card-header"><span style="font-size:15px;">👤</span><h2>Operator</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x25CB;</span><h2>Operator</h2></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
                 Your name stamps on all changes for audit trail. Stored on this device only.
@@ -1537,7 +1537,7 @@ function updateCODEXBadge() {
 
           <!-- GITHUB PUBLISH -->
           <div class="card" style="margin-top:16px;">
-            <div class="card-header"><span style="font-size:15px;">🔗</span><h2>Live Data Sync</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x203A;</span><h2>Live Data Sync</h2></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
                 Publish menu and headcount data to the DOOR repo after Generate or menu changes.
@@ -1585,7 +1585,7 @@ function updateCODEXBadge() {
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" id="mc-swap-slots-btn" onclick="enterSlotSwapMode()">⇄ Swap Slots</button>
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
-      <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">🎉 Special Meal</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()">✏ Edit Menu</button>
     </div>
   </div>
@@ -1602,7 +1602,7 @@ function updateCODEXBadge() {
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div><strong style="color:#1e40af;">✏ Edit Menu Mode</strong> <span style="color:var(--muted);margin-left:8px;">Click any meal cell to edit it directly in the rotation.</span></div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="triggerMenuUpload()" title="Upload a new 4-week rotation from an xlsx file">📤 Upload Menu</button>
+          <button class="btn btn-ghost btn-sm" onclick="triggerMenuUpload()" title="Upload a new 4-week rotation from an xlsx file">&#x2191; Upload Menu</button>
           <button class="btn btn-ghost btn-sm" onclick="toggleEditMenuMode()">✓ Done Editing</button>
         </div>
       </div>
@@ -1611,7 +1611,7 @@ function updateCODEXBadge() {
     <!-- Upcoming special meals banner -->
     <div id="mc-specials-banner" style="display:none;background:#ecfdf5;border:1px solid var(--forest-light);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <strong style="color:var(--forest-mid);">🎉 Upcoming Special Meals</strong>
+        <strong style="color:var(--forest-mid);">&#x2605; Upcoming Special Meals</strong>
         <button class="btn btn-ghost btn-sm" onclick="clearPastSpecials()">Clear expired</button>
       </div>
       <div id="mc-specials-list"></div>
@@ -1763,7 +1763,7 @@ function updateCODEXBadge() {
     <div id="mc-special-panel" class="mc-special-noauto" style="display:none;margin-top:20px;background:var(--paper);border:1.5px solid var(--forest-light);border-radius:10px;padding:20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--forest-mid);">🎉 Insert Special Meal</div>
+          <div style="font-size:13px;font-weight:700;color:var(--forest-mid);">&#x2605; Insert Special Meal</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px;">One-time override for a specific date. The rotation is untouched. Entry is permanent in the change log.</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="closeSpecialMealPanel()">Close</button>
@@ -1855,7 +1855,7 @@ function updateCODEXBadge() {
     <!-- ===== CHANGE LOG ===== -->
     <div style="margin-top:20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 0;border-top:1px solid var(--border);" onclick="toggleChangeLog()">
-        <div style="font-size:13px;font-weight:700;">📋 Change Log <span id="mc-log-count" style="font-size:12px;font-weight:400;color:var(--muted);"></span></div>
+        <div style="font-size:13px;font-weight:700;">&#x2261; Change Log <span id="mc-log-count" style="font-size:12px;font-weight:400;color:var(--muted);"></span></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();revertLastChange()" title="Undo the most recent saved edit or special meal" style="font-size:12px;">↩ Undo Last</button>
           <span id="mc-log-chevron" style="color:var(--muted);font-size:13px;">▼</span>
@@ -6538,7 +6538,7 @@ function onDestInput(val) {
   const exact = REGISTRY_MAP[v];
   if (exact) {
     box.className = 'room-lookup-card lookup-warn';
-    box.innerHTML = `<div class="lookup-header">⚠️ Room ${exact.room} already occupied</div>
+    box.innerHTML = `<div class="lookup-header">&#x26A0; Room ${exact.room} already occupied</div>
       <div class="lookup-section">Current: ${exact.section} · ${exact.tags.join(', ')}</div>
       <div style="font-size:12px;margin-top:6px;color:#92400e;">Confirm this is the correct destination room before proceeding.</div>`;
     box.style.display = 'block';
@@ -6547,7 +6547,7 @@ function onDestInput(val) {
     const subRooms = REGISTRY_LIST.filter(r => getRoomBase(r.room).toLowerCase() === v && r.room.toLowerCase() !== v);
     if (subRooms.length) {
       box.className = 'room-lookup-card lookup-warn';
-      box.innerHTML = `<div class="lookup-header">⚠️ Room ${val.trim()} has occupied sub-rooms</div>
+      box.innerHTML = `<div class="lookup-header">&#x26A0; Room ${val.trim()} has occupied sub-rooms</div>
         <div style="font-size:12px;margin-top:4px;color:#92400e;">Specify the exact room: ${subRooms.map(r => `<strong>${r.room}</strong> (${r.section})`).join(', ')}.</div>`;
       box.style.display = 'block';
     } else {
@@ -6587,7 +6587,7 @@ function buildResidentDetailHTML(r) {
   }
   // Service notes
   if (r.serviceNote) {
-    parts.push(`<div style="margin-top:4px;font-size:12px;color:#1e40af;">📝 ${r.serviceNote}</div>`);
+    parts.push(`<div style="margin-top:4px;font-size:12px;color:#1e40af;">&#x270E; ${r.serviceNote}</div>`);
   }
   return parts.join('');
 }
@@ -6619,7 +6619,7 @@ function lookupRoom(val) {
   if (!exact && ambig.length > 1) {
     // Disambiguation required
     box.className = 'room-lookup-card lookup-ambig';
-    box.innerHTML = `<div class="lookup-header">⚠️ Multiple occupants — which room?</div>
+    box.innerHTML = `<div class="lookup-header">&#x26A0; Multiple occupants — which room?</div>
       <div style="font-size:12px;margin-top:4px;">Room ${val} has ${ambig.length} occupants. Select the specific room:</div>
       <div class="ambig-choices">${ambig.map(r =>
         `<button class="ambig-btn" onclick="selectRoom('${r.room}')">${r.room}<br><span style="font-size:10px;font-weight:500;font-family:'DM Sans';color:var(--muted)">${r.section}</span></button>`
@@ -6632,7 +6632,7 @@ function lookupRoom(val) {
   if (exact) {
     if (type === 'intake') {
       box.className = 'room-lookup-card lookup-warn';
-      box.innerHTML = `<div class="lookup-header">⚠️ Room ${exact.room} already in registry</div>
+      box.innerHTML = `<div class="lookup-header">&#x26A0; Room ${exact.room} already in registry</div>
         <div class="lookup-section">Current: ${exact.section} · ${exact.tags.join(', ')}</div>
         ${buildResidentDetailHTML(exact)}
         <div style="font-size:12px;margin-top:6px;color:#92400e;">If this is a new occupant, confirm the previous resident was discharged first. Use <strong>Update Restrictions</strong> if the same person's needs changed.</div>`;
@@ -7667,11 +7667,11 @@ function buildReview() {
 
   // Flags — queue-based anaphylactic + standing room-level info
   let flagsHtml = changesQueue.filter(c => c.isAnaph).map(c => `
-    <div class="alert alert-warn"><span class="alert-icon">⚠️</span><div class="alert-body"><strong>Room ${c.room} — Anaphylactic.</strong> Red flag on all sheets. Confirm with Health & Wellness before generation.</div></div>
+    <div class="alert alert-warn"><span class="alert-icon">&#x26A0;</span><div class="alert-body"><strong>Room ${c.room} — Anaphylactic.</strong> Red flag on all sheets. Confirm with Health & Wellness before generation.</div></div>
   `).join('');
 
   flagsHtml += anaphAlerts.map(a => `
-    <div class="alert alert-danger"><span class="alert-icon">🚨</span><div class="alert-body"><strong>Anaphylactic routing active — ${a.allergen}</strong><br>
+    <div class="alert alert-danger"><span class="alert-icon">&#x26A0;</span><div class="alert-body"><strong>Anaphylactic routing active — ${a.allergen}</strong><br>
     Room ${a.anaphRoom} (${a.allergen}) and ${a.roommateRooms.length ? 'roommate ' + a.roommateRooms.join(', ') : 'no roommate'} routed to Anaphylactic Alternative for today\u2019s ${a.mealsAffected}. Alternative meal: no ${a.allergen.replace('No ','').toLowerCase()}.</div></div>
   `).join('');
 
@@ -7757,7 +7757,7 @@ function buildReview() {
 
     nrHtml = `<div id="nr-block-banner" style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;padding:14px 16px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="font-size:18px;">${allDone ? '✅' : '⚠️'}</span>
+        <span style="font-size:18px;">${allDone ? '&#x2713;' : '&#x26A0;'}</span>
         <div style="flex:1;">
           <strong style="color:#78350f;font-size:13px;">${allDone ? 'All restrictions resolved — ready to generate.' : `${remaining.length} restriction${remaining.length!==1?'s':''} need a decision before generating`}</strong><br>
           <span style="font-size:11px;color:#92400e;">Each item below is a resident whose restriction text couldn't be matched automatically. Classify it, then generate.</span>
@@ -7793,7 +7793,7 @@ function buildReview() {
     });
     conflictHtml = Object.values(grouped).map(g =>
       `<div class="alert ${g.severity==='red' ? 'alert-danger' : 'alert-warn'}" style="margin-bottom:8px;">
-        <span class="alert-icon">${g.severity==='red'?'🚨':'⚠'}</span>
+        <span class="alert-icon">${g.severity==='red'?'&#x26A0;':'⚠'}</span>
         <div class="alert-body">
           <strong>${g.period}: ${g.label} — ${g.rooms.length} resident${g.rooms.length!==1?'s':''} affected.</strong>
           Rooms: ${g.rooms.sort().join(', ')}
@@ -7808,7 +7808,7 @@ function buildReview() {
     autoDischargeHtml = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:10px;">
       <details>
         <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#991b1b;list-style:none;display:flex;align-items:center;gap:6px;">
-          <span style="font-size:14px;">📋</span>
+          <span style="font-size:14px;">&#x2261;</span>
           ${autoDischarges.length} auto-detected discharge${autoDischarges.length!==1?'s':''} — not on current meal list
           <span style="font-size:10px;color:#b91c1c;background:#fee2e2;padding:1px 6px;border-radius:8px;margin-left:auto;">Informational</span>
         </summary>
@@ -7824,7 +7824,7 @@ function buildReview() {
   // Changes table
   const body = document.getElementById('review-changes-body');
   if (!changesQueue.length) {
-    body.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>No changes to review.</div>';
+    body.innerHTML = '<div class="empty"><div class="empty-icon">&#x25A1;</div>No changes to review.</div>';
   } else {
     body.innerHTML = `<div class="changes-table-wrap"><table class="changes-table"><thead><tr><th>Room</th><th>Type</th><th>Restrictions</th><th>Routing (Lunch)</th><th>Status</th></tr></thead><tbody>
       ${changesQueue.map((c, ci) => {
@@ -8187,19 +8187,19 @@ function updateDailyImportPrompt() {
     }
     el.innerHTML = `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
       `<div style="display:flex;align-items:center;gap:10px;">` +
-      `<span style="font-size:15px">✅</span>` +
+      `<span style="font-size:15px">&#x2713;</span>` +
       `<span style="color:#15803d;font-weight:600;flex:1;">Today's roster imported${fname ? ' — ' + fname : ''}</span>` +
       `<button class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;" onclick="openUploadDialog()">Re-import</button>` +
       `</div>${statusLine}</div>`;
   } else {
     el.innerHTML = `<div style="padding:14px 16px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;">` +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">` +
-      `<span style="font-size:18px">📋</span>` +
+      `<span style="font-size:18px">&#x2261;</span>` +
       `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:#92400e;">Start today's update</div></div>` +
       `</div>` +
       `<div style="display:flex;gap:10px;">` +
-      `<button class="btn btn-sm" style="background:#f59e0b;color:#fff;flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">📤 Import Daily Meal List</button>` +
-      `<button class="btn btn-sm" style="background:#fff;color:#92400e;border:1px solid #fcd34d;flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">✏️ Enter Changes Manually</button>` +
+      `<button class="btn btn-sm" style="background:#f59e0b;color:#fff;flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">&#x2191; Import Daily Meal List</button>` +
+      `<button class="btn btn-sm" style="background:#fff;color:#92400e;border:1px solid #fcd34d;flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">&#x270E; Enter Changes Manually</button>` +
       `</div>` +
       `<div style="font-size:11px;color:#b45309;margin-top:8px;">Import the meal list to catch roster changes automatically, or enter individual changes below.</div>` +
       `</div>`;
@@ -8447,7 +8447,7 @@ function renderRegistry(data) {
     const allergenHtml = allergens.length ? `<div style="margin-top:3px;font-size:10px;color:#991b1b;"><span style="font-weight:600;">⚠ Allergens:</span> ${allergens.join(', ')}</div>` : '';
     const prefHtml = prefs.length ? `<div style="margin-top:2px;font-size:10px;color:#78350f;"><span style="font-weight:600;">Accom:</span> ${prefs.join(', ')}</div>` : '';
     const noteHtml = `<div style="margin-top:2px;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;" id="reg-note-${r.room}">
-      ${r.serviceNote ? `<span style="font-style:italic;">📝 ${r.serviceNote}</span>` : '<span style="color:#ccc;">no service note</span>'}
+      ${r.serviceNote ? `<span style="font-style:italic;">&#x270E; ${r.serviceNote}</span>` : '<span style="color:#ccc;">no service note</span>'}
       <button onclick="event.stopPropagation();openInlineNoteEdit('${r.room}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--forest);padding:0 2px;" title="Edit service note">✏</button>
     </div>`;
     const moderateTag = r.isModerate ? `<span class="tag tag-moderate" title="${r.moderateNote || 'Moderate allergy — no epi-pen'}">⚠ Moderate</span>` : '';
@@ -8505,7 +8505,7 @@ function saveInlineNote(room) {
   // Re-render just this note cell
   const container = document.getElementById('reg-note-' + room);
   if (container) {
-    container.innerHTML = `${note ? `<span style="font-style:italic;">📝 ${note}</span>` : '<span style="color:#ccc;">no service note</span>'}
+    container.innerHTML = `${note ? `<span style="font-style:italic;">&#x270E; ${note}</span>` : '<span style="color:#ccc;">no service note</span>'}
       <button onclick="event.stopPropagation();openInlineNoteEdit('${room}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--forest);padding:0 2px;" title="Edit service note">✏</button>`;
   }
   showToast('Service note saved for Room ' + room);
@@ -8516,7 +8516,7 @@ function cancelInlineNote(room) {
   const note = resident ? (resident.serviceNote || '') : '';
   const container = document.getElementById('reg-note-' + room);
   if (container) {
-    container.innerHTML = `${note ? `<span style="font-style:italic;">📝 ${note}</span>` : '<span style="color:#ccc;">no service note</span>'}
+    container.innerHTML = `${note ? `<span style="font-style:italic;">&#x270E; ${note}</span>` : '<span style="color:#ccc;">no service note</span>'}
       <button onclick="event.stopPropagation();openInlineNoteEdit('${room}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--forest);padding:0 2px;" title="Edit service note">✏</button>`;
   }
 }
@@ -8858,8 +8858,8 @@ function draftComplianceDigest() {
   <h2 style="margin-bottom:4px;">Compliance Digest</h2>
   <p style="font-size:12px;color:#666;margin-bottom:12px;">Review the email below. Copy it or open it in your mail app.</p>
   <div class="toolbar">
-    <button class="btn-primary">📋 Copy to Clipboard</button>
-    <a href="mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="text-decoration:none;"><button class="btn-secondary">📧 Open in Mail</button></a>
+    <button class="btn-primary">&#x2261; Copy to Clipboard</button>
+    <a href="mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="text-decoration:none;"><button class="btn-secondary">&#x203A; Open in Mail</button></a>
     <span class="copied" id="copied-msg">✓ Copied!</span>
   </div>
   <div class="subject">Subject: ${subject.replace(/</g,'&lt;')}</div>
@@ -9641,13 +9641,13 @@ let crChart = null;
 let crChart2 = null;
 
 const CR_TYPES = [
-  { id: 'monthly_summary',      label: '📊 Monthly summary',             group: 'Management' },
-  { id: 'uptake',               label: '📈 Meal uptake over time',        group: 'Management' },
-  { id: 'uptake_by_meal',       label: '🍽 Uptake by meal name',          group: 'Management' },
-  { id: 'waste_cost',           label: '🚐 Community redistribution',      group: 'Management' },
-  { id: 'by_section',           label: '👥 Uptake by dietary section',    group: 'Kitchen' },
-  { id: 'section_trends',       label: '📉 Section size over time',       group: 'Kitchen' },
-  { id: 'compound_restrictions','label': '🔀 Compound restriction residents', group: 'Kitchen' },
+  { id: 'monthly_summary',      label: '&#x25A6; Monthly summary',             group: 'Management' },
+  { id: 'uptake',               label: '&#x25A6; Meal uptake over time',        group: 'Management' },
+  { id: 'uptake_by_meal',       label: '&#x25CE; Uptake by meal name',          group: 'Management' },
+  { id: 'waste_cost',           label: '&#x25C6; Community redistribution',      group: 'Management' },
+  { id: 'by_section',           label: '&#x25CE; Uptake by dietary section',    group: 'Kitchen' },
+  { id: 'section_trends',       label: '&#x25A6; Section size over time',       group: 'Kitchen' },
+  { id: 'compound_restrictions','label': '&#x21BB; Compound restriction residents', group: 'Kitchen' },
   { id: 'menu_conflict',        label: '⚠ Menu conflict preview',         group: 'Kitchen' },
   { id: 'welfare_patterns',     label: '⚑ Welfare flag patterns',         group: 'Care' },
   { id: 'refusals',             label: '⚑ Room refusal log',              group: 'Care' },
@@ -13482,7 +13482,7 @@ function renderChangeLog() {
   el.innerHTML = filtered.map(e => {
     const d = new Date(e.timestamp);
     const ds = d.toLocaleDateString('en-CA') + ' ' + d.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit'});
-    const typeLabel = { permanent_edit: '💾 Permanent edit', special_meal: '\uD83C\uDF89 Special meal', revert: '\u21a9 Revert' }[e.type] || e.type;
+    const typeLabel = { permanent_edit: '&#x2193; Permanent edit', special_meal: '\uD83C\uDF89 Special meal', revert: '\u21a9 Revert' }[e.type] || e.type;
     const site = e.site || 'unknown';
     let detail = '';
     if (e.type === 'permanent_edit' || e.type === 'revert') {
@@ -14492,7 +14492,7 @@ function renderImportReview() {
   if (seedBannerEl) {
     if (noPersistedState || REGISTRY_LIST.length === 0) {
       seedBannerEl.style.display = 'flex';
-      seedBannerEl.innerHTML = '<div style="font-size:18px">🌱</div>' +
+      seedBannerEl.innerHTML = '<div style="font-size:18px">&#x25C7;</div>' +
         '<div class="seed-banner-text"><strong>First run detected — seed the registry?</strong>' +
         'Load all ' + IMPORT_STATE.entries.length + ' residents from this roster directly, skipping the diff. ' +
         'Recommended for initial setup.</div>' +
@@ -15975,7 +15975,7 @@ function buildLabelsXlsx(ds) {
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
       // Row 3: flag note
-      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '🥗 Less starch / more veg' : '';
+      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '&#x25CB; Less starch / more veg' : '';
       lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
@@ -16211,7 +16211,7 @@ function renderPlatingDashboard() {
 
     return `<div class="pd-cell">
       <div class="pd-meal-name">${mealName}</div>
-      ${hasConflict ? '<span class="pd-conflict">🚨 Allergen conflict</span>' : ''}
+      ${hasConflict ? '<span class="pd-conflict">&#x26A0; Allergen conflict</span>' : ''}
       ${sectSummary ? `<div class="pd-sections">${sectSummary}</div>` : ''}
       ${canDL ? `<span class="pd-dl" onclick="downloadPlatingSheet('${fn}','${period}',${weekNum})">⬇ Download</span>` : ''}
     </div>`;
@@ -16506,7 +16506,7 @@ function printLabels() {
   function getLabelFlag(r) {
     if (r.isAnaph) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
     if (r.isModerate) return {text:'⚡ Moderate allergy', color:'#994400'};
-    if ((r.tags||[]).includes('Diabetic')) return {text:'🥗 Less starch / more veg', color:'#444'};
+    if ((r.tags||[]).includes('Diabetic')) return {text:'&#x25CB; Less starch / more veg', color:'#444'};
     return null;
   }
 
@@ -16626,7 +16626,7 @@ function openDemoFile(filename, idx) {
       .ps-total{font-weight:600;} .ps-total-val{font-weight:700;background:#fffde7;text-align:right;}
     </style></head><body>
     <h2>CONC ${site} — ${filename}</h2>
-    <div class="meta"><span>${dateStr} · Kitchen Operations System · <em>Demo preview</em></span><button class="print-btn" onclick="window.print()">🖨 Print</button></div>
+    <div class="meta"><span>${dateStr} · Kitchen Operations System · <em>Demo preview</em></span><button class="print-btn" onclick="window.print()">&#x229F; Print</button></div>
     <table>${previewContent}</table>
     </body></html>`);
     w.document.close();
@@ -16637,7 +16637,7 @@ function openDemoFile(filename, idx) {
   w.document.write(`<!DOCTYPE html><html><head><title>${filename}</title>
   <style>${sharedStyles}</style></head><body>
   <h2>CONC ${site} — ${filename}</h2>
-  <div class="meta"><span>${dateStr} · Kitchen Operations System · <em>Demo preview</em></span><button class="print-btn" onclick="window.print()">🖨 Print</button></div>
+  <div class="meta"><span>${dateStr} · Kitchen Operations System · <em>Demo preview</em></span><button class="print-btn" onclick="window.print()">&#x229F; Print</button></div>
   ${tableHtml}
   </body></html>`);
   w.document.close();
@@ -16711,7 +16711,7 @@ window.addEventListener('load', initSiteSelector);
 <div class="modal-overlay" id="labels-modal" onclick="if(event.target===this)closeLabelModal()">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-header">
-      <h2>🏷 Print Labels</h2>
+      <h2>&#x2261; Print Labels</h2>
       <button class="btn btn-ghost btn-sm" onclick="closeLabelModal()">✕</button>
     </div>
     <div class="modal-body" style="overflow:visible;">
@@ -16728,7 +16728,7 @@ window.addEventListener('load', initSiteSelector);
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--border);margin-top:8px;">
       <button class="btn btn-ghost" onclick="closeLabelModal()">Cancel</button>
-      <button class="btn btn-mint" onclick="printLabels()">🖨 Generate & Print</button>
+      <button class="btn btn-mint" onclick="printLabels()">&#x229F; Generate &amp; Print</button>
     </div>
   </div>
 </div>
@@ -16737,7 +16737,7 @@ window.addEventListener('load', initSiteSelector);
 <div class="modal-overlay" id="changelog-modal" onclick="if(event.target===this)closeChangeLog()">
   <div class="modal-box">
     <div class="modal-header">
-      <h2>📝 Change Log</h2>
+      <h2>&#x270E; Change Log</h2>
       <button class="btn btn-ghost btn-sm" onclick="closeChangeLog()">✕ Close</button>
     </div>
     <div class="modal-body" id="changelog-modal-body"></div>
@@ -16798,7 +16798,7 @@ window.addEventListener('load', initSiteSelector);
 <div class="modal-overlay" id="import-modal" onclick="if(event.target===this)closeImportDialog()">
   <div class="modal-box" style="max-width:960px;max-height:90vh;display:flex;flex-direction:column;">
     <div class="modal-header">
-      <h2>📤 Import Daily Meal List</h2>
+      <h2>&#x2191; Import Daily Meal List</h2>
       <button class="btn btn-ghost btn-sm" onclick="closeImportDialog()">✕</button>
     </div>
     <div class="modal-body" id="import-body" style="overflow-y:auto;padding-top:4px;">
