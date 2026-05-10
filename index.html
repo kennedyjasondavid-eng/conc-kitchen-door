@@ -7700,7 +7700,7 @@ function buildReview() {
         const decisions = Array.isArray(res) ? res : [res];
         const badgesHtml = decisions.map(d => {
           if (d.action === 'skip') return `<span style="background:#e2e8f0;color:#475569;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">Not applicable</span>`;
-          if (d.action === 'note') return `<span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">📝 Note</span>`;
+          if (d.action === 'note') return `<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">&#x270E; Note</span>`;
           return `<span style="background:#dcfce7;color:#166534;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">→ ${TAG_LABELS_MAP[d.value]||d.value}</span>`;
         }).join('');
         const allSkip = decisions.every(d => d.action === 'skip');
@@ -11001,7 +11001,7 @@ function renderMenuConfig() {
       const colDate = new Date(weekSunday);
       colDate.setDate(weekSunday.getDate() + i);
       const dateLabel = colDate.toLocaleDateString('en-CA', {month:'short', day:'numeric'});
-      return `<th style="padding:8px 6px;text-align:left;border-bottom:2px solid var(--border);font-size:12px;${isToday?'background:#ecfdf5;':''}">` +
+      return `<th style="padding:8px 6px;text-align:left;border-bottom:2px solid var(--border);font-size:12px;${isToday?'background:rgba(52,211,153,0.08);border-bottom:2px solid var(--forest-light);':''}">` +
         `<div style="font-size:15px;font-weight:700;letter-spacing:0.01em;">${d}</div>` +
         `<div style="font-size:10px;color:var(--muted);font-weight:400;margin-top:1px;">${dateLabel}</div>` +
         `<div style="font-size:10px;color:var(--forest-light);font-weight:600;margin-top:1px;">Day ${i+1}</div></th>`;
@@ -11041,17 +11041,17 @@ function renderMenuConfig() {
         `<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:${f.color}15;color:${f.color};margin:1px;">${f.label}</span>`
       ).join('');
 
-      const swapBadge = swap ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#fef3c7;color:#92400e;margin:1px;">Swapped</span>' : '';
-      const editBadge = (!swap && menuEdit) ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#dbeafe;color:#1e40af;margin:1px;">Edited</span>' : '';
+      const swapBadge = swap ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(217,119,6,0.12);color:#d97706;margin:1px;">&#x21C6; Swapped</span>' : '';
+      const editBadge = (!swap && menuEdit) ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(37,99,235,0.12);color:#60a5fa;margin:1px;">&#x270E; Edited</span>' : '';
       const hasSoftResidents = REGISTRY_LIST.some(r => (r.tags||[]).includes('Soft Meals'));
       const softAltBadge = mealCellSoftAlt
-        ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#e0f7fa;color:#0891b2;margin:1px;">🍲 soft</span>'
-        : (hasSoftResidents ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#fef3c7;color:#92400e;margin:1px;" title="Soft meal residents active — no description set">⚠ soft</span>' : '');
-      const specialBadge = nextSpecial ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:#d1fae5;color:#065f46;margin:1px;">🎉 ' + nextSpecial.date + '</span>' : '';
+        ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(8,145,178,0.12);color:#22d3ee;margin:1px;">&#x25CE; soft</span>'
+        : (hasSoftResidents ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(217,119,6,0.12);color:#d97706;margin:1px;" title="Soft meal residents active — no description set">&#x26A0; soft</span>' : '');
+      const specialBadge = nextSpecial ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(52,211,153,0.12);color:#6ee7b7;margin:1px;">&#x2605; ' + nextSpecial.date + '</span>' : '';
       const specialNote = nextSpecial ? '<div style="font-size:9px;color:#065f46;margin-top:2px;">' + nextSpecial.specialName + (slotSpecials.length > 1 ? ' (+' + (slotSpecials.length-1) + ' more)' : '') + '</div>' : '';
 
       const td = document.createElement('td');
-      const specialBg = nextSpecial ? 'background:#f0fdf4;' : (isToday ? 'background:#ecfdf5;' : '');
+      const specialBg = nextSpecial ? 'background:rgba(52,211,153,0.06);' : (isToday ? 'background:rgba(52,211,153,0.08);' : '');
       const editModeBg = editMenuMode ? 'background:#eff6ff;' : '';
       td.style.cssText = `padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;min-width:120px;${specialBg || editModeBg}`;
       if (nextSpecial) td.style.outline = '1.5px solid #6ee7b7';
@@ -16855,9 +16855,9 @@ function toggleDarkMode(){
   const isDark=el.getAttribute('data-theme')==='dark';
   if(isDark){el.removeAttribute('data-theme');localStorage.removeItem('kdo-dark');}
   else{el.setAttribute('data-theme','dark');localStorage.setItem('kdo-dark','1');}
-  document.querySelector('.dm-toggle').textContent=isDark?'🌙':'☀️';
+  document.querySelector('.dm-toggle').textContent=isDark?'☽':'☀';
 }
-(function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀️';}})();
+(function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀';}})();
 </script>
 </body>
 </html>
