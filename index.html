@@ -382,10 +382,23 @@
     body.printing-labels .main { margin-left: 0 !important; }
   }
   /* Avery 5160/8160 — 1" × 2-5/8", 3 cols × 10 rows, Letter sheet */
+  @page avery-5160 {
+    size: letter portrait;
+    margin: 12.7mm 4.7625mm;
+  }
   #labels-print-view {
     display: none;
     font-family: Calibri, Arial, sans-serif;
     padding: 0;
+  }
+  body.printing-labels #labels-print-view {
+    page: avery-5160;
+  }
+  .label-page {
+    page-break-after: always;
+  }
+  .label-page:last-child {
+    page-break-after: auto;
   }
   .label-grid {
     display: grid;
@@ -399,7 +412,7 @@
     height: 25.4mm;
     box-sizing: border-box;
     overflow: hidden;
-    page-break-inside: avoid;
+    break-inside: avoid;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     position: relative;
@@ -15936,24 +15949,23 @@ function buildLabelsXlsx(ds) {
   const merges = [];
   let R = 0;
 
-  // No header row — pixel-perfect Avery 5160 label stock alignment
-
   const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t => t === 'Regular')).sort((a,b) => {
     const na = parseInt(a.room), nb = parseInt(b.room);
     return na !== nb ? na - nb : a.room.localeCompare(b.room);
   });
 
-  // 3 labels across: cols 0-1, 2-3, 4-5
+  // 8 cols: [room1, detail1, gutter, room2, detail2, gutter, room3, detail3]
+  // Slot 0 → cols 0-1, Slot 1 → cols 3-4, Slot 2 → cols 6-7
   // Each label = 3 xlsx rows (room, restriction, flag), NO gap row
   // 24 + 28 + 20 = 72pt = 1" per label = Avery 5160 row height
   for (let i = 0; i < restricted.length; i += 3) {
-    const lblRow1 = [null,null,null,null,null,null];
-    const lblRow2 = [null,null,null,null,null,null];
-    const lblRow3 = [null,null,null,null,null,null];
+    const lblRow1 = new Array(8).fill(null);
+    const lblRow2 = new Array(8).fill(null);
+    const lblRow3 = new Array(8).fill(null);
 
     [0,1,2].forEach(slot => {
       const r = restricted[i + slot];
-      const col = slot * 2;
+      const col = slot * 3;
       if (!r) {
         lblRow1[col] = xCell('', F.std, null, null);
         lblRow1[col+1] = xCell('', F.std, null, null);
@@ -15968,14 +15980,11 @@ function buildLabelsXlsx(ds) {
       const sectionFont = {name:'Calibri', sz:9, bold:true, color:{rgb: '555555'}};
       const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
 
-      // Row 1: room number | section label
       lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
-      // Row 2: restrictions (merged across 2 cols)
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
-      // Row 3: flag note
-      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '&#x25CB; Less starch / more veg' : '';
+      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '○ Less starch / more veg' : '';
       lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
@@ -15985,23 +15994,26 @@ function buildLabelsXlsx(ds) {
     rows[R] = lblRow1; R++;
     rows[R] = lblRow2; R++;
     rows[R] = lblRow3; R++;
-    // No gap row — Avery 5160 vertical gap is 0
   }
 
   rows.forEach((row, ri) => { row.forEach((cell, ci) => { if(cell) ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
-  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:5}});
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:7}});
   ws['!merges'] = merges;
-  // Each label pair ≈ 2.625" wide (wch 13 + 22 = 35 ≈ 2.6")
-  ws['!cols'] = [{wch:13},{wch:22},{wch:13},{wch:22},{wch:13},{wch:22}];
-  // Row heights: 3 rows per label = 72pt = 1" (Avery 5160)
+  // Avery 5160 at 96 DPI: label 2.625"=252px (room 84 + detail 168), gutter 0.125"=12px
+  ws['!cols'] = [
+    {wpx:84},{wpx:168},
+    {wpx:12},
+    {wpx:84},{wpx:168},
+    {wpx:12},
+    {wpx:84},{wpx:168}
+  ];
   ws['!rows'] = [];
   for (let r=0; r<R; r++) {
     const mod3 = r % 3;
-    if (mod3 === 0) ws['!rows'][r] = {hpt:24};       // room row
-    else if (mod3 === 1) ws['!rows'][r] = {hpt:28};   // restriction row
-    else ws['!rows'][r] = {hpt:20};                    // flag row
+    if (mod3 === 0) ws['!rows'][r] = {hpt:24};
+    else if (mod3 === 1) ws['!rows'][r] = {hpt:28};
+    else ws['!rows'][r] = {hpt:20};
   }
-  // Avery 5160: letter portrait, 0.5" top/bottom, 3/16" sides, no header/footer
   ws['!margins'] = {left:0.1875, right:0.1875, top:0.5, bottom:0.5, header:0, footer:0};
   ws['!pageSetup'] = {
     paperSize: 1,
@@ -16506,43 +16518,46 @@ function printLabels() {
   function getLabelFlag(r) {
     if (r.isAnaph) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
     if (r.isModerate) return {text:'⚡ Moderate allergy', color:'#994400'};
-    if ((r.tags||[]).includes('Diabetic')) return {text:'&#x25CB; Less starch / more veg', color:'#444'};
+    if ((r.tags||[]).includes('Diabetic')) return {text:'○ Less starch / more veg', color:'#444'};
     return null;
   }
 
   const extraRaw = (document.getElementById('labels-extra-names') || {}).value || '';
   const extraNames = extraRaw.split('\n').map(s => s.trim()).filter(Boolean);
 
-  const restrictedHtml = restricted.map(r => {
+  const allCells = [];
+  restricted.forEach(r => {
     const bg = getLabelBg(r);
     const restriction = r.rawRestriction || r.tags.filter(t => t !== 'Regular').join(', ');
     const sectionLabel = r.section || 'Regular';
     const flag = getLabelFlag(r);
-    return `<div class="label-cell" style="background:${bg};">
+    allCells.push(`<div class="label-cell" style="background:${bg};">
       <span class="label-room">${r.room}</span>
       <span class="label-section">${sectionLabel}</span>
       <span class="label-restriction">${restriction}</span>
       ${flag ? `<span class="label-flag" style="color:${flag.color};">${flag.text}</span>` : ''}
-    </div>`;
-  }).join('');
-
-  const extraHtml = extraNames.map(name => `
-    <div class="label-cell" style="background:#fff;border-style:dashed;">
+    </div>`);
+  });
+  extraNames.forEach(name => {
+    allCells.push(`<div class="label-cell" style="background:#fff;border-style:dashed;">
       <span class="label-room">${name}</span>
-    </div>`).join('');
+    </div>`);
+  });
 
-  document.getElementById('labels-print-grid').innerHTML = restrictedHtml + extraHtml;
+  // Paginate: Avery 5160 = 30 labels per sheet (3 cols × 10 rows)
+  const PER_PAGE = 30;
+  let pagesHtml = '';
+  for (let i = 0; i < allCells.length; i += PER_PAGE) {
+    const page = allCells.slice(i, i + PER_PAGE);
+    while (page.length % 3 !== 0) page.push('<div class="label-cell"></div>');
+    pagesHtml += '<div class="label-page"><div class="label-grid">' + page.join('') + '</div></div>';
+  }
 
-  // Inject Avery 5160 page margins for label printing only
-  const averyStyle = document.createElement('style');
-  averyStyle.id = 'avery-page-style';
-  averyStyle.textContent = '@page { size: letter portrait; margin: 12.7mm 4.7625mm; }';
-  document.head.appendChild(averyStyle);
+  document.getElementById('labels-print-content').innerHTML = pagesHtml;
 
   document.body.classList.add('printing-labels');
   window.print();
   document.body.classList.remove('printing-labels');
-  document.getElementById('avery-page-style')?.remove();
 }
 
 function openDemoFile(filename, idx) {
@@ -16651,7 +16666,7 @@ window.addEventListener('load', initSiteSelector);
 <!-- ===== LABELS PRINT VIEW ===== -->
 <div id="labels-print-view">
   <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:4mm;" id="labels-print-header"></div>
-  <div class="label-grid" id="labels-print-grid"></div>
+  <div id="labels-print-content"></div>
 </div>
 
 <!-- ===== CHANGE EDITOR MODAL (v26) ===== -->
@@ -16718,7 +16733,7 @@ window.addEventListener('load', initSiteSelector);
       <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">Dietary labels will be generated for all restricted residents. Add extra labels below for events, board dinners, or catering.</p>
       <div style="font-size:11px;color:var(--muted);background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:14px;line-height:1.5;">
         <strong style="color:#444;">Template:</strong> Label size 1″×2⅝″ — Avery 5160 / 8160 (30 per sheet, 3×10)<br>
-        <strong style="color:#444;">Print settings:</strong> Margins → None · Scale → 100% · Background graphics → On
+        <strong style="color:#444;">Print settings:</strong> Margins → Default · Scale → 100% · Background graphics → On
       </div>
       <div class="form-group">
         <label>Extra labels (optional)</label>
