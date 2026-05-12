@@ -13212,16 +13212,8 @@ function slotManualFlagRow(slotId, currentFlags, ns) {
       + fd.label+'</span>';
   }
   const primaryPills = primary.map(pill).join('');
-  const secondaryPills = (expanded || anySecondaryActive) ? secondary.map(pill).join('') : '';
-  const morePill = (!expanded && !anySecondaryActive)
-    ? '<span onclick="'+expandFn+'(\''+slotId+'\')"'
-      + ' style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'
-      + 'background:transparent;color:#6b7280;border:1px dashed #d1d5db;" title="Show more allergens">+ More</span>'
-    : (expanded
-      ? '<span onclick="'+expandFn+'(\''+slotId+'\')"'
-        + ' style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'
-        + 'background:transparent;color:#9ca3af;border:1px dashed #e5e7eb;">Less</span>'
-      : '');
+  const secondaryPills = secondary.map(pill).join('');
+  const morePill = '';
   return '<div style="margin-top:5px;">'
     + '<div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px;">Allergens — click to set</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:3px;">'+primaryPills+secondaryPills+morePill+'</div>'
@@ -15845,7 +15837,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
           regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
 
-  const COL_W = [52, 8, 20]; // column widths — wider restriction col for routing labels, tighter notes
+  const COL_W = [44, 10, 26]; // column widths — match on-screen 55/12/33 proportions
   const LINE_H = 13; // height per line — tighter for 1-2 page fit
 
   // Estimate row height based on longest cell text vs column width
