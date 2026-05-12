@@ -354,7 +354,7 @@
     #screen-plating { display: block !important; }
     #screen-plating .content { padding: 0 !important; }
     .main { margin-left: 0 !important; padding: 0 !important; }
-    #ps-print-header {
+    #ps-print-header, #tm-print-header {
       display: block !important;
       font-family: Calibri, sans-serif;
       font-size: 12px;
@@ -363,9 +363,20 @@
       border-bottom: 2px solid #333;
       margin-bottom: 4px;
     }
-    #ps-print-header .ph-org { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-    #ps-print-header .ph-detail { font-size: 13px; color: #000; margin-top: 1px; }
+    #ps-print-header .ph-org, #tm-print-header .ph-org { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+    #ps-print-header .ph-detail, #tm-print-header .ph-detail { font-size: 13px; color: #000; margin-top: 1px; }
     #ps-preview { padding: 0 !important; }
+    body.tm-printing .screen { display: none !important; }
+    body.tm-printing #screen-menu-config { display: block !important; }
+    body.tm-printing #screen-menu-config .content > *:not(#mc-test-meal-panel) { display: none !important; }
+    body.tm-printing #mc-test-meal-panel { display: block !important; border: none !important; padding: 0 !important; }
+    body.tm-printing #mc-test-meal-panel > *:not(#tm-plating-area) { display: none !important; }
+    body.tm-printing #tm-plating-area { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+    body.tm-printing #tm-plating-area > div:first-child { display: none !important; }
+    body.tm-printing #tm-plating-preview { padding: 0 !important; }
+    body.tm-printing #tm-print-header { display: block !important; }
+    body.tm-printing .sidebar, body.tm-printing .topbar, body.tm-printing .nav-item, body.tm-printing #mobile-menu-btn { display: none !important; }
+    body.tm-printing .main { margin-left: 0 !important; padding: 0 !important; }
     .ps-table { width: 100%; font-size: 10px; table-layout: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .ps-table td, .ps-table th { padding: 2px 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; line-height: 1.2; }
     .ps-table col.ps-col-restriction { width: 55%; }
@@ -1600,6 +1611,7 @@ function updateCODEXBadge() {
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()">✏ Edit Menu</button>
+      <button class="btn btn-ghost btn-sm" onclick="openTestMeal()" style="color:#7c3aed;border-color:#7c3aed;">&#x1F9EA; Test Meal</button>
     </div>
   </div>
   <div class="content">
@@ -1754,10 +1766,11 @@ function updateCODEXBadge() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
         <div>
           <div id="mc-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
-          <div style="margin-top:14px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Meal-level flags</div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Set per-component allergens above by clicking the labels. These meal-level flags activate routing sections regardless of ingredients.</div>
-            <div id="mc-edit-flag-grid" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+          <div id="mc-alt-meals" style="margin-top:10px;"></div>
+          <div style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
+            <div id="mc-edit-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;"></div>
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-primary btn-sm" onclick="saveMenuEdit()">Save Edit</button>
@@ -1769,6 +1782,59 @@ function updateCODEXBadge() {
           <div id="mc-menu-edit-preview"></div>
           <div id="mc-slot-name-preview" style="margin-top:16px;padding:12px;background:var(--cream);border-radius:8px;font-size:13px;display:none;"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== TEST MEAL PANEL ===== -->
+    <div id="mc-test-meal-panel" style="display:none;margin-top:20px;background:var(--paper);border:1.5px solid #7c3aed;border-radius:10px;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#7c3aed;font-weight:700;">&#x1F9EA; Test Meal Sandbox</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Build a hypothetical meal and preview its plating sheet. Nothing is saved.</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeTestMeal()">Close</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div id="tm-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <div id="tm-alt-meals" style="margin-top:10px;"></div>
+          <div style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
+            <div id="tm-edit-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;"></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-sm" onclick="generateTestPlating()" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">Generate Plating Preview</button>
+            <button class="btn btn-ghost btn-sm" onclick="openTestMeal()">Clear &amp; Reset</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Preview</div>
+          <div id="tm-section-preview"></div>
+          <div id="tm-slot-name-preview" style="margin-top:16px;padding:12px;background:var(--cream);border-radius:8px;font-size:13px;display:none;"></div>
+          <!-- Flag toggle playground -->
+          <div id="tm-flag-playground" style="display:none;margin-top:16px;padding:14px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:8px;">Flag Toggle Playground</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Toggle flags to see how routing changes in real time.</div>
+            <div id="tm-playground-flags" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;"></div>
+            <div style="margin-top:10px;">
+              <div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:6px;">Sections with these flags:</div>
+              <div id="tm-playground-sections"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Test plating preview area -->
+      <div id="tm-plating-area" style="display:none;margin-top:20px;border-top:2px solid #c4b5fd;padding-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:14px;font-weight:700;color:#7c3aed;">Test Plating Sheet</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="printTestPlating()" style="color:#7c3aed;">&#x1F5A8; Print</button>
+            <button class="btn btn-sm" onclick="exportTestPlating()" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">&#x2B07; Export XLSX</button>
+          </div>
+        </div>
+        <div id="tm-print-header" style="display:none;"></div>
+        <div id="tm-plating-preview" style="overflow-x:auto;"></div>
       </div>
     </div>
 
@@ -10892,7 +10958,11 @@ function getAltMeal(altType, ctx) {
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
     case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
     case 'noproc_alt':    return ctx && ctx.softAlt ? ctx.softAlt : 'Non-processed alternative — plain protein, rice \u0026 veg';
-    case 'soft':          return ctx && ctx.softAlt ? ctx.softAlt : '[Supervisor: specify soft meal]';
+    case 'soft':
+      if (ctx && ctx.altMeals && ctx.altMeals.length > 1) {
+        return ctx.altMeals.map(a => (a.type==='soft'?'SOFT':'PLAIN')+': '+a.text).join('  /  ');
+      }
+      return ctx && ctx.softAlt ? ctx.softAlt : '[Supervisor: specify alternative meal]';
     case 'main':          return ctx.mealName;
     default:              return ctx.mealName;
   }
@@ -10986,6 +11056,14 @@ function computeSections(mealFlags, registry) {
       pools['halal'] = pools['halal'].filter(r => !noPorkOnly.includes(r));
       pools['_nopork'] = noPorkOnly;
     }
+  }
+
+  // Smart no-egg routing: if the veg alt is egg-free and mustard-free,
+  // merge no-egg residents into vegan (they'll get the veg alt instead of a hollow modified main)
+  if (mealFlags && mealFlags._vegAltSafe && pools['no_egg'] && pools['no_egg'].length) {
+    pools['vegan'].push(...pools['no_egg']);
+    pools['no_egg'] = [];
+    (_mergedInto['vegan'] = _mergedInto['vegan'] || []).push('No Egg');
   }
 
   // Sort all pools
@@ -12666,15 +12744,87 @@ const MEAL_SLOT_DEFS = [
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
   { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side'],                     streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
   { id:'xtra',     label:'Extras',      required:false, manual:true,                           streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
-  { id:'softalt',  label:'Plain / Soft Meal', required:false, manual:true, streams:null, ph:'e.g. Plain Chicken Leg, Plain Rice & Veg — or Baked Basa, Plain Rice & Veg…', qp:['Plain Chicken Leg, Plain Rice & Stir-fried Veg','Baked Basa, Plain Rice & Stir-fried Veg','Plain English Muffin, Scrambled Eggs, DF Yoghurt & Fruit','Plain Chicken Leg','Plain Basa','Plain Rice','Congee','Soup & Bread','Mashed Potato & Gravy','Soft Egg & Toast','Rice Porridge','Yogurt & Fruit'] },
   { id:'extras',   label:'Event Name',  required:false, manual:true,                           streams:null,            ph:'Named events only — e.g. Jerk Night, Thanksgiving Dinner. Leave blank if components describe the meal.' },
 ];
 
 let MEAL_SLOT_STATE = {};
+let testMealActive = false;
+let _testPlaygroundFlags = {};
+let _lastTestPd = null;
 
 function initSlotState() {
   MEAL_SLOT_STATE = {};
   MEAL_SLOT_DEFS.forEach(d => { MEAL_SLOT_STATE[d.id] = null; });
+  ALT_MEALS = [{text:'', type:'plain'}];
+}
+
+// ── Alternative Meals system ─────────────────────────────────
+let ALT_MEALS = [{text:'', type:'plain'}];
+const ALT_MEAL_QP = ['Plain Chicken Leg, Plain Rice & Stir-fried Veg','Baked Basa, Plain Rice & Stir-fried Veg',
+  'Plain English Muffin, Scrambled Eggs, DF Yoghurt & Fruit','Plain Chicken Leg','Plain Basa',
+  'Plain Rice','Congee','Soup & Bread','Mashed Potato & Gravy','Soft Egg & Toast','Rice Porridge','Yogurt & Fruit'];
+
+function addAltMeal(type) {
+  ALT_MEALS.push({text:'', type: type || 'plain'});
+  renderAltMealsSection();
+}
+
+function removeAltMeal(idx) {
+  if (ALT_MEALS.length <= 1) return;
+  ALT_MEALS.splice(idx, 1);
+  renderAltMealsSection();
+  updateSlotSummary();
+}
+
+function updateAltMealText(idx, val) {
+  if (ALT_MEALS[idx]) ALT_MEALS[idx].text = val;
+  updateSlotSummary();
+}
+
+function updateAltMealType(idx, val) {
+  if (ALT_MEALS[idx]) ALT_MEALS[idx].type = val;
+  updateSlotSummary();
+}
+
+function setAltMealQP(idx, val) {
+  if (ALT_MEALS[idx]) { ALT_MEALS[idx].text = val; }
+  renderAltMealsSection();
+  updateSlotSummary();
+}
+
+function buildAltMeals() { return ALT_MEALS.filter(a => a.text); }
+
+function renderAltMealsSection() {
+  const containerId = testMealActive ? 'tm-alt-meals' : 'mc-alt-meals';
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const hasAny = ALT_MEALS.some(a => a.text);
+  let h = '<div style="padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+  h += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;">';
+  h += '⚠ Alternative Meals</div>';
+  if (!hasAny) h += '<span style="font-size:10px;font-weight:600;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px;">REQUIRED</span>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:#78716c;margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
+  ALT_MEALS.forEach((alt, i) => {
+    h += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
+    h += '<select onchange="updateAltMealType('+i+',this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;background:'+(alt.type==='soft'?'#dbeafe':'#f0fdf4')+';color:'+(alt.type==='soft'?'#1d4ed8':'#166534')+';min-width:60px;">';
+    h += '<option value="plain"'+(alt.type==='plain'?' selected':'')+'>Plain</option>';
+    h += '<option value="soft"'+(alt.type==='soft'?' selected':'')+'>Soft</option>';
+    h += '</select>';
+    h += '<input value="'+((alt.text||'').replace(/"/g,'&quot;'))+'" placeholder="e.g. Plain Chicken Leg, Rice & Veg…" onblur="updateAltMealText('+i+',this.value)" onkeydown="if(event.key===\'Enter\'){this.blur();}" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;">';
+    if (ALT_MEALS.length > 1) h += '<button onclick="removeAltMeal('+i+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:2px 4px;" title="Remove">✕</button>';
+    h += '</div>';
+  });
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;">';
+  ALT_MEAL_QP.forEach(qp => {
+    const targetIdx = ALT_MEALS.length - 1;
+    h += '<button onclick="setAltMealQP('+targetIdx+',\''+qp.replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--cream);cursor:pointer;white-space:nowrap;">'+qp+'</button>';
+  });
+  h += '</div>';
+  h += '<button onclick="addAltMeal(\'plain\')" style="font-size:11px;padding:3px 10px;border:1px solid #d6d3d1;border-radius:5px;background:var(--cream);cursor:pointer;color:#7c3aed;font-weight:600;margin-top:4px;">＋ Add Another Alternative</button>';
+  h += '</div>';
+  el.innerHTML = h;
 }
 
 // ── Hub availability ──────────────────────────────────────────
@@ -12701,7 +12851,7 @@ function hubAllergenToFlags(allergens) {
 
 // ── Slot rendering ────────────────────────────────────────────
 function renderSlots() {
-  const container = document.getElementById('mc-slot-panel');
+  const container = document.getElementById(testMealActive ? 'tm-slot-panel' : 'mc-slot-panel');
   if (!container) return;
   container.innerHTML = MEAL_SLOT_DEFS.map(def => {
     // v30: Hidden slots only show when toggled visible or have content
@@ -12714,6 +12864,7 @@ function renderSlots() {
     }
     return renderSlotCard(def, 'slot');
   }).join('');
+  renderAltMealsSection();
 }
 let _noPorkAltVisible = false;
 
@@ -12768,8 +12919,10 @@ function buildVegAltFlags() {
 }
 
 function buildSoftAlt() {
-  const s = MEAL_SLOT_STATE['softalt'];
-  return s ? (s.manual || '') : '';
+  const alts = buildAltMeals();
+  if (!alts.length) return '';
+  const soft = alts.find(a => a.type === 'soft');
+  return soft ? soft.text : alts[0].text;
 }
 
 function buildNoPorkAlt() {
@@ -12853,36 +13006,51 @@ function getVegAltAllergenStr(mealVeg) {
 
 function updateSlotSummary() {
   const slotFlags = buildUnionFlags();
+  const cbPrefix = testMealActive ? 'tm-edit-flag-' : 'mc-edit-flag-';
+  FLAG_DEFS.forEach(f => {
+    if (slotFlags[f.key]) {
+      const cb = document.getElementById(cbPrefix + f.key);
+      if (cb && !cb.checked) { cb.checked = true; cb.parentElement.style.background = f.color + '10'; }
+    }
+  });
   const flags = {};
   FLAG_DEFS.forEach(f => {
-    const cb = document.getElementById('mc-edit-flag-' + f.key);
+    const cb = document.getElementById(cbPrefix + f.key);
     flags[f.key] = cb ? cb.checked : (slotFlags[f.key] || false);
   });
-  const prev = document.getElementById('mc-menu-edit-preview');
+  const vegFlags = buildVegAltFlags();
+  flags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard;
+  flags._altMeals = buildAltMeals();
+  const prevId = testMealActive ? 'tm-section-preview' : 'mc-menu-edit-preview';
+  const prev = document.getElementById(prevId);
   if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
   const name = buildMealName();
   const veg = buildVegAlt();
   const softAlt = buildSoftAlt();
-  const noPorkAlt = buildNoPorkAlt(); // v30
-  const summaryEl = document.getElementById('mc-slot-name-preview');
+  const noPorkAlt = buildNoPorkAlt();
+  const summaryId = testMealActive ? 'tm-slot-name-preview' : 'mc-slot-name-preview';
+  const summaryLabel = testMealActive ? 'Test meal preview' : 'Will save as';
+  const summaryEl = document.getElementById(summaryId);
   if (summaryEl) {
     if (name || veg || softAlt || noPorkAlt) {
       summaryEl.style.display = 'block';
       summaryEl.innerHTML =
-        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Will save as</div>' +
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">' + summaryLabel + '</div>' +
         (name       ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${name}</div>` : '') +
         (veg        ? `<div style="font-size:12px;color:var(--muted);">Veg alt: ${veg}</div>` : '') +
         (noPorkAlt  ? `<div style="font-size:12px;color:#7c3aed;margin-top:2px;">No Pork alt: ${noPorkAlt}</div>` : '') +
-        (softAlt    ? `<div style="font-size:12px;color:#0891b2;margin-top:2px;">Soft/plain: ${softAlt}</div>` : '');
+        buildAltMeals().map(a => `<div style="font-size:12px;color:#0891b2;margin-top:2px;">${a.type==='soft'?'Soft':'Plain'}: ${a.text}</div>`).join('');
     } else {
       summaryEl.style.display = 'none';
     }
   }
   if (name) {
-    const carbCb = document.getElementById('mc-edit-flag-isCarb');
+    const carbCb = document.getElementById(cbPrefix + 'isCarb');
     if (carbCb && !carbCb.checked && detectIsCarb(name)) {
       carbCb.checked = true;
-      const hint = document.getElementById('mc-iscarb-hint');
+      if (carbCb.parentElement) carbCb.parentElement.style.background = '#2563eb10';
+      const hintId = testMealActive ? 'tm-iscarb-hint' : 'mc-iscarb-hint';
+      const hint = document.getElementById(hintId);
       if (hint) { hint.textContent = '(auto)'; hint.style.display = 'inline'; }
     }
   }
@@ -12909,6 +13077,7 @@ function toggleEditMenuMode() {
     btn.style.color = '#1e40af';
     btn.style.border = '1.5px solid #2563eb';
     if (banner) banner.style.display = 'block';
+    if (testMealActive) closeTestMeal();
     closeMealEdit();
     closeMenuEdit();
   } else {
@@ -13089,16 +13258,35 @@ function smSlotToggleFlag(slotId, key) {
 }
 
 function renderEditFlagGrid(currentFlags) {
-  const grid = document.getElementById('mc-edit-flag-grid');
+  const gridId = testMealActive ? 'tm-edit-flag-grid' : 'mc-edit-flag-grid';
+  const cbPrefix = testMealActive ? 'tm-edit-flag-' : 'mc-edit-flag-';
+  const carbHintId = testMealActive ? 'tm-iscarb-hint' : 'mc-iscarb-hint';
+  const grid = document.getElementById(gridId);
   if (!grid) return;
-  const mealLevelFlags = FLAG_DEFS.filter(f => f.mealLevel);
-  grid.innerHTML = mealLevelFlags.map(f => {
-    const checked = currentFlags && currentFlags[f.key] ? 'checked' : '';
-    const autoHint = f.key==='isCarb' ? ' <span id="mc-iscarb-hint" style="font-size:10px;color:var(--muted);display:none;"></span>' : '';
-    return '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--cream);">'
-      + '<input type="checkbox" id="mc-edit-flag-'+f.key+'" '+checked+' style="accent-color:'+f.color+';" onchange="updateSlotSummary()"> '+f.label+autoHint
-      + '</label>';
-  }).join('');
+  const slotFlags = buildUnionFlags();
+  const cats = [
+    {label:'Priority Allergens', keys:['hasGluten','hasDairy','hasEgg','hasFish','hasPeanuts','hasSoy','hasTreeNuts']},
+    {label:'Proteins', keys:['hasPork','hasBeef','hasChicken','hasTurkey']},
+    {label:'Other Allergens', keys:['hasSesame','hasMustard','hasShellfish','hasSulphites']},
+    {label:'Routing', keys:['isSpicy','isCarb','halalCertifiedMeat','hasProcessedMeat']},
+    {label:'Ingredients', keys:['hasBeans','hasMushroom','hasCoconut','hasNightshades','hasBrassicas','hasCorn']}
+  ];
+  let h = '';
+  cats.forEach(cat => {
+    h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:8px 0 3px;grid-column:1/-1;">' + cat.label + '</div>';
+    cat.keys.forEach(key => {
+      const f = FLAG_DEFS.find(fd => fd.key === key);
+      if (!f) return;
+      const isAuto = slotFlags[key] && !(currentFlags && currentFlags[key]);
+      const checked = (currentFlags && currentFlags[key]) || slotFlags[key] ? 'checked' : '';
+      const autoTag = isAuto ? ' <span style="font-size:9px;color:var(--muted);font-style:italic;">(auto)</span>' : '';
+      const carbHint = f.key==='isCarb' ? ' <span id="'+carbHintId+'" style="font-size:10px;color:var(--muted);display:none;"></span>' : '';
+      h += '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;background:'+(checked?f.color+'10':'var(--cream)')+';">'
+        + '<input type="checkbox" id="'+cbPrefix+f.key+'" '+checked+' style="accent-color:'+f.color+';" onchange="updateSlotSummary()"> '+f.label+autoTag+carbHint
+        + '</label>';
+    });
+  });
+  grid.innerHTML = h;
 }
 
 function renderSectionPreviewInto(flags, el) {
@@ -13112,8 +13300,9 @@ function renderSectionPreviewInto(flags, el) {
     const count = s.residents.length;
     const bg = color+'18'; const border = color; const textColor = color;
     const badge = count > 0 ? ' <span style="font-size:10px;background:'+color+';color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">'+count+'</span>' : '';
+    const displayLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-left:3px solid '+border+';background:'+bg+';border-radius:0 5px 5px 0;margin-bottom:4px;">' +
-      '<span style="font-size:12px;font-weight:600;color:'+textColor+'">'+s.rule.label+badge+'</span>' +
+      '<span style="font-size:12px;font-weight:600;color:'+textColor+'">'+displayLabel+badge+'</span>' +
       '<span style="font-size:10px;color:'+textColor+'">'+count+'</span></div>';
   }).join('');
 }
@@ -13253,6 +13442,7 @@ function _finishMenuSave(name, veg, flags) {
   overlay[week][day][period + '_veg']     = veg;
   overlay[week][day][period + '_flags']   = flags;
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
+  overlay[week][day][period + '_altMeals'] = buildAltMeals();
   overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
   overlay[week][day][period + '_mainItem'] = buildMainItem(); // v30
   overlay[week][day][period + '_mainAlt'] = buildMainAltItem(); // v30
@@ -13366,6 +13556,7 @@ function parseMealNameIntoSlots(name) {
 }
 
 function openMenuEdit(week, day, period) {
+  if (testMealActive) closeTestMeal();
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
   const existing = getMenuEdit(week, day, period);
@@ -13410,9 +13601,15 @@ function openMenuEdit(week, day, period) {
     if (rotFlags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...rotFlags};
   }
 
-  // Pre-populate soft alt slot
+  // Pre-populate alternative meals
   const initSoftAlt = (existing && existing.softAlt) ? existing.softAlt : (dayData[period + '_softAlt'] || '');
-  if (initSoftAlt) MEAL_SLOT_STATE['softalt'] = { manual: initSoftAlt };
+  if (existing && existing.altMeals && existing.altMeals.length) {
+    ALT_MEALS = existing.altMeals.map(a => ({text: a.text || '', type: a.type || 'plain'}));
+  } else if (initSoftAlt) {
+    ALT_MEALS = [{text: initSoftAlt, type: 'plain'}];
+  } else {
+    ALT_MEALS = [{text: '', type: 'plain'}];
+  }
 
   // Pre-populate no-pork alt slot (v30)
   const initNoPorkAlt = (existing && existing.noPorkAlt) ? existing.noPorkAlt : (dayData[period + '_noPorkAlt'] || '');
@@ -15604,6 +15801,11 @@ function computePlatingData(period, weekNum, dayName) {
 
   // v30: Attach noPorkAlt to mealFlags so computeSections can use it for No Pork split
   if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
+  // Smart no-egg: check if veg alt is egg/mustard-free from allergen string
+  const vegAllergenCheck = (vegAllergenStr || '').toUpperCase();
+  mealFlags._vegAltSafe = !vegAllergenCheck || (!/EGG/i.test(vegAllergenCheck) && !/MUSTARD/i.test(vegAllergenCheck));
+  const mealAltMeals = dayData[period+'_altMeals'] || [];
+  mealFlags._altMeals = mealAltMeals;
 
   // Compute dynamic sections — using routingRegistry (anaph residents excluded)
   const sections = computeSections(mealFlags, routingRegistry);
@@ -15612,7 +15814,7 @@ function computePlatingData(period, weekNum, dayName) {
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
@@ -15635,8 +15837,8 @@ function computePlatingData(period, weekNum, dayName) {
   };
 }
 
-function buildDaySheet(period, weekNum, dayName) {
-  const pd = computePlatingData(period, weekNum, dayName);
+function buildDaySheet(period, weekNum, dayName, providedPd) {
+  const pd = providedPd || computePlatingData(period, weekNum, dayName);
   if (!pd) return null;
   const { dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
@@ -15716,7 +15918,8 @@ function buildDaySheet(period, weekNum, dayName) {
   sections.filter(s => s.rule.key !== 'regular').forEach(s => {
     const altMeal = getAltMeal(s.rule.altType, ctx);
     const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
-    const title = 'Special Meal '+specialIdx+' ('+s.rule.label+mergeNote+')';
+    const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
+    const title = 'Special Meal '+specialIdx+' ('+sectionLabel+mergeNote+')';
     // Allergen string per section type:
     // halal_alt / modified_main: main meal allergens carry over (same dish)
     // vegan_alt: from slot-computed vegAllergens or recipe lookup
@@ -15726,13 +15929,20 @@ function buildDaySheet(period, weekNum, dayName) {
     if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
       const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/\bpork\b/i.test(a)).join(', ');
       sectionAllergenStr = halalAllergens || null;
-    } else if (s.rule.altType === 'modified_main' || s.rule.altType === 'bland_alt') {
+    } else if (s.rule.altType === 'modified_main') {
+      if (s.rule.key === 'no_egg') {
+        sectionAllergenStr = allergenStr.split(',').map(a=>a.trim())
+          .filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
+      } else {
+        sectionAllergenStr = allergenStr;
+      }
+    } else if (s.rule.altType === 'bland_alt') {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
     } else if (s.rule.altType === 'gf_alt') {
       const gfAllergens = allergenStr.split(',').map(a=>a.trim())
-        .filter(a => a && !/gluten/i.test(a) && !(mealFlags.hasPork && /\bpork\b/i.test(a))).join(', ');
+        .filter(a => a && !/gluten|wheat/i.test(a) && !(mealFlags.hasPork && /\bpork\b/i.test(a))).join(', ');
       sectionAllergenStr = gfAllergens || null;
     } else {
       sectionAllergenStr = null;
@@ -15742,6 +15952,7 @@ function buildDaySheet(period, weekNum, dayName) {
       : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
     addMerged(title, F.stdB, 'FFFF00', B.thick, 16);
     addMerged(altMealLine, F.stdB, 'FCE4D6', B.thin, 22);
+    const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
     s.residents.forEach(r => {
       const isDiab = (r.tags||[]).includes('Diabetic');
       const bg = isDiab ? '92D050' : null;
@@ -15751,10 +15962,16 @@ function buildDaySheet(period, weekNum, dayName) {
         .map(rule => rule.note)
         .filter((n,i,a) => a.indexOf(n)===i) // dedupe
         .join(', ');
-      const allNotes = [baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
+      let altNote = '';
+      if (hasMultiAlts) {
+        const isSoft = (r.tags||[]).includes('Soft Meals');
+        const pick = ctx.altMeals.find(a => isSoft ? a.type==='soft' : a.type==='plain') || ctx.altMeals[0];
+        altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text;
+      }
+      const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
       addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
     });
-    addRow(xCell('Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
+    addRow(xCell(sectionLabel+' Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
     totalRestrictions += s.residents.length;
     specialIdx++;
   });
@@ -16359,6 +16576,118 @@ function initPlatingPreview() {
   renderPlatingPreview();
 }
 
+function buildPlatingHtml(pd, isTest) {
+  const { dayLabel, periodLabel, mealName, mealVeg, mealFlags, allergenStr, vegAllergenStr,
+          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
+
+  let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
+
+  if (conflictRooms.size > 0) {
+    const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
+    const algs = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph).flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
+    h += `<tr><td colspan="3" class="ps-banner">⚠  ANAPHYLACTIC ALERT — Rooms ${anaphNames} (${algs})</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-banner-sub">Today’s meal contains allergen — Do not deliver to these rooms or roommates</td></tr>`;
+  }
+
+  const titlePrefix = isTest ? 'TEST MEAL' : dayLabel + ' ' + periodLabel;
+  h += `<tr><td colspan="3" class="ps-title">${titlePrefix}</td></tr>`;
+  h += `<tr><td colspan="3" class="ps-meal">${mealName}</td></tr>`;
+  h += `<tr><td colspan="3" class="ps-allergen">CONTAINS: ${allergenStr||'—'}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Total Meals</td><td class="ps-total-val">${REGISTRY_LIST.length}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Standard Meal</td><td class="ps-total-val">${regCount}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Halal</td><td class="ps-total-val">${halalCount}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Vegan / Vegetarian</td><td class="ps-total-val">${veganCount}</td></tr>`;
+  h += `<tr><td></td><td class="ps-total">Diabetics</td><td class="ps-total-val">${diabCount}</td></tr>`;
+
+  if (anaphSect.length) {
+    const alg = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
+    h += `<tr><td colspan="3" class="ps-anaph-hdr">⚠  Anaphylactic Alternative (${alg})</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal">${mealName.replace(/peanut/i,'(no peanut oil)')} — prepared separately  |  ${alg.toUpperCase()}</td></tr>`;
+    anaphSect.forEach(r => {
+      if (r._role==='anaphylactic') {
+        h += `<tr class="ps-anaph-row"><td>${r.rawRestriction}</td><td>${r.room}</td><td>⚠ ANAPHYLACTIC</td></tr>`;
+      } else {
+        h += `<tr class="ps-roommate-row"><td>${r.rawRestriction}</td><td>${r.room}</td><td>⚠ Room (${r._anaph_room})</td></tr>`;
+      }
+    });
+    h += `<tr class="ps-sect-total"><td>⚠ Anaphylactic Total</td><td></td><td>${anaphSect.length}</td></tr>`;
+  }
+
+  let restCount = anaphSect.length;
+  let sectNum = 0;
+  sections.forEach(s => {
+    if (s.rule.key === 'regular') return;
+    const res = s.residents;
+    if (!res.length) return;
+    restCount += res.length;
+    sectNum++;
+    const altMeal = getAltMeal(s.rule.altType, ctx);
+    let sectionAllergenStr;
+    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
+      const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/pork/i.test(a)).join(', ');
+      sectionAllergenStr = halalAllergens || null;
+    } else if (s.rule.altType === 'modified_main') {
+      if (s.rule.key === 'no_egg') {
+        sectionAllergenStr = allergenStr.split(',').map(a=>a.trim())
+          .filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
+      } else {
+        sectionAllergenStr = allergenStr;
+      }
+    } else if (s.rule.altType === 'bland_alt') {
+      sectionAllergenStr = allergenStr;
+    } else if (s.rule.altType === 'vegan_alt') {
+      sectionAllergenStr = vegAllergenStr;
+    } else if (s.rule.altType === 'gf_alt') {
+      const gfAllergens = allergenStr.split(',').map(a=>a.trim())
+        .filter(a => a && !/gluten|wheat/i.test(a) && !(mealFlags.hasPork && /pork/i.test(a))).join(', ');
+      sectionAllergenStr = gfAllergens || null;
+    } else {
+      sectionAllergenStr = null;
+    }
+    const altMealLine = sectionAllergenStr
+      ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
+      : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
+    const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
+    const title = `Special Meal ${sectNum} (${s.rule.label}${mergeNote})`;
+    const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
+    const titleLine = `Special Meal ${sectNum} (${sectionLabel}${mergeNote})`;
+    h += `<tr><td colspan="3" class="ps-sect-hdr">${titleLine}</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal">${altMealLine}</td></tr>`;
+    const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
+    res.forEach(r => {
+      const isDiab  = r.tags && r.tags.includes('Diabetic');
+      const baseNote = isDiab ? 'extra veg less starch' : '';
+      const ingredientNote = CONFLICT_MAP
+        .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
+        .map(rule => rule.note)
+        .filter((n,i,a) => a.indexOf(n)===i)
+        .join(', ');
+      let altNote = '';
+      if (hasMultiAlts) {
+        const isSoft = (r.tags||[]).includes('Soft Meals');
+        const pick = ctx.altMeals.find(a => isSoft ? a.type==='soft' : a.type==='plain') || ctx.altMeals[0];
+        altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text;
+      }
+      const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
+      const cls = isDiab ? ' class="ps-diabetic"' : '';
+      h += `<tr${cls}><td>${r.rawRestriction}</td><td>${r.room}</td><td>${allNotes}</td></tr>`;
+    });
+    h += `<tr class="ps-sect-total"><td>${sectionLabel} Total</td><td></td><td>${res.length}</td></tr>`;
+  });
+  if (regularNotes && regularNotes.length) {
+    h += `<tr><td colspan="3" class="ps-sect-hdr" style="background:#D9E2F3;">Regular Meal — Notes</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal" style="background:#E8EDF5;">Standard meal with the following modifications</td></tr>`;
+    regularNotes.forEach(r => {
+      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' · ');
+      h += `<tr style="background:#E8EDF5;"><td>${r.rawRestriction}</td><td>${r.room}</td><td>${note}</td></tr>`;
+    });
+  }
+  h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
+  h += `<tr class="ps-sect-total"><td>Total Standard</td><td></td><td>${regCount}</td></tr>`;
+  h += '</table>';
+  return h;
+}
+
 function renderPlatingPreview() {
   const preview = document.getElementById('ps-preview');
   const printHeader = document.getElementById('ps-print-header');
@@ -16371,108 +16700,239 @@ function renderPlatingPreview() {
     return;
   }
 
-  const { dayLabel, periodLabel, mealName, mealVeg, mealFlags, allergenStr, vegAllergenStr,
-          conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
-
-  // Print header
   if (printHeader) {
-    printHeader.innerHTML = `<div class="ph-org">CONC Rexdale</div><div class="ph-detail">Week ${psWeek} ${dayLabel} ${periodLabel} \u2014 ${mealName}</div>`;
+    printHeader.innerHTML = `<div class="ph-org">CONC Rexdale</div><div class="ph-detail">Week ${psWeek} ${pd.dayLabel} ${pd.periodLabel} — ${pd.mealName}</div>`;
   }
+  preview.innerHTML = buildPlatingHtml(pd, false);
+}
 
-  let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
 
-  if (conflictRooms.size > 0) {
-    const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const algs = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph).flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
-    h += `<tr><td colspan="3" class="ps-banner">\u26A0  ANAPHYLACTIC ALERT \u2014 Rooms ${anaphNames} (${algs})</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-banner-sub">Today\u2019s meal contains allergen \u2014 Do not deliver to these rooms or roommates</td></tr>`;
+// ============================================================
+// TEST MEAL SANDBOX
+// ============================================================
+
+function openTestMeal() {
+  closeMenuEdit();
+  closeMealEdit();
+  if (editMenuMode) toggleEditMenuMode();
+  testMealActive = true;
+  _lastTestPd = null;
+  const mcSlotPanel = document.getElementById('mc-slot-panel');
+  if (mcSlotPanel) mcSlotPanel.innerHTML = '';
+  const mcFlagGrid = document.getElementById('mc-edit-flag-grid');
+  if (mcFlagGrid) mcFlagGrid.innerHTML = '';
+  initSlotState();
+  const panel = document.getElementById('mc-test-meal-panel');
+  if (panel) panel.style.display = 'block';
+  renderEditFlagGrid({});
+  renderSlots();
+  updateSlotSummary();
+  const platingArea = document.getElementById('tm-plating-area');
+  if (platingArea) platingArea.style.display = 'none';
+  const pg = document.getElementById('tm-flag-playground');
+  if (pg) pg.style.display = 'none';
+  setTimeout(function() { var s = document.getElementById('slot-search-main'); if (s) s.focus(); }, 80);
+}
+
+function closeTestMeal() {
+  testMealActive = false;
+  _lastTestPd = null;
+  var panel = document.getElementById('mc-test-meal-panel');
+  if (panel) panel.style.display = 'none';
+  var tmSlotPanel = document.getElementById('tm-slot-panel');
+  if (tmSlotPanel) tmSlotPanel.innerHTML = '';
+  var tmFlagGrid = document.getElementById('tm-edit-flag-grid');
+  if (tmFlagGrid) tmFlagGrid.innerHTML = '';
+}
+
+function generateTestPlating() {
+  var name = buildMealName();
+  if (!name) { alert('Add at least a main dish before generating.'); return; }
+
+  var slotFlags = buildUnionFlags();
+  var flags = {};
+  FLAG_DEFS.forEach(function(f) {
+    var cb = document.getElementById('tm-edit-flag-' + f.key);
+    flags[f.key] = cb ? cb.checked : (slotFlags[f.key] || false);
+  });
+
+  var MEAT_DETECT = [
+    { kw: /\bchicken\b|\bchik'?n\b|\bdrum\w*\b|\btender\b|\bwing\b/i, flag: 'hasChicken', label: 'chicken' },
+    { kw: /\bbeef\b|\bsteak\b|\bmeatloaf\b|\bmeatball\b/i, flag: 'hasBeef', label: 'beef' },
+    { kw: /\bturkey\b/i, flag: 'hasTurkey', label: 'turkey' },
+    { kw: /\bpork\b|\bham\b|\bsausage\b|\bbacon\b|\bcarnitas\b/i, flag: 'hasPork', label: 'pork' },
+  ];
+  function _detectSlot(slotId) {
+    var s = MEAL_SLOT_STATE[slotId];
+    var val = s ? (s.recipeName || s.manual || '') : '';
+    if (!val) return [];
+    return MEAT_DETECT.filter(function(m) { return m.kw.test(val); });
   }
+  var mainProteins = _detectSlot('main');
+  var altProteins = _detectSlot('mainalt');
+  var noPorkProteins = _detectSlot('noporkalt');
+  [].concat(mainProteins, altProteins, noPorkProteins).forEach(function(m) { flags[m.flag] = true; });
 
-  h += `<tr><td colspan="3" class="ps-title">${dayLabel} ${periodLabel}</td></tr>`;
-  h += `<tr><td colspan="3" class="ps-meal">${mealName}</td></tr>`;
-  h += `<tr><td colspan="3" class="ps-allergen">CONTAINS: ${allergenStr||'\u2014'}</td></tr>`;
-  h += `<tr><td></td><td class="ps-total">Total Meals</td><td class="ps-total-val">${REGISTRY_LIST.length}</td></tr>`;
-  h += `<tr><td></td><td class="ps-total">Standard Meal</td><td class="ps-total-val">${regCount}</td></tr>`;
-  h += `<tr><td></td><td class="ps-total">Halal</td><td class="ps-total-val">${halalCount}</td></tr>`;
-  h += `<tr><td></td><td class="ps-total">Vegan / Vegetarian</td><td class="ps-total-val">${veganCount}</td></tr>`;
-  h += `<tr><td></td><td class="ps-total">Diabetics</td><td class="ps-total-val">${diabCount}</td></tr>`;
+  var hasPorkInMain = mainProteins.some(function(m) { return m.flag === 'hasPork'; });
+  var altMeatProteins = altProteins.filter(function(m) { return m.flag !== 'hasPork'; }).map(function(m) { return m.label; });
+  var mainMeatProteins = mainProteins.filter(function(m) { return m.flag !== 'hasPork'; }).map(function(m) { return m.label; });
 
-  if (anaphSect.length) {
-    const alg = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
-    h += `<tr><td colspan="3" class="ps-anaph-hdr">\u26A0  Anaphylactic Alternative (${alg})</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-meal">${mealName.replace(/peanut/i,'(no peanut oil)')} \u2014 prepared separately  |  ${alg.toUpperCase()}</td></tr>`;
-    anaphSect.forEach(r => {
-      if (r._role==='anaphylactic') {
-        h += `<tr class="ps-anaph-row"><td>${r.rawRestriction}</td><td>${r.room}</td><td>\u26A0 ANAPHYLACTIC</td></tr>`;
-      } else {
-        h += `<tr class="ps-roommate-row"><td>${r.rawRestriction}</td><td>${r.room}</td><td>\u26A0 Room (${r._anaph_room})</td></tr>`;
+  var needsHalalPrompt = hasPorkInMain
+    ? (altMeatProteins.length > 0 && !flags.halalCertifiedMeat)
+    : (mainMeatProteins.length > 0 && !flags.halalCertifiedMeat);
+
+  if (needsHalalPrompt) {
+    var slotBreakdown = {
+      main: mainProteins.map(function(m) { return m.label; }),
+      mainalt: altProteins.map(function(m) { return m.label; }),
+      noporkalt: noPorkProteins.map(function(m) { return m.label; })
+    };
+    var askAbout = hasPorkInMain ? altMeatProteins : mainMeatProteins;
+    _showHalalCertDialog(askAbout.join(' & '), hasPorkInMain, slotBreakdown, function(isHalal) {
+      flags.halalCertifiedMeat = isHalal;
+      _finishTestPlating(flags);
+    });
+    return;
+  }
+  _finishTestPlating(flags);
+}
+
+function _finishTestPlating(flags) {
+  var pd = computeTestPlatingData(flags);
+  if (!pd) { alert('Could not compute plating data.'); return; }
+  _lastTestPd = pd;
+
+  var preview = document.getElementById('tm-plating-preview');
+  if (preview) preview.innerHTML = buildPlatingHtml(pd, true);
+
+  var ph = document.getElementById('tm-print-header');
+  if (ph) ph.innerHTML = '<div class="ph-org">CONC Rexdale</div><div class="ph-detail">TEST MEAL — ' + pd.mealName + '</div>';
+
+  var platingArea = document.getElementById('tm-plating-area');
+  if (platingArea) platingArea.style.display = 'block';
+
+  renderTestPlayground(flags);
+  platingArea.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function computeTestPlatingData(flags) {
+  var mealMainItem = buildMainItem();
+  var mealMainAlt = buildMainAltItem();
+  var mealSides = buildSides();
+  var mealName = (mealMainItem && mealSides) ? mealMainItem + ', ' + mealSides : buildMealName();
+  var mealVeg = buildVegAlt();
+  var mealSoftAlt = buildSoftAlt();
+  var mealNoPorkAlt = buildNoPorkAlt();
+  var mealFlags = Object.assign({}, flags);
+
+  var allergenStr = flagsToAllergenStr(mealFlags).toUpperCase();
+  var vegFlags = buildVegAltFlags();
+  mealFlags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard;
+  mealFlags._altMeals = buildAltMeals();
+  var vegAllergenStr = flagsToAllergenStr(vegFlags).toUpperCase() || (typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '') || null;
+
+  var emptyFlags = {};
+  FLAG_DEFS.forEach(function(f) { emptyFlags[f.key] = false; });
+  var conflictRooms = getAnaphConflictRooms(mealFlags, emptyFlags);
+
+  var routingRegistry = [];
+  var anaphSect = [];
+  var sortR = function(a,b) { var na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
+  REGISTRY_LIST.forEach(function(r) {
+    if (conflictRooms.has(r.room)) {
+      var isA = r.isAnaph || anaphRooms.includes(r.room);
+      var mateOf = isA ? null : REGISTRY_LIST.find(function(ar) {
+        return (ar.isAnaph||anaphRooms.includes(ar.room)) &&
+          getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room;
+      });
+      anaphSect.push(Object.assign({}, r, {_role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''}));
+    } else {
+      routingRegistry.push(r);
+    }
+  });
+  anaphSect.sort(sortR);
+
+  if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
+  var sections = computeSections(mealFlags, routingRegistry);
+  var regularSection = sections.find(function(s) { return s.rule.key === 'regular'; });
+  var regCount = regularSection ? regularSection.residents.length : 0;
+  var halalCount = sections.filter(function(s){ return s.rule.key==='halal'; }).reduce(function(sum,s){ return sum+s.residents.length; },0);
+  var veganCount = sections.filter(function(s){ return s.rule.key==='vegan'; }).reduce(function(sum,s){ return sum+s.residents.length; },0);
+  var diabCount = REGISTRY_LIST.filter(function(r) { return (r.tags||[]).includes('Diabetic'); }).length;
+  var altMeals = mealFlags._altMeals || [];
+  var ctx = {mealName:mealName, mealVeg:mealVeg, allergenStr:allergenStr, softAlt:mealSoftAlt, altMeals:altMeals, noPorkAlt:mealNoPorkAlt, mainAlt:mealMainAlt, mainItem:mealMainItem, sides:mealSides, mealFlags:mealFlags};
+
+  var regularNotes = [];
+  if (regularSection) {
+    regularSection.residents.forEach(function(r) {
+      var conflicts = checkResidentMealConflicts(mealFlags, r);
+      var conflictNote = formatConflictNote(conflicts);
+      var svcNote = r.serviceNote || '';
+      if (conflicts.length || svcNote) {
+        regularNotes.push({ room:r.room, rawRestriction:r.rawRestriction||'', tags:r.tags||[], conflictNote:conflictNote, serviceNote:svcNote });
       }
     });
-    h += `<tr class="ps-sect-total"><td>\u26A0 Anaphylactic Total</td><td></td><td>${anaphSect.length}</td></tr>`;
+    regularNotes.sort(function(a,b) { var na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); });
   }
 
-  // Sections now come from computePlatingData — same data as buildDaySheet
-  let restCount = anaphSect.length;
-  let sectNum = 0;
-  sections.forEach(s => {
-    if (s.rule.key === 'regular') return;
-    const res = s.residents;
-    if (!res.length) return;
-    restCount += res.length;
-    sectNum++;
-    const altMeal = getAltMeal(s.rule.altType, ctx);
-    // Build section allergen string using same logic as buildDaySheet
-    let sectionAllergenStr;
-    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
-      const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/\bpork\b/i.test(a)).join(', ');
-      sectionAllergenStr = halalAllergens || null;
-    } else if (s.rule.altType === 'modified_main' || s.rule.altType === 'bland_alt') {
-      sectionAllergenStr = allergenStr;
-    } else if (s.rule.altType === 'vegan_alt') {
-      sectionAllergenStr = vegAllergenStr;
-    } else if (s.rule.altType === 'gf_alt') {
-      const gfAllergens = allergenStr.split(',').map(a=>a.trim())
-        .filter(a => a && !/gluten/i.test(a) && !(mealFlags.hasPork && /\bpork\b/i.test(a))).join(', ');
-      sectionAllergenStr = gfAllergens || null;
-    } else {
-      sectionAllergenStr = null;
-    }
-    const altMealLine = sectionAllergenStr
-      ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
-      : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
-    const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
-    const title = `Special Meal ${sectNum} (${s.rule.label}${mergeNote})`;
-    h += `<tr><td colspan="3" class="ps-sect-hdr">${title}</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-meal">${altMealLine}</td></tr>`;
-    res.forEach(r => {
-      const isDiab  = r.tags && r.tags.includes('Diabetic');
-      const baseNote = isDiab ? 'extra veg less starch' : '';
-      const ingredientNote = CONFLICT_MAP
-        .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
-        .map(rule => rule.note)
-        .filter((n,i,a) => a.indexOf(n)===i)
-        .join(', ');
-      const allNotes = [baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
-      const cls = isDiab ? ' class="ps-diabetic"' : '';
-      h += `<tr${cls}><td>${r.rawRestriction}</td><td>${r.room}</td><td>${allNotes}</td></tr>`;
-    });
-    h += `<tr class="ps-sect-total"><td>${s.rule.label} Total</td><td></td><td>${res.length}</td></tr>`;
-  });
-  // v31: Regular Meal — Notes
-  if (regularNotes && regularNotes.length) {
-    h += `<tr><td colspan="3" class="ps-sect-hdr" style="background:#D9E2F3;">Regular Meal \u2014 Notes</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-meal" style="background:#E8EDF5;">Standard meal with the following modifications</td></tr>`;
-    regularNotes.forEach(r => {
-      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' \u00B7 ');
-      h += `<tr style="background:#E8EDF5;"><td>${r.rawRestriction}</td><td>${r.room}</td><td>${note}</td></tr>`;
-    });
-  }
-  h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
-  h += `<tr class="ps-sect-total"><td>Total Standard</td><td></td><td>${regCount}</td></tr>`;
-  h += '</table>';
-
-  preview.innerHTML = h;
+  return {
+    dayLabel:'Test', periodLabel:'Test Meal', mealName:mealName, mealVeg:mealVeg, mealSoftAlt:mealSoftAlt, mealFlags:mealFlags,
+    allergenStr:allergenStr, vegAllergenStr:vegAllergenStr, conflictRooms:conflictRooms, anaphSect:anaphSect, sections:sections,
+    regCount:regCount, halalCount:halalCount, veganCount:veganCount, diabCount:diabCount, ctx:ctx, sortR:sortR, regularNotes:regularNotes
+  };
 }
+
+function renderTestPlayground(flags) {
+  _testPlaygroundFlags = Object.assign({}, flags);
+  var pg = document.getElementById('tm-flag-playground');
+  if (pg) pg.style.display = 'block';
+  var container = document.getElementById('tm-playground-flags');
+  if (!container) return;
+  container.innerHTML = FLAG_DEFS.map(function(f) {
+    var checked = _testPlaygroundFlags[f.key] ? 'checked' : '';
+    var bg = _testPlaygroundFlags[f.key] ? f.color + '18' : 'var(--cream)';
+    return '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;background:'+bg+';">'
+      + '<input type="checkbox" '+checked+' style="accent-color:'+f.color+';" onchange="togglePlaygroundFlag(\''+f.key+'\',this.checked)"> '+f.label
+      + '</label>';
+  }).join('');
+  var el = document.getElementById('tm-playground-sections');
+  if (el) renderSectionPreviewInto(_testPlaygroundFlags, el);
+}
+
+function togglePlaygroundFlag(key, checked) {
+  _testPlaygroundFlags[key] = checked;
+  var el = document.getElementById('tm-playground-sections');
+  if (el) renderSectionPreviewInto(_testPlaygroundFlags, el);
+  var pd = computeTestPlatingData(_testPlaygroundFlags);
+  if (pd) {
+    _lastTestPd = pd;
+    var preview = document.getElementById('tm-plating-preview');
+    if (preview) preview.innerHTML = buildPlatingHtml(pd, true);
+    var ph = document.getElementById('tm-print-header');
+    if (ph) ph.innerHTML = '<div class="ph-org">CONC Rexdale</div><div class="ph-detail">TEST MEAL — ' + pd.mealName + '</div>';
+  }
+  renderTestPlayground(_testPlaygroundFlags);
+}
+
+function exportTestPlating() {
+  if (!_lastTestPd) { alert('Generate a plating preview first.'); return; }
+  var result = buildDaySheet(null, null, null, _lastTestPd);
+  if (!result) { alert('Could not build export sheet.'); return; }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, result.ws, 'Test Meal');
+  var filename = 'TEST_Plating_' + _lastTestPd.mealName.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'_').substring(0,30) + '.xlsx';
+  XLSX.writeFile(wb, filename);
+}
+
+function printTestPlating() {
+  if (!_lastTestPd) { alert('Generate a plating preview first.'); return; }
+  document.body.classList.add('tm-printing');
+  setTimeout(function() {
+    window.print();
+    document.body.classList.remove('tm-printing');
+  }, 100);
+}
+
 
 function showChangeLog() {
   const body = document.getElementById('changelog-modal-body');
