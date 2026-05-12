@@ -7667,6 +7667,16 @@ function buildReview() {
 
   const net = REGISTRY_LIST.length + intakes - discharges;
 
+  const _lastImportCount = parseInt(localStorage.getItem('concLastImportCount') || '0', 10);
+  let reconcileHtml = '';
+  if (_lastImportCount > 0 && net !== _lastImportCount) {
+    const drift = net - _lastImportCount;
+    const driftLabel = drift > 0 ? ('+' + drift) : String(drift);
+    reconcileHtml = '<div class="alert alert-warn"><span class="alert-icon">⚠</span><div class="alert-body">' +
+      '<strong>Registry count (' + net + ') differs from last roster import (' + _lastImportCount + ') by ' + driftLabel + '.</strong><br>' +
+      'This may indicate missed intakes or discharges. Re-import today\'s meal list to reconcile, or review the change log for unprocessed entries.</div></div>';
+  }
+
   // Room-level anaphylactic containment — informational (routing is automatic)
   const anaphAlerts = getAnaphAlertInfo(MEAL_DATA.lunch, MEAL_DATA.dinner);
   const totalFlags = flags + anaphAlerts.length;
@@ -7832,7 +7842,7 @@ function buildReview() {
       </details>
     </div>`;
   }
-  document.getElementById('review-flags-area').innerHTML = autoDischargeHtml + nrHtml + conflictHtml + flagsHtml;
+  document.getElementById('review-flags-area').innerHTML = reconcileHtml + autoDischargeHtml + nrHtml + conflictHtml + flagsHtml;
 
   // Changes table
   const body = document.getElementById('review-changes-body');
@@ -8079,6 +8089,7 @@ function seedRegistryFromRoster(entries) {
   saveRegistryState();
   localStorage.setItem('concLastImportDate', new Date().toDateString());
   localStorage.setItem('concLastImportFile', (IMPORT_STATE && IMPORT_STATE.fileName) || '');
+  localStorage.setItem('concLastImportCount', String(newResidents.length));
   logMenuEvent('seed_registry', 'Seeded registry from roster: ' + newResidents.length + ' residents loaded');
   closeImportDialog();
   renderRegistry(REGISTRY_LIST);
@@ -8324,6 +8335,7 @@ async function pullStateFromGitHub(manual) {
     if (state.lastImportDate) {
       localStorage.setItem('concLastImportDate', state.lastImportDate);
       localStorage.setItem('concLastImportFile', state.lastImportFile || '');
+      if (state.lastImportCount) localStorage.setItem('concLastImportCount', String(state.lastImportCount));
     }
     const exportedAt = state._meta && state._meta.exported ? new Date(state._meta.exported) : null;
     const timeStr = exportedAt ? exportedAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
@@ -9511,7 +9523,8 @@ function buildStateJSON() {
     residents: REGISTRY_LIST,
     anaphRooms: anaphRooms,
     lastImportDate: localStorage.getItem('concLastImportDate') || '',
-    lastImportFile: localStorage.getItem('concLastImportFile') || ''
+    lastImportFile: localStorage.getItem('concLastImportFile') || '',
+    lastImportCount: localStorage.getItem('concLastImportCount') || ''
   };
 }
 
@@ -10892,6 +10905,14 @@ function computeSections(mealFlags, registry) {
     return a.room.localeCompare(b.room);
   };
 
+  // Default halalCertifiedMeat to true for chicken/turkey-only meals (no pork/beef).
+  // CONC uses halal chicken/turkey across the board; explicit false overrides.
+  if (mealFlags && mealFlags.halalCertifiedMeat === undefined
+      && !mealFlags.hasPork && !mealFlags.hasBeef
+      && (mealFlags.hasChicken || mealFlags.hasTurkey)) {
+    mealFlags.halalCertifiedMeat = true;
+  }
+
   // Determine which rules are currently active
   const activeKeys = new Set(
     ROUTING_RULES
@@ -10934,18 +10955,22 @@ function computeSections(mealFlags, registry) {
   // Pork-day alignment with manual plating sheet practice:
   // - Soft Meals residents join Halal (they receive the same alternative protein)
   // - Bland/No Spicy residents join GF (same plain meal — Roast Chicken, Rice, Veg)
+  const _mergedInto = {};
   if (mealFlags && mealFlags.hasPork) {
     if (pools['no_processed'] && pools['halal'] && pools['no_processed'].length) {
       pools['halal'].push(...pools['no_processed']);
       pools['no_processed'] = [];
+      (_mergedInto['halal'] = _mergedInto['halal'] || []).push('No Processed');
     }
     if (pools['soft'] && pools['halal'] && pools['soft'].length) {
       pools['halal'].push(...pools['soft']);
       pools['soft'] = [];
+      (_mergedInto['halal'] = _mergedInto['halal'] || []).push('Soft Meals');
     }
     if (pools['bland'] && pools['gf'] && pools['bland'].length) {
       pools['gf'].push(...pools['bland']);
       pools['bland'] = [];
+      (_mergedInto['gf'] = _mergedInto['gf'] || []).push('Bland');
     }
   }
 
@@ -10972,7 +10997,9 @@ function computeSections(mealFlags, registry) {
     if (!activeKeys.has(rule.key)) return;
     if (rule.mergeInto) return; // these residents now in target pool
     if (rule.key !== 'regular' && pools[rule.key].length === 0) return;
-    result.push({ rule, residents: pools[rule.key] });
+    const entry = { rule, residents: pools[rule.key] };
+    if (_mergedInto[rule.key]) entry._mergedLabels = _mergedInto[rule.key];
+    result.push(entry);
     // v30: Insert No Pork section right after Halal when split is active
     if (rule.key === 'halal' && pools['_nopork'] && pools['_nopork'].length) {
       result.push({
@@ -12652,7 +12679,7 @@ function initSlotState() {
 
 // ── Hub availability ──────────────────────────────────────────
 const HUB_ALLERGEN_MAP = {
-  'Gluten':'hasGluten','Milk':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
+  'Gluten':'hasGluten','Wheat':'hasGluten','Milk':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
   'Eggs':'hasEgg','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
   'Tree Nuts':'hasTreeNuts','Sulphites':'hasSulphites','Spicy':'isSpicy',
   'Nightshades':'hasNightshades','Shellfish':'hasShellfish',
@@ -12696,7 +12723,7 @@ function buildMealName() {
   const extra = extraVal ? (extraVal.recipeName || extraVal.manual || '') : '';
   const components = ['main','starch','vegside','xtra']
     .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
-    .filter(Boolean).join(', ');
+    .filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
   return [extra, components].filter(Boolean).join(' — ');
 }
 
@@ -12712,13 +12739,13 @@ function buildMainAltItem() {
 function buildSides() {
   return ['starch','vegside','xtra']
     .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
-    .filter(Boolean).join(', ');
+    .filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
 }
 
 function buildVegAlt() {
   return ['veganalt','starch','vegside','xtra']
     .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || s.manual || '') : ''; })
-    .filter(Boolean).join(', ');
+    .filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
 }
 
 function buildUnionFlags() {
@@ -12784,7 +12811,7 @@ function flagsToAllergenStr(flags) {
     // Priority allergens
     hasPeanuts:'PEANUTS', hasTreeNuts:'TREE NUTS', hasSesame:'SESAME',
     hasSoy:'SOY', hasMustard:'MUSTARD', hasShellfish:'SHELLFISH',
-    hasSulphites:'SULPHITES', hasGluten:'Gluten', hasDairy:'Dairy',
+    hasSulphites:'SULPHITES', hasGluten:'Wheat', hasDairy:'Dairy',
     hasEgg:'Eggs', hasFish:'Fish', hasPork:'Pork', hasBeef:'Beef',
     // Ingredient-level flags
     hasMushroom:'Mushroom', hasBeans:'Beans', hasCoconut:'Coconut',
@@ -14495,6 +14522,7 @@ function renderImportReview() {
   // Commit may not happen (zero changes), but the roster has been checked.
   localStorage.setItem('concLastImportDate', new Date().toDateString());
   localStorage.setItem('concLastImportFile', (IMPORT_STATE && IMPORT_STATE.fileName) || '');
+  if (IMPORT_STATE && IMPORT_STATE.entries) localStorage.setItem('concLastImportCount', String(IMPORT_STATE.entries.length));
   updateDailyImportPrompt();
 
   const { diff } = IMPORT_STATE;
@@ -14967,6 +14995,7 @@ function commitImportToQueue() {
   // Track import for daily prompt and output stamping
   localStorage.setItem('concLastImportDate', new Date().toDateString());
   localStorage.setItem('concLastImportFile', IMPORT_STATE.fileName || '');
+  if (IMPORT_STATE && IMPORT_STATE.entries) localStorage.setItem('concLastImportCount', String(IMPORT_STATE.entries.length));
 
   // v29: Stamp lastImported on all residents present in the import file
   const _importDate = new Date().toISOString().slice(0, 10);
@@ -15078,6 +15107,7 @@ initDynamic();
           if (state.lastImportDate) {
             localStorage.setItem('concLastImportDate', state.lastImportDate);
             localStorage.setItem('concLastImportFile', state.lastImportFile || '');
+            if (state.lastImportCount) localStorage.setItem('concLastImportCount', String(state.lastImportCount));
           }
           const exportedAt = state._meta && state._meta.exported ? new Date(state._meta.exported) : null;
           const ts = exportedAt ? exportedAt.toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
@@ -15527,13 +15557,15 @@ function computePlatingData(period, weekNum, dayName) {
   const dayData = wkData ? wkData[dayName] : null;
   if (!dayData || !dayData[period]) return null;
 
-  const mealName    = dayData[period] || 'Meal';
+  const mealMainItem  = dayData[period+'_mainItem'] || '';
+  const mealMainAlt   = dayData[period+'_mainAlt'] || '';
+  const mealSides     = dayData[period+'_sides'] || '';
+  const mealName    = (mealMainItem && mealSides)
+    ? mealMainItem + ', ' + mealSides
+    : (dayData[period] || 'Meal');
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
-  const mealMainItem  = dayData[period+'_mainItem'] || ''; // v30
-  const mealMainAlt   = dayData[period+'_mainAlt'] || ''; // v30
-  const mealSides     = dayData[period+'_sides'] || ''; // v30
-  const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || ''; // v30
+  const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || '';
   const mealFlags   = dayData[period+'_flags'] || {};
 
   // Allergen string — flags-first, fallback to hardcoded
@@ -15683,18 +15715,18 @@ function buildDaySheet(period, weekNum, dayName) {
 
   sections.filter(s => s.rule.key !== 'regular').forEach(s => {
     const altMeal = getAltMeal(s.rule.altType, ctx);
-    const title = 'Special Meal '+specialIdx+' ('+s.rule.label+')';
+    const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
+    const title = 'Special Meal '+specialIdx+' ('+s.rule.label+mergeNote+')';
     // Allergen string per section type:
     // halal_alt / modified_main: main meal allergens carry over (same dish)
     // vegan_alt: from slot-computed vegAllergens or recipe lookup
     // gf_alt: main allergens minus gluten (GF by definition)
     // bland / soft: supervisor specifies — don't show main allergens
     let sectionAllergenStr;
-    if (s.rule.altType === 'halal_alt') {
-      // Halal alternative is pork-free by definition — strip PORK from allergen string
+    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
       const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/\bpork\b/i.test(a)).join(', ');
       sectionAllergenStr = halalAllergens || null;
-    } else if (s.rule.altType === 'modified_main') {
+    } else if (s.rule.altType === 'modified_main' || s.rule.altType === 'bland_alt') {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
@@ -16391,10 +16423,10 @@ function renderPlatingPreview() {
     const altMeal = getAltMeal(s.rule.altType, ctx);
     // Build section allergen string using same logic as buildDaySheet
     let sectionAllergenStr;
-    if (s.rule.altType === 'halal_alt') {
+    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
       const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/\bpork\b/i.test(a)).join(', ');
       sectionAllergenStr = halalAllergens || null;
-    } else if (s.rule.altType === 'modified_main') {
+    } else if (s.rule.altType === 'modified_main' || s.rule.altType === 'bland_alt') {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
@@ -16408,7 +16440,8 @@ function renderPlatingPreview() {
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
       : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
-    const title = `Special Meal ${sectNum} (${s.rule.label})`;
+    const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
+    const title = `Special Meal ${sectNum} (${s.rule.label}${mergeNote})`;
     h += `<tr><td colspan="3" class="ps-sect-hdr">${title}</td></tr>`;
     h += `<tr><td colspan="3" class="ps-meal">${altMealLine}</td></tr>`;
     res.forEach(r => {
