@@ -16113,9 +16113,16 @@ async function downloadAllFiles() {
       try {
         const wb = f.fn();
         if (!wb) continue;
-        // Write workbook to array buffer
-        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        zip.file(f.name, buf);
+        // The Labels file needs <printOptions>/<pageSetup> injected — see
+        // buildLabelsXlsxBlob — so it goes through the async path. Everything
+        // else can use the synchronous writer.
+        if (/^Labels /.test(f.name)) {
+          const labelsBlob = await buildLabelsXlsxBlob(wb);
+          zip.file(f.name, await labelsBlob.arrayBuffer());
+        } else {
+          const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          zip.file(f.name, buf);
+        }
       } catch(e) { console.warn('Failed to build', f.name, e); }
     }
 
@@ -16154,7 +16161,47 @@ function downloadSpecialFile(type) {
     labels:      `Labels ${ds}.xlsx`,
   };
   const wb = builders[type]();
-  if (wb) XLSX.writeFile(wb, names[type]);
+  if (!wb) return;
+  if (type === 'labels') {
+    downloadLabelsXlsxWithPrintSettings(wb, names[type]);
+  } else {
+    XLSX.writeFile(wb, names[type]);
+  }
+}
+
+// xlsx-js-style 1.2.0 silently drops both <printOptions> and <pageSetup> when
+// writing — only <pageMargins> survives. That means every scale/centering tweak
+// we set on ws['!pageSetup'] or ws['!printOptions'] vanishes before Excel sees
+// the file, leaving the Labels sheet without the 95% scale + horizontalCentered
+// settings the Canon UFR II needs to avoid clipping the rightmost column.
+//
+// Workaround: after XLSX.write produces the .xlsx bytes, crack open the ZIP
+// with JSZip (already loaded), inject the two elements directly into the
+// worksheet XML, and repack. OOXML schema requires <printOptions> BEFORE
+// <pageMargins> and <pageSetup> AFTER it — any other order makes Excel flag
+// the file as corrupt.
+async function buildLabelsXlsxBlob(wb) {
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const zip = await JSZip.loadAsync(buf);
+  const sheetPath = Object.keys(zip.files).find(p => /^xl\/worksheets\/sheet\d+\.xml$/.test(p));
+  if (sheetPath) {
+    let xml = await zip.file(sheetPath).async('string');
+    const printOptions = '<printOptions horizontalCentered="1"/>';
+    const pageSetup    = '<pageSetup paperSize="1" scale="95" orientation="portrait"/>';
+    xml = xml.replace(/<pageMargins([^/]*)\/>/, printOptions + '<pageMargins$1/>' + pageSetup);
+    zip.file(sheetPath, xml);
+  }
+  return await zip.generateAsync({ type: 'blob' });
+}
+
+async function downloadLabelsXlsxWithPrintSettings(wb, filename) {
+  const blob = await buildLabelsXlsxBlob(wb);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ============================================================
