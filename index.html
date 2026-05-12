@@ -16013,14 +16013,16 @@ function buildLabelsXlsx(ds) {
       const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
 
       lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
-      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
+      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right',wrapText:true}}};
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
       const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '○ Less starch / more veg' : '';
-      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',wrapText:true}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
+      // Merge restriction row (R+1) and flag row (R+2) across both sub-columns of the label
       merges.push({s:{r:R+1,c:col},e:{r:R+1,c:col+1}});
+      merges.push({s:{r:R+2,c:col},e:{r:R+2,c:col+1}});
     });
 
     rows[R] = lblRow1; R++;
@@ -16031,13 +16033,15 @@ function buildLabelsXlsx(ds) {
   rows.forEach((row, ri) => { row.forEach((cell, ci) => { if(cell) ws[XLSX.utils.encode_cell({r:ri,c:ci})] = cell; }); });
   ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:R-1,c:7}});
   ws['!merges'] = merges;
-  // Avery 5160 at 96 DPI: label 2.625"=252px (room 84 + detail 168), gutter 0.125"=12px
+  // Avery 5160: label 2.625" (room 0.875" + detail 1.75"), gutter 0.125", 3 columns.
+  // Use character widths (wch) for predictable Excel rendering. Calibri 11 MDW=7px:
+  // wch * 7 + 5 ≈ pixels at 96 DPI. 11.29 wch ≈ 84px (0.875"); 23.29 wch ≈ 168px (1.75"); 1 wch ≈ 12px (0.125").
   ws['!cols'] = [
-    {wpx:84},{wpx:168},
-    {wpx:12},
-    {wpx:84},{wpx:168},
-    {wpx:12},
-    {wpx:84},{wpx:168}
+    {wch:11.29},{wch:23.29},
+    {wch:1},
+    {wch:11.29},{wch:23.29},
+    {wch:1},
+    {wch:11.29},{wch:23.29}
   ];
   ws['!rows'] = [];
   for (let r=0; r<R; r++) {
@@ -16054,7 +16058,10 @@ function buildLabelsXlsx(ds) {
     horizontalDpi: 300,
     verticalDpi: 300,
   };
-  ws['!printOptions'] = {gridLines: false, headings: false};
+  // horizontalCentered mirrors the CSS print version's `justify-content:center`,
+  // so the label grid stays centered even when the printer's unprintable margin
+  // exceeds the file's 0.1875" side margin (was clipping the rightmost column).
+  ws['!printOptions'] = {gridLines: false, headings: false, horizontalCentered: true};
 
   XLSX.utils.book_append_sheet(wb, ws, 'Labels');
   return wb;
