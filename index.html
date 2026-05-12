@@ -16009,17 +16009,21 @@ function buildLabelsXlsx(ds) {
       }
       const bg = r.isAnaph ? 'FFC7CE' : (r.tags||[]).includes('Diabetic') ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
       const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
-      const sectionFont = {name:'Calibri', sz:9, bold:true, color:{rgb: '555555'}};
+      // Manual shrink-to-fit: xlsx-js-style 1.2.0 ignores the alignment.shrinkToFit
+      // attribute on write, so step the font size down based on text length to make
+      // long sections/flags fit the 1.75" cell without truncating mid-word.
+      const sectionText = r.section || 'Regular';
+      const sectionSz = sectionText.length > 22 ? 7 : sectionText.length > 17 ? 8 : 9;
+      const sectionFont = {name:'Calibri', sz:sectionSz, bold:true, color:{rgb: '555555'}};
       const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
 
       lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
-      // shrinkToFit lets Excel auto-shrink long sections like "Vegetarian, No Dairy"
-      // to fit the 1.75" cell instead of being truncated mid-word in print.
-      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right',shrinkToFit:true}}};
+      lblRow1[col+1] = {v: sectionText, t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
       const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '○ Less starch / more veg' : '';
-      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',shrinkToFit:true}}};
+      const flagSz = flagTxt.length > 22 ? 7 : flagTxt.length > 17 ? 8 : 9;
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:flagSz,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
       // Merge restriction row (R+1) and flag row (R+2) across both sub-columns of the label
