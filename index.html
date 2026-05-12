@@ -11032,7 +11032,8 @@ function computeSections(mealFlags, registry) {
       pools['no_processed'] = [];
       (_mergedInto['halal'] = _mergedInto['halal'] || []).push('No Processed');
     }
-    if (pools['soft'] && pools['halal'] && pools['soft'].length) {
+    if (pools['soft'] && pools['halal'] && pools['soft'].length &&
+        !(mealFlags._altMeals && mealFlags._altMeals.length)) {
       pools['halal'].push(...pools['soft']);
       pools['soft'] = [];
       (_mergedInto['halal'] = _mergedInto['halal'] || []).push('Soft Meals');
