@@ -16013,11 +16013,13 @@ function buildLabelsXlsx(ds) {
       const restFont = {name:'Calibri', sz:10, color:{rgb: '222222'}};
 
       lblRow1[col] = {v: r.room, t:'s', s:{font:roomFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
-      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right',wrapText:true}}};
+      // shrinkToFit lets Excel auto-shrink long sections like "Vegetarian, No Dairy"
+      // to fit the 1.75" cell instead of being truncated mid-word in print.
+      lblRow1[col+1] = {v: r.section || 'Regular', t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right',shrinkToFit:true}}};
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
       const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '○ Less starch / more veg' : '';
-      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',wrapText:true}}};
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:9,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',shrinkToFit:true}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
       // Merge restriction row (R+1) and flag row (R+2) across both sub-columns of the label
