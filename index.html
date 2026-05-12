@@ -16056,17 +16056,20 @@ function buildLabelsXlsx(ds) {
     else if (mod3 === 1) ws['!rows'][r] = {hpt:28};
     else ws['!rows'][r] = {hpt:20};
   }
-  ws['!margins'] = {left:0.1875, right:0.1875, top:0.5, bottom:0.5, header:0, footer:0};
+  // Match the current SharePoint Labels.xlsx page setup that prints acceptably on
+  // the Canon UFR II: 2mm side margins and 95% scale. With strict Avery-spec
+  // 0.1875" margins and 100% scale, the rightmost column lands inside the
+  // printer's unprintable area and gets clipped. The 95% scale shifts the print
+  // by ~2-3mm from true Avery position but keeps all content visible.
+  ws['!margins'] = {left:0.0787, right:0.0787, top:0.5, bottom:0.5, header:0, footer:0};
   ws['!pageSetup'] = {
     paperSize: 1,
     orientation: 'portrait',
+    scale: 95,
     fitToPage: false,
     horizontalDpi: 300,
     verticalDpi: 300,
   };
-  // horizontalCentered mirrors the CSS print version's `justify-content:center`,
-  // so the label grid stays centered even when the printer's unprintable margin
-  // exceeds the file's 0.1875" side margin (was clipping the rightmost column).
   ws['!printOptions'] = {gridLines: false, headings: false, horizontalCentered: true};
 
   XLSX.utils.book_append_sheet(wb, ws, 'Labels');
