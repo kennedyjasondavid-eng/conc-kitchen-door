@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:44:41.579Z",
+    "exported": "2026-05-13T23:45:55.382Z",
     "version": 30
   },
   "menu": {
@@ -3245,8 +3245,8 @@
         "breakfast_veg": "Oatmeal",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
         "allergens_breakfast": "pork, gluten, dairy ,egg",
-        "lunch": "Beef lasagna,  Seasonal Vegetables",
-        "lunch_veg": "Beef lasagna,  Seasonal Vegetables",
+        "lunch": "Beef Lasagna, Seasonal Vegetables",
+        "lunch_veg": "Vegan Lasagna, Seasonal Vegetables",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "gluten, dairy",
         "dinner": "Tandoori Pork & Vegetable Briyani, Rice",
@@ -3271,16 +3271,29 @@
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
-          "hasPork": false,
-          "hasFish": false,
           "hasEgg": false,
+          "hasFish": false,
           "hasPeanuts": false,
-          "hasSesame": false,
           "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
+          "hasPork": false,
           "hasBeef": true,
-          "halalCertifiedMeat": true,
+          "hasChicken": false,
+          "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner_flags": {
           "hasGluten": false,
@@ -3309,12 +3322,48 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Beef lasagna",
+        "lunch_mainItem": "Beef Lasagna",
         "lunch_sides": "Seasonal Vegetables",
         "dinner_mainItem": "Tandoori Pork",
         "dinner_sides": "Vegetable Briyani",
         "breakfast_mainItem": "Ham",
-        "breakfast_sides": "Cheese and Eggs yoghurt"
+        "breakfast_sides": "Cheese and Eggs yoghurt",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Beef Lasagna",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasBeef": true,
+              "hasNightshades": true
+            }
+          },
+          "veganalt": {
+            "manual": "Vegan Lasagna",
+            "flags": {
+              "hasMushroom": true,
+              "hasGluten": true,
+              "hasSoy": true,
+              "hasNightshades": true,
+              "hasBeef": false,
+              "hasDairy": false
+            }
+          },
+          "vegside": {
+            "manual": "Seasonal Vegetables",
+            "flags": {}
+          }
+        }
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola.",
