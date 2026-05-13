@@ -7076,15 +7076,21 @@ function openRegistryEditor(room) {
 
 function buildCECheckboxes(containerId, tagSet, currentTags, bgActive, colorActive) {
   const container = document.getElementById(containerId);
+  const dk = document.documentElement.getAttribute('data-theme')==='dark';
+  const DK_BG = {'#dcfce7':'#1a2a20','#fef2f2':'#2a1a1a','#fef3c7':'#2a2520'};
+  const DK_CLR = {'#166534':'#6ee7b7','#dc2626':'#f87171','#92400e':'#d4a040'};
+  const bg = dk ? (DK_BG[bgActive]||'#21262d') : bgActive;
+  const clr = dk ? (DK_CLR[colorActive]||colorActive) : colorActive;
+  const offBd = dk ? '#3a4250' : '#d1d5db';
   const items = [];
   Object.entries(TAG_LABELS_MAP).forEach(([key, label]) => {
     if (tagSet.has(label)) items.push({key, label});
   });
   container.innerHTML = items.map(({key, label}) => {
     const checked = !!currentTags[key];
-    return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? colorActive : '#d1d5db'};background:${checked ? bgActive : 'transparent'};color:${checked ? colorActive : 'var(--muted)'};transition:all 0.15s;" 
-      onclick="this.style.background=this.querySelector('input').checked?'transparent':'${bgActive}';this.style.borderColor=this.querySelector('input').checked?'#d1d5db':'${colorActive}';this.style.color=this.querySelector('input').checked?'var(--muted)':'${colorActive}';setTimeout(updateCERoutePreview,10)">
-      <input type="checkbox" data-tag-key="${key}" ${checked ? 'checked' : ''} style="accent-color:${colorActive};width:14px;height:14px;">${label}</label>`;
+    return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? clr : offBd};background:${checked ? bg : 'transparent'};color:${checked ? clr : 'var(--muted)'};transition:all 0.15s;"
+      onclick="this.style.background=this.querySelector('input').checked?'transparent':'${bg}';this.style.borderColor=this.querySelector('input').checked?'${offBd}':'${clr}';this.style.color=this.querySelector('input').checked?'var(--muted)':'${clr}';setTimeout(updateCERoutePreview,10)">
+      <input type="checkbox" data-tag-key="${key}" ${checked ? 'checked' : ''} style="accent-color:${clr};width:14px;height:14px;">${label}</label>`;
   }).join('');
 }
 
