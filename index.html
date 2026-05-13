@@ -11008,7 +11008,11 @@ function getAltMeal(altType, ctx) {
       // Use No Pork Alt item + sides
       if (ctx.noPorkAlt) return withSides(ctx.noPorkAlt);
       return 'No pork alternative — ' + ctx.mealName;
-    case 'gf_alt':        return (ctx && ctx.mealFlags && ctx.mealFlags.hasPork && ctx.mealFlags.hasGluten) ? 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg' : 'Gluten free alternative';
+    case 'gf_alt':
+      if (ctx && ctx._gfAlt) return ctx._gfAlt;
+      // Default GF alternative — same plain-protein dish whether or not pork
+      // is involved. Replaces the older "Gluten free alternative" placeholder.
+      return 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg';
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
     case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
     case 'noproc_alt':    return ctx && ctx.softAlt ? ctx.softAlt : 'Non-processed alternative — plain protein, rice \u0026 veg';
@@ -16197,7 +16201,8 @@ function computePlatingData(period, weekNum, dayName) {
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags};
+  const mealGfAlt = dayData[period+'_gfAlt'] || '';
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
