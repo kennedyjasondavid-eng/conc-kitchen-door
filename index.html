@@ -11029,11 +11029,12 @@ function computeSections(mealFlags, registry) {
     return a.room.localeCompare(b.room);
   };
 
-  // Default halalCertifiedMeat to true for chicken/turkey-only meals (no pork/beef).
-  // CONC uses halal chicken/turkey across the board; explicit false overrides.
+  // Default halalCertifiedMeat to true for non-pork meat meals.
+  // CONC sources halal beef / chicken / turkey by default; explicit false
+  // overrides for the rare non-halal-beef case.
   if (mealFlags && mealFlags.halalCertifiedMeat === undefined
-      && !mealFlags.hasPork && !mealFlags.hasBeef
-      && (mealFlags.hasChicken || mealFlags.hasTurkey)) {
+      && !mealFlags.hasPork
+      && (mealFlags.hasBeef || mealFlags.hasChicken || mealFlags.hasTurkey)) {
     mealFlags.halalCertifiedMeat = true;
   }
 
@@ -12831,8 +12832,12 @@ function parseMenuWorkbook(wb) {
         if (/\bturkey\b/.test(mealLower)) flags.hasTurkey = true;
         if (/\bfish\b|\btuna\b/.test(mealLower)) flags.hasFish = true;
         if (/\bpasta\b|\bnoodle/.test(mealLower) && !mealLower.includes(',')) flags.isCarb = true;
-        // Auto-flag halal-certified meals so the routing engine doesn't generate
-        // a redundant "Halal alternative — [same meal]" section.
+        // Auto-flag halal-certified for non-pork meat meals (site default) and
+        // for any meal whose name starts with "Halal ". User can opt out per
+        // meal via Edit Menu when an exception comes through.
+        if (!flags.hasPork && (flags.hasBeef || flags.hasChicken || flags.hasTurkey)) {
+          flags.halalCertifiedMeat = true;
+        }
         if (/^halal\s/i.test(day[p] || '')) flags.halalCertifiedMeat = true;
         day[p + '_flags'] = flags;
       });
@@ -13587,13 +13592,22 @@ function renderEditFlagGrid(currentFlags) {
     {label:'Ingredients', keys:['hasBeans','hasMushroom','hasCoconut','hasNightshades','hasBrassicas','hasCorn']}
   ];
   let h = '';
+  // Site-level default: meals with beef/chicken/turkey and no pork are halal
+  // certified unless the user explicitly opts out. Mirror this in the UI so a
+  // save-without-thinking doesn't silently flip the flag to false.
+  const _cf = currentFlags || {};
+  const _halalCertDefault = (_cf.halalCertifiedMeat === undefined)
+    && !_cf.hasPork
+    && (_cf.hasBeef || _cf.hasChicken || _cf.hasTurkey);
+
   cats.forEach(cat => {
     h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:8px 0 3px;grid-column:1/-1;">' + cat.label + '</div>';
     cat.keys.forEach(key => {
       const f = FLAG_DEFS.find(fd => fd.key === key);
       if (!f) return;
-      const isAuto = slotFlags[key] && !(currentFlags && currentFlags[key]);
-      const checked = (currentFlags && currentFlags[key]) || slotFlags[key] ? 'checked' : '';
+      const isHalalAutoSite = key === 'halalCertifiedMeat' && _halalCertDefault;
+      const isAuto = (slotFlags[key] || isHalalAutoSite) && !(currentFlags && currentFlags[key]);
+      const checked = (currentFlags && currentFlags[key]) || slotFlags[key] || isHalalAutoSite ? 'checked' : '';
       const autoTag = isAuto ? ' <span style="font-size:9px;color:var(--muted);font-style:italic;">(auto)</span>' : '';
       const carbHint = f.key==='isCarb' ? ' <span id="'+carbHintId+'" style="font-size:10px;color:var(--muted);display:none;"></span>' : '';
       h += '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;background:'+(checked?f.color+'10':'var(--cream)')+';">'
