@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T13:59:27.251Z",
+    "exported": "2026-05-13T14:01:26.734Z",
     "version": 30
   },
   "menu": {
@@ -575,12 +575,12 @@
         "breakfast_veg": "Scrambled eggs & veg sausage",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "lunch": "Chicken burger & Home Fries",
-        "lunch_veg": "Crispy Quinoa Cake, Home Fries",
+        "lunch": "Halal Breaded Chicken Burgers, Home Fry Potatoes",
+        "lunch_veg": "Crispy Quinoa Cake, Home Fry Potatoes",
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
         "allergens_lunch": "gluten, dairy",
-        "dinner": "Butter Chicken & Vegetables, Naan",
-        "dinner_veg": "Butter Chickpeas, Vegetables, Naan",
+        "dinner": "Butter Chicken, Naan, Seasonal Veg",
+        "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
         "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
         "allergens_dinner": "Halal Chicken",
         "breakfast_flags": {
@@ -600,7 +600,7 @@
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -613,25 +613,25 @@
           "hasBeef": false,
           "hasChicken": true,
           "hasTurkey": false,
-          "isSpicy": false,
+          "isSpicy": true,
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
-          "hasTreeNuts": false,
+          "hasTreeNuts": true,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
@@ -647,16 +647,174 @@
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Chicken burger",
-        "lunch_sides": "Home Fries",
+        "lunch_mainItem": "Halal Breaded Chicken Burgers",
+        "lunch_sides": "Home Fry Potatoes",
         "dinner_mainItem": "Butter Chicken",
-        "dinner_sides": "Naan, Vegetables",
+        "dinner_sides": "Naan, Seasonal Veg",
         "breakfast_mainItem": "Scrambled eggs & sausage",
-        "breakfast_sides": ""
+        "breakfast_sides": "",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "recipeName": "Halal Breaded Chicken Burgers",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": true,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Crispy Quinoa Cake",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "starch": {
+            "recipeName": "Home Fry Potatoes",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          }
+        },
+        "dinner_altMeals": [
+          {
+            "text": "Baked Basa, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "recipeName": "Butter Chicken",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Butter Chickpeas",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "starch": {
+            "manual": "Naan",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Seasonal Veg",
+            "flags": {}
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Turkey & Cheese and Eggs yoghurt",
