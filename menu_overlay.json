@@ -1684,11 +1684,11 @@
   },
   "4": {
     "FRIDAY": {
-      "dinner": "Tandoori Pork & Vegetable Briyani, Rice",
-      "dinner_veg": "Tandoori Tofu, Vegetable Briyani, Rice",
+      "dinner": "Tandoori Pork, Vegetable Briyani",
+      "dinner_veg": "Tandoori Tofu, Vegetable Briyani, Vegetable Briyani",
       "dinner_flags": {
         "hasGluten": false,
-        "hasDairy": false,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -1700,16 +1700,16 @@
         "hasSulphites": false,
         "hasPork": true,
         "hasBeef": false,
-        "hasChicken": false,
+        "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": true,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1780,6 +1780,50 @@
         "vegside": {
           "manual": "Seasonal Vegetables",
           "flags": {}
+        }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Tandoori Pork",
+      "dinner_mainAlt": "Tandoori Chicken",
+      "dinner_sides": "Vegetable Briyani",
+      "dinner_slots": {
+        "main": {
+          "manual": "Tandoori Pork",
+          "flags": {
+            "hasPork": true,
+            "hasNightshades": true,
+            "hasDairy": true
+          }
+        },
+        "mainalt": {
+          "manual": "Tandoori Chicken",
+          "flags": {
+            "hasChicken": true,
+            "hasDairy": true,
+            "hasNightshades": true,
+            "hasPork": true
+          }
+        },
+        "veganalt": {
+          "manual": "Tandoori Tofu, Vegetable Briyani",
+          "flags": {
+            "hasSoy": true,
+            "hasNightshades": true
+          }
+        },
+        "starch": {
+          "manual": "Vegetable Briyani",
+          "flags": {
+            "hasNightshades": true
+          }
         }
       }
     },
