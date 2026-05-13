@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:48:43.861Z",
+    "exported": "2026-05-13T23:50:22.179Z",
     "version": 30
   },
   "menu": {
@@ -3387,8 +3387,8 @@
         "lunch_veg": "Vegan Lasagna, Seasonal Vegetables",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "gluten, dairy",
-        "dinner": "Tandoori Pork & Vegetable Briyani, Rice",
-        "dinner_veg": "Tandoori Tofu, Vegetable Briyani, Rice",
+        "dinner": "Tandoori Pork, Vegetable Briyani",
+        "dinner_veg": "Tandoori Tofu, Vegetable Briyani, Vegetable Briyani",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_halal": "Tandoori Chicken",
         "allergens_dinner": "Pork",
@@ -3435,7 +3435,7 @@
         },
         "dinner_flags": {
           "hasGluten": false,
-          "hasDairy": false,
+          "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -3447,16 +3447,16 @@
           "hasSulphites": false,
           "hasPork": true,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
           "isSpicy": true,
           "isCarb": true,
-          "halalCertifiedMeat": false,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -3500,6 +3500,48 @@
           "vegside": {
             "manual": "Seasonal Vegetables",
             "flags": {}
+          }
+        },
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "Tandoori Chicken",
+        "dinner_slots": {
+          "main": {
+            "manual": "Tandoori Pork",
+            "flags": {
+              "hasPork": true,
+              "hasNightshades": true,
+              "hasDairy": true
+            }
+          },
+          "mainalt": {
+            "manual": "Tandoori Chicken",
+            "flags": {
+              "hasChicken": true,
+              "hasDairy": true,
+              "hasNightshades": true,
+              "hasPork": true
+            }
+          },
+          "veganalt": {
+            "manual": "Tandoori Tofu, Vegetable Briyani",
+            "flags": {
+              "hasSoy": true,
+              "hasNightshades": true
+            }
+          },
+          "starch": {
+            "manual": "Vegetable Briyani",
+            "flags": {
+              "hasNightshades": true
+            }
           }
         }
       },
