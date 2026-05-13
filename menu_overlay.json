@@ -2216,13 +2216,13 @@
         "hasSesame": true,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": false,
-        "isCarb": false,
+        "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
@@ -2314,6 +2314,66 @@
             "hasNightshades": false,
             "hasBrassicas": false,
             "hasCorn": false
+          }
+        }
+      },
+      "dinner": "Teriyaki Chicken Legs, Vegetable Egg Noodles",
+      "dinner_veg": "Teriyaki Tofu, Vegetable Egg Noodles",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Roasted Chicken, Steamed Rice & Vegetables",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Teriyaki Chicken Legs",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Vegetable Egg Noodles",
+      "dinner_slots": {
+        "main": {
+          "recipeName": "Teriyaki Chicken Legs",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Teriyaki Tofu",
+          "flags": {
+            "hasSoy": true,
+            "hasGluten": true,
+            "hasSulphites": true
+          }
+        },
+        "starch": {
+          "manual": "Vegetable Egg Noodles",
+          "flags": {
+            "hasGluten": true
           }
         }
       }
