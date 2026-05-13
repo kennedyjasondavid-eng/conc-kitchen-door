@@ -1656,6 +1656,9 @@ function updateCODEXBadge() {
       <div id="mc-swaps-list" style="margin-top:6px;"></div>
     </div>
 
+    <!-- Stale allergen flags banner (pre-v30 meals lacking per-slot snapshot) -->
+    <div id="mc-stale-flags-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
+
     <!-- Edit Menu mode banner -->
     <div id="mc-edit-menu-banner" style="display:none;background:#eff6ff;border:1.5px solid #2563eb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -11360,7 +11363,7 @@ function sweepAltFlagPollution(opts) {
   opts = opts || {};
   const dryRun = !!opts.dryRun;
   const overlay = loadMenuBaseOverlay();
-  const report = { mealsScanned:0, mealsCleaned:0, flagsDropped:0, details:[] };
+  const report = { mealsScanned:0, mealsCleaned:0, flagsDropped:0, details:[], stale:[] };
   Object.keys(overlay).forEach(week => {
     Object.keys(overlay[week] || {}).forEach(day => {
       ['breakfast','lunch','dinner'].forEach(period => {
@@ -11370,7 +11373,13 @@ function sweepAltFlagPollution(opts) {
         const slotsField = period + '_slots';
         const flags = node[flagsField];
         const slots = node[slotsField];
-        if (!flags || !slots) return;
+        if (!flags) return;
+        if (!slots) {
+          // Pre-v30 meal: no per-slot snapshot, so we can't disambiguate
+          // alt-only pollution. Surface it for manual re-save.
+          report.stale.push({ week, day, period, name: node[period] || '' });
+          return;
+        }
         report.mealsScanned++;
         const mainUnion = {}, altUnion = {};
         MAIN_SLOT_IDS.forEach(id => {
@@ -11399,19 +11408,61 @@ function sweepAltFlagPollution(opts) {
   if (!dryRun && report.flagsDropped > 0) saveMenuBaseOverlay(overlay);
   return report;
 }
+let _STALE_FLAG_MEALS = [];
 function runAltFlagSweepOnce() {
   try {
-    if (localStorage.getItem(ALT_FLAG_SWEEP_KEY) === 'done') return;
-    const report = sweepAltFlagPollution({ dryRun: false });
-    localStorage.setItem(ALT_FLAG_SWEEP_KEY, 'done');
-    if (report.flagsDropped > 0) {
-      console.log('[alt-flag sweep] cleaned ' + report.flagsDropped + ' polluted flag(s) across ' +
-        report.mealsCleaned + ' meal(s) of ' + report.mealsScanned + ' scanned.');
-      console.log('[alt-flag sweep] details:', report.details);
+    let report;
+    if (localStorage.getItem(ALT_FLAG_SWEEP_KEY) === 'done') {
+      // Sweep already ran — just collect the current stale list for the banner.
+      report = sweepAltFlagPollution({ dryRun: true });
     } else {
-      console.log('[alt-flag sweep] scanned ' + report.mealsScanned + ' meals, nothing to clean.');
+      report = sweepAltFlagPollution({ dryRun: false });
+      localStorage.setItem(ALT_FLAG_SWEEP_KEY, 'done');
+      if (report.flagsDropped > 0) {
+        console.log('[alt-flag sweep] cleaned ' + report.flagsDropped + ' polluted flag(s) across ' +
+          report.mealsCleaned + ' meal(s) of ' + report.mealsScanned + ' scanned.');
+        console.log('[alt-flag sweep] details:', report.details);
+      } else {
+        console.log('[alt-flag sweep] scanned ' + report.mealsScanned + ' meals, nothing to clean.');
+      }
     }
+    _STALE_FLAG_MEALS = report.stale || [];
+    if (_STALE_FLAG_MEALS.length) {
+      console.log('[alt-flag sweep] ' + _STALE_FLAG_MEALS.length + ' pre-v30 meal(s) need a manual re-save:');
+      console.table(_STALE_FLAG_MEALS);
+    }
+    renderStaleFlagsBanner();
   } catch (e) { console.warn('[alt-flag sweep] failed:', e); }
+}
+const PERIOD_ORDER = { breakfast:0, lunch:1, dinner:2 };
+const DAY_ORDER = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+function renderStaleFlagsBanner() {
+  const el = document.getElementById('mc-stale-flags-banner');
+  if (!el) return;
+  if (!_STALE_FLAG_MEALS.length) { el.style.display = 'none'; return; }
+  const items = _STALE_FLAG_MEALS.slice().sort((a, b) => {
+    const w = Number(a.week) - Number(b.week); if (w) return w;
+    const d = (DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)); if (d) return d;
+    return (PERIOD_ORDER[a.period]||0) - (PERIOD_ORDER[b.period]||0);
+  });
+  const niceDay = d => d ? d.charAt(0) + d.slice(1).toLowerCase() : '';
+  const nicePer = p => p ? p.charAt(0).toUpperCase() + p.slice(1) : '';
+  let rows = items.map(m => {
+    const nm = (m.name || '').replace(/</g,'&lt;');
+    return '<li style="padding:3px 0;font-size:12px;"><strong>Week ' + m.week + ' · ' +
+      niceDay(m.day) + ' · ' + nicePer(m.period) + '</strong>' +
+      (nm ? ' <span style="color:var(--muted);">— ' + nm + '</span>' : '') + '</li>';
+  }).join('');
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<div><strong style="color:#92400e;">⚠ Stale Allergen Flags</strong> ' +
+      '<span style="color:var(--muted);margin-left:8px;">' + items.length +
+      ' meal' + (items.length === 1 ? '' : 's') +
+      ' pre-date the per-slot snapshot — open Edit Menu, click each meal and save to refresh.</span></div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'mc-stale-flags-list\').style.display = (document.getElementById(\'mc-stale-flags-list\').style.display===\'none\'?\'block\':\'none\')">Toggle list</button>' +
+    '</div>' +
+    '<ul id="mc-stale-flags-list" style="display:none;margin:8px 0 0;padding-left:22px;max-height:200px;overflow:auto;">' + rows + '</ul>';
+  el.style.display = 'block';
 }
 window.sweepAltFlagPollution = sweepAltFlagPollution;
 function loadUploadedMenu() {
@@ -13603,6 +13654,12 @@ function _finishMenuSave(name, veg, flags) {
   // v30: Save individual slot values for lossless re-open
   overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
   saveMenuBaseOverlay(overlay);
+  // Drop this meal from the stale-flags banner now that it has a snapshot.
+  if (Array.isArray(_STALE_FLAG_MEALS) && _STALE_FLAG_MEALS.length) {
+    _STALE_FLAG_MEALS = _STALE_FLAG_MEALS.filter(m =>
+      !(String(m.week) === String(week) && m.day === day && m.period === period));
+    renderStaleFlagsBanner();
+  }
 
   // Clear any competing swap or legacy edit for this slot
   const swaps = loadMealSwaps();
