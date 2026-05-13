@@ -12811,23 +12811,39 @@ let _lastTestPd = null;
 function initSlotState() {
   MEAL_SLOT_STATE = {};
   MEAL_SLOT_DEFS.forEach(d => { MEAL_SLOT_STATE[d.id] = null; });
-  ALT_MEALS = [{text:'', type:'plain'}];
+  ALT_MEALS = [{text:'', type:'plain', flags:{}}];
 }
 
 // ── Alternative Meals system ─────────────────────────────────
-let ALT_MEALS = [{text:'', type:'plain'}];
+let ALT_MEALS = [{text:'', type:'plain', flags:{}}];
+const ALT_FLAGS_EXPANDED = new Set();
 const ALT_MEAL_QP = ['Plain Chicken Leg, Plain Rice & Stir-fried Veg','Baked Basa, Plain Rice & Stir-fried Veg',
   'Plain English Muffin, Scrambled Eggs, DF Yoghurt & Fruit','Plain Chicken Leg','Plain Basa',
   'Plain Rice','Congee','Soup & Bread','Mashed Potato & Gravy','Soft Egg & Toast','Rice Porridge','Yogurt & Fruit'];
 
 function addAltMeal(type) {
-  ALT_MEALS.push({text:'', type: type || 'plain'});
+  ALT_MEALS.push({text:'', type: type || 'plain', flags:{}});
   renderAltMealsSection();
 }
 
 function removeAltMeal(idx) {
   if (ALT_MEALS.length <= 1) return;
   ALT_MEALS.splice(idx, 1);
+  ALT_FLAGS_EXPANDED.delete(idx);
+  renderAltMealsSection();
+  updateSlotSummary();
+}
+
+function toggleAltMealFlagsPanel(idx) {
+  if (ALT_FLAGS_EXPANDED.has(idx)) ALT_FLAGS_EXPANDED.delete(idx);
+  else ALT_FLAGS_EXPANDED.add(idx);
+  renderAltMealsSection();
+}
+
+function toggleAltMealFlag(idx, key) {
+  if (!ALT_MEALS[idx]) return;
+  if (!ALT_MEALS[idx].flags) ALT_MEALS[idx].flags = {};
+  ALT_MEALS[idx].flags[key] = !ALT_MEALS[idx].flags[key];
   renderAltMealsSection();
   updateSlotSummary();
 }
@@ -12863,14 +12879,34 @@ function renderAltMealsSection() {
   h += '</div>';
   h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
   ALT_MEALS.forEach((alt, i) => {
+    const af = alt.flags || {};
+    const activeCount = FLAG_DEFS.filter(fd => af[fd.key]).length;
+    const expanded = ALT_FLAGS_EXPANDED.has(i);
     h += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
     h += '<select onchange="updateAltMealType('+i+',this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;background:'+(alt.type==='soft'?'#dbeafe':'#f0fdf4')+';color:'+(alt.type==='soft'?'#1d4ed8':'#166534')+';min-width:60px;">';
     h += '<option value="plain"'+(alt.type==='plain'?' selected':'')+'>Plain</option>';
     h += '<option value="soft"'+(alt.type==='soft'?' selected':'')+'>Soft</option>';
     h += '</select>';
     h += '<input value="'+((alt.text||'').replace(/"/g,'&quot;'))+'" placeholder="e.g. Plain Chicken Leg, Rice & Veg…" onblur="updateAltMealText('+i+',this.value)" onkeydown="if(event.key===\'Enter\'){this.blur();}" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;">';
+    const restrLabel = activeCount ? ('Restrictions ('+activeCount+')') : '+ Restrictions';
+    const restrBg = activeCount ? '#fee2e2' : 'var(--cream)';
+    const restrColor = activeCount ? '#991b1b' : '#7c3aed';
+    h += '<button onclick="toggleAltMealFlagsPanel('+i+')" title="Set allergens for this alternative" style="font-size:10px;padding:3px 8px;border:1px solid '+(activeCount?'#fecaca':'#d6d3d1')+';border-radius:5px;background:'+restrBg+';color:'+restrColor+';font-weight:600;cursor:pointer;white-space:nowrap;">'+restrLabel+'</button>';
     if (ALT_MEALS.length > 1) h += '<button onclick="removeAltMeal('+i+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:2px 4px;" title="Remove">✕</button>';
     h += '</div>';
+    if (expanded) {
+      h += '<div style="margin:0 0 8px 66px;padding:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">';
+      h += '<div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;font-weight:700;">Allergens for this alternative — click to toggle</div>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+      FLAG_DEFS.filter(fd => !fd.mealLevel).forEach(fd => {
+        const active = !!af[fd.key];
+        const bg = active ? fd.color : 'transparent';
+        const border = active ? fd.color : '#d1d5db';
+        const text = active ? '#fff' : '#9ca3af';
+        h += '<span onclick="toggleAltMealFlag('+i+',\''+fd.key+'\')" title="'+(fd.tip||'')+'" style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;background:'+bg+';color:'+text+';border:1px solid '+border+';transition:all .12s;">'+fd.label+'</span>';
+      });
+      h += '</div></div>';
+    }
   });
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;">';
   ALT_MEAL_QP.forEach(qp => {
@@ -12956,9 +12992,12 @@ function buildVegAlt() {
 }
 
 function buildUnionFlags() {
+  // Main meal only: alt-routing slots (mainalt/noporkalt/veganalt) carry their
+  // own allergens and must not pollute the regular meal's CONTAINS line.
   const union = {};
   if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
-  Object.values(MEAL_SLOT_STATE).forEach(s => {
+  ['main','starch','vegside','xtra','extras'].forEach(id => {
+    const s = MEAL_SLOT_STATE[id];
     if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
   });
   return union;
@@ -13652,12 +13691,13 @@ function openMenuEdit(week, day, period) {
   // Pre-populate alternative meals
   const initSoftAlt = (existing && existing.softAlt) ? existing.softAlt : (dayData[period + '_softAlt'] || '');
   if (existing && existing.altMeals && existing.altMeals.length) {
-    ALT_MEALS = existing.altMeals.map(a => ({text: a.text || '', type: a.type || 'plain'}));
+    ALT_MEALS = existing.altMeals.map(a => ({text: a.text || '', type: a.type || 'plain', flags: a.flags || {}}));
   } else if (initSoftAlt) {
-    ALT_MEALS = [{text: initSoftAlt, type: 'plain'}];
+    ALT_MEALS = [{text: initSoftAlt, type: 'plain', flags: {}}];
   } else {
-    ALT_MEALS = [{text: '', type: 'plain'}];
+    ALT_MEALS = [{text: '', type: 'plain', flags: {}}];
   }
+  ALT_FLAGS_EXPANDED.clear();
 
   // Pre-populate no-pork alt slot (v30)
   const initNoPorkAlt = (existing && existing.noPorkAlt) ? existing.noPorkAlt : (dayData[period + '_noPorkAlt'] || '');
@@ -15971,7 +16011,8 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     // Allergen string per section type:
     // modified_main / bland_alt: same dish — inherit main meal allergens
     // vegan_alt: from slot-computed vegAllergens or recipe lookup
-    // halal/nopork/gf/soft/noproc: different meal — don't inherit main allergens
+    // soft: per-alt-meal flags from supervisor (only when a single alt covers everyone)
+    // halal/nopork/gf/noproc: different meal — don't inherit main allergens
     let sectionAllergenStr;
     if (s.rule.altType === 'modified_main') {
       if (s.rule.key === 'no_egg') {
@@ -15984,6 +16025,10 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
+    } else if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
+      const a0 = ctx.altMeals[0];
+      const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
+      sectionAllergenStr = str || null;
     } else {
       sectionAllergenStr = null;
     }
@@ -16006,7 +16051,8 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
       if (hasMultiAlts) {
         const isSoft = (r.tags||[]).includes('Soft Meals');
         const pick = ctx.altMeals.find(a => isSoft ? a.type==='soft' : a.type==='plain') || ctx.altMeals[0];
-        altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text;
+        const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
+        altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
       const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
       addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
@@ -16737,6 +16783,10 @@ function buildPlatingHtml(pd, isTest) {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
+    } else if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
+      const a0 = ctx.altMeals[0];
+      const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
+      sectionAllergenStr = str || null;
     } else {
       sectionAllergenStr = null;
     }
@@ -16762,7 +16812,8 @@ function buildPlatingHtml(pd, isTest) {
       if (hasMultiAlts) {
         const isSoft = (r.tags||[]).includes('Soft Meals');
         const pick = ctx.altMeals.find(a => isSoft ? a.type==='soft' : a.type==='plain') || ctx.altMeals[0];
-        altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text;
+        const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
+        altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
       const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
       const cls = isDiab ? ' class="ps-diabetic"' : '';
