@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:42:58.625Z",
+    "exported": "2026-05-13T23:44:41.579Z",
     "version": 30
   },
   "menu": {
@@ -2725,8 +2725,8 @@
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy, egg,",
-        "lunch": "Chicken Ranch Salad Sandwich and Seasonal Soup",
-        "lunch_veg": "Falafel  Sandwich and Seasonal Soup",
+        "lunch": "Chicken Ranch Salad Sandwich, Seasonal Soup",
+        "lunch_veg": "Falafel  Sandwich, Seasonal Soup",
         "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
         "allergens_lunch": "gluten, dairy",
         "dinner": "Fish Curry, Steamed Rice, Seasonal Vegetables",
@@ -2750,7 +2750,7 @@
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -2758,7 +2758,7 @@
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -2770,7 +2770,7 @@
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -2801,8 +2801,8 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Chicken Ranch Salad Sandwich and Seasonal Soup",
-        "lunch_sides": "",
+        "lunch_mainItem": "Chicken Ranch Salad Sandwich",
+        "lunch_sides": "Seasonal Soup",
         "dinner_mainItem": "Fish Curry",
         "dinner_sides": "Steamed Rice, Seasonal Vegetables",
         "breakfast_mainItem": "Pancakes",
@@ -2856,6 +2856,41 @@
           },
           "softalt": {
             "manual": "Plain Fish, Plain Rice & Stir-fried Veg",
+            "flags": {}
+          }
+        },
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken, Soft Bread & Seasonal Soup",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Chicken Ranch Salad Sandwich",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasChicken": true,
+              "hasEgg": true,
+              "hasNightshades": true,
+              "hasSulphites": true
+            }
+          },
+          "veganalt": {
+            "manual": "Falafel  Sandwich",
+            "flags": {
+              "hasGluten": true,
+              "hasBeans": true,
+              "hasNightshades": true
+            }
+          },
+          "xtra": {
+            "manual": "Seasonal Soup",
             "flags": {}
           }
         }
