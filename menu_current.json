@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:51:30.762Z",
+    "exported": "2026-05-13T23:59:14.308Z",
     "version": 30
   },
   "menu": {
@@ -1921,7 +1921,7 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": true,
           "hasNightshades": false,
@@ -2043,7 +2043,7 @@
               "isCarb": true,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
-              "hasBeans": false,
+              "hasBeans": true,
               "hasMushroom": false,
               "hasCoconut": true,
               "hasNightshades": false,
@@ -2054,18 +2054,23 @@
           "veganalt": {
             "manual": "Caribbean Chickpea Curry",
             "flags": {
-              "hasCoconut": true
+              "hasCoconut": true,
+              "hasBeans": true
             }
           },
           "starch": {
             "manual": "Naan",
             "flags": {}
-          },
-          "softalt": {
-            "manual": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
+          }
+        },
+        "dinner_altMeals": [
+          {
+            "text": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
+            "type": "plain",
             "flags": {}
           }
-        }
+        ],
+        "dinner_altMealsNone": false
       },
       "WEDNESDAY": {
         "breakfast": "Ham Frittata",
@@ -2197,8 +2202,8 @@
         "lunch_veg": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
         "lunch_softAlt": "Baked Plain Fish, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "gluten,  dairy",
-        "dinner": "Pork Griot, Chakalaka, Rice",
-        "dinner_veg": "Citrus Tofu, Chakalaka, Rice",
+        "dinner": "Pork Griot, Rice, Chakalaka",
+        "dinner_veg": "Citrus Tofu, Rice, Chakalaka",
         "dinner_softAlt": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
         "allergens_dinner": "pork",
         "breakfast_flags": {
@@ -2232,22 +2237,124 @@
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
-          "hasPork": true,
-          "hasFish": false,
           "hasEgg": false,
+          "hasFish": false,
           "hasPeanuts": false,
-          "hasSesame": false,
           "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": true,
+          "hasPork": true,
           "hasBeef": false,
-          "isSpicy": false,
-          "isCarb": false
+          "hasChicken": true,
+          "hasTurkey": false,
+          "isSpicy": true,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": true,
+          "hasCorn": false
         },
         "lunch_mainItem": "Beef Nachos Supreme",
         "lunch_sides": "Tortilla chips, Sour Cream",
         "dinner_mainItem": "Pork Griot",
-        "dinner_sides": "Chakalaka, Rice",
+        "dinner_sides": "Rice, Chakalaka",
         "breakfast_mainItem": "Scrambled eggs & sausage",
-        "breakfast_sides": ""
+        "breakfast_sides": "",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "Chicken Griot",
+        "dinner_slots": {
+          "main": {
+            "recipeName": "Pork Griot",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "mainalt": {
+            "recipeName": "Chicken Griot",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Citrus Tofu",
+            "flags": {
+              "hasSoy": true
+            }
+          },
+          "starch": {
+            "manual": "Rice",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Chakalaka",
+            "flags": {
+              "hasBrassicas": true
+            }
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Ham, Cheese and Eggs yoghurt",
