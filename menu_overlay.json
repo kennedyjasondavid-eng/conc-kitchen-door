@@ -200,8 +200,8 @@
       }
     },
     "WEDNESDAY": {
-      "lunch": "Coronation Chicken Salad Sandwich",
-      "lunch_veg": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
+      "lunch": "Coronation Chicken Salad Sandwich, Fruit",
+      "lunch_veg": "Roasted Vegetable Sandwich, Fruit",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -241,7 +241,7 @@
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Coronation Chicken Salad Sandwich",
       "lunch_mainAlt": "",
-      "lunch_sides": "",
+      "lunch_sides": "Fruit",
       "lunch_slots": {
         "main": {
           "manual": "Coronation Chicken Salad Sandwich",
@@ -266,11 +266,21 @@
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": false,
-            "hasSulphites": false
+            "hasSulphites": false,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
           }
         },
         "veganalt": {
-          "manual": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
+          "manual": "Roasted Vegetable Sandwich",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "xtra": {
+          "manual": "Fruit",
           "flags": {}
         }
       }
