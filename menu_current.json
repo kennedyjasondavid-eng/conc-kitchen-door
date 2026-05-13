@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:50:22.179Z",
+    "exported": "2026-05-13T23:51:30.762Z",
     "version": 30
   },
   "menu": {
@@ -3551,7 +3551,7 @@
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy",
         "lunch": "Lime-Spiced Chicken Legs, Garlic Bread, Seasonal Veg",
-        "lunch_veg": "Roasted Veg and Tofu Medley, Tumeric Quinoa, Garlic Bread, Seasonal Veg",
+        "lunch_veg": "Roasted Veg and Tofu Medley, Garlic Bread, Seasonal Veg",
         "lunch_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
         "allergens_lunch": "gluten, dairy",
         "dinner": "Beef Massaman Curry, Rice",
@@ -3582,7 +3582,7 @@
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -3594,7 +3594,7 @@
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -3618,7 +3618,66 @@
         "dinner_mainItem": "Beef Massaman Curry",
         "dinner_sides": "Rice",
         "breakfast_mainItem": "Bagel",
-        "breakfast_sides": "Cream cheese and Granola."
+        "breakfast_sides": "Cream cheese and Granola.",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "recipeName": "Lime-Spiced Chicken Legs",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Roasted Veg and Tofu Medley",
+            "flags": {
+              "hasSoy": true,
+              "hasNightshades": true
+            }
+          },
+          "starch": {
+            "manual": "Garlic Bread",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Seasonal Veg",
+            "flags": {}
+          }
+        }
       }
     }
   }
