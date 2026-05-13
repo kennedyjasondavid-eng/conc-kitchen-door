@@ -12680,6 +12680,29 @@ const DAYS_UPLOAD = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY'
 
 function parseMenuWorkbook(wb) {
   const result = {};
+  function appendPiece(existing, piece) {
+    const clean = (piece || '').replace(/,\s*$/, '').trim();
+    const ex = (existing || '').replace(/,\s*$/, '').trim();
+    if (!clean) return ex;
+    if (!ex) return clean;
+    return ex + ', ' + clean;
+  }
+  // Reno layout has intentional redundancy: the Vegetarian rows sometimes
+  // include sides that VEG LUNCH / VEG DINNER rows list again. Dedup pieces
+  // case-insensitively at output so the menu doesn't render duplicates.
+  function dedupePieces(s) {
+    const seen = new Set();
+    const out = [];
+    (s || '').split(',').forEach(p => {
+      const c = p.trim();
+      if (!c) return;
+      const k = c.toLowerCase().replace(/\s+/g, ' ');
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(c);
+    });
+    return out.join(', ');
+  }
   for (let wk = 1; wk <= 4; wk++) {
     // Prefer Intake sheet (has allergens), fall back to Kitchen
     let sheetName = wb.SheetNames.find(n => n.match(new RegExp('Week\\s*' + wk + '\\s*Intake', 'i')));
@@ -12697,35 +12720,76 @@ function parseMenuWorkbook(wb) {
       if (idx >= 0) { dayColStart = idx; break; }
     }
 
-    // Scan for period markers and associated data
-    const periods = {};
+    const rowLabel = r => String(rows[r][dayColStart - 1] || rows[r][0] || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    const readDayCells = r => {
+      const arr = [];
+      for (let d = 0; d < 7; d++) arr.push(String(rows[r][dayColStart + d] || '').trim());
+      return arr;
+    };
+
+    const periods = {
+      breakfast: { meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') },
+      lunch:     { meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') },
+      dinner:    { meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') },
+    };
+
+    // State machine — walks every row once and routes by label.
+    // Unlabeled rows are treated as continuations of the last role.
+    let curPeriod = null;
+    let contMode = null; // 'breakfast-both' | 'vegside-lunch' | 'vegside-dinner' | null
     for (let r = 0; r < rows.length; r++) {
-      const label = String(rows[r][dayColStart - 1] || rows[r][0] || '').trim().toUpperCase();
-      if (['BREAKFAST','LUNCH','DINNER'].includes(label)) {
-        const p = label.toLowerCase();
-        periods[p] = { row: r, meals: [], veg: [], allergens: [] };
-        for (let d = 0; d < 7; d++) {
-          periods[p].meals[d] = String(rows[r][dayColStart + d] || '').trim();
-        }
-        // Search forward for Vegetarian and Allergens rows (within next 5 rows)
-        for (let scan = r + 1; scan < Math.min(r + 6, rows.length); scan++) {
-          const scanLabel = String(rows[scan][dayColStart - 1] || rows[scan][0] || '').trim().toUpperCase();
-          if (scanLabel === 'VEGETARIAN' || scanLabel.startsWith('VEG ') || scanLabel === 'VEG') {
-            if (!periods[p].veg.length || periods[p].veg.every(v => !v)) {
-              for (let d = 0; d < 7; d++) {
-                periods[p].veg[d] = String(rows[scan][dayColStart + d] || '').trim();
-              }
-            }
-          }
-          if (scanLabel === 'ALLERGENS' || scanLabel === 'ALLERGEN') {
-            for (let d = 0; d < 7; d++) {
-              periods[p].allergens[d] = String(rows[scan][dayColStart + d] || '').trim();
-            }
-          }
-          // Stop scanning if we hit the next period
-          if (['BREAKFAST','LUNCH','DINNER'].includes(scanLabel) && scanLabel !== label) break;
-        }
+      const label = rowLabel(r);
+      if (label === 'BREAKFAST' || label === 'LUNCH' || label === 'DINNER') {
+        curPeriod = label.toLowerCase();
+        periods[curPeriod].meals = readDayCells(r);
+        contMode = (curPeriod === 'breakfast') ? 'breakfast-both' : null;
+        continue;
       }
+      if (label === 'VEG LUNCH' || label === 'VEG DINNER') {
+        const target = label === 'VEG LUNCH' ? 'lunch' : 'dinner';
+        const cells = readDayCells(r);
+        for (let d = 0; d < 7; d++) {
+          if (cells[d]) periods[target].veg[d] = appendPiece(periods[target].veg[d], cells[d]);
+        }
+        contMode = 'vegside-' + target;
+        continue;
+      }
+      if (label === 'VEGETARIAN' || label === 'VEG' || label.startsWith('VEG ')) {
+        // Lenient: catches any VEG-prefixed label other than VEG LUNCH/DINNER
+        // (preserves backward compat with the Rexdale layout).
+        if (curPeriod) periods[curPeriod].veg = readDayCells(r);
+        contMode = (curPeriod === 'breakfast') ? 'breakfast-both' : null;
+        continue;
+      }
+      if (label === 'HALAL' || label === 'HALAL OPTION') {
+        if (curPeriod) periods[curPeriod].mainAlt = readDayCells(r);
+        contMode = null;
+        continue;
+      }
+      if (label === 'ALLERGENS' || label === 'ALLERGEN') {
+        if (curPeriod) periods[curPeriod].allergens = readDayCells(r);
+        contMode = null;
+        continue;
+      }
+      if (label === '') {
+        const cells = readDayCells(r);
+        if (!cells.some(c => c)) { contMode = null; continue; }
+        if (contMode === 'breakfast-both') {
+          for (let d = 0; d < 7; d++) {
+            if (!cells[d]) continue;
+            periods.breakfast.meals[d] = appendPiece(periods.breakfast.meals[d], cells[d]);
+            periods.breakfast.veg[d]   = appendPiece(periods.breakfast.veg[d],   cells[d]);
+          }
+        } else if (contMode === 'vegside-lunch' || contMode === 'vegside-dinner') {
+          const tp = contMode.endsWith('lunch') ? 'lunch' : 'dinner';
+          for (let d = 0; d < 7; d++) {
+            if (cells[d]) periods[tp].veg[d] = appendPiece(periods[tp].veg[d], cells[d]);
+          }
+        }
+        continue;
+      }
+      // Unknown label — break continuation chain
+      contMode = null;
     }
 
     // Build week data
@@ -12734,8 +12798,9 @@ function parseMenuWorkbook(wb) {
       const day = {};
       ['breakfast','lunch','dinner'].forEach(p => {
         if (!periods[p]) return;
-        day[p] = periods[p].meals[di] || '';
-        day[p + '_veg'] = (periods[p].veg[di] || '');
+        day[p] = dedupePieces(periods[p].meals[di] || '');
+        day[p + '_veg'] = dedupePieces(periods[p].veg[di] || '');
+        if (periods[p].mainAlt[di]) day[p + '_mainAlt'] = periods[p].mainAlt[di].trim();
         // Parse allergen flags
         const flags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
         const allergenStr = (periods[p].allergens[di] || '').toLowerCase();
