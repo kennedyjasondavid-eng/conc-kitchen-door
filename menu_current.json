@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:41:48.799Z",
+    "exported": "2026-05-13T23:42:58.625Z",
     "version": 30
   },
   "menu": {
@@ -2559,8 +2559,8 @@
         "lunch_veg": "Black bean patty, Naan, Seasonal Vegetables,Tzatziki",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "pork, gluten, dairy",
-        "dinner": "White Chilli Chicken Pasta Casserole",
-        "dinner_veg": "White Chilli Pasta Casserole",
+        "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
+        "dinner_veg": "White Chilli Pasta Casserole, Broccoli",
         "dinner_softAlt": "Plain Chicken Leg, Rice & Broccoli",
         "allergens_dinner": "gluten",
         "breakfast_flags": {
@@ -2614,7 +2614,7 @@
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -2623,17 +2623,17 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
         "lunch_mainItem": "Pork Souvlaki",
         "lunch_sides": "Naan, Seasonal Vegetables, Tzatziki",
         "dinner_mainItem": "White Chilli Chicken Pasta Casserole",
-        "dinner_sides": "",
+        "dinner_sides": "Broccoli",
         "breakfast_mainItem": "Turkey Breakfast Sandwich",
         "breakfast_sides": "",
         "breakfast_altMeals": [
@@ -2662,6 +2662,61 @@
               "hasSoy": true,
               "hasGluten": true
             }
+          }
+        },
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Rice & Broccoli",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "manual": "White Chilli Chicken Pasta Casserole",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": true,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "White Chilli Pasta Casserole",
+            "flags": {
+              "hasBeans": true,
+              "hasGluten": true,
+              "hasNightshades": true,
+              "hasSulphites": true
+            }
+          },
+          "vegside": {
+            "manual": "Broccoli",
+            "flags": {}
           }
         }
       },
