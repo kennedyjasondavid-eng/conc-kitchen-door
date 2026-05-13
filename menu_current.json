@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:45:55.382Z",
+    "exported": "2026-05-13T23:47:14.236Z",
     "version": 30
   },
   "menu": {
@@ -3157,8 +3157,8 @@
         "breakfast_veg": "Scrambled eggs & veg sausage",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "lunch": "Chicken Schwarma & Garlic Sauce, Coleslaw. Mujadarrah Rice, Coleslaw. Mujadarrah Rice",
-        "lunch_veg": "Vegetarian Schwarma, Garlic Sauce, Coleslaw. Mujadarrah Rice, Coleslaw. Mujadarrah Rice",
+        "lunch": "Chicken Schwarma & Garlic Sauce, Mujadarrah Rice, Coleslaw",
+        "lunch_veg": "Vegetarian Schwarma, Garlic Sauce, Mujadarrah Rice, Coleslaw",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Soft Veg",
         "allergens_lunch": "gluten",
         "dinner": "Teriyaki Chicken,  Vegetable Egg Noodles",
@@ -3181,8 +3181,8 @@
         },
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
-          "hasEgg": false,
+          "hasDairy": true,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -3190,14 +3190,14 @@
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
-          "halalCertifiedMeat": false,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
@@ -3233,12 +3233,94 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Chicken Schwarma",
-        "lunch_sides": "Coleslaw. Mujadarrah Rice, Garlic Sauce",
+        "lunch_mainItem": "Chicken Schwarma & Garlic Sauce",
+        "lunch_sides": "Mujadarrah Rice, Coleslaw",
         "dinner_mainItem": "Teriyaki Chicken",
         "dinner_sides": "Vegetable Egg Noodles",
         "breakfast_mainItem": "Scrambled eggs & sausage",
-        "breakfast_sides": ""
+        "breakfast_sides": "",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Soft Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Chicken Schwarma & Garlic Sauce",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegetarian Schwarma, Garlic Sauce",
+            "flags": {
+              "hasDairy": false
+            }
+          },
+          "starch": {
+            "manual": "Mujadarrah Rice",
+            "flags": {}
+          },
+          "vegside": {
+            "recipeName": "Coleslaw",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": true,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Ham, Cheese and Eggs yoghurt",
