@@ -11350,6 +11350,19 @@ function saveMenuBaseOverlay(obj) {
     const token = settings['gh-token'] || '';
     if (token) ghPushFile(repo, 'menu_overlay.json', JSON.stringify(obj, null, 2), token).catch(() => {});
   } catch(e) {}
+  // Keep the stale-flags banner in sync with the overlay. A naive in-memory
+  // cache goes wrong any time the overlay is wiped (e.g. Apply New Menu) or
+  // mutated outside the Edit Menu save path.
+  if (typeof renderStaleFlagsBanner === 'function' && typeof sweepAltFlagPollution === 'function') {
+    try {
+      const r = sweepAltFlagPollution({ dryRun: true });
+      if (typeof _STALE_FLAG_MEALS !== 'undefined') {
+        _STALE_FLAG_MEALS.length = 0;
+        (r.stale || []).forEach(s => _STALE_FLAG_MEALS.push(s));
+      }
+      renderStaleFlagsBanner();
+    } catch(e) {}
+  }
 }
 
 // One-shot sweep: clean alt-slot allergen pollution from historical _flags.
@@ -14206,10 +14219,20 @@ function slotKey(e, slotId) {
   const dd = document.getElementById('slot-dd-' + slotId);
   if (e.key === 'Escape') { if (dd) dd.style.display = 'none'; }
   if (e.key === 'Enter') {
-    const first = dd && dd.querySelector('div[onclick]');
+    // Only auto-pick a dropdown row if the dropdown is actually visible AND
+    // it has selectable recipe rows (the "No matches" panel uses a span, not
+    // a div[onclick], so this condition skips it correctly).
+    const ddOpen = dd && dd.style.display !== 'none';
+    const first = ddOpen ? dd.querySelector('div[onclick]') : null;
     if (first) { first.click(); return; }
+    // No selectable recipe row — preserve the user's exact typed text rather
+    // than running the fuzzy partial-match in slotAutoSave (which silently
+    // substitutes things like "Fruit Cup" for "Fruit").
     const inp = document.getElementById('slot-search-' + slotId);
-    if (inp) { if (dd) dd.style.display = 'none'; slotAutoSave(slotId, inp.value); }
+    if (inp) {
+      if (dd) dd.style.display = 'none';
+      slotSaveManual(slotId, inp.value.trim());
+    }
   }
 }
 
