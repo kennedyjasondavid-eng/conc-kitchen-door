@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T20:08:20.446Z",
+    "exported": "2026-05-13T20:09:35.841Z",
     "version": 30
   },
   "menu": {
@@ -954,30 +954,34 @@
           "hasMustard": false,
           "hasSulphites": false
         },
-        "lunch": "Coronation Chicken Salad Sandwich, Fruit, Chips",
+        "lunch": "Coronation Chicken Salad Sandwich",
         "lunch_veg": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
         "lunch_flags": {
-          "hasDairy": false,
           "hasGluten": true,
+          "hasDairy": false,
+          "hasEgg": true,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": true,
-          "hasPeanuts": false,
           "isSpicy": false,
           "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Yetisse Fish, Eggplant/Cassava Stew, Coconut Rice and Peas",
         "dinner_veg": "Spiced Tofu, Eggplant/Cassava Stew, Coconut Rice and Peas, Coconut Rice & Peas",
@@ -1003,6 +1007,51 @@
           "hasShellfish": false,
           "hasMustard": false,
           "hasSulphites": false
+        },
+        "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainItem": "Coronation Chicken Salad Sandwich",
+        "lunch_mainAlt": "",
+        "lunch_sides": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Coronation Chicken Salad Sandwich",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": true,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false
+            }
+          },
+          "veganalt": {
+            "manual": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
+            "flags": {}
+          }
         }
       },
       "THURSDAY": {
