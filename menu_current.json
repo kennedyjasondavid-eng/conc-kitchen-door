@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:37:29.173Z",
+    "exported": "2026-05-13T23:38:51.763Z",
     "version": 30
   },
   "menu": {
@@ -1631,7 +1631,7 @@
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -1654,14 +1654,39 @@
         "dinner_mainItem": "Halal Beef Meatballs Pasta",
         "dinner_sides": "",
         "breakfast_mainItem": "Pork Breakfast sandwich",
-        "breakfast_sides": ""
+        "breakfast_sides": "",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken, Soft Bread & Seasonal Soup",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Coronation Chicken Salad Sandwich",
+            "flags": {
+              "hasGluten": true,
+              "hasEgg": true,
+              "hasChicken": true,
+              "hasNightshades": true
+            }
+          },
+          "veganalt": {
+            "manual": "Roasted Vegetable Sandwich",
+            "flags": {}
+          }
+        }
       },
       "MONDAY": {
         "breakfast": "Pancakes, turkey bacon",
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy, egg,",
-        "lunch": "Vegan Chilli Cheese dogs",
+        "lunch": "Vegan Chilli Cheese Dogs",
         "lunch_veg": "Vegan Chilli Cheese dogs",
         "lunch_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
         "allergens_lunch": "gluten, dairy",
@@ -1684,8 +1709,8 @@
           "hasProcessedMeat": true
         },
         "lunch_flags": {
-          "hasGluten": false,
-          "hasDairy": false,
+          "hasGluten": true,
+          "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -1697,13 +1722,16 @@
           "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
+          "hasChicken": false,
+          "hasTurkey": false,
           "isSpicy": false,
           "isCarb": false,
+          "halalCertifiedMeat": false,
           "hasProcessedMeat": true,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -1734,7 +1762,7 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Vegan Chilli Cheese dogs",
+        "lunch_mainItem": "Vegan Chilli Cheese Dogs",
         "lunch_sides": "",
         "dinner_mainItem": "Roast Chicken",
         "dinner_sides": "Morrocan Rice, Seasonal Vegetables",
@@ -1788,6 +1816,36 @@
           "softalt": {
             "manual": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
             "flags": {}
+          }
+        },
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Vegan Chilli Cheese Dogs",
+            "flags": {
+              "hasBeans": true,
+              "hasNightshades": true,
+              "hasGluten": true,
+              "hasDairy": true
+            }
+          },
+          "veganalt": {
+            "manual": "Vegan Chilli Cheese dogs",
+            "flags": {
+              "hasBeans": true,
+              "hasNightshades": true,
+              "hasGluten": true,
+              "hasSoy": true
+            }
           }
         }
       },
