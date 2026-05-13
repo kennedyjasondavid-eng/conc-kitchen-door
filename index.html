@@ -12929,10 +12929,14 @@ function initSlotState() {
   MEAL_SLOT_STATE = {};
   MEAL_SLOT_DEFS.forEach(d => { MEAL_SLOT_STATE[d.id] = null; });
   ALT_MEALS = [{text:'', type:'plain', flags:{}}];
+  ALT_MEALS_NONE = false;
 }
 
 // ── Alternative Meals system ─────────────────────────────────
 let ALT_MEALS = [{text:'', type:'plain', flags:{}}];
+// Explicit "no soft/plain alternative required" state — set when the main meal
+// already covers every dietary need and no separate alt is appropriate.
+let ALT_MEALS_NONE = false;
 const ALT_FLAGS_EXPANDED = new Set();
 const ALT_MEAL_QP = ['Plain Chicken Leg, Plain Rice & Stir-fried Veg','Baked Basa, Plain Rice & Stir-fried Veg',
   'Plain English Muffin, Scrambled Eggs, DF Yoghurt & Fruit','Plain Chicken Leg','Plain Basa',
@@ -12940,7 +12944,18 @@ const ALT_MEAL_QP = ['Plain Chicken Leg, Plain Rice & Stir-fried Veg','Baked Bas
 
 function addAltMeal(type) {
   ALT_MEALS.push({text:'', type: type || 'plain', flags:{}});
+  ALT_MEALS_NONE = false;
   renderAltMealsSection();
+}
+
+function setAltMealsNone(v) {
+  ALT_MEALS_NONE = !!v;
+  if (ALT_MEALS_NONE) {
+    ALT_MEALS = [{text:'', type:'plain', flags:{}}];
+    ALT_FLAGS_EXPANDED.clear();
+  }
+  renderAltMealsSection();
+  updateSlotSummary();
 }
 
 function removeAltMeal(idx) {
@@ -12967,6 +12982,7 @@ function toggleAltMealFlag(idx, key) {
 
 function updateAltMealText(idx, val) {
   if (ALT_MEALS[idx]) ALT_MEALS[idx].text = val;
+  if (val) ALT_MEALS_NONE = false;
   updateSlotSummary();
 }
 
@@ -12977,6 +12993,7 @@ function updateAltMealType(idx, val) {
 
 function setAltMealQP(idx, val) {
   if (ALT_MEALS[idx]) { ALT_MEALS[idx].text = val; }
+  if (val) ALT_MEALS_NONE = false;
   renderAltMealsSection();
   updateSlotSummary();
 }
@@ -12992,8 +13009,16 @@ function renderAltMealsSection() {
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
   h += '<div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;">';
   h += '⚠ Alternative Meals</div>';
-  if (!hasAny) h += '<span style="font-size:10px;font-weight:600;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px;">REQUIRED</span>';
+  if (!hasAny && !ALT_MEALS_NONE) h += '<span style="font-size:10px;font-weight:600;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px;">REQUIRED</span>';
+  if (ALT_MEALS_NONE) h += '<span style="font-size:10px;font-weight:600;color:#166534;background:#dcfce7;padding:1px 6px;border-radius:4px;">NONE REQUIRED</span>';
   h += '</div>';
+  if (ALT_MEALS_NONE) {
+    h += '<div style="font-size:12px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:8px 10px;margin-bottom:8px;">No soft/plain alternative needed — the standard meal already covers every resident\'s needs.</div>';
+    h += '<button onclick="setAltMealsNone(false)" style="font-size:11px;padding:3px 10px;border:1px solid #d6d3d1;border-radius:5px;background:var(--cream);cursor:pointer;color:#7c3aed;font-weight:600;">Add Alternative Instead</button>';
+    h += '</div>';
+    el.innerHTML = h;
+    return;
+  }
   h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
   ALT_MEALS.forEach((alt, i) => {
     const af = alt.flags || {};
@@ -13031,7 +13056,10 @@ function renderAltMealsSection() {
     h += '<button onclick="setAltMealQP('+targetIdx+',\''+qp.replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--cream);cursor:pointer;white-space:nowrap;color:var(--muted);">'+qp+'</button>';
   });
   h += '</div>';
-  h += '<button onclick="addAltMeal(\'plain\')" style="font-size:11px;padding:3px 10px;border:1px solid #d6d3d1;border-radius:5px;background:var(--cream);cursor:pointer;color:#7c3aed;font-weight:600;margin-top:4px;">＋ Add Another Alternative</button>';
+  h += '<div style="display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap;">';
+  h += '<button onclick="addAltMeal(\'plain\')" style="font-size:11px;padding:3px 10px;border:1px solid #d6d3d1;border-radius:5px;background:var(--cream);cursor:pointer;color:#7c3aed;font-weight:600;">＋ Add Another Alternative</button>';
+  h += '<button onclick="setAltMealsNone(true)" title="Use only when the standard meal already covers every dietary need" style="font-size:11px;padding:3px 10px;border:1px solid #d6d3d1;border-radius:5px;background:var(--cream);cursor:pointer;color:#166534;font-weight:600;">Mark None Required</button>';
+  h += '</div>';
   h += '</div>';
   el.innerHTML = h;
 }
@@ -13515,6 +13543,15 @@ function saveMenuEdit() {
   if (!mcMenuEditKey) return;
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
+  // Require an explicit decision on soft/plain alternatives: either at least one
+  // is specified, or the user has affirmatively marked "none required".
+  const _alts = buildAltMeals();
+  if (!_alts.length && !ALT_MEALS_NONE) {
+    const ok = confirm('No soft/plain alternative meals are specified.\n\nConfirm that no resident requires a soft or plain alternative for this meal — i.e. the standard meal already covers every dietary need.\n\nOK = save with "none required"   ·   Cancel = go back and add an alternative');
+    if (!ok) return;
+    ALT_MEALS_NONE = true;
+    renderAltMealsSection();
+  }
   const veg  = buildVegAlt();
   const slotFlags = buildUnionFlags();
   const flags = { ...slotFlags };
@@ -13647,6 +13684,7 @@ function _finishMenuSave(name, veg, flags) {
   overlay[week][day][period + '_flags']   = flags;
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
   overlay[week][day][period + '_altMeals'] = buildAltMeals();
+  overlay[week][day][period + '_altMealsNone'] = !!ALT_MEALS_NONE;
   overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
   overlay[week][day][period + '_mainItem'] = buildMainItem(); // v30
   overlay[week][day][period + '_mainAlt'] = buildMainAltItem(); // v30
@@ -13820,6 +13858,8 @@ function openMenuEdit(week, day, period) {
   } else {
     ALT_MEALS = [{text: '', type: 'plain', flags: {}}];
   }
+  // Restore the "none required" affirmation so the prompt doesn't re-fire on every re-open.
+  ALT_MEALS_NONE = !!((existing && existing.altMealsNone) || dayData[period + '_altMealsNone']);
   ALT_FLAGS_EXPANDED.clear();
 
   // Pre-populate no-pork alt slot (v30)
