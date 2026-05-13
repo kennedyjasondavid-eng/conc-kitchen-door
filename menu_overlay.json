@@ -430,12 +430,12 @@
         "hasCorn": false
       },
       "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
-      "lunch": "Chicken burger & Home Fries",
-      "lunch_veg": "Crispy Quinoa Cake, Home Fries",
+      "lunch": "Halal Breaded Chicken Burgers, Home Fry Potatoes",
+      "lunch_veg": "Crispy Quinoa Cake, Home Fry Potatoes",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
-        "hasEgg": false,
+        "hasEgg": true,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -448,18 +448,97 @@
         "hasBeef": false,
         "hasChicken": true,
         "hasTurkey": false,
-        "isSpicy": false,
+        "isSpicy": true,
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg"
+      "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Halal Breaded Chicken Burgers",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Home Fry Potatoes",
+      "lunch_slots": {
+        "main": {
+          "recipeName": "Halal Breaded Chicken Burgers",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Crispy Quinoa Cake",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "starch": {
+          "recipeName": "Home Fry Potatoes",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        }
+      }
     },
     "SATURDAY": {
       "lunch": "Chicken Fajitas & Tortillas, Peas and Corn",
