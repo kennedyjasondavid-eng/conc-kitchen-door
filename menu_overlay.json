@@ -1835,8 +1835,8 @@
         "hasCorn": false
       },
       "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-      "dinner": "White Chilli Chicken Pasta Casserole",
-      "dinner_veg": "White Chilli Pasta Casserole",
+      "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
+      "dinner_veg": "White Chilli Pasta Casserole, Broccoli",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -1848,7 +1848,7 @@
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -1857,10 +1857,10 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1893,6 +1893,63 @@
             "hasSoy": true,
             "hasGluten": true
           }
+        }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Rice & Broccoli",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "White Chilli Chicken Pasta Casserole",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Broccoli",
+      "dinner_slots": {
+        "main": {
+          "manual": "White Chilli Chicken Pasta Casserole",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": true,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "White Chilli Pasta Casserole",
+          "flags": {
+            "hasBeans": true,
+            "hasGluten": true,
+            "hasNightshades": true,
+            "hasSulphites": true
+          }
+        },
+        "vegside": {
+          "manual": "Broccoli",
+          "flags": {}
         }
       }
     },
