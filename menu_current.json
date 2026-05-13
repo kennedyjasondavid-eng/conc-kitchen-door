@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:31:35.846Z",
+    "exported": "2026-05-13T23:34:13.544Z",
     "version": 30
   },
   "menu": {
@@ -121,8 +121,8 @@
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy, egg, turkey",
-        "lunch": "Halal Sausages & Baked Beans, Peas and Potatoes, Peas and Potatoes",
-        "lunch_veg": "Vegan Sausages, Baked beans, Peas and Potatoes, Peas and Potatoes",
+        "lunch": "Halal Sausages, Baked Beans, Peas and Potatoes",
+        "lunch_veg": "Vegan Sausages, Baked Beans, Peas and Potatoes",
         "lunch_softAlt": "Mashed Potato, Baked Beans & Peas",
         "allergens_lunch": "gluten, beef",
         "dinner": "Jerk Chicken, Rice and Beans, Cabbage Stirfry",
@@ -254,6 +254,36 @@
             "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
             "flags": {}
           }
+        },
+        "lunch_altMeals": [
+          {
+            "text": "Mashed Potato, Baked Beans & Peas",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Halal Sausages",
+            "flags": {}
+          },
+          "veganalt": {
+            "manual": "Vegan Sausages",
+            "flags": {
+              "hasSoy": true
+            }
+          },
+          "starch": {
+            "manual": "Baked Beans",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Peas and Potatoes",
+            "flags": {}
+          }
         }
       },
       "TUESDAY": {
@@ -324,8 +354,8 @@
         "lunch_veg": "Vegan Cauliflower Mac & Cheese, Pea and Carrot",
         "lunch_softAlt": "Plain Mac & Cheese (no ham), Peas & Carrots",
         "allergens_lunch": "pork, gluten, dairy",
-        "dinner": "Roast Chicken & Chickpea Shakshuka, Couscous",
-        "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous",
+        "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
+        "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
         "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
         "allergens_dinner": "Gluten,",
         "breakfast_flags": {
@@ -375,7 +405,7 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": false,
@@ -385,9 +415,41 @@
         "lunch_mainItem": "Ham Mac & Cheese",
         "lunch_sides": "Pea and Carrot",
         "dinner_mainItem": "Roast Chicken",
-        "dinner_sides": "Chickpea Shakshuka, Couscous",
+        "dinner_sides": "Couscous, Chickpea Shakshuka",
         "breakfast_mainItem": "Vegetarian Frittata",
-        "breakfast_sides": ""
+        "breakfast_sides": "",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Roasted Chicken, Stir-fried Veg & Rice",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "manual": "Roast Chicken",
+            "flags": {
+              "hasChicken": true
+            }
+          },
+          "veganalt": {
+            "manual": "Roast Tofu",
+            "flags": {}
+          },
+          "starch": {
+            "manual": "Couscous",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Chickpea Shakshuka",
+            "flags": {
+              "hasBeans": true
+            }
+          }
+        }
       },
       "THURSDAY": {
         "breakfast": "Scrambled eggs & sausage",
@@ -1323,7 +1385,8 @@
           "hasBeef": false,
           "hasChicken": true,
           "isSpicy": false,
-          "isCarb": false
+          "isCarb": false,
+          "halalCertifiedMeat": true
         },
         "dinner_flags": {
           "hasGluten": false,
@@ -2035,7 +2098,8 @@
           "hasBeef": false,
           "hasChicken": true,
           "isSpicy": false,
-          "isCarb": false
+          "isCarb": false,
+          "halalCertifiedMeat": true
         },
         "dinner_flags": {
           "hasGluten": true,
@@ -2420,7 +2484,8 @@
           "hasBeef": false,
           "hasChicken": true,
           "isSpicy": false,
-          "isCarb": false
+          "isCarb": false,
+          "halalCertifiedMeat": true
         },
         "lunch_mainItem": "Fully Loaded Sausage on a Bun",
         "lunch_sides": "Side Salad",
