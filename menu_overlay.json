@@ -1954,12 +1954,12 @@
       }
     },
     "MONDAY": {
-      "lunch": "Chicken Ranch Salad Sandwich and Seasonal Soup",
-      "lunch_veg": "Falafel  Sandwich and Seasonal Soup",
+      "lunch": "Chicken Ranch Salad Sandwich, Seasonal Soup",
+      "lunch_veg": "Falafel  Sandwich, Seasonal Soup",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
-        "hasEgg": false,
+        "hasEgg": true,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -1967,7 +1967,7 @@
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -1979,7 +1979,7 @@
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -2065,6 +2065,43 @@
         },
         "softalt": {
           "manual": "Plain Fish, Plain Rice & Stir-fried Veg",
+          "flags": {}
+        }
+      },
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken, Soft Bread & Seasonal Soup",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Chicken Ranch Salad Sandwich",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Seasonal Soup",
+      "lunch_slots": {
+        "main": {
+          "manual": "Chicken Ranch Salad Sandwich",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasChicken": true,
+            "hasEgg": true,
+            "hasNightshades": true,
+            "hasSulphites": true
+          }
+        },
+        "veganalt": {
+          "manual": "Falafel  Sandwich",
+          "flags": {
+            "hasGluten": true,
+            "hasBeans": true,
+            "hasNightshades": true
+          }
+        },
+        "xtra": {
+          "manual": "Seasonal Soup",
           "flags": {}
         }
       }
