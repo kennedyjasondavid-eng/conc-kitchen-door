@@ -11348,6 +11348,72 @@ function saveMenuBaseOverlay(obj) {
     if (token) ghPushFile(repo, 'menu_overlay.json', JSON.stringify(obj, null, 2), token).catch(() => {});
   } catch(e) {}
 }
+
+// One-shot sweep: clean alt-slot allergen pollution from historical _flags.
+// Uses each meal's saved _slots snapshot to decide which flags came exclusively
+// from alt slots (mainalt/noporkalt/veganalt) and were never set on a main slot.
+// Manual-only flags (set on no slot) are left untouched.
+const ALT_FLAG_SWEEP_KEY = 'concAltFlagSweepV1';
+const MAIN_SLOT_IDS = ['main','starch','vegside','xtra','extras'];
+const ALT_SLOT_IDS  = ['mainalt','noporkalt','veganalt'];
+function sweepAltFlagPollution(opts) {
+  opts = opts || {};
+  const dryRun = !!opts.dryRun;
+  const overlay = loadMenuBaseOverlay();
+  const report = { mealsScanned:0, mealsCleaned:0, flagsDropped:0, details:[] };
+  Object.keys(overlay).forEach(week => {
+    Object.keys(overlay[week] || {}).forEach(day => {
+      ['breakfast','lunch','dinner'].forEach(period => {
+        const node = overlay[week][day];
+        if (!node) return;
+        const flagsField = period + '_flags';
+        const slotsField = period + '_slots';
+        const flags = node[flagsField];
+        const slots = node[slotsField];
+        if (!flags || !slots) return;
+        report.mealsScanned++;
+        const mainUnion = {}, altUnion = {};
+        MAIN_SLOT_IDS.forEach(id => {
+          const sf = slots[id] && slots[id].flags;
+          if (sf) Object.keys(sf).forEach(k => { if (sf[k]) mainUnion[k] = true; });
+        });
+        ALT_SLOT_IDS.forEach(id => {
+          const sf = slots[id] && slots[id].flags;
+          if (sf) Object.keys(sf).forEach(k => { if (sf[k]) altUnion[k] = true; });
+        });
+        const dropped = [];
+        Object.keys(altUnion).forEach(k => {
+          if (!mainUnion[k] && flags[k]) {
+            dropped.push(k);
+            if (!dryRun) flags[k] = false;
+          }
+        });
+        if (dropped.length) {
+          report.mealsCleaned++;
+          report.flagsDropped += dropped.length;
+          report.details.push({ week, day, period, dropped });
+        }
+      });
+    });
+  });
+  if (!dryRun && report.flagsDropped > 0) saveMenuBaseOverlay(overlay);
+  return report;
+}
+function runAltFlagSweepOnce() {
+  try {
+    if (localStorage.getItem(ALT_FLAG_SWEEP_KEY) === 'done') return;
+    const report = sweepAltFlagPollution({ dryRun: false });
+    localStorage.setItem(ALT_FLAG_SWEEP_KEY, 'done');
+    if (report.flagsDropped > 0) {
+      console.log('[alt-flag sweep] cleaned ' + report.flagsDropped + ' polluted flag(s) across ' +
+        report.mealsCleaned + ' meal(s) of ' + report.mealsScanned + ' scanned.');
+      console.log('[alt-flag sweep] details:', report.details);
+    } else {
+      console.log('[alt-flag sweep] scanned ' + report.mealsScanned + ' meals, nothing to clean.');
+    }
+  } catch (e) { console.warn('[alt-flag sweep] failed:', e); }
+}
+window.sweepAltFlagPollution = sweepAltFlagPollution;
 function loadUploadedMenu() {
   try { return JSON.parse(localStorage.getItem('concUploadedMenu') || 'null'); } catch(e) { return null; }
 }
@@ -14085,9 +14151,11 @@ function buildSmVegAlt() {
 }
 
 function buildSmUnionFlags() {
+  // Main meal only — alt-routing slots carry their own allergens.
   const union = {};
   SM_ALLERGENS.forEach(a => { union[a.key] = false; });
-  Object.values(SM_SLOT_STATE).forEach(s => {
+  ['main','starch','vegside','xtra','extras'].forEach(id => {
+    const s = SM_SLOT_STATE[id];
     if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
   });
   return union;
@@ -16924,7 +16992,10 @@ function generateTestPlating() {
   var mainProteins = _detectSlot('main');
   var altProteins = _detectSlot('mainalt');
   var noPorkProteins = _detectSlot('noporkalt');
-  [].concat(mainProteins, altProteins, noPorkProteins).forEach(function(m) { flags[m.flag] = true; });
+  // Only main-slot proteins contribute to mealFlags. Alt-slot proteins are
+  // still inspected below for the halal-cert prompt, but must not leak into
+  // the regular meal's CONTAINS line.
+  mainProteins.forEach(function(m) { flags[m.flag] = true; });
 
   var hasPorkInMain = mainProteins.some(function(m) { return m.flag === 'hasPork'; });
   var altMeatProteins = altProteins.filter(function(m) { return m.flag !== 'hasPork'; }).map(function(m) { return m.label; });
@@ -17307,6 +17378,7 @@ function openDemoFile(filename, idx) {
 
 
 window.addEventListener('load', initSiteSelector);
+window.addEventListener('load', runAltFlagSweepOnce);
 </script>
 
 <!-- ===== LABELS PRINT VIEW ===== -->
