@@ -16796,6 +16796,12 @@ function closeTestMeal() {
   _lastTestPd = null;
   var panel = document.getElementById('mc-test-meal-panel');
   if (panel) panel.style.display = 'none';
+  var platingArea = document.getElementById('tm-plating-area');
+  if (platingArea) { platingArea.style.display = 'none'; }
+  var preview = document.getElementById('tm-plating-preview');
+  if (preview) preview.innerHTML = '';
+  var printHdr = document.getElementById('tm-print-header');
+  if (printHdr) printHdr.innerHTML = '';
   var tmSlotPanel = document.getElementById('tm-slot-panel');
   if (tmSlotPanel) tmSlotPanel.innerHTML = '';
   var tmFlagGrid = document.getElementById('tm-edit-flag-grid');
