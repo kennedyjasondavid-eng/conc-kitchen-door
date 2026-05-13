@@ -1057,6 +1057,54 @@
           "manual": "Seasonal Veg",
           "flags": {}
         }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Chicken and Mushroom Fried Rice",
+      "dinner_mainAlt": "",
+      "dinner_sides": "",
+      "dinner_slots": {
+        "main": {
+          "manual": "Chicken and Mushroom Fried Rice",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": true,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": true,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Soy-Free Mushroom Fried Rice",
+          "flags": {}
+        }
       }
     },
     "WEDNESDAY": {
@@ -1757,7 +1805,7 @@
       }
     },
     "SUNDAY": {
-      "breakfast": "Turkey Breakfast sandwich",
+      "breakfast": "Turkey Breakfast Sandwich",
       "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
       "breakfast_flags": {
         "hasGluten": true,
@@ -1816,7 +1864,37 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Rice & Broccoli"
+      "dinner_softAlt": "Plain Chicken Leg, Rice & Broccoli",
+      "breakfast_altMeals": [
+        {
+          "text": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "breakfast_altMealsNone": false,
+      "breakfast_noPorkAlt": "",
+      "breakfast_mainItem": "Turkey Breakfast Sandwich",
+      "breakfast_mainAlt": "",
+      "breakfast_sides": "",
+      "breakfast_slots": {
+        "main": {
+          "manual": "Turkey Breakfast Sandwich",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasTurkey": true
+          }
+        },
+        "veganalt": {
+          "manual": "Vegan Breakfast Sausage Sandwich",
+          "flags": {
+            "hasSoy": true,
+            "hasGluten": true
+          }
+        }
+      }
     },
     "MONDAY": {
       "lunch": "Chicken Ranch Salad Sandwich and Seasonal Soup",
