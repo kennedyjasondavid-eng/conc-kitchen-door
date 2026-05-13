@@ -12861,7 +12861,7 @@ function renderAltMealsSection() {
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;">';
   ALT_MEAL_QP.forEach(qp => {
     const targetIdx = ALT_MEALS.length - 1;
-    h += '<button onclick="setAltMealQP('+targetIdx+',\''+qp.replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--cream);cursor:pointer;white-space:nowrap;">'+qp+'</button>';
+    h += '<button onclick="setAltMealQP('+targetIdx+',\''+qp.replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--cream);cursor:pointer;white-space:nowrap;color:var(--muted);">'+qp+'</button>';
   });
   h += '</div>';
   h += '<button onclick="addAltMeal(\'plain\')" style="font-size:11px;padding:3px 10px;border:1px solid #d6d3d1;border-radius:5px;background:var(--cream);cursor:pointer;color:#7c3aed;font-weight:600;margin-top:4px;">＋ Add Another Alternative</button>';
