@@ -53,6 +53,12 @@
   [data-theme="dark"] .changes-table tbody tr:hover { background:#1b3a2a; }
   [data-theme="dark"] .toolbar { background:#1c2026; border-color:#272d35; }
   [data-theme="dark"] .tag-vegan { background:#1b3a2a; color:#74c69d; border-color:#2d6a4f; }
+  [data-theme="dark"] .tag-halal { background:#1a2a20; color:#6ee7b7; border-color:#2d6a4f; }
+  [data-theme="dark"] .tag-gf { background:#2a2520; color:#fbbf24; border-color:#5c4d30; }
+  [data-theme="dark"] .tag-diabetic { background:#1a2332; color:#93c5fd; border-color:#2563eb; }
+  [data-theme="dark"] .tag-moderate { background:#2a2520; color:#fbbf24; border-color:#5c4d30; }
+  [data-theme="dark"] .flag { background:#2a2520 !important; color:#d4a040 !important; }
+  [data-theme="dark"] .badge-switch, [data-theme="dark"] .badge-leftover { background:#2a2520; color:#d4a040; }
   [data-theme="dark"] .sp-shortcut-btn { background:#1a5276; }
   [data-theme="dark"] .preview-header { background:var(--forest); }
   [data-theme="dark"] .ps-tab { border-color:#272d35; color:var(--ink); }
@@ -77,6 +83,19 @@
   [data-theme="dark"] .ps-roommate-row { background:#3d2a10 !important; color:#f0a050 !important; border-color:#8a5a20; }
   [data-theme="dark"] .ps-diabetic { background:#2a5a1a !important; color:#d4f0c0 !important; }
   [data-theme="dark"] .ps-notes-row { background:#252a32 !important; color:var(--ink); }
+  /* Dark mode: amber info panels (alt meals, allergen flags) */
+  [data-theme="dark"] .amber-panel { background:#2a2520 !important; border-color:#5c4d30 !important; }
+  [data-theme="dark"] .amber-panel-title { color:#d4a040 !important; }
+  /* Dark mode: menu config banners */
+  [data-theme="dark"] #mc-swaps-banner { background:#2a2520 !important; border-color:#8a6d20 !important; }
+  [data-theme="dark"] #mc-swaps-banner strong { color:#d4a040 !important; }
+  [data-theme="dark"] #mc-edit-menu-banner { background:#1a2332 !important; border-color:#2563eb !important; }
+  [data-theme="dark"] #mc-edit-menu-banner strong { color:#60a5fa !important; }
+  [data-theme="dark"] #mc-specials-banner { background:#1a2a20 !important; border-color:#2d6a4f !important; }
+  [data-theme="dark"] #mc-slot-swap-banner { background:#1a2332 !important; border-color:#3b82f6 !important; }
+  [data-theme="dark"] #mc-slot-swap-banner strong { color:#60a5fa !important; }
+  [data-theme="dark"] #nr-block-banner { background:#2a2520 !important; border-color:#8a6d20 !important; }
+  [data-theme="dark"] .seed-banner { background:#1a2332 !important; border-color:#3b5998 !important; }
   .dm-toggle { cursor:pointer; font-size:14px; padding:5px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6); transition:.15s; display:inline-block; margin-top:8px; }
   .dm-toggle:hover { background:rgba(255,255,255,0.12); color:#fff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1782,8 +1801,8 @@ function updateCODEXBadge() {
         <div>
           <div id="mc-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
           <div id="mc-alt-meals" style="margin-top:10px;"></div>
-          <div style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
+          <div class="amber-panel" style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
+            <div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
             <div id="mc-edit-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;"></div>
           </div>
@@ -1813,8 +1832,8 @@ function updateCODEXBadge() {
         <div>
           <div id="tm-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
           <div id="tm-alt-meals" style="margin-top:10px;"></div>
-          <div style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
+          <div class="amber-panel" style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
+            <div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
             <div id="tm-edit-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;"></div>
           </div>
@@ -8542,7 +8561,10 @@ function resetAndGoHome() {
 // REGISTRY
 // ============================================================
 function renderRegistry(data) {
-  const sectionColors = { 'Halal':'#ecfdf5','Vegan':'#f0fdf4','Gluten Free':'#fefce8','No Dairy':'#fdf4ff','Diabetic':'#eff6ff','Regular':'#fff' };
+  const dk = document.documentElement.getAttribute('data-theme')==='dark';
+  const sectionColors = dk
+    ? { 'Halal':'#1a2a20','Vegan':'#1a2a20','Gluten Free':'#2a2520','No Dairy':'#2a2030','Diabetic':'#1a2332','Regular':'#21262d' }
+    : { 'Halal':'#ecfdf5','Vegan':'#f0fdf4','Gluten Free':'#fefce8','No Dairy':'#fdf4ff','Diabetic':'#eff6ff','Regular':'#fff' };
   const body = document.getElementById('registry-body');
   if (!data.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No residents match.</td></tr>'; return; }
   const today = new Date(); today.setHours(0,0,0,0);
@@ -11186,7 +11208,8 @@ function renderMenuConfig() {
 
       const td = document.createElement('td');
       const specialBg = nextSpecial ? 'background:rgba(52,211,153,0.06);' : (isToday ? 'background:rgba(52,211,153,0.08);' : '');
-      const editModeBg = editMenuMode ? 'background:#eff6ff;' : '';
+      const _dk = document.documentElement.getAttribute('data-theme')==='dark';
+      const editModeBg = editMenuMode ? ('background:'+(_dk?'#1a2332':'#eff6ff')+';') : '';
       td.style.cssText = `padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;min-width:120px;${specialBg || editModeBg}`;
       if (nextSpecial) td.style.outline = '1.5px solid #6ee7b7';
       if (editMenuMode) td.style.outline = '1.5px dashed #93c5fd';
@@ -11833,13 +11856,14 @@ function renderSectionPreview(flags) {
     if (b.rule.key === 'regular') return 1;
     return (a.rule.p || 99) - (b.rule.p || 99);
   });
+  const dk = document.documentElement.getAttribute('data-theme')==='dark';
   el.innerHTML = sections.map(s => {
     const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
     const count = s.residents.length;
     const active = s.rule.key !== 'regular' || count > 0;
-    const bg = active ? color+'18' : '#f5f5f5';
-    const border = active ? color : '#e0e0e0';
-    const textColor = active ? color : '#999';
+    const bg = active ? color+'18' : (dk ? '#21262d' : '#f5f5f5');
+    const border = active ? color : (dk ? '#3a4250' : '#e0e0e0');
+    const textColor = active ? color : (dk ? '#6b7280' : '#999');
     const badge = count > 0 ? ` <span style="font-size:10px;background:${color};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
       <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
@@ -12099,13 +12123,14 @@ function renderRoutingTab(flags, vegAlt) {
   const el = document.getElementById('mc-section-preview-routing');
   if (!el) return;
   const sections = computeSections(flags, REGISTRY_LIST);
+  const dk = document.documentElement.getAttribute('data-theme')==='dark';
   el.innerHTML = sections.map(s => {
     const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
     const count = s.residents.length;
     const active = s.rule.key !== 'regular' || count > 0;
-    const bg = active ? color+'18' : '#f5f5f5';
-    const border = active ? color : '#e0e0e0';
-    const textColor = active ? color : '#999';
+    const bg = active ? color+'18' : (dk ? '#21262d' : '#f5f5f5');
+    const border = active ? color : (dk ? '#3a4250' : '#e0e0e0');
+    const textColor = active ? color : (dk ? '#6b7280' : '#999');
     const badge = count > 0 ? ` <span style="font-size:10px;background:${color};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
       <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
@@ -12149,13 +12174,14 @@ function updateEditFlagsPreview() {
   const el = document.getElementById('mc-editflags-section-preview');
   if (!el) return;
   const sections = computeSections(flags, REGISTRY_LIST);
+  const dk = document.documentElement.getAttribute('data-theme')==='dark';
   el.innerHTML = sections.map(s => {
     const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
     const count = s.residents.length;
     const active = s.rule.key !== 'regular' || count > 0;
-    const bg = active ? color + '18' : '#f5f5f5';
-    const border = active ? color : '#e0e0e0';
-    const textColor = active ? color : '#999';
+    const bg = active ? color + '18' : (dk ? '#21262d' : '#f5f5f5');
+    const border = active ? color : (dk ? '#3a4250' : '#e0e0e0');
+    const textColor = active ? color : (dk ? '#6b7280' : '#999');
     const badge = count > 0 ? ` <span style="font-size:10px;background:${color};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
       <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
@@ -12815,13 +12841,13 @@ function renderAltMealsSection() {
   const el = document.getElementById(containerId);
   if (!el) return;
   const hasAny = ALT_MEALS.some(a => a.text);
-  let h = '<div style="padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">';
+  let h = '<div class="amber-panel" style="padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-  h += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;">';
+  h += '<div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;">';
   h += '⚠ Alternative Meals</div>';
   if (!hasAny) h += '<span style="font-size:10px;font-weight:600;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px;">REQUIRED</span>';
   h += '</div>';
-  h += '<div style="font-size:11px;color:#78716c;margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
+  h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
   ALT_MEALS.forEach((alt, i) => {
     h += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
     h += '<select onchange="updateAltMealType('+i+',this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;background:'+(alt.type==='soft'?'#dbeafe':'#f0fdf4')+';color:'+(alt.type==='soft'?'#1d4ed8':'#166534')+';min-width:60px;">';
