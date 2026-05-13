@@ -15969,15 +15969,11 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
     const title = 'Special Meal '+specialIdx+' ('+sectionLabel+mergeNote+')';
     // Allergen string per section type:
-    // halal_alt / modified_main: main meal allergens carry over (same dish)
+    // modified_main / bland_alt: same dish — inherit main meal allergens
     // vegan_alt: from slot-computed vegAllergens or recipe lookup
-    // gf_alt: main allergens minus gluten (GF by definition)
-    // bland / soft: supervisor specifies — don't show main allergens
+    // halal/nopork/gf/soft/noproc: different meal — don't inherit main allergens
     let sectionAllergenStr;
-    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
-      const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/\bpork\b/i.test(a)).join(', ');
-      sectionAllergenStr = halalAllergens || null;
-    } else if (s.rule.altType === 'modified_main') {
+    if (s.rule.altType === 'modified_main') {
       if (s.rule.key === 'no_egg') {
         sectionAllergenStr = allergenStr.split(',').map(a=>a.trim())
           .filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
@@ -15988,16 +15984,12 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
-    } else if (s.rule.altType === 'gf_alt') {
-      const gfAllergens = allergenStr.split(',').map(a=>a.trim())
-        .filter(a => a && !/gluten|wheat/i.test(a) && !(mealFlags.hasPork && /\bpork\b/i.test(a))).join(', ');
-      sectionAllergenStr = gfAllergens || null;
     } else {
       sectionAllergenStr = null;
     }
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
-      : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
+      : altMeal;
     addMerged(title, F.stdB, 'FFFF00', B.thick, 16);
     addMerged(altMealLine, F.stdB, 'FCE4D6', B.thin, 22);
     const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
@@ -16734,10 +16726,7 @@ function buildPlatingHtml(pd, isTest) {
     sectNum++;
     const altMeal = getAltMeal(s.rule.altType, ctx);
     let sectionAllergenStr;
-    if (s.rule.altType === 'halal_alt' || s.rule.altType === 'nopork_alt') {
-      const halalAllergens = allergenStr.split(',').map(a => a.trim()).filter(a => a && !/pork/i.test(a)).join(', ');
-      sectionAllergenStr = halalAllergens || null;
-    } else if (s.rule.altType === 'modified_main') {
+    if (s.rule.altType === 'modified_main') {
       if (s.rule.key === 'no_egg') {
         sectionAllergenStr = allergenStr.split(',').map(a=>a.trim())
           .filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
@@ -16748,16 +16737,12 @@ function buildPlatingHtml(pd, isTest) {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
-    } else if (s.rule.altType === 'gf_alt') {
-      const gfAllergens = allergenStr.split(',').map(a=>a.trim())
-        .filter(a => a && !/gluten|wheat/i.test(a) && !(mealFlags.hasPork && /pork/i.test(a))).join(', ');
-      sectionAllergenStr = gfAllergens || null;
     } else {
       sectionAllergenStr = null;
     }
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
-      : altMeal + '  |  VERIFY ALLERGENS FOR THIS ALTERNATIVE';
+      : altMeal;
     const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
     const title = `Special Meal ${sectNum} (${s.rule.label}${mergeNote})`;
     const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
