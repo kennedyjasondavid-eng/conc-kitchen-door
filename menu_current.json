@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T20:09:35.841Z",
+    "exported": "2026-05-13T20:12:24.838Z",
     "version": 30
   },
   "menu": {
@@ -954,8 +954,8 @@
           "hasMustard": false,
           "hasSulphites": false
         },
-        "lunch": "Coronation Chicken Salad Sandwich",
-        "lunch_veg": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
+        "lunch": "Coronation Chicken Salad Sandwich, Fruit",
+        "lunch_veg": "Roasted Vegetable Sandwich, Fruit",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -1020,7 +1020,7 @@
         "lunch_noPorkAlt": "",
         "lunch_mainItem": "Coronation Chicken Salad Sandwich",
         "lunch_mainAlt": "",
-        "lunch_sides": "",
+        "lunch_sides": "Fruit",
         "lunch_slots": {
           "main": {
             "manual": "Coronation Chicken Salad Sandwich",
@@ -1045,11 +1045,21 @@
               "hasTreeNuts": false,
               "hasShellfish": false,
               "hasMustard": false,
-              "hasSulphites": false
+              "hasSulphites": false,
+              "hasSoy": false,
+              "hasSesame": false,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false
             }
           },
           "veganalt": {
-            "manual": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
+            "manual": "Roasted Vegetable Sandwich",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "xtra": {
+            "manual": "Fruit",
             "flags": {}
           }
         }
@@ -2212,30 +2222,34 @@
           "hasMustard": false,
           "hasSulphites": false
         },
-        "lunch": "Coronation Chicken Salad Sandwich, Fruit, Chips",
-        "lunch_veg": "Roasted Vegetable Sandwich, Fruit, Chips, Sub Bun",
+        "lunch": "Coronation Chicken Salad Sandwich, Chips, Fruit Cup",
+        "lunch_veg": "Roasted Vegetable Sandwich, Chips, Fruit Cup",
         "lunch_flags": {
-          "hasDairy": false,
           "hasGluten": true,
+          "hasDairy": false,
+          "hasEgg": true,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": true,
-          "hasPeanuts": false,
           "isSpicy": false,
           "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Beef and Vegetable Stew, Potatoes",
         "dinner_veg": "Vegan Pot Pie and Vegetable Medley, Potato",
@@ -2261,6 +2275,63 @@
           "hasShellfish": false,
           "hasMustard": false,
           "hasSulphites": false
+        },
+        "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainItem": "Coronation Chicken Salad Sandwich",
+        "lunch_mainAlt": "",
+        "lunch_sides": "Chips, Fruit Cup",
+        "lunch_slots": {
+          "main": {
+            "manual": "Coronation Chicken Salad Sandwich",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": true,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false,
+              "hasSoy": false,
+              "hasSesame": false,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false
+            }
+          },
+          "veganalt": {
+            "manual": "Roasted Vegetable Sandwich",
+            "flags": {}
+          },
+          "starch": {
+            "manual": "Chips",
+            "flags": {}
+          },
+          "xtra": {
+            "manual": "Fruit Cup",
+            "flags": {}
+          }
         }
       },
       "THURSDAY": {
