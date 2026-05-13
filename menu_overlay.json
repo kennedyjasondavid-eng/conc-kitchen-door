@@ -1,8 +1,8 @@
 {
   "1": {
     "SUNDAY": {
-      "lunch": "Turkey & Cheese, Seasonal Soup, Seasonal Soup",
-      "lunch_veg": "Vegetarian Sandwich, Seasonal Soup, Seasonal Soup",
+      "lunch": "Turkey & Cheese & Seasonal Soup, Seasonal Soup",
+      "lunch_veg": "Vegetarian Sandwich, Seasonal Soup",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -30,7 +30,60 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Plain Turkey, Soft Bread & Seasonal Soup"
+      "lunch_softAlt": "Plain Turkey, Soft Bread & Seasonal Soup",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Turkey, Soft Bread & Seasonal Soup",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Turkey & Cheese & Seasonal Soup",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Seasonal Soup",
+      "lunch_slots": {
+        "main": {
+          "manual": "Turkey & Cheese & Seasonal Soup",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": true,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Vegetarian Sandwich",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "vegside": {
+          "manual": "Seasonal Soup",
+          "flags": {}
+        }
+      }
     },
     "MONDAY": {
       "dinner": "Jerk Chicken, Rice and Beans, Cabbage Stirfry",
