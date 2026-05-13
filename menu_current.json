@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T14:01:26.734Z",
+    "exported": "2026-05-13T14:03:03.773Z",
     "version": 30
   },
   "menu": {
@@ -849,7 +849,7 @@
           "isSpicy": false,
           "isCarb": false,
           "halalCertifiedMeat": true,
-          "hasProcessedMeat": false,
+          "hasProcessedMeat": true,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
@@ -889,16 +889,61 @@
         "lunch_sides": "Potato Salad",
         "dinner_mainItem": "Pork Adobo with Vegetarian and Pineapple Rice",
         "dinner_sides": "",
-        "breakfast_mainItem": "Turkey",
-        "breakfast_sides": "Cheese and Eggs yoghurt"
+        "breakfast_mainItem": "Turkey & Cheese and Eggs yoghurt",
+        "breakfast_sides": "",
+        "breakfast_altMeals": [
+          {
+            "text": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "breakfast_noPorkAlt": "",
+        "breakfast_mainAlt": "",
+        "breakfast_slots": {
+          "main": {
+            "manual": "Turkey & Cheese and Eggs yoghurt",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": true,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": true,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Oatmeal",
+            "flags": {}
+          }
+        }
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola.",
         "breakfast_veg": "Bagel, Cream cheese and Granola.",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy",
-        "lunch": "Chicken Fajitas & Tortillas, Peas and Corn",
-        "lunch_veg": "Vegetarian Fajitas, Tortillas, Peas and Corn",
+        "lunch": "Chicken Fajitas, Tortilla, Peas and Corn",
+        "lunch_veg": "Vegan Fajitas, Tortilla, Peas and Corn",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "Halal Chicken, Gluten",
         "dinner": "Gomen Besiga, Carrot Cabbage Fry, Rice",
@@ -941,7 +986,7 @@
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -960,11 +1005,92 @@
           "isCarb": false
         },
         "lunch_mainItem": "Chicken Fajitas",
-        "lunch_sides": "Tortillas, Peas and Corn",
+        "lunch_sides": "Tortilla, Peas and Corn",
         "dinner_mainItem": "Gomen Besiga",
         "dinner_sides": "Carrot Cabbage Fry, Rice",
         "breakfast_mainItem": "Bagel",
-        "breakfast_sides": "Cream cheese and Granola."
+        "breakfast_sides": "Cream cheese and Granola.",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Chicken Fajitas",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Fajitas",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "starch": {
+            "manual": "Tortilla",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Peas and Corn",
+            "flags": {}
+          }
+        }
       }
     },
     "2": {
