@@ -99,8 +99,8 @@
         "hasCorn": false
       },
       "dinner_softAlt": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
-      "lunch": "Halal Sausages & Baked Beans, Peas and Potatoes, Peas and Potatoes",
-      "lunch_veg": "Vegan Sausages, Baked beans, Peas and Potatoes, Peas and Potatoes",
+      "lunch": "Halal Sausages, Baked Beans, Peas and Potatoes",
+      "lunch_veg": "Vegan Sausages, Baked Beans, Peas and Potatoes",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -182,11 +182,43 @@
           "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
           "flags": {}
         }
+      },
+      "lunch_altMeals": [
+        {
+          "text": "Mashed Potato, Baked Beans & Peas",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Halal Sausages",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Baked Beans, Peas and Potatoes",
+      "lunch_slots": {
+        "main": {
+          "manual": "Halal Sausages",
+          "flags": {}
+        },
+        "veganalt": {
+          "manual": "Vegan Sausages",
+          "flags": {
+            "hasSoy": true
+          }
+        },
+        "starch": {
+          "manual": "Baked Beans",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Peas and Potatoes",
+          "flags": {}
+        }
       }
     },
     "WEDNESDAY": {
-      "dinner": "Roast Chicken & Chickpea Shakshuka, Couscous",
-      "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous",
+      "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
+      "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -207,14 +239,48 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": false,
         "hasNightshades": false,
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice"
+      "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Roasted Chicken, Stir-fried Veg & Rice",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Roast Chicken",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Couscous, Chickpea Shakshuka",
+      "dinner_slots": {
+        "main": {
+          "manual": "Roast Chicken",
+          "flags": {
+            "hasChicken": true
+          }
+        },
+        "veganalt": {
+          "manual": "Roast Tofu",
+          "flags": {}
+        },
+        "starch": {
+          "manual": "Couscous",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Chickpea Shakshuka",
+          "flags": {
+            "hasBeans": true
+          }
+        }
+      }
     },
     "THURSDAY": {
       "dinner": "Butter Chicken & Vegetables, Naan",
