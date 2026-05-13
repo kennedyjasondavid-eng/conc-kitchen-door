@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T13:55:07.166Z",
+    "exported": "2026-05-13T13:59:27.251Z",
     "version": 30
   },
   "menu": {
@@ -138,8 +138,8 @@
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy, egg, turkey",
-        "lunch": "Halal Sausages & Baked Beans, Peas and Potatoes, Peas and Potatoes",
-        "lunch_veg": "Vegan Sausages, Baked beans, Peas and Potatoes, Peas and Potatoes",
+        "lunch": "Halal Sausages & Baked Beans, Roasted Potatoes, Peas",
+        "lunch_veg": "Vegan Sausages, Baked beans, Roasted Potatoes, Peas",
         "lunch_softAlt": "Mashed Potato, Baked Beans & Peas",
         "allergens_lunch": "gluten, beef",
         "dinner": "Jerk Chicken, Rice and Beans, Cabbage Stirfry",
@@ -180,7 +180,7 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": true,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": false,
@@ -214,8 +214,8 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Halal Sausages",
-        "lunch_sides": "Baked Beans, Peas and Potatoes",
+        "lunch_mainItem": "Halal Sausages & Baked Beans",
+        "lunch_sides": "Roasted Potatoes, Peas",
         "dinner_mainItem": "Jerk Chicken",
         "dinner_sides": "Rice and Beans, Cabbage Stirfry",
         "breakfast_mainItem": "Pancakes",
@@ -270,6 +270,113 @@
           "softalt": {
             "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
             "flags": {}
+          }
+        },
+        "lunch_altMeals": [
+          {
+            "text": "Mashed Potato, Baked Beans & Peas",
+            "type": "plain",
+            "flags": {
+              "hasBeans": true
+            }
+          }
+        ],
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Halal Sausages & Baked Beans",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": true,
+              "hasBeans": true,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegan Sausages, Baked beans",
+            "flags": {}
+          },
+          "starch": {
+            "recipeName": "Roasted Potatoes",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "vegside": {
+            "manual": "Peas",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
           }
         }
       },
@@ -394,19 +501,74 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
         "lunch_mainItem": "Ham Mac & Cheese",
         "lunch_sides": "Pea and Carrot",
-        "dinner_mainItem": "Roast Chicken",
-        "dinner_sides": "Chickpea Shakshuka, Couscous",
+        "dinner_mainItem": "Roast Chicken & Chickpea Shakshuka",
+        "dinner_sides": "Couscous",
         "breakfast_mainItem": "Vegetarian Frittata",
-        "breakfast_sides": ""
+        "breakfast_sides": "",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Roasted Chicken, Stir-fried Veg & Rice",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "",
+        "dinner_slots": {
+          "main": {
+            "manual": "Roast Chicken & Chickpea Shakshuka",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": true,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Roast Tofu, Chickpea Shakshuka",
+            "flags": {
+              "hasSoy": true,
+              "hasNightshades": true,
+              "hasBeans": true
+            }
+          },
+          "starch": {
+            "manual": "Couscous",
+            "flags": {
+              "hasGluten": true
+            }
+          }
+        }
       },
       "THURSDAY": {
         "breakfast": "Scrambled eggs & sausage",
@@ -1159,7 +1321,8 @@
           "hasBeef": false,
           "hasChicken": true,
           "isSpicy": false,
-          "isCarb": false
+          "isCarb": false,
+          "halalCertifiedMeat": true
         },
         "dinner_flags": {
           "hasGluten": false,
