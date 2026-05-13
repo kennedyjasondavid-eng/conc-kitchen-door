@@ -1054,11 +1054,11 @@
       "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg"
     },
     "MONDAY": {
-      "lunch": "Vegan Chilli Cheese dogs",
+      "lunch": "Vegan Chilli Cheese Dogs",
       "lunch_veg": "Vegan Chilli Cheese dogs",
       "lunch_flags": {
-        "hasGluten": false,
-        "hasDairy": false,
+        "hasGluten": true,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -1070,13 +1070,16 @@
         "hasSulphites": false,
         "hasPork": false,
         "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
         "isSpicy": false,
         "isCarb": false,
+        "halalCertifiedMeat": false,
         "hasProcessedMeat": true,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1162,6 +1165,38 @@
           "manual": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
           "flags": {}
         }
+      },
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Vegan Chilli Cheese Dogs",
+      "lunch_mainAlt": "",
+      "lunch_sides": "",
+      "lunch_slots": {
+        "main": {
+          "manual": "Vegan Chilli Cheese Dogs",
+          "flags": {
+            "hasBeans": true,
+            "hasNightshades": true,
+            "hasGluten": true,
+            "hasDairy": true
+          }
+        },
+        "veganalt": {
+          "manual": "Vegan Chilli Cheese dogs",
+          "flags": {
+            "hasBeans": true,
+            "hasNightshades": true,
+            "hasGluten": true,
+            "hasSoy": true
+          }
+        }
       }
     },
     "SUNDAY": {
@@ -1190,11 +1225,38 @@
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup"
+      "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken, Soft Bread & Seasonal Soup",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Coronation Chicken Salad Sandwich",
+      "lunch_mainAlt": "",
+      "lunch_sides": "",
+      "lunch_slots": {
+        "main": {
+          "manual": "Coronation Chicken Salad Sandwich",
+          "flags": {
+            "hasGluten": true,
+            "hasEgg": true,
+            "hasChicken": true,
+            "hasNightshades": true
+          }
+        },
+        "veganalt": {
+          "manual": "Roasted Vegetable Sandwich",
+          "flags": {}
+        }
+      }
     },
     "TUESDAY": {
       "dinner": "Caribbean Chicken Curry, Naan",
