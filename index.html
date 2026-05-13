@@ -63,6 +63,20 @@
   [data-theme="dark"] hr { border-color:#272d35; }
   [data-theme="dark"] .dm-toggle { cursor:pointer; font-size:14px; padding:5px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6); transition:.15s; }
   [data-theme="dark"] .dm-toggle:hover { background:rgba(255,255,255,0.12); color:#fff; }
+  /* ── Dark mode: plating sheet bright-background rows ────── */
+  [data-theme="dark"] .ps-table td,
+  [data-theme="dark"] .ps-table th { border-color:#3a4250; }
+  [data-theme="dark"] .ps-title { background:#b8a308 !important; color:#1a1a1a !important; }
+  [data-theme="dark"] .ps-meal { background:#5c3d24 !important; color:#e8d5c4 !important; }
+  [data-theme="dark"] .ps-allergen { background:#5c3d24 !important; color:#f87171 !important; }
+  [data-theme="dark"] .ps-sect-hdr { background:#7a6c00 !important; color:#1a1a1a !important; border-color:#7a6c00; }
+  [data-theme="dark"] .ps-total-val { background:#7a6c00 !important; color:#1a1a1a !important; }
+  [data-theme="dark"] .ps-sect-total td:last-child { background:#7a6c00 !important; color:#1a1a1a !important; }
+  [data-theme="dark"] .ps-sect-total td:first-child { color:#8a919a; }
+  [data-theme="dark"] .ps-anaph-row { background:#4a1c1c !important; color:#f87171 !important; border-color:#993333; }
+  [data-theme="dark"] .ps-roommate-row { background:#3d2a10 !important; color:#f0a050 !important; border-color:#8a5a20; }
+  [data-theme="dark"] .ps-diabetic { background:#2a5a1a !important; color:#d4f0c0 !important; }
+  [data-theme="dark"] .ps-notes-row { background:#252a32 !important; color:var(--ink); }
   .dm-toggle { cursor:pointer; font-size:14px; padding:5px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.6); transition:.15s; display:inline-block; margin-top:8px; }
   .dm-toggle:hover { background:rgba(255,255,255,0.12); color:#fff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16736,7 +16750,7 @@ function buildPlatingHtml(pd, isTest) {
     h += `<tr><td colspan="3" class="ps-meal" style="background:#E8EDF5;">Standard meal with the following modifications</td></tr>`;
     regularNotes.forEach(r => {
       const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' · ');
-      h += `<tr style="background:#E8EDF5;"><td>${r.rawRestriction}</td><td>${r.room}</td><td>${note}</td></tr>`;
+      h += `<tr class="ps-notes-row" style="background:#E8EDF5;"><td>${r.rawRestriction}</td><td>${r.room}</td><td>${note}</td></tr>`;
     });
   }
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
