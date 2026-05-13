@@ -963,7 +963,7 @@
   "3": {
     "FRIDAY": {
       "lunch": "Nigerian Fish, Coconut Rice, Seasonal Veg",
-      "lunch_veg": "Nigerian Tofu, Broccoli, Coconut Rice, Seasonal Veg",
+      "lunch_veg": "Nigerian Tofu, Coconut Rice, Seasonal Veg",
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -986,8 +986,8 @@
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
+        "hasCoconut": true,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1021,11 +1021,47 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)"
+      "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Nigerian Fish",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Coconut Rice, Seasonal Veg",
+      "lunch_slots": {
+        "main": {
+          "manual": "Nigerian Fish",
+          "flags": {
+            "hasNightshades": true,
+            "hasFish": true
+          }
+        },
+        "veganalt": {
+          "manual": "Nigerian Tofu",
+          "flags": {}
+        },
+        "starch": {
+          "manual": "Coconut Rice",
+          "flags": {
+            "hasCoconut": true,
+            "hasTreeNuts": true
+          }
+        },
+        "vegside": {
+          "manual": "Seasonal Veg",
+          "flags": {}
+        }
+      }
     },
     "WEDNESDAY": {
       "lunch": "Crispy Chicken Tender Wrap",
-      "lunch_veg": "",
+      "lunch_veg": "Vegan Chik'n Tender Wrap",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -1040,6 +1076,8 @@
         "hasSulphites": false,
         "hasPork": false,
         "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
         "isSpicy": false,
         "isCarb": true,
         "halalCertifiedMeat": false,
@@ -1051,7 +1089,56 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg"
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Crispy Chicken Tender Wrap",
+      "lunch_mainAlt": "",
+      "lunch_sides": "",
+      "lunch_slots": {
+        "main": {
+          "manual": "Crispy Chicken Tender Wrap",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": true,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Vegan Chik'n Tender Wrap",
+          "flags": {
+            "hasGluten": true,
+            "hasSoy": true
+          }
+        }
+      }
     },
     "MONDAY": {
       "lunch": "Vegan Chilli Cheese Dogs",
