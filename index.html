@@ -16944,11 +16944,11 @@ function initPlatingPreview() {
   // Day/week tabs — only show in browse mode
   if (psWhen === 'browse') {
     dayTabs.innerHTML = PS_DAYS.map((d,i) =>
-      `<div class="ps-tab${d===psDay?' active':''}" style="padding:5px 10px;" onclick="psDay='${d}';renderPlatingPreview();">${PS_DAY_SHORT[i]}</div>`
+      `<div class="ps-tab${d===psDay?' active':''}" style="padding:5px 10px;" onclick="psDay='${d}';initPlatingPreview();">${PS_DAY_SHORT[i]}</div>`
     ).join('') +
     `<span style="margin-left:6px;display:flex;gap:4px;">` +
     [1,2,3,4].map(w =>
-      `<div class="ps-tab${w===psWeek?' active':''}" style="padding:4px 8px;font-size:10px;" onclick="psWeek=${w};renderPlatingPreview();">W${w}</div>`
+      `<div class="ps-tab${w===psWeek?' active':''}" style="padding:4px 8px;font-size:10px;" onclick="psWeek=${w};initPlatingPreview();">W${w}</div>`
     ).join('') + `</span>`;
     dayTabs.style.display = 'flex';
   } else {
