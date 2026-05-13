@@ -116,8 +116,8 @@
         "hasCorn": false
       },
       "dinner_softAlt": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
-      "lunch": "Halal Sausages & Baked Beans, Peas and Potatoes, Peas and Potatoes",
-      "lunch_veg": "Vegan Sausages, Baked beans, Peas and Potatoes, Peas and Potatoes",
+      "lunch": "Halal Sausages & Baked Beans, Roasted Potatoes, Peas",
+      "lunch_veg": "Vegan Sausages, Baked beans, Roasted Potatoes, Peas",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -138,7 +138,7 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": true,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": false,
         "hasNightshades": false,
@@ -198,6 +198,115 @@
         "softalt": {
           "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
           "flags": {}
+        }
+      },
+      "lunch_altMeals": [
+        {
+          "text": "Mashed Potato, Baked Beans & Peas",
+          "type": "plain",
+          "flags": {
+            "hasBeans": true
+          }
+        }
+      ],
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Halal Sausages & Baked Beans",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Roasted Potatoes, Peas",
+      "lunch_slots": {
+        "main": {
+          "manual": "Halal Sausages & Baked Beans",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": true,
+            "hasBeans": true,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Vegan Sausages, Baked beans",
+          "flags": {}
+        },
+        "starch": {
+          "recipeName": "Roasted Potatoes",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "vegside": {
+          "manual": "Peas",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
         }
       }
     },
