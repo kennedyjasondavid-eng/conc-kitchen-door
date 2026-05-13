@@ -12827,8 +12827,13 @@ function parseMenuWorkbook(wb) {
         const mealLower = (day[p] || '').toLowerCase();
         if (/\bpork\b|\bham\b|\bpepperoni\b|\bbacon\b/.test(mealLower) && !/turkey bacon/.test(mealLower)) flags.hasPork = true;
         if (/\bbeef\b|\bmeatloaf\b|\bstrogonoff\b/.test(mealLower)) flags.hasBeef = true;
+        if (/\bchicken\b/.test(mealLower)) flags.hasChicken = true;
+        if (/\bturkey\b/.test(mealLower)) flags.hasTurkey = true;
         if (/\bfish\b|\btuna\b/.test(mealLower)) flags.hasFish = true;
         if (/\bpasta\b|\bnoodle/.test(mealLower) && !mealLower.includes(',')) flags.isCarb = true;
+        // Auto-flag halal-certified meals so the routing engine doesn't generate
+        // a redundant "Halal alternative — [same meal]" section.
+        if (/^halal\s/i.test(day[p] || '')) flags.halalCertifiedMeat = true;
         day[p + '_flags'] = flags;
       });
       weekData[dayName] = day;
@@ -16104,7 +16109,20 @@ function computePlatingData(period, weekNum, dayName) {
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
   const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || '';
-  const mealFlags   = dayData[period+'_flags'] || {};
+  // Clone so runtime augmentation doesn't mutate the source-of-truth flag
+  // object that getMenuData() returns by reference.
+  const mealFlags   = {...(dayData[period+'_flags'] || {})};
+
+  // Smart defaults from meal name — only set, never clear. Catches gaps the
+  // parser's allergen-row scrape misses (chicken/turkey not auto-detected;
+  // halal-certified meals not flagged) without overriding explicit user edits.
+  const _mealLowerForDetect = (mealName || '').toLowerCase();
+  const _mainLowerForDetect = (mealMainItem || dayData[period] || '').toLowerCase();
+  if (!mealFlags.halalCertifiedMeat && /^halal\s/i.test(_mainLowerForDetect)) {
+    mealFlags.halalCertifiedMeat = true;
+  }
+  if (!mealFlags.hasChicken && /\bchicken\b/.test(_mealLowerForDetect)) mealFlags.hasChicken = true;
+  if (!mealFlags.hasTurkey && /\bturkey\b/.test(_mealLowerForDetect)) mealFlags.hasTurkey = true;
 
   // Allergen string — flags-first, fallback to hardcoded
   const menuEdit = typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
@@ -16114,7 +16132,17 @@ function computePlatingData(period, weekNum, dayName) {
     : (dayData['allergens_'+period] || '').toUpperCase();
   const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
   const vegAllergenLookup = typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '';
-  const vegAllergenStr = vegAllergenStored || vegAllergenLookup || null;
+  // Safe fallback: when neither override nor recipe-DB lookup tells us what's
+  // in the veg alt, derive from the main meal's flags minus protein flags.
+  // The Reno xlsx and similar layouts share one Allergens row between meat
+  // and veg versions of the same dish, so non-protein allergens (egg/dairy/
+  // gluten/etc.) almost always carry over. Without this, the smart no-egg
+  // routing fails open and No Egg residents can be served eggs.
+  let vegAllergenFallback = '';
+  const _safeFlags = {...mealFlags};
+  ['hasPork','hasBeef','hasChicken','hasTurkey','hasFish','hasShellfish'].forEach(k => { _safeFlags[k] = false; });
+  vegAllergenFallback = flagsToAllergenStr(_safeFlags).toUpperCase();
+  const vegAllergenStr = vegAllergenStored || vegAllergenLookup || vegAllergenFallback || null;
 
   // Anaphylactic conflict detection
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
