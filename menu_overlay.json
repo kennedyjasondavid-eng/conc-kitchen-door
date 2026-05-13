@@ -1416,7 +1416,7 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": true,
         "hasNightshades": false,
@@ -1567,7 +1567,7 @@
             "isCarb": true,
             "halalCertifiedMeat": true,
             "hasProcessedMeat": false,
-            "hasBeans": false,
+            "hasBeans": true,
             "hasMushroom": false,
             "hasCoconut": true,
             "hasNightshades": false,
@@ -1578,18 +1578,23 @@
         "veganalt": {
           "manual": "Caribbean Chickpea Curry",
           "flags": {
-            "hasCoconut": true
+            "hasCoconut": true,
+            "hasBeans": true
           }
         },
         "starch": {
           "manual": "Naan",
           "flags": {}
-        },
-        "softalt": {
-          "manual": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
+        }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
+          "type": "plain",
           "flags": {}
         }
-      }
+      ],
+      "dinner_altMealsNone": false
     },
     "SATURDAY": {
       "dinner": "Pepperoni Pizza, Potato Wedges",
@@ -1678,6 +1683,128 @@
         "starch": {
           "manual": "Potato Wedges",
           "flags": {}
+        }
+      }
+    },
+    "THURSDAY": {
+      "dinner": "Pork Griot, Rice, Chakalaka",
+      "dinner_veg": "Citrus Tofu, Rice, Chakalaka",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": true,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Pork Griot",
+      "dinner_mainAlt": "Chicken Griot",
+      "dinner_sides": "Rice, Chakalaka",
+      "dinner_slots": {
+        "main": {
+          "recipeName": "Pork Griot",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "mainalt": {
+          "recipeName": "Chicken Griot",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Citrus Tofu",
+          "flags": {
+            "hasSoy": true
+          }
+        },
+        "starch": {
+          "manual": "Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Chakalaka",
+          "flags": {
+            "hasBrassicas": true
+          }
         }
       }
     }
