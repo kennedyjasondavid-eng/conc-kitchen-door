@@ -8316,16 +8316,24 @@ function updateDailyImportPrompt() {
       `<button class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;" onclick="openUploadDialog()">Re-import</button>` +
       `</div>${statusLine}</div>`;
   } else {
-    el.innerHTML = `<div style="padding:14px 16px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;">` +
+    const _dk = document.documentElement.getAttribute('data-theme')==='dark';
+    const _bg = _dk ? '#2a2520' : '#fef3c7';
+    const _bd = _dk ? '#5c4d30' : '#f59e0b';
+    const _title = _dk ? '#d4a040' : '#92400e';
+    const _btnBg = _dk ? '#8a6d20' : '#f59e0b';
+    const _btn2Bg = _dk ? '#2a2520' : '#fff';
+    const _btn2Bd = _dk ? '#5c4d30' : '#fcd34d';
+    const _sub = _dk ? '#a08050' : '#b45309';
+    el.innerHTML = `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">` +
       `<span style="font-size:18px">&#x2261;</span>` +
-      `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:#92400e;">Start today's update</div></div>` +
+      `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:${_title};">Start today's update</div></div>` +
       `</div>` +
       `<div style="display:flex;gap:10px;">` +
-      `<button class="btn btn-sm" style="background:#f59e0b;color:#fff;flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">&#x2191; Import Daily Meal List</button>` +
-      `<button class="btn btn-sm" style="background:#fff;color:#92400e;border:1px solid #fcd34d;flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">&#x270E; Enter Changes Manually</button>` +
+      `<button class="btn btn-sm" style="background:${_btnBg};color:#fff;flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">&#x2191; Import Daily Meal List</button>` +
+      `<button class="btn btn-sm" style="background:${_btn2Bg};color:${_title};border:1px solid ${_btn2Bd};flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">&#x270E; Enter Changes Manually</button>` +
       `</div>` +
-      `<div style="font-size:11px;color:#b45309;margin-top:8px;">Import the meal list to catch roster changes automatically, or enter individual changes below.</div>` +
+      `<div style="font-size:11px;color:${_sub};margin-top:8px;">Import the meal list to catch roster changes automatically, or enter individual changes below.</div>` +
       `</div>`;
   }
 }
