@@ -2424,7 +2424,7 @@
     },
     "SATURDAY": {
       "lunch": "Lime-Spiced Chicken Legs, Garlic Bread, Seasonal Veg",
-      "lunch_veg": "Roasted Veg and Tofu Medley, Tumeric Quinoa, Garlic Bread, Seasonal Veg",
+      "lunch_veg": "Roasted Veg and Tofu Medley, Garlic Bread, Seasonal Veg",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -2436,7 +2436,7 @@
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -2448,11 +2448,72 @@
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg"
+      "lunch_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Lime-Spiced Chicken Legs",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Garlic Bread, Seasonal Veg",
+      "lunch_slots": {
+        "main": {
+          "recipeName": "Lime-Spiced Chicken Legs",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Roasted Veg and Tofu Medley",
+          "flags": {
+            "hasSoy": true,
+            "hasNightshades": true
+          }
+        },
+        "starch": {
+          "manual": "Garlic Bread",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "vegside": {
+          "manual": "Seasonal Veg",
+          "flags": {}
+        }
+      }
     },
     "WEDNESDAY": {
       "lunch": "Coronation Chicken Salad Sandwich, Chips, Fruit Cup",
