@@ -333,14 +333,71 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice"
+      "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Roasted Chicken, Stir-fried Veg & Rice",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Roast Chicken & Chickpea Shakshuka",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Couscous",
+      "dinner_slots": {
+        "main": {
+          "manual": "Roast Chicken & Chickpea Shakshuka",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": true,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Roast Tofu, Chickpea Shakshuka",
+          "flags": {
+            "hasSoy": true,
+            "hasNightshades": true,
+            "hasBeans": true
+          }
+        },
+        "starch": {
+          "manual": "Couscous",
+          "flags": {
+            "hasGluten": true
+          }
+        }
+      }
     },
     "THURSDAY": {
       "dinner": "Butter Chicken & Vegetables, Naan",
