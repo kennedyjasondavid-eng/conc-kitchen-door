@@ -2175,12 +2175,12 @@
       }
     },
     "THURSDAY": {
-      "lunch": "Chicken Schwarma & Garlic Sauce, Coleslaw. Mujadarrah Rice, Coleslaw. Mujadarrah Rice",
-      "lunch_veg": "Vegetarian Schwarma, Garlic Sauce, Coleslaw. Mujadarrah Rice, Coleslaw. Mujadarrah Rice",
+      "lunch": "Chicken Schwarma & Garlic Sauce, Mujadarrah Rice, Coleslaw",
+      "lunch_veg": "Vegetarian Schwarma, Garlic Sauce, Mujadarrah Rice, Coleslaw",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": false,
+        "hasDairy": true,
+        "hasEgg": true,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -2188,14 +2188,14 @@
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
@@ -2232,7 +2232,91 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables"
+      "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Soft Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Chicken Schwarma & Garlic Sauce",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Mujadarrah Rice, Coleslaw",
+      "lunch_slots": {
+        "main": {
+          "manual": "Chicken Schwarma & Garlic Sauce",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Vegetarian Schwarma, Garlic Sauce",
+          "flags": {
+            "hasDairy": false
+          }
+        },
+        "starch": {
+          "manual": "Mujadarrah Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "recipeName": "Coleslaw",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        }
+      }
     },
     "SATURDAY": {
       "lunch": "Lime-Spiced Chicken Legs, Garlic Bread, Seasonal Veg",
