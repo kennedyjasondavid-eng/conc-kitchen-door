@@ -13609,9 +13609,15 @@ function renderEditFlagGrid(currentFlags) {
     cat.keys.forEach(key => {
       const f = FLAG_DEFS.find(fd => fd.key === key);
       if (!f) return;
+      // Saved value wins over slot-recipe auto-fill: if currentFlags has an
+      // explicit boolean (true OR false), use it. This lets the user override
+      // a recipe-DB-derived flag (e.g. uncheck Dairy on Vegan Cheese Dogs)
+      // and have it persist on re-open. Slot auto-fill only kicks in when
+      // the key isn't yet on currentFlags (fresh meals with no saved flags).
+      const hasExplicit = currentFlags && Object.prototype.hasOwnProperty.call(currentFlags, key);
       const isHalalAutoSite = key === 'halalCertifiedMeat' && _halalCertDefault;
-      const isAuto = (slotFlags[key] || isHalalAutoSite) && !(currentFlags && currentFlags[key]);
-      const checked = (currentFlags && currentFlags[key]) || slotFlags[key] || isHalalAutoSite ? 'checked' : '';
+      const isAuto = !hasExplicit && (slotFlags[key] || isHalalAutoSite);
+      const checked = (hasExplicit ? !!currentFlags[key] : (slotFlags[key] || isHalalAutoSite)) ? 'checked' : '';
       const autoTag = isAuto ? ' <span style="font-size:9px;color:var(--muted);font-style:italic;">(auto)</span>' : '';
       const carbHint = f.key==='isCarb' ? ' <span id="'+carbHintId+'" style="font-size:10px;color:var(--muted);display:none;"></span>' : '';
       h += '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;background:'+(checked?f.color+'10':'var(--cream)')+';">'
