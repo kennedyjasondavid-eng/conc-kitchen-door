@@ -16459,14 +16459,23 @@ function downloadBreakfastCombined(filename, weekA, weekB) {
 function buildPlatingXlsx(period, weekNum) {
   const wb = XLSX.utils.book_new();
   const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const errors = [];
 
   DAYS.forEach(dayName => {
-    const result = buildDaySheet(period, weekNum, dayName);
-    if (result) {
-      XLSX.utils.book_append_sheet(wb, result.ws, result.tabName);
+    try {
+      const result = buildDaySheet(period, weekNum, dayName);
+      if (result) XLSX.utils.book_append_sheet(wb, result.ws, result.tabName);
+    } catch (e) {
+      // One bad day shouldn't kill the whole week download. Log it and move on.
+      errors.push({ day: dayName, msg: String(e && e.message || e) });
+      console.error('[buildPlatingXlsx] ' + dayName + ' build failed:', e);
     }
   });
 
+  if (errors.length) {
+    console.warn('[buildPlatingXlsx] skipped ' + errors.length + ' day(s) in W' +
+      weekNum + ' ' + period + ':', errors);
+  }
   return wb.SheetNames.length ? wb : null;
 }
 
