@@ -588,6 +588,95 @@
     }
   },
   "2": {
+    "TUESDAY": {
+      "lunch": "Fully Loaded Sausage on a Bun, Side Salad",
+      "lunch_veg": "Quinoa Cake Wrap, Hot Dog Bun, Side Salad",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": true,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Fully Loaded Sausage on a Bun",
+      "lunch_mainAlt": "Fully Loaded Halal Sausage on a Bun",
+      "lunch_sides": "Side Salad",
+      "lunch_slots": {
+        "main": {
+          "manual": "Fully Loaded Sausage on a Bun",
+          "flags": {
+            "hasDairy": false,
+            "hasGluten": true,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": true,
+            "hasSulphites": false
+          }
+        },
+        "mainalt": {
+          "manual": "Fully Loaded Halal Sausage on a Bun",
+          "flags": {
+            "hasGluten": true,
+            "hasMustard": true
+          }
+        },
+        "veganalt": {
+          "manual": "Quinoa Cake Wrap, Hot Dog Bun",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "vegside": {
+          "manual": "Side Salad",
+          "flags": {}
+        }
+      }
+    },
     "SUNDAY": {
       "lunch": "Philly Cheese Melt, Chips,  Fruit",
       "lunch_veg": "Vegan Mushroom Sandwich, Chips,  Fruit",
@@ -698,181 +787,6 @@
         }
       }
     },
-    "MONDAY": {
-      "dinner": "African Peanut Chicken Stew, Rice, Seasonal Vegetables",
-      "dinner_veg": "African Chickpea Peanut Stew, Rice, Seasonal Vegetables",
-      "dinner_flags": {
-        "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": true,
-        "hasSoy": false,
-        "hasTreeNuts": true,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": true,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": true,
-        "hasTurkey": false,
-        "isSpicy": true,
-        "isCarb": true,
-        "halalCertifiedMeat": true,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": true,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "dinner_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
-      "dinner_noPorkAlt": "",
-      "dinner_mainItem": "African Peanut Chicken Stew",
-      "dinner_mainAlt": "",
-      "dinner_sides": "Rice, Seasonal Vegetables",
-      "dinner_slots": {
-        "main": {
-          "manual": "African Peanut Chicken Stew",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": true,
-            "hasSoy": false,
-            "hasTreeNuts": true,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": true,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "isSpicy": true,
-            "isCarb": true,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": true,
-            "hasNightshades": false,
-            "hasBrassicas": false,
-            "hasCorn": false
-          }
-        },
-        "veganalt": {
-          "manual": "African Chickpea Peanut Stew",
-          "flags": {
-            "hasCoconut": true
-          }
-        },
-        "starch": {
-          "manual": "Rice",
-          "flags": {}
-        },
-        "vegside": {
-          "manual": "Seasonal Vegetables",
-          "flags": {}
-        },
-        "softalt": {
-          "manual": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
-          "flags": {}
-        }
-      }
-    },
-    "TUESDAY": {
-      "lunch": "Fully Loaded Sausage on a Bun, Side Salad",
-      "lunch_veg": "Quinoa Cake Wrap, Hot Dog Bun, Side Salad",
-      "lunch_flags": {
-        "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": true,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": true,
-        "hasBeef": false,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": false,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "lunch_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "lunch_altMealsNone": false,
-      "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Fully Loaded Sausage on a Bun",
-      "lunch_mainAlt": "Fully Loaded Halal Sausage on a Bun",
-      "lunch_sides": "Side Salad",
-      "lunch_slots": {
-        "main": {
-          "manual": "Fully Loaded Sausage on a Bun",
-          "flags": {
-            "hasDairy": false,
-            "hasGluten": true,
-            "hasPork": true,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "hasFish": false,
-            "hasEgg": false,
-            "hasPeanuts": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false,
-            "hasTreeNuts": false,
-            "hasShellfish": false,
-            "hasMustard": true,
-            "hasSulphites": false
-          }
-        },
-        "mainalt": {
-          "manual": "Fully Loaded Halal Sausage on a Bun",
-          "flags": {
-            "hasGluten": true,
-            "hasMustard": true
-          }
-        },
-        "veganalt": {
-          "manual": "Quinoa Cake Wrap, Hot Dog Bun",
-          "flags": {
-            "hasGluten": true
-          }
-        },
-        "vegside": {
-          "manual": "Side Salad",
-          "flags": {}
-        }
-      }
-    },
     "WEDNESDAY": {
       "lunch": "Coronation Chicken Salad Sandwich, Fruit",
       "lunch_veg": "Roasted Vegetable Sandwich, Fruit",
@@ -958,9 +872,185 @@
           "flags": {}
         }
       }
+    },
+    "MONDAY": {
+      "dinner": "African Peanut Chicken Stew, Rice, Seasonal Vegetables",
+      "dinner_veg": "African Chickpea Peanut Stew, Rice, Seasonal Vegetables",
+      "dinner_flags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": true,
+        "hasSoy": false,
+        "hasTreeNuts": true,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "African Peanut Chicken Stew",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Rice, Seasonal Vegetables",
+      "dinner_slots": {
+        "main": {
+          "manual": "African Peanut Chicken Stew",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": true,
+            "hasSoy": false,
+            "hasTreeNuts": true,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": true,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "African Chickpea Peanut Stew",
+          "flags": {
+            "hasCoconut": true
+          }
+        },
+        "starch": {
+          "manual": "Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Seasonal Vegetables",
+          "flags": {}
+        },
+        "softalt": {
+          "manual": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
+          "flags": {}
+        }
+      }
     }
   },
   "3": {
+    "SATURDAY": {
+      "dinner": "Pepperoni Pizza, Potato Wedges",
+      "dinner_veg": "Vegetarian Pizza, Potato Wedges",
+      "dinner_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Pepperoni Pizza",
+      "dinner_mainAlt": "Halal Pizza",
+      "dinner_sides": "Potato Wedges",
+      "dinner_slots": {
+        "main": {
+          "manual": "Pepperoni Pizza",
+          "flags": {
+            "hasDairy": true,
+            "hasGluten": true,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": false,
+            "hasSulphites": false
+          }
+        },
+        "mainalt": {
+          "manual": "Halal Pizza",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true
+          }
+        },
+        "veganalt": {
+          "manual": "Vegetarian Pizza",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true
+          }
+        },
+        "starch": {
+          "manual": "Potato Wedges",
+          "flags": {}
+        }
+      }
+    },
     "FRIDAY": {
       "lunch": "Nigerian Fish, Coconut Rice, Seasonal Veg",
       "lunch_veg": "Nigerian Tofu, Coconut Rice, Seasonal Veg",
@@ -1596,96 +1686,6 @@
       ],
       "dinner_altMealsNone": false
     },
-    "SATURDAY": {
-      "dinner": "Pepperoni Pizza, Potato Wedges",
-      "dinner_veg": "Vegetarian Pizza, Potato Wedges",
-      "dinner_flags": {
-        "hasGluten": true,
-        "hasDairy": true,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": true,
-        "hasBeef": false,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": true,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
-      "dinner_noPorkAlt": "",
-      "dinner_mainItem": "Pepperoni Pizza",
-      "dinner_mainAlt": "Halal Pizza",
-      "dinner_sides": "Potato Wedges",
-      "dinner_slots": {
-        "main": {
-          "manual": "Pepperoni Pizza",
-          "flags": {
-            "hasDairy": true,
-            "hasGluten": true,
-            "hasPork": true,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "hasFish": false,
-            "hasEgg": false,
-            "hasPeanuts": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false,
-            "hasTreeNuts": false,
-            "hasShellfish": false,
-            "hasMustard": false,
-            "hasSulphites": false
-          }
-        },
-        "mainalt": {
-          "manual": "Halal Pizza",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": true
-          }
-        },
-        "veganalt": {
-          "manual": "Vegetarian Pizza",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": true
-          }
-        },
-        "starch": {
-          "manual": "Potato Wedges",
-          "flags": {}
-        }
-      }
-    },
     "THURSDAY": {
       "dinner": "Pork Griot, Rice, Chakalaka",
       "dinner_veg": "Citrus Tofu, Rice, Chakalaka",
@@ -1808,10 +1808,259 @@
             "hasNightshades": true
           }
         }
+      },
+      "lunch": "Chicken Burger, Tomato Cucumber Salad",
+      "lunch_veg": "Quinoa Burger, Burger Bun, Tomato Cucumber Salad",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_softAlt": "",
+      "lunch_altMeals": [],
+      "lunch_altMealsNone": true,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Chicken Burger",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Tomato Cucumber Salad",
+      "lunch_slots": {
+        "main": {
+          "manual": "Chicken Burger",
+          "flags": {
+            "hasDairy": true,
+            "hasGluten": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": false,
+            "hasSulphites": false
+          }
+        },
+        "veganalt": {
+          "manual": "Quinoa Burger, Burger Bun",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Tomato Cucumber Salad",
+          "flags": {}
+        }
       }
     }
   },
   "4": {
+    "TUESDAY": {
+      "lunch": "Fully Loaded Sausage on a Bun, Side Salad",
+      "lunch_veg": "Quinoa Cake Wrap, Hot Dog Bun, Side Salad",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": true,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Fully Loaded Sausage on a Bun",
+      "lunch_mainAlt": "Fully Loaded Halal Sausage on a Bun",
+      "lunch_sides": "Side Salad",
+      "lunch_slots": {
+        "main": {
+          "manual": "Fully Loaded Sausage on a Bun",
+          "flags": {
+            "hasDairy": false,
+            "hasGluten": true,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": true,
+            "hasSulphites": false
+          }
+        },
+        "mainalt": {
+          "manual": "Fully Loaded Halal Sausage on a Bun",
+          "flags": {
+            "hasGluten": true,
+            "hasMustard": true
+          }
+        },
+        "veganalt": {
+          "manual": "Quinoa Cake Wrap, Hot Dog Bun",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "vegside": {
+          "manual": "Side Salad",
+          "flags": {}
+        }
+      }
+    },
+    "WEDNESDAY": {
+      "lunch": "Coronation Chicken Salad Sandwich, Chips, Fruit Cup",
+      "lunch_veg": "Roasted Vegetable Sandwich, Chips, Fruit Cup",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": true,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Coronation Chicken Salad Sandwich",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Chips, Fruit Cup",
+      "lunch_slots": {
+        "main": {
+          "manual": "Coronation Chicken Salad Sandwich",
+          "flags": {
+            "hasDairy": false,
+            "hasGluten": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": true,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": false,
+            "hasSulphites": false,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
+          }
+        },
+        "veganalt": {
+          "manual": "Roasted Vegetable Sandwich",
+          "flags": {}
+        },
+        "starch": {
+          "manual": "Chips",
+          "flags": {}
+        },
+        "xtra": {
+          "manual": "Fruit Cup",
+          "flags": {}
+        }
+      }
+    },
     "FRIDAY": {
       "dinner": "Tandoori Pork, Vegetable Briyani",
       "dinner_veg": "Tandoori Tofu, Vegetable Briyani, Vegetable Briyani",
@@ -1953,95 +2202,6 @@
           "flags": {
             "hasNightshades": true
           }
-        }
-      }
-    },
-    "TUESDAY": {
-      "lunch": "Fully Loaded Sausage on a Bun, Side Salad",
-      "lunch_veg": "Quinoa Cake Wrap, Hot Dog Bun, Side Salad",
-      "lunch_flags": {
-        "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": true,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": true,
-        "hasBeef": false,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": false,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "lunch_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "lunch_altMealsNone": false,
-      "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Fully Loaded Sausage on a Bun",
-      "lunch_mainAlt": "Fully Loaded Halal Sausage on a Bun",
-      "lunch_sides": "Side Salad",
-      "lunch_slots": {
-        "main": {
-          "manual": "Fully Loaded Sausage on a Bun",
-          "flags": {
-            "hasDairy": false,
-            "hasGluten": true,
-            "hasPork": true,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "hasFish": false,
-            "hasEgg": false,
-            "hasPeanuts": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false,
-            "hasTreeNuts": false,
-            "hasShellfish": false,
-            "hasMustard": true,
-            "hasSulphites": false
-          }
-        },
-        "mainalt": {
-          "manual": "Fully Loaded Halal Sausage on a Bun",
-          "flags": {
-            "hasGluten": true,
-            "hasMustard": true
-          }
-        },
-        "veganalt": {
-          "manual": "Quinoa Cake Wrap, Hot Dog Bun",
-          "flags": {
-            "hasGluten": true
-          }
-        },
-        "vegside": {
-          "manual": "Side Salad",
-          "flags": {}
         }
       }
     },
@@ -2716,94 +2876,6 @@
         },
         "vegside": {
           "manual": "Seasonal Veg",
-          "flags": {}
-        }
-      }
-    },
-    "WEDNESDAY": {
-      "lunch": "Coronation Chicken Salad Sandwich, Chips, Fruit Cup",
-      "lunch_veg": "Roasted Vegetable Sandwich, Chips, Fruit Cup",
-      "lunch_flags": {
-        "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": true,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": true,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": false,
-        "halalCertifiedMeat": true,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "lunch_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "lunch_altMealsNone": false,
-      "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Coronation Chicken Salad Sandwich",
-      "lunch_mainAlt": "",
-      "lunch_sides": "Chips, Fruit Cup",
-      "lunch_slots": {
-        "main": {
-          "manual": "Coronation Chicken Salad Sandwich",
-          "flags": {
-            "hasDairy": false,
-            "hasGluten": true,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "hasFish": false,
-            "hasEgg": true,
-            "hasPeanuts": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false,
-            "hasTreeNuts": false,
-            "hasShellfish": false,
-            "hasMustard": false,
-            "hasSulphites": false,
-            "hasSoy": false,
-            "hasSesame": false,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": false
-          }
-        },
-        "veganalt": {
-          "manual": "Roasted Vegetable Sandwich",
-          "flags": {}
-        },
-        "starch": {
-          "manual": "Chips",
-          "flags": {}
-        },
-        "xtra": {
-          "manual": "Fruit Cup",
           "flags": {}
         }
       }
