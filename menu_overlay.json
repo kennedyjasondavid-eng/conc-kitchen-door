@@ -2190,6 +2190,82 @@
           "manual": "Broccoli",
           "flags": {}
         }
+      },
+      "lunch": "Pork Souvlaki & Tzatziki, Naan, Seasonal Vegetables",
+      "lunch_veg": "Black Bean Patty, Tzatziki, Naan, Seasonal Vegetables",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
+      "lunch_noPorkAlt": "",
+      "lunch_mainItem": "Pork Souvlaki & Tzatziki",
+      "lunch_mainAlt": "",
+      "lunch_sides": "Naan, Seasonal Vegetables",
+      "lunch_slots": {
+        "main": {
+          "manual": "Pork Souvlaki & Tzatziki",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasPork": true,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "hasSesame": false,
+            "hasSoy": false,
+            "hasBeef": false,
+            "isSpicy": false,
+            "isCarb": true
+          }
+        },
+        "veganalt": {
+          "manual": "Black Bean Patty, Tzatziki",
+          "flags": {
+            "hasBeans": true
+          }
+        },
+        "starch": {
+          "manual": "Naan",
+          "flags": {
+            "hasGluten": true
+          }
+        },
+        "vegside": {
+          "manual": "Seasonal Vegetables",
+          "flags": {}
+        }
       }
     },
     "MONDAY": {
