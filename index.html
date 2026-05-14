@@ -8421,6 +8421,23 @@ async function pullSecondaryState(repo) {
       Object.keys(d).forEach(wk => { merged[wk] = Object.assign({}, local[wk]||{}, d[wk]); });
       localStorage.setItem('concMenuBase', JSON.stringify(merged));
     }],
+    ['menu_current.json',    d => {
+      // The file shape is { _meta: {...}, menu: {...} }; localStorage stores
+      // just the menu object under concUploadedMenu. Replace local with file
+      // only when the file is newer than our last local upload — otherwise a
+      // user who just re-uploaded would have their fresh data wiped by an
+      // older cloud copy. Without this pull, a fresh browser/device only
+      // sees the hardcoded MENU_DATA constant until someone re-uploads.
+      if (!d || !d.menu) return;
+      const localTs = parseInt(localStorage.getItem('concUploadedMenuTimestamp') || '0', 10);
+      const fileTs = d._meta && d._meta.exported ? new Date(d._meta.exported).getTime() : 0;
+      const hasLocal = !!localStorage.getItem('concUploadedMenu');
+      if (!hasLocal || (fileTs && fileTs > localTs)) {
+        localStorage.setItem('concUploadedMenu', JSON.stringify(d.menu));
+        if (fileTs) localStorage.setItem('concUploadedMenuTimestamp', String(fileTs));
+        console.warn('[GH] pulled menu_current.json from cloud (file ts: ' + (d._meta && d._meta.exported) + ')');
+      }
+    }],
     ['custom_tag_rules.json', d => {
       if (!Array.isArray(d)) return;
       const local = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
@@ -11634,6 +11651,9 @@ function loadUploadedMenu() {
 }
 function saveUploadedMenu(obj) {
   localStorage.setItem('concUploadedMenu', JSON.stringify(obj));
+  // Track when this session's upload happened so the cloud-pull sync can
+  // tell whether the file on GitHub is newer than what's in localStorage.
+  localStorage.setItem('concUploadedMenuTimestamp', String(Date.now()));
 }
 function clearUploadedMenu() {
   localStorage.removeItem('concUploadedMenu');
@@ -15904,6 +15924,25 @@ initDynamic();
         const merged = Object.assign({}, local);
         Object.keys(remote).forEach(wk => { merged[wk] = Object.assign({}, local[wk]||{}, remote[wk]); });
         localStorage.setItem('concMenuBase', JSON.stringify(merged));
+      }).catch(() => {});
+
+    // menu_current.json — pull the canonical menu so a fresh browser/device
+    // doesn't fall back to the hardcoded MENU_DATA constant. Use _meta.exported
+    // as the freshness signal: only overwrite local when the cloud copy is
+    // newer than this session's last upload, so a fresh local upload isn't
+    // wiped by a stale cloud copy.
+    fetch(base + 'menu_current.json' + bust)
+      .then(r => r.ok ? r.json() : null)
+      .then(remote => {
+        if (!remote || !remote.menu) return;
+        const localTs = parseInt(localStorage.getItem('concUploadedMenuTimestamp') || '0', 10);
+        const fileTs = remote._meta && remote._meta.exported ? new Date(remote._meta.exported).getTime() : 0;
+        const hasLocal = !!localStorage.getItem('concUploadedMenu');
+        if (!hasLocal || (fileTs && fileTs > localTs)) {
+          localStorage.setItem('concUploadedMenu', JSON.stringify(remote.menu));
+          if (fileTs) localStorage.setItem('concUploadedMenuTimestamp', String(fileTs));
+          console.warn('[GH] pulled menu_current.json from cloud (file ts: ' + (remote._meta && remote._meta.exported) + ')');
+        }
       }).catch(() => {});
 
     // Hydration gate: arm _ghHydrated after boot fetches have had time to settle, or 5s fallback.
