@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T00:00:35.079Z",
+    "exported": "2026-05-14T00:06:41.178Z",
     "version": 30
   },
   "menu": {
@@ -2254,7 +2254,7 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": true,
@@ -2292,19 +2292,19 @@
               "hasMustard": false,
               "hasShellfish": false,
               "hasSulphites": true,
-              "hasPork": false,
+              "hasPork": true,
               "hasBeef": false,
-              "hasChicken": false,
+              "hasChicken": true,
               "hasTurkey": false,
               "isSpicy": true,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
               "hasCoconut": false,
               "hasNightshades": true,
-              "hasBrassicas": false,
+              "hasBrassicas": true,
               "hasCorn": false
             }
           },
@@ -2351,7 +2351,9 @@
           "vegside": {
             "manual": "Chakalaka",
             "flags": {
-              "hasBrassicas": true
+              "hasBrassicas": false,
+              "hasBeans": true,
+              "hasNightshades": true
             }
           }
         }
