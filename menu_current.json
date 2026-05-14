@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T09:22:49.127Z",
+    "exported": "2026-05-14T09:30:02.557Z",
     "version": 30
   },
   "menu": {
@@ -3414,11 +3414,11 @@
           "hasSulphites": false,
           "hasPork": true,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
-          "halalCertifiedMeat": false,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
@@ -3556,13 +3556,13 @@
         "lunch_altMealsNone": false,
         "lunch_noPorkAlt": "",
         "lunch_mainItem": "Pork Souvlaki & Tzatziki",
-        "lunch_mainAlt": "",
+        "lunch_mainAlt": "Chicken Souvlaki & Tzatziki",
         "lunch_sides": "Naan, Seasonal Vegetables",
         "lunch_slots": {
           "main": {
             "manual": "Pork Souvlaki & Tzatziki",
             "flags": {
-              "hasGluten": true,
+              "hasGluten": false,
               "hasDairy": true,
               "hasPork": true,
               "hasFish": false,
@@ -3572,7 +3572,28 @@
               "hasSoy": false,
               "hasBeef": false,
               "isSpicy": false,
-              "isCarb": true
+              "isCarb": true,
+              "hasTreeNuts": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "mainalt": {
+            "manual": "Chicken Souvlaki & Tzatziki",
+            "flags": {
+              "hasDairy": true,
+              "hasChicken": true
             }
           },
           "veganalt": {
@@ -3826,30 +3847,34 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "dinner": "BBQ Chicken Leg, Herb and Garlic Potatoes, Seasonal Veg",
-        "dinner_veg": "BBQ Chik'n Tenders, Herb Garlic Potatoes, Seasonal Veg, Sweet Potato, Peas & Carrot",
+        "dinner": "BBQ Chicken Legs, Herb and Garlic Potatoes, Seasonal Veg",
+        "dinner_veg": "BBQ Chik'n Tenders, Herb and Garlic Potatoes, Seasonal Veg",
         "dinner_flags": {
-          "hasDairy": false,
           "hasGluten": false,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
-          "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isSpicy": true,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
@@ -3906,6 +3931,67 @@
           },
           "vegside": {
             "manual": "Side Salad",
+            "flags": {}
+          }
+        },
+        "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "BBQ Chicken Legs",
+        "dinner_mainAlt": "",
+        "dinner_sides": "Herb and Garlic Potatoes, Seasonal Veg",
+        "dinner_slots": {
+          "main": {
+            "recipeName": "BBQ Chicken Legs",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "BBQ Chik'n Tenders",
+            "flags": {
+              "hasNightshades": true,
+              "hasGluten": true,
+              "hasSoy": true
+            }
+          },
+          "starch": {
+            "manual": "Herb and Garlic Potatoes",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Seasonal Veg",
             "flags": {}
           }
         }
