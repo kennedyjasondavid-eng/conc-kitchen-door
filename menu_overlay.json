@@ -1683,9 +1683,15 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "",
-      "dinner_altMeals": [],
-      "dinner_altMealsNone": true,
+      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
       "dinner_mainItem": "Halal Beef Meatballs Pasta",
       "dinner_mainAlt": "",
@@ -1714,7 +1720,11 @@
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": true,
-            "hasSulphites": false
+            "hasSulphites": false,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
           }
         },
         "veganalt": {
