@@ -1862,7 +1862,7 @@
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1904,18 +1904,18 @@
         },
         "veganalt": {
           "manual": "Roasted Portobello Mushrooms",
-          "flags": {}
+          "flags": {
+            "hasMushroom": true
+          }
         },
         "starch": {
           "manual": "Morrocan Rice",
-          "flags": {}
+          "flags": {
+            "hasNightshades": true
+          }
         },
         "vegside": {
           "manual": "Seasonal Vegetables",
-          "flags": {}
-        },
-        "softalt": {
-          "manual": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
           "flags": {}
         }
       },
@@ -1950,7 +1950,15 @@
             "hasSoy": true
           }
         }
-      }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false
     },
     "SUNDAY": {
       "lunch": "Coronation Chicken Salad Sandwich",
