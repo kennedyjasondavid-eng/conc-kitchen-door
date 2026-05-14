@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-13T23:59:14.308Z",
+    "exported": "2026-05-14T00:00:35.079Z",
     "version": 30
   },
   "menu": {
@@ -2662,8 +2662,8 @@
         "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, egg, dairy,",
-        "lunch": "Pork Souvlaki, Naan, Seasonal Vegetables, Tzatziki",
-        "lunch_veg": "Black bean patty, Naan, Seasonal Vegetables,Tzatziki",
+        "lunch": "Pork Souvlaki & Tzatziki, Naan, Seasonal Vegetables",
+        "lunch_veg": "Black Bean Patty, Tzatziki, Naan, Seasonal Vegetables",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "pork, gluten, dairy",
         "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
@@ -2700,15 +2700,29 @@
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
-          "hasPork": true,
-          "hasFish": false,
           "hasEgg": false,
+          "hasFish": false,
           "hasPeanuts": false,
-          "hasSesame": false,
           "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
+          "hasPork": true,
           "hasBeef": false,
+          "hasChicken": false,
+          "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true
+          "isCarb": true,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner_flags": {
           "hasGluten": true,
@@ -2737,8 +2751,8 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "Pork Souvlaki",
-        "lunch_sides": "Naan, Seasonal Vegetables, Tzatziki",
+        "lunch_mainItem": "Pork Souvlaki & Tzatziki",
+        "lunch_sides": "Naan, Seasonal Vegetables",
         "dinner_mainItem": "White Chilli Chicken Pasta Casserole",
         "dinner_sides": "Broccoli",
         "breakfast_mainItem": "Turkey Breakfast Sandwich",
@@ -2823,6 +2837,50 @@
           },
           "vegside": {
             "manual": "Broccoli",
+            "flags": {}
+          }
+        },
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Pork Souvlaki & Tzatziki",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasPork": true,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "hasSesame": false,
+              "hasSoy": false,
+              "hasBeef": false,
+              "isSpicy": false,
+              "isCarb": true
+            }
+          },
+          "veganalt": {
+            "manual": "Black Bean Patty, Tzatziki",
+            "flags": {
+              "hasBeans": true
+            }
+          },
+          "starch": {
+            "manual": "Naan",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Seasonal Vegetables",
             "flags": {}
           }
         }
