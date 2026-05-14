@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T09:17:10.703Z",
+    "exported": "2026-05-14T09:18:12.758Z",
     "version": 30
   },
   "menu": {
@@ -2677,9 +2677,15 @@
             }
           }
         },
-        "lunch_softAlt": "",
-        "lunch_altMeals": [],
-        "lunch_altMealsNone": true,
+        "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
         "lunch_noPorkAlt": "",
         "lunch_mainItem": "Chicken Burger",
         "lunch_mainAlt": "",
@@ -2703,7 +2709,7 @@
               "hasMushroom": false,
               "hasBrassicas": false,
               "hasCorn": false,
-              "hasNightshades": false,
+              "hasNightshades": true,
               "hasBeans": false,
               "hasTreeNuts": false,
               "hasShellfish": false,
@@ -3709,29 +3715,33 @@
           "hasCorn": false
         },
         "dinner": "Beef and Vegetable Stew, Potatoes",
-        "dinner_veg": "Vegan Pot Pie and Vegetable Medley, Potato",
+        "dinner_veg": "Vegan Pot Pie and Vegetable Medley, Potatoes",
         "dinner_flags": {
+          "hasGluten": true,
           "hasDairy": false,
-          "hasGluten": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
@@ -3787,6 +3797,61 @@
           },
           "xtra": {
             "manual": "Fruit Cup",
+            "flags": {}
+          }
+        },
+        "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "Beef and Vegetable Stew",
+        "dinner_mainAlt": "",
+        "dinner_sides": "Potatoes",
+        "dinner_slots": {
+          "main": {
+            "manual": "Beef and Vegetable Stew",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false,
+              "hasSoy": false,
+              "hasSesame": false,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegan Pot Pie and Vegetable Medley",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "starch": {
+            "manual": "Potatoes",
             "flags": {}
           }
         }
