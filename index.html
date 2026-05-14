@@ -14193,7 +14193,12 @@ function smSlotSearch(slotId, query) {
 function smSlotSelect(slotId, recipeName) {
   const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
   if (!recipe) return;
-  SM_SLOT_STATE[slotId] = { recipeName, flags: hubAllergenToFlags(recipe.allergens) };
+  const current = SM_SLOT_STATE[slotId];
+  const sameRecipe = current && current.recipeName === recipeName;
+  SM_SLOT_STATE[slotId] = {
+    recipeName,
+    flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(recipe.allergens),
+  };
   const dd = document.getElementById('sm-slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   renderSmSlots();
@@ -14229,7 +14234,12 @@ function slotSearch(slotId, query) {
 function slotSelect(slotId, recipeName) {
   const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
   if (!recipe) return;
-  MEAL_SLOT_STATE[slotId] = { recipeName, flags: hubAllergenToFlags(recipe.allergens) };
+  const current = MEAL_SLOT_STATE[slotId];
+  const sameRecipe = current && current.recipeName === recipeName;
+  MEAL_SLOT_STATE[slotId] = {
+    recipeName,
+    flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(recipe.allergens),
+  };
   const dd = document.getElementById('slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   renderSlots();
@@ -14251,18 +14261,22 @@ function slotAutoSave(slotId, val) {
   const current = MEAL_SLOT_STATE[slotId];
   // Don't overwrite a recipe-linked entry with the same name
   if (current && current.recipeName && current.recipeName === val) return;
-  // Try to match against DOOR_RECIPE_DATA
+  // Try to match against DOOR_RECIPE_DATA — EXACT name only. Partial/fuzzy
+  // match was removed because it silently substituted recipes the user didn't
+  // intend (typing "Couscous" → "Herbed Couscous" with its allergens). To
+  // adopt a similarly-named recipe, pick it explicitly from the dropdown.
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   const pool = def && def.cats ? recipes.filter(r => def.cats.includes(r.category)) : recipes;
-  const exact = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
-  const partial = !exact && val.length > 4 && pool.find(r =>
-    r.recipeName.toLowerCase().includes(val.toLowerCase()) ||
-    val.toLowerCase().includes(r.recipeName.toLowerCase())
-  );
-  const match = exact || partial;
+  const match = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
   if (match) {
-    MEAL_SLOT_STATE[slotId] = { recipeName: match.recipeName, flags: hubAllergenToFlags(match.allergens) };
+    // Preserve slot-level flag overrides when the same recipe is re-confirmed
+    // on a subsequent blur. A genuine recipe change resets flags.
+    const sameRecipe = current && current.recipeName === match.recipeName;
+    MEAL_SLOT_STATE[slotId] = {
+      recipeName: match.recipeName,
+      flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(match.allergens),
+    };
   } else {
     MEAL_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
   }
@@ -14280,14 +14294,14 @@ function smSlotAutoSave(slotId, val) {
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   const pool = def && def.cats ? recipes.filter(r => def.cats.includes(r.category)) : recipes;
-  const exact = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
-  const partial = !exact && val.length > 4 && pool.find(r =>
-    r.recipeName.toLowerCase().includes(val.toLowerCase()) ||
-    val.toLowerCase().includes(r.recipeName.toLowerCase())
-  );
-  const match = exact || partial;
+  // Exact match only — see slotAutoSave for rationale.
+  const match = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
   if (match) {
-    SM_SLOT_STATE[slotId] = { recipeName: match.recipeName, flags: hubAllergenToFlags(match.allergens) };
+    const sameRecipe = current && current.recipeName === match.recipeName;
+    SM_SLOT_STATE[slotId] = {
+      recipeName: match.recipeName,
+      flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(match.allergens),
+    };
   } else {
     SM_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
   }
