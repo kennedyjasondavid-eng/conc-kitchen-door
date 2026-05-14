@@ -13336,15 +13336,27 @@ function getVegAltAllergenStr(mealVeg) {
   return [...allergenSet].join(', ').toUpperCase();
 }
 
+let _LAST_SLOT_FLAGS = {};
 function updateSlotSummary() {
   const slotFlags = buildUnionFlags();
   const cbPrefix = testMealActive ? 'tm-edit-flag-' : 'mc-edit-flag-';
   FLAG_DEFS.forEach(f => {
-    if (slotFlags[f.key]) {
-      const cb = document.getElementById(cbPrefix + f.key);
-      if (cb && !cb.checked) { cb.checked = true; cb.parentElement.style.background = f.color + '10'; }
+    const cb = document.getElementById(cbPrefix + f.key);
+    if (!cb) return;
+    const wasOn = !!_LAST_SLOT_FLAGS[f.key];
+    const isOn  = !!slotFlags[f.key];
+    if (isOn && !cb.checked) {
+      // Slot newly contributes this flag → auto-check global.
+      cb.checked = true; cb.parentElement.style.background = f.color + '10';
+    } else if (wasOn && !isOn && cb.checked) {
+      // Slot used to contribute and no longer does (user toggled a slot
+      // pill off, or removed a recipe) → auto-uncheck global. Manual
+      // global flags that no slot ever contributed are unaffected because
+      // wasOn would be false for them.
+      cb.checked = false; cb.parentElement.style.background = '';
     }
   });
+  _LAST_SLOT_FLAGS = slotFlags;
   const flags = {};
   FLAG_DEFS.forEach(f => {
     const cb = document.getElementById(cbPrefix + f.key);
@@ -13453,11 +13465,11 @@ function renderSlotCard(def, ns) {
     </div>`;
   }
 
-  const chipHtml = hasValue ? (
-    state.recipeName
-      ? slotAllergenPills(state.flags)
-      : slotManualFlagRow(def.id, state.flags, ns)
-  ) : '';
+  // Both recipe-matched and manual slots get the editable flag pill row.
+  // This lets the user override recipe-DB allergens at the component level
+  // (e.g. uncheck Dairy on a "Cheese Dogs" recipe that's actually vegan
+  // cheese at this kitchen).
+  const chipHtml = hasValue ? slotManualFlagRow(def.id, state.flags, ns) : '';
 
   const currentVal = hasValue ? (state.recipeName || state.manual || '') : '';
   const matchBadge = hasValue && state.recipeName
@@ -13979,6 +13991,10 @@ function openMenuEdit(week, day, period) {
   renderEditFlagGrid(initFlags);
 
   renderSlots();
+  // Reset the transition tracker so the first updateSlotSummary on a freshly
+  // opened meal doesn't auto-uncheck flags that were carried over from the
+  // last meal's slot state.
+  _LAST_SLOT_FLAGS = {};
   updateSlotSummary();
   setTimeout(() => { const s = document.getElementById('slot-search-main'); if (s) s.focus(); }, 80);
 }
