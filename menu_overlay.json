@@ -1079,9 +1079,15 @@
         "hasBrassicas": true,
         "hasCorn": false
       },
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
       "lunch_mainAlt": "",
@@ -1091,7 +1097,7 @@
           "manual": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
           "flags": {
             "hasDairy": true,
-            "hasGluten": false,
+            "hasGluten": true,
             "hasPork": false,
             "hasBeef": true,
             "hasChicken": false,
@@ -1100,17 +1106,21 @@
             "hasEgg": false,
             "hasPeanuts": false,
             "isSpicy": false,
-            "isCarb": false,
+            "isCarb": true,
             "hasCoconut": false,
             "hasMushroom": false,
-            "hasBrassicas": false,
+            "hasBrassicas": true,
             "hasCorn": false,
             "hasNightshades": false,
             "hasBeans": true,
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": false,
-            "hasSulphites": true
+            "hasSulphites": true,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
           }
         },
         "veganalt": {
