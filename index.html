@@ -14051,6 +14051,37 @@ function appendChangeLog(entry) {
     ...entry
   });
   saveChangeLog(log);
+    // Mirror menu changes into RECENT_LOG so they appear in Recent Activity and sync to recent_log.json
+  if (typeof RECENT_LOG !== 'undefined') {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+    const dayShort = (entry.day || '').slice(0,3);
+    const dayStr = dayShort ? dayShort[0].toUpperCase()+dayShort.slice(1).toLowerCase() : '';
+    let desc = '', color = '#be185d';
+    if (entry.type === 'permanent_edit') {
+      desc = 'Edited Wk' + entry.week + ' ' + dayStr + ' ' + entry.period + ' — ' + (entry.newName || '');
+    } else if (entry.type === 'revert') {
+      desc = 'Reverted Wk' + entry.week + ' ' + dayStr + ' ' + entry.period + ' back to “' + (entry.newName || '') + '”';
+      color = '#7c3aed';
+    } else if (entry.type === 'special_meal') {
+      desc = 'Special meal “' + (entry.specialName || '') + '” on ' + (entry.date || '') + ' ' + (entry.period || '');
+      color = '#0891b2';
+    } else {
+      desc = 'Menu change (' + entry.type + ')';
+    }
+    RECENT_LOG.unshift({
+      ts: now.toISOString(),
+      date: dateStr,
+      room: '—',
+      type: 'menu_edit',
+      desc: desc,
+      color: color,
+      _real: true,
+      by: (typeof getOperatorName === 'function') ? getOperatorName() : ''
+    });
+    if (typeof saveRecentLog === 'function') saveRecentLog();
+    if (typeof renderRecentLog === 'function') renderRecentLog();
+  }
   // Phase 5: push to SharePoint here
 }
 
