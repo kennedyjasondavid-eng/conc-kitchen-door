@@ -780,6 +780,102 @@
           "manual": "Yogurt",
           "flags": {}
         }
+      },
+      "dinner": "Pork Adobo, Pineapple Rice, Green Bean",
+      "dinner_veg": "Vegetarian Adobo, Green Bean, Pineapple Rice, Green Bean",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": true,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": true
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Pork Adobo",
+      "dinner_mainAlt": "Chicken Adobo",
+      "dinner_sides": "Pineapple Rice, Green Bean",
+      "dinner_slots": {
+        "main": {
+          "manual": "Pork Adobo",
+          "flags": {
+            "hasDairy": false,
+            "hasGluten": false,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": true,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": false,
+            "hasSulphites": true,
+            "hasSoy": true
+          }
+        },
+        "mainalt": {
+          "manual": "Chicken Adobo",
+          "flags": {
+            "hasChicken": true,
+            "hasSoy": true,
+            "hasSulphites": true,
+            "hasCorn": true
+          }
+        },
+        "veganalt": {
+          "manual": "Vegetarian Adobo, Green Bean",
+          "flags": {
+            "hasSoy": true,
+            "hasCorn": true,
+            "hasSulphites": true
+          }
+        },
+        "starch": {
+          "manual": "Pineapple Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Green Bean",
+          "flags": {}
+        }
       }
     },
     "TUESDAY": {
