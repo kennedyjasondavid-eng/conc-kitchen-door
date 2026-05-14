@@ -6609,7 +6609,7 @@ let moderateActive = false;
 // previously meant a hard refresh let a stale local swap come back even after
 // the file on GitHub had been cleared. Auto-expires keys whose target date
 // has passed (the swap couldn't be triggered anymore anyway). Wraps .add()
-// so every call site auto-persists without touching the existing callers.
+// and .delete() so every call site auto-persists without touching callers.
 const REVERTED_SWAP_KEYS = (() => {
   const today = new Date().toISOString().slice(0,10);
   let initial = [];
@@ -6618,16 +6618,17 @@ const REVERTED_SWAP_KEYS = (() => {
     initial = stored.filter(k => typeof k === 'string' && k.slice(0,10) >= today);
   } catch(e) {}
   const s = new Set(initial);
-  const _add = s.add.bind(s);
-  s.add = function(k) {
-    _add(k);
+  const _persist = () => {
     try {
       const t = new Date().toISOString().slice(0,10);
       const arr = [...s].filter(x => typeof x === 'string' && x.slice(0,10) >= t);
       localStorage.setItem('concRevertedSwapKeys', JSON.stringify(arr));
     } catch(e) {}
-    return s;
   };
+  const _add = s.add.bind(s);
+  s.add = function(k) { _add(k); _persist(); return s; };
+  const _delete = s.delete.bind(s);
+  s.delete = function(k) { const r = _delete(k); _persist(); return r; };
   return s;
 })();
 
@@ -9804,7 +9805,60 @@ async function ghPushFile(repo, path, content, token) {
   return res.json();
 }
 
-async function publishToGitHub(manual) {
+// Before pushing menu_overlay.json, fetch the current cloud version and
+// add any (week, day) entries that exist there but not locally. Local
+// entries always win for days both have — the user's recent local work
+// isn't overridden by a stale cloud day. This catches the multi-device
+// scenario where another device adds a new day's edits between our pulls;
+// without it, our push would silently wipe the other device's work.
+//
+// Per-key merging within a shared day is deliberately not attempted —
+// there's no per-key timestamp to determine "newer", and the kitchen's
+// usual usage is one device at a time. Day-level union catches the
+// realistic conflict cases while being predictable enough to debug.
+async function preMergeOverlayWithCloud(repo, token, localOverlay) {
+  try {
+    const url = 'https://api.github.com/repos/' + repo + '/contents/menu_overlay.json';
+    const res = await fetch(url, { headers: { 'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json' } });
+    if (!res.ok) return localOverlay;
+    const j = await res.json();
+    const cloudText = decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,''))));
+    const cloud = JSON.parse(cloudText || '{}');
+    let added = 0;
+    const merged = JSON.parse(JSON.stringify(localOverlay));
+    for (const wk of Object.keys(cloud)) {
+      if (!merged[wk]) merged[wk] = {};
+      for (const day of Object.keys(cloud[wk])) {
+        if (!merged[wk][day]) {
+          merged[wk][day] = cloud[wk][day];
+          added++;
+        }
+      }
+    }
+    if (added > 0) {
+      console.warn('[GH] preMergeOverlayWithCloud: added ' + added + ' day-level entries from cloud that were missing locally');
+    }
+    return merged;
+  } catch(e) {
+    console.warn('[GH] preMergeOverlayWithCloud failed (' + e.message + '); pushing local as-is');
+    return localOverlay;
+  }
+}
+
+// Serialize publishToGitHub calls. Each call awaits the previous one so two
+// overlapping publishes can't race for the same file's SHA. ghPushFile still
+// has a retry-on-409 as belt-and-suspenders for any racing publish that
+// originates outside this queue (e.g., a different tab).
+let _publishQueue = Promise.resolve();
+function publishToGitHub(manual) {
+  const next = _publishQueue.then(() => _doPublishToGitHub(manual));
+  // Swallow this turn's rejection so a failure doesn't poison the chain \u2014
+  // each call's caller still sees its own rejection via the returned promise.
+  _publishQueue = next.catch(() => {});
+  return next;
+}
+
+async function _doPublishToGitHub(manual) {
   const token = appSettings['gh-token'] || (document.getElementById('gh-token')||{}).value;
   const repo  = appSettings['gh-repo']  || (document.getElementById('gh-repo')||{}).value;
   const statusEl = document.getElementById('gh-status');
@@ -9822,7 +9876,13 @@ async function publishToGitHub(manual) {
     await _push('routing_by_meal.json', JSON.stringify(buildRoutingByMealJSON(),null,2));
     await _push('door_state.json', JSON.stringify(buildStateJSON(),null,2));
     const menuOverlay = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
-    await _push('menu_overlay.json', JSON.stringify(menuOverlay,null,2));
+    const overlayToPush = await preMergeOverlayWithCloud(repo, token, menuOverlay);
+    // Reflect the merged overlay in localStorage too, so subsequent pushes
+    // and renders see the unified state. Skipped on early-return / failure.
+    if (overlayToPush !== menuOverlay) {
+      localStorage.setItem('concMenuBase', JSON.stringify(overlayToPush));
+    }
+    await _push('menu_overlay.json', JSON.stringify(overlayToPush,null,2));
     const customRules = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
     await _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
     const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
@@ -12129,6 +12189,10 @@ function applyMealSwap() {
   // Write to loadMealSwaps — date-keyed, auto-expires after the date passes
   const swaps = loadMealSwaps();
   const key = dateStr + '-' + period;
+  // If this same key was previously reverted, drop the blocklist entry —
+  // the user clearly wants this swap now, and leaving the key in
+  // REVERTED_SWAP_KEYS would cause sync to strip it on next pull.
+  REVERTED_SWAP_KEYS.delete(key);
   // Convert FLAG_DEFS-shape flags to SM_ALLERGENS-shape allergen list
   const allergens = SM_ALLERGENS.filter(a => flags[a.key]).map(a => a.key);
   swaps[key] = {
@@ -12511,12 +12575,31 @@ function findOrphanSwaps(upcomingSwaps) {
   return [...unmatched];
 }
 
+// A swap is a "no-op" when its specialName already matches the current
+// rotation meal for that date+period — typically a leftover from a Menu
+// Config slot swap whose partner was made permanent (or whose rotation got
+// edited directly afterward). The swap has nothing to actually swap, so it
+// shouldn't surface in the banner or count toward the unpaired check.
+function _isNoopSwap(swapKey, sw) {
+  try {
+    const date = swapKey.slice(0,10);
+    const period = swapKey.slice(11);
+    const d = new Date(date + 'T12:00:00');
+    const md = (typeof getMealForDate === 'function') ? getMealForDate(d) : null;
+    if (!md || !md.week || !md.day) return false;
+    const dayData = (getMenuData()[String(md.week)] || {})[md.day] || {};
+    const rotationName = dayData[period];
+    return !!(rotationName && rotationName === sw.specialName);
+  } catch(e) { return false; }
+}
+
 function renderSwapsBanner() {
   // Source of truth is loadMealSwaps (date-keyed, auto-expires).
   const swaps = loadMealSwaps();
   const today = new Date().toISOString().slice(0,10);
   const upcomingSwaps = Object.entries(swaps)
     .filter(([k]) => k.slice(0,10) >= today)
+    .filter(([k, sw]) => !_isNoopSwap(k, sw))
     .sort((a,b) => a[0].localeCompare(b[0]));
 
   const banner = document.getElementById('mc-swaps-banner');
