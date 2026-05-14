@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T09:19:45.997Z",
+    "exported": "2026-05-14T09:20:00.700Z",
     "version": 30
   },
   "menu": {
@@ -432,31 +432,87 @@
           "hasMustard": false,
           "hasSulphites": false
         },
-        "dinner": "Pork Carnitas, Spanish Rice and Vegetables",
-        "dinner_veg": "Vegetarian Carnitas, Spanish Rice and Vegetables, Spanish Rice, Broccoli",
-        "dinner_mainAlt": "Halal Chicken Carnitas",
+        "dinner": "Pork Carnitas, Spanish Rice and Vegetables, Broccoli",
+        "dinner_veg": "Vegetarian Carnitas, Spanish Rice and Vegetables, Broccoli",
+        "dinner_mainAlt": "",
         "dinner_flags": {
-          "hasDairy": false,
           "hasGluten": false,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": true,
           "hasBeef": false,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
+        },
+        "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "Pork Carnitas",
+        "dinner_sides": "Spanish Rice and Vegetables, Broccoli",
+        "dinner_slots": {
+          "main": {
+            "manual": "Pork Carnitas",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": false,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegetarian Carnitas",
+            "flags": {}
+          },
+          "starch": {
+            "manual": "Spanish Rice and Vegetables",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Broccoli",
+            "flags": {}
+          }
         }
       },
       "WEDNESDAY": {
