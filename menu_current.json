@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T09:13:07.482Z",
+    "exported": "2026-05-14T09:16:28.616Z",
     "version": 30
   },
   "menu": {
@@ -1786,30 +1786,34 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "dinner": "Halal Beef Meatballs Pasta",
-        "dinner_veg": "Vegan Meatballs Pasta, Pasta, Pea & Carrot",
+        "dinner": "Halal Beef Meatballs Pasta, Pasta, Broccoli",
+        "dinner_veg": "Vegan Meatballs Pasta, Pea & Carrot, Pasta, Broccoli",
         "dinner_flags": {
-          "hasDairy": false,
           "hasGluten": true,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": true,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
           "isCarb": true,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_softAlt": "Plain Chicken, Soft Bread & Seasonal Soup",
         "lunch_altMeals": [
@@ -1836,6 +1840,60 @@
           },
           "veganalt": {
             "manual": "Roasted Vegetable Sandwich",
+            "flags": {}
+          }
+        },
+        "dinner_softAlt": "",
+        "dinner_altMeals": [],
+        "dinner_altMealsNone": true,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "Halal Beef Meatballs Pasta",
+        "dinner_mainAlt": "",
+        "dinner_sides": "Pasta, Broccoli",
+        "dinner_slots": {
+          "main": {
+            "manual": "Halal Beef Meatballs Pasta",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": true,
+              "hasSulphites": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegan Meatballs Pasta, Pea & Carrot",
+            "flags": {
+              "hasMustard": true,
+              "hasGluten": true,
+              "hasBeans": true,
+              "hasMushroom": true
+            }
+          },
+          "starch": {
+            "manual": "Pasta",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Broccoli",
             "flags": {}
           }
         }
@@ -2295,29 +2353,33 @@
           "hasCorn": false
         },
         "dinner": "Baked Tomato Fish, Couscous, Seasonal Vegetables",
-        "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables, Broccoli",
+        "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables",
         "dinner_flags": {
-          "hasDairy": false,
           "hasGluten": true,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": true,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": true,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
@@ -2367,6 +2429,64 @@
               "hasGluten": true,
               "hasSoy": true
             }
+          }
+        },
+        "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Baked Basa, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "Baked Tomato Fish",
+        "dinner_mainAlt": "",
+        "dinner_sides": "Couscous, Seasonal Vegetables",
+        "dinner_slots": {
+          "main": {
+            "manual": "Baked Tomato Fish",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": true,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false
+            }
+          },
+          "veganalt": {
+            "manual": "Baked Tomato Tofu",
+            "flags": {
+              "hasSoy": true,
+              "hasNightshades": true
+            }
+          },
+          "starch": {
+            "manual": "Couscous",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Seasonal Vegetables",
+            "flags": {}
           }
         }
       },
@@ -2795,30 +2915,34 @@
           "hasMustard": false,
           "hasSulphites": false
         },
-        "lunch": "CONC Salad — Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
-        "lunch_veg": "CONC Salad — Vegan Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion, Naan",
+        "lunch": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion, Naan, Red Cabbage",
+        "lunch_veg": "Vegan CONC Salad — Vegan Beef, Lettuce, Beans, Carrots, Cheese, Pickled Onion, Naan, Red Cabbage",
         "lunch_flags": {
-          "hasDairy": true,
           "hasGluten": true,
+          "hasDairy": true,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
+          "hasBeans": true,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasBrassicas": true,
+          "hasCorn": false
         },
         "dinner": "Pepperoni Pizza, Potato Wedges",
         "dinner_veg": "Vegetarian Pizza, Potato Wedges",
@@ -2906,6 +3030,62 @@
           "starch": {
             "manual": "Potato Wedges",
             "flags": {}
+          }
+        },
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainItem": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
+        "lunch_mainAlt": "",
+        "lunch_sides": "Naan, Red Cabbage",
+        "lunch_slots": {
+          "main": {
+            "manual": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
+            "flags": {
+              "hasDairy": true,
+              "hasGluten": false,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": true,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": true
+            }
+          },
+          "veganalt": {
+            "manual": "Vegan CONC Salad — Vegan Beef, Lettuce, Beans, Carrots, Cheese, Pickled Onion",
+            "flags": {
+              "hasBeans": true,
+              "hasSulphites": true,
+              "hasGluten": true,
+              "hasMushroom": true
+            }
+          },
+          "starch": {
+            "manual": "Naan",
+            "flags": {
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Red Cabbage",
+            "flags": {
+              "hasBrassicas": true
+            }
           }
         }
       }
