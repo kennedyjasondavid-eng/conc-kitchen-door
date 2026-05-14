@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T09:20:00.700Z",
+    "exported": "2026-05-14T09:21:43.585Z",
     "version": 30
   },
   "menu": {
@@ -407,30 +407,34 @@
           "hasMustard": false,
           "hasSulphites": false
         },
-        "lunch": "Beef Nachos Supreme, Tortilla Chips, Sour Cream",
-        "lunch_veg": "Vegetarian Nachos Supreme, Tortilla Chips, Sour Cream, Nacho Chips",
+        "lunch": "Beef Nachos Supreme & Tortilla Chips & Sour Cream",
+        "lunch_veg": "Vegetarian Nachos Supreme",
         "lunch_flags": {
-          "hasDairy": true,
           "hasGluten": true,
+          "hasDairy": true,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Pork Carnitas, Spanish Rice and Vegetables, Broccoli",
         "dinner_veg": "Vegetarian Carnitas, Spanish Rice and Vegetables, Broccoli",
@@ -513,6 +517,54 @@
             "manual": "Broccoli",
             "flags": {}
           }
+        },
+        "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainItem": "Beef Nachos Supreme & Tortilla Chips & Sour Cream",
+        "lunch_mainAlt": "",
+        "lunch_sides": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Beef Nachos Supreme & Tortilla Chips & Sour Cream",
+            "flags": {
+              "hasDairy": true,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegetarian Nachos Supreme",
+            "flags": {
+              "hasMushroom": true,
+              "hasSoy": true
+            }
+          }
         }
       },
       "WEDNESDAY": {
@@ -544,27 +596,31 @@
         "lunch": "Crispy Chicken Tender Wrap",
         "lunch_veg": "Crispy Vegan Tender Wrap, Tortilla Wrap, Lettuce, Peppers",
         "lunch_flags": {
-          "hasDairy": true,
           "hasGluten": true,
+          "hasDairy": true,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
         "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
@@ -627,6 +683,54 @@
             "manual": "Chickpea Shakshuka",
             "flags": {
               "hasBeans": true
+            }
+          }
+        },
+        "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "lunch_altMealsNone": false,
+        "lunch_noPorkAlt": "",
+        "lunch_mainItem": "Crispy Chicken Tender Wrap",
+        "lunch_mainAlt": "",
+        "lunch_sides": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Crispy Chicken Tender Wrap",
+            "flags": {
+              "hasDairy": true,
+              "hasGluten": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": false,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": false
+            }
+          },
+          "veganalt": {
+            "manual": "Crispy Vegan Tender Wrap, Tortilla Wrap, Lettuce, Peppers",
+            "flags": {
+              "hasGluten": true,
+              "hasSoy": true
             }
           }
         }
