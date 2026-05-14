@@ -2351,7 +2351,7 @@
       "dinner": "Beef and Vegetable Stew, Potatoes",
       "dinner_veg": "Vegan Pot Pie and Vegetable Medley, Potatoes",
       "dinner_flags": {
-        "hasGluten": false,
+        "hasGluten": true,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
@@ -2395,7 +2395,7 @@
           "manual": "Beef and Vegetable Stew",
           "flags": {
             "hasDairy": false,
-            "hasGluten": false,
+            "hasGluten": true,
             "hasPork": false,
             "hasBeef": true,
             "hasChicken": false,
@@ -2404,7 +2404,7 @@
             "hasEgg": false,
             "hasPeanuts": false,
             "isSpicy": false,
-            "isCarb": false,
+            "isCarb": true,
             "hasCoconut": false,
             "hasMushroom": false,
             "hasBrassicas": false,
@@ -2414,12 +2414,18 @@
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": false,
-            "hasSulphites": false
+            "hasSulphites": false,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
           }
         },
         "veganalt": {
           "manual": "Vegan Pot Pie and Vegetable Medley",
-          "flags": {}
+          "flags": {
+            "hasGluten": true
+          }
         },
         "starch": {
           "manual": "Potatoes",
