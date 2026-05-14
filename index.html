@@ -6604,8 +6604,32 @@ let checkedBoxes = {};
 let anaphActive = false;
 let moderateActive = false;
 
-// v28: Session-level blocklist for reverted swaps — prevents sync from re-introducing them
-const REVERTED_SWAP_KEYS = new Set();
+// Blocklist for reverted swaps — prevents sync from re-introducing them.
+// Persisted to localStorage so reverts survive page reloads; in-memory only
+// previously meant a hard refresh let a stale local swap come back even after
+// the file on GitHub had been cleared. Auto-expires keys whose target date
+// has passed (the swap couldn't be triggered anymore anyway). Wraps .add()
+// so every call site auto-persists without touching the existing callers.
+const REVERTED_SWAP_KEYS = (() => {
+  const today = new Date().toISOString().slice(0,10);
+  let initial = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem('concRevertedSwapKeys') || '[]');
+    initial = stored.filter(k => typeof k === 'string' && k.slice(0,10) >= today);
+  } catch(e) {}
+  const s = new Set(initial);
+  const _add = s.add.bind(s);
+  s.add = function(k) {
+    _add(k);
+    try {
+      const t = new Date().toISOString().slice(0,10);
+      const arr = [...s].filter(x => typeof x === 'string' && x.slice(0,10) >= t);
+      localStorage.setItem('concRevertedSwapKeys', JSON.stringify(arr));
+    } catch(e) {}
+    return s;
+  };
+  return s;
+})();
 
 // ============================================================
 // ROUTING
@@ -8380,8 +8404,14 @@ async function pullSecondaryState(repo) {
   const files = [
     ['meal_swaps.json',      d => {
       const today = new Date().toISOString().slice(0,10);
-      Object.keys(d).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete d[k]; }); // v28: don't re-introduce expired or reverted swaps
-      saveMealSwaps(Object.assign({}, loadMealSwaps(), d), true);
+      Object.keys(d).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete d[k]; }); // don't re-introduce expired or reverted swaps from file
+      // Also strip expired/reverted from local so a stale swap that survived
+      // in localStorage gets removed on next sync. Previously only file data
+      // was filtered, so a reverted swap sitting in concMealSwaps could
+      // resurface after a hard refresh once REVERTED_SWAP_KEYS reset to empty.
+      const local = loadMealSwaps();
+      Object.keys(local).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete local[k]; });
+      saveMealSwaps(Object.assign({}, local, d), true);
     }],
     ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
     ['menu_overlay.json',    d => {
@@ -15786,7 +15816,7 @@ initDynamic();
       fetch(base+'door_state.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),
     ]).then(()=>{ _ghHydrated = true; }).catch(()=>{ _ghHydrated = true; });
     setTimeout(()=>{ _ghHydrated = true; }, 5000);
-    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}}).catch(()=>{});
+    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});const _local=loadMealSwaps();Object.keys(_local).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete _local[k];});saveMealSwaps(Object.assign({},_local,d),true);}}).catch(()=>{});
     fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
