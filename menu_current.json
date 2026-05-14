@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T20:30:00.000Z",
+    "exported": "2026-05-14T21:00:00.000Z",
     "version": 30
   },
   "menu": {
@@ -345,10 +345,10 @@
         "lunch_veg": "Crispy Vegan Tender Wrap, Tortilla Wrap, Lettuce, Peppers",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "pork, gluten, dairy",
-        "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
-        "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
-        "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
-        "allergens_dinner": "Gluten,",
+        "dinner": "Butter Chicken, Naan, Vegetables",
+        "dinner_veg": "Butter Chickpeas, Naan, Vegetables",
+        "dinner_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
+        "allergens_dinner": "gluten",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -391,6 +391,8 @@
         },
         "dinner_flags": {
           "hasGluten": true,
+          "hasChicken": true,
+          "halalCertifiedMeat": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -403,13 +405,11 @@
           "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
-          "hasChicken": true,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
-          "halalCertifiedMeat": true,
+          "isCarb": false,
           "hasProcessedMeat": false,
-          "hasBeans": true,
+          "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": false,
@@ -418,42 +418,8 @@
         },
         "lunch_mainItem": "Crispy Chicken Tender Wrap",
         "lunch_sides": "",
-        "dinner_mainItem": "Roast Chicken",
-        "dinner_sides": "Couscous, Chickpea Shakshuka",
         "breakfast_mainItem": "Vegetarian Frittata",
         "breakfast_sides": "",
-        "dinner_altMeals": [
-          {
-            "text": "Plain Roasted Chicken, Stir-fried Veg & Rice",
-            "type": "plain",
-            "flags": {}
-          }
-        ],
-        "dinner_altMealsNone": false,
-        "dinner_noPorkAlt": "",
-        "dinner_mainAlt": "",
-        "dinner_slots": {
-          "main": {
-            "manual": "Roast Chicken",
-            "flags": {
-              "hasChicken": true
-            }
-          },
-          "veganalt": {
-            "manual": "Roast Tofu",
-            "flags": {}
-          },
-          "starch": {
-            "manual": "Couscous",
-            "flags": {}
-          },
-          "vegside": {
-            "manual": "Chickpea Shakshuka",
-            "flags": {
-              "hasBeans": true
-            }
-          }
-        },
         "lunch_altMeals": [
           {
             "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
@@ -520,10 +486,10 @@
         "lunch_veg": "Quinoa Burger, Tomato Cucumber Salad",
         "lunch_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
         "allergens_lunch": "gluten, dairy",
-        "dinner": "Butter Chicken, Naan, Seasonal Veg",
-        "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
-        "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "Halal Chicken",
+        "dinner": "Roast Chicken, Chickpea Shakshuka, Couscous",
+        "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous",
+        "dinner_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
+        "allergens_dinner": "halal chicken, dairy",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -566,93 +532,34 @@
           "hasCorn": false
         },
         "dinner_flags": {
+          "hasChicken": true,
+          "hasDairy": true,
+          "halalCertifiedMeat": true,
           "hasGluten": false,
-          "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
-          "hasTreeNuts": true,
+          "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
-          "hasChicken": true,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
-          "halalCertifiedMeat": true,
+          "isCarb": false,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": true,
+          "hasNightshades": false,
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "dinner_mainItem": "Butter Chicken",
-        "dinner_sides": "Naan, Seasonal Veg",
         "breakfast_mainItem": "Scrambled eggs & sausage",
-        "breakfast_sides": "",
-        "dinner_altMeals": [
-          {
-            "text": "Baked Basa, Plain Rice & Stir-fried Veg",
-            "type": "plain",
-            "flags": {}
-          }
-        ],
-        "dinner_altMealsNone": false,
-        "dinner_noPorkAlt": "",
-        "dinner_mainAlt": "",
-        "dinner_slots": {
-          "main": {
-            "recipeName": "Butter Chicken",
-            "flags": {
-              "hasGluten": false,
-              "hasDairy": false,
-              "hasEgg": false,
-              "hasFish": false,
-              "hasPeanuts": false,
-              "hasSoy": false,
-              "hasTreeNuts": true,
-              "hasSesame": false,
-              "hasMustard": false,
-              "hasShellfish": false,
-              "hasSulphites": false,
-              "hasPork": false,
-              "hasBeef": false,
-              "hasChicken": false,
-              "hasTurkey": false,
-              "isSpicy": false,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
-              "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
-              "hasCoconut": false,
-              "hasNightshades": true,
-              "hasBrassicas": false,
-              "hasCorn": false
-            }
-          },
-          "veganalt": {
-            "manual": "Butter Chickpeas",
-            "flags": {
-              "hasTreeNuts": true,
-              "hasNightshades": true
-            }
-          },
-          "starch": {
-            "manual": "Naan",
-            "flags": {}
-          },
-          "vegside": {
-            "manual": "Seasonal Veg",
-            "flags": {}
-          }
-        }
+        "breakfast_sides": ""
       },
       "FRIDAY": {
         "breakfast": "Turkey & Cheese and Eggs, Yogurt",
