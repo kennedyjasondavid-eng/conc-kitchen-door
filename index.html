@@ -9784,9 +9784,22 @@ async function ghPushFile(repo, path, content, token) {
     updateSyncBar('Save blocked \u2014 '+path+' ('+localBytes+'b) much smaller than cloud ('+remoteSize+'b). Reload first.', '#dc2626');
     return { skipped:true, reason:'size_regression' };
   }
-  const body = { message:'Update '+path+' \u2014 '+new Date().toISOString().slice(0,16), content:btoa(unescape(encodeURIComponent(content))), branch:'main' };
-  if(sha) body.sha=sha;
-  const res = await fetch(url, { method:'PUT', headers, body:JSON.stringify(body) });
+  const doPut = async (putSha) => {
+    const body = { message:'Update '+path+' \u2014 '+new Date().toISOString().slice(0,16), content:btoa(unescape(encodeURIComponent(content))), branch:'main' };
+    if(putSha) body.sha = putSha;
+    return fetch(url, { method:'PUT', headers, body:JSON.stringify(body) });
+  };
+  let res = await doPut(sha);
+  // 409 = concurrent write landed between our SHA fetch and PUT. Refetch the
+  // current SHA and retry once \u2014 common when multiple publishToGitHub calls
+  // run in quick succession (e.g., Edit Menu save + auto-sync race). One
+  // retry is enough; a second concurrent write at retry time is a sign of
+  // something pathological that the user should see fail loudly.
+  if(res.status === 409){
+    console.warn('[GH] '+path+' 409 conflict \u2014 refetching SHA and retrying');
+    try { const ex=await fetch(url,{headers}); if(ex.ok){ const j=await ex.json(); sha=j.sha; } } catch(e){}
+    res = await doPut(sha);
+  }
   if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error('GitHub API '+res.status+': '+(err.message||res.statusText)); }
   return res.json();
 }
