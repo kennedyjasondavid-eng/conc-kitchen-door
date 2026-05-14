@@ -1834,7 +1834,7 @@
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1853,7 +1853,7 @@
             "hasGluten": true,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": false,
+            "hasChicken": true,
             "hasTurkey": false,
             "hasFish": false,
             "hasEgg": false,
@@ -1869,7 +1869,11 @@
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": false,
-            "hasSulphites": false
+            "hasSulphites": false,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
           }
         },
         "veganalt": {
@@ -1878,7 +1882,10 @@
         },
         "vegside": {
           "manual": "Tomato Cucumber Salad",
-          "flags": {}
+          "flags": {
+            "hasNightshades": true,
+            "hasSulphites": false
+          }
         }
       }
     }
