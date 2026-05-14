@@ -8459,6 +8459,33 @@ async function pullSecondaryState(repo) {
       RECENT_LOG.length = 0; merged.forEach(e => RECENT_LOG.push(e));
       saveRecentLog(); renderRecentLog(); // saveRecentLog prunes + sorts
     }],
+    ['change_log.json',      d => {
+      // Bidirectional merge: dedupe by id (Date.now() at append time is
+      // unique enough across devices), keep newest first. If local has
+      // entries the cloud doesn't, push merged back so the next device sees
+      // them — without this, a device whose edits never trigger a fresh
+      // saveChangeLog (e.g. just got back online) never pushes its history.
+      if (!Array.isArray(d)) return;
+      const local = (function(){ try { return JSON.parse(localStorage.getItem('concMenuChangeLog') || '[]'); } catch(e) { return []; } })();
+      const byId = new Map();
+      [...local, ...d].forEach(e => { if (e && e.id != null) byId.set(e.id, e); });
+      const merged = Array.from(byId.values()).sort((a,b) => (b.id||0) - (a.id||0));
+      localStorage.setItem('concMenuChangeLog', JSON.stringify(merged));
+      const remoteIds = new Set(d.map(e => e && e.id));
+      const hasLocalOnly = local.some(e => e && e.id != null && !remoteIds.has(e.id));
+      if (hasLocalOnly) {
+        try {
+          const settings = JSON.parse(localStorage.getItem('conc-door-settings') || '{}');
+          const repo  = settings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
+          const token = settings['gh-token'] || '';
+          if (token) ghPushFile(repo, 'change_log.json', JSON.stringify(merged, null, 2), token).catch(() => {});
+        } catch(e) {}
+      }
+      if (typeof renderChangeLog === 'function') {
+        const el = document.getElementById('mc-change-log');
+        if (el && el.style.display !== 'none') renderChangeLog();
+      }
+    }],
   ];
   for (const [filename, apply] of files) {
     try {
@@ -14261,6 +14288,15 @@ function loadChangeLog() {
 }
 function saveChangeLog(arr) {
   localStorage.setItem('concMenuChangeLog', JSON.stringify(arr));
+  // Push to GitHub so other devices see the same history. Without this the
+  // changelog is per-browser and a fresh device only shows entries it
+  // recorded itself. Mirrors saveMenuBaseOverlay's pattern.
+  try {
+    const settings = JSON.parse(localStorage.getItem('conc-door-settings') || '{}');
+    const repo  = settings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
+    const token = settings['gh-token'] || '';
+    if (token) ghPushFile(repo, 'change_log.json', JSON.stringify(arr, null, 2), token).catch(() => {});
+  } catch(e) {}
 }
 function appendChangeLog(entry) {
   const log = loadChangeLog();
@@ -15959,6 +15995,32 @@ initDynamic();
       const merged=[...local,...remote].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);});
       RECENT_LOG.length=0;merged.forEach(e=>RECENT_LOG.push(e));saveRecentLog();if(typeof renderRecentLog==='function')renderRecentLog();
     }).catch(()=>{});
+    // change_log.json — pull cloud change log so a fresh browser/device sees
+    // edits made on other devices. Bidirectional merge: dedupe by id, push
+    // back if local has entries the cloud lacks.
+    fetch(base + 'change_log.json' + bust)
+      .then(r => r.ok ? r.json() : null)
+      .then(remote => {
+        const remoteArr = Array.isArray(remote) ? remote : [];
+        const local = (function(){ try { return JSON.parse(localStorage.getItem('concMenuChangeLog') || '[]'); } catch(e) { return []; } })();
+        const byId = new Map();
+        [...local, ...remoteArr].forEach(e => { if (e && e.id != null) byId.set(e.id, e); });
+        const merged = Array.from(byId.values()).sort((a,b) => (b.id||0) - (a.id||0));
+        localStorage.setItem('concMenuChangeLog', JSON.stringify(merged));
+        const remoteIds = new Set(remoteArr.map(e => e && e.id));
+        const hasLocalOnly = local.some(e => e && e.id != null && !remoteIds.has(e.id));
+        if (hasLocalOnly) {
+          try {
+            const settings = JSON.parse(localStorage.getItem('conc-door-settings') || '{}');
+            const repo  = settings['gh-repo']  || 'kennedyjasondavid-eng/conc-kitchen-door';
+            const token = settings['gh-token'] || '';
+            if (token) ghPushFile(repo, 'change_log.json', JSON.stringify(merged, null, 2), token).catch(() => {});
+          } catch(e) {}
+        }
+        const el = document.getElementById('mc-change-log');
+        if (el && el.style.display !== 'none' && typeof renderChangeLog === 'function') renderChangeLog();
+      }).catch(() => {});
+
     // custom_tag_rules.json
     fetch(base + 'custom_tag_rules.json' + bust)
       .then(r => r.ok ? r.json() : null)
