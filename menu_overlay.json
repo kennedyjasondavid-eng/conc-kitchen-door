@@ -988,6 +988,96 @@
           "flags": {}
         }
       }
+    },
+    "FRIDAY": {
+      "dinner": "Arroz Con Pollo, Refried Beans",
+      "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": true
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Arroz Con Pollo",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Refried Beans",
+      "dinner_slots": {
+        "main": {
+          "manual": "Arroz Con Pollo",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": true
+          }
+        },
+        "veganalt": {
+          "manual": "Vegan Arroz con Pollo",
+          "flags": {
+            "hasSoy": true,
+            "hasGluten": true,
+            "hasCorn": true
+          }
+        },
+        "starch": {
+          "manual": "Refried Beans",
+          "flags": {
+            "hasBeans": true
+          }
+        }
+      }
     }
   },
   "3": {
