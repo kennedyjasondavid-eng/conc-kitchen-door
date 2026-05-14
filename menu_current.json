@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-14T09:18:12.758Z",
+    "exported": "2026-05-14T09:19:45.997Z",
     "version": 30
   },
   "menu": {
@@ -63,29 +63,33 @@
           "hasCorn": false
         },
         "dinner": "Beef Stroganoff, Noodles",
-        "dinner_veg": "Mushroom Stroganoff, Noodles, Pasta",
+        "dinner_veg": "Mushroom Stroganoff, Noodles",
         "dinner_flags": {
-          "hasDairy": false,
           "hasGluten": true,
+          "hasDairy": true,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_softAlt": "Plain Turkey, Soft Bread & Seasonal Soup",
         "lunch_altMeals": [
@@ -121,6 +125,85 @@
           },
           "xtra": {
             "manual": "Seasonal Soup",
+            "flags": {}
+          }
+        },
+        "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "Beef Stroganoff",
+        "dinner_mainAlt": "",
+        "dinner_sides": "Noodles",
+        "dinner_slots": {
+          "main": {
+            "recipeName": "Beef Stroganoff",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Mushroom Stroganoff",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": true,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "starch": {
+            "manual": "Noodles",
             "flags": {}
           }
         }
@@ -4312,27 +4395,31 @@
         "dinner": "Beef Massaman Curry, Rice",
         "dinner_veg": "Vegetarian Massaman Curry, Rice",
         "dinner_flags": {
-          "hasDairy": false,
           "hasGluten": false,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": true,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
-          "hasFish": false,
-          "hasEgg": false,
-          "hasPeanuts": false,
           "isSpicy": false,
-          "isCarb": false,
-          "hasCoconut": false,
-          "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
-          "hasNightshades": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
+          "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasTreeNuts": false,
-          "hasShellfish": false,
-          "hasMustard": false,
-          "hasSulphites": false
+          "hasMushroom": false,
+          "hasCoconut": true,
+          "hasNightshades": false,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg",
         "lunch_altMeals": [
@@ -4393,6 +4480,59 @@
           },
           "vegside": {
             "manual": "Seasonal Veg",
+            "flags": {}
+          }
+        },
+        "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
+        "dinner_altMealsNone": false,
+        "dinner_noPorkAlt": "",
+        "dinner_mainItem": "Beef Massaman Curry",
+        "dinner_mainAlt": "",
+        "dinner_sides": "Rice",
+        "dinner_slots": {
+          "main": {
+            "manual": "Beef Massaman Curry",
+            "flags": {
+              "hasDairy": false,
+              "hasGluten": false,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "hasFish": false,
+              "hasEgg": false,
+              "hasPeanuts": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "hasCoconut": true,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false,
+              "hasTreeNuts": true,
+              "hasShellfish": false,
+              "hasMustard": false,
+              "hasSulphites": true
+            }
+          },
+          "veganalt": {
+            "manual": "Vegetarian Massaman Curry",
+            "flags": {
+              "hasCoconut": true,
+              "hasTreeNuts": true,
+              "hasMushroom": true
+            }
+          },
+          "starch": {
+            "manual": "Rice",
             "flags": {}
           }
         }
