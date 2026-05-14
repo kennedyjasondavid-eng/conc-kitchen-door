@@ -3723,7 +3723,7 @@
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
-        "hasPeanuts": false,
+        "hasPeanuts": true,
         "hasSoy": false,
         "hasTreeNuts": true,
         "hasSesame": false,
@@ -3770,9 +3770,9 @@
             "hasTurkey": false,
             "hasFish": false,
             "hasEgg": false,
-            "hasPeanuts": false,
+            "hasPeanuts": true,
             "isSpicy": false,
-            "isCarb": false,
+            "isCarb": true,
             "hasCoconut": true,
             "hasMushroom": false,
             "hasBrassicas": false,
@@ -3782,7 +3782,11 @@
             "hasTreeNuts": true,
             "hasShellfish": false,
             "hasMustard": false,
-            "hasSulphites": true
+            "hasSulphites": true,
+            "hasSoy": false,
+            "hasSesame": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false
           }
         },
         "veganalt": {
@@ -3790,7 +3794,8 @@
           "flags": {
             "hasCoconut": true,
             "hasTreeNuts": true,
-            "hasMushroom": true
+            "hasMushroom": true,
+            "hasPeanuts": true
           }
         },
         "starch": {
