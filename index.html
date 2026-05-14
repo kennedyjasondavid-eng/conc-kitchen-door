@@ -1090,6 +1090,7 @@ function updateCODEXBadge() {
       <button class="btn btn-ghost btn-sm" onclick="printPlatingPreview()">&#x229F; Print Sheet</button>
       <button class="btn btn-ghost btn-sm" onclick="openLabelsModal()">&#x2261; Print Labels</button>
       <button class="btn btn-mint btn-sm" id="ps-dl-btn">⬇ Download Week</button>
+      <button class="btn btn-mint btn-sm" id="ps-dl-all-btn" onclick="downloadAllFiles()" title="Bundle all 4 weeks × lunch+dinner plating sheets, breakfast combos, and special files into one zip">⬇ Download All (zip)</button>
     </div>
   </div>
   <div class="content">
@@ -16750,8 +16751,9 @@ function buildAllFileList() {
 }
 
 async function downloadAllFiles() {
-  const btn = document.getElementById('dl-all-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Building zip…'; }
+  const btns = ['dl-all-btn','ps-dl-all-btn'].map(id => document.getElementById(id)).filter(Boolean);
+  const origText = btns.map(b => b.textContent);
+  btns.forEach(b => { b.disabled = true; b.textContent = 'Building zip…'; });
 
   try {
     const zip = new JSZip();
@@ -16790,7 +16792,7 @@ async function downloadAllFiles() {
     console.error('Zip failed:', e);
     showToast('Zip failed — try downloading files individually.', 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '⬇ Download All (zip)'; }
+    btns.forEach((b, i) => { b.disabled = false; b.textContent = origText[i] || '⬇ Download All (zip)'; });
   }
 }
 
