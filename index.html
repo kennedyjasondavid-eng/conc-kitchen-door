@@ -9718,11 +9718,33 @@ function buildRoutingByMealJSON() {
   };
 }
 
+// Anti-clobber guards. _ghHydrated flips true after boot fetches settle (see bootRemoteState).
+// _ghForceOverwrite is reserved for an explicit "Reset & overwrite cloud" action.
+let _ghHydrated = false;
+let _ghForceOverwrite = false;
+
 async function ghPushFile(repo, path, content, token) {
   const url = 'https://api.github.com/repos/'+repo+'/contents/'+path;
   const headers = { 'Authorization':'token '+token, 'Content-Type':'application/json', 'Accept':'application/vnd.github.v3+json' };
-  let sha;
-  try { const ex=await fetch(url,{headers}); if(ex.ok){ sha=(await ex.json()).sha; } } catch(e){}
+  if(!_ghHydrated && !_ghForceOverwrite){
+    console.warn('[GH] skip '+path+' \u2014 not hydrated from cloud yet');
+    return { skipped:true, reason:'not_hydrated' };
+  }
+  let sha, remoteSize=0;
+  try { const ex=await fetch(url,{headers}); if(ex.ok){ const j=await ex.json(); sha=j.sha; remoteSize=j.size||0; } } catch(e){}
+  const trimmed = (content||'').trim();
+  const isEmpty = trimmed===''||trimmed==='{}'||trimmed==='[]'||trimmed==='null';
+  if(isEmpty && remoteSize>10 && !_ghForceOverwrite){
+    console.warn('[GH] refuse '+path+' \u2014 local empty, remote='+remoteSize+'b');
+    updateSyncBar('Save blocked \u2014 '+path+' empty locally (remote '+remoteSize+'b). Reload to sync.', '#dc2626');
+    return { skipped:true, reason:'empty_clobber' };
+  }
+  const localBytes = new TextEncoder().encode(content).length;
+  if(remoteSize>1024 && localBytes < remoteSize*0.3 && !_ghForceOverwrite){
+    console.warn('[GH] refuse '+path+' \u2014 local '+localBytes+'b is <30% of remote '+remoteSize+'b');
+    updateSyncBar('Save blocked \u2014 '+path+' ('+localBytes+'b) much smaller than cloud ('+remoteSize+'b). Reload first.', '#dc2626');
+    return { skipped:true, reason:'size_regression' };
+  }
   const body = { message:'Update '+path+' \u2014 '+new Date().toISOString().slice(0,16), content:btoa(unescape(encodeURIComponent(content))), branch:'main' };
   if(sha) body.sha=sha;
   const res = await fetch(url, { method:'PUT', headers, body:JSON.stringify(body) });
@@ -9737,28 +9759,39 @@ async function publishToGitHub(manual) {
   if(!token||!repo){ if(manual) showToast('Set GitHub token and repo in Settings first.'); return; }
   if(!manual){ const cb=document.querySelector('[onclick*="gh_auto_publish"]'); if(cb&&!cb.querySelector('input').checked) return; }
   if(statusEl){ statusEl.textContent='Publishing\u2026'; statusEl.style.color='var(--forest-mid)'; }
+   const _pushes = [];
+  const _push = async (path, content) => {
+    const r = await ghPushFile(repo, path, content, token);
+    _pushes.push({ path, skipped: !!(r && r.skipped), reason: r && r.reason });
+  };
   try {
-    await ghPushFile(repo,'menu_current.json',JSON.stringify(buildMenuJSON(),null,2),token);
-    await ghPushFile(repo,'registry_summary.json',JSON.stringify(buildRegistrySummaryJSON(),null,2),token);
-    await ghPushFile(repo,'routing_by_meal.json',JSON.stringify(buildRoutingByMealJSON(),null,2),token);
-    await ghPushFile(repo,'door_state.json',JSON.stringify(buildStateJSON(),null,2),token);
-    // Menu overlay — edits made in Menu Config (soft alts, flag changes, slot edits)
+    await _push('menu_current.json', JSON.stringify(buildMenuJSON(),null,2));
+    await _push('registry_summary.json', JSON.stringify(buildRegistrySummaryJSON(),null,2));
+    await _push('routing_by_meal.json', JSON.stringify(buildRoutingByMealJSON(),null,2));
+    await _push('door_state.json', JSON.stringify(buildStateJSON(),null,2));
     const menuOverlay = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
-    await ghPushFile(repo,'menu_overlay.json',JSON.stringify(menuOverlay,null,2),token);
-    // Custom tag rules — user-created import rules
+    await _push('menu_overlay.json', JSON.stringify(menuOverlay,null,2));
     const customRules = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
-    await ghPushFile(repo,'custom_tag_rules.json',JSON.stringify(customRules,null,2),token);
-    // Learned NR classifications
+    await _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
     const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
-    await ghPushFile(repo,'learned_nr.json',JSON.stringify(learnedNR,null,2),token);
-    await ghPushFile(repo,'meal_swaps.json',JSON.stringify(loadMealSwaps(),null,2),token);
-    await ghPushFile(repo,'special_meals.json',JSON.stringify(loadSpecialMeals(),null,2),token);
+    await _push('learned_nr.json', JSON.stringify(learnedNR,null,2));
+    await _push('meal_swaps.json', JSON.stringify(loadMealSwaps(),null,2));
+    await _push('special_meals.json', JSON.stringify(loadSpecialMeals(),null,2));
     const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
-    await ghPushFile(repo,'recent_log.json',JSON.stringify(_logToSync,null,2),token);
+    await _push('recent_log.json', JSON.stringify(_logToSync,null,2));
     const timeStr = new Date().toLocaleTimeString();
-    if(statusEl){ statusEl.textContent='Published ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
-    updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr, 'var(--forest)');
-    if(manual) showToast('Published to GitHub ✓');
+    const _blocked = _pushes.filter(p=>p.skipped);
+    if(_blocked.length){
+      const _names = _blocked.map(s=>s.path.replace('.json','')).join(', ');
+      const msg = 'Partial publish — '+_blocked.length+'/'+_pushes.length+' blocked ('+_names+')';
+      if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#dc2626'; }
+      updateSyncBar(msg+' · '+timeStr, '#dc2626');
+      if(manual) showToast(msg+'. Check console; reload if cloud is newer.');
+    } else {
+      if(statusEl){ statusEl.textContent='Published ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
+      updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr, 'var(--forest)');
+      if(manual) showToast('Published to GitHub ✓');
+    }
   } catch(err) {
     console.error('GitHub publish failed:',err);
     if(statusEl){ statusEl.textContent='Failed: '+err.message; statusEl.style.color='#dc2626'; }
@@ -15642,6 +15675,12 @@ initDynamic();
         localStorage.setItem('concMenuBase', JSON.stringify(merged));
       }).catch(() => {});
 
+    // Hydration gate: arm _ghHydrated after boot fetches have had time to settle, or 5s fallback.
+    Promise.allSettled([
+      fetch(base+'menu_overlay.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(base+'door_state.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(()=>{ _ghHydrated = true; }).catch(()=>{ _ghHydrated = true; });
+    setTimeout(()=>{ _ghHydrated = true; }, 5000);
     fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});saveMealSwaps(Object.assign({},loadMealSwaps(),d),true);}}).catch(()=>{});
     fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
