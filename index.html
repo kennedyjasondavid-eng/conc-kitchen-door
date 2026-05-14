@@ -12434,6 +12434,40 @@ function saveEditFlags() {
   if (typeof publishAndSync === 'function') publishAndSync('flag edit');
 }
 
+// Find unpaired swaps. By kitchen convention swaps should always come in pairs
+// — either a same-date period-exchange (date X lunch ↔ date X dinner) or a
+// same-period date-exchange (date X dinner ↔ date Y dinner, within one
+// rotation cycle). A lone swap leaves the displaced meal unaccounted for,
+// so we flag it for review.
+function findOrphanSwaps(upcomingSwaps) {
+  const keys = upcomingSwaps.map(([k]) => k);
+  const unmatched = new Set(keys);
+  const partners = new Map();
+  for (const k of keys) {
+    if (!unmatched.has(k)) continue;
+    const date = k.slice(0,10);
+    const period = k.slice(11);
+    let partner = null;
+    for (const k2 of unmatched) {
+      if (k2 === k) continue;
+      const date2 = k2.slice(0,10);
+      const period2 = k2.slice(11);
+      if (date === date2 && period !== period2) { partner = k2; break; }
+      if (date !== date2 && period === period2) {
+        const diffDays = Math.abs(
+          (new Date(date2 + 'T12:00:00') - new Date(date + 'T12:00:00')) / 86400000
+        );
+        if (diffDays <= 28) { partner = k2; break; }
+      }
+    }
+    if (partner) {
+      partners.set(k, partner); partners.set(partner, k);
+      unmatched.delete(k); unmatched.delete(partner);
+    }
+  }
+  return [...unmatched];
+}
+
 function renderSwapsBanner() {
   // Source of truth is loadMealSwaps (date-keyed, auto-expires).
   const swaps = loadMealSwaps();
@@ -12449,15 +12483,25 @@ function renderSwapsBanner() {
   banner.style.display = 'block';
   clearBtn.style.display = 'inline-flex';
 
+  const orphans = new Set(findOrphanSwaps(upcomingSwaps));
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const list = document.getElementById('mc-swaps-list');
-  list.innerHTML = upcomingSwaps.map(([k, sw]) => {
+  const orphanWarning = orphans.size > 0
+    ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;padding:6px 10px;margin-bottom:8px;color:#92400e;font-size:12px;">` +
+      `<strong>⚠ ${orphans.size} unpaired swap${orphans.size===1?'':'s'}</strong> — swaps usually come in pairs (date-exchange or period-exchange). ` +
+      `Verify the partner swap wasn't lost; otherwise the displaced meal has no destination.` +
+      `</div>`
+    : '';
+  list.innerHTML = orphanWarning + upcomingSwaps.map(([k, sw]) => {
     const date = k.slice(0,10);
     const period = k.slice(11);
     const d = new Date(date + 'T12:00:00');
     const label = `${months[d.getMonth()]} ${d.getDate()} ${period}`;
+    const orphanMark = orphans.has(k)
+      ? ` <span title="No partner swap found" style="color:#b45309;font-weight:600;">⚠ unpaired</span>`
+      : '';
     return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">` +
-      `<span>${label} → <strong>${sw.specialName}</strong></span>` +
+      `<span>${label} → <strong>${sw.specialName}</strong>${orphanMark}</span>` +
       `<button class="btn btn-sm" style="padding:1px 8px;font-size:11px;background:#be185d;color:#fff;border-color:#be185d;" ` +
         `onclick="makeSwapPermanentFromBanner('${k}')" title="Make this a permanent rotation change">Make Permanent</button>` +
       `<button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:11px;" ` +
