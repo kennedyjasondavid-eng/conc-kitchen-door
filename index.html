@@ -16524,7 +16524,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   };
   ws['!printOptions'] = {gridLines: false, headings: false};
 
-  const tabName = (dayLabel.substring(0,3).toUpperCase()+' '+mealName.substring(0,26)).substring(0,31);
+  const tabName = (dayLabel.substring(0,3).toUpperCase()+' '+mealName.substring(0,26))
+    .replace(/[\\\/\*\?\[\]:]/g, ' ')
+    .substring(0,31);
   return {ws, tabName};
 }
 
