@@ -9724,8 +9724,12 @@ function buildRoutingByMealJSON() {
 
 // Anti-clobber guards. _ghHydrated flips true after boot fetches settle (see bootRemoteState).
 // _ghForceOverwrite is reserved for an explicit "Reset & overwrite cloud" action.
+// ALLOW_SHRINK_PATHS bypasses the empty-clobber and size-regression checks for
+// files that legitimately shrink toward empty (e.g., meal_swaps.json clears
+// when the last pending swap is reverted, which would otherwise be blocked).
 let _ghHydrated = false;
 let _ghForceOverwrite = false;
+const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json']);
 
 async function ghPushFile(repo, path, content, token) {
   const url = 'https://api.github.com/repos/'+repo+'/contents/'+path;
@@ -9738,13 +9742,14 @@ async function ghPushFile(repo, path, content, token) {
   try { const ex=await fetch(url,{headers}); if(ex.ok){ const j=await ex.json(); sha=j.sha; remoteSize=j.size||0; } } catch(e){}
   const trimmed = (content||'').trim();
   const isEmpty = trimmed===''||trimmed==='{}'||trimmed==='[]'||trimmed==='null';
-  if(isEmpty && remoteSize>10 && !_ghForceOverwrite){
+  const allowShrink = ALLOW_SHRINK_PATHS.has(path) || _ghForceOverwrite;
+  if(isEmpty && remoteSize>10 && !allowShrink){
     console.warn('[GH] refuse '+path+' \u2014 local empty, remote='+remoteSize+'b');
     updateSyncBar('Save blocked \u2014 '+path+' empty locally (remote '+remoteSize+'b). Reload to sync.', '#dc2626');
     return { skipped:true, reason:'empty_clobber' };
   }
   const localBytes = new TextEncoder().encode(content).length;
-  if(remoteSize>1024 && localBytes < remoteSize*0.3 && !_ghForceOverwrite){
+  if(remoteSize>1024 && localBytes < remoteSize*0.3 && !allowShrink){
     console.warn('[GH] refuse '+path+' \u2014 local '+localBytes+'b is <30% of remote '+remoteSize+'b');
     updateSyncBar('Save blocked \u2014 '+path+' ('+localBytes+'b) much smaller than cloud ('+remoteSize+'b). Reload first.', '#dc2626');
     return { skipped:true, reason:'size_regression' };
