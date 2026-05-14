@@ -8430,6 +8430,11 @@ async function pullStateFromGitHub(manual) {
   }
 
   updateSyncBar('Syncing…', 'var(--muted)');
+  // Secondary pulls (menu_overlay, swaps, specials, log, rules, learned) run
+  // independently of door_state.json. A missing or failed registry pull must
+  // not gate overlay sync, otherwise menu_overlay.json fixes pushed to GitHub
+  // never propagate to localStorage and stale overlay data overrides the file.
+  pullSecondaryState(repo).catch(e => console.warn('secondary pull:', e));
   try {
     // Use raw.githubusercontent.com — no auth needed for public repo,
     // no CORS preflight, no base64 envelope, works through work firewalls
@@ -8462,9 +8467,8 @@ async function pullStateFromGitHub(manual) {
     if (manual) showToast('Registry synced — ' + state.residents.length + ' residents loaded.');
     renderRegistry(REGISTRY_LIST);
     updateDailyImportPrompt();
-    // Secondary pulls (swaps, specials, log, overlay, rules, learned) — fire and forget
-    // Isolated so any failure here never affects the registry sync result
-    pullSecondaryState(repo).catch(e => console.warn('secondary pull:', e));
+    // Secondary pulls already kicked off before the door_state.json fetch so
+    // they run regardless of whether registry sync succeeds.
   } catch(e) {
     console.error('pullStateFromGitHub error:', e.name, e.message, e.stack);
     const msg = (e.message || e.name || 'unknown').slice(0, 80);
