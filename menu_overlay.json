@@ -3095,11 +3095,11 @@
         "hasSulphites": false,
         "hasPork": true,
         "hasBeef": false,
-        "hasChicken": false,
+        "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
@@ -3119,13 +3119,13 @@
       "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Pork Souvlaki & Tzatziki",
-      "lunch_mainAlt": "",
+      "lunch_mainAlt": "Chicken Souvlaki & Tzatziki",
       "lunch_sides": "Naan, Seasonal Vegetables",
       "lunch_slots": {
         "main": {
           "manual": "Pork Souvlaki & Tzatziki",
           "flags": {
-            "hasGluten": true,
+            "hasGluten": false,
             "hasDairy": true,
             "hasPork": true,
             "hasFish": false,
@@ -3135,7 +3135,28 @@
             "hasSoy": false,
             "hasBeef": false,
             "isSpicy": false,
-            "isCarb": true
+            "isCarb": true,
+            "hasTreeNuts": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "mainalt": {
+          "manual": "Chicken Souvlaki & Tzatziki",
+          "flags": {
+            "hasDairy": true,
+            "hasChicken": true
           }
         },
         "veganalt": {
