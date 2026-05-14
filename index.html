@@ -12138,6 +12138,16 @@ function makePermanent() {
   overlay[String(week)][day][period + '_veg'] = veg;
   overlay[String(week)][day][period + '_flags'] = flags;
   overlay[String(week)][day][period + '_softAlt'] = softAlt;
+  // Make Permanent doesn't know the slot breakdown, so clear any stale granular
+  // fields from a prior Edit Menu save. computePlatingData falls back to the
+  // top-level meal string when these are absent.
+  delete overlay[String(week)][day][period + '_mainItem'];
+  delete overlay[String(week)][day][period + '_mainAlt'];
+  delete overlay[String(week)][day][period + '_sides'];
+  delete overlay[String(week)][day][period + '_slots'];
+  delete overlay[String(week)][day][period + '_noPorkAlt'];
+  delete overlay[String(week)][day][period + '_altMeals'];
+  delete overlay[String(week)][day][period + '_altMealsNone'];
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing one-time swap for the next occurrence of this slot
@@ -12473,6 +12483,17 @@ function makeSwapPermanentFromBanner(swapKey) {
   overlay[String(week)][dayName][period] = sw.specialName;
   overlay[String(week)][dayName][period + '_veg'] = sw.veg || '';
   overlay[String(week)][dayName][period + '_flags'] = sw._flagsRaw || {};
+  // Make Permanent doesn't know the slot breakdown, so clear any stale granular
+  // fields from a prior Edit Menu save. computePlatingData falls back to the
+  // top-level meal string when these are absent.
+  delete overlay[String(week)][dayName][period + '_mainItem'];
+  delete overlay[String(week)][dayName][period + '_mainAlt'];
+  delete overlay[String(week)][dayName][period + '_sides'];
+  delete overlay[String(week)][dayName][period + '_slots'];
+  delete overlay[String(week)][dayName][period + '_noPorkAlt'];
+  delete overlay[String(week)][dayName][period + '_softAlt'];
+  delete overlay[String(week)][dayName][period + '_altMeals'];
+  delete overlay[String(week)][dayName][period + '_altMealsNone'];
   saveMenuBaseOverlay(overlay);
 
   // Remove the swap (permanent supersedes)
