@@ -3250,6 +3250,88 @@
           "manual": "Seasonal Veg",
           "flags": {}
         }
+      },
+      "dinner": "Beef Massaman Curry, Rice",
+      "dinner_veg": "Vegetarian Massaman Curry, Rice",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": true,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": false,
+        "hasBeef": true,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Beef Massaman Curry",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Rice",
+      "dinner_slots": {
+        "main": {
+          "manual": "Beef Massaman Curry",
+          "flags": {
+            "hasDairy": false,
+            "hasGluten": false,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": true,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": true,
+            "hasShellfish": false,
+            "hasMustard": false,
+            "hasSulphites": true
+          }
+        },
+        "veganalt": {
+          "manual": "Vegetarian Massaman Curry",
+          "flags": {
+            "hasCoconut": true,
+            "hasTreeNuts": true,
+            "hasMushroom": true
+          }
+        },
+        "starch": {
+          "manual": "Rice",
+          "flags": {}
+        }
       }
     }
   }
