@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-15T15:13:16.344Z",
+    "exported": "2026-05-15T15:14:38.441Z",
     "version": 30
   },
   "menu": {
@@ -748,7 +748,7 @@
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
         "allergens_lunch": "gluten, dairy",
         "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
-        "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
+        "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
         "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
         "allergens_dinner": "Halal Chicken",
         "breakfast_flags": {
@@ -793,17 +793,17 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
-          "hasTreeNuts": true,
+          "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -812,7 +812,7 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": true,
@@ -889,21 +889,52 @@
           "main": {
             "manual": "Roast Chicken",
             "flags": {
-              "hasChicken": true
+              "hasChicken": true,
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
             }
           },
           "veganalt": {
             "manual": "Roast Tofu",
-            "flags": {}
+            "flags": {
+              "hasSoy": true,
+              "hasNightshades": true
+            }
           },
           "starch": {
             "manual": "Couscous",
-            "flags": {}
+            "flags": {
+              "hasGluten": true
+            }
           },
           "vegside": {
             "manual": "Chickpea Shakshuka",
             "flags": {
-              "hasBeans": true
+              "hasBeans": true,
+              "hasSulphites": true,
+              "hasNightshades": true
             }
           }
         }
