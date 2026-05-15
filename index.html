@@ -13794,7 +13794,7 @@ function renderSlotCard(def, ns) {
   const currentVal = hasValue ? (state.recipeName || state.manual || '') : '';
   const matchBadge = hasValue && state.recipeName
     ? `<span style="font-size:10px;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:8px;font-weight:600;margin-left:6px;">✓ recipe matched</span>`
-    : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:#e0f2fe;color:#0369a1;border-radius:8px;font-weight:600;margin-left:6px;">manual</span>` : '');
+    : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:#92400e;border-radius:8px;font-weight:600;margin-left:6px;" title="No CODEX recipe linked. Allergen flags here are manual — verify they're complete. Type to search CODEX, click a suggestion to link.">⚠ unlinked (manual)</span>` : '');
 
   const borderColor = hasValue ? (state.recipeName ? '#10b981' : '#60a5fa') : 'var(--border)';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
