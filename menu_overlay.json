@@ -119,12 +119,12 @@
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
-        "hasSoy": false,
+        "hasSoy": true,
         "hasTreeNuts": false,
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -133,7 +133,7 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": true,
         "hasNightshades": false,
@@ -154,12 +154,12 @@
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
-            "hasSoy": false,
+            "hasSoy": true,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
             "hasShellfish": false,
-            "hasSulphites": false,
+            "hasSulphites": true,
             "hasPork": false,
             "hasBeef": false,
             "hasChicken": true,
@@ -170,7 +170,7 @@
             "hasProcessedMeat": false,
             "hasBeans": false,
             "hasMushroom": false,
-            "hasCoconut": false,
+            "hasCoconut": true,
             "hasNightshades": false,
             "hasBrassicas": false,
             "hasCorn": false
@@ -178,23 +178,32 @@
         },
         "veganalt": {
           "manual": "Jerk Cauliflower",
-          "flags": {}
+          "flags": {
+            "hasSulphites": true,
+            "hasSoy": true,
+            "hasCoconut": true
+          }
         },
         "starch": {
           "manual": "Rice and Beans",
           "flags": {
-            "hasCoconut": true
+            "hasCoconut": true,
+            "hasBeans": true
           }
         },
         "vegside": {
           "manual": "Cabbage Stirfry",
           "flags": {}
-        },
-        "softalt": {
-          "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
+        }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
+          "type": "plain",
           "flags": {}
         }
-      }
+      ],
+      "dinner_altMealsNone": false
     },
     "WEDNESDAY": {
       "dinner": "Butter Chicken, Naan, Seasonal Veg",
