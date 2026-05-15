@@ -209,7 +209,7 @@
       "dinner": "Butter Chicken, Naan, Seasonal Veg",
       "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
       "dinner_flags": {
-        "hasGluten": false,
+        "hasGluten": true,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
@@ -230,7 +230,7 @@
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
-        "hasCoconut": false,
+        "hasCoconut": true,
         "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
@@ -361,7 +361,7 @@
             "hasProcessedMeat": false,
             "hasBeans": false,
             "hasMushroom": false,
-            "hasCoconut": false,
+            "hasCoconut": true,
             "hasNightshades": true,
             "hasBrassicas": false,
             "hasCorn": false
@@ -369,11 +369,16 @@
         },
         "veganalt": {
           "manual": "Butter Chickpeas",
-          "flags": {}
+          "flags": {
+            "hasCoconut": true,
+            "hasNightshades": true
+          }
         },
         "starch": {
           "manual": "Naan",
-          "flags": {}
+          "flags": {
+            "hasGluten": true
+          }
         },
         "vegside": {
           "manual": "Seasonal Veg",
