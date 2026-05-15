@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-05-15T15:03:57.470Z",
+    "exported": "2026-05-15T15:05:06.032Z",
     "version": 30
   },
   "menu": {
@@ -590,7 +590,7 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -611,7 +611,7 @@
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
-          "hasCoconut": false,
+          "hasCoconut": true,
           "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
@@ -657,7 +657,7 @@
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
-              "hasCoconut": false,
+              "hasCoconut": true,
               "hasNightshades": true,
               "hasBrassicas": false,
               "hasCorn": false
@@ -665,11 +665,16 @@
           },
           "veganalt": {
             "manual": "Butter Chickpeas",
-            "flags": {}
+            "flags": {
+              "hasCoconut": true,
+              "hasNightshades": true
+            }
           },
           "starch": {
             "manual": "Naan",
-            "flags": {}
+            "flags": {
+              "hasGluten": true
+            }
           },
           "vegside": {
             "manual": "Seasonal Veg",
@@ -4106,12 +4111,12 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": true,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": true,
           "hasSesame": false,
           "hasMustard": false,
@@ -4151,7 +4156,7 @@
             "manual": "Beef Massaman Curry",
             "flags": {
               "hasDairy": false,
-              "hasGluten": false,
+              "hasGluten": true,
               "hasPork": false,
               "hasBeef": true,
               "hasChicken": false,
@@ -4171,7 +4176,7 @@
               "hasShellfish": false,
               "hasMustard": false,
               "hasSulphites": true,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasSesame": false,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false
@@ -4183,7 +4188,10 @@
               "hasCoconut": true,
               "hasTreeNuts": true,
               "hasMushroom": true,
-              "hasPeanuts": true
+              "hasPeanuts": true,
+              "hasSoy": true,
+              "hasSulphites": true,
+              "hasGluten": true
             }
           },
           "starch": {
