@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "source": "KitchenDOOR (audit + corrections 2026-05-15)",
+    "source": "KitchenDOOR (audit + corrections + plating-sheet flag restore 2026-05-15)",
     "site": "rexdale",
-    "exported": "2026-05-15T17:00:00.000Z",
-    "version": 32
+    "exported": "2026-05-15T18:30:00.000Z",
+    "version": 33
   },
   "menu": {
     "1": {
@@ -736,11 +736,11 @@
         "lunch": "Halal Breaded Chicken Burgers, Home Fries",
         "lunch_veg": "Crispy Quinoa Cake, Home Fries, Home Fries",
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
-        "allergens_lunch": "gluten, egg",
+        "allergens_lunch": "gluten, dairy, egg",
         "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
         "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
         "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
-        "allergens_dinner": "gluten",
+        "allergens_dinner": "gluten, tree nuts",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -757,7 +757,7 @@
         },
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
+          "hasDairy": true,
           "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
@@ -789,7 +789,7 @@
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
-          "hasTreeNuts": false,
+          "hasTreeNuts": true,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
@@ -805,7 +805,7 @@
           "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -3797,7 +3797,7 @@
         "dinner": "Teriyaki Chicken Legs, Vegetable Egg Noodles",
         "dinner_veg": "Teriyaki Tofu, Vegetable Egg Noodles",
         "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables",
-        "allergens_dinner": "gluten, soy, sulphites",
+        "allergens_dinner": "gluten, egg, sesame, soy, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3842,12 +3842,12 @@
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": false,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": true,
           "hasTreeNuts": false,
-          "hasSesame": false,
+          "hasSesame": true,
           "hasMustard": false,
           "hasShellfish": false,
           "hasSulphites": true,
