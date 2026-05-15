@@ -13308,7 +13308,7 @@ const MEAL_SLOT_DEFS = [
   { id:'veganalt', label:'Vegan Alt',   required:false, cats:['protein','stew_main'],          streams:['vegan'],       ph:'Vegan alternative…' },
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
   { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side'],                     streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
-  { id:'xtra',     label:'Extras',      required:false, manual:true,                           streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
+  { id:'xtra',     label:'Extras',      required:false,                                        streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
   { id:'extras',   label:'Event Name',  required:false, manual:true,                           streams:null,            ph:'Named events only — e.g. Jerk Night, Thanksgiving Dinner. Leave blank if components describe the meal.' },
 ];
 
@@ -14528,11 +14528,11 @@ function smSlotSearch(slotId, query) {
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
   const results = DOOR_RECIPE_DATA.filter(r => {
-    if (!def.cats.includes(r.category)) return false;
+    if (def.cats && !def.cats.includes(r.category)) return false;
     if (def.streams && !def.streams.includes(r.stream)) return false;
     if (q.length < 1) return true;
     return r.recipeName.toLowerCase().includes(q);
-  }).slice(0, 50);
+  }).slice(0, 6);
   if (!results.length && !q) { dd.style.display = 'none'; return; }
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   dd.innerHTML = results.length
@@ -14541,7 +14541,10 @@ function smSlotSearch(slotId, query) {
         const safeN = r.recipeName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         return `<div onclick="smSlotSelect('${slotId}','${safeN}')"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
-          onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">${hilite}</div>`;
+          onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
+          <div>${hilite}</div>
+          <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
+        </div>`;
       }).join('')
     : `<div onclick="smSlotSaveManual('${slotId}')"
         style="padding:10px 12px;font-size:12px;color:#2563eb;cursor:pointer;"
@@ -14565,6 +14568,21 @@ function smSlotSelect(slotId, recipeName) {
   updateSmSlotSummary();
 }
 
+// Short allergen preview text for a typeahead row — shows what flags would
+// auto-fill if the staff member clicks this suggestion. Keeps the dropdown
+// honest about consequences so they're not surprised by an auto-set flag.
+function _allergenPreview(allergens) {
+  if (!allergens || !allergens.length) return '';
+  const tokens = [];
+  (allergens || []).forEach(a => {
+    if (a === 'None') return;
+    const cat = a.split('(')[0].trim();
+    if (HUB_ALLERGEN_MAP[cat]) tokens.push(cat.toLowerCase());
+  });
+  if (!tokens.length) return '<span style="color:var(--muted);font-style:italic;">no priority allergens</span>';
+  return tokens.map(t => `<span style="display:inline-block;font-size:10px;padding:1px 6px;margin:0 2px 0 0;border-radius:8px;background:#fee2e2;color:#991b1b;">${t}</span>`).join('');
+}
+
 function slotSearch(slotId, query) {
   const dd = document.getElementById('slot-dd-' + slotId);
   if (!dd) return;
@@ -14572,11 +14590,11 @@ function slotSearch(slotId, query) {
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
   const results = DOOR_RECIPE_DATA.filter(r => {
-    if (!def.cats.includes(r.category)) return false;
+    if (def.cats && !def.cats.includes(r.category)) return false;
     if (def.streams && !def.streams.includes(r.stream)) return false;
     if (q.length < 1) return true;
     return r.recipeName.toLowerCase().includes(q);
-  }).slice(0, 50);
+  }).slice(0, 6);
   if (!results.length && !q) { dd.style.display = 'none'; return; }
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   dd.innerHTML = results.length
@@ -14585,7 +14603,10 @@ function slotSearch(slotId, query) {
         const safeN = r.recipeName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         return `<div onclick="slotSelect('${slotId}','${safeN}')"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
-          onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">${hilite}</div>`;
+          onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
+          <div>${hilite}</div>
+          <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
+        </div>`;
       }).join('')
     : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="slotSaveManual(\''+slotId+'\')" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "'+query+'" manually (no allergen data)</span></div>';
   dd.style.display = 'block';
