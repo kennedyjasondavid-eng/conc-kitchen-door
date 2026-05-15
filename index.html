@@ -9709,9 +9709,28 @@ function removeAnaphRoom(room) {
 // GITHUB PUBLISH — auto-sync menu + headcounts to repo
 // ============================================================
 function buildMenuJSON() {
+  // Regenerate allergens_X text from *_flags on export so the JSON's allergen
+  // line is always consistent with the boolean truth state. Downstream
+  // consumers (HUB plating sheets) read this text. See flagsToMenuAllergens.
+  // Copy each day before mutating — getMenuData may return MENU_DATA directly
+  // when there's no overlay.
+  const src = getMenuData();
+  const menu = {};
+  ['1','2','3','4'].forEach(wk => {
+    if (!src[wk]) return;
+    menu[wk] = {};
+    Object.keys(src[wk]).forEach(dayName => {
+      const d = { ...src[wk][dayName] };
+      ['breakfast','lunch','dinner'].forEach(meal => {
+        const flags = d[meal + '_flags'];
+        if (flags) d['allergens_' + meal] = flagsToMenuAllergens(flags);
+      });
+      menu[wk][dayName] = d;
+    });
+  });
   return {
     _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
-    menu: getMenuData()
+    menu
   };
 }
 
@@ -13584,6 +13603,26 @@ function flagsToAllergenStr(flags) {
     hasNightshades:'Nightshades', hasBrassicas:'Brassicas', hasCorn:'Corn',
     // Routing flags
     isSpicy:'SPICY', hasProcessedMeat:'Processed Meat'
+  };
+  return Object.entries(MAP)
+    .filter(([k]) => flags && flags[k])
+    .map(([,label]) => label)
+    .join(', ');
+}
+
+// Lowercase comma-separated allergen line for menu_current.json export and
+// downstream consumers (HUB plating sheets, the resident view). Flags are the
+// source of truth; this regenerates the text on export so the two never drift.
+function flagsToMenuAllergens(flags) {
+  const MAP = {
+    hasGluten:'gluten', hasDairy:'dairy', hasEgg:'egg', hasFish:'fish',
+    hasPeanuts:'peanuts', hasTreeNuts:'tree nuts', hasSesame:'sesame',
+    hasSoy:'soy', hasMustard:'mustard', hasShellfish:'shellfish',
+    hasSulphites:'sulphites',
+    // Dietary meat tokens — included so plating sheets surface them for
+    // residents on restricted-meat plans (matches the existing convention
+    // in menu_current.json: 'gluten, beef' on Beef Stroganoff, etc.).
+    hasPork:'pork', hasBeef:'beef'
   };
   return Object.entries(MAP)
     .filter(([k]) => flags && flags[k])
