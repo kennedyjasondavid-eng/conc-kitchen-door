@@ -1161,6 +1161,98 @@
         }
       }
     },
+    "MONDAY": {
+      "dinner": "Roast Chicken, Moroccan Rice, Seasonal Vegetables",
+      "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice, Seasonal Vegetables",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Roast Chicken",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Moroccan Rice, Seasonal Vegetables",
+      "dinner_slots": {
+        "main": {
+          "manual": "Roast Chicken",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "veganalt": {
+          "manual": "Roasted Portobello Mushrooms",
+          "flags": {
+            "hasMushroom": true
+          }
+        },
+        "starch": {
+          "manual": "Moroccan Rice",
+          "flags": {
+            "hasNightshades": true
+          }
+        },
+        "vegside": {
+          "manual": "Seasonal Vegetables",
+          "flags": {}
+        }
+      },
+      "dinner_altMeals": [
+        {
+          "text": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false
+    },
     "WEDNESDAY": {
       "lunch": "Crispy Chicken Tender Wrap",
       "lunch_veg": "Vegan Chik'n Tender Wrap",
@@ -1337,98 +1429,6 @@
           "flags": {}
         }
       }
-    },
-    "MONDAY": {
-      "dinner": "Roast Chicken, Moroccan Rice, Seasonal Vegetables",
-      "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice, Seasonal Vegetables",
-      "dinner_flags": {
-        "hasGluten": false,
-        "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": true,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": true,
-        "halalCertifiedMeat": true,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": true,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
-      "dinner_noPorkAlt": "",
-      "dinner_mainItem": "Roast Chicken",
-      "dinner_mainAlt": "",
-      "dinner_sides": "Moroccan Rice, Seasonal Vegetables",
-      "dinner_slots": {
-        "main": {
-          "manual": "Roast Chicken",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": true,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": false,
-            "hasBrassicas": false,
-            "hasCorn": false
-          }
-        },
-        "veganalt": {
-          "manual": "Roasted Portobello Mushrooms",
-          "flags": {
-            "hasMushroom": true
-          }
-        },
-        "starch": {
-          "manual": "Moroccan Rice",
-          "flags": {
-            "hasNightshades": true
-          }
-        },
-        "vegside": {
-          "manual": "Seasonal Vegetables",
-          "flags": {}
-        }
-      },
-      "dinner_altMeals": [
-        {
-          "text": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false
     },
     "SUNDAY": {
       "dinner": "Halal Beef Meatballs, Pasta, Pea & Carrot",
