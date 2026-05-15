@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "source": "KitchenDOOR",
+    "source": "KitchenDOOR (audit-applied 2026-05-15)",
     "site": "rexdale",
-    "exported": "2026-05-14T22:00:39.197Z",
-    "version": 30
+    "exported": "2026-05-15T16:00:00.000Z",
+    "version": 31
   },
   "menu": {
     "1": {
@@ -11,15 +11,15 @@
         "breakfast": "Pork Breakfast sandwich",
         "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, egg, dairy, pork",
+        "allergens_breakfast": "gluten, dairy, egg, pork",
         "lunch": "Chicken Deli & Cheese, Broccoli Salad",
         "lunch_veg": "Vegetarian Sandwich, Broccoli Salad",
         "lunch_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten, chicken, dairy",
+        "allergens_lunch": "gluten, dairy",
         "dinner": "Beef Stroganoff, Noodles",
         "dinner_veg": "Mushroom Stroganoff, Noodles",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "gluten, beef",
+        "allergens_dinner": "gluten, dairy, beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -173,15 +173,15 @@
         "breakfast": "Pancakes, turkey bacon",
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, dairy, egg, turkey",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Tuna Salad, Fruit and Chips",
         "lunch_veg": "Falafel Sandwich, Fruit and Chips",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "fish, gluten",
+        "allergens_lunch": "gluten, fish",
         "dinner": "Jerk Chicken, Rice and Beans, Cabbage Stirfry",
         "dinner_veg": "Jerk Cauliflower, Rice and Beans, Cabbage Stirfry",
         "dinner_softAlt": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
-        "allergens_dinner": "",
+        "allergens_dinner": "gluten, soy, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -224,17 +224,17 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -260,17 +260,17 @@
           "main": {
             "manual": "Jerk Chicken",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasPork": false,
               "hasBeef": false,
               "hasChicken": true,
@@ -289,7 +289,9 @@
           },
           "veganalt": {
             "manual": "Jerk Cauliflower",
-            "flags": {}
+            "flags": {
+              "hasSulphites": true
+            }
           },
           "starch": {
             "manual": "Rice and Beans",
@@ -310,16 +312,16 @@
       "TUESDAY": {
         "breakfast": "Cereal and milk",
         "breakfast_veg": "Cereal and milk",
-        "allergens_breakfast": "dairy, gluten",
+        "allergens_breakfast": "gluten, dairy",
         "lunch": "Beef Nachos Supreme & Tortilla Chips & Sour Cream",
         "lunch_veg": "Vegetarian Nachos Supreme",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "fish, soy",
+        "allergens_lunch": "gluten, dairy, beef",
         "dinner": "Pork Carnitas, Spanish Rice and Vegetables, Broccoli",
         "dinner_veg": "Vegan Mushroom Carnitas, Spanish Rice and Vegetables, Broccoli",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_halal": "Halal Chicken carnitas",
-        "allergens_dinner": "pork",
+        "allergens_dinner": "sulphites, pork",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -371,7 +373,7 @@
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": true,
           "hasBeef": false,
           "hasChicken": true,
@@ -381,7 +383,7 @@
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasMushroom": false,
+          "hasMushroom": true,
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
@@ -427,7 +429,7 @@
               "hasTreeNuts": false,
               "hasShellfish": false,
               "hasMustard": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasSoy": false,
               "hasSesame": false,
               "halalCertifiedMeat": false,
@@ -535,11 +537,11 @@
         "lunch": "Crispy Chicken Tender Wrap",
         "lunch_veg": "Crispy Vegan Tender Wrap, Tortilla Wrap, Lettuce, Peppers",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "pork, gluten, dairy",
+        "allergens_lunch": "gluten, dairy",
         "dinner": "Butter Chicken, Naan, Seasonal Veg",
         "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "Gluten,",
+        "allergens_dinner": "gluten, tree nuts",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -581,7 +583,7 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -660,7 +662,9 @@
           },
           "starch": {
             "manual": "Naan",
-            "flags": {}
+            "flags": {
+              "hasGluten": true
+            }
           },
           "vegside": {
             "manual": "Seasonal Veg",
@@ -732,11 +736,11 @@
         "lunch": "Halal Breaded Chicken Burgers, Home Fries",
         "lunch_veg": "Crispy Quinoa Cake, Home Fries, Home Fries",
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, egg",
         "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
         "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
         "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
-        "allergens_dinner": "Halal Chicken",
+        "allergens_dinner": "gluten, tree nuts, soy",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -779,12 +783,12 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": true,
           "hasSesame": false,
           "hasMustard": false,
@@ -798,7 +802,7 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
+          "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": true,
@@ -880,11 +884,15 @@
           },
           "veganalt": {
             "manual": "Roast Tofu",
-            "flags": {}
+            "flags": {
+              "hasSoy": true
+            }
           },
           "starch": {
             "manual": "Couscous",
-            "flags": {}
+            "flags": {
+              "hasGluten": true
+            }
           },
           "vegside": {
             "manual": "Chickpea Shakshuka",
@@ -898,16 +906,16 @@
         "breakfast": "Turkey & Cheese and Eggs, Yogurt",
         "breakfast_veg": "Oatmeal, Yogurt",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
-        "allergens_breakfast": "turkey, gluten, dairy ,egg",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Honey BBQ Halal Chicken Drumsticks, Potato Salad",
         "lunch_veg": "Vegan Drumsticks, Potato Salad",
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
-        "allergens_lunch": "Halal Chicken, Gluten, Egg",
+        "allergens_lunch": "gluten, egg",
         "dinner": "Pork Adobo with Vegetarian and Pineapple Rice",
         "dinner_veg": "Vegetarian Adobo with Vegetarian and Pineapple Rice",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_halal": "Halal Chicken Adobo",
-        "allergens_dinner": "Pork",
+        "allergens_dinner": "pork",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1004,14 +1012,14 @@
         "breakfast_veg": "Bagel, Cream cheese and Granola.",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy",
-        "lunch": "CONC Salad — Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
-        "lunch_veg": "CONC Salad — Vegan Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
+        "lunch": "CONC Salad \u2014 Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
+        "lunch_veg": "CONC Salad \u2014 Vegan Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, beef",
         "dinner": "Gomen Besiga, Carrot Cabbage Fry, Rice",
         "dinner_veg": "Vegetarin Collard Stew, Carrot Cabbage Fry, Rice",
         "dinner_softAlt": "Roasted Chicken Leg, Vegetable Stir-fry & Plain Rice",
-        "allergens_dinner": "Beef",
+        "allergens_dinner": "beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1077,7 +1085,7 @@
         "breakfast": "Turkey Breakfast sandwich",
         "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, egg, dairy,",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Philly Cheese Melt, Chips,  Fruit",
         "lunch_veg": "Vegan Mushroom Sandwich, Chips,  Fruit",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
@@ -1086,7 +1094,7 @@
         "dinner_veg": "Vegan Sausage and Vegetable Pasta",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_halal": "Halal Turkey Sausage",
-        "allergens_dinner": "pork, gluten",
+        "allergens_dinner": "gluten, pork",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1228,7 +1236,7 @@
         "breakfast": "Pancakes, turkey bacon",
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, dairy, egg,",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Vegan Chilli ,  garlic bread",
         "lunch_veg": "Vegan Chilli ,  garlic bread",
         "lunch_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice",
@@ -1236,7 +1244,7 @@
         "dinner": "African Peanut Chicken Stew, Rice, Seasonal Vegetables",
         "dinner_veg": "African Chickpea Peanut Stew, Rice, Seasonal Vegetables",
         "dinner_softAlt": "Plain Chicken Leg, Stir-fried Veg & Plain Rice (no peanuts)",
-        "allergens_dinner": "PEANUTS",
+        "allergens_dinner": "gluten, peanuts, tree nuts, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1353,11 +1361,11 @@
       "TUESDAY": {
         "breakfast": "Cereal and milk",
         "breakfast_veg": "Cereal and milk",
-        "allergens_breakfast": "dairy, gluten",
+        "allergens_breakfast": "gluten, dairy",
         "lunch": "Fully Loaded Sausage on a Bun, Side Salad",
         "lunch_veg": "Quinoa Cake Wrap, Hot Dog Bun, Side Salad",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten",
+        "allergens_lunch": "gluten, mustard, pork",
         "dinner": "Pork Vindaloo, Seasonal Vegetables, Steamed Rice",
         "dinner_veg": "Vegetarian Vindaloo, Seasonal Vegetables, Steamed Rice",
         "dinner_softAlt": "Plain Roasted Chicken Leg, Steamed Rice & Veg (no broccoli or cauliflower)",
@@ -1487,11 +1495,11 @@
         "lunch_veg": "Roasted Vegetable Sandwich, Fruit",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_halal": "Halal breaded chicken burgers",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, egg",
         "dinner": "Yetisse Fish, Okra and cassava stew, Coconut Rice and peas",
         "dinner_veg": "Spiced Tofu, Okra and cassava stew, Coconut Rice and peas",
         "dinner_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "Fish",
+        "allergens_dinner": "fish",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1613,7 +1621,7 @@
         "lunch": "CONC Salad - Beef, lettuce,  beans, red cabbage, carrots, cheese, pickled onion,  naan",
         "lunch_veg": "CONC Salad - Vegan Beef,lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
         "lunch_softAlt": "Roasted Chicken Leg, Steamed Rice & Soft Veg Stir-fry",
-        "allergens_lunch": "Gluten, dairy",
+        "allergens_lunch": "gluten, dairy, beef",
         "dinner": "Sausages & Mash, Gravy, Green peas",
         "dinner_veg": "Vegan Sausages & Mash, Gravy, Green Peas",
         "dinner_softAlt": "Plain Roasted Chicken Leg, Steamed Rice, Peas, Carrots & Onions",
@@ -1672,15 +1680,15 @@
         "breakfast": "Ham, Cheese and Eggs yoghurt",
         "breakfast_veg": "Oatmeal",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
-        "allergens_breakfast": "pork, gluten, dairy ,egg",
+        "allergens_breakfast": "gluten, dairy, egg, pork",
         "lunch": "Tuna Salad Sandwich & Seasonal  Soup",
-        "lunch_veg": "ّّFalafel Sandwich & Seasonal Soup",
+        "lunch_veg": "\u0651\u0651Falafel Sandwich & Seasonal Soup",
         "lunch_softAlt": "Plain Fish or Tuna, Soft Bread & Seasonal Soup",
-        "allergens_lunch": "fish, gluten",
+        "allergens_lunch": "gluten, fish",
         "dinner": "Arroz Con Pollo, Refried Beans",
         "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "",
+        "allergens_dinner": "gluten, soy",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1709,12 +1717,12 @@
           "isCarb": true
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -1760,7 +1768,7 @@
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
@@ -1811,7 +1819,7 @@
         "dinner": "Beef Meatloaf, Steamed vegetables, Potatoes",
         "dinner_veg": "Vegan Meatloaf, Steamed vegetables, Potatoes",
         "dinner_softAlt": "Plain Chicken Leg, Rice & Squash",
-        "allergens_dinner": "",
+        "allergens_dinner": "beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1866,15 +1874,15 @@
         "breakfast": "Pork Breakfast sandwich",
         "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, egg, dairy,",
+        "allergens_breakfast": "gluten, dairy, egg, pork",
         "lunch": "Chicken Deli & Cheese, Broccoli Salad",
         "lunch_veg": "Vegetarian Sandwich, Broccoli Salad",
         "lunch_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten, chicken, dairy",
+        "allergens_lunch": "gluten, dairy",
         "dinner": "Halal Beef Meatballs, Pasta, Pea & Carrot",
         "dinner_veg": "Vegan Meatballs Pasta, Pasta, Pea & Carrot",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "gluten",
+        "allergens_dinner": "gluten, egg, soy, mustard, sulphites, beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1919,15 +1927,15 @@
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": false,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": true,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": true,
           "hasChicken": false,
@@ -1936,8 +1944,8 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
-          "hasMushroom": false,
+          "hasBeans": true,
+          "hasMushroom": true,
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
@@ -1968,7 +1976,7 @@
               "hasChicken": false,
               "hasTurkey": false,
               "hasFish": false,
-              "hasEgg": false,
+              "hasEgg": true,
               "hasPeanuts": false,
               "isSpicy": false,
               "isCarb": true,
@@ -1981,7 +1989,7 @@
               "hasTreeNuts": false,
               "hasShellfish": false,
               "hasMustard": true,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasSoy": false,
               "hasSesame": false,
               "halalCertifiedMeat": true,
@@ -1994,7 +2002,9 @@
               "hasMushroom": true,
               "hasBeans": true,
               "hasGluten": true,
-              "hasNightshades": true
+              "hasNightshades": true,
+              "hasSoy": true,
+              "hasSulphites": true
             }
           },
           "starch": {
@@ -2013,15 +2023,15 @@
         "breakfast": "Pancakes, turkey bacon",
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, dairy, egg,",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Tuna Salad, Fruit and Chips",
         "lunch_veg": "Falafel Sandwich, Fruit and Chips",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "fish, gluten",
+        "allergens_lunch": "gluten, fish",
         "dinner": "Roast Chicken, Moroccan Rice, Seasonal Vegetables",
         "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice, Seasonal Vegetables",
         "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "",
+        "allergens_dinner": "sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2074,7 +2084,7 @@
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -2084,7 +2094,7 @@
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasMushroom": false,
+          "hasMushroom": true,
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
@@ -2136,7 +2146,8 @@
           "starch": {
             "manual": "Moroccan Rice",
             "flags": {
-              "hasNightshades": true
+              "hasNightshades": true,
+              "hasSulphites": true
             }
           },
           "vegside": {
@@ -2156,11 +2167,11 @@
       "TUESDAY": {
         "breakfast": "Cereal and milk",
         "breakfast_veg": "Cereal and milk",
-        "allergens_breakfast": "dairy, gluten",
+        "allergens_breakfast": "gluten, dairy",
         "lunch": "Beef Nachos Supreme, Tortilla Chips, Sour Cream",
         "lunch_veg": "Vegetarian Nachos Supreme, Tortilla Chips, Sour Cream",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, beef",
         "dinner": "Caribbean Chicken Curry, Naan",
         "dinner_veg": "Caribbean Chickpea Curry, Naan",
         "dinner_softAlt": "Plain Roasted Chicken Leg, Steamed Rice & Seasonal Veg",
@@ -2294,15 +2305,15 @@
         "breakfast": "Ham Frittata",
         "breakfast_veg": "Vegetarian Frittata",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, dairy",
+        "allergens_breakfast": "gluten, dairy, pork",
         "lunch": "Crispy Chicken Tender Wrap",
         "lunch_veg": "Vegan Chik'n Tender Wrap",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "dairy, gluten",
+        "allergens_lunch": "gluten, dairy",
         "dinner": "Baked Tomato Fish, Couscous, Seasonal Vegetables",
         "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables",
         "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "fish, gluten",
+        "allergens_dinner": "gluten, fish, soy, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2350,12 +2361,12 @@
           "hasEgg": false,
           "hasFish": true,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": false,
@@ -2474,7 +2485,8 @@
             "manual": "Baked Tomato Tofu",
             "flags": {
               "hasSoy": true,
-              "hasNightshades": true
+              "hasNightshades": true,
+              "hasSulphites": true
             }
           },
           "starch": {
@@ -2497,11 +2509,11 @@
         "lunch": "Chicken Burger, Tomato Cucumber Salad",
         "lunch_veg": "Quinoa Burger, Burger Bun, Tomato Cucumber Salad",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten,  dairy",
+        "allergens_lunch": "gluten, dairy",
         "dinner": "Pork Griot, Rice, Chakalaka",
         "dinner_veg": "Citrus Tofu, Rice, Chakalaka",
         "dinner_softAlt": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
-        "allergens_dinner": "pork",
+        "allergens_dinner": "sulphites, pork",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2724,7 +2736,7 @@
         "breakfast": "Ham, Cheese and Eggs yoghurt",
         "breakfast_veg": "Oatmeal",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
-        "allergens_breakfast": "pork, gluten, dairy ,egg",
+        "allergens_breakfast": "gluten, dairy, egg, pork",
         "lunch": "Egg Salad Wrap, Bean Salad",
         "lunch_veg": "Egg Salad Wrap, Bean Salad",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
@@ -2732,7 +2744,7 @@
         "dinner": "Chicken and Mushroom Fried Rice",
         "dinner_veg": "Soy-Free Mushroom Fried Rice",
         "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
-        "allergens_dinner": "",
+        "allergens_dinner": "gluten, sesame, soy",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2775,7 +2787,7 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -2819,7 +2831,7 @@
           "main": {
             "manual": "Chicken and Mushroom Fried Rice",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -2857,14 +2869,14 @@
         "breakfast_veg": "Bagel, Cream cheese and Granola.",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
         "allergens_breakfast": "gluten, dairy",
-        "lunch": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion, Naan, Red Cabbage",
-        "lunch_veg": "Vegan CONC Salad — Vegan Beef, Lettuce, Beans, Carrots, Cheese, Pickled Onion, Naan, Red Cabbage",
+        "lunch": "CONC Salad \u2014 Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion, Naan, Red Cabbage",
+        "lunch_veg": "Vegan CONC Salad \u2014 Vegan Beef, Lettuce, Beans, Carrots, Cheese, Pickled Onion, Naan, Red Cabbage",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "sesame, soy",
+        "allergens_lunch": "gluten, dairy, sulphites, beef",
         "dinner": "Pepperoni Pizza, Potato Wedges",
         "dinner_veg": "Vegetarian Pizza, Potato Wedges",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "gluten, pork, dairy",
+        "allergens_dinner": "gluten, dairy, pork",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2932,7 +2944,7 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "lunch_mainItem": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
+        "lunch_mainItem": "CONC Salad \u2014 Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
         "lunch_sides": "Naan, Red Cabbage",
         "dinner_mainItem": "Pepperoni Pizza",
         "dinner_sides": "Potato Wedges",
@@ -3006,7 +3018,7 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "CONC Salad — Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
+            "manual": "CONC Salad \u2014 Beef & Lettuce & Beans & Carrots & Cheese & Pickled Onion",
             "flags": {
               "hasDairy": true,
               "hasGluten": true,
@@ -3036,7 +3048,7 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan CONC Salad — Vegan Beef, Lettuce, Beans, Carrots, Cheese, Pickled Onion",
+            "manual": "Vegan CONC Salad \u2014 Vegan Beef, Lettuce, Beans, Carrots, Cheese, Pickled Onion",
             "flags": {
               "hasBeans": true,
               "hasSulphites": true,
@@ -3064,7 +3076,7 @@
         "breakfast": "Turkey Breakfast Sandwich",
         "breakfast_veg": "Vegan Breakfast Sausage Sandwich",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, egg, dairy,",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Philly Cheese Melt, Fruit and Chips",
         "lunch_veg": "Vegan Mushroom Sandwich, Fruit and Chips",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
@@ -3072,7 +3084,7 @@
         "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
         "dinner_veg": "White Chilli Pasta Casserole, Broccoli",
         "dinner_softAlt": "Plain Chicken Leg, Rice & Broccoli",
-        "allergens_dinner": "gluten",
+        "allergens_dinner": "gluten, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3246,7 +3258,7 @@
         "breakfast": "Pancakes, turkey bacon",
         "breakfast_veg": "Pancakes, Vegan Breakfast Sausage",
         "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-        "allergens_breakfast": "gluten, dairy, egg,",
+        "allergens_breakfast": "gluten, dairy, egg",
         "lunch": "Vegan Chilli, Garlic Bread",
         "lunch_veg": "Vegan Chilli, Garlic Bread",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
@@ -3254,7 +3266,7 @@
         "dinner": "Fish Curry, Steamed Rice, Seasonal Vegetables",
         "dinner_veg": "Tofu Curry, Steamed Rice, Seasonal Vegetables",
         "dinner_softAlt": "Plain Fish, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "fish",
+        "allergens_dinner": "fish, soy",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3302,7 +3314,7 @@
           "hasEgg": false,
           "hasFish": true,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -3363,7 +3375,8 @@
           "veganalt": {
             "manual": "Tofu Curry",
             "flags": {
-              "hasCoconut": true
+              "hasCoconut": true,
+              "hasSoy": true
             }
           },
           "starch": {
@@ -3383,11 +3396,11 @@
       "TUESDAY": {
         "breakfast": "Cereal and milk",
         "breakfast_veg": "Cereal and milk",
-        "allergens_breakfast": "dairy, gluten",
+        "allergens_breakfast": "gluten, dairy",
         "lunch": "Fully Loaded Sausage on a Bun, Side Salad",
         "lunch_veg": "Quinoa Cake Wrap, Hot Dog Bun, Side Salad",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "pork, gluten, dairy",
+        "allergens_lunch": "gluten, mustard, pork",
         "dinner": "BBQ Chicken Legs, Herb and Garlic Potatoes, Seasonal Veg",
         "dinner_veg": "BBQ Chik'n Tenders, Herb and Garlic Potatoes, Seasonal Veg",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
@@ -3587,11 +3600,11 @@
         "lunch": "Coronation Chicken Salad Sandwich, Chips, Fruit Cup",
         "lunch_veg": "Roasted Vegetable Sandwich, Chips, Fruit Cup",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "fish",
+        "allergens_lunch": "gluten, egg",
         "dinner": "Beef and Vegetable Stew, Potatoes",
         "dinner_veg": "Vegan Pot Pie and Vegetable Medley, Potatoes",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "",
+        "allergens_dinner": "gluten, beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3780,11 +3793,11 @@
         "lunch": "Halal Beef Burger, Chickpea Salad",
         "lunch_veg": "Black Bean Patty, Chickpea Salad",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, beef",
         "dinner": "Teriyaki Chicken Legs, Vegetable Egg Noodles",
         "dinner_veg": "Teriyaki Tofu, Vegetable Egg Noodles",
         "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables",
-        "allergens_dinner": "Egg,soy,gluten,sesame",
+        "allergens_dinner": "gluten, egg, sesame, soy, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3918,7 +3931,7 @@
         "breakfast": "Ham, Cheese and Eggs yoghurt",
         "breakfast_veg": "Oatmeal",
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
-        "allergens_breakfast": "pork, gluten, dairy ,egg",
+        "allergens_breakfast": "gluten, dairy, egg, pork",
         "lunch": "Chicken Ranch Wrap, Fruit and Chips",
         "lunch_veg": "Falafel and Slaw Wrap, Fruit and Chips",
         "lunch_softAlt": "Plain Basa, Plain Rice & Stir-fried Veg",
@@ -3927,7 +3940,7 @@
         "dinner_veg": "Tandoori Tofu, Vegetable Briyani, Vegetable Briyani",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_halal": "Tandoori Chicken",
-        "allergens_dinner": "Pork",
+        "allergens_dinner": "dairy, pork",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -4051,11 +4064,11 @@
         "lunch": "Tuna Rex Salad",
         "lunch_veg": "Chickpea Rex Salad",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_lunch": "fish, gluten",
+        "allergens_lunch": "gluten, fish",
         "dinner": "Beef Massaman Curry, Rice",
         "dinner_veg": "Vegetarian Massaman Curry, Rice",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "",
+        "allergens_dinner": "gluten, peanuts, tree nuts, soy, sulphites, beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -4097,12 +4110,12 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": true,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": true,
           "hasSesame": false,
           "hasMustard": false,
@@ -4117,7 +4130,7 @@
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasMushroom": false,
+          "hasMushroom": true,
           "hasCoconut": true,
           "hasNightshades": false,
           "hasBrassicas": false,
@@ -4142,7 +4155,7 @@
             "manual": "Beef Massaman Curry",
             "flags": {
               "hasDairy": false,
-              "hasGluten": false,
+              "hasGluten": true,
               "hasPork": false,
               "hasBeef": true,
               "hasChicken": false,
@@ -4162,7 +4175,7 @@
               "hasShellfish": false,
               "hasMustard": false,
               "hasSulphites": true,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasSesame": false,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false
