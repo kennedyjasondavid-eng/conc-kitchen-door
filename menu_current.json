@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "source": "KitchenDOOR (audit-applied 2026-05-15)",
+    "source": "KitchenDOOR (audit + corrections 2026-05-15)",
     "site": "rexdale",
-    "exported": "2026-05-15T16:00:00.000Z",
-    "version": 31
+    "exported": "2026-05-15T17:00:00.000Z",
+    "version": 32
   },
   "menu": {
     "1": {
@@ -181,7 +181,7 @@
         "dinner": "Jerk Chicken, Rice and Beans, Cabbage Stirfry",
         "dinner_veg": "Jerk Cauliflower, Rice and Beans, Cabbage Stirfry",
         "dinner_softAlt": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
-        "allergens_dinner": "gluten, soy, sulphites",
+        "allergens_dinner": "soy, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -224,7 +224,7 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": true,
+          "hasGluten": false,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -260,7 +260,7 @@
           "main": {
             "manual": "Jerk Chicken",
             "flags": {
-              "hasGluten": true,
+              "hasGluten": false,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -383,7 +383,7 @@
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasMushroom": true,
+          "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
@@ -736,11 +736,11 @@
         "lunch": "Halal Breaded Chicken Burgers, Home Fries",
         "lunch_veg": "Crispy Quinoa Cake, Home Fries, Home Fries",
         "lunch_softAlt": "Plain Chicken Leg, Mashed Potato & Seasonal Veg",
-        "allergens_lunch": "gluten, dairy, egg",
+        "allergens_lunch": "gluten, egg",
         "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
         "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
         "dinner_softAlt": "Plain Roasted Chicken, Stir-fried Veg & Rice",
-        "allergens_dinner": "gluten, tree nuts, soy",
+        "allergens_dinner": "gluten",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -757,7 +757,7 @@
         },
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": true,
+          "hasDairy": false,
           "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
@@ -788,8 +788,8 @@
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": true,
-          "hasTreeNuts": true,
+          "hasSoy": false,
+          "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
@@ -805,7 +805,7 @@
           "hasBeans": true,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": true,
+          "hasNightshades": false,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -1688,7 +1688,7 @@
         "dinner": "Arroz Con Pollo, Refried Beans",
         "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "gluten, soy",
+        "allergens_dinner": "",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1717,12 +1717,12 @@
           "isCarb": true
         },
         "dinner_flags": {
-          "hasGluten": true,
+          "hasGluten": false,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": true,
+          "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -1768,7 +1768,7 @@
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
-              "hasSoy": true,
+              "hasSoy": false,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
@@ -1882,7 +1882,7 @@
         "dinner": "Halal Beef Meatballs, Pasta, Pea & Carrot",
         "dinner_veg": "Vegan Meatballs Pasta, Pasta, Pea & Carrot",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "gluten, egg, soy, mustard, sulphites, beef",
+        "allergens_dinner": "gluten, egg, mustard, sulphites, beef",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1930,7 +1930,7 @@
           "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": true,
+          "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": true,
@@ -1944,8 +1944,8 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": true,
-          "hasMushroom": true,
+          "hasBeans": false,
+          "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
@@ -2003,7 +2003,7 @@
               "hasBeans": true,
               "hasGluten": true,
               "hasNightshades": true,
-              "hasSoy": true,
+              "hasSoy": false,
               "hasSulphites": true
             }
           },
@@ -2094,7 +2094,7 @@
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasMushroom": true,
+          "hasMushroom": false,
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
@@ -2313,7 +2313,7 @@
         "dinner": "Baked Tomato Fish, Couscous, Seasonal Vegetables",
         "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables",
         "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "gluten, fish, soy, sulphites",
+        "allergens_dinner": "gluten, fish",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2361,12 +2361,12 @@
           "hasEgg": false,
           "hasFish": true,
           "hasPeanuts": false,
-          "hasSoy": true,
+          "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": true,
+          "hasSulphites": false,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": false,
@@ -2744,7 +2744,7 @@
         "dinner": "Chicken and Mushroom Fried Rice",
         "dinner_veg": "Soy-Free Mushroom Fried Rice",
         "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
-        "allergens_dinner": "gluten, sesame, soy",
+        "allergens_dinner": "sesame, soy",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2787,7 +2787,7 @@
           "hasCorn": false
         },
         "dinner_flags": {
-          "hasGluten": true,
+          "hasGluten": false,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -2831,7 +2831,7 @@
           "main": {
             "manual": "Chicken and Mushroom Fried Rice",
             "flags": {
-              "hasGluten": true,
+              "hasGluten": false,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -3266,7 +3266,7 @@
         "dinner": "Fish Curry, Steamed Rice, Seasonal Vegetables",
         "dinner_veg": "Tofu Curry, Steamed Rice, Seasonal Vegetables",
         "dinner_softAlt": "Plain Fish, Plain Rice & Stir-fried Veg",
-        "allergens_dinner": "fish, soy",
+        "allergens_dinner": "fish",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3314,7 +3314,7 @@
           "hasEgg": false,
           "hasFish": true,
           "hasPeanuts": false,
-          "hasSoy": true,
+          "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -3797,7 +3797,7 @@
         "dinner": "Teriyaki Chicken Legs, Vegetable Egg Noodles",
         "dinner_veg": "Teriyaki Tofu, Vegetable Egg Noodles",
         "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables",
-        "allergens_dinner": "gluten, egg, sesame, soy, sulphites",
+        "allergens_dinner": "gluten, soy, sulphites",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3842,12 +3842,12 @@
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": false,
-          "hasEgg": true,
+          "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": true,
           "hasTreeNuts": false,
-          "hasSesame": true,
+          "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
           "hasSulphites": true,
@@ -4130,7 +4130,7 @@
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
-          "hasMushroom": true,
+          "hasMushroom": false,
           "hasCoconut": true,
           "hasNightshades": false,
           "hasBrassicas": false,
