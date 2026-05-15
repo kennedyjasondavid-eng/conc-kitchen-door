@@ -11229,7 +11229,12 @@ function getAltMeal(altType, ctx) {
       if (ctx && ctx.altMeals && ctx.altMeals.length > 1) {
         return ctx.altMeals.map(a => (a.type==='soft'?'SOFT':'PLAIN')+': '+a.text).join('  /  ');
       }
-      return ctx && ctx.softAlt ? ctx.softAlt : '[Supervisor: specify alternative meal]';
+      if (ctx && ctx.softAlt) return ctx.softAlt;
+      // v9.15: 'no soft alt needed' affirmed in Menu Config — show standard meal,
+      // not the supervisor prompt. Used for meals where the regular dish is
+      // already soft-friendly (e.g. Tuesday breakfast 'Cereal and milk').
+      if (ctx && ctx.altMealsNone) return ctx.mealName + ' (suitable as-is)';
+      return '[Supervisor: specify alternative meal]';
     case 'main':          return ctx.mealName;
     default:              return ctx.mealName;
   }
@@ -16595,6 +16600,10 @@ function computePlatingData(period, weekNum, dayName) {
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
   const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || '';
+  // v9.15: when staff has affirmed "no soft alt needed" (e.g. Tuesday breakfast
+  // where cereal is already soft-friendly), this flag is true. Plating renders
+  // a cleaner "Same as standard" instead of the [Supervisor: specify] prompt.
+  const mealAltMealsNone = dayData[period+'_altMealsNone'] === true;
   // Clone so runtime augmentation doesn't mutate the source-of-truth flag
   // object that getMenuData() returns by reference.
   const mealFlags   = {...(dayData[period+'_flags'] || {})};
@@ -16670,7 +16679,7 @@ function computePlatingData(period, weekNum, dayName) {
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const mealGfAlt = dayData[period+'_gfAlt'] || '';
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
@@ -17796,7 +17805,7 @@ function computeTestPlatingData(flags) {
   var veganCount = sections.filter(function(s){ return s.rule.key==='vegan'; }).reduce(function(sum,s){ return sum+s.residents.length; },0);
   var diabCount = REGISTRY_LIST.filter(function(r) { return (r.tags||[]).includes('Diabetic'); }).length;
   var altMeals = mealFlags._altMeals || [];
-  var ctx = {mealName:mealName, mealVeg:mealVeg, allergenStr:allergenStr, softAlt:mealSoftAlt, altMeals:altMeals, noPorkAlt:mealNoPorkAlt, mainAlt:mealMainAlt, mainItem:mealMainItem, sides:mealSides, mealFlags:mealFlags};
+  var ctx = {mealName:mealName, mealVeg:mealVeg, allergenStr:allergenStr, softAlt:mealSoftAlt, altMeals:altMeals, altMealsNone: (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE), noPorkAlt:mealNoPorkAlt, mainAlt:mealMainAlt, mainItem:mealMainItem, sides:mealSides, mealFlags:mealFlags};
 
   var regularNotes = [];
   if (regularSection) {
