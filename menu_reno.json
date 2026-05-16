@@ -2,11 +2,14 @@
   "_meta": {
     "source": "KitchenDOOR (reno menu, generated from Excel)",
     "site": "rexdale",
-    "exported": "2026-05-16T22:43:03.405015+00:00",
-    "version": 1,
-    "sourceFile": "02_Renovation_4_Week_Menu.xlsx",
-    "generator": "EXPO audit script (Excel → DOOR shape)",
-    "note": "Reno menu cycle. Use with EXPO reno mode (MODE_PROFILES.reno.menu=null)."
+    "exported": "2026-05-16T22:52:45.287786+00:00",
+    "version": 2,
+    "sourceFiles": [
+      "02_Renovation_4_Week_Menu.xlsx",
+      "Meal components - regular and plain.xlsx"
+    ],
+    "generator": "EXPO audit script (Excel + plain-meals -> DOOR shape)",
+    "note": "Reno menu cycle. _altMeals populated from plain-meals Excel; lunch W3 reuses W1, W4 reuses W2 (rotation)."
   },
   "menu": {
     "1": {
@@ -42,7 +45,13 @@
         "lunch_veg": "Vegetarian Sandwich, Broccoli Salad",
         "allergens_lunch": "gluten, chicken, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Chicken Deli & Cheese",
         "lunch_sides": "Broccoli Salad",
         "lunch_flags": {
@@ -69,7 +78,13 @@
         "dinner_veg": "Mushroom Stroganoff, Noodles",
         "allergens_dinner": "gluten, beef",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Beef Stroganoff",
         "dinner_sides": "Noodles",
         "dinner_flags": {
@@ -125,7 +140,13 @@
         "lunch_veg": "Falafel Sandwich, Fruit and Chips",
         "allergens_lunch": "fish, gluten",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Tuna Salad",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -151,7 +172,13 @@
         "dinner": "Jerk Chicken, Cabbage Stirfry, Rice and Beans",
         "dinner_veg": "Jerk Cauliflower, Cabbage Stirfry, Rice and Beans",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice And Green Peas & Service Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Jerk Chicken",
         "dinner_sides": "Cabbage Stirfry, Rice and Beans",
         "dinner_flags": {
@@ -207,7 +234,13 @@
         "lunch_veg": "Vegetarian Nachos Supreme, Tortilla Chips, Sour Cream",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Baked Plain Fish, Rice & Veg Stir-Fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Beef Nachos Supreme",
         "lunch_sides": "Tortilla Chips, Sour Cream",
         "lunch_flags": {
@@ -235,7 +268,13 @@
         "dinner_halal": "Halal Chicken Carnitas",
         "allergens_dinner": "pork",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Pork Carnitas",
         "dinner_sides": "Spanish Rice and Vegetables",
         "dinner_flags": {
@@ -291,7 +330,13 @@
         "lunch_veg": "Crispy Vegan Tender Wrap",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Leg, Rice & Veg Stir-Fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Crispy Chicken Tender Wrap",
         "lunch_sides": "",
         "lunch_flags": {
@@ -318,7 +363,13 @@
         "dinner_veg": "Butter Chickpeas, Naan, Vegetables",
         "allergens_dinner": "gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Baked Basa, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Butter Chicken",
         "dinner_sides": "Naan, Vegetables",
         "dinner_flags": {
@@ -374,7 +425,13 @@
         "lunch_veg": "Quinoa Burger, Tomato Cucumber Salad",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Chicken Burger",
         "lunch_sides": "Tomato Cucumber Salad",
         "lunch_flags": {
@@ -401,7 +458,13 @@
         "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous",
         "allergens_dinner": "halal chicken, dairy",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Veg Stirfry & Plain Rice",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Roast Chicken",
         "dinner_sides": "Chickpea Shakshuka, Couscous",
         "dinner_flags": {
@@ -457,7 +520,13 @@
         "lunch_veg": "Egg Salad Wrap, Bean Salad",
         "allergens_lunch": "gluten, egg",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Egg Salad Wrap",
         "lunch_sides": "Bean Salad",
         "lunch_flags": {
@@ -485,7 +554,13 @@
         "dinner_halal": "Halal Chicken Adobo",
         "allergens_dinner": "pork",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Pork Adobo",
         "dinner_sides": "Pineapple Rice",
         "dinner_flags": {
@@ -541,7 +616,13 @@
         "lunch_veg": "CONC Salad — Vegan Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Leg, Rice & Soft Veg Stir-fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "CONC Salad — Beef",
         "lunch_sides": "Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
         "lunch_flags": {
@@ -568,7 +649,13 @@
         "dinner_veg": "Vegetarian Collard Stew, Carrot Cabbage Fry, Rice",
         "allergens_dinner": "beef",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Vegetable Stirfry & Plain Rice",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Gomen Besiga",
         "dinner_sides": "Carrot Cabbage Fry, Rice",
         "dinner_flags": {
@@ -626,7 +713,13 @@
         "lunch_veg": "Vegan Mushroom Sandwich, Fruit and Chips",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Philly Cheese Melt",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -654,7 +747,13 @@
         "dinner_halal": "Halal Turkey Sausage",
         "allergens_dinner": "pork, gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Sausage And Greens Sauce, Plain Rice",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Sausage and Vegetable Pasta",
         "dinner_sides": "",
         "dinner_flags": {
@@ -710,7 +809,13 @@
         "lunch_veg": "Vegan Chilli, Garlic Bread",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Vegan Chilli",
         "lunch_sides": "Garlic Bread",
         "lunch_flags": {
@@ -737,7 +842,13 @@
         "dinner_veg": "Vegetarian Peanut Stew, Seasonal Vegetables, Rice",
         "allergens_dinner": "PEANUTS",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "West African Peanut Stew",
         "dinner_sides": "Seasonal Vegetables, Rice",
         "dinner_flags": {
@@ -793,7 +904,13 @@
         "lunch_veg": "Quinoa Cake Wrap, Side Salad",
         "allergens_lunch": "gluten, pork",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Fully Loaded Sausage on a Bun",
         "lunch_sides": "Side Salad",
         "lunch_flags": {
@@ -821,7 +938,13 @@
         "dinner_halal": "Chicken Vindaloo",
         "allergens_dinner": "pork",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Pork Vindaloo",
         "dinner_sides": "Seasonal Vegetables, Steamed Rice",
         "dinner_flags": {
@@ -877,7 +1000,13 @@
         "lunch_veg": "Roasted Vegetable Sandwich, Fruit, Chips",
         "allergens_lunch": "gluten, egg",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Legs, Rice & Veg Stir-fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Coronation Chicken Salad Sandwich",
         "lunch_sides": "Fruit, Chips",
         "lunch_flags": {
@@ -904,7 +1033,13 @@
         "dinner_veg": "Spiced Tofu, Eggplant/Cassava Stew, Coconut Rice and Peas",
         "allergens_dinner": "fish",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Baked Basa, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Yetisse Fish",
         "dinner_sides": "Eggplant/Cassava Stew, Coconut Rice and Peas",
         "dinner_flags": {
@@ -960,7 +1095,13 @@
         "lunch_veg": "Black Bean Patty, Chickpea Salad",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Halal Beef Burger",
         "lunch_sides": "Chickpea Salad",
         "lunch_flags": {
@@ -988,7 +1129,13 @@
         "dinner_halal": "Halal Beef Sausages",
         "allergens_dinner": "pork",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Service Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Sausages & Mash",
         "dinner_sides": "Gravy, Green Peas & Carrot",
         "dinner_flags": {
@@ -1044,7 +1191,13 @@
         "lunch_veg": "Falafel and Slaw Wrap, Fruit and Chips",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Chicken Ranch Wrap",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -1070,7 +1223,13 @@
         "dinner": "Arroz con Pollo, Refried Beans",
         "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Baked Basa, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Arroz con Pollo",
         "dinner_sides": "Refried Beans",
         "dinner_flags": {
@@ -1126,7 +1285,13 @@
         "lunch_veg": "Chickpea Rex Salad",
         "allergens_lunch": "fish, gluten",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Legs, Rice & Veg Stir-fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Tuna Rex Salad",
         "lunch_sides": "",
         "lunch_flags": {
@@ -1152,7 +1317,13 @@
         "dinner": "Beef Meatloaf, Steamed Vegetables, Potatoes",
         "dinner_veg": "Vegan Meatloaf, Steamed Vegetables, Potatoes",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Service Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Beef Meatloaf",
         "dinner_sides": "Steamed Vegetables, Potatoes",
         "dinner_flags": {
@@ -1210,7 +1381,13 @@
         "lunch_veg": "Vegetarian Sandwich, Broccoli Salad",
         "allergens_lunch": "gluten, chicken, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Chicken Deli & Cheese",
         "lunch_sides": "Broccoli Salad",
         "lunch_flags": {
@@ -1237,7 +1414,13 @@
         "dinner_veg": "Vegan Meatballs Pasta",
         "allergens_dinner": "gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Halal Beef Meatballs Pasta",
         "dinner_sides": "",
         "dinner_flags": {
@@ -1293,7 +1476,13 @@
         "lunch_veg": "Falafel Sandwich, Fruit and Chips",
         "allergens_lunch": "fish, gluten",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Tuna Salad",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -1319,7 +1508,13 @@
         "dinner": "Halal Roast Chicken, Moroccan Rice and Seasonal Vegetables",
         "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice and Seasonal Veg",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Halal Roast Chicken",
         "dinner_sides": "Moroccan Rice and Seasonal Vegetables",
         "dinner_flags": {
@@ -1375,7 +1570,13 @@
         "lunch_veg": "Vegetarian Nachos Supreme, Tortilla Chips, Sour Cream",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Baked Plain Fish, Rice & Veg Stir-Fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Beef Nachos Supreme",
         "lunch_sides": "Tortilla Chips, Sour Cream",
         "lunch_flags": {
@@ -1402,7 +1603,13 @@
         "dinner_veg": "Caribbean Chickpea Curry, Naan",
         "allergens_dinner": "gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Roast Potato & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Caribbean Chicken Curry",
         "dinner_sides": "Naan",
         "dinner_flags": {
@@ -1458,7 +1665,13 @@
         "lunch_veg": "Crispy Vegan Tender Wrap",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Leg, Rice & Veg Stir-Fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Crispy Chicken Tender Wrap",
         "lunch_sides": "",
         "lunch_flags": {
@@ -1485,7 +1698,13 @@
         "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables",
         "allergens_dinner": "fish, gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Baked Basa, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Baked Tomato Fish",
         "dinner_sides": "Couscous, Seasonal Vegetables",
         "dinner_flags": {
@@ -1541,7 +1760,13 @@
         "lunch_veg": "Quinoa Burger, Tomato Cucumber Salad",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Chicken Burger",
         "lunch_sides": "Tomato Cucumber Salad",
         "lunch_flags": {
@@ -1569,7 +1794,13 @@
         "dinner_halal": "Chicken Griot",
         "allergens_dinner": "pork",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Roast Potatoes & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Pork Griot",
         "dinner_sides": "Chakalaka, Rice",
         "dinner_flags": {
@@ -1625,7 +1856,13 @@
         "lunch_veg": "Egg Salad Wrap, Bean Salad",
         "allergens_lunch": "gluten, egg",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Egg Salad Wrap",
         "lunch_sides": "Bean Salad",
         "lunch_flags": {
@@ -1651,7 +1888,13 @@
         "dinner": "Chicken and Mushroom Fried Rice, Spring Roll",
         "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring Roll",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Roast Potatoes & Spring Roll",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Chicken and Mushroom Fried Rice",
         "dinner_sides": "Spring Roll",
         "dinner_flags": {
@@ -1707,7 +1950,13 @@
         "lunch_veg": "CONC Salad — Vegan Beef, Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Leg, Rice & Soft Veg Stir-fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "CONC Salad — Beef",
         "lunch_sides": "Lettuce, Beans, Red Cabbage, Carrots, Cheese, Pickled Onion",
         "lunch_flags": {
@@ -1734,7 +1983,13 @@
         "dinner_veg": "Vegetarian Pizza, Wedges",
         "allergens_dinner": "gluten, pork, dairy",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Vegetable Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Pepperoni Pizza",
         "dinner_sides": "Wedges",
         "dinner_flags": {
@@ -1792,7 +2047,13 @@
         "lunch_veg": "Vegan Mushroom Sandwich, Fruit and Chips",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Philly Cheese Melt",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -1819,7 +2080,13 @@
         "dinner_veg": "White Chilli Pasta Casserole",
         "allergens_dinner": "gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "White Chilli Chicken Sauce, Pasta & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "White Chilli Chicken Pasta Casserole",
         "dinner_sides": "",
         "dinner_flags": {
@@ -1875,7 +2142,13 @@
         "lunch_veg": "Vegan Chilli, Garlic Bread",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Vegan Chilli",
         "lunch_sides": "Garlic Bread",
         "lunch_flags": {
@@ -1902,7 +2175,13 @@
         "dinner_veg": "Tofu Curry, Steamed Rice, Seasonal Vegetables",
         "allergens_dinner": "fish",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Baked Fish, Plain Rice & Veg Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Fish Curry",
         "dinner_sides": "Steamed Rice, Seasonal Vegetables",
         "dinner_flags": {
@@ -1958,7 +2237,13 @@
         "lunch_veg": "Quinoa Cake Wrap, Side Salad",
         "allergens_lunch": "gluten, pork",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Fully Loaded Sausage on a Bun",
         "lunch_sides": "Side Salad",
         "lunch_flags": {
@@ -1984,7 +2269,13 @@
         "dinner": "BBQ Chicken Leg, Herb and Garlic Potatoes, Seasonal Veg",
         "dinner_veg": "BBQ Chik'n Tenders, Herb Garlic Potatoes, Seasonal Veg",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "BBQ Chicken Leg",
         "dinner_sides": "Herb and Garlic Potatoes, Seasonal Veg",
         "dinner_flags": {
@@ -2040,7 +2331,13 @@
         "lunch_veg": "Roasted Vegetable Sandwich, Fruit, Chips",
         "allergens_lunch": "gluten, egg",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Legs, Rice & Veg Stir-fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Coronation Chicken Salad Sandwich",
         "lunch_sides": "Fruit, Chips",
         "lunch_flags": {
@@ -2066,7 +2363,13 @@
         "dinner": "Beef and Vegetable Stew, Potatoes",
         "dinner_veg": "Vegan Pot Pie and Vegetable Medley",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Service Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Beef and Vegetable Stew",
         "dinner_sides": "Potatoes",
         "dinner_flags": {
@@ -2122,7 +2425,13 @@
         "lunch_veg": "Black Bean Patty, Chickpea Salad",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Halal Beef Burger",
         "lunch_sides": "Chickpea Salad",
         "lunch_flags": {
@@ -2149,7 +2458,13 @@
         "dinner_veg": "Teriyaki Tofu, Vegetable Egg Noodles",
         "allergens_dinner": "egg, soy, gluten, sesame",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Vegetable Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Teriyaki Chicken",
         "dinner_sides": "Vegetable Egg Noodles",
         "dinner_flags": {
@@ -2205,7 +2520,13 @@
         "lunch_veg": "Falafel and Slaw Wrap, Fruit and Chips",
         "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Chicken Ranch Wrap",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -2233,7 +2554,13 @@
         "dinner_halal": "Tandoori Chicken",
         "allergens_dinner": "pork",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Vegetable Briyani",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Tandoori Pork",
         "dinner_sides": "Vegetable Biryani",
         "dinner_flags": {
@@ -2289,7 +2616,13 @@
         "lunch_veg": "Chickpea Rex Salad",
         "allergens_lunch": "fish, gluten",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "lunch_altMeals": [],
+        "lunch_altMeals": [
+          {
+            "text": "Roasted Chicken Legs, Rice & Veg Stir-fry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "lunch_mainItem": "Tuna Rex Salad",
         "lunch_sides": "",
         "lunch_flags": {
@@ -2315,7 +2648,13 @@
         "dinner": "Beef Massaman Curry, Rice",
         "dinner_veg": "Vegetarian Massaman Curry, Rice",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-        "dinner_altMeals": [],
+        "dinner_altMeals": [
+          {
+            "text": "Roast Chicken Leg, Plain Rice & Vegetable Stirfry",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_mainItem": "Beef Massaman Curry",
         "dinner_sides": "Rice",
         "dinner_flags": {
