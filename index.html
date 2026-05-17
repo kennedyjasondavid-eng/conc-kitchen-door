@@ -18369,8 +18369,7 @@ function toggleDarkMode(){
   else{el.setAttribute('data-theme','dark');localStorage.setItem('kdo-dark','1');}
   document.querySelector('.dm-toggle').textContent=isDark?'☽':'☀';
 }
-<<<<<<< HEAD
-(function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀️';}})();
+(function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀';}})();
 // Boot-time visual state for the alt-menu toggle + banner.
 (function(){
   if (typeof isAltMenuActive !== 'function') return;
@@ -18384,9 +18383,6 @@ function toggleDarkMode(){
     altBtn.title = 'Alternative menu source ACTIVE (click to return to standard)';
   }
 })();
-=======
-(function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀';}})();
->>>>>>> origin/main
 </script>
 </body>
 </html>
