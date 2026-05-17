@@ -119,12 +119,12 @@
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
-        "hasSoy": true,
+        "hasSoy": false,
         "hasTreeNuts": false,
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": true,
+        "hasSulphites": false,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -133,7 +133,7 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": true,
+        "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": true,
         "hasNightshades": false,
@@ -154,12 +154,12 @@
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
-            "hasSoy": true,
+            "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
             "hasShellfish": false,
-            "hasSulphites": true,
+            "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
             "hasChicken": true,
@@ -170,7 +170,7 @@
             "hasProcessedMeat": false,
             "hasBeans": false,
             "hasMushroom": false,
-            "hasCoconut": true,
+            "hasCoconut": false,
             "hasNightshades": false,
             "hasBrassicas": false,
             "hasCorn": false
@@ -178,38 +178,29 @@
         },
         "veganalt": {
           "manual": "Jerk Cauliflower",
-          "flags": {
-            "hasSulphites": true,
-            "hasSoy": true,
-            "hasCoconut": true
-          }
+          "flags": {}
         },
         "starch": {
           "manual": "Rice and Beans",
           "flags": {
-            "hasCoconut": true,
-            "hasBeans": true
+            "hasCoconut": true
           }
         },
         "vegside": {
           "manual": "Cabbage Stirfry",
           "flags": {}
-        }
-      },
-      "dinner_altMeals": [
-        {
-          "text": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
-          "type": "plain",
+        },
+        "softalt": {
+          "manual": "Roasted Chicken Leg, Cabbage & Carrot Stir-fry, Plain Rice & Peas",
           "flags": {}
         }
-      ],
-      "dinner_altMealsNone": false
+      }
     },
     "WEDNESDAY": {
       "dinner": "Butter Chicken, Naan, Seasonal Veg",
       "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
       "dinner_flags": {
-        "hasGluten": true,
+        "hasGluten": false,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
@@ -230,7 +221,7 @@
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
-        "hasCoconut": true,
+        "hasCoconut": false,
         "hasNightshades": true,
         "hasBrassicas": false,
         "hasCorn": false
@@ -322,85 +313,23 @@
             "hasSoy": true
           }
         }
-      },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
-      "dinner_noPorkAlt": "",
-      "dinner_mainItem": "Butter Chicken",
-      "dinner_mainAlt": "",
-      "dinner_sides": "Naan, Seasonal Veg",
-      "dinner_slots": {
-        "main": {
-          "manual": "Butter Chicken",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": true,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": true,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": true,
-            "hasNightshades": true,
-            "hasBrassicas": false,
-            "hasCorn": false
-          }
-        },
-        "veganalt": {
-          "manual": "Butter Chickpeas",
-          "flags": {
-            "hasCoconut": true,
-            "hasNightshades": true
-          }
-        },
-        "starch": {
-          "manual": "Naan",
-          "flags": {
-            "hasGluten": true
-          }
-        },
-        "vegside": {
-          "manual": "Seasonal Veg",
-          "flags": {}
-        }
       }
     },
     "THURSDAY": {
       "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
-      "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
+      "dinner_veg": "Butter Chickpeas, Naan, Seasonal Veg",
       "dinner_flags": {
-        "hasGluten": true,
+        "hasGluten": false,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
-        "hasTreeNuts": false,
+        "hasTreeNuts": true,
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": true,
+        "hasSulphites": false,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -409,7 +338,7 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": true,
+        "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
         "hasNightshades": true,
@@ -433,52 +362,21 @@
         "main": {
           "manual": "Roast Chicken",
           "flags": {
-            "hasChicken": true,
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": true,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": true,
-            "hasBrassicas": false,
-            "hasCorn": false
+            "hasChicken": true
           }
         },
         "veganalt": {
           "manual": "Roast Tofu",
-          "flags": {
-            "hasSoy": true,
-            "hasNightshades": true
-          }
+          "flags": {}
         },
         "starch": {
           "manual": "Couscous",
-          "flags": {
-            "hasGluten": true
-          }
+          "flags": {}
         },
         "vegside": {
           "manual": "Chickpea Shakshuka",
           "flags": {
-            "hasBeans": true,
-            "hasSulphites": true,
-            "hasNightshades": true
+            "hasBeans": true
           }
         }
       }
@@ -561,7 +459,7 @@
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": true,
+        "hasSulphites": false,
         "hasPork": true,
         "hasBeef": false,
         "hasChicken": true,
@@ -598,7 +496,7 @@
             "hasGluten": false,
             "hasPork": true,
             "hasBeef": false,
-            "hasChicken": true,
+            "hasChicken": false,
             "hasTurkey": false,
             "hasFish": false,
             "hasEgg": false,
@@ -614,10 +512,10 @@
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": false,
-            "hasSulphites": true,
+            "hasSulphites": false,
             "hasSoy": false,
             "hasSesame": false,
-            "halalCertifiedMeat": true,
+            "halalCertifiedMeat": false,
             "hasProcessedMeat": false
           }
         },
@@ -1033,96 +931,6 @@
           "flags": {}
         }
       }
-    },
-    "FRIDAY": {
-      "dinner": "Arroz Con Pollo, Refried Beans",
-      "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
-      "dinner_flags": {
-        "hasGluten": false,
-        "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": true,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": true,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
-        "hasBeans": true,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": true
-      },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
-      "dinner_noPorkAlt": "",
-      "dinner_mainItem": "Arroz Con Pollo",
-      "dinner_mainAlt": "",
-      "dinner_sides": "Refried Beans",
-      "dinner_slots": {
-        "main": {
-          "manual": "Arroz Con Pollo",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": false,
-            "hasBrassicas": false,
-            "hasCorn": true
-          }
-        },
-        "veganalt": {
-          "manual": "Vegan Arroz con Pollo",
-          "flags": {
-            "hasSoy": true,
-            "hasGluten": true,
-            "hasCorn": true
-          }
-        },
-        "starch": {
-          "manual": "Refried Beans",
-          "flags": {
-            "hasBeans": true
-          }
-        }
-      }
     }
   },
   "3": {
@@ -1220,7 +1028,7 @@
         "hasSesame": false,
         "hasMustard": false,
         "hasShellfish": false,
-        "hasSulphites": true,
+        "hasSulphites": false,
         "hasPork": false,
         "hasBeef": false,
         "hasChicken": true,
@@ -1267,7 +1075,7 @@
             "hasBeans": false,
             "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": true,
+            "hasNightshades": false,
             "hasBrassicas": false,
             "hasCorn": false
           }
@@ -1281,8 +1089,7 @@
         "starch": {
           "manual": "Moroccan Rice",
           "flags": {
-            "hasNightshades": true,
-            "hasSulphites": true
+            "hasNightshades": true
           }
         },
         "vegside": {
@@ -1477,12 +1284,12 @@
       }
     },
     "SUNDAY": {
-      "dinner": "Halal Beef Meatballs, Pasta, Pea & Carrot",
-      "dinner_veg": "Vegan Meatballs Pasta, Pasta, Pea & Carrot",
+      "dinner": "Halal Beef Meatballs, Pasta, Broccoli",
+      "dinner_veg": "Vegan Meatballs Pasta, Pea & Carrot, Pasta, Broccoli",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": false,
-        "hasEgg": true,
+        "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -1490,7 +1297,7 @@
         "hasSesame": false,
         "hasMustard": true,
         "hasShellfish": false,
-        "hasSulphites": true,
+        "hasSulphites": false,
         "hasPork": false,
         "hasBeef": true,
         "hasChicken": false,
@@ -1502,7 +1309,7 @@
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": true,
+        "hasNightshades": false,
         "hasBrassicas": false,
         "hasCorn": false
       },
@@ -1518,7 +1325,7 @@
       "dinner_noPorkAlt": "",
       "dinner_mainItem": "Halal Beef Meatballs",
       "dinner_mainAlt": "",
-      "dinner_sides": "Pasta, Pea & Carrot",
+      "dinner_sides": "Pasta, Broccoli",
       "dinner_slots": {
         "main": {
           "manual": "Halal Beef Meatballs",
@@ -1530,7 +1337,7 @@
             "hasChicken": false,
             "hasTurkey": false,
             "hasFish": false,
-            "hasEgg": true,
+            "hasEgg": false,
             "hasPeanuts": false,
             "isSpicy": false,
             "isCarb": true,
@@ -1538,12 +1345,12 @@
             "hasMushroom": false,
             "hasBrassicas": false,
             "hasCorn": false,
-            "hasNightshades": true,
+            "hasNightshades": false,
             "hasBeans": false,
             "hasTreeNuts": false,
             "hasShellfish": false,
             "hasMustard": true,
-            "hasSulphites": true,
+            "hasSulphites": false,
             "hasSoy": false,
             "hasSesame": false,
             "halalCertifiedMeat": true,
@@ -1551,13 +1358,12 @@
           }
         },
         "veganalt": {
-          "manual": "Vegan Meatballs Pasta",
+          "manual": "Vegan Meatballs Pasta, Pea & Carrot",
           "flags": {
-            "hasMushroom": true,
-            "hasBeans": true,
+            "hasMustard": true,
             "hasGluten": true,
-            "hasNightshades": true,
-            "hasSulphites": true
+            "hasBeans": true,
+            "hasMushroom": true
           }
         },
         "starch": {
@@ -1567,7 +1373,7 @@
           }
         },
         "vegside": {
-          "manual": "Pea & Carrot",
+          "manual": "Broccoli",
           "flags": {}
         }
       }
@@ -2639,12 +2445,12 @@
       "dinner": "Beef Massaman Curry, Rice",
       "dinner_veg": "Vegetarian Massaman Curry, Rice",
       "dinner_flags": {
-        "hasGluten": true,
+        "hasGluten": false,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": true,
-        "hasSoy": true,
+        "hasSoy": false,
         "hasTreeNuts": true,
         "hasSesame": false,
         "hasMustard": false,
@@ -2683,7 +2489,7 @@
           "manual": "Beef Massaman Curry",
           "flags": {
             "hasDairy": false,
-            "hasGluten": true,
+            "hasGluten": false,
             "hasPork": false,
             "hasBeef": true,
             "hasChicken": false,
@@ -2703,7 +2509,7 @@
             "hasShellfish": false,
             "hasMustard": false,
             "hasSulphites": true,
-            "hasSoy": true,
+            "hasSoy": false,
             "hasSesame": false,
             "halalCertifiedMeat": true,
             "hasProcessedMeat": false
@@ -2715,10 +2521,7 @@
             "hasCoconut": true,
             "hasTreeNuts": true,
             "hasMushroom": true,
-            "hasPeanuts": true,
-            "hasSoy": true,
-            "hasSulphites": true,
-            "hasGluten": true
+            "hasPeanuts": true
           }
         },
         "starch": {
@@ -2899,8 +2702,5 @@
         }
       }
     }
-  },
-  "_meta": {
-    "plainVegStirfryComponents": "Carrot, Onion, Peppers, Zucchini, Green Beans"
   }
 }
