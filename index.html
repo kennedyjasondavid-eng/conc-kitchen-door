@@ -811,7 +811,6 @@ function updateCODEXBadge() {
       <span id="codex-source-badge" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.3);color:#aaa;">CODEX</span>
     </div>
     <div class="dm-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">&#x263D;</div>
-    <div class="dm-toggle alt-menu-toggle" onclick="toggleAltMenu()" title="Toggle alternative menu source (currently: reno menu from menu_reno.json)" style="margin-left:6px">📋</div>
   </div>
 </aside>
 
@@ -1648,6 +1647,7 @@ function updateCODEXBadge() {
       <div class="topbar-sub">View the 4-week rotation, edit flags, and swap meals when the plan changes</div>
     </div>
     <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm alt-menu-toggle" id="mc-alt-menu-btn" onclick="toggleAltMenu()" title="Toggle between standard menu and alternative (currently reno) menu source">📋 Alt Menu</button>
       <button class="btn btn-ghost btn-sm" id="mc-swap-slots-btn" onclick="enterSlotSwapMode()">⇄ Swap Slots</button>
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
@@ -11723,8 +11723,12 @@ function clearUploadedMenu() {
 // with the next regen from Excel). Designed to extend to additional
 // alternative cycles (holiday menus, special events) in the future by
 // generalizing concAltMenuCache → a keyed dict of alt sources.
+//
+// v2 (reno-default): defaults to ON. Users opt out explicitly by toggling
+// off (which writes '0'); anyone with no localStorage value gets alt mode.
+// Flip the default back to off post-reno by changing the comparison below.
 function isAltMenuActive() {
-  return localStorage.getItem('concAltMenuActive') === '1';
+  return localStorage.getItem('concAltMenuActive') !== '0';
 }
 function loadAltMenuCached() {
   try { return JSON.parse(localStorage.getItem('concAltMenuCache') || 'null'); }
@@ -11759,6 +11763,30 @@ async function toggleAltMenu() {
   localStorage.setItem('concAltMenuActive', becomingActive ? '1' : '0');
   location.reload();
 }
+
+// Synchronous pre-warm: when alt is the default and cache is empty (i.e.,
+// first-ever page load post-default-on rollout), block briefly to fetch
+// menu_reno.json so the first paint shows alt content rather than flashing
+// the standard menu and re-rendering. Sync XHR is deprecated but fine for
+// this one-shot cold-start case; subsequent loads use the localStorage cache.
+(function preWarmAltMenuCache() {
+  try {
+    if (!isAltMenuActive()) return;
+    if (loadAltMenuCached()) return;
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/menu_reno.json?_=' + Date.now(), false);
+    xhr.send(null);
+    if (xhr.status === 200) {
+      const data = JSON.parse(xhr.responseText);
+      if (data && data.menu) {
+        localStorage.setItem('concAltMenuCache', JSON.stringify(data));
+        localStorage.setItem('concAltMenuStamp', String(Date.now()));
+      }
+    }
+  } catch (e) {
+    console.warn('[Alt Menu] Pre-warm fetch failed; first paint may show standard menu until next toggle:', e);
+  }
+})();
 
 // Returns a merged view of (uploadedMenu || MENU_DATA) + any permanent overlay.
 // Overlay is keyed identically to MENU_DATA: weekNum → dayName → {breakfast, lunch, dinner, *_veg, *_flags}.
@@ -18371,16 +18399,24 @@ function toggleDarkMode(){
 }
 (function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀';}})();
 // Boot-time visual state for the alt-menu toggle + banner.
+// v2: toggle now lives in Menu Config topbar (#mc-alt-menu-btn). Default is
+// ON during reno, so when active we relabel the button to "Switch to Standard"
+// and highlight it amber to mirror the banner.
 (function(){
   if (typeof isAltMenuActive !== 'function') return;
-  if (!isAltMenuActive()) return;
+  const altBtn = document.getElementById('mc-alt-menu-btn');
+  if (!isAltMenuActive()) {
+    if (altBtn) altBtn.title = 'Switch to alternative menu source (currently: reno menu from menu_reno.json)';
+    return;
+  }
   const banner = document.getElementById('alt-menu-banner');
   if (banner) banner.style.display = 'block';
-  const altBtn = document.querySelector('.alt-menu-toggle');
   if (altBtn) {
     altBtn.style.background = '#f59e0b';
+    altBtn.style.borderColor = '#f59e0b';
     altBtn.style.color = '#fff';
     altBtn.title = 'Alternative menu source ACTIVE (click to return to standard)';
+    altBtn.textContent = '📋 Switch to Standard';
   }
 })();
 </script>
