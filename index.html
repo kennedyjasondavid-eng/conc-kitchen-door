@@ -753,10 +753,16 @@ function updateCODEXBadge() {
       <span id="codex-source-badge" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.3);color:#aaa;">CODEX</span>
     </div>
     <div class="dm-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</div>
+    <div class="dm-toggle alt-menu-toggle" onclick="toggleAltMenu()" title="Toggle alternative menu source (currently: reno menu from menu_reno.json)" style="margin-left:6px">📋</div>
   </div>
 </aside>
 
 <main class="main">
+
+<!-- ===== ALT MENU BANNER (shown only when alternative menu source is active) ===== -->
+<div id="alt-menu-banner" style="display:none;background:#f59e0b;color:#fff;padding:6px 14px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.3px;border-bottom:1px solid rgba(0,0,0,.1)">
+  📋 ALTERNATIVE MENU ACTIVE — read-only view of <code style="background:rgba(0,0,0,.18);padding:1px 5px;border-radius:3px">menu_reno.json</code> · edits via Excel + generator only · <a href="#" onclick="event.preventDefault();toggleAltMenu()" style="color:#fff;text-decoration:underline;font-weight:700">switch back to standard</a>
+</div>
 
 <!-- ===== ENTER CHANGES ===== -->
 <div class="screen active" id="screen-enter">
@@ -11186,10 +11192,62 @@ function saveUploadedMenu(obj) {
 function clearUploadedMenu() {
   localStorage.removeItem('concUploadedMenu');
 }
+// ─── Alternative menu source (read-only) ─────────────────────────────
+// Generic mechanism for swapping in a non-default menu cycle (currently
+// the reno menu generated from Excel and published as menu_reno.json).
+// When active, getMenuData() returns the alt menu's data verbatim — no
+// overlay/uploaded merging (alt menu is read-only; edits would conflict
+// with the next regen from Excel). Designed to extend to additional
+// alternative cycles (holiday menus, special events) in the future by
+// generalizing concAltMenuCache → a keyed dict of alt sources.
+function isAltMenuActive() {
+  return localStorage.getItem('concAltMenuActive') === '1';
+}
+function loadAltMenuCached() {
+  try { return JSON.parse(localStorage.getItem('concAltMenuCache') || 'null'); }
+  catch(e) { return null; }
+}
+async function ensureAltMenuCached(forceFresh) {
+  const cached = loadAltMenuCached();
+  const stamp = parseInt(localStorage.getItem('concAltMenuStamp') || '0', 10);
+  // Use cache if fresh (< 1 hour) and not forcing a refresh
+  if (!forceFresh && cached && (Date.now() - stamp < 3600000)) return cached;
+  try {
+    const res = await fetch('https://kennedyjasondavid-eng.github.io/conc-kitchen-door/menu_reno.json?_=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('concAltMenuCache', JSON.stringify(data));
+      localStorage.setItem('concAltMenuStamp', String(Date.now()));
+      return data;
+    }
+  } catch(e) { /* fall through to cached */ }
+  return cached;  // network failed, return whatever's cached (or null)
+}
+async function toggleAltMenu() {
+  const becomingActive = !isAltMenuActive();
+  if (becomingActive) {
+    // Pull fresh on activation so the user sees the latest published alt menu.
+    const data = await ensureAltMenuCached(true);
+    if (!data || !data.menu) {
+      alert('Could not fetch alternative menu (menu_reno.json). Check network or that the file is published on GH Pages.');
+      return;
+    }
+  }
+  localStorage.setItem('concAltMenuActive', becomingActive ? '1' : '0');
+  location.reload();
+}
+
 // Returns a merged view of (uploadedMenu || MENU_DATA) + any permanent overlay.
 // Overlay is keyed identically to MENU_DATA: weekNum → dayName → {breakfast, lunch, dinner, *_veg, *_flags}.
 // Partial overlays are supported — a day with only a lunch override inherits breakfast/dinner from the constant.
 function getMenuData() {
+  // Alternative menu mode: return alt source directly, no overlay merging.
+  if (isAltMenuActive()) {
+    const alt = loadAltMenuCached();
+    if (alt && alt.menu) return alt.menu;
+    // If toggle is on but cache is empty, fall through to standard rather
+    // than rendering nothing — defensive against corrupted localStorage.
+  }
   const uploaded = loadUploadedMenu();
   const base = uploaded || MENU_DATA;
   const overlay = loadMenuBaseOverlay();
@@ -16858,6 +16916,19 @@ function toggleDarkMode(){
   document.querySelector('.dm-toggle').textContent=isDark?'🌙':'☀️';
 }
 (function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀️';}})();
+// Boot-time visual state for the alt-menu toggle + banner.
+(function(){
+  if (typeof isAltMenuActive !== 'function') return;
+  if (!isAltMenuActive()) return;
+  const banner = document.getElementById('alt-menu-banner');
+  if (banner) banner.style.display = 'block';
+  const altBtn = document.querySelector('.alt-menu-toggle');
+  if (altBtn) {
+    altBtn.style.background = '#f59e0b';
+    altBtn.style.color = '#fff';
+    altBtn.title = 'Alternative menu source ACTIVE (click to return to standard)';
+  }
+})();
 </script>
 </body>
 </html>
