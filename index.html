@@ -18420,6 +18420,55 @@ function toggleDarkMode(){
   }
 })();
 </script>
+<!-- HOUSE env badge — added 2026-05-18 -->
+<script>
+(function(){
+  if (document.getElementById('__house_env_badge')) return;
+  var APP_NAME = 'DOOR';
+  var APP_VER  = 'v25';
+  function detectEnv(){
+    var p = location.protocol, h = location.hostname, u = h + location.pathname;
+    if (p === 'file:' || h === '' || h === 'localhost' || h === '127.0.0.1') return { env:'LOCAL', color:'#6b7280' };
+    if (/[-.](dev|staging|preview|next)\b/.test(u)) return { env:'DEV', color:'#c62828' };
+    if (h.indexOf('github.io') >= 0) return { env:'PROD', color:'#2e7d32' };
+    return { env:'?', color:'#f57c00' };
+  }
+  function loadInfo(cb){
+    try {
+      fetch('./build_info.json', { cache:'no-store' })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){ cb(d || {}); })
+        .catch(function(){ cb({}); });
+    } catch(e) { cb({}); }
+  }
+  function render(info){
+    var e = detectEnv();
+    if (e.env !== 'PROD' && document.title.charAt(0) !== '[') document.title = '[' + e.env + '] ' + document.title;
+    if (e.env !== 'PROD') {
+      var bar = document.createElement('div');
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:3px;background:' + e.color + ';z-index:99998;pointer-events:none';
+      document.body.appendChild(bar);
+    }
+    var b = document.createElement('div');
+    b.id = '__house_env_badge';
+    b.style.cssText = 'position:fixed;bottom:6px;right:6px;z-index:99999;font:11px/1.35 system-ui,-apple-system,sans-serif;color:#fff;background:' + e.color + ';padding:5px 9px;border-radius:5px;opacity:0.82;cursor:default;box-shadow:0 1px 4px rgba(0,0,0,0.25);max-width:280px;text-align:right;user-select:none';
+    var branch = info.branch ? String(info.branch) : '';
+    var sha = info.sha ? String(info.sha).slice(0,7) : '';
+    var built = info.buildTime ? new Date(info.buildTime).toLocaleDateString() : '';
+    var today = new Date().toLocaleDateString();
+    var lines = ['<b>' + APP_NAME + '</b> ' + APP_VER + ' · ' + e.env];
+    if (branch || sha) lines.push((branch || '?') + (sha ? ' · ' + sha : ''));
+    if (built && built !== today) lines.push('Built ' + built);
+    lines.push(today);
+    b.innerHTML = lines.join('<br>');
+    b.title = 'HOUSE env indicator (click to dim)';
+    b.onclick = function(){ b.style.opacity = (b.style.opacity === '0.25') ? '0.82' : '0.25'; };
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ loadInfo(render); });
+  else loadInfo(render);
+})();
+</script>
 </body>
 </html>
 <!-- 
