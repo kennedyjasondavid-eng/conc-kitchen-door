@@ -13641,10 +13641,26 @@ function buildUnionFlags() {
   return union;
 }
 
+function buildMainFlags() {
+  return _buildSlotGroupFlags(['main','starch','vegside','xtra']);
+}
+
 function buildVegAltFlags() {
+  return _buildSlotGroupFlags(['veganalt','starch','vegside','xtra']);
+}
+
+function buildHalalAltFlags() {
+  return _buildSlotGroupFlags(['mainalt','starch','vegside','xtra']);
+}
+
+function buildNoPorkAltFlags() {
+  return _buildSlotGroupFlags(['noporkalt','starch','vegside','xtra']);
+}
+
+function _buildSlotGroupFlags(slotIds) {
   const union = {};
   if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
-  ['veganalt','starch','vegside','xtra'].forEach(id => {
+  slotIds.forEach(id => {
     const s = MEAL_SLOT_STATE[id];
     if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; });
   });
@@ -16775,7 +16791,7 @@ function computePlatingData(period, weekNum, dayName) {
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const mealGfAlt = dayData[period+'_gfAlt'] || '';
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr: null, noPorkAllergenStr: null};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
@@ -16884,8 +16900,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     // Allergen string per section type:
     // modified_main / bland_alt: same dish — inherit main meal allergens
     // vegan_alt: from slot-computed vegAllergens or recipe lookup
+    // halal_alt / nopork_alt: from slot-computed halalAllergenStr / noPorkAllergenStr
     // soft: per-alt-meal flags from supervisor (only when a single alt covers everyone)
-    // halal/nopork/gf/noproc: different meal — don't inherit main allergens
+    // gf/noproc: different meal — don't inherit main allergens
     let sectionAllergenStr;
     if (s.rule.altType === 'modified_main') {
       if (s.rule.key === 'no_egg') {
@@ -16898,6 +16915,10 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
+    } else if (s.rule.altType === 'halal_alt') {
+      sectionAllergenStr = ctx.halalAllergenStr || null;
+    } else if (s.rule.altType === 'nopork_alt') {
+      sectionAllergenStr = ctx.noPorkAllergenStr || null;
     } else if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
       const a0 = ctx.altMeals[0];
       const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
@@ -17668,6 +17689,10 @@ function buildPlatingHtml(pd, isTest) {
       sectionAllergenStr = allergenStr;
     } else if (s.rule.altType === 'vegan_alt') {
       sectionAllergenStr = vegAllergenStr;
+    } else if (s.rule.altType === 'halal_alt') {
+      sectionAllergenStr = ctx.halalAllergenStr || null;
+    } else if (s.rule.altType === 'nopork_alt') {
+      sectionAllergenStr = ctx.noPorkAllergenStr || null;
     } else if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
       const a0 = ctx.altMeals[0];
       const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
@@ -17866,11 +17891,16 @@ function computeTestPlatingData(flags) {
   var mealNoPorkAlt = buildNoPorkAlt();
   var mealFlags = Object.assign({}, flags);
 
-  var allergenStr = flagsToAllergenStr(mealFlags).toUpperCase();
+  var mainFlags = buildMainFlags();
+  var allergenStr = flagsToAllergenStr(mainFlags).toUpperCase();
   var vegFlags = buildVegAltFlags();
   mealFlags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard;
   mealFlags._altMeals = buildAltMeals();
   var vegAllergenStr = flagsToAllergenStr(vegFlags).toUpperCase() || (typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '') || null;
+  var halalAltFlags = buildHalalAltFlags();
+  var halalAllergenStr = flagsToAllergenStr(halalAltFlags).toUpperCase() || null;
+  var noPorkAltFlags = buildNoPorkAltFlags();
+  var noPorkAllergenStr = flagsToAllergenStr(noPorkAltFlags).toUpperCase() || null;
 
   var emptyFlags = {};
   FLAG_DEFS.forEach(function(f) { emptyFlags[f.key] = false; });
@@ -17901,7 +17931,7 @@ function computeTestPlatingData(flags) {
   var veganCount = sections.filter(function(s){ return s.rule.key==='vegan'; }).reduce(function(sum,s){ return sum+s.residents.length; },0);
   var diabCount = REGISTRY_LIST.filter(function(r) { return (r.tags||[]).includes('Diabetic'); }).length;
   var altMeals = mealFlags._altMeals || [];
-  var ctx = {mealName:mealName, mealVeg:mealVeg, allergenStr:allergenStr, softAlt:mealSoftAlt, altMeals:altMeals, altMealsNone: (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE), noPorkAlt:mealNoPorkAlt, mainAlt:mealMainAlt, mainItem:mealMainItem, sides:mealSides, mealFlags:mealFlags};
+  var ctx = {mealName:mealName, mealVeg:mealVeg, allergenStr:allergenStr, softAlt:mealSoftAlt, altMeals:altMeals, altMealsNone: (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE), noPorkAlt:mealNoPorkAlt, mainAlt:mealMainAlt, mainItem:mealMainItem, sides:mealSides, mealFlags:mealFlags, halalAllergenStr:halalAllergenStr, noPorkAllergenStr:noPorkAllergenStr};
 
   var regularNotes = [];
   if (regularSection) {
