@@ -9604,6 +9604,16 @@ function showScreen(name, navEl) {
 function toggleMobileNav() { document.body.classList.toggle('nav-open'); }
 function closeMobileNav() { document.body.classList.remove('nav-open'); }
 
+// Deep-link via URL hash: e.g. https://.../door/#plating opens the Plating screen
+function applyHashRoute() {
+  const h = (location.hash || '').replace(/^#/, '').trim();
+  if (!h) return;
+  const nav = document.querySelector('[data-screen="' + h + '"]');
+  if (nav && document.getElementById('screen-' + h)) showScreen(h, nav);
+}
+window.addEventListener('hashchange', applyHashRoute);
+window.addEventListener('DOMContentLoaded', applyHashRoute);
+
 
 
 // ============================================================
