@@ -7613,6 +7613,52 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
 }
 
 // ============================================================
+// PER-ROW ANAPH MARKER (v25.1 — fires across all sections)
+// ============================================================
+// Returns marker text like "⚠ ANAPHYLACTIC (DAIRY) — prepared separately"
+// when a resident's anaphylactic allergens intersect the meal's allergen
+// flags. Uses RESIDENT_TO_MEAL_FLAG (line 7465) which covers the full
+// Health-Canada priority list — broader than ANAPH_TAG_TO_MEAL_FLAG, which
+// only governs section *promotion* into the Anaphylactic Alternative pool.
+//
+// This is purely a display-layer marker. It does not change which section
+// a resident is routed to. Returns null when no marker should fire.
+//
+// Intended call sites: the plating-sheet row emitters at lines ~16904
+// (special-meal sections) and ~16932 (regular-meal notes). The dedicated
+// Anaphylactic Alternative row emitter at ~16857 already shows the marker
+// via its hardcoded path and is left untouched.
+function getAnaphMarkerForResident(r, mealFlags) {
+  if (!r || !mealFlags) return null;
+  const isAnaph = r.isAnaph || (typeof anaphRooms !== 'undefined' && anaphRooms.includes(r.room));
+  if (!isAnaph) return null;
+
+  // Prefer explicit anaphTags (v29 model); fall back to all allergen/avoidance tags.
+  let anaphTagLabels;
+  if (r.anaphTags && r.anaphTags.length) {
+    anaphTagLabels = r.anaphTags.map(key => TAG_LABELS_MAP[key]).filter(Boolean);
+  } else {
+    anaphTagLabels = [...(r.tags || []), ...(r.avoidances || [])];
+  }
+
+  // Find which of the resident's anaph allergens are present in this meal.
+  const triggered = [];
+  const seen = new Set();
+  for (const tag of anaphTagLabels) {
+    const mealFlag = RESIDENT_TO_MEAL_FLAG[tag];
+    if (!mealFlag) continue;
+    if (!mealFlags[mealFlag]) continue;
+    const allergenName = tag.replace(/^No /, '').toUpperCase();
+    if (seen.has(allergenName)) continue;
+    seen.add(allergenName);
+    triggered.push(allergenName);
+  }
+
+  if (!triggered.length) return null;
+  return '⚠ ANAPHYLACTIC (' + triggered.join(', ') + ') — prepared separately';
+}
+
+// ============================================================
 // REVIEW
 // ============================================================
 function nrGetAction(sid) {
@@ -16903,7 +16949,11 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
     s.residents.forEach(r => {
       const isDiab = (r.tags||[]).includes('Diabetic');
-      const bg = isDiab ? '92D050' : null;
+      // v25.1: anaph marker fires across all sections (not just Anaph Alt)
+      const anaphMarker = getAnaphMarkerForResident(r, mealFlags);
+      const bg = anaphMarker ? 'F2DCDC' : (isDiab ? '92D050' : null);
+      const font = anaphMarker ? F.anaph : F.std;
+      const border = anaphMarker ? B.anaph : B.thin;
       const baseNote = isDiab ? 'extra veg less starch' : '';
       const ingredientNote = CONFLICT_MAP
         .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
@@ -16917,8 +16967,8 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
         const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
-      const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
-      addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
+      const allNotes = [anaphMarker, altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
+      addRow(xCell(r.rawRestriction,font,bg,border), xCell(r.room,font,bg,border,A.center), xCell(allNotes,font,bg,border), 14);
     });
     addRow(xCell(sectionLabel+' Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
     totalRestrictions += s.residents.length;
@@ -16930,8 +16980,13 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     addMerged('Regular Meal \u2014 Notes', F.stdB, 'D9E2F3', B.thick, 16);
     addMerged('Standard meal with the following modifications', F.std, 'D9E2F3', B.thin, 14);
     regularNotes.forEach(r => {
-      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' \u00B7 ');
-      addRow(xCell(r.rawRestriction, F.std, 'E8EDF5', B.thin), xCell(r.room, F.std, 'E8EDF5', B.thin, A.center), xCell(note, F.std, 'E8EDF5', B.thin), 14);
+      // v25.1: anaph marker also fires on regular-meal-with-notes rows
+      const anaphMarker = getAnaphMarkerForResident(r, mealFlags);
+      const bg   = anaphMarker ? 'F2DCDC' : 'E8EDF5';
+      const font = anaphMarker ? F.anaph  : F.std;
+      const border = anaphMarker ? B.anaph : B.thin;
+      const note = [anaphMarker, r.conflictNote, r.serviceNote].filter(Boolean).join(' \u00B7 ');
+      addRow(xCell(r.rawRestriction, font, bg, border), xCell(r.room, font, bg, border, A.center), xCell(note, font, bg, border), 14);
     });
   }
 
