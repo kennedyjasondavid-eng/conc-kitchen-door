@@ -134,7 +134,6 @@ The HTA is a Windows-only HTML Application that wraps `git`. It auto-detects whi
 | App | Repo | Role w.r.t. DOOR |
 |---|---|---|
 | HOUSE | [conc-kitchen-house](https://github.com/kennedyjasondavid-eng/conc-kitchen-house) | Umbrella portal — links here |
-| EXPO | [conc-kitchen-expo](https://github.com/kennedyjasondavid-eng/conc-kitchen-expo) | Consumes DOOR menu + routing |
 | CODEX | [conc-recipe-hub](https://github.com/kennedyjasondavid-eng/conc-recipe-hub) | Provides recipe + allergen data |
 | HUB | [conc-kitchen-hub](https://github.com/kennedyjasondavid-eng/conc-kitchen-hub) | Linked from sidebar — daily board |
 
