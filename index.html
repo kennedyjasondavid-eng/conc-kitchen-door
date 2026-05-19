@@ -11806,15 +11806,42 @@ async function toggleAltMenu() {
   location.reload();
 }
 
-// Synchronous pre-warm: when alt is the default and cache is empty (i.e.,
-// first-ever page load post-default-on rollout), block briefly to fetch
-// menu_reno.json so the first paint shows alt content rather than flashing
-// the standard menu and re-rendering. Sync XHR is deprecated but fine for
-// this one-shot cold-start case; subsequent loads use the localStorage cache.
+// TTL for the alt-menu cache. Beyond this, the cache is treated as stale and
+// refreshed at the next opportunity (pre-warm on boot, or refreshAltMenuIfStale
+// before any plating download). Set to 1 hour to match ensureAltMenuCached.
+const ALT_MENU_CACHE_TTL_MS = 3600000;
+
+function _altMenuCacheStamp() {
+  return parseInt(localStorage.getItem('concAltMenuStamp') || '0', 10);
+}
+function isAltMenuCacheStale() {
+  return (Date.now() - _altMenuCacheStamp()) > ALT_MENU_CACHE_TTL_MS;
+}
+
+// Async refresh helper: awaitable, used at the head of plating-download paths
+// so users always get sheets generated from the freshest menu data. Wraps
+// ensureAltMenuCached() with a no-op when alt mode is off. Safe to call from
+// any plating-trigger handler — does nothing if cache is fresh.
+async function refreshAltMenuIfStale() {
+  if (!isAltMenuActive()) return;
+  if (!isAltMenuCacheStale()) return;
+  try { await ensureAltMenuCached(false); }
+  catch (e) { console.warn('[Alt Menu] background refresh failed:', e); }
+}
+
+// Synchronous pre-warm: when alt is the default and cache is empty OR stale,
+// block briefly to fetch menu_reno.json so the first paint shows alt content
+// rather than flashing the standard menu and re-rendering — and so that any
+// data edits pushed to GH Pages since the last visit are picked up at boot.
+// Sync XHR is deprecated but fine for this one-shot cold-start case.
+//
+// 2026-05-19: previously only refreshed on empty cache, which left stale data
+// in place indefinitely. Now also refreshes when cache is older than TTL.
 (function preWarmAltMenuCache() {
   try {
     if (!isAltMenuActive()) return;
-    if (loadAltMenuCached()) return;
+    const cached = loadAltMenuCached();
+    if (cached && !isAltMenuCacheStale()) return;
     const xhr = new XMLHttpRequest();
     xhr.open('GET', 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/menu_reno.json?_=' + Date.now(), false);
     xhr.send(null);
@@ -11826,7 +11853,7 @@ async function toggleAltMenu() {
       }
     }
   } catch (e) {
-    console.warn('[Alt Menu] Pre-warm fetch failed; first paint may show standard menu until next toggle:', e);
+    console.warn('[Alt Menu] Pre-warm fetch failed; first paint may show stale menu until next toggle:', e);
   }
 })();
 
@@ -17057,7 +17084,8 @@ function buildBreakfastCombinedXlsx(weekA, weekB) {
   return wb.SheetNames.length ? wb : null;
 }
 
-function downloadBreakfastCombined(filename, weekA, weekB) {
+async function downloadBreakfastCombined(filename, weekA, weekB) {
+  await refreshAltMenuIfStale();
   const wb = buildBreakfastCombinedXlsx(weekA, weekB);
   if (wb) XLSX.writeFile(wb, filename);
 }
@@ -17085,7 +17113,10 @@ function buildPlatingXlsx(period, weekNum) {
   return wb.SheetNames.length ? wb : null;
 }
 
-function downloadPlatingSheet(filename, period, weekNum) {
+async function downloadPlatingSheet(filename, period, weekNum) {
+  // 2026-05-19: refresh stale menu cache before generating sheets so data
+  // edits pushed since the last boot land in the next plating xlsx.
+  await refreshAltMenuIfStale();
   const wb = buildPlatingXlsx(period, weekNum);
   if (wb) XLSX.writeFile(wb, filename);
 }
@@ -17361,6 +17392,9 @@ async function downloadAllFiles() {
   btns.forEach(b => { b.disabled = true; b.textContent = 'Building zip…'; });
 
   try {
+    // 2026-05-19: refresh stale menu cache before bundling the zip so edits
+    // pushed to menu_reno.json since the last boot land in the new sheets.
+    await refreshAltMenuIfStale();
     const zip = new JSZip();
     const files = buildAllFileList();
 
