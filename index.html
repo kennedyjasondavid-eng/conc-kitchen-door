@@ -11232,7 +11232,16 @@ function getAltMeal(altType, ctx) {
       // Steamed Rice" instead of the misleading "Halal alternative —
       // Pork Vindaloo, ...". Fall back to mainAlt (legacy field), then to
       // a stripped/prefixed version of the meal name as a safety net.
-      if (ctx.mealHalal) return withSides(ctx.mealHalal);
+      //
+      // 2026-05-19 (followup): mealHalal may carry either the protein only
+      // ("Chicken Vindaloo") or a full meal sentence with sides ("Fully
+      // Loaded Halal Chicken Sausage on a Bun, Side Salad, Peppers and
+      // Onions"). When sides are already present in mealHalal, don't run
+      // it through withSides() — that double-appended sides and produced
+      // "... Side Salad, Peppers and Onions, Side Salad, Peppers and Onions".
+      if (ctx.mealHalal) {
+        return ctx.mealHalal.includes(',') ? ctx.mealHalal : withSides(ctx.mealHalal);
+      }
       if (ctx.mainAlt) return withSides(ctx.mainAlt);
       {
         const _stripped = (ctx.mealName || '').replace(/\b(Pork|Beef)\s+/i, '');
