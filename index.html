@@ -11226,9 +11226,18 @@ function getAltMeal(altType, ctx) {
   switch(altType) {
     case 'vegan_alt':     return ctx.mealVeg || 'Vegan / vegetarian alternative';
     case 'halal_alt':
-      // Use Main Alt item + sides. Fallback to full meal name if mainAlt not saved yet
+      // 2026-05-19: prefer explicit halal-stream item (dinner_halal /
+      // lunch_halal / breakfast_halal) so meals like Pork Vindaloo render
+      // the halal section as "Chicken Vindaloo, Seasonal Vegetables,
+      // Steamed Rice" instead of the misleading "Halal alternative —
+      // Pork Vindaloo, ...". Fall back to mainAlt (legacy field), then to
+      // a stripped/prefixed version of the meal name as a safety net.
+      if (ctx.mealHalal) return withSides(ctx.mealHalal);
       if (ctx.mainAlt) return withSides(ctx.mainAlt);
-      return 'Halal alternative — ' + ctx.mealName;
+      {
+        const _stripped = (ctx.mealName || '').replace(/\b(Pork|Beef)\s+/i, '');
+        return 'Halal ' + (_stripped || ctx.mealName);
+      }
     case 'nopork_alt':
       // Use No Pork Alt item + sides
       if (ctx.noPorkAlt) return withSides(ctx.noPorkAlt);
@@ -11239,11 +11248,34 @@ function getAltMeal(altType, ctx) {
       // is involved. Replaces the older "Gluten free alternative" placeholder.
       return 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg';
     case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
-    case 'modified_main': return ctx.mealName + ' — modified (no egg/mustard)';
+    case 'modified_main': {
+      // 2026-05-19: only emit the "(no egg/mustard)" suffix when the meal
+      // actually contains those allergens. Previously hard-coded — produced
+      // "Pork Vindaloo … — modified (no egg/mustard)" in the Diabetic block
+      // for meals with neither egg nor mustard. The suffix is meaningful for
+      // the No Eggs/No Mustard route on egg/mayo dishes; for Diabetic on a
+      // vindaloo it's misleading boilerplate.
+      const _f = ctx && ctx.mealFlags || {};
+      const _has = [_f.hasEgg && 'egg', _f.hasMustard && 'mustard'].filter(Boolean);
+      return _has.length
+        ? ctx.mealName + ' — modified (no ' + _has.join('/') + ')'
+        : ctx.mealName + ' — modified';
+    }
     case 'noproc_alt':    return ctx && ctx.softAlt ? ctx.softAlt : 'Non-processed alternative — plain protein, rice \u0026 veg';
     case 'soft':
+      // 2026-05-19: when a single altMeal entry is defined, it IS the
+      // section title (the standard alternative for the ~13 plain-alt
+      // residents). softAlt belongs in the soft-meals sub-row, not the
+      // section header. Previously a single-entry altMeals was skipped
+      // and softAlt won — printing the soft text as the section title
+      // for all standard alt residents (e.g. W2 TUE Dinner showed
+      // "Plain Chicken Leg, Plain Rice & Stir-fried Veg" instead of
+      // "Roast Chicken Leg, Plain Rice & Veg Stirfry").
       if (ctx && ctx.altMeals && ctx.altMeals.length > 1) {
         return ctx.altMeals.map(a => (a.type==='soft'?'SOFT':'PLAIN')+': '+a.text).join('  /  ');
+      }
+      if (ctx && ctx.altMeals && ctx.altMeals.length === 1 && ctx.altMeals[0] && ctx.altMeals[0].text) {
+        return ctx.altMeals[0].text;
       }
       if (ctx && ctx.softAlt) return ctx.softAlt;
       // v9.15: 'no soft alt needed' affirmed in Menu Config — show standard meal,
@@ -16706,9 +16738,23 @@ function computePlatingData(period, weekNum, dayName) {
   const mealMainItem  = dayData[period+'_mainItem'] || '';
   const mealMainAlt   = dayData[period+'_mainAlt'] || '';
   const mealSides     = dayData[period+'_sides'] || '';
-  const mealName    = (mealMainItem && mealSides)
-    ? mealMainItem + ', ' + mealSides
-    : (dayData[period] || 'Meal');
+  // 2026-05-19: emit ALL comma-separated components from the canonical meal
+  // string, not just (mainItem + sides). The per-slot _mainItem/_sides split
+  // can lag behind the source `lunch`/`dinner`/`breakfast` string (e.g. W2
+  // TUE Lunch on menu_reno.json: lunch = "Fully Loaded Sausage on a Bun,
+  // Side Salad, Peppers and Onions" but an older derivation only captured
+  // "Side Salad" in lunch_sides). Prefer whichever has more components.
+  const _rawMeal = (dayData[period] || '').trim();
+  const _derived = (mealMainItem && mealSides) ? (mealMainItem + ', ' + mealSides) : (mealMainItem || '');
+  const _rawCount = _rawMeal ? _rawMeal.split(/,\s*/).filter(Boolean).length : 0;
+  const _derCount = _derived ? _derived.split(/,\s*/).filter(Boolean).length : 0;
+  const mealName  = (_rawCount > _derCount && _rawMeal)
+    ? _rawMeal
+    : (_derived || _rawMeal || 'Meal');
+  // Halal-stream item if menu specifies one explicitly (e.g. "Chicken Vindaloo"
+  // as the halal version of a pork main). Used by the halal section label so
+  // it doesn't literally print "Halal alternative — Pork Vindaloo".
+  const mealHalal   = dayData[period+'_halal'] || '';
   const mealVeg     = dayData[period+'_veg'] || 'Vegan alternative';
   const mealSoftAlt = dayData[period+'_softAlt'] || '';
   const mealNoPorkAlt = dayData[period+'_noPorkAlt'] || '';
@@ -16791,7 +16837,7 @@ function computePlatingData(period, weekNum, dayName) {
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const mealGfAlt = dayData[period+'_gfAlt'] || '';
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr: null, noPorkAllergenStr: null};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr: null, noPorkAllergenStr: null, mealHalal: mealHalal};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
