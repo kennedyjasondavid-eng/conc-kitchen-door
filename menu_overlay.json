@@ -1126,6 +1126,80 @@
     }
   },
   "3": {
+    "WEDNESDAY": {
+      "dinner": "Baked Tomato Fish, Couscous, Broccoli",
+      "dinner_veg": "Baked Tomato Tofu, Couscous, Broccoli",
+      "dinner_flags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": true,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Basa, Plain Rice & Seasonal Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Basa, Plain Rice & Seasonal Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Baked Tomato Fish",
+      "dinner_mainAlt": "",
+      "dinner_sides": "Couscous, Broccoli",
+      "dinner_slots": {
+        "main": {
+          "manual": "Baked Tomato Fish",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasPork": false,
+            "hasFish": true,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "hasSesame": false,
+            "hasSoy": false,
+            "hasBeef": false,
+            "isSpicy": false,
+            "isCarb": false
+          }
+        },
+        "veganalt": {
+          "manual": "Baked Tomato Tofu",
+          "flags": {}
+        },
+        "starch": {
+          "manual": "Couscous",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Broccoli",
+          "flags": {}
+        }
+      }
+    },
     "FRIDAY": {
       "dinner": "Chicken and Mushroom Fried Rice",
       "dinner_veg": "Soy-Free Mushroom Fried Rice",
@@ -1298,183 +1372,6 @@
         }
       ],
       "dinner_altMealsNone": false
-    },
-    "WEDNESDAY": {
-      "lunch": "Crispy Chicken Tender Wrap",
-      "lunch_veg": "Vegan Chik'n Tender Wrap",
-      "lunch_flags": {
-        "hasGluten": true,
-        "hasDairy": true,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": true,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": true,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": true,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": false,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "lunch_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "lunch_altMealsNone": false,
-      "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Crispy Chicken Tender Wrap",
-      "lunch_mainAlt": "Vegan Chik'n Tender Wrap",
-      "lunch_sides": "",
-      "lunch_slots": {
-        "main": {
-          "manual": "Crispy Chicken Tender Wrap",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": true,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "isSpicy": false,
-            "isCarb": true,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": true,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasChicken": true,
-            "hasTurkey": false
-          }
-        },
-        "mainalt": {
-          "manual": "Vegan Chik'n Tender Wrap",
-          "flags": {
-            "hasGluten": true,
-            "hasSoy": true
-          }
-        },
-        "veganalt": {
-          "manual": "Vegan Chik'n Tender Wrap",
-          "flags": {
-            "hasGluten": true,
-            "hasSoy": true
-          }
-        }
-      },
-      "dinner": "Baked Tomato Fish, Couscous, Seasonal Vegetables",
-      "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables",
-      "dinner_flags": {
-        "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": true,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": true,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": true,
-        "hasBrassicas": false,
-        "hasCorn": false
-      },
-      "dinner_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Baked Basa, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
-      "dinner_noPorkAlt": "",
-      "dinner_mainItem": "Baked Tomato Fish",
-      "dinner_mainAlt": "",
-      "dinner_sides": "Couscous, Seasonal Vegetables",
-      "dinner_slots": {
-        "main": {
-          "manual": "Baked Tomato Fish",
-          "flags": {
-            "hasDairy": false,
-            "hasGluten": true,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "hasFish": true,
-            "hasEgg": false,
-            "hasPeanuts": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": true,
-            "hasBeans": false,
-            "hasTreeNuts": false,
-            "hasShellfish": false,
-            "hasMustard": false,
-            "hasSulphites": false
-          }
-        },
-        "veganalt": {
-          "manual": "Baked Tomato Tofu",
-          "flags": {
-            "hasSoy": true,
-            "hasNightshades": true
-          }
-        },
-        "starch": {
-          "manual": "Couscous",
-          "flags": {
-            "hasGluten": true
-          }
-        },
-        "vegside": {
-          "manual": "Seasonal Vegetables",
-          "flags": {}
-        }
-      }
     },
     "SUNDAY": {
       "dinner": "Halal Beef Meatballs, Pasta, Pea & Carrot",
