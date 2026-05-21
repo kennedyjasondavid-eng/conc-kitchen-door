@@ -2,14 +2,20 @@
   "_meta": {
     "source": "KitchenDOOR (reno menu, generated from Excel)",
     "site": "rexdale",
-    "exported": "2026-05-16T22:52:45.287786+00:00",
+    "exported": "2026-05-21T14:51:01.914935+00:00",
     "version": 2,
     "sourceFiles": [
       "02_Renovation_4_Week_Menu.xlsx",
       "Meal components - regular and plain.xlsx"
     ],
     "generator": "EXPO audit script (Excel + plain-meals -> DOOR shape)",
-    "note": "Reno menu cycle. _altMeals populated from plain-meals Excel; lunch W3 reuses W1, W4 reuses W2 (rotation)."
+    "note": "Reno menu cycle. _altMeals populated from plain-meals Excel; lunch W3 reuses W1, W4 reuses W2 (rotation).",
+    "manualEdits": [
+      {
+        "ts": "2026-05-21T14:51:01.914935+00:00",
+        "change": "Wk3 WED dinner: Seasonal Vegetables -> Broccoli (regular + veg)"
+      }
+    ]
   },
   "menu": {
     "1": {
@@ -1702,8 +1708,8 @@
           "isCarb": true,
           "halalCertifiedMeat": true
         },
-        "dinner": "Baked Tomato Fish, Couscous, Seasonal Vegetables",
-        "dinner_veg": "Baked Tomato Tofu, Couscous, Seasonal Vegetables",
+        "dinner": "Baked Tomato Fish, Couscous, Broccoli",
+        "dinner_veg": "Baked Tomato Tofu, Couscous, Broccoli",
         "allergens_dinner": "fish, gluten",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
