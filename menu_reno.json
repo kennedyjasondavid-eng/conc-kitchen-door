@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR (reno menu, generated from Excel)",
     "site": "rexdale",
-    "exported": "2026-05-23",
+    "exported": "2026-05-24",
     "version": 2,
     "sourceFiles": [
       "02_Renovation_4_Week_Menu.xlsx",
@@ -22,6 +22,10 @@
       {
         "ts": "2026-05-23",
         "change": "Wk2 SUN dinner_halal: add \"Halal Chicken and Vegetable Pasta\" (plating-accurate). Replaces engine auto-gen fallback which named it \"Halal Chicken Sausage and Vegetable Pasta\"."
+      },
+      {
+        "ts": "2026-05-24",
+        "change": "Wk4 WED dinner_veg: \"Vegan Pot Pie and Vegetable Medley\" -> \"Vegan Pot Pie, Roasted Vegetable Medley\" (comma-separated so engine emits both items via menu decomposer; removes Bloor duplicate cook)"
       }
     ]
   },
@@ -2385,7 +2389,7 @@
           "halalCertifiedMeat": true
         },
         "dinner": "Beef and Vegetable Stew, Potatoes",
-        "dinner_veg": "Vegan Pot Pie and Vegetable Medley",
+        "dinner_veg": "Vegan Pot Pie, Roasted Vegetable Medley",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {
