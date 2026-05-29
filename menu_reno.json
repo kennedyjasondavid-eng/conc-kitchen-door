@@ -38,6 +38,10 @@
       {
         "ts": "2026-05-29",
         "change": "Wk1/Wk3 SUN lunch_veg: \"Vegetarian Sandwich, Broccoli Salad\" -> \"Roasted Vegetable Sandwich, Broccoli Salad\". Propagates the EXPO v9.31.6 baked-RENO_MENU change into DOOR (was a baked-only edit; DOOR menu_reno.json still carried the old text, so live publishes omitted the Roasted Veg Stacks Sun-lunch chain). Engine generates the same Roasted Veg Stacks LANHotSide chain as Wk2/4 WED."
+      },
+      {
+        "ts": "2026-05-29",
+        "change": "Wk2 WED dinner_veg: \"Spiced Tofu, ...\" -> \"Yetisse Tofu, ...\" (per Jason). Aligns DOOR with EXPO baked-RENO_MENU name; DOOR carried the old \"Spiced Tofu\" text so live publishes mislabeled the dish."
       }
     ]
   },
@@ -1066,7 +1070,7 @@
           "halalCertifiedMeat": true
         },
         "dinner": "Yetisse Fish, Eggplant/Cassava Stew, Coconut Rice and Peas",
-        "dinner_veg": "Spiced Tofu, Eggplant/Cassava Stew, Coconut Rice and Peas",
+        "dinner_veg": "Yetisse Tofu, Eggplant/Cassava Stew, Coconut Rice and Peas",
         "allergens_dinner": "fish",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
