@@ -34,6 +34,10 @@
       {
         "ts": "2026-05-25",
         "change": "Wk2/Wk4 TUE lunch_veg: \"Quinoa Cake Wrap, Side Salad\" -> \"Vegan Sausages, Side Salad, Peppers and Onions\" (per Fiona 2026-05-25 — vegan section mirrors regular Fully Loaded Sausage on a Bun, drops quinoa cake). Engine auto-emits Vegan Sausages PULL via PURCHASED chain."
+      },
+      {
+        "ts": "2026-05-29",
+        "change": "Wk1/Wk3 SUN lunch_veg: \"Vegetarian Sandwich, Broccoli Salad\" -> \"Roasted Vegetable Sandwich, Broccoli Salad\". Propagates the EXPO v9.31.6 baked-RENO_MENU change into DOOR (was a baked-only edit; DOOR menu_reno.json still carried the old text, so live publishes omitted the Roasted Veg Stacks Sun-lunch chain). Engine generates the same Roasted Veg Stacks LANHotSide chain as Wk2/4 WED."
       }
     ]
   },
@@ -68,7 +72,7 @@
           "halalCertifiedMeat": true
         },
         "lunch": "Chicken Deli & Cheese, Broccoli Salad",
-        "lunch_veg": "Vegetarian Sandwich, Broccoli Salad",
+        "lunch_veg": "Roasted Vegetable Sandwich, Broccoli Salad",
         "allergens_lunch": "gluten, chicken, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMealsNone": true,
@@ -1411,7 +1415,7 @@
           "halalCertifiedMeat": true
         },
         "lunch": "Chicken Deli & Cheese, Broccoli Salad",
-        "lunch_veg": "Vegetarian Sandwich, Broccoli Salad",
+        "lunch_veg": "Roasted Vegetable Sandwich, Broccoli Salad",
         "allergens_lunch": "gluten, chicken, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
