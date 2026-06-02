@@ -283,6 +283,7 @@
   .badge-discharge { background: var(--red-pale); color: #991b1b; }
   .badge-update { background: var(--blue-pale); color: #1d4ed8; }
   .badge-switch { background: var(--amber-pale); color: #92400e; }
+  .badge-reassign { background: #ede9fe; color: #5b21b6; }
   .badge-welfare { background: var(--red-pale); color: #991b1b; }
   .badge-leftover { background: var(--amber-pale); color: #92400e; }
   .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center; }
@@ -7004,10 +7005,17 @@ function renderQueue() {
     return;
   }
 
-  el.innerHTML = changesQueue.map((c, i) => `
+  el.innerHTML = changesQueue.map((c, i) => {
+    const badge = c.type === 'intake' ? 'INTAKE'
+      : c.type === 'discharge' ? 'OUT'
+      : c.type === 'update' ? 'UPDATE'
+      : c.type === 'reassign' ? 'REASSIGN'
+      : 'SWITCH';
+    const roomLabel = c.type === 'reassign' && c.fromRoom ? `${c.fromRoom} → ${c.room}` : c.room;
+    return `
     <div class="change-item">
-      <span class="change-room">${c.room}</span>
-      <span class="change-type-badge badge-${c.type}">${c.type === 'intake' ? 'INTAKE' : c.type === 'discharge' ? 'OUT' : c.type === 'update' ? 'UPDATE' : 'SWITCH'}</span>
+      <span class="change-room">${roomLabel}</span>
+      <span class="change-type-badge badge-${c.type}">${badge}</span>
       <div class="change-tags">
         ${c.type === 'discharge' ? '<span class="tag" style="background:var(--red-pale);color:var(--red);border-color:#fca5a5">Removed</span>' :
           (c.tagLabels.length ? c.tagLabels.map(t => `<span class="tag ${getTagClass(t)}">${t}</span>`).join('') : '<span class="tag">Regular</span>')}
@@ -7015,7 +7023,7 @@ function renderQueue() {
       <span class="change-route" style="font-size:11px;font-weight:600;color:var(--forest-mid)">→ ${c.route}</span>
       <button class="remove-btn" onclick="removeChange(${i})">✕</button>
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 function removeChange(idx) {
@@ -7541,7 +7549,7 @@ function formatConflictNote(conflicts) {
 }
 
 function getRoomBase(room) {
-  return room.toLowerCase().replace(/[ab]$/i, '');
+  return room.toLowerCase().replace(/[a-d]$/i, '');
 }
 
 function findRoommates(room) {
@@ -7994,8 +8002,9 @@ function buildReview() {
       ${changesQueue.map((c, ci) => {
         const _histR = REGISTRY_MAP[c.room.toLowerCase()];
         const _hist = _histR && _histR._history && _histR._history.length ? _histR._history : null;
+        const _roomLabel = c.type === 'reassign' && c.fromRoom ? c.fromRoom + ' → ' + c.room : c.room;
         const mainRow = `<tr style="cursor:pointer;" onclick="openChangeEditor(${ci})" title="Click to edit">
-        <td><strong style="font-family:'DM Mono',monospace">${c.room}</strong>${_hist ? '<div style="font-size:10px;color:#7c3aed;margin-top:2px;">▾ history</div>' : ''}</td>
+        <td><strong style="font-family:'DM Mono',monospace">${_roomLabel}</strong>${_hist ? '<div style="font-size:10px;color:#7c3aed;margin-top:2px;">▾ history</div>' : ''}</td>
         <td><span class="change-type-badge badge-${c.type}">${c.type.toUpperCase()}</span></td>
         <td>${c.type === 'discharge' ? '—' : (c.tagLabels.length ? c.tagLabels.map(t=>'<span class="tag '+getTagClass(t)+'">'+t+'</span>').join(' ') : '<span class="tag">Regular</span>')}</td>
         <td>${c.type === 'discharge' ? '<span style="color:var(--red)">Removed from all sheets</span>' : '<strong style="color:var(--forest-mid)">→ '+c.route+'</strong>'}</td>
@@ -8154,6 +8163,37 @@ function applyQueueToRegistry() {
       const dest = (c.route || '').replace('→ ', '');
       const r = REGISTRY_LIST.find(r => r.room.toLowerCase() === c.room.toLowerCase());
       if (r && dest) r.room = dest;
+
+    } else if (c.type === 'reassign') {
+      // Move an existing resident's record from c.fromRoom to c.room (history + flags carry),
+      // then optionally overlay tag changes from the import.
+      const fromKey = (c.fromRoom || '').toLowerCase();
+      const toKey = c.room.toLowerCase();
+      const idx = REGISTRY_LIST.findIndex(r => r.room.toLowerCase() === fromKey);
+      if (idx !== -1) {
+        const r = REGISTRY_LIST[idx];
+        pushResidentHistory(r, 'Room reassigned: ' + c.fromRoom + ' → ' + c.room, getOperatorName());
+        r.room = c.room;
+        if (c.tags && Object.keys(c.tags).length) {
+          const tagLabels = Object.entries(c.tags).filter(([,v])=>v).map(([k])=>TAG_LABELS_MAP[k]).filter(Boolean);
+          r.tags = tagLabels.length ? tagLabels : ['Regular'];
+          r.restrictions = tagLabels.filter(t => ROUTING_TAGS.has(t));
+          if (!r.restrictions.length) r.restrictions = ['Regular'];
+          r.allergenFlags = tagLabels.filter(t => ALLERGEN_TAGS.has(t));
+          r.accommodations = tagLabels.filter(t => ACCOMMODATION_TAGS.has(t));
+          r.preferences = r.accommodations;
+          r.avoidances = [...r.allergenFlags, ...r.accommodations];
+          r.section = c.route || r.section;
+          r.rawRestriction = tagLabels.join(', ') || 'Regular';
+          r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
+          r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
+        }
+        // Carry over anaphRooms entry if the room was flagged there under the old key.
+        if (Array.isArray(anaphRooms)) {
+          const ai = anaphRooms.findIndex(x => (x||'').toLowerCase() === fromKey);
+          if (ai !== -1) anaphRooms[ai] = c.room;
+        }
+      }
     }
   });
 
@@ -15530,81 +15570,198 @@ function dismissImportUpdate(room, rawText) {
 }
 
 function diffImportAgainstRegistry(entries) {
-  const byRoom = new Map();
-  entries.forEach(e => byRoom.set(e.room.toLowerCase(), e));
-
   const intakes = [];
   const discharges = [];
   const updates = [];
   const needsReview = [];
+  const reassignments = [];
 
-  // Pass 1: for each xlsx entry, compare to registry
-  for (const e of entries) {
-    const existing = REGISTRY_MAP[e.room.toLowerCase()];
+  const existingTagsOf = (r) => {
+    const t = {};
+    (r.tags || []).forEach(label => {
+      const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
+      if (key) t[key] = true;
+    });
+    return t;
+  };
+
+  const intakeOf = (e) => ({
+    room: e.room,
+    newTags: { ...e.parsed.tags },
+    unmatched: e.parsed.unmatched,
+    isAnaphCandidate: e.parsed.isAnaphCandidate,
+    rawText: e.parsed.rawText
+  });
+  const dischargeOf = (r) => ({ room: r.room, existingTags: r.tags || [], existingSection: r.section });
+
+  const detectUpdate = (e, existing) => {
     const newTags = { ...e.parsed.tags };
     const newSig = importTagSignature(newTags);
-    let isNewOrChanged = false;
+    const existingTags = existingTagsOf(existing);
+    const existingSig = importTagSignature(existingTags);
+    if (existingSig === newSig) return null;
+    const dismissed = loadDismissedDiffs();
+    const rawNorm = (e.parsed.rawText || '').toLowerCase().trim();
+    if (dismissed[e.room.toLowerCase()] === rawNorm) return null;
+    return {
+      room: e.room,
+      oldTags: existingTags,
+      newTags,
+      unmatched: e.parsed.unmatched,
+      isAnaphCandidate: e.parsed.isAnaphCandidate,
+      rawText: e.parsed.rawText,
+      fieldSelections: null
+    };
+  };
 
-    if (!existing) {
-      intakes.push({ room: e.room, newTags, unmatched: e.parsed.unmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
-      isNewOrChanged = true;
-    } else {
-      // Build tag set from existing record (inverse of TAG_LABELS_MAP)
-      const existingTags = {};
-      (existing.tags || []).forEach(label => {
-        const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
-        if (key) existingTags[key] = true;
-      });
-      const existingSig = importTagSignature(existingTags);
-      if (existingSig !== newSig) {
-        // v27: Check if this diff was previously dismissed for the same source text
-        const dismissed = loadDismissedDiffs();
-        const rawNorm = (e.parsed.rawText || '').toLowerCase().trim();
-        if (dismissed[e.room.toLowerCase()] === rawNorm) {
-          // Same source text, previously dismissed — skip
-          continue;
-        }
-        updates.push({
-          room: e.room,
-          oldTags: existingTags,
-          newTags,
-          unmatched: e.parsed.unmatched,
-          isAnaphCandidate: e.parsed.isAnaphCandidate,
-          rawText: e.parsed.rawText,
-          fieldSelections: null  // populated in UI per field
-        });
-        isNewOrChanged = true;
+  const flagNeedsReviewIfApplicable = (e, isNewOrChanged) => {
+    if (!isNewOrChanged) return;
+    if (!(e.parsed.unmatched.length || e.parsed.isAnaphCandidate)) return;
+    let learned = {};
+    try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
+    const roomLearned = learned[e.room.toLowerCase()] || {};
+    const rawNorm = (e.parsed.rawText || '').toLowerCase().trim();
+    if (roomLearned['_resolved_text'] === rawNorm) return;
+    const stillUnmatched = e.parsed.unmatched.filter(tok => !roomLearned[tok.toLowerCase().trim()]);
+    if (stillUnmatched.length || (e.parsed.isAnaphCandidate && !roomLearned['_anaph'])) {
+      needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
+    }
+  };
+
+  // Group both sides by base room (e.g. 405, 405a, 405b all share base "405").
+  // This is what fixes the "split into a/b looks like discharge + 2 intakes" bug.
+  const regByBase = new Map();
+  REGISTRY_LIST.forEach(r => {
+    const b = getRoomBase(r.room);
+    if (!regByBase.has(b)) regByBase.set(b, []);
+    regByBase.get(b).push(r);
+  });
+  const impByBase = new Map();
+  entries.forEach(e => {
+    const b = getRoomBase(e.room);
+    if (!impByBase.has(b)) impByBase.set(b, []);
+    impByBase.get(b).push(e);
+  });
+  const allBases = new Set([...regByBase.keys(), ...impByBase.keys()]);
+
+  const suffixOrder = (room) => {
+    const m = room.toLowerCase().match(/[a-d]$/);
+    return m ? m[0].charCodeAt(0) - 96 : 0; // bare=0, a=1, b=2, c=3, d=4
+  };
+
+  for (const base of allBases) {
+    const regs = (regByBase.get(base) || []).slice();
+    const imps = (impByBase.get(base) || []).slice();
+    const regByKey = new Map(regs.map(r => [r.room.toLowerCase(), r]));
+    const impByKey = new Map(imps.map(e => [e.room.toLowerCase(), e]));
+
+    // Exact-key matches first — those are vanilla updates (same room, possibly new tags).
+    for (const key of [...regByKey.keys()]) {
+      if (impByKey.has(key)) {
+        const e = impByKey.get(key);
+        const reg = regByKey.get(key);
+        const upd = detectUpdate(e, reg);
+        if (upd) updates.push(upd);
+        flagNeedsReviewIfApplicable(e, !!upd);
+        regByKey.delete(key);
+        impByKey.delete(key);
       }
     }
 
-    // Only flag NR for new intakes or rooms where restrictions actually changed.
-    // Existing rooms with unchanged tags have the same unmatched fragments every time —
-    // those were already handled when the room was first set up.
-    if (!isNewOrChanged) continue;
+    const leftRegs = [...regByKey.values()];
+    const leftImps = [...impByKey.values()];
 
-    if (e.parsed.unmatched.length || e.parsed.isAnaphCandidate) {
-      let learned = {};
-      try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
-      const roomLearned = learned[e.room.toLowerCase()] || {};
-      // If the full raw text was previously resolved, skip this room entirely
-      const rawNorm = e.parsed.rawText.toLowerCase().trim();
-      if (roomLearned['_resolved_text'] === rawNorm) continue;
-      // Fallback: per-token check for partial matches
-      const stillUnmatched = e.parsed.unmatched.filter(tok => !roomLearned[tok.toLowerCase().trim()]);
-      if (stillUnmatched.length || (e.parsed.isAnaphCandidate && !roomLearned['_anaph'])) {
-        needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
-      }
+    if (!leftRegs.length && !leftImps.length) continue;
+
+    if (!leftRegs.length) {
+      leftImps.forEach(e => {
+        intakes.push(intakeOf(e));
+        flagNeedsReviewIfApplicable(e, true);
+      });
+      continue;
+    }
+    if (!leftImps.length) {
+      leftRegs.forEach(r => discharges.push(dischargeOf(r)));
+      continue;
+    }
+
+    // Mixed: same base has unmatched rooms on both sides.
+    // Classify:
+    //   (A) Split: registry has the bare base AND the import does not   → propose rename.
+    //   (E) Ambiguous collapse: registry has suffixed rooms AND import has the bare → flag for review (no auto-action).
+    //   (D) Suffix-only swap on both sides: treat as plain discharge + intake (do not propose rename).
+    leftRegs.sort((a,b) => suffixOrder(a.room) - suffixOrder(b.room));
+    leftImps.sort((a,b) => suffixOrder(a.room) - suffixOrder(b.room));
+
+    const regBare = leftRegs.find(r => !/[a-d]$/i.test(r.room));
+    const impBare = leftImps.find(e => !/[a-d]$/i.test(e.room));
+
+    if (regBare && !impBare) {
+      // Case A: split. Bare resident keeps record, renames to the lowest-suffixed import room.
+      // Extra import rooms become new intakes.
+      const impSuffixed = leftImps.filter(e => e !== impBare); // all of them (impBare is undef)
+      const targetImp = impSuffixed[0]; // lowest suffix (already sorted)
+      const existingTags = existingTagsOf(regBare);
+      const newTags = { ...targetImp.parsed.tags };
+      const tagChange = importTagSignature(existingTags) !== importTagSignature(newTags);
+      const pairs = [{
+        from: regBare.room,
+        to: targetImp.room,
+        existingTags,
+        newTags,
+        tagChange,
+        unmatched: targetImp.parsed.unmatched,
+        isAnaphCandidate: targetImp.parsed.isAnaphCandidate,
+        rawText: targetImp.parsed.rawText,
+        existingSection: regBare.section
+      }];
+      const extraIntakes = impSuffixed.slice(1).map(intakeOf);
+      // Any non-bare registry rooms in this base also went unmatched → real discharges.
+      const extraDischarges = leftRegs.filter(r => r !== regBare).map(dischargeOf);
+      reassignments.push({
+        id: 'rx-' + base, base, pairs, extraIntakes, extraDischarges,
+        ambiguous: false, ambiguousReason: ''
+      });
+    } else if (impBare && !regBare) {
+      // Case E: registry has only suffixed rooms in this base but the import shows the bare.
+      // Could be typo, discharge+new arrival, or intentional re-collapse — flag for review.
+      // Propose: rename lowest-suffix registry room → bare; any remaining registry rooms become
+      // discharges; any remaining import rooms become intakes.
+      const targetReg = leftRegs[0];
+      const existingTags = existingTagsOf(targetReg);
+      const newTags = { ...impBare.parsed.tags };
+      const tagChange = importTagSignature(existingTags) !== importTagSignature(newTags);
+      const pairs = [{
+        from: targetReg.room,
+        to: impBare.room,
+        existingTags,
+        newTags,
+        tagChange,
+        unmatched: impBare.parsed.unmatched,
+        isAnaphCandidate: impBare.parsed.isAnaphCandidate,
+        rawText: impBare.parsed.rawText,
+        existingSection: targetReg.section
+      }];
+      const extraDischarges = leftRegs.slice(1).map(dischargeOf);
+      const extraIntakes = leftImps.filter(e => e !== impBare).map(intakeOf);
+      reassignments.push({
+        id: 'rx-' + base, base, pairs, extraIntakes, extraDischarges,
+        ambiguous: true,
+        ambiguousReason: 'Registry has suffixed room(s) but the import shows bare ' + base + '. Could be a typo, a discharge + new arrival, or a re-collapse. Confirm before proceeding.'
+      });
+    } else {
+      // Case D: suffix-only mismatch on both sides (e.g. 405b discharged, 405c new) — or
+      // both sides bare with extra rows (very unusual). Treat as plain discharge + intake;
+      // operators can manually reassign in Enter Changes if they meant a rename.
+      leftRegs.forEach(r => discharges.push(dischargeOf(r)));
+      leftImps.forEach(e => {
+        intakes.push(intakeOf(e));
+        flagNeedsReviewIfApplicable(e, true);
+      });
     }
   }
 
-  // Pass 2: registry rooms not in xlsx = discharges
-  REGISTRY_LIST.forEach(r => {
-    if (!byRoom.has(r.room.toLowerCase())) {
-      discharges.push({ room: r.room, existingTags: r.tags || [], existingSection: r.section });
-    }
-  });
-
-  return { intakes, discharges, updates, needsReview };
+  return { intakes, discharges, updates, needsReview, reassignments };
 }
 
 // ─── Import UI state ────────────────────────────────────────────
@@ -15645,11 +15802,12 @@ function handleImportFile(file) {
       const entries = parseImportWorkbook(wb);
       const diff = diffImportAgainstRegistry(entries);
 
-      // All rows selected by default except needs-review
+      // All rows selected by default except needs-review and ambiguous reassignments
       const selections = {
         intakes: new Set(diff.intakes.map(x => x.room)),
         discharges: new Set(diff.discharges.map(x => x.room)),
-        updates: new Map()
+        updates: new Map(),
+        reassignments: new Set()
       };
       diff.updates.forEach(u => {
         // Per-field selection: for each tag that differs, default to "accept"
@@ -15659,6 +15817,10 @@ function handleImportFile(file) {
           if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = true;  // default accept
         });
         selections.updates.set(u.room, fieldSelections);
+      });
+      // Clear cases auto-confirmed; ambiguous ones require explicit operator opt-in.
+      diff.reassignments.forEach(rx => {
+        if (!rx.ambiguous) selections.reassignments.add(rx.id);
       });
 
       IMPORT_STATE = { entries, diff, selections, fileName: file.name, resolutions: new Map() };
@@ -15707,10 +15869,12 @@ function renderImportReview() {
   }
 
   // Summary strip
+  const reassignCount = (diff.reassignments || []).length;
   document.getElementById('import-summary').innerHTML = `
     <div class="import-summary-chip" style="background:#dcfce7;border-color:#86efac;color:#166534;"><span class="import-summary-chip-num">${diff.intakes.length}</span> Intakes</div>
     <div class="import-summary-chip" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;"><span class="import-summary-chip-num">${diff.discharges.length}</span> Discharges</div>
     <div class="import-summary-chip" style="background:#dbeafe;border-color:#93c5fd;color:#1e40af;"><span class="import-summary-chip-num">${diff.updates.length}</span> Updates</div>
+    <div class="import-summary-chip" style="background:#ede9fe;border-color:#c4b5fd;color:#5b21b6;"><span class="import-summary-chip-num">${reassignCount}</span> Reassignments</div>
     <div class="import-summary-chip" style="background:#fef3c7;border-color:#fcd34d;color:#92400e;"><span class="import-summary-chip-num">${diff.needsReview.length}</span> Needs Review</div>
     <div class="import-summary-chip"><span class="import-summary-chip-num">${IMPORT_STATE.entries.length}</span> rows parsed</div>
   `;
@@ -15719,12 +15883,14 @@ function renderImportReview() {
   document.getElementById('ic-intakes').textContent = diff.intakes.length;
   document.getElementById('ic-discharges').textContent = diff.discharges.length;
   document.getElementById('ic-updates').textContent = diff.updates.length;
+  document.getElementById('ic-reassignments').textContent = reassignCount;
   document.getElementById('ic-review').textContent = diff.needsReview.length;
 
   // Render all panes
   renderIntakesPane();
   renderDischargesPane();
   renderUpdatesPane();
+  renderReassignmentsPane();
   renderNeedsReviewPane();
   updateImportFooterCount();
 
@@ -15733,8 +15899,9 @@ function renderImportReview() {
 
 function switchImportTab(name) {
   document.querySelectorAll('.import-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  ['intakes','discharges','updates','review'].forEach(p => {
-    document.getElementById('import-pane-' + p).style.display = (p === name) ? 'block' : 'none';
+  ['intakes','discharges','updates','reassignments','review'].forEach(p => {
+    const el = document.getElementById('import-pane-' + p);
+    if (el) el.style.display = (p === name) ? 'block' : 'none';
   });
 }
 
@@ -15867,6 +16034,82 @@ function renderNeedsReviewPane() {
     ${cards}`;
 }
 
+function renderReassignmentsPane() {
+  const pane = document.getElementById('import-pane-reassignments');
+  if (!pane) return;
+  const rows = (IMPORT_STATE.diff.reassignments || []);
+  if (!rows.length) {
+    pane.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">No room reassignments detected.</div>';
+    return;
+  }
+  const sel = IMPORT_STATE.selections.reassignments;
+  const tagsLabel = (tags) => importTagLabels(tags).join(', ') || 'Regular';
+
+  const cards = rows.map(rx => {
+    const checked = sel.has(rx.id) ? 'checked' : '';
+    const bg = rx.ambiguous ? '#fffbeb' : '#f5f3ff';
+    const border = rx.ambiguous ? '#fcd34d' : '#c4b5fd';
+    const heading = rx.ambiguous ? 'Ambiguous reassignment — manual confirm required' : 'Room reassignment';
+    const headingColor = rx.ambiguous ? '#92400e' : '#5b21b6';
+    const warn = rx.ambiguous
+      ? `<div style="font-size:11px;background:#fef2f2;color:#991b1b;padding:6px 10px;border-radius:4px;font-weight:600;margin:6px 0;">&#x26A0; ${rx.ambiguousReason}</div>`
+      : '';
+
+    const pairRows = rx.pairs.map(p => {
+      const tagNote = p.tagChange
+        ? `<div style="font-size:11px;color:var(--muted);">Tags: <span style="text-decoration:line-through;">${tagsLabel(p.existingTags)}</span> &rarr; <span style="color:#166534;font-weight:600;">${tagsLabel(p.newTags)}</span></div>`
+        : `<div style="font-size:11px;color:var(--muted);">Tags carry forward: ${tagsLabel(p.existingTags)}</div>`;
+      const rawNote = p.rawText ? `<div style="font-size:11px;color:var(--muted);">Source: <em>${p.rawText}</em></div>` : '';
+      return `<div style="padding:6px 0;border-top:1px dashed ${border};">
+        <div style="font-size:13px;"><strong>${p.from}</strong> &rarr; <strong>${p.to}</strong> <span style="color:var(--muted);font-size:11px;">(existing resident keeps record, room renamed)</span></div>
+        ${tagNote}
+        ${rawNote}
+      </div>`;
+    }).join('');
+
+    const intakeRows = rx.extraIntakes.map(r => {
+      const rawNote = r.rawText ? `<div style="font-size:11px;color:var(--muted);">Source: <em>${r.rawText}</em></div>` : '';
+      return `<div style="padding:6px 0;border-top:1px dashed ${border};">
+        <div style="font-size:13px;color:#166534;"><strong>+ New intake at ${r.room}</strong></div>
+        <div style="font-size:11px;color:var(--muted);">Tags: ${tagsLabel(r.newTags)}</div>
+        ${rawNote}
+      </div>`;
+    }).join('');
+
+    const dischargeRows = rx.extraDischarges.map(r => {
+      return `<div style="padding:6px 0;border-top:1px dashed ${border};">
+        <div style="font-size:13px;color:#991b1b;"><strong>&minus; Discharge from ${r.room}</strong></div>
+        <div style="font-size:11px;color:var(--muted);">Was: ${(r.existingTags||[]).join(', ') || 'Regular'} &middot; Section ${r.existingSection}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="import-row" style="background:${bg};border:1px solid ${border};flex-direction:column;align-items:stretch;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <input type="checkbox" id="imp-rx-${rx.id}" ${checked} onchange="toggleReassignSelect('${rx.id}',this.checked)" style="margin-top:3px;">
+        <div style="flex:1;">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:${headingColor};">${heading} &middot; base ${rx.base}</div>
+          ${warn}
+          ${pairRows}
+          ${intakeRows}
+          ${dischargeRows}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `
+    <div style="font-size:12px;border-radius:6px;padding:10px 14px;margin-bottom:12px;background:#f5f3ff;border:1px solid #c4b5fd;color:#5b21b6;">
+      A reassignment moves an existing resident's record to a different suffix in the same base room (e.g. 405 &rarr; 405a when a second occupant arrives). The original record &mdash; tags, history, anaphylactic flags &mdash; carries forward; only the room key changes. Any new arrival in the same base appears below as an intake.
+    </div>
+    ${cards}`;
+}
+
+function toggleReassignSelect(id, checked) {
+  const set = IMPORT_STATE.selections.reassignments;
+  if (checked) set.add(id); else set.delete(id);
+  updateImportFooterCount();
+}
+
 function toggleResolvePanel(panelId) {
   const el = document.getElementById(panelId);
   if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
@@ -15960,11 +16203,13 @@ function updateImportFooterCount() {
   // Count updates with at least one accepted field
   let updatesWithChanges = 0;
   sel.updates.forEach(fs => { if (Object.values(fs).some(v => v)) updatesWithChanges++; });
+  const reassignSel = sel.reassignments ? sel.reassignments.size : 0;
   const resolvedCount = IMPORT_STATE && IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.size : 0;
-  const total = intakes + discharges + updatesWithChanges + resolvedCount;
+  const total = intakes + discharges + updatesWithChanges + reassignSel + resolvedCount;
   const resolvedNote = resolvedCount ? `, ${resolvedCount} resolved` : '';
+  const reassignNote = reassignSel ? `, ${reassignSel} reassignment${reassignSel!==1?'s':''}` : '';
   document.getElementById('import-selected-count').textContent =
-    `${total} selected (${intakes} intake${intakes!==1?'s':''}, ${discharges} discharge${discharges!==1?'s':''}, ${updatesWithChanges} update${updatesWithChanges!==1?'s':''}${resolvedNote})`;
+    `${total} selected (${intakes} intake${intakes!==1?'s':''}, ${discharges} discharge${discharges!==1?'s':''}, ${updatesWithChanges} update${updatesWithChanges!==1?'s':''}${reassignNote}${resolvedNote})`;
   const unresolvedNRCount = IMPORT_STATE && IMPORT_STATE.diff
     ? IMPORT_STATE.diff.needsReview.reduce((sum, r) => {
         const res = IMPORT_STATE.resolutions ? IMPORT_STATE.resolutions.get(r.room) : null;
@@ -16010,7 +16255,7 @@ function updateImportFooterCount() {
   const gotoBtn = document.getElementById('import-goto-generate-btn');
   if (gotoBtn) {
     const hasState = !!localStorage.getItem('concRegistryState');
-    const noChanges = total === 0 && IMPORT_STATE && (IMPORT_STATE.diff.intakes.length + IMPORT_STATE.diff.discharges.length + IMPORT_STATE.diff.updates.length) === 0;
+    const noChanges = total === 0 && IMPORT_STATE && (IMPORT_STATE.diff.intakes.length + IMPORT_STATE.diff.discharges.length + IMPORT_STATE.diff.updates.length + (IMPORT_STATE.diff.reassignments||[]).length) === 0;
     // Show "Go to Generate" only when there's nothing at all (no changes AND no NR items)
     gotoBtn.style.display = (noChanges && hasState && unresolvedNRCount === 0) ? 'inline-flex' : 'none';
     if (noChanges && hasState) {
@@ -16080,6 +16325,42 @@ function commitImportToQueue() {
       hadSection: existing ? existing.section : null
     });
     pushed++;
+  });
+
+  // Reassignments — confirmed clusters rename existing records + add any tail intakes/discharges
+  (diff.reassignments || []).forEach(rx => {
+    if (!selections.reassignments || !selections.reassignments.has(rx.id)) return;
+    rx.pairs.forEach(p => {
+      if (changesQueue.find(q => q.room.toLowerCase() === p.to.toLowerCase() || q.room.toLowerCase() === p.from.toLowerCase())) { skipped++; return; }
+      const tagLabels = importTagLabels(p.newTags);
+      const route = routeResident(p.newTags, MEAL.lunch, p.to, false);
+      changesQueue.push({
+        room: p.to, fromRoom: p.from, type: 'reassign',
+        tags: p.newTags, tagLabels, route,
+        notes: 'Room reassignment from import (' + p.from + ' → ' + p.to + ')',
+        isAnaph: false, isModerate: false, moderateNote: '',
+        hadSection: p.existingSection
+      });
+      pushed++;
+    });
+    rx.extraIntakes.forEach(r => {
+      if (changesQueue.find(q => q.room.toLowerCase() === r.room.toLowerCase())) { skipped++; return; }
+      const tagLabels = importTagLabels(r.newTags);
+      const route = routeResident(r.newTags, MEAL.lunch, r.room, false);
+      changesQueue.push({
+        room: r.room, type: 'intake', tags: r.newTags, tagLabels, route, notes: 'From daily list import (room split)',
+        isAnaph: false, isModerate: false, moderateNote: '', hadSection: null
+      });
+      pushed++;
+    });
+    rx.extraDischarges.forEach(r => {
+      if (changesQueue.find(q => q.room.toLowerCase() === r.room.toLowerCase())) { skipped++; return; }
+      changesQueue.push({
+        room: r.room, type: 'discharge', tags: {}, tagLabels: [], route: 'REMOVE', notes: 'Not on daily list (room cluster)',
+        isAnaph: false, isModerate: false, moderateNote: '', hadSection: r.existingSection
+      });
+      pushed++;
+    });
   });
 
   // Auto-apply modifier-only tag additions (lowSodium, lowFat, lactoIntolerant, etc.)
@@ -18496,12 +18777,14 @@ window.addEventListener('load', runAltFlagSweepOnce);
           <button class="import-tab active" data-tab="intakes" onclick="switchImportTab('intakes')">Intakes <span class="import-tab-count" id="ic-intakes">0</span></button>
           <button class="import-tab" data-tab="discharges" onclick="switchImportTab('discharges')">Discharges <span class="import-tab-count" id="ic-discharges">0</span></button>
           <button class="import-tab" data-tab="updates" onclick="switchImportTab('updates')">Updates <span class="import-tab-count" id="ic-updates">0</span></button>
+          <button class="import-tab" data-tab="reassignments" onclick="switchImportTab('reassignments')">Reassignments <span class="import-tab-count" id="ic-reassignments">0</span></button>
           <button class="import-tab" data-tab="review" onclick="switchImportTab('review')">Needs Review <span class="import-tab-count" id="ic-review">0</span></button>
         </div>
         <!-- Tab panes -->
         <div id="import-pane-intakes" class="import-pane"></div>
         <div id="import-pane-discharges" class="import-pane" style="display:none;"></div>
         <div id="import-pane-updates" class="import-pane" style="display:none;"></div>
+        <div id="import-pane-reassignments" class="import-pane" style="display:none;"></div>
         <div id="import-pane-review" class="import-pane" style="display:none;"></div>
       </div>
     </div>
