@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>DOOR</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16462,6 +16465,62 @@ function commitImportToQueue() {
     setTimeout(() => showScreen('review', document.querySelector('[data-screen=review]')), 150);
   }
 }
+
+// ============================================================
+// Stale-code detection (cache-bust)
+// HEAD-checks the served index.html on boot + on tab-focus; compares
+// ETag/Last-Modified to the value we recorded last session and offers
+// "Reload now" via a non-blocking top banner if the server has newer.
+// Catches the "staff has yesterday's DOOR cached and is about to run
+// an import against logic they don't have" failure mode.
+// Silent on file://, offline, CORS, or missing headers.
+function checkForFreshDoorVersion() {
+  if (sessionStorage.getItem('door_just_reloaded')) {
+    sessionStorage.removeItem('door_just_reloaded');
+    return;
+  }
+  if (!/^https?:/.test(location.protocol)) return;
+  try {
+    const url = location.pathname.split('?')[0] + '?_freshcheck=' + Date.now();
+    fetch(url, { method: 'HEAD', cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) return;
+        const stamp = r.headers.get('etag') || r.headers.get('last-modified') || '';
+        if (!stamp) return;
+        const stored = localStorage.getItem('door_html_stamp');
+        if (!stored) { localStorage.setItem('door_html_stamp', stamp); return; }
+        if (stored !== stamp) {
+          console.log('[DOOR cache-check] new version detected:', stored, '->', stamp);
+          showStaleVersionBanner(stamp);
+        }
+      })
+      .catch(() => {});
+  } catch (e) {}
+}
+
+function showStaleVersionBanner(newStamp) {
+  if (document.getElementById('door-stale-banner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'door-stale-banner';
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;border-bottom:2px solid #f59e0b;color:#92400e;padding:10px 18px;display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.06);';
+  bar.innerHTML =
+    '<span style="font-size:16px;">↻</span>' +
+    '<span style="flex:1;">A newer version of DOOR is published. Reload to make sure registry updates use the latest logic.</span>' +
+    '<button id="door-stale-reload" style="background:#92400e;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Reload now</button>' +
+    '<button id="door-stale-dismiss" title="Hide until next refresh" style="background:none;border:1px solid #f59e0b;color:#92400e;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;">Dismiss</button>';
+  document.body.appendChild(bar);
+  document.getElementById('door-stale-reload').onclick = function() {
+    sessionStorage.setItem('door_just_reloaded', '1');
+    localStorage.setItem('door_html_stamp', newStamp);
+    location.reload();
+  };
+  document.getElementById('door-stale-dismiss').onclick = function() { bar.remove(); };
+}
+
+checkForFreshDoorVersion();
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') checkForFreshDoorVersion();
+});
 
 // ============================================================
 // INIT
