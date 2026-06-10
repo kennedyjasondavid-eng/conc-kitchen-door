@@ -9865,6 +9865,42 @@ function buildRoutingByMealJSON() {
         }
 
         result[wk][day][period] = counts;
+
+        // v32: per-component portion counts — same engine as the plating
+        // sheets (computePlatingData applies the smart flag defaults the
+        // legacy counts above deliberately don't, so the two can differ;
+        // the plating engine is the authority for what each section eats).
+        // Each section's resolved meal string is comma-split into
+        // components; a component's count is the sum of residents across
+        // all sections that receive it. Consumed by HUB to deep-link
+        // CODEX recipes pre-scaled (&portions=N). Additive — never blocks
+        // or alters the existing section counts.
+        try {
+          const pd = computePlatingData(period, wk, day);
+          if (pd) {
+            const comp = {};
+            const compKey = {}; // lowercase -> canonical casing (menu strings
+                                // spell the same dish both "Stirfry"/"stirfry";
+                                // same dish must be one component count)
+            pd.sections.forEach(s => {
+              if (!s.residents.length) return;
+              const at = s.rule.altType;
+              // modified_main / bland_alt sections eat the main meal's
+              // components; getAltMeal appends a display suffix that
+              // would corrupt the last component name.
+              const mealStr = (at === 'modified_main' || at === 'bland_alt')
+                ? pd.ctx.mealName
+                : getAltMeal(at, pd.ctx);
+              String(mealStr || '').split(/,\s*/).forEach(c => {
+                const name = c.trim();
+                if (!name || name.includes('[')) return; // skip supervisor placeholders
+                const canon = compKey[name.toLowerCase()] || (compKey[name.toLowerCase()] = name);
+                comp[canon] = (comp[canon] || 0) + s.residents.length;
+              });
+            });
+            if (Object.keys(comp).length) result[wk][day][period]._components = comp;
+          }
+        } catch(e) { console.warn('per-component counts failed', wk, day, period, e); }
       });
     });
   });
