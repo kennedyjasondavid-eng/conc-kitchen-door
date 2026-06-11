@@ -10017,8 +10017,11 @@ function publishToGitHub(manual) {
 }
 
 async function _doPublishToGitHub(manual) {
-  const token = appSettings['gh-token'] || (document.getElementById('gh-token')||{}).value;
-  const repo  = appSettings['gh-repo']  || (document.getElementById('gh-repo')||{}).value;
+  // v32 fix: prefer the live field value over the stored setting, matching
+  // testGHPublish — otherwise a freshly pasted token "tests fine" but
+  // publish 401s on the stale stored one until the user clicks Save.
+  const token = (document.getElementById('gh-token')||{}).value || appSettings['gh-token'];
+  const repo  = (document.getElementById('gh-repo')||{}).value  || appSettings['gh-repo'];
   const statusEl = document.getElementById('gh-status');
   if(!token||!repo){ if(manual) showToast('Set GitHub token and repo in Settings first.'); return; }
   if(!manual){ const cb=document.querySelector('[onclick*="gh_auto_publish"]'); if(cb&&!cb.querySelector('input').checked) return; }
