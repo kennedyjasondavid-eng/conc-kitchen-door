@@ -42,6 +42,10 @@
       {
         "ts": "2026-05-29",
         "change": "Wk2 WED dinner_veg: \"Spiced Tofu, ...\" -> \"Yetisse Tofu, ...\" (per Jason). Aligns DOOR with EXPO baked-RENO_MENU name; DOOR carried the old \"Spiced Tofu\" text so live publishes mislabeled the dish."
+      },
+      {
+        "ts": "2026-06-11",
+        "change": "ONE-OFF for the 2026-06-21 Rex outdoor BBQ (Father's Day + Indigenous Month, per Mathew): SWAP Wk2 THU lunch <-> Wk3 SUN lunch mains. Wk2 THU (Jun 18): \"Halal Beef Burger, Chickpea Salad\" -> \"Chicken Deli & Cheese, Chickpea Salad\". Wk3 SUN (Jun 21): \"Chicken Deli & Cheese, Broccoli Salad\" -> \"Halal Beef Burger, Three Sisters Salad\" (lunch_veg side also Broccoli Salad -> Three Sisters Salad; Roasted Vegetable Sandwich kept). Rex orders + grills the patties on-site (Bloor orders none — EXPO marks the main rexHandled) and makes the Three Sisters Salad (Bloor preps components). Wk1 SUN + Wk4 THU untouched. mainItem/sides/allergens/flags swapped to match. REVERT BOTH SLOTS AFTER 2026-06-21 (next recurrence Wk3 SUN = 2026-07-19) — mirror of EXPO v9.32.3 generateRexBBQSupportChain revert checklist."
       }
     ]
   },
@@ -1131,9 +1135,9 @@
           "isCarb": false,
           "halalCertifiedMeat": true
         },
-        "lunch": "Halal Beef Burger, Chickpea Salad",
+        "lunch": "Chicken Deli & Cheese, Chickpea Salad",
         "lunch_veg": "Black Bean Patty, Chickpea Salad",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, chicken, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -1142,7 +1146,7 @@
             "flags": {}
           }
         ],
-        "lunch_mainItem": "Halal Beef Burger",
+        "lunch_mainItem": "Chicken Deli & Cheese",
         "lunch_sides": "Chickpea Salad",
         "lunch_flags": {
           "hasGluten": true,
@@ -1153,15 +1157,15 @@
           "hasPeanuts": false,
           "hasSesame": false,
           "hasSoy": false,
-          "hasBeef": true,
-          "hasChicken": false,
+          "hasBeef": false,
+          "hasChicken": true,
           "hasTurkey": false,
           "hasTreeNuts": false,
           "hasMustard": false,
           "hasShellfish": false,
           "hasSulphites": false,
           "isSpicy": false,
-          "isCarb": false,
+          "isCarb": true,
           "halalCertifiedMeat": true
         },
         "dinner": "Sausages & Mash, Gravy, Peas and Carrots",
@@ -1418,9 +1422,9 @@
           "isCarb": false,
           "halalCertifiedMeat": true
         },
-        "lunch": "Chicken Deli & Cheese, Broccoli Salad",
-        "lunch_veg": "Roasted Vegetable Sandwich, Broccoli Salad",
-        "allergens_lunch": "gluten, chicken, dairy",
+        "lunch": "Halal Beef Burger, Three Sisters Salad",
+        "lunch_veg": "Roasted Vegetable Sandwich, Three Sisters Salad",
+        "allergens_lunch": "gluten, dairy",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -1429,8 +1433,8 @@
             "flags": {}
           }
         ],
-        "lunch_mainItem": "Chicken Deli & Cheese",
-        "lunch_sides": "Broccoli Salad",
+        "lunch_mainItem": "Halal Beef Burger",
+        "lunch_sides": "Three Sisters Salad",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1440,15 +1444,15 @@
           "hasPeanuts": false,
           "hasSesame": false,
           "hasSoy": false,
-          "hasBeef": false,
-          "hasChicken": true,
+          "hasBeef": true,
+          "hasChicken": false,
           "hasTurkey": false,
           "hasTreeNuts": false,
           "hasMustard": false,
           "hasShellfish": false,
           "hasSulphites": false,
           "isSpicy": false,
-          "isCarb": true,
+          "isCarb": false,
           "halalCertifiedMeat": true
         },
         "dinner": "Halal Beef Meatballs Pasta, Peas and Carrots",
