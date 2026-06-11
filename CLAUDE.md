@@ -23,10 +23,18 @@ Daily operational interface for Rexdale shelter meal service. Staff enter reside
 | `menu_current.json` `{_meta, weeks[]}` (`version` increments) | EXPO `loadMenuFromDOOR` |
 | `menu_reno.json` (reno 4-week, LAN routing) | EXPO when `scheduleMode = reno` |
 | `menu_overlay.json` (user menu deltas) | applied on top of `menu_current.json` |
-| `routing_by_meal.json` `{ meal: {halal, regular, vegan, total} }` | EXPO portion math |
+| `routing_by_meal.json` `{ wk: { DAY: { meal: { SectionLabel: n, _components: {dish: portions} } } } }` | EXPO portion math (section labels) · HUB portion-aware CODEX deep-links (`_components`) |
 | `registry_summary` · `meal_swaps` · `recent_log` · `learned_nr` · `custom_tag_rules` · `special_meals` · `door_state` | snapshots / informational |
 
 **Change a published schema → update the EXPO consumer in the same change set** (or stage via menu overlays).
+
+### `_components` (added 2026-06-10, the Stage 2 portions pipe)
+Each meal slot's `_components` maps every dish/side to its **total portions across all routing sections that receive it**, computed by the same engine as the plating sheets (`computePlatingData` + `getAltMeal` inside `buildRoutingByMealJSON`). HUB resolves its schedule items against this and appends `&portions=N` to CODEX recipe links, so a cook lands on the recipe pre-scaled. Notes baked into the design: `modified_main`/`bland_alt` sections eat the main meal's components; component keys merge case-insensitively; **anaphylactic residents are excluded** (they get a separate alternative) and the counts use the plating engine's smart flag defaults — so `_components` can legitimately disagree with the sibling section counts. **Never "reconcile" the two**; the plating engine is the authority. The block is try-guarded and additive — section counts stay byte-identical.
+
+## Publish / token notes (2026-06-11)
+- **Token precedence (fixed `4dd0600`):** Publish and Test both read the settings **field first**, stored setting second. (Previously Publish read stored-first → a freshly pasted token "tested fine" but Publish 401'd until Save was clicked.)
+- **⚠ Embedded default token:** `DEFAULT_SETTINGS['gh-token']` (~line 9678, XOR-obfuscated) silently resurrects whenever the stored token is empty. If it has expired this masks the "no token configured" state and produces confusing 401s. Cleanup candidate — architect's call.
+- Stale-tab hazard: publishing from a DOOR tab opened before a deploy runs the **old** code (the boot cache-bust banner mitigates — reload when it prompts).
 
 ## ⚠️ Reno-menu footgun (shared with EXPO)
 `menu_reno.json` is **NOT** in DOOR's normal publish set — it's a static artifact generated from the Excel sources (`_gen_menu_reno.py`, in the EXPO repo). Editing the menu in DOOR's UI while in reno mode writes to overlay/state but **never reaches `menu_reno.json` on Pages**. One-off reno-menu fixes: (a) edit the Excel + regen, or (b) hand-edit `menu_reno.json` here — leave a `_meta.manualEdits` breadcrumb so the next regen doesn't silently undo it.
