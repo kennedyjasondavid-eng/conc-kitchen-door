@@ -139,7 +139,7 @@ The HTA is a Windows-only HTML Application that wraps `git`. It auto-detects whi
 
 ### Versioning
 
-DOOR is at v25+ (~17.5K lines as of 2026-05-12). Version markers appear in source as `[DOOR vN]` console logs and in JSON `_meta.version` fields (currently 30 in `menu_current.json`). There is no single `APP_VERSION` constant — versions are tracked per-feature.
+DOOR shows **v31** in the Settings badge (~18.9K lines — 18,942 as of 2026-06-14). Version markers appear in source as `[DOOR vN]` console logs and in JSON `_meta.version` fields (currently 30 in `menu_current.json`, 2 in `menu_reno.json`). There is no single `APP_VERSION` constant — versions are tracked per-feature.
 
 ### House rules
 

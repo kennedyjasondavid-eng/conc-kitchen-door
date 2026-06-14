@@ -9,7 +9,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~17.5K lines. **v25+** — no single `APP_VERSION` constant (per-feature `[DOOR vN]` console markers; `menu_current.json` `_meta.version` ~30).
+- `index.html`, single-file HTML/CSS/JS, ~18.9K lines (18,942 as of 2026-06-14). **v31** Settings badge — no single `APP_VERSION` constant (per-feature `[DOOR vN]` console markers; `menu_current.json` `_meta.version` 30, `menu_reno.json` 2).
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
 ## Architecture
