@@ -15923,32 +15923,16 @@ function handleImportFile(file) {
       try { await Promise.race([ ensureRegistrySynced(), new Promise(r => setTimeout(r, 5000)) ]); } catch(e) {}
       const data = new Uint8Array(ev.target.result);
       const wb = XLSX.read(data, { type: 'array' });
-      const entries = parseImportWorkbook(wb);
-      const diff = diffImportAgainstRegistry(entries);
+      const rawEntries = parseImportWorkbook(wb);
+      // v31: detect rooms listed more than once in the upload (e.g. 309 typed twice
+      // with conflicting diets). The diff previously kept only the last row silently;
+      // now we surface the duplicates and let staff pick which row is correct.
+      const duplicates = importDuplicateGroups(rawEntries);
+      const dupChoice = {};
+      duplicates.forEach(g => { dupChoice[g.room.toLowerCase()] = g.options.length - 1; }); // default last (prior behavior, now visible)
+      IMPORT_STATE = { rawEntries, duplicates, dupChoice, fileName: file.name, resolutions: new Map() };
+      recomputeImportDiff();  // collapses per choice, diffs, builds selections, renders
 
-      // All rows selected by default except needs-review and ambiguous reassignments
-      const selections = {
-        intakes: new Set(diff.intakes.map(x => x.room)),
-        discharges: new Set(diff.discharges.map(x => x.room)),
-        updates: new Map(),
-        reassignments: new Set()
-      };
-      diff.updates.forEach(u => {
-        // Per-field selection: for each tag that differs, default to "accept"
-        const union = new Set([...Object.keys(u.oldTags), ...Object.keys(u.newTags)]);
-        const fieldSelections = {};
-        union.forEach(k => {
-          if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = true;  // default accept
-        });
-        selections.updates.set(u.room, fieldSelections);
-      });
-      // Clear cases auto-confirmed; ambiguous ones require explicit operator opt-in.
-      diff.reassignments.forEach(rx => {
-        if (!rx.ambiguous) selections.reassignments.add(rx.id);
-      });
-
-      IMPORT_STATE = { entries, diff, selections, fileName: file.name, resolutions: new Map() };
-      renderImportReview();
     } catch (err) {
       console.error(err);
       errEl.textContent = 'Parse error: ' + err.message;
@@ -15962,7 +15946,69 @@ function handleImportFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-function renderImportReview() {
+// v31: group raw import rows by room; return only rooms appearing more than once.
+function importDuplicateGroups(rawEntries) {
+  const m = new Map();
+  rawEntries.forEach(e => { const k = e.room.toLowerCase(); if (!m.has(k)) m.set(k, []); m.get(k).push(e); });
+  return [...m.values()].filter(a => a.length > 1).map(a => ({ room: a[0].room, options: a }));
+}
+
+// v31: collapse rawEntries to one entry per room, honoring the per-duplicate choice
+// (default: last row, preserving the prior silent behavior). Order preserved.
+function importCollapseEntries() {
+  const chosen = new Map();
+  (IMPORT_STATE.duplicates || []).forEach(g => {
+    const k = g.room.toLowerCase();
+    let idx = IMPORT_STATE.dupChoice[k];
+    if (idx == null) idx = g.options.length - 1;
+    idx = Math.max(0, Math.min(idx, g.options.length - 1));
+    chosen.set(k, g.options[idx]);
+  });
+  const out = [], used = new Set();
+  IMPORT_STATE.rawEntries.forEach(e => {
+    const k = e.room.toLowerCase();
+    if (chosen.has(k)) { if (used.has(k)) return; used.add(k); out.push(chosen.get(k)); }
+    else out.push(e);
+  });
+  return out;
+}
+
+// v31: (re)compute the diff from the current duplicate choices, rebuild the default
+// selections, and render. Runs on first parse and whenever a duplicate pick changes.
+function recomputeImportDiff(keepTab) {
+  const entries = importCollapseEntries();
+  const diff = diffImportAgainstRegistry(entries);
+  const selections = {
+    intakes: new Set(diff.intakes.map(x => x.room)),
+    discharges: new Set(diff.discharges.map(x => x.room)),
+    updates: new Map(),
+    reassignments: new Set()
+  };
+  diff.updates.forEach(u => {
+    const union = new Set([...Object.keys(u.oldTags), ...Object.keys(u.newTags)]);
+    const fieldSelections = {};
+    union.forEach(k => { if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = true; });
+    selections.updates.set(u.room, fieldSelections);
+  });
+  diff.reassignments.forEach(rx => { if (!rx.ambiguous) selections.reassignments.add(rx.id); });
+  IMPORT_STATE.entries = entries;
+  IMPORT_STATE.diff = diff;
+  IMPORT_STATE.selections = selections;
+  renderImportReview(keepTab);
+}
+
+// v31: staff picked which duplicate row to use for a room — re-diff with that choice.
+function setImportDupChoice(roomLower, idx) {
+  if (!IMPORT_STATE || !IMPORT_STATE.dupChoice) return;
+  IMPORT_STATE.dupChoice[roomLower] = idx;
+  recomputeImportDiff(true);
+}
+
+function _impEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderImportReview(keepTab) {
   document.getElementById('import-step-pick').style.display = 'none';
   document.getElementById('import-step-review').style.display = 'block';
   document.getElementById('import-footer').style.display = 'flex';
@@ -15992,6 +16038,35 @@ function renderImportReview() {
     }
   }
 
+  // v31: Duplicate-room warning — rooms listed more than once in the uploaded file.
+  // Staff pick which row is correct (default = last); the diff recomputes on change.
+  const dupWarnEl = document.getElementById('import-dup-warning');
+  if (dupWarnEl) {
+    const dups = IMPORT_STATE.duplicates || [];
+    if (dups.length) {
+      dupWarnEl.style.display = 'block';
+      dupWarnEl.innerHTML =
+        '<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;">' +
+        '<div style="font-weight:700;color:#92400e;font-size:13px;">&#x26A0; ' + dups.length + ' room' + (dups.length>1?'s':'') +
+        ' listed more than once in this file</div>' +
+        '<div style="font-size:12px;color:#92400e;margin:4px 0 8px;">DOOR uses one row per room. Pick the correct entry for each — and ideally remove the duplicate from the source sheet too.</div>' +
+        dups.map(g => {
+          const k = g.room.toLowerCase();
+          const opts = g.options.map((opt, i) =>
+            '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:2px 0;">' +
+            '<input type="radio" name="dup-' + k + '"' + (IMPORT_STATE.dupChoice[k] === i ? ' checked' : '') +
+            ' onchange="setImportDupChoice(\'' + k + '\',' + i + ')"> ' +
+            '<span>' + (_impEsc(opt.parsed.rawText) || '<em>(blank — Regular)</em>') + '</span></label>'
+          ).join('');
+          return '<div style="margin-top:6px;padding:6px 8px;background:#fff;border:1px solid #fde68a;border-radius:6px;">' +
+            '<div style="font-weight:600;font-size:12px;color:#7c2d12;">Room ' + _impEsc(g.room) + '</div>' + opts + '</div>';
+        }).join('') +
+        '</div>';
+    } else {
+      dupWarnEl.style.display = 'none';
+    }
+  }
+
   // Summary strip
   const reassignCount = (diff.reassignments || []).length;
   document.getElementById('import-summary').innerHTML = `
@@ -16000,7 +16075,7 @@ function renderImportReview() {
     <div class="import-summary-chip" style="background:#dbeafe;border-color:#93c5fd;color:#1e40af;"><span class="import-summary-chip-num">${diff.updates.length}</span> Updates</div>
     <div class="import-summary-chip" style="background:#ede9fe;border-color:#c4b5fd;color:#5b21b6;"><span class="import-summary-chip-num">${reassignCount}</span> Reassignments</div>
     <div class="import-summary-chip" style="background:#fef3c7;border-color:#fcd34d;color:#92400e;"><span class="import-summary-chip-num">${diff.needsReview.length}</span> Needs Review</div>
-    <div class="import-summary-chip"><span class="import-summary-chip-num">${IMPORT_STATE.entries.length}</span> rows parsed</div>
+    <div class="import-summary-chip"><span class="import-summary-chip-num">${IMPORT_STATE.entries.length}</span> rooms${(IMPORT_STATE.rawEntries && IMPORT_STATE.rawEntries.length !== IMPORT_STATE.entries.length) ? ` <span style="color:#92400e;">(${IMPORT_STATE.rawEntries.length} rows)</span>` : ''}</div>
   `;
 
   // Tab counts
@@ -16018,7 +16093,8 @@ function renderImportReview() {
   renderNeedsReviewPane();
   updateImportFooterCount();
 
-  switchImportTab('intakes');
+  // v31: keep the active tab when re-rendering after a duplicate pick; else default to intakes.
+  switchImportTab((keepTab && document.querySelector('.import-tab.active')) ? document.querySelector('.import-tab.active').dataset.tab : 'intakes');
 }
 
 function switchImportTab(name) {
@@ -18958,6 +19034,8 @@ window.addEventListener('load', runAltFlagSweepOnce);
       <div id="import-step-review" style="display:none;">
         <!-- Seed banner (first run) -->
         <div id="import-seed-banner" class="seed-banner" style="display:none;"></div>
+        <!-- v31: Duplicate-room warning (rooms listed more than once in the upload) -->
+        <div id="import-dup-warning" style="display:none;margin-bottom:14px;"></div>
         <!-- Summary strip -->
         <div id="import-summary" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;"></div>
         <!-- Tab nav -->
