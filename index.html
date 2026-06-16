@@ -8093,10 +8093,14 @@ function dedupeServiceNote(existing, newNote) {
 function applyQueueToRegistry() {
   changesQueue.forEach(c => {
     if (c.type === 'discharge') {
-      const idx = REGISTRY_LIST.findIndex(r => r.room.toLowerCase() === c.room.toLowerCase());
-      if (idx !== -1) {
-        clearResidentHistory(REGISTRY_LIST[idx]); // v30: clear history — room numbers recycle
-        REGISTRY_LIST.splice(idx, 1);
+      // v31: remove EVERY matching record, not just the first. A duplicated room
+      // (e.g. Room 1207 double-added in door_state.json) otherwise left a copy
+      // behind, so the discharge never "stuck" and the room reappeared each import.
+      for (let i = REGISTRY_LIST.length - 1; i >= 0; i--) {
+        if (REGISTRY_LIST[i].room.toLowerCase() === c.room.toLowerCase()) {
+          clearResidentHistory(REGISTRY_LIST[i]); // v30: clear history — room numbers recycle
+          REGISTRY_LIST.splice(i, 1);
+        }
       }
 
     } else if (c.type === 'intake') {
@@ -8228,6 +8232,7 @@ function loadRegistryState() {
     if (!state.residents || !state.residents.length) return false;
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
     if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
+    dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
     // v26: Clean up legacy junk in service notes
@@ -8249,6 +8254,28 @@ function loadRegistryState() {
     });
     return state._meta || true;
   } catch(e) { console.warn('loadRegistryState failed:', e); return false; }
+}
+
+// v31: Collapse duplicate-room records in REGISTRY_LIST (in place), keeping the
+// most complete record per room. A room appearing twice — a double-add that
+// lingered in door_state.json (e.g. Room 1207) — made discharges fail to stick:
+// a single findIndex/splice only removed one copy, so the room reappeared as a
+// discharge on every import. Idempotent and safe to call after any registry load.
+function dedupeRegistryList() {
+  const seen = new Map();
+  const out = [];
+  const score = x => (x && x.lastImported ? 1 : 0) + (x && x._history && x._history.length ? 1 : 0) + (x && x.tags && x.tags.length ? 1 : 0);
+  REGISTRY_LIST.forEach(r => {
+    const key = (r.room || '').toLowerCase();
+    if (!seen.has(key)) { seen.set(key, out.length); out.push(r); return; }
+    const i = seen.get(key);
+    if (score(r) > score(out[i])) out[i] = r;
+  });
+  if (out.length !== REGISTRY_LIST.length) {
+    const removed = REGISTRY_LIST.length - out.length;
+    REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...out);
+    console.log('[DOOR v31] dedupeRegistryList removed ' + removed + ' duplicate room record(s)');
+  }
 }
 
 function seedRegistryFromRoster(entries) {
@@ -8576,6 +8603,7 @@ async function pullStateFromGitHub(manual) {
     }
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
     if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
+    dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
     saveRegistryState();
@@ -8599,6 +8627,19 @@ async function pullStateFromGitHub(manual) {
     if (manual) showToast('Sync failed — ' + msg);
     updateSyncBar('Sync failed — ' + msg.slice(0,35), '#dc2626');
   }
+}
+
+// v31: In-flight boot-sync tracker. The import flow awaits this so its diff runs
+// against the GitHub-synced registry, not the stale pre-sync one (which is the
+// baked-in seed when localStorage is empty — the "historical data" first imports
+// were showing). Caches the first sync; pullStateFromGitHub swallows its own
+// errors but we guard anyway so a reject can never leave the import hanging.
+let _registrySyncPromise = null;
+function ensureRegistrySynced() {
+  if (!_registrySyncPromise) {
+    _registrySyncPromise = Promise.resolve().then(() => pullStateFromGitHub(false)).catch(() => {});
+  }
+  return _registrySyncPromise;
 }
 
 function generateFiles() {
@@ -15836,9 +15877,15 @@ function handleImportFile(file) {
   }
 
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = async (ev) => {
     try {
       loadCustomTagRules();
+      // v31: Wait for the boot registry sync to land before diffing. Without this
+      // a fast first import diffs against the pre-sync registry (the baked-in seed
+      // when localStorage is empty, or last session's copy) and shows historical
+      // intakes/discharges — the user then has to re-import to get correct numbers.
+      // Bounded at 5s so a slow network degrades to the current registry, never hangs.
+      try { await Promise.race([ ensureRegistrySynced(), new Promise(r => setTimeout(r, 5000)) ]); } catch(e) {}
       const data = new Uint8Array(ev.target.result);
       const wb = XLSX.read(data, { type: 'array' });
       const entries = parseImportWorkbook(wb);
@@ -16694,6 +16741,7 @@ initDynamic();
         if (state && state.residents && state.residents.length) {
           REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
           if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
+          dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
           Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
           REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
           saveRegistryState();
@@ -16814,7 +16862,9 @@ updateRevertButton();
 // v28: Auto-sync registry from GitHub on open/refresh.
 // Fires after initial render so UI is responsive immediately.
 // Silent (non-manual) — updates registry and re-renders if remote data is newer.
-setTimeout(() => pullStateFromGitHub(false), 500);
+// v31: route through ensureRegistrySynced so the import flow can await this same
+// in-flight pull (otherwise the first import races the +500ms sync — see handleImportFile).
+setTimeout(() => { ensureRegistrySynced(); }, 500);
 
 // ============================================================
 // INTAKE MODE (?intake URL parameter)
@@ -17019,10 +17069,12 @@ function saveDirectFromForm() {
     const r = REGISTRY_MAP[room.toLowerCase()];
     if (!r) { showToast('Room ' + room + ' not found in registry.'); return; }
     if (!confirm('Discharge Room ' + room + '? This removes them from all plating sheets.')) return;
-    const idx = REGISTRY_LIST.findIndex(x => x.room.toLowerCase() === room.toLowerCase());
-    if (idx !== -1) {
-      clearResidentHistory(REGISTRY_LIST[idx]); // v30: clear history — room numbers recycle
-      REGISTRY_LIST.splice(idx, 1);
+    // v31: remove EVERY matching record (duplicate-safe — see applyQueueToRegistry).
+    for (let i = REGISTRY_LIST.length - 1; i >= 0; i--) {
+      if (REGISTRY_LIST[i].room.toLowerCase() === room.toLowerCase()) {
+        clearResidentHistory(REGISTRY_LIST[i]); // v30: clear history — room numbers recycle
+        REGISTRY_LIST.splice(i, 1);
+      }
     }
     delete REGISTRY_MAP[room.toLowerCase()];
     const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1);
