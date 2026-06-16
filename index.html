@@ -8208,11 +8208,25 @@ function applyQueueToRegistry() {
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
   REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
   saveRegistryState();
+  setRegistryProvenance(); // v31: queue applied locally — local is now the freshest copy
 }
 
 // ============================================================
 // REGISTRY STATE PERSISTENCE + GITHUB SYNC (v20)
 // ============================================================
+
+// v31: Registry provenance — the timestamp the local registry's data is "current
+// as of". The auto-sync only overwrites local when the published snapshot is NEWER
+// than this, so a stale door_state.json can't clobber newer local edits (the cause
+// of old intakes/discharges resurfacing on import). Bumped to now on real local
+// edits (generate/seed/manual discharge), and set to the snapshot's _meta.exported
+// when a sync applies. Manual Sync ignores it (explicit override).
+function getRegistryProvenanceTs() {
+  try { return new Date(localStorage.getItem('concRegistryProvenance') || 0).getTime() || 0; } catch(e) { return 0; }
+}
+function setRegistryProvenance(iso) {
+  try { localStorage.setItem('concRegistryProvenance', iso || new Date().toISOString()); } catch(e) {}
+}
 
 function saveRegistryState() {
   try {
@@ -8252,6 +8266,11 @@ function loadRegistryState() {
       });
       r.serviceNote = clean.join('; ');
     });
+    // v31: seed provenance from the saved timestamp on first run after this update,
+    // so an existing local registry isn't mistaken for older than a stale snapshot.
+    if (!localStorage.getItem('concRegistryProvenance')) {
+      setRegistryProvenance((state._meta && state._meta.saved) || new Date().toISOString());
+    }
     return state._meta || true;
   } catch(e) { console.warn('loadRegistryState failed:', e); return false; }
 }
@@ -8298,6 +8317,7 @@ function seedRegistryFromRoster(entries) {
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
   REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
   saveRegistryState();
+  setRegistryProvenance(); // v31: roster seeded locally — local is the freshest copy
   localStorage.setItem('concLastImportDate', new Date().toDateString());
   localStorage.setItem('concLastImportFile', (IMPORT_STATE && IMPORT_STATE.fileName) || '');
   localStorage.setItem('concLastImportCount', String(newResidents.length));
@@ -8601,12 +8621,27 @@ async function pullStateFromGitHub(manual) {
       if (manual) showToast('Remote state file is empty.');
       return;
     }
+    // v31: Freshness guard — don't let an OLDER published snapshot clobber NEWER
+    // local edits (the cause of old intakes/discharges resurfacing). Compare the
+    // snapshot's _meta.exported against our local provenance. Manual Sync bypasses
+    // (explicit override); a snapshot with no timestamp applies (legacy — our own
+    // publishes always stamp _meta.exported).
+    const _remoteExportedTs = state._meta && state._meta.exported ? new Date(state._meta.exported).getTime() : 0;
+    const _localProvTs = getRegistryProvenanceTs();
+    if (!manual && _localProvTs && _remoteExportedTs && _remoteExportedTs <= _localProvTs) {
+      const _exp = new Date(state._meta.exported).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      updateSyncBar('Local registry is current — kept ' + REGISTRY_LIST.length + ' residents (cloud copy ' + _exp + ' is older)', 'var(--forest-mid)');
+      console.log('[DOOR v31] registry sync skipped — local data newer than snapshot (' + new Date(_localProvTs).toISOString() + ' >= ' + state._meta.exported + ')');
+      return;
+    }
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
     if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
     dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
     saveRegistryState();
+    // v31: local now mirrors the pulled snapshot — provenance is its export time.
+    if (state._meta && state._meta.exported) setRegistryProvenance(state._meta.exported);
     if (state.lastImportDate) {
       localStorage.setItem('concLastImportDate', state.lastImportDate);
       localStorage.setItem('concLastImportFile', state.lastImportFile || '');
@@ -16745,6 +16780,8 @@ initDynamic();
           Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
           REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
           saveRegistryState();
+          // v31: first-load from cloud — provenance is the snapshot's export time.
+          if (state._meta && state._meta.exported) setRegistryProvenance(state._meta.exported);
           if (state.lastImportDate) {
             localStorage.setItem('concLastImportDate', state.lastImportDate);
             localStorage.setItem('concLastImportFile', state.lastImportFile || '');
@@ -17079,6 +17116,7 @@ function saveDirectFromForm() {
     delete REGISTRY_MAP[room.toLowerCase()];
     const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1);
     saveRegistryState();
+    setRegistryProvenance(); // v31: local discharge — local is the freshest copy
     publishAndSync('intake discharge: Room ' + room);
     const _d = new Date();
     const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
