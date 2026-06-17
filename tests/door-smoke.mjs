@@ -317,6 +317,9 @@ function loadPublishFlowHarness(options = {}) {
     overlayOverrides.push(overlay);
     context._doorPublishMenuOverlayOverride = overlay;
   };
+  context.confirm = options.confirm || (() => true);
+  if ('tabStale' in options) context._doorTabStale = options.tabStale;
+  if ('staleOverride' in options) context._doorStaleOverride = options.staleOverride;
   if (typeof options.configureContext === 'function') {
     options.configureContext(context, storage);
   }
@@ -1573,6 +1576,40 @@ test('publish flow shim routes builder failures through visible publish failure 
   assert.match(harness.statusEl.textContent, /Failed: builder exploded/);
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.ok(harness.toasts.some((message) => /Publish failed/i.test(message)));
+});
+
+test('publish flow shim skips auto-publish from a stale tab (saved locally, not pushed)', async () => {
+  const harness = loadPublishFlowHarness({
+    tabStale: true,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+
+  const result = await harness.context._doPublishToGitHub(false);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'stale-tab');
+  assert.equal(harness.pushed.length, 0, 'a stale tab must not push anything on auto-publish');
+});
+
+test('manual publish from a stale tab proceeds only when the operator confirms', async () => {
+  const confirmHarness = loadPublishFlowHarness({
+    tabStale: true,
+    confirm: () => true,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+  const confirmed = await confirmHarness.context._doPublishToGitHub(true);
+  assert.equal(confirmed.ok, true, 'a confirmed manual publish should proceed');
+  assert.ok(confirmHarness.pushed.length > 0, 'a confirmed manual publish should push');
+
+  const cancelHarness = loadPublishFlowHarness({
+    tabStale: true,
+    confirm: () => false,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+  const cancelled = await cancelHarness.context._doPublishToGitHub(true);
+  assert.equal(cancelled.skipped, true);
+  assert.equal(cancelled.reason, 'stale-tab-cancelled');
+  assert.equal(cancelHarness.pushed.length, 0, 'a cancelled stale-tab publish must not push');
 });
 
 test('publish flow shim surfaces missing credentials before pushing', async () => {

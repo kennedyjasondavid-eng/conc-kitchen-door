@@ -11026,6 +11026,27 @@ async function _doPublishToGitHub(manual) {
     const cb=document.querySelector('[onclick*="gh_auto_publish"]');
     if(cb&&!cb.querySelector('input').checked) return { skipped:true, reason:'auto_publish_off', message:'auto-publish is off' };
   }
+  // Stale-tab publish guard: if this tab is running an older DOOR build than
+  // what's deployed (checkForFreshDoorVersion set _doorTabStale), publishing
+  // could push data built with outdated logic. Auto-syncs skip safely (the
+  // caller shows "saved locally, not published"); a manual publish asks the
+  // operator to confirm. Reloading clears the stale state; dismissing the
+  // banner does NOT. An informed "publish anyway" is remembered for the session.
+  const _stale = (typeof _doorTabStale !== 'undefined' && _doorTabStale)
+    && !(typeof _doorStaleOverride !== 'undefined' && _doorStaleOverride);
+  if (_stale) {
+    if (!manual) {
+      return { skipped:true, reason:'stale-tab', message:'stale tab — reload to publish with the latest logic' };
+    }
+    const proceed = (typeof confirm === 'function')
+      ? confirm('This tab is running an older DOOR build than the one published.\n\nPublishing from a stale tab can push data built with outdated logic. Reloading first is safer.\n\nPublish anyway?')
+      : true;
+    if (!proceed) {
+      if(statusEl){ statusEl.textContent='Publish cancelled — stale tab; reload to publish'; statusEl.style.color='#dc2626'; }
+      return { skipped:true, reason:'stale-tab-cancelled', message:'stale tab — publish cancelled' };
+    }
+    if (typeof _doorStaleOverride !== 'undefined') _doorStaleOverride = true;
+  }
   let creds;
   try {
     creds = PublishAuth.getCredentialsForManualPublish();
@@ -17660,6 +17681,11 @@ function commitImportToQueue() {
 // Catches the "staff has yesterday's DOOR cached and is about to run
 // an import against logic they don't have" failure mode.
 // Silent on file://, offline, CORS, or missing headers.
+// _doorTabStale is read by the publish flow as a guard: a stale tab may run
+// outdated publish/build logic, so publishing from it can push data built the
+// old way. _doorStaleOverride records a one-time "publish anyway" for the session.
+var _doorTabStale = false;
+var _doorStaleOverride = false;
 function checkForFreshDoorVersion() {
   if (sessionStorage.getItem('door_just_reloaded')) {
     sessionStorage.removeItem('door_just_reloaded');
@@ -17677,6 +17703,7 @@ function checkForFreshDoorVersion() {
         if (!stored) { localStorage.setItem('door_html_stamp', stamp); return; }
         if (stored !== stamp) {
           console.log('[DOOR cache-check] new version detected:', stored, '->', stamp);
+          _doorTabStale = true;
           showStaleVersionBanner(stamp);
         }
       })
@@ -17691,7 +17718,7 @@ function showStaleVersionBanner(newStamp) {
   bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;border-bottom:2px solid #f59e0b;color:#92400e;padding:10px 18px;display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.06);';
   bar.innerHTML =
     '<span style="font-size:16px;">↻</span>' +
-    '<span style="flex:1;">A newer version of DOOR is published. Reload to make sure registry updates use the latest logic.</span>' +
+    '<span style="flex:1;">A newer version of DOOR is published. Reload to use the latest logic before publishing — until you do, auto-publish is paused and manual publish will ask first.</span>' +
     '<button id="door-stale-reload" style="background:#92400e;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Reload now</button>' +
     '<button id="door-stale-dismiss" title="Hide until next refresh" style="background:none;border:1px solid #f59e0b;color:#92400e;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;">Dismiss</button>';
   document.body.appendChild(bar);
