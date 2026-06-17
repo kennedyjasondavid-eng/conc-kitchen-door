@@ -11063,7 +11063,8 @@ async function _doPublishToGitHub(manual) {
     } finally {
       setDoorPublishMenuOverlayOverride(null);
     }
-    reportDoorPublishValidation(validateDoorPublishArtifacts(publishArtifacts), manual);
+    const _publishValidation = validateDoorPublishArtifacts(publishArtifacts);
+    reportDoorPublishValidation(_publishValidation, manual);
     await _push('menu_current.json', JSON.stringify(publishArtifacts['menu_current.json'],null,2));
     await _push('registry_summary.json', JSON.stringify(publishArtifacts['registry_summary.json'],null,2));
     await _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
@@ -11087,6 +11088,20 @@ async function _doPublishToGitHub(manual) {
       if(manual) showToast(msg+'. Check console; reload if cloud is newer.');
       return { skipped:true, reason:'blocked', message:msg };
     } else {
+      const _stopCount = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
+      if (_stopCount) {
+        // Files were written, but the preflight flagged Stop-level structural
+        // defects (missing menu day, non-integer routing count, etc.). DOOR is
+        // the single upstream source, so a flagged-corrupt snapshot must never
+        // read green: keep the status red + persistent so staff verify
+        // downstream before EXPO/HUB consume it. Gate-5 stays non-blocking —
+        // this governs only the terminal signal, not whether the file publishes.
+        const msg = 'Published with ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' — verify downstream · ' + timeStr;
+        if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#dc2626'; }
+        updateSyncBar(msg, '#dc2626');
+        if(manual) showToast('Published, but ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' detected — verify downstream.');
+        return { ok:true, validationStop: _stopCount, issues: _publishValidation.stop };
+      }
       if (overlayAdvisoryMsg) {
         const msg = 'Published with advisory — reload and republish menu/routing · ' + timeStr;
         if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#d97706'; }
@@ -13014,11 +13029,15 @@ async function refreshAltMenuIfStale() {
 // Partial overlays are supported — a day with only a lunch override inherits breakfast/dinner from the constant.
 function getMenuData() {
   const publishOverlay = getDoorPublishMenuOverlayOverride();
-  // Alternative menu mode normally returns alt source directly; publish can
-  // layer its pre-merged overlay so exported JSON sees the full menu state.
+  // Alternative (reno) menu mode returns the alt source directly. The publish
+  // overlay override is concMenuBase (the STANDARD-menu day overlay) pre-merged
+  // with cloud; layering it onto the alt menu would inject standard-menu day
+  // edits — and standard-only days — into the reno content published as
+  // menu_current.json (cross-source contamination). The publish overlay is
+  // applied to the standard menu only (below), never to the alt menu.
   if (isAltMenuActive()) {
     const alt = loadAltMenuCached();
-    if (alt && alt.menu) return publishOverlay ? mergeDoorMenuDataWithOverlay(alt.menu, publishOverlay) : alt.menu;
+    if (alt && alt.menu) return alt.menu;
     // If toggle is on but cache is empty, fall through to standard rather
     // than rendering nothing — defensive against corrupted localStorage.
   }

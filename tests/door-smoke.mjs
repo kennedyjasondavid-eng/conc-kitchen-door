@@ -1368,7 +1368,7 @@ test('overlay advisory is informational when cloud-only days merge before core a
   assert.match(advisory.message, /will include them in this publish/i);
 });
 
-test('getMenuData keeps alt menu read-only except for publish overlay override', () => {
+test('getMenuData never lets the publish overlay contaminate the alt (reno) menu', () => {
   const core = loadMenuDataCore({
     altActive: true,
     altMenu: {
@@ -1385,14 +1385,22 @@ test('getMenuData keeps alt menu read-only except for publish overlay override',
     }
   });
 
+  // No publish override: alt mode returns the alt source directly.
   assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Alt dinner');
 
+  // During publish the STANDARD-menu overlay (concMenuBase, pre-merged with
+  // cloud) is set as the override. It must NOT be layered onto the reno menu:
+  // that would clobber a reno slot and inject standard-only days into the reno
+  // content published as menu_current.json (cross-source contamination).
   core.setDoorPublishMenuOverlayOverride({
     '1': {
-      TUESDAY: { dinner: 'Cloud publish overlay dinner' }
+      TUESDAY: { dinner: 'Cloud publish overlay dinner' }, // would clobber a reno slot
+      WEDNESDAY: { dinner: 'Standard-only day' }           // a day absent from the reno menu
     }
   });
-  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Cloud publish overlay dinner');
+  const published = core.getMenuData();
+  assert.equal(published['1'].TUESDAY.dinner, 'Alt dinner', 'reno slot must not be clobbered by the standard publish overlay');
+  assert.equal(published['1'].WEDNESDAY, undefined, 'a standard-only day must not be injected into the reno menu');
 
   core.setDoorPublishMenuOverlayOverride(null);
   assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Alt dinner');
@@ -1521,6 +1529,33 @@ test('publish flow shim keeps partial publish red when overlay days are merged',
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.match(lastSync.message, /Partial publish/);
   assert.equal(lastSync.color, '#dc2626');
+});
+
+test('publish flow shim does not end green when preflight finds a Stop-level structural defect', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    buildMenuJSON: () => {
+      const artifact = makePublishArtifact('menu_current.json');
+      // Drop a required contract day: the validator flags a Stop-level
+      // menu-day-missing, but the artifact is still valid JSON and publishes.
+      delete artifact.menu['1'].MONDAY;
+      return artifact;
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  const lastSync = harness.syncBars.at(-1);
+
+  // Gate-5 preflight stays non-blocking, so the file still publishes…
+  assert.equal(result.ok, true);
+  assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
+  // …but the terminal signal must NOT read green: a flagged-corrupt snapshot at
+  // the single upstream source stays red + persistent so staff verify downstream.
+  assert.doesNotMatch(harness.statusEl.textContent, /Published ✓/);
+  assert.match(harness.statusEl.textContent, /preflight Stop/i);
+  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.notEqual(lastSync.color, 'var(--forest)');
+  assert.match(lastSync.message, /Stop/i);
 });
 
 test('publish flow shim routes builder failures through visible publish failure handling', async () => {
