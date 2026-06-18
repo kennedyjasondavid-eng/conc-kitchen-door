@@ -9,7 +9,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~18.9K lines (18,942 as of 2026-06-14). **v31** Settings badge — no single `APP_VERSION` constant (per-feature `[DOOR vN]` console markers; `menu_current.json` `_meta.version` 30, `menu_reno.json` 2).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-stability.3'`** + `DOOR_BUILD_DATE` drive a staff-visible build stamp (added in the 2026-06-18 hardening); `menu_current.json` `_meta.version` 30, `menu_reno.json` 2.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
 ## Architecture
@@ -33,13 +33,24 @@ Daily operational interface for Rexdale shelter meal service. Staff enter reside
 ### `_components` (added 2026-06-10, the Stage 2 portions pipe)
 Each meal slot's `_components` maps every dish/side to its **total portions across all routing sections that receive it**, computed by the same engine as the plating sheets (`computePlatingData` + `getAltMeal` inside `buildRoutingByMealJSON`). HUB resolves its schedule items against this and appends `&portions=N` to CODEX recipe links, so a cook lands on the recipe pre-scaled. Notes baked into the design: `modified_main`/`bland_alt` sections eat the main meal's components; component keys merge case-insensitively; **anaphylactic residents are excluded** (they get a separate alternative) and the counts use the plating engine's smart flag defaults — so `_components` can legitimately disagree with the sibling section counts. **Never "reconcile" the two**; the plating engine is the authority. The block is try-guarded and additive — section counts stay byte-identical.
 
-## Publish / token notes (2026-06-11)
-- **Token precedence (fixed `4dd0600`):** Publish and Test both read the settings **field first**, stored setting second. (Previously Publish read stored-first → a freshly pasted token "tested fine" but Publish 401'd until Save was clicked.)
-- **⚠ Embedded default token:** `DEFAULT_SETTINGS['gh-token']` (~line 9678, XOR-obfuscated) silently resurrects whenever the stored token is empty. If it has expired this masks the "no token configured" state and produces confusing 401s. Cleanup candidate — architect's call.
-- Stale-tab hazard: publishing from a DOOR tab opened before a deploy runs the **old** code (the boot cache-bust banner mitigates — reload when it prompts).
+## Publish safety (hardened 2026-06-18 — PRs #48–#51)
+The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; the **embedded default token + shared-key fallbacks are removed** (no token resurrects on empty storage; persisting requires Test & Save; background/auto/side publishes use the saved token, and the unsaved-typed-token warning is manual-only so a value left in the field can't stall the cloud feed). All GitHub writes funnel through one serialized queue (`_ghWriteQueue`) so publishes can't race on file SHAs. Output is escaped at every display sink; localStorage + published JSON stay raw.
+- **Gate-9 structural block (PR #50):** a Stop-level *structural* defect in the artifacts (missing menu day, non-integer/negative routing count, missing routing slot, malformed `_components`, missing artifact/`_meta.version`) now **blocks the publish** — auto-publish skips ("Blocked — N structural defects"), a manual publish prompts to override. Clinical/diagnostic flags stay advisory. Downstream EXPO/HUB fall back to last-good-valid via their cache rather than ingest corruption.
+- **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
+- **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
+- **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, ~55 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-06-18)
+- Security + stability hardening (auth, output-encoding, stability gates) — PR #48 (`b716a24`); originally a Codex cloud session, reviewed against the HOUSE VISION/INSIGHTS before landing.
+- Review fixes (publish red-on-Stop, no reno-overlay contamination) + L11104 overlay write-ordering + accessibility safe wins + AA contrast — PRs #48/#49.
+- Gate-9 publish-blocking + scoped stale override — PR #50 (`cf6ec84`).
+- **Recipe slot autosave now applies stream filters** (`recipeMatchesSlotDef`) so exact typed *off-stream* names no longer recipe-link and autofill the wrong allergen flags. Authored in a parallel CODEX/MISE session as the Gate-U3 prerequisite — PR #51 (`3ba4322`).
 
 ## ⚠️ Reno-menu footgun (shared with EXPO)
 `menu_reno.json` is **NOT** in DOOR's normal publish set — it's a static artifact generated from the Excel sources (`_gen_menu_reno.py`, in the EXPO repo). Editing the menu in DOOR's UI while in reno mode writes to overlay/state but **never reaches `menu_reno.json` on Pages**. One-off reno-menu fixes: (a) edit the Excel + regen, or (b) hand-edit `menu_reno.json` here — leave a `_meta.manualEdits` breadcrumb so the next regen doesn't silently undo it.
+
+## Decisions — out of scope (2026-06-18)
+The "Elegance" advisory stream's structural proposals are **retired**, not deferred: in-file modularization, the namespace/IIFE convention, section banners, and standalone design tokens. They serve maker-comfort, not the telos (a tool that recedes / fewer staff errors), and modularizing the single-file app fights the string-matching test harness for no staff benefit. The accessibility *safe wins* (focus ring, keyboard nav, SR-announced banners, AA contrast) already landed; touch-targets + print fidelity remain a live-preview task with the architect.
 
 ## Rules
 - Single-file HTML; no build tools/npm/frameworks. Graceful degradation from `file://`.
