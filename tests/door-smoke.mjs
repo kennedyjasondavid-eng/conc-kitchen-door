@@ -902,6 +902,7 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
     extractOutputEncodingBlock(html),
     'function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== "undefined" && Array.isArray(DOOR_RECIPE_DATA); }',
     extractFunctionBlock(html, '_allergenPreview'),
+    extractFunctionBlock(html, 'recipeMatchesSlotDef'),
     extractFunctionBlock(html, 'slotSearch'),
     extractFunctionBlock(html, 'smSlotSearch')
   ].join('\n\n'), context, { filename: 'index.html#xss-slot-search', timeout: 1000 });
@@ -916,6 +917,71 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
   assertContains(dd.innerHTML, '&lt;svg onload=alert(1)&gt;');
   assertContains(dd.innerHTML, 'slotSaveManual(&quot;main&quot;)');
   assertNoRawExecutablePayload(dd.innerHTML, 'recipe no-match result');
+});
+
+test('recipe slot autosave applies stream filters before exact recipe linking', () => {
+  const html = readText('index.html');
+  const slotDd = { style: { display: 'none' } };
+  const smSlotDd = { style: { display: 'none' } };
+  const context = {
+    Array,
+    Object,
+    Set,
+    document: {
+      getElementById(id) {
+        if (id === 'slot-dd-main' || id === 'slot-dd-veganalt') return slotDd;
+        if (id === 'sm-slot-dd-main' || id === 'sm-slot-dd-veganalt') return smSlotDd;
+        return null;
+      }
+    },
+    FLAG_DEFS: [{ key: 'hasSoy' }],
+    MEAL_SLOT_DEFS: [
+      { id: 'main', cats: ['protein', 'stew_main'], streams: ['regular', ''] },
+      { id: 'veganalt', cats: ['protein', 'stew_main'], streams: ['vegan'] }
+    ],
+    DOOR_RECIPE_DATA: [
+      { recipeName: 'BBQ Chicken Legs', category: 'protein', stream: 'regular', allergens: ['None'] },
+      { recipeName: 'Vegan Chili', category: 'stew_main', stream: 'vegan', allergens: ['Soy (TVP)'] }
+    ],
+    MEAL_SLOT_STATE: {},
+    SM_SLOT_STATE: {},
+    HUB_ALLERGEN_MAP: { Soy: 'hasSoy' },
+    renderSlots() {},
+    updateSlotSummary() {},
+    renderSmSlots() {},
+    updateSmSlotSummary() {}
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractFunctionBlock(html, 'isHubLoaded'),
+    extractFunctionBlock(html, 'hubAllergenToFlags'),
+    extractFunctionBlock(html, 'recipeMatchesSlotDef'),
+    extractFunctionBlock(html, 'slotAutoSave'),
+    extractFunctionBlock(html, 'smSlotAutoSave')
+  ].join('\n\n'), context, { filename: 'index.html#slot-autosave-streams', timeout: 1000 });
+
+  context.slotAutoSave('main', 'BBQ Chicken Legs');
+  assert.equal(context.MEAL_SLOT_STATE.main.recipeName, 'BBQ Chicken Legs');
+
+  context.slotAutoSave('main', 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.main.manual, 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.main.recipeName, undefined);
+
+  context.slotAutoSave('veganalt', 'BBQ Chicken Legs');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.manual, 'BBQ Chicken Legs');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.recipeName, undefined);
+
+  context.slotAutoSave('veganalt', 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.recipeName, 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.flags.hasSoy, true);
+
+  context.smSlotAutoSave('veganalt', 'BBQ Chicken Legs');
+  assert.equal(context.SM_SLOT_STATE.veganalt.manual, 'BBQ Chicken Legs');
+  assert.equal(context.SM_SLOT_STATE.veganalt.recipeName, undefined);
+
+  context.smSlotAutoSave('veganalt', 'Vegan Chili');
+  assert.equal(context.SM_SLOT_STATE.veganalt.recipeName, 'Vegan Chili');
+  assert.equal(context.SM_SLOT_STATE.veganalt.flags.hasSoy, true);
 });
 
 test('special meal summary renders staff-entered meal text safely', () => {

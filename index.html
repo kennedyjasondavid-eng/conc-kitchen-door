@@ -15929,8 +15929,7 @@ function smSlotSearch(slotId, query) {
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
   const results = DOOR_RECIPE_DATA.filter(r => {
-    if (def.cats && !def.cats.includes(r.category)) return false;
-    if (def.streams && !def.streams.includes(r.stream)) return false;
+    if (!recipeMatchesSlotDef(def, r)) return false;
     if (q.length < 1) return true;
     return r.recipeName.toLowerCase().includes(q);
   }).slice(0, 6);
@@ -15982,6 +15981,13 @@ function _allergenPreview(allergens) {
   return tokens.map(t => `<span style="display:inline-block;font-size:10px;padding:1px 6px;margin:0 2px 0 0;border-radius:8px;background:#fee2e2;color:#991b1b;">${t}</span>`).join('');
 }
 
+function recipeMatchesSlotDef(def, recipe) {
+  if (!recipe) return false;
+  if (def && def.cats && !def.cats.includes(recipe.category)) return false;
+  if (def && def.streams && !def.streams.includes(recipe.stream)) return false;
+  return true;
+}
+
 function slotSearch(slotId, query) {
   const dd = document.getElementById('slot-dd-' + slotId);
   if (!dd) return;
@@ -15989,8 +15995,7 @@ function slotSearch(slotId, query) {
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
   const results = DOOR_RECIPE_DATA.filter(r => {
-    if (def.cats && !def.cats.includes(r.category)) return false;
-    if (def.streams && !def.streams.includes(r.stream)) return false;
+    if (!recipeMatchesSlotDef(def, r)) return false;
     if (q.length < 1) return true;
     return r.recipeName.toLowerCase().includes(q);
   }).slice(0, 6);
@@ -16045,7 +16050,7 @@ function slotAutoSave(slotId, val) {
   // adopt a similarly-named recipe, pick it explicitly from the dropdown.
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
-  const pool = def && def.cats ? recipes.filter(r => def.cats.includes(r.category)) : recipes;
+  const pool = def ? recipes.filter(r => recipeMatchesSlotDef(def, r)) : recipes;
   const match = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
   if (match) {
     // Preserve slot-level flag overrides when the same recipe is re-confirmed
@@ -16071,7 +16076,7 @@ function smSlotAutoSave(slotId, val) {
   if (current && current.recipeName && current.recipeName === val) return;
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
-  const pool = def && def.cats ? recipes.filter(r => def.cats.includes(r.category)) : recipes;
+  const pool = def ? recipes.filter(r => recipeMatchesSlotDef(def, r)) : recipes;
   // Exact match only — see slotAutoSave for rationale.
   const match = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
   if (match) {
