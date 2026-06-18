@@ -1,0 +1,7 @@
+# Keep the app source and tests LF in the working tree regardless of
+# core.autocrlf, so the smoke harness's LF-marker block extraction
+# (tests/door-smoke.mjs reading index.html) and cross-platform diffs stay
+# stable. A Windows checkout was silently rewriting index.html to CRLF and
+# breaking the extractor.
+*.html text eol=lf
+*.mjs  text eol=lf
