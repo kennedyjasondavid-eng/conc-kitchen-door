@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-stability.2';
+const DOOR_APP_VERSION = 'v31-stability.3';
 const DOOR_BUILD_DATE = '2026-06-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 30,
@@ -7791,6 +7791,14 @@ function doorSetHas(setLike, value) {
   return false;
 }
 
+// INTENTIONALLY NOT WIRED INTO THE LIVE APP (yet). This read-only diagnostics
+// core (anaphylactic-conflict -> Stop, missing-CODEX -> Review) is built and
+// unit-tested as the engine for a future consolidated pre-Generate compliance
+// gate, which needs a staff-facing acknowledgement flow before it can surface.
+// The live anaphylactic safety net runs elsewhere (getAnaphConflictRooms ->
+// routing lockout + alert banners + plating-sheet ALERT). Do not delete as
+// "dead code"; do not wire naively (its known-tag sets default to [], which
+// would escalate every allergen flag to a Stop).
 function computeDoorComplianceDiagnostics(input) {
   input = input || {};
   const residents = Array.isArray(input.residents) ? input.residents : [];
@@ -11060,8 +11068,11 @@ async function _doPublishToGitHub(manual) {
   // caller shows "saved locally, not published"); a manual publish asks the
   // operator to confirm. Reloading clears the stale state; dismissing the
   // banner does NOT. An informed "publish anyway" is remembered for the session.
+  // The "publish anyway" override is honored for MANUAL publishes only; a stale
+  // tab's background auto-syncs keep skipping until reload, so one informed click
+  // can't silently un-guard later background pushes from outdated logic.
   const _stale = (typeof _doorTabStale !== 'undefined' && _doorTabStale)
-    && !(typeof _doorStaleOverride !== 'undefined' && _doorStaleOverride);
+    && !(manual && (typeof _doorStaleOverride !== 'undefined' && _doorStaleOverride));
   if (_stale) {
     if (!manual) {
       return { skipped:true, reason:'stale-tab', message:'stale tab — reload to publish with the latest logic' };
@@ -11116,6 +11127,29 @@ async function _doPublishToGitHub(manual) {
     }
     const _publishValidation = validateDoorPublishArtifacts(publishArtifacts);
     reportDoorPublishValidation(_publishValidation, manual);
+    // Gate-9: hard-block on Stop-level STRUCTURAL defects (missing menu day,
+    // non-integer/negative routing count, missing routing slot, malformed
+    // _components, missing artifact / _meta.version). These are unambiguous
+    // contract violations with no false-positive risk, so DOOR — the single
+    // upstream source — refuses to push them rather than feed EXPO/HUB malformed
+    // data. Auto-publish skips; a manual publish lets the operator override.
+    const _structuralStop = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
+    if (_structuralStop) {
+      const _blockMsg = 'Blocked — ' + _structuralStop + ' structural defect' + (_structuralStop === 1 ? '' : 's') + ' (fix the data before publishing)';
+      if (!manual) {
+        if(statusEl){ statusEl.textContent=_blockMsg; statusEl.style.color='#dc2626'; }
+        return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
+      }
+      const _proceedStop = (typeof confirm === 'function')
+        ? confirm(_structuralStop + ' structural defect' + (_structuralStop === 1 ? '' : 's') + ' detected in the publish artifacts.\n\nPublishing will send malformed data to EXPO/HUB. Fixing the source data is strongly preferred.\n\nPublish anyway?')
+        : true;
+      if (!_proceedStop) {
+        if(statusEl){ statusEl.textContent='Publish cancelled — ' + _blockMsg; statusEl.style.color='#dc2626'; }
+        return { skipped:true, reason:'validation-stop-cancelled', message:_blockMsg, validationStop:_structuralStop };
+      }
+      // Manual override: operator chose to publish despite defects — fall through
+      // and push; the post-push branch keeps the terminal status red (degraded).
+    }
     await _push('menu_current.json', JSON.stringify(publishArtifacts['menu_current.json'],null,2));
     await _push('registry_summary.json', JSON.stringify(publishArtifacts['registry_summary.json'],null,2));
     await _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
@@ -11148,12 +11182,11 @@ async function _doPublishToGitHub(manual) {
       }
       const _stopCount = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
       if (_stopCount) {
-        // Files were written, but the preflight flagged Stop-level structural
-        // defects (missing menu day, non-integer routing count, etc.). DOOR is
-        // the single upstream source, so a flagged-corrupt snapshot must never
-        // read green: keep the status red + persistent so staff verify
-        // downstream before EXPO/HUB consume it. Gate-5 stays non-blocking —
-        // this governs only the terminal signal, not whether the file publishes.
+        // Reached only when a MANUAL publish OVERRODE the Gate-9 structural block
+        // above (auto-publish already skipped). The operator chose to publish
+        // despite structural defects, so keep the terminal status RED/persistent
+        // — the single upstream source must never read green on a flagged snapshot
+        // — and mark the result degraded so the auto wrapper would render it red.
         const _stopMsg = 'Published with ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' — verify downstream';
         const msg = _stopMsg + ' · ' + timeStr;
         if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#dc2626'; }
