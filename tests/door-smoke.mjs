@@ -444,6 +444,15 @@ test('index.html keeps the single-file DOOR safety surfaces', () => {
   }
 });
 
+test('index.html exposes the accessibility affordances from the elegance pass', () => {
+  const html = readText('index.html');
+  assert.match(html, /:focus-visible\s*\{/, 'a visible keyboard-focus ring (:focus-visible) should exist');
+  assert.match(html, /enhanceNavA11y/, 'the div-based nav should be made keyboard-operable');
+  assert.match(html, /setAttribute\(\s*'role'\s*,\s*'alert'\s*\)/, 'the stale-version banner should announce as an alert');
+  assert.match(html, /id="sync-status"[^>]*aria-live/, 'the live status bar should announce updates to screen readers');
+  assert.match(html, /class="dm-toggle"[^>]*aria-label="Toggle dark mode"/, 'the icon-only dark-mode toggle should have an accessible name');
+});
+
 test('output encoding helpers escape HTML, attributes, handlers, URLs, colors, and highlights', () => {
   const h = loadOutputEncodingHelpers();
 
