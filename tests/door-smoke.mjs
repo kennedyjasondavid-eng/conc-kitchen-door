@@ -1568,6 +1568,9 @@ test('publish flow shim keeps partial publish red when overlay days are merged',
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.match(lastSync.message, /Partial publish/);
   assert.equal(lastSync.color, '#dc2626');
+  // L11104: a blocked publish must NOT persist the cloud-merged overlay locally,
+  // so concMenuBase stays at the pre-publish value (not ahead of what published).
+  assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY, undefined, 'a blocked publish must not advance concMenuBase to the merged overlay');
 });
 
 test('publish flow shim does not end green when preflight finds a Stop-level structural defect', async () => {

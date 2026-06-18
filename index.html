@@ -11097,11 +11097,11 @@ async function _doPublishToGitHub(manual) {
     const overlayToPush = await preMergeOverlayWithCloud(creds, menuOverlay);
     const overlayAdvisory = buildDoorOverlayMergeAdvisory(menuOverlay, overlayToPush, false);
     const overlayAdvisoryMsg = reportDoorOverlayMergeAdvisory(overlayAdvisory, manual);
-    // Reflect the merged overlay before building derived artifacts, so
-    // menu_current.json and routing_by_meal.json include cloud-only day edits.
-    if (overlayToPush !== menuOverlay) {
-      localStorage.setItem('concMenuBase', JSON.stringify(overlayToPush));
-    }
+    // The publish-overlay override (set just below) is what feeds the
+    // cloud-merged overlay into the builders. Persisting it into concMenuBase is
+    // DEFERRED until after a successful publish (see the non-blocked branch
+    // below), so a failed/partial push can't leave local state ahead of what was
+    // actually published.
     let publishArtifacts;
     setDoorPublishMenuOverlayOverride(overlayToPush);
     try {
@@ -11139,6 +11139,13 @@ async function _doPublishToGitHub(manual) {
       if(manual) showToast(msg+'. Check console; reload if cloud is newer.');
       return { skipped:true, reason:'blocked', message:msg };
     } else {
+      // Publish wasn't blocked, so it's now safe to persist the cloud-merged
+      // overlay locally (future sessions/renders see the same cloud-only days).
+      // Deferred from before the push so a failed/partial publish leaves
+      // concMenuBase untouched rather than ahead of what was published.
+      if (overlayToPush !== menuOverlay) {
+        localStorage.setItem('concMenuBase', JSON.stringify(overlayToPush));
+      }
       const _stopCount = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
       if (_stopCount) {
         // Files were written, but the preflight flagged Stop-level structural
