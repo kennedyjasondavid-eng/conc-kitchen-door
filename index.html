@@ -8794,6 +8794,15 @@ function publishAndSync(context) {
       if (typeof showToast === 'function') showToast('Saved locally, not published — ' + reason);
       return;
     }
+    if (result && result.degraded) {
+      // Published, but the preflight flagged a Stop-level structural defect:
+      // must not read green on the visible sync bar (carries fix#1's intent
+      // onto the auto-publish path).
+      const reason = result.message || 'published with preflight issues';
+      updateSyncBar(reason + ' · ' + timeStr, '#dc2626');
+      if (typeof showToast === 'function') showToast(reason);
+      return;
+    }
     updateSyncBar('Synced ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
   }).catch((err) => {
     const msg = (err && err.message) ? err.message : 'sync failed';
@@ -11139,11 +11148,16 @@ async function _doPublishToGitHub(manual) {
         // read green: keep the status red + persistent so staff verify
         // downstream before EXPO/HUB consume it. Gate-5 stays non-blocking —
         // this governs only the terminal signal, not whether the file publishes.
-        const msg = 'Published with ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' — verify downstream · ' + timeStr;
+        const _stopMsg = 'Published with ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' — verify downstream';
+        const msg = _stopMsg + ' · ' + timeStr;
         if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#dc2626'; }
         updateSyncBar(msg, '#dc2626');
         if(manual) showToast('Published, but ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' detected — verify downstream.');
-        return { ok:true, validationStop: _stopCount, issues: _publishValidation.stop };
+        // degraded:true so the auto-publish wrapper (publishAndSync) renders this
+        // RED rather than overwriting it with a green "Synced ✓". The file did
+        // publish (Gate-5 is non-blocking), but the snapshot is flagged — and the
+        // visible sync bar must reflect that on the default (auto) path too.
+        return { ok:true, degraded:true, validationStop: _stopCount, message: _stopMsg, issues: _publishValidation.stop };
       }
       if (overlayAdvisoryMsg) {
         const msg = 'Published with advisory — reload and republish menu/routing · ' + timeStr;

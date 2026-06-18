@@ -346,6 +346,23 @@ function loadPublishFlowHarness(options = {}) {
   };
 }
 
+function loadPublishAndSyncHarness(options = {}) {
+  const html = readText('index.html');
+  const syncBars = [];
+  const toasts = [];
+  const context = {
+    Date,
+    updateSyncBar(message, color) { syncBars.push({ message, color }); },
+    showToast(message) { toasts.push(message); },
+    getOperatorName: () => options.operator || '',
+    publishToGitHub: () => Promise.resolve(options.result),
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'publishAndSync'), context, { filename: 'index.html#publish-and-sync', timeout: 1000 });
+  assert.equal(typeof context.publishAndSync, 'function', 'publish-and-sync core should expose publishAndSync');
+  return { context, syncBars, toasts };
+}
+
 function extractOutputEncodingBlock(html) {
   const joinedScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
     .map((match) => match[1])
@@ -1561,6 +1578,7 @@ test('publish flow shim does not end green when preflight finds a Stop-level str
   // Gate-5 preflight stays non-blocking, so the file still publishes…
   assert.equal(result.ok, true);
   assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
+  assert.equal(result.degraded, true, 'a Stop-flagged publish must be marked degraded so the auto-publish wrapper renders it red');
   // …but the terminal signal must NOT read green: a flagged-corrupt snapshot at
   // the single upstream source stays red + persistent so staff verify downstream.
   assert.doesNotMatch(harness.statusEl.textContent, /Published ✓/);
@@ -1568,6 +1586,25 @@ test('publish flow shim does not end green when preflight finds a Stop-level str
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.notEqual(lastSync.color, 'var(--forest)');
   assert.match(lastSync.message, /Stop/i);
+});
+
+test('publishAndSync renders a degraded (Stop-flagged) auto-publish RED, not green', async () => {
+  const h = loadPublishAndSyncHarness({ result: { ok: true, degraded: true, message: 'Published with 1 preflight Stop issue — verify downstream' } });
+  h.context.publishAndSync('generate');
+  await new Promise((r) => setTimeout(r, 10));
+  const last = h.syncBars.at(-1);
+  assert.notEqual(last.color, 'var(--forest)', 'a degraded auto-publish must not paint the sync bar green');
+  assert.equal(last.color, '#dc2626');
+  assert.match(last.message, /Stop/i);
+});
+
+test('publishAndSync paints a clean auto-publish green', async () => {
+  const h = loadPublishAndSyncHarness({ result: { ok: true } });
+  h.context.publishAndSync('generate');
+  await new Promise((r) => setTimeout(r, 10));
+  const last = h.syncBars.at(-1);
+  assert.equal(last.color, 'var(--forest)');
+  assert.match(last.message, /Synced/);
 });
 
 test('publish flow shim routes builder failures through visible publish failure handling', async () => {
