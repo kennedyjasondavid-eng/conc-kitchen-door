@@ -281,6 +281,10 @@ function loadPublishFlowHarness(options = {}) {
         if (options.credentialsError) throw new Error(options.credentialsError);
         return { repo: 'kennedyjasondavid-eng/conc-kitchen-door', token: 'test-token' };
       },
+      _getSavedCredentials() {
+        if (options.credentialsError) throw new Error(options.credentialsError);
+        return { repo: 'kennedyjasondavid-eng/conc-kitchen-door', token: 'test-token' };
+      },
       rememberFailure(message) {
         rememberedFailures.push(message);
       }
@@ -1573,14 +1577,14 @@ test('publish flow shim keeps partial publish red when overlay days are merged',
   assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY, undefined, 'a blocked publish must not advance concMenuBase to the merged overlay');
 });
 
-test('publish flow shim does not end green when preflight finds a Stop-level structural defect', async () => {
+test('Gate-9: a manual OVERRIDE of a structural defect publishes but reads RED', async () => {
   const harness = loadPublishFlowHarness({
     localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    // confirm defaults to () => true in the harness — i.e. the operator overrides
+    // the Gate-9 structural block, so the file publishes but the status stays red.
     buildMenuJSON: () => {
       const artifact = makePublishArtifact('menu_current.json');
-      // Drop a required contract day: the validator flags a Stop-level
-      // menu-day-missing, but the artifact is still valid JSON and publishes.
-      delete artifact.menu['1'].MONDAY;
+      delete artifact.menu['1'].MONDAY; // Stop-level menu-day-missing
       return artifact;
     }
   });
@@ -1588,18 +1592,63 @@ test('publish flow shim does not end green when preflight finds a Stop-level str
   const result = await harness.context._doPublishToGitHub(true);
   const lastSync = harness.syncBars.at(-1);
 
-  // Gate-5 preflight stays non-blocking, so the file still publishes…
   assert.equal(result.ok, true);
   assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
-  assert.equal(result.degraded, true, 'a Stop-flagged publish must be marked degraded so the auto-publish wrapper renders it red');
-  assert.ok(harness.pushed.some((p) => p.path === 'menu_current.json'), 'Gate-5 is non-blocking: the flagged-but-valid-JSON artifact still publishes');
-  // …but the terminal signal must NOT read green: a flagged-corrupt snapshot at
-  // the single upstream source stays red + persistent so staff verify downstream.
+  assert.equal(result.degraded, true, 'an overridden structural publish stays degraded so the terminal signal is red');
+  assert.ok(harness.pushed.some((p) => p.path === 'menu_current.json'), 'the override publishes the flagged artifact');
   assert.doesNotMatch(harness.statusEl.textContent, /Published ✓/);
   assert.match(harness.statusEl.textContent, /preflight Stop/i);
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.notEqual(lastSync.color, 'var(--forest)');
-  assert.match(lastSync.message, /Stop/i);
+});
+
+test('Gate-9: an auto-publish is BLOCKED (not pushed) on a structural defect', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    buildMenuJSON: () => {
+      const artifact = makePublishArtifact('menu_current.json');
+      delete artifact.menu['1'].MONDAY;
+      return artifact;
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(false);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
+  assert.equal(harness.pushed.length, 0, 'a structural defect must block the auto-publish before any push reaches GitHub');
+});
+
+test('Gate-9: a manual publish cancelled at the structural-defect prompt does not push', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    confirm: () => false,
+    buildMenuJSON: () => {
+      const artifact = makePublishArtifact('menu_current.json');
+      delete artifact.menu['1'].MONDAY;
+      return artifact;
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop-cancelled');
+  assert.equal(harness.pushed.length, 0, 'a cancelled structural publish must not push');
+});
+
+test('stale-tab override is scoped to manual — a background auto-sync still skips', async () => {
+  const harness = loadPublishFlowHarness({
+    tabStale: true,
+    staleOverride: true,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+
+  const result = await harness.context._doPublishToGitHub(false);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'stale-tab');
+  assert.equal(harness.pushed.length, 0, 'a session override must not un-guard background auto-syncs from a stale tab');
 });
 
 test('publishAndSync renders a degraded (Stop-flagged) auto-publish RED, not green', async () => {
