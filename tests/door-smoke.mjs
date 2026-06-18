@@ -470,6 +470,16 @@ test('index.html exposes the accessibility affordances from the elegance pass', 
   assert.match(html, /class="dm-toggle"[^>]*aria-label="Toggle dark mode"/, 'the icon-only dark-mode toggle should have an accessible name');
 });
 
+test('background and side publishes resolve credentials without the manual typed-token guard', () => {
+  const html = readText('index.html');
+  // _getSavedCredentials is the shared, guard-free resolver; ONLY the manual
+  // path adds the unsaved-typed-token check, so a value left in the field can't
+  // silently stall the automatic cloud feed (the single upstream source).
+  assert.match(html, /_getSavedCredentials\s*\(\)\s*\{/, 'a guard-free saved-credentials resolver should exist');
+  assert.match(html, /manual \? PublishAuth\.getCredentialsForManualPublish\(\) : PublishAuth\._getSavedCredentials\(\)/, 'the full-publish path should only apply the typed-token guard for manual publishes');
+  assert.match(html, /creds = this\._getSavedCredentials\(\);/, 'sidePublish should resolve creds without the manual typed-token guard');
+});
+
 test('output encoding helpers escape HTML, attributes, handlers, URLs, colors, and highlights', () => {
   const h = loadOutputEncodingHelpers();
 
@@ -1579,6 +1589,7 @@ test('publish flow shim does not end green when preflight finds a Stop-level str
   assert.equal(result.ok, true);
   assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
   assert.equal(result.degraded, true, 'a Stop-flagged publish must be marked degraded so the auto-publish wrapper renders it red');
+  assert.ok(harness.pushed.some((p) => p.path === 'menu_current.json'), 'Gate-5 is non-blocking: the flagged-but-valid-JSON artifact still publishes');
   // …but the terminal signal must NOT read green: a flagged-corrupt snapshot at
   // the single upstream source stays red + persistent so staff verify downstream.
   assert.doesNotMatch(harness.statusEl.textContent, /Published ✓/);

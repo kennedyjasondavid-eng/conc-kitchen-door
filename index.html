@@ -1691,7 +1691,7 @@ function updateCODEXBadge() {
                 <div style="display:flex;gap:8px;align-items:center;margin-top:12px;">
                   <button class="btn btn-ghost btn-sm" onclick="testGHPublish()">Test &amp; Save Token</button>
                   <button class="btn btn-ghost btn-sm" onclick="PublishAuth.forgetToken(true)">Forget Token</button>
-                  <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true)">Publish Now</button>
+                  <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true).catch(function(){})">Publish Now</button>
                   <span id="gh-status" role="status" aria-live="polite" style="font-size:12px;color:var(--muted);"></span>
                 </div>
               </div>
@@ -7597,21 +7597,7 @@ function closeChangeEditor() {
   document.getElementById('change-editor-modal').classList.remove('open');
 }
 
-function renderRecentLog() {
-  document.getElementById('recent-log').innerHTML = RECENT_LOG.map(e => `
-    <div class="log-entry">
-      <div class="log-dot" style="background:${doorTrustedColor(e.color, '#888')}"></div>
-      <div style="flex:1">
-        ${e.room !== '—' && e.room !== '⚑' ? `<span class="log-room">${escapeHtml(e.room)}</span> ` : (e.room === '⚑' ? '<span style="color:var(--red);font-weight:700;">⚑</span> ' : '')}
-        <span class="log-desc">${escapeHtml(e.desc)}</span>
-        ${e.by ? `<span style="font-size:10px;color:var(--muted);margin-left:4px;">— ${escapeHtml(e.by)}</span>` : ''}
-      </div>
-      <div class="log-date">${escapeHtml(e.date)}</div>
-    </div>
-  `).join('');
-}
-
-// XSS sweep override: compact log entries can include synced/imported free text.
+// Compact recent-log entries can include synced/imported free text — escape every field.
 function renderRecentLog() {
   const el = document.getElementById('recent-log');
   if (!el) return;
@@ -9195,7 +9181,8 @@ function generateFiles() {
 
   // v25: Update sync bar and auto-publish to GitHub for multi-device sync
   const genTimeStr = new Date().toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
-  const hasToken = !!(PublishAuth.getSavedToken() && !PublishAuth.isExpired());
+  const _tokenExpired = !!PublishAuth.getSavedToken() && PublishAuth.isExpired();
+  const hasToken = !!PublishAuth.getSavedToken() && !_tokenExpired;
   const autoPublishCb = document.querySelector('[onclick*="gh_auto_publish"]');
   const autoPublishOn = hasToken && autoPublishCb && autoPublishCb.querySelector('input') && autoPublishCb.querySelector('input').checked;
   if (autoPublishOn) {
@@ -9204,7 +9191,8 @@ function generateFiles() {
     // Now only publishAndSync fires (single publish path).
     publishAndSync('plating sheets generated');
   } else {
-    updateSyncBar('Saved locally — ' + REGISTRY_LIST.length + ' residents · ' + genTimeStr + (hasToken ? '' : ' · enable auto-publish in Settings for multi-device sync'), 'var(--forest-mid)');
+    const _syncHint = hasToken ? '' : (_tokenExpired ? ' · publishing token expired — rotate in Settings' : ' · enable auto-publish in Settings for multi-device sync');
+    updateSyncBar('Saved locally — ' + REGISTRY_LIST.length + ' residents · ' + genTimeStr + _syncHint, 'var(--forest-mid)');
   }
 }
 
@@ -10266,18 +10254,27 @@ const PublishAuth = {
     const days = this.daysUntil(this.getMeta().expiryDate);
     return days !== null && days < 0;
   },
-  getCredentialsForManualPublish() {
+  _getSavedCredentials() {
     const repo = this.getRepo();
     const saved = this.getSavedToken();
-    const typed = this.getTypedToken();
     if (!repo) throw new Error('Set GitHub repo in Settings first.');
-    if (typed && typed !== saved) throw new Error('Test & Save the pasted GitHub token before publishing.');
     if (!saved) throw new Error('Set up a GitHub token in Settings before publishing.');
     if (this.isExpired()) throw new Error('GitHub token is past its recorded expiry date. Rotate before publishing.');
     return { repo, token: saved, source: 'saved' };
   },
+  getCredentialsForManualPublish() {
+    // Manual path only: warn if the operator pasted a token but hasn't Test &
+    // Saved it yet — they're in Settings and should validate it first. This
+    // guard must NOT gate background/side publishes (use _getSavedCredentials),
+    // or an unsaved value left in the field silently stalls the cloud feed.
+    const typed = this.getTypedToken();
+    if (typed && typed !== this.getSavedToken()) throw new Error('Test & Save the pasted GitHub token before publishing.');
+    return this._getSavedCredentials();
+  },
   getCredentialsForBackgroundPush(context, visible) {
-    try { return this.getCredentialsForManualPublish(); }
+    // Background pushes use the validated SAVED token directly — an unsaved
+    // value in the token input must never block the automatic cloud feed.
+    try { return this._getSavedCredentials(); }
     catch(e) { this.notePublishSkipped(context, !!visible); return null; }
   },
   showSidePublishResult(message, color, visible, delayMs) {
@@ -10290,11 +10287,11 @@ const PublishAuth = {
   sidePublish(path, content, label, visible) {
     let creds;
     try {
-      creds = this.getCredentialsForManualPublish();
+      creds = this._getSavedCredentials();
     } catch(e) {
       const detail = (e && e.message) ? e.message : 'GitHub token needs setup.';
       const msg = label + ' saved locally, not published — ' + detail;
-      this.renderStatus('Publishing blocked — token needs setup or rotation.', '#dc2626');
+      if (visible) this.renderStatus('Publishing blocked — token needs setup or rotation.', '#dc2626');
       this.showSidePublishResult(msg, '#dc2626', visible, 300);
       return Promise.resolve({ skipped:true, reason:'missing_auth', error:detail });
     }
@@ -11080,7 +11077,9 @@ async function _doPublishToGitHub(manual) {
   }
   let creds;
   try {
-    creds = PublishAuth.getCredentialsForManualPublish();
+    // Manual publish warns on an unsaved typed token; the auto path uses the
+    // saved token directly so a value left in the field can't stall auto-sync.
+    creds = manual ? PublishAuth.getCredentialsForManualPublish() : PublishAuth._getSavedCredentials();
   } catch(e) {
     PublishAuth.rememberFailure(e.message);
     if(statusEl){ statusEl.textContent='Failed: '+e.message; statusEl.style.color='#dc2626'; }
