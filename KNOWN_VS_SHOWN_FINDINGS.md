@@ -1,6 +1,6 @@
 # DOOR — KNOWN ≠ SHOWN findings (2026-06-21)
 
-*From the HOUSE "known≠shown" propagation sweep. The lens (cross-HOUSE owner): `conc-kitchen-hub/INSIGHTS.md` → "The interface shows known-state in the user's language — most UI bugs are a known≠shown divergence." Engineering grammar: `conc-kitchen-expo/EXPO_DESIGN_PRINCIPLES.md` #46–#48.*
+*From the HOUSE "known≠shown" propagation sweep. The lens (cross-HOUSE owner): `conc-kitchen-house/INSIGHTS.md` → "The interface shows known-state in the user's language — most UI bugs are a known≠shown divergence." Engineering grammar: `conc-kitchen-expo/EXPO_DESIGN_PRINCIPLES.md` #46–#48.*
 
 **This is a read-only diagnostic. Nothing here is fixed.** Each fix lands only with Jason's sign-off, on this repo's own branch, behind DOOR's own gates (`tests/door-smoke.mjs`). Every finding below was verified against `index.html` at the branch point (`origin/main` = `38dded4`); line numbers are against that source. DOOR is the highest-stakes app in the sweep — an allergen/anaphylaxis/routing surface that diverges from the resident record is the food-safety failure class.
 
