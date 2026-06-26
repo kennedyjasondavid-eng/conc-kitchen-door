@@ -1,0 +1,69 @@
+{
+  "_note": "Jason-confirmed allergen flags for genuinely-new standard-menu dishes (2026-06-26). Flags use DOOR menu_current.json *_flags keys. Dishes not listed here carry CODEX-verified flags forward from menu_current.json v30 / RECIPE_ALLERGEN_MAP.",
+  "Portobello Cheese Melt": {
+    "stream": "vegan",
+    "confirmed": "gluten, soy (from gravy powder); vegan cheese so NO dairy",
+    "flags": { "hasGluten": true, "hasSoy": true, "hasDairy": false }
+  },
+  "Chicken Gyro": {
+    "stream": "regular",
+    "confirmed": "gluten (naan), dairy (tzatziki/yogurt sauce), chicken",
+    "flags": { "hasGluten": true, "hasDairy": true, "hasChicken": true }
+  },
+  "Vegan Gyro": {
+    "stream": "vegan",
+    "confirmed": "gluten (naan), soy (vegan protein); vegan sauce so NO dairy",
+    "flags": { "hasGluten": true, "hasSoy": true, "hasDairy": false }
+  },
+  "Veggie Burger": {
+    "stream": "vegan",
+    "confirmed": "actually a BLACK BEAN burger: gluten (bun), fully vegan, NO soy, no egg, no dairy. Resolves to existing 'Black Bean Patties' recipe -> alias for scheduling (cooks at Rex).",
+    "flags": { "hasGluten": true, "hasSoy": false, "hasDairy": false, "hasEgg": false },
+    "schedulingAlias": "Black Bean Patties"
+  },
+  "_global_no_mustard_mayo": "Jason 2026-06-26: all mayo is no-mustard. Coleslaw/potato-salad/ranch/tartar slots = egg+sulphites, NEVER mustard. Apply across menu.",
+  "Pulled Pork Sandwich": {
+    "stream": "regular",
+    "confirmed": "gluten (bun), egg+sulphites (creamy coleslaw, no-mustard mayo), soy+sulphites (BBQ sauce), pork. NO mustard.",
+    "flags": { "hasGluten": true, "hasEgg": true, "hasSulphites": true, "hasSoy": true, "hasPork": true, "hasMustard": false }
+  },
+  "Pulled Chicken Sandwich": {
+    "stream": "halal",
+    "confirmed": "gluten (bun), egg+sulphites (creamy coleslaw), soy+sulphites (BBQ sauce), chicken. NO mustard.",
+    "flags": { "hasGluten": true, "hasEgg": true, "hasSulphites": true, "hasSoy": true, "hasChicken": true, "hasMustard": false, "halalCertifiedMeat": true }
+  },
+  "Vegan Jack Fruit Sandwich": {
+    "stream": "vegan",
+    "confirmed": "gluten (bun), soy+sulphites (BBQ sauce), vegan (egg-free slaw, no dairy). NO mustard.",
+    "flags": { "hasGluten": true, "hasSoy": true, "hasSulphites": true, "hasEgg": false, "hasDairy": false, "hasMustard": false }
+  },
+  "Nigerian Fish": {
+    "stream": "regular",
+    "confirmed": "fish + spicy. No added gluten. Coconut (lime coconut rice) NOT flagged as tree-nut.",
+    "flags": { "hasFish": true, "isSpicy": true }
+  },
+  "Nigerian Styled Tofu": {
+    "stream": "vegan",
+    "confirmed": "soy (tofu) + spicy. No added gluten. Coconut not flagged.",
+    "flags": { "hasSoy": true, "isSpicy": true }
+  },
+  "_note_vegan_chicken_family": "Jason 2026-06-26: vegan breaded chick'n substitutes = gluten+soy. EXCEPT Vegan Drumsticks which are CHICKPEA-based = no restrictions.",
+  "Vegan Chik'n Tenders": { "stream": "vegan", "confirmed": "gluten + soy (breaded soy protein)", "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Nuggets": { "stream": "vegan", "confirmed": "gluten + soy", "flags": { "hasGluten": true, "hasSoy": true } },
+  "Crispy Vegan Tenders": { "stream": "vegan", "confirmed": "gluten + soy", "flags": { "hasGluten": true, "hasSoy": true } },
+  "Crispy Vegan Tender Wrap": { "stream": "vegan", "confirmed": "gluten + soy (wrap + breaded tender)", "flags": { "hasGluten": true, "hasSoy": true } },
+  "BBQ Vegan Tenders": { "stream": "vegan", "confirmed": "gluten + soy", "flags": { "hasGluten": true, "hasSoy": true } },
+  "BBQ Chik'n Tenders": { "stream": "vegan", "confirmed": "gluten + soy", "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Drumsticks": { "stream": "vegan", "confirmed": "CHICKPEA-based, NO restrictions", "flags": {} },
+  "Chickpea Drumstick": { "stream": "vegan", "confirmed": "chickpea, no restrictions", "flags": {} },
+  "Chickpea Drumstick Wrap": { "stream": "vegan", "confirmed": "gluten (wrap) only; chickpea drumstick has no restriction", "flags": { "hasGluten": true } },
+  "_note_vegan_sausage_family": "ASSUMED soy+gluten (typical vegan sausage/patty = soy protein + wheat). Jason to confirm pea-vs-soy on his VERIFY skim.",
+  "Vegan Sausages": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Fully Loaded Vegan Sausages": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Breakfast Sausage": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Breakfast Sausage Sandwich": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Breakfast Patty": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Breakfast Patty Sandwich": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan Breakfast Patties Sandwich": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } },
+  "Vegan BF patties": { "stream": "vegan", "assumed": true, "flags": { "hasGluten": true, "hasSoy": true } }
+}
