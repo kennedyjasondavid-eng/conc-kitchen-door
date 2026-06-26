@@ -33,12 +33,12 @@ Jason 2026-06-26. Carry-forward = CODEX-verified (v30/RAM). PATTERN = name-deriv
 | W2 THU lunch | CONC Salad - Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan | gluten, dairy, soy, beef | CONC Salad - Vegan Beef,lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan | gluten, dairy, soy |  | — |
 | W2 THU dinner | Sausages & Mash, Gravy, Green peas & Carrot | gluten, pork, soy | Vegan Sausages & Mash, Gravy, Green Peas& Carrot | gluten, soy | Halal beef sausages | gluten, pork, soy |
 | W2 FRI breakfast | Ham, Cheese and Eggs yoghurt | gluten, dairy, pork, egg | Oatmeal | — |  | — |
-| W2 FRI lunch | Tuna Salad Sandwich & Fruit and Chips | gluten, fish | Falafel Sandwich & Fruit and Chips | gluten |  | — |
+| W2 FRI lunch | Tuna Salad Sandwich, Fruit and Chips | gluten, fish, egg | Falafel Sandwich, Fruit and Chips | gluten |  | — |
 | W2 SAT breakfast | Bagel, Cream cheese and Granola. | gluten, dairy | Bagel, Cream cheese and Granola. | gluten, dairy |  | — |
 | W2 SAT lunch | Chicken tenders, Roasted Yams, Seasonal Veg | gluten, dairy, egg, soy, chicken | Vegan Nuggets, Roasted Yams , Seasonal Veg | gluten, soy | Halal breaded chicken burgers | gluten, dairy, egg, chicken |
 | W2 SAT dinner | Beef Meatloaf, Steamed vegetables, Potatoes | gluten, fish, egg, soy, beef, mustard, sulphites | Vegan Meatloaf, Steamed vegetables, Potatoes | gluten, fish, egg, soy, mustard, sulphites |  | — |
 | W3 SUN breakfast | Pork Breakfast sandwich | gluten, dairy, pork, egg, soy | Vegan Breakfast Sausage Sandwich | gluten, soy |  | — |
-| W3 SUN lunch | Coronation Chicken Salad Sandwich, Fruit and Chips | gluten, egg, chicken | Roasted Vegetable Sandwich, Fruit and Chips | gluten |  | — |
+| W3 SUN lunch | Coronation Chicken Salad Sandwich, Fruit and Chips | gluten, egg, chicken, mustard | Roasted Vegetable Sandwich, Fruit and Chips | gluten |  | — |
 | W3 SUN dinner | Halal Beef Meatballs Pasta | gluten, egg, beef, mustard, sulphites | Vegan Meatballs Pasta | gluten, egg, mustard, sulphites |  | — |
 | W3 MON breakfast | Pancakes, turkey bacon | gluten, dairy, egg | Pancakes, Vegan Breakfast Sausage | gluten, dairy, egg, soy |  | — |
 | W3 MON lunch | Pulled Pork Sandwich, Creamy Coleslaw | gluten, pork, egg, soy, sulphites | Vegan Jack Fruit Sandwich, Creamy Coleslaw | gluten, egg, soy, sulphites | Pulled Chicken Sandwich | gluten, egg, soy, chicken, sulphites |
@@ -61,7 +61,7 @@ Jason 2026-06-26. Carry-forward = CODEX-verified (v30/RAM). PATTERN = name-deriv
 | W4 TUE lunch | Pork Tacos Al Pastor, Pea & Carrots | gluten, dairy, pork, soy, chicken | Vegetarian Tacos,Pea & Carrots | gluten, dairy, soy | Halal chicken al pastor | chicken |
 | W4 TUE dinner | BBQ Chicken Leg, Roasted Yam, Seasonal Veg | gluten, soy, chicken | BBQ Chik'n Tenders, Roasted Yam, Seasonal Veg | gluten, soy |  | — |
 | W4 WED breakfast | Vegetarian Frittata | gluten, dairy | Vegetarian Frittata | gluten, dairy |  | — |
-| W4 WED lunch | Tuna Rex Salad | gluten, fish | Chickpea Rex Salad | — |  | — |
+| W4 WED lunch | Tuna Rex Salad | fish | Chickpea Rex Salad | — |  | — |
 | W4 WED dinner | Beef and Vegetable Stew, Potatoes | fish, soy, beef, sulphites | Vegan Pot Pie and Vegetable Medley | — |  | — |
 | W4 THU breakfast | Scrambled eggs & sausage | gluten, dairy, pork, egg, soy | Scrambled eggs & Vegan BF patties | gluten, dairy, egg, soy |  | — |
 | W4 THU lunch | Chicken Schwarma, Cabbage Stirfry. Mujadarrah Rice, Garlic Sauce | gluten, soy, chicken | Vegetarian Schwarma, Cabbage Stirfry. Mujadarrah Rice, Garlic Sauce | gluten, soy |  | — |
