@@ -10,7 +10,8 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-stability.3'`** + `DOOR_BUILD_DATE` drive a staff-visible build stamp (added in the 2026-06-18 hardening); `menu_current.json` `_meta.version` 30, `menu_reno.json` 2.
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.1'`** + `DOOR_BUILD_DATE = '2026-06-26'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **31** (the new STANDARD menu, live 2026-06-26), `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 31 (mirror, gate-checked).
+- **⚠ menu_current.json v31 was authored in-repo (file), NOT via DOOR's app state.** `getMenuData()` reads `loadUploadedMenu()` (`concUploadedMenu`) → else baked `MENU_DATA` → so DOOR's own app still holds the OLD menu unless `concUploadedMenu` is seeded with v31. A DOOR-side republish (`buildMenuJSON`/`buildRoutingByMealJSON`) would regenerate the OLD menu and could clobber v31. Either upload v31 into DOOR or update baked `MENU_DATA`. Deferred (Rex not using DOOR plating sheets now).
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
 ## Architecture
@@ -40,6 +41,12 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, ~55 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-06-26) — STANDARD menu cutover
+- **`menu_current.json` → v31 (the new STANDARD menu), LIVE on `main` `5fdce16`.** The reno → standard cutover (DOOR → EXPO → HUB): DOOR is the menu source. Slot `_flags` carry union-of-streams allergens (anaphylaxis-safe — never under-flag) with two exceptions kept regular-only: `halalCertifiedMeat` and meat flags masked on non-main components. Allergens are CODEX-verified + Jason-confirmed for the new dishes (`menu_v31_allergen_*` artifacts).
+- **Halal fix:** `halalCertifiedMeat=false` on every `hasPork` slot. EXPO's decomposer emits a separate halal cook only when `halalCertifiedMeat===false`; 5 pork slots (Tandoori, Souvlaki, Adobo, Al Pastor, Sausages & Mash) were wrongly `true`, so halal residents got **no** cook. (One genuine remaining gap: **W1 MON "Fully Loaded Sausage"** has no halal option defined.)
+- **Build stamp** → `v31-standard.1` / `2026-06-26`; `DOOR_SCHEMA_VERSIONS.menu_current` → 31 (door-smoke gate-checked, 55/55).
+- **Open:** `routing_by_meal.json` is still reno-era — regenerate for v31 (live registry, or headless seed `concUploadedMenu` + `concAltMenuActive='0'`); make DOOR's app state self-consistent with v31 (see "What this is" footgun above). Full record in EXPO's `EXPO_v9.39_STANDARD_CUTOVER_Handoff.md`.
 
 ## Recent (2026-06-18)
 - Security + stability hardening (auth, output-encoding, stability gates) — PR #48 (`b716a24`); originally a Codex cloud session, reviewed against the HOUSE VISION/INSIGHTS before landing.
