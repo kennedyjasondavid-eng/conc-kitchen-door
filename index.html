@@ -697,7 +697,7 @@ const DOOR_BUILD_DATE = '2026-06-26';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 31,
   menu_reno: 2,
-  routing_by_meal: 30,
+  routing_by_meal: 31,
   door_state: 30,
   registry_summary: 30
 });
@@ -10616,7 +10616,7 @@ function buildRoutingByMealJSON() {
   });
 
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:DOOR_SCHEMA_VERSIONS.routing_by_meal },
     routing: result
   };
 }
