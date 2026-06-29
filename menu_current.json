@@ -10,6 +10,10 @@
       {
         "ts": "2026-06-29",
         "change": "Track-A Turkey Bacon mirror: W1/W3 WED regular lunch += \"Turkey Bacon\" (lunch + lunch_sides, turkey allergen/flag). Mirrors EXPO tracka/turkey-bacon-rex-card v9.39.15: Turkey Bacon is now a menu-named Rex service-day cook, not a restore/companion-map row. Also in baked MENU_DATA + routing_by_meal.json _components. version unchanged (31, content mirror)."
+      },
+      {
+        "ts": "2026-06-29",
+        "change": "Track-A Roasted Vegetable Medley mirror: W4 WED dinner_veg split to \"Vegan Pot Pie, Roasted Vegetable Medley\" so EXPO can derive the vegan Medley Rex service-day cook from menu text instead of a restore/companion row. Version unchanged (31, content mirror)."
       }
     ]
   },
@@ -2385,7 +2389,7 @@
           "halalCertifiedMeat": false
         },
         "dinner": "Beef and Vegetable Stew, Potatoes",
-        "dinner_veg": "Vegan Pot Pie and Vegetable Medley",
+        "dinner_veg": "Vegan Pot Pie, Roasted Vegetable Medley",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {
