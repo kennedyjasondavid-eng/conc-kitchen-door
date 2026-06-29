@@ -68,7 +68,7 @@ Critical safety rules baked in:
 | `index.html` | The entire app — ~17.5K lines, single-file HTML/CSS/JS |
 | `door_state.json` | Snapshot of the live state (residents, restrictions, queue) |
 | `menu_current.json` | The active menu — consumed by EXPO |
-| `menu_reno.json` | Reno-mode menu (4-week, LAN routing) — consumed by EXPO |
+| `menu_reno.json` | Reno-mode menu (4-week, LAN routing) — **legacy** since the v31 standard cutover (2026-06-26); kept for history, not the live menu |
 | `menu_overlay.json` | User-edited menu deltas applied on top of `menu_current.json` |
 | `routing_by_meal.json` | Per-meal resident counts by section (halal/regular/vegan) |
 | `registry_summary.json` | Snapshot of the resident registry |
@@ -109,8 +109,8 @@ DOOR is the **menu source** for EXPO and the **resident source** for everything 
 | Published file | Schema | Consumer |
 |---|---|---|
 | `menu_current.json` | `{ _meta:{...}, weeks:[...] }` with `version` incrementing | EXPO `loadMenuFromDOOR` |
-| `menu_reno.json` | Same shape; reno-mode 4-week | EXPO when `scheduleMode = reno` |
-| `routing_by_meal.json` | `{ [meal-key]: { halal, regular, vegan, total } }` | EXPO portion math |
+| `menu_reno.json` | Same shape; reno-mode 4-week (legacy — standard cutover live 2026-06-26) | EXPO only if `scheduleMode = reno` (non-default) |
+| `routing_by_meal.json` | `{ wk: { DAY: { meal: { SectionLabel: n, _components:{dish:portions} } } } }` (`_meta.version` 31) | EXPO portion math + HUB portion links |
 | `registry_summary.json` | Resident counts + tier summary | (informational — not currently consumed) |
 
 If you change one of these schemas, update the consumer in the same change set, or stage carefully via menu overlays.
@@ -139,7 +139,7 @@ The HTA is a Windows-only HTML Application that wraps `git`. It auto-detects whi
 
 ### Versioning
 
-DOOR shows **v31** in the Settings badge (~18.9K lines — 18,942 as of 2026-06-14). Version markers appear in source as `[DOOR vN]` console logs and in JSON `_meta.version` fields (currently 30 in `menu_current.json`, 2 in `menu_reno.json`). There is no single `APP_VERSION` constant — versions are tracked per-feature.
+DOOR is at **`DOOR_APP_VERSION = 'v31-standard.1'`** (build 2026-06-26; ~18.9K lines). The standard menu is live: `_meta.version` is **31** in `menu_current.json` and `routing_by_meal.json` (`menu_reno.json` stays at 2, legacy). Per-feature `[DOOR vN]` console markers still appear. *Cross-app version facts are owned by the HOUSE status ledger (`~/.claude/CLAUDE.md`); this is the DOOR-local stamp.*
 
 ### House rules
 
@@ -153,7 +153,7 @@ DOOR shows **v31** in the Settings badge (~18.9K lines — 18,942 as of 2026-06-
 
 ## Future — Phase 5
 
-SharePoint integration via Microsoft Graph API is planned post-renovation. The app is structured so all localStorage-backed persistence layers swap to SharePoint calls in a single-function replacement per layer.
+SharePoint integration via Microsoft Graph API is planned — and now that the renovation has ended (standard cutover live 2026-06-26), it is the next major step. The app is structured so all localStorage-backed persistence layers swap to SharePoint calls in a single-function replacement per layer.
 
 ---
 
