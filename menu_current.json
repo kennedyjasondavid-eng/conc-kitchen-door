@@ -5,7 +5,13 @@
     "exported": null,
     "version": 31,
     "standardGoLive": "2026-06-28",
-    "allergensNeedVerification": "DRAFT — allergen flags carried from CODEX (v30/RECIPE_ALLERGEN_MAP) for known dishes + Jason-confirmed for 5 new dishes (2026-06-26) + name-pattern for the rest. NOT published. Jason to sign off VERIFY_TABLE before publish; ideally re-derive via DOOR UI + CODEX."
+    "allergensNeedVerification": "DRAFT — allergen flags carried from CODEX (v30/RECIPE_ALLERGEN_MAP) for known dishes + Jason-confirmed for 5 new dishes (2026-06-26) + name-pattern for the rest. NOT published. Jason to sign off VERIFY_TABLE before publish; ideally re-derive via DOOR UI + CODEX.",
+    "manualEdits": [
+      {
+        "ts": "2026-06-29",
+        "change": "Rex same-day companion slice — DOOR live-feed mirror of EXPO tracka/rex-companion (b8aa334, v9.39.14). W1 THU dinner += \"Cauliflower & Carrot\"; W2 SAT dinner \"Steamed vegetables\" -> \"Butternut Squash\"; W2 SUN lunch += \"Philly Peppers and Onions\" (lunch + lunch_veg + lunch_sides). Mirrored in baked MENU_DATA (index.html) + routing_by_meal.json _components. W4 SUN untouched (standard = Pork Souvlaki; the reno-only Philly there was dropped). version NOT bumped (still 31). A buildMenuJSON / buildRoutingByMealJSON republish from live app state must keep these three in sync."
+      }
+    ]
   },
   "menu": {
     "1": {
@@ -456,8 +462,8 @@
           "isCarb": true,
           "halalCertifiedMeat": true
         },
-        "dinner": "Roast Chicken, Chickpea Shakshuka, Couscous",
-        "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous",
+        "dinner": "Roast Chicken, Chickpea Shakshuka, Couscous, Cauliflower & Carrot",
+        "dinner_veg": "Roast Tofu, Chickpea Shakshuka, Couscous, Cauliflower & Carrot",
         "allergens_dinner": "dairy, soy",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
@@ -468,7 +474,7 @@
           }
         ],
         "dinner_mainItem": "Roast Chicken",
-        "dinner_sides": "Chickpea Shakshuka, Couscous",
+        "dinner_sides": "Chickpea Shakshuka, Couscous, Cauliflower & Carrot",
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": true,
@@ -711,8 +717,8 @@
           "isCarb": true,
           "halalCertifiedMeat": true
         },
-        "lunch": "Philly Cheese Melt, Fruit and chips",
-        "lunch_veg": "Portobello Cheese Melt, Fruit and chips",
+        "lunch": "Philly Cheese Melt, Philly Peppers and Onions, Fruit and chips",
+        "lunch_veg": "Portobello Cheese Melt, Philly Peppers and Onions, Fruit and chips",
         "allergens_lunch": "gluten, dairy, soy, beef",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
@@ -723,7 +729,7 @@
           }
         ],
         "lunch_mainItem": "Philly Cheese Melt",
-        "lunch_sides": "Fruit and chips",
+        "lunch_sides": "Philly Peppers and Onions, Fruit and chips",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1319,8 +1325,8 @@
           "isCarb": true,
           "halalCertifiedMeat": true
         },
-        "dinner": "Beef Meatloaf, Steamed vegetables, Potatoes",
-        "dinner_veg": "Vegan Meatloaf, Steamed vegetables, Potatoes",
+        "dinner": "Beef Meatloaf, Butternut Squash, Potatoes",
+        "dinner_veg": "Vegan Meatloaf, Butternut Squash, Potatoes",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {
@@ -1330,7 +1336,7 @@
           }
         ],
         "dinner_mainItem": "Beef Meatloaf",
-        "dinner_sides": "Steamed vegetables, Potatoes",
+        "dinner_sides": "Butternut Squash, Potatoes",
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": false,
