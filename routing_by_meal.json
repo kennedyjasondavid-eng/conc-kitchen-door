@@ -7,6 +7,10 @@
     "manualEdits": [
       {
         "ts": "2026-06-29",
+        "change": "Track-A DOOR catch-up: W3 FRI dinner _components += \"Bok Choy\": 168 (full-house dinner side, matches Spring roll). Mirrors EXPO Bok Choy canonicalization; paired with menu_current.json + baked MENU_DATA."
+      },
+      {
+        "ts": "2026-06-29",
         "change": "Rex same-day companion slice — _components mirror of EXPO tracka/rex-companion (b8aa334). W1 THU dinner += \"Cauliflower & Carrot\": 168 (full-house side, matches Couscous/Chickpea Shakshuka); W2 SAT dinner \"Steamed vegetables\": 165 -> \"Butternut Squash\": 165 (rename, count unchanged); W2 SUN lunch += \"Philly Peppers and Onions\": 165 (matches Fruit and chips / Philly+Portobello melt population). Paired with menu_current.json + baked MENU_DATA. A buildRoutingByMealJSON republish from live app state regenerates from MENU_DATA and must keep these in sync."
       }
     ]
@@ -996,6 +1000,7 @@
           "_components": {
             "Chik'n and Mushroom Fried Rice": 12,
             "Spring roll": 168,
+            "Bok Choy": 168,
             "Chicken and Mushroom Fried Rice": 156,
             "Roast Chicken Leg": 4,
             "Roast Potatoes & Spring Roll": 4

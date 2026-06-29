@@ -9,6 +9,10 @@
     "manualEdits": [
       {
         "ts": "2026-06-29",
+        "change": "Track-A DOOR catch-up: W3 FRI dinner += \"Bok Choy\" (dinner + dinner_veg + dinner_sides). Mirrors the EXPO 'Canonicalize Bok Choy standard side' slice (already on EXPO main via PR #116) whose DOOR menu-feed mirror had not landed — without this, a live DOOR load omits the Bok Choy Rex card. Also in baked MENU_DATA + routing_by_meal.json _components. version unchanged (31, content mirror)."
+      },
+      {
+        "ts": "2026-06-29",
         "change": "Rex same-day companion slice — DOOR live-feed mirror of EXPO tracka/rex-companion (b8aa334, v9.39.14). W1 THU dinner += \"Cauliflower & Carrot\"; W2 SAT dinner \"Steamed vegetables\" -> \"Butternut Squash\"; W2 SUN lunch += \"Philly Peppers and Onions\" (lunch + lunch_veg + lunch_sides). Mirrored in baked MENU_DATA (index.html) + routing_by_meal.json _components. W4 SUN untouched (standard = Pork Souvlaki; the reno-only Philly there was dropped). version NOT bumped (still 31). A buildMenuJSON / buildRoutingByMealJSON republish from live app state must keep these three in sync."
       }
     ]
@@ -1904,8 +1908,8 @@
           "isCarb": true,
           "halalCertifiedMeat": false
         },
-        "dinner": "Chicken and Mushroom Fried Rice, Spring roll",
-        "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring roll",
+        "dinner": "Chicken and Mushroom Fried Rice, Spring roll, Bok Choy",
+        "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring roll, Bok Choy",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {
@@ -1915,7 +1919,7 @@
           }
         ],
         "dinner_mainItem": "Chicken and Mushroom Fried Rice",
-        "dinner_sides": "Spring Roll",
+        "dinner_sides": "Spring Roll, Bok Choy",
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
