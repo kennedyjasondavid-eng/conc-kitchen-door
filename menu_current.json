@@ -5,7 +5,13 @@
     "exported": null,
     "version": 31,
     "standardGoLive": "2026-06-28",
-    "allergensNeedVerification": "DRAFT — allergen flags carried from CODEX (v30/RECIPE_ALLERGEN_MAP) for known dishes + Jason-confirmed for 5 new dishes (2026-06-26) + name-pattern for the rest. NOT published. Jason to sign off VERIFY_TABLE before publish; ideally re-derive via DOOR UI + CODEX."
+    "allergensNeedVerification": "DRAFT — allergen flags carried from CODEX (v30/RECIPE_ALLERGEN_MAP) for known dishes + Jason-confirmed for 5 new dishes (2026-06-26) + name-pattern for the rest. NOT published. Jason to sign off VERIFY_TABLE before publish; ideally re-derive via DOOR UI + CODEX.",
+    "manualEdits": [
+      {
+        "ts": "2026-06-29",
+        "change": "Track-A Turkey Bacon mirror: W1/W3 WED regular lunch += \"Turkey Bacon\" (lunch + lunch_sides, turkey allergen/flag). Mirrors EXPO tracka/turkey-bacon-rex-card v9.39.15: Turkey Bacon is now a menu-named Rex service-day cook, not a restore/companion-map row. Also in baked MENU_DATA + routing_by_meal.json _components. version unchanged (31, content mirror)."
+      }
+    ]
   },
   "menu": {
     "1": {
@@ -327,9 +333,9 @@
           "isCarb": false,
           "halalCertifiedMeat": false
         },
-        "lunch": "Egg Salad Wrap, Bean Salad",
+        "lunch": "Egg Salad Wrap, Turkey Bacon, Bean Salad",
         "lunch_veg": "Chickpea Drumstick Wrap, Bean Salad",
-        "allergens_lunch": "gluten, egg",
+        "allergens_lunch": "gluten, egg, turkey",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -339,7 +345,7 @@
           }
         ],
         "lunch_mainItem": "Egg Salad Wrap",
-        "lunch_sides": "Bean Salad",
+        "lunch_sides": "Turkey Bacon, Bean Salad",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -351,7 +357,7 @@
           "hasSoy": false,
           "hasBeef": false,
           "hasChicken": false,
-          "hasTurkey": false,
+          "hasTurkey": true,
           "hasTreeNuts": false,
           "hasMustard": false,
           "hasShellfish": false,
@@ -1673,9 +1679,9 @@
           "isCarb": false,
           "halalCertifiedMeat": false
         },
-        "lunch": "Crispy Chicken Tender Wrap",
+        "lunch": "Crispy Chicken Tender Wrap, Turkey Bacon",
         "lunch_veg": "Crispy Vegan Tender Wrap",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, turkey",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -1685,7 +1691,7 @@
           }
         ],
         "lunch_mainItem": "Crispy Chicken Tender Wrap",
-        "lunch_sides": "",
+        "lunch_sides": "Turkey Bacon",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1697,7 +1703,7 @@
           "hasSoy": false,
           "hasBeef": false,
           "hasChicken": true,
-          "hasTurkey": false,
+          "hasTurkey": true,
           "hasTreeNuts": false,
           "hasMustard": false,
           "hasShellfish": false,
