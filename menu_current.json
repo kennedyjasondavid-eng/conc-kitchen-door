@@ -9,6 +9,14 @@
     "manualEdits": [
       {
         "ts": "2026-06-29",
+        "change": "Track-A Turkey Bacon mirror: W1/W3 WED regular lunch += \"Turkey Bacon\" (lunch + lunch_sides, turkey allergen/flag). Mirrors EXPO tracka/turkey-bacon-rex-card v9.39.15: Turkey Bacon is now a menu-named Rex service-day cook, not a restore/companion-map row. Also in baked MENU_DATA + routing_by_meal.json _components. version unchanged (31, content mirror)."
+      },
+      {
+        "ts": "2026-06-29",
+        "change": "Track-A Roasted Vegetable Medley mirror: W4 WED dinner_veg split to \"Vegan Pot Pie, Roasted Vegetable Medley\" so EXPO can derive the vegan Medley Rex service-day cook from menu text instead of a restore/companion row. Version unchanged (31, content mirror)."
+      },
+      {
+        "ts": "2026-06-29",
         "change": "Track-A DOOR catch-up: W3 FRI dinner += \"Bok Choy\" (dinner + dinner_veg + dinner_sides). Mirrors the EXPO 'Canonicalize Bok Choy standard side' slice (already on EXPO main via PR #116) whose DOOR menu-feed mirror had not landed — without this, a live DOOR load omits the Bok Choy Rex card. Also in baked MENU_DATA + routing_by_meal.json _components. version unchanged (31, content mirror)."
       },
       {
@@ -337,9 +345,9 @@
           "isCarb": false,
           "halalCertifiedMeat": false
         },
-        "lunch": "Egg Salad Wrap, Bean Salad",
+        "lunch": "Egg Salad Wrap, Turkey Bacon, Bean Salad",
         "lunch_veg": "Chickpea Drumstick Wrap, Bean Salad",
-        "allergens_lunch": "gluten, egg",
+        "allergens_lunch": "gluten, egg, turkey",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -349,7 +357,7 @@
           }
         ],
         "lunch_mainItem": "Egg Salad Wrap",
-        "lunch_sides": "Bean Salad",
+        "lunch_sides": "Turkey Bacon, Bean Salad",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -361,7 +369,7 @@
           "hasSoy": false,
           "hasBeef": false,
           "hasChicken": false,
-          "hasTurkey": false,
+          "hasTurkey": true,
           "hasTreeNuts": false,
           "hasMustard": false,
           "hasShellfish": false,
@@ -1683,9 +1691,9 @@
           "isCarb": false,
           "halalCertifiedMeat": false
         },
-        "lunch": "Crispy Chicken Tender Wrap",
+        "lunch": "Crispy Chicken Tender Wrap, Turkey Bacon",
         "lunch_veg": "Crispy Vegan Tender Wrap",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, turkey",
         "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -1695,7 +1703,7 @@
           }
         ],
         "lunch_mainItem": "Crispy Chicken Tender Wrap",
-        "lunch_sides": "",
+        "lunch_sides": "Turkey Bacon",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -1707,7 +1715,7 @@
           "hasSoy": false,
           "hasBeef": false,
           "hasChicken": true,
-          "hasTurkey": false,
+          "hasTurkey": true,
           "hasTreeNuts": false,
           "hasMustard": false,
           "hasShellfish": false,
@@ -2389,7 +2397,7 @@
           "halalCertifiedMeat": false
         },
         "dinner": "Beef and Vegetable Stew, Potatoes",
-        "dinner_veg": "Vegan Pot Pie and Vegetable Medley",
+        "dinner_veg": "Vegan Pot Pie, Roasted Vegetable Medley",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {

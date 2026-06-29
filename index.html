@@ -5262,9 +5262,9 @@ const MENU_DATA = {
                 "isCarb": false,
                 "halalCertifiedMeat": false
             },
-            "lunch": "Egg Salad Wrap, Bean Salad",
+            "lunch": "Egg Salad Wrap, Turkey Bacon, Bean Salad",
             "lunch_veg": "Chickpea Drumstick Wrap, Bean Salad",
-            "allergens_lunch": "gluten, egg",
+            "allergens_lunch": "gluten, egg, turkey",
             "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
             "lunch_altMeals": [
                 {
@@ -5274,7 +5274,7 @@ const MENU_DATA = {
                 }
             ],
             "lunch_mainItem": "Egg Salad Wrap",
-            "lunch_sides": "Bean Salad",
+            "lunch_sides": "Turkey Bacon, Bean Salad",
             "lunch_flags": {
                 "hasGluten": true,
                 "hasDairy": false,
@@ -5286,7 +5286,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "hasChicken": false,
-                "hasTurkey": false,
+                "hasTurkey": true,
                 "hasTreeNuts": false,
                 "hasMustard": false,
                 "hasShellfish": false,
@@ -6608,9 +6608,9 @@ const MENU_DATA = {
                 "isCarb": false,
                 "halalCertifiedMeat": false
             },
-            "lunch": "Crispy Chicken Tender Wrap",
+            "lunch": "Crispy Chicken Tender Wrap, Turkey Bacon",
             "lunch_veg": "Crispy Vegan Tender Wrap",
-            "allergens_lunch": "gluten, dairy",
+            "allergens_lunch": "gluten, dairy, turkey",
             "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
             "lunch_altMeals": [
                 {
@@ -6620,7 +6620,7 @@ const MENU_DATA = {
                 }
             ],
             "lunch_mainItem": "Crispy Chicken Tender Wrap",
-            "lunch_sides": "",
+            "lunch_sides": "Turkey Bacon",
             "lunch_flags": {
                 "hasGluten": true,
                 "hasDairy": true,
@@ -6632,7 +6632,7 @@ const MENU_DATA = {
                 "hasSoy": false,
                 "hasBeef": false,
                 "hasChicken": true,
-                "hasTurkey": false,
+                "hasTurkey": true,
                 "hasTreeNuts": false,
                 "hasMustard": false,
                 "hasShellfish": false,
@@ -7314,7 +7314,7 @@ const MENU_DATA = {
                 "halalCertifiedMeat": false
             },
             "dinner": "Beef and Vegetable Stew, Potatoes",
-            "dinner_veg": "Vegan Pot Pie and Vegetable Medley",
+            "dinner_veg": "Vegan Pot Pie, Roasted Vegetable Medley",
             "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
             "dinner_altMeals": [
                 {
@@ -16202,7 +16202,7 @@ function flagsToMenuAllergens(flags) {
     // Dietary meat tokens — included so plating sheets surface them for
     // residents on restricted-meat plans (matches the existing convention
     // in menu_current.json: 'gluten, beef' on Beef Stroganoff, etc.).
-    hasPork:'pork', hasBeef:'beef'
+    hasPork:'pork', hasBeef:'beef', hasTurkey:'turkey'
   };
   return Object.entries(MAP)
     .filter(([k]) => flags && flags[k])
