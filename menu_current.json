@@ -5,7 +5,13 @@
     "exported": null,
     "version": 31,
     "standardGoLive": "2026-06-28",
-    "allergensNeedVerification": "DRAFT — allergen flags carried from CODEX (v30/RECIPE_ALLERGEN_MAP) for known dishes + Jason-confirmed for 5 new dishes (2026-06-26) + name-pattern for the rest. NOT published. Jason to sign off VERIFY_TABLE before publish; ideally re-derive via DOOR UI + CODEX."
+    "allergensNeedVerification": "DRAFT — allergen flags carried from CODEX (v30/RECIPE_ALLERGEN_MAP) for known dishes + Jason-confirmed for 5 new dishes (2026-06-26) + name-pattern for the rest. NOT published. Jason to sign off VERIFY_TABLE before publish; ideally re-derive via DOOR UI + CODEX.",
+    "manualEdits": [
+      {
+        "ts": "2026-06-29",
+        "change": "Track-A DOOR catch-up: W3 FRI dinner += \"Bok Choy\" (dinner + dinner_veg + dinner_sides). Mirrors the EXPO 'Canonicalize Bok Choy standard side' slice (already on EXPO main via PR #116) whose DOOR menu-feed mirror had not landed — without this, a live DOOR load omits the Bok Choy Rex card. Also in baked MENU_DATA + routing_by_meal.json _components. version unchanged (31, content mirror)."
+      }
+    ]
   },
   "menu": {
     "1": {
@@ -1898,8 +1904,8 @@
           "isCarb": true,
           "halalCertifiedMeat": false
         },
-        "dinner": "Chicken and Mushroom Fried Rice, Spring roll",
-        "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring roll",
+        "dinner": "Chicken and Mushroom Fried Rice, Spring roll, Bok Choy",
+        "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring roll, Bok Choy",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {
@@ -1909,7 +1915,7 @@
           }
         ],
         "dinner_mainItem": "Chicken and Mushroom Fried Rice",
-        "dinner_sides": "Spring Roll",
+        "dinner_sides": "Spring Roll, Bok Choy",
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
