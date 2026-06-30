@@ -2,6 +2,8 @@
 
 Jason 2026-06-26. Carry-forward = CODEX-verified (v30/RAM). PATTERN = name-derived, please eyeball. Confirm or correct each row, then I bake + publish.
 
+> **⚠ STATUS (2026-06-29):** the v31 standard menu was **already baked + published** (`menu_current.json` v31, live 2026-06-26) — so the table below is now a **post-publish sign-off checklist, not a pre-publish gate**. The flags shipped as **DRAFT** (carry-forward + name-pattern + a few Jason-confirmed rows) and are **not yet fully signed off**; companion file `menu_v31_allergen_confirmations.json`. Related live code gap: the anaphylactic ALERT banner can under-report an allergen (finding **C1**, `KNOWN_VS_SHOWN_FINDINGS.md`) — signing off rows here does **not** close C1. Treat published allergen flags as provisional until each row is confirmed.
+
 | Slot | Regular dish | reg allergens | Veg dish | veg allergens | Halal | hal allergens |
 |---|---|---|---|---|---|---|
 | W1 SUN breakfast | Pork Breakfast sandwich | gluten, dairy, pork, egg, soy | Vegan Breakfast Sausage Sandwich | gluten, soy |  | — |

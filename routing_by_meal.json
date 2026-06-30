@@ -20,6 +20,14 @@
       {
         "ts": "2026-06-29",
         "change": "Rex same-day companion slice — _components mirror of EXPO tracka/rex-companion (b8aa334). W1 THU dinner += \"Cauliflower & Carrot\": 168 (full-house side, matches Couscous/Chickpea Shakshuka); W2 SAT dinner \"Steamed vegetables\": 165 -> \"Butternut Squash\": 165 (rename, count unchanged); W2 SUN lunch += \"Philly Peppers and Onions\": 165 (matches Fruit and chips / Philly+Portobello melt population). Paired with menu_current.json + baked MENU_DATA. A buildRoutingByMealJSON republish from live app state regenerates from MENU_DATA and must keep these in sync."
+      },
+      {
+        "ts": "2026-06-30",
+        "change": "Track-B Jerk Tofu mirror: W1 MON dinner_veg Jerk Cauliflower -> Jerk Tofu; soy allergen/flag set; routing component 12 moved from Jerk Cauliflower to Jerk Tofu. Mirrors EXPO v9.39.39 Track B slice; version unchanged."
+      },
+      {
+        "ts": "2026-06-30",
+        "change": "Track-B Vegetable Stack routing mirror: W1 SUN lunch _components Vegetarian Sandwich:16 -> Roasted Vegetable Sandwich:16. Count preserved; paired with menu_current.json + baked MENU_DATA so live EXPO refreshes do not reintroduce the stale Vegetable Stack path."
       }
     ]
   },
@@ -46,13 +54,13 @@
           "Soft Meals": 4,
           "Regular": 137,
           "_components": {
-            "Vegetarian Sandwich": 16,
             "Broccoli Salad": 165,
             "Plain Roasted Chicken": 3,
             "Plain Rice & Stir-fried Veg": 7,
             "Chicken Deli": 149,
             "Cheese": 149,
-            "Plain Chicken Leg": 4
+            "Plain Chicken Leg": 4,
+            "Roasted Vegetable Sandwich": 16
           }
         },
         "dinner": {
@@ -114,12 +122,12 @@
           "Soft Meals": 4,
           "Regular": 141,
           "_components": {
-            "Jerk Cauliflower": 12,
             "Cabbage stirfry": 168,
             "Rice and Beans": 168,
             "Jerk Chicken": 156,
             "Roast Chicken Leg": 4,
-            "Plain Rice And Green Peas & Service Veg": 4
+            "Plain Rice And Green Peas & Service Veg": 4,
+            "Jerk Tofu": 12
           }
         }
       },
