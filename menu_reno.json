@@ -46,6 +46,10 @@
       {
         "ts": "2026-06-11",
         "change": "ONE-OFF for the 2026-06-21 Rex outdoor BBQ (Father's Day + Indigenous Month, per Mathew): SWAP Wk2 THU lunch <-> Wk3 SUN lunch mains. Wk2 THU (Jun 18): \"Halal Beef Burger, Chickpea Salad\" -> \"Chicken Deli & Cheese, Chickpea Salad\". Wk3 SUN (Jun 21): \"Chicken Deli & Cheese, Broccoli Salad\" -> \"Halal Beef Burger, Three Sisters Salad\" (lunch_veg side also Broccoli Salad -> Three Sisters Salad; Roasted Vegetable Sandwich kept). Rex orders + grills the patties on-site (Bloor orders none — EXPO marks the main rexHandled) and makes the Three Sisters Salad (Bloor preps components). Wk1 SUN + Wk4 THU untouched. mainItem/sides/allergens/flags swapped to match. REVERT BOTH SLOTS AFTER 2026-06-21 (next recurrence Wk3 SUN = 2026-07-19) — mirror of EXPO v9.32.3 generateRexBBQSupportChain revert checklist."
+      },
+      {
+        "ts": "2026-06-30",
+        "change": "Track-B Jerk Tofu mirror: W1 MON dinner_veg Jerk Cauliflower -> Jerk Tofu; soy allergen/flag set; routing component 12 moved from Jerk Cauliflower to Jerk Tofu. Mirrors EXPO v9.39.39 Track B slice; version unchanged."
       }
     ]
   },
@@ -211,7 +215,7 @@
           "halalCertifiedMeat": true
         },
         "dinner": "Jerk Chicken, Cabbage Stirfry, Rice and Beans",
-        "dinner_veg": "Jerk Cauliflower, Cabbage Stirfry, Rice and Beans",
+        "dinner_veg": "Jerk Tofu, Cabbage Stirfry, Rice and Beans",
         "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
         "dinner_altMeals": [
           {
@@ -230,7 +234,7 @@
           "hasEgg": false,
           "hasPeanuts": false,
           "hasSesame": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasBeef": false,
           "hasChicken": true,
           "hasTurkey": false,
@@ -241,7 +245,8 @@
           "isSpicy": true,
           "isCarb": true,
           "halalCertifiedMeat": true
-        }
+        },
+        "allergens_dinner": "soy"
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk",
