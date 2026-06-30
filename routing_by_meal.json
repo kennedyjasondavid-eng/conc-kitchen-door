@@ -24,6 +24,10 @@
       {
         "ts": "2026-06-30",
         "change": "Track-B Jerk Tofu mirror: W1 MON dinner_veg Jerk Cauliflower -> Jerk Tofu; soy allergen/flag set; routing component 12 moved from Jerk Cauliflower to Jerk Tofu. Mirrors EXPO v9.39.39 Track B slice; version unchanged."
+      },
+      {
+        "ts": "2026-06-30",
+        "change": "Track-B Vegetable Stack routing mirror: W1 SUN lunch _components Vegetarian Sandwich:16 -> Roasted Vegetable Sandwich:16. Count preserved; paired with menu_current.json + baked MENU_DATA so live EXPO refreshes do not reintroduce the stale Vegetable Stack path."
       }
     ]
   },
@@ -50,13 +54,13 @@
           "Soft Meals": 4,
           "Regular": 137,
           "_components": {
-            "Vegetarian Sandwich": 16,
             "Broccoli Salad": 165,
             "Plain Roasted Chicken": 3,
             "Plain Rice & Stir-fried Veg": 7,
             "Chicken Deli": 149,
             "Cheese": 149,
-            "Plain Chicken Leg": 4
+            "Plain Chicken Leg": 4,
+            "Roasted Vegetable Sandwich": 16
           }
         },
         "dinner": {
