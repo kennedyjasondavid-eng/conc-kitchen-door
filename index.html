@@ -15552,168 +15552,331 @@ function executeSlotSwap(a, b) {
 // MENU UPLOAD — parse xlsx rotation into active menu
 // ============================================================
 
+/* DOOR_TESTABLE_CORE_START menu-parse */
+// ── Menu-workbook parsing core (pure; no XLSX/DOM/localStorage) ───────────
+// Parses the CONC 4-week rotation workbook. Each week ships as TWO sheets:
+//   "Week N Kitchen" — the production sheet (mains/veg/halal/sides = the JOBS)
+//   "Week N Intake"  — the resident-intake sheet (carries the Allergens rows)
+// The two sheets' dish text can diverge; Kitchen is the source of truth for
+// what's cooked, Intake is the source of truth for allergens. Layout is
+// label-driven (column A) and the day columns can start past column B
+// (Week 3 starts days in column C), so every read is anchored on the SUNDAY
+// header, never a fixed column.
+
+// Word -> allergen flag. Extended well past the original 8 so the Intake
+// sheets' full vocabulary maps. ANAPHYLAXIS-SAFE: adding words can only ever
+// ADD a flag, never remove one.
 const ALLERGEN_FLAG_MAP = {
-  'gluten': 'hasGluten', 'dairy': 'hasDairy', 'pork': 'hasPork',
-  'beef': 'hasBeef', 'fish': 'hasFish', 'tuna': 'hasFish',
-  'egg': 'hasEgg', 'eggs': 'hasEgg', 'peanut': 'hasPeanuts',
-  'peanuts': 'hasPeanuts', 'spicy': 'isSpicy'
+  'gluten':'hasGluten', 'wheat':'hasGluten',
+  'dairy':'hasDairy', 'milk':'hasDairy', 'cheese':'hasDairy',
+  'egg':'hasEgg', 'eggs':'hasEgg',
+  'fish':'hasFish', 'tuna':'hasFish', 'salmon':'hasFish',
+  'shellfish':'hasShellfish', 'shrimp':'hasShellfish', 'crab':'hasShellfish',
+  'peanut':'hasPeanuts', 'peanuts':'hasPeanuts',
+  'soy':'hasSoy', 'soya':'hasSoy', 'tofu':'hasSoy', 'edamame':'hasSoy',
+  'sesame':'hasSesame', 'tahini':'hasSesame',
+  'mustard':'hasMustard',
+  'sulphites':'hasSulphites', 'sulfites':'hasSulphites',
+  'pork':'hasPork', 'ham':'hasPork', 'bacon':'hasPork', 'pepperoni':'hasPork',
+  'beef':'hasBeef',
+  'chicken':'hasChicken',
+  'turkey':'hasTurkey',
+  'coconut':'hasCoconut',
+  'spicy':'isSpicy'
+};
+// Multi-word allergen phrases, matched as substrings before the single words.
+// "Halal Chicken" is still chicken for a No-Chicken resident.
+const ALLERGEN_PHRASE_MAP = {
+  'tree nut':'hasTreeNuts', 'treenut':'hasTreeNuts', 'tree nuts':'hasTreeNuts',
+  'halal chicken':'hasChicken', 'halal beef':'hasBeef', 'halal turkey':'hasTurkey'
 };
 const DAYS_UPLOAD = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 
-function parseMenuWorkbook(wb) {
-  const result = {};
-  function appendPiece(existing, piece) {
-    const clean = (piece || '').replace(/,\s*$/, '').trim();
-    const ex = (existing || '').replace(/,\s*$/, '').trim();
-    if (!clean) return ex;
-    if (!ex) return clean;
-    return ex + ', ' + clean;
-  }
-  // Reno layout has intentional redundancy: the Vegetarian rows sometimes
-  // include sides that VEG LUNCH / VEG DINNER rows list again. Dedup pieces
-  // case-insensitively at output so the menu doesn't render duplicates.
-  function dedupePieces(s) {
-    const seen = new Set();
-    const out = [];
-    (s || '').split(',').forEach(p => {
-      const c = p.trim();
-      if (!c) return;
-      const k = c.toLowerCase().replace(/\s+/g, ' ');
-      if (seen.has(k)) return;
-      seen.add(k);
-      out.push(c);
+function emptyMealFlags() {
+  return {
+    hasGluten:false, hasDairy:false, hasEgg:false, hasFish:false, hasPeanuts:false,
+    hasSoy:false, hasTreeNuts:false, hasSesame:false, hasMustard:false, hasShellfish:false,
+    hasSulphites:false, hasPork:false, hasBeef:false, hasChicken:false, hasTurkey:false,
+    isSpicy:false, isCarb:false, halalCertifiedMeat:false, hasProcessedMeat:false,
+    hasCoconut:false, hasMushroom:false, hasBrassicas:false, hasCorn:false,
+    hasNightshades:false, hasBeans:false
+  };
+}
+
+// Parse a free-text allergen string ("gluten, dairy, halal chicken") into flags.
+function allergenStrToFlags(allergenStr, flags) {
+  const s = (allergenStr || '').toLowerCase();
+  if (!s) return flags;
+  Object.keys(ALLERGEN_PHRASE_MAP).forEach(ph => {
+    if (s.indexOf(ph) >= 0) flags[ALLERGEN_PHRASE_MAP[ph]] = true;
+  });
+  s.split(/[,;/]+/).forEach(tok => {
+    tok.split(/\s+/).forEach(w => {
+      const t = w.trim().replace(/[^a-z]/g, '');
+      if (t && ALLERGEN_FLAG_MAP[t]) flags[ALLERGEN_FLAG_MAP[t]] = true;
     });
-    return out.join(', ');
+  });
+  return flags;
+}
+
+// Name-based detection over the dish text — the safety net that keeps the
+// union anaphylaxis-safe when the Intake list is thin or the two sheets
+// describe slightly different dishes. Only clear signals; never guesses.
+function nameDetectFlags(mealText, flags) {
+  const m = ' ' + (mealText || '').toLowerCase() + ' ';
+  if (!m.trim()) return flags;
+  if ((/\bpork\b|\bham\b|\bpepperoni\b|\bbacon\b|\bcarnitas\b|\bsouvlaki\b|al pastor|\bgriot\b|\bvindaloo\b/.test(m)) && !/turkey bacon/.test(m)) {
+    // "Chicken Vindaloo" is halal, "Pork Vindaloo" is not — only flag pork when pork/no-chicken.
+    if (!/vindaloo/.test(m) || /pork/.test(m)) flags.hasPork = true;
   }
-  for (let wk = 1; wk <= 4; wk++) {
-    // Prefer Intake sheet (has allergens), fall back to Kitchen
-    let sheetName = wb.SheetNames.find(n => n.match(new RegExp('Week\\s*' + wk + '\\s*Intake', 'i')));
-    if (!sheetName) sheetName = wb.SheetNames.find(n => n.match(new RegExp('Week\\s*' + wk + '\\s*Kitchen', 'i')));
-    if (!sheetName) sheetName = wb.SheetNames.find(n => n.match(new RegExp('Week\\s*' + wk, 'i')));
-    if (!sheetName) continue;
+  if (/\bbeef\b|\bmeatloaf\b|\bstrogonoff\b|\bstroganoff\b|\bmassaman\b|\bcarne\b/.test(m)) flags.hasBeef = true;
+  if (/\bchicken\b|\bpollo\b/.test(m)) flags.hasChicken = true;
+  if (/\bturkey\b/.test(m)) flags.hasTurkey = true;
+  if (/\bfish\b|\btuna\b|\bsalmon\b|\bbasa\b|yetisse|blackened/.test(m)) flags.hasFish = true;
+  if (/\btofu\b|\bsoy\b|\bedamame\b|teriyaki|\bmiso\b/.test(m)) flags.hasSoy = true;
+  if (/\bsesame\b|\btahini\b/.test(m)) flags.hasSesame = true;
+  if (/\bpeanut/.test(m)) flags.hasPeanuts = true;
+  if (/\bcoconut\b/.test(m)) flags.hasCoconut = true;
+  if (/\bsausage|\bdeli\b|\bham\b|pepperoni|hot ?dog|\bbacon\b|meatloaf|\bnugget|salami/.test(m)) flags.hasProcessedMeat = true;
+  // Allergens named in the dish itself — the safety net when the Intake list
+  // describes a divergent dish (e.g. "Egg Salad" must flag egg even if this
+  // slot's Intake row was written for a different meal). Additive only.
+  if (/\begg\b|\beggs\b|frittata|omelet|scrambled|\bmayo\b|aioli|\bquiche\b|pancake/.test(m)) flags.hasEgg = true;
+  if (/cheese|\bcream\b|butter|yoghurt|yogurt|\bmilk\b|alfredo|\branch\b|tzatziki|parmesan|mozzarella|paneer|\bghee\b/.test(m)) flags.hasDairy = true;
+  if (/\bbread\b|\bbun\b|\bbuns\b|\bpasta\b|noodle|\bnaan\b|\bwrap\b|tortilla|breaded|\bflour\b|couscous|biscuit|\bpizza\b|lasagn|\bmac\b|pancake|\bbagel|\broll\b|\bsub\b|dumpling|spring roll|\bgyro\b|\bpita\b|\bgnocchi\b|\bwedges\b/.test(m)) flags.hasGluten = true;
+  return flags;
+}
 
-    const ws = wb.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+// Build the flag set for one slot from the Intake allergen string UNION the
+// name-detected allergens on the chosen (Kitchen) dish text. Never under-flags.
+function buildSlotFlags(allergenStr, mealText) {
+  const flags = emptyMealFlags();
+  allergenStrToFlags(allergenStr, flags);
+  nameDetectFlags(mealText, flags);
+  const m = (mealText || '').toLowerCase();
+  // Carb-swap routing: main format is a high-carb starch.
+  if (/\bpasta\b|\bnoodle|\brice\b|\bnaan\b|couscous|\bbun\b|\bbread\b|\bwrap\b|tortilla|\bpotato|biscuit|\bpizza\b|lasagna|lasagne|\bmac\b|casserole|\bfajita|\btaco|\bgyro\b|nachos|\bfries\b|\bsub\b|briyani|biryani|mujadarrah|quinoa/.test(m)) flags.isCarb = true;
+  // Halal-certified default (site rule): non-pork meat is treated halal-certified
+  // (halal residents eat the regular meal) unless an explicit Halal option exists;
+  // pork slots stay false so EXPO emits a separate halal cook. User can override
+  // per-slot in Edit Menu.
+  if (!flags.hasPork && (flags.hasBeef || flags.hasChicken || flags.hasTurkey)) flags.halalCertifiedMeat = true;
+  if (/^halal\s/i.test((mealText || '').trim())) flags.halalCertifiedMeat = true;
+  return flags;
+}
 
-    // Find which column has SUNDAY — handle sheets with extra leading columns
-    let dayColStart = 1;
-    for (let r = 0; r < Math.min(rows.length, 3); r++) {
-      const idx = rows[r].findIndex(c => String(c).trim().toUpperCase().replace(/\s/g,'') === 'SUNDAY');
-      if (idx >= 0) { dayColStart = idx; break; }
+// A packaging row ("12x12 Thermofoil", "Big Brown Bag", "Small Square & Soup
+// Lids") is kitchen-ops metadata, not food. In the Kitchen sheet these can be
+// UNLABELED (blank column A), so without this guard they'd leak into the
+// breakfast meal text via the shared-side continuation.
+function isPackagingRow(cells) {
+  const joined = (cells || []).join(' ').toLowerCase();
+  if (!joined.trim()) return false;
+  return /therm|foil|\bcontainer\b|\bcontiner\b|brown bag|\bsquare\b|soup lid|paper plate|\blabel|sandwich bag|\bbag\b|\bbags\b|\blids?\b/.test(joined);
+}
+
+function _appendPiece(existing, piece) {
+  const clean = (piece || '').replace(/,\s*$/, '').trim();
+  const ex = (existing || '').replace(/,\s*$/, '').trim();
+  if (!clean) return ex;
+  if (!ex) return clean;
+  return ex + ', ' + clean;
+}
+
+// The layout has intentional redundancy (Vegetarian rows repeat sides the
+// VEG LUNCH/VEG DINNER rows also list). Dedup pieces case-insensitively.
+function _dedupePieces(s) {
+  const seen = {};
+  const out = [];
+  (s || '').split(',').forEach(p => {
+    const c = p.trim();
+    if (!c) return;
+    const k = c.toLowerCase().replace(/\s+/g, ' ');
+    if (seen[k]) return;
+    seen[k] = true;
+    out.push(c);
+  });
+  return out.join(', ');
+}
+
+// Normalize a dish string for divergence comparison (case/punctuation-blind).
+function _normMeal(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Walk one sheet's rows (header:1 2-D array) once, routing by the column-A
+// label, and return per-period {meals, veg, mainAlt(halal), allergens} arrays
+// (7 days each). Anchored on the SUNDAY header so extra leading columns are OK.
+function extractPeriodsFromRows(rows) {
+  rows = rows || [];
+  let dayColStart = 1;
+  for (let r = 0; r < Math.min(rows.length, 4); r++) {
+    const row = rows[r] || [];
+    const idx = row.findIndex(c => String(c).trim().toUpperCase().replace(/\s/g, '') === 'SUNDAY');
+    if (idx >= 0) { dayColStart = idx; break; }
+  }
+  const rowLabel = r => String((rows[r] && (rows[r][dayColStart - 1] || rows[r][0])) || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  const readDayCells = r => {
+    const arr = [];
+    for (let d = 0; d < 7; d++) arr.push(String((rows[r] && rows[r][dayColStart + d]) || '').trim());
+    return arr;
+  };
+  const mk = () => ({ meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') });
+  const periods = { breakfast: mk(), lunch: mk(), dinner: mk() };
+
+  let curPeriod = null;
+  let contMode = null; // 'breakfast-both' | 'vegside-lunch' | 'vegside-dinner'
+  for (let r = 0; r < rows.length; r++) {
+    const label = rowLabel(r);
+    if (label === 'BREAKFAST' || label === 'LUNCH' || label === 'DINNER') {
+      curPeriod = label.toLowerCase();
+      periods[curPeriod].meals = readDayCells(r);
+      contMode = (curPeriod === 'breakfast') ? 'breakfast-both' : null;
+      continue;
     }
-
-    const rowLabel = r => String(rows[r][dayColStart - 1] || rows[r][0] || '').trim().toUpperCase().replace(/\s+/g, ' ');
-    const readDayCells = r => {
-      const arr = [];
-      for (let d = 0; d < 7; d++) arr.push(String(rows[r][dayColStart + d] || '').trim());
-      return arr;
-    };
-
-    const periods = {
-      breakfast: { meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') },
-      lunch:     { meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') },
-      dinner:    { meals:Array(7).fill(''), veg:Array(7).fill(''), allergens:Array(7).fill(''), mainAlt:Array(7).fill('') },
-    };
-
-    // State machine — walks every row once and routes by label.
-    // Unlabeled rows are treated as continuations of the last role.
-    let curPeriod = null;
-    let contMode = null; // 'breakfast-both' | 'vegside-lunch' | 'vegside-dinner' | null
-    for (let r = 0; r < rows.length; r++) {
-      const label = rowLabel(r);
-      if (label === 'BREAKFAST' || label === 'LUNCH' || label === 'DINNER') {
-        curPeriod = label.toLowerCase();
-        periods[curPeriod].meals = readDayCells(r);
-        contMode = (curPeriod === 'breakfast') ? 'breakfast-both' : null;
-        continue;
+    if (label === 'VEG LUNCH' || label === 'VEG DINNER') {
+      const target = label === 'VEG LUNCH' ? 'lunch' : 'dinner';
+      const cells = readDayCells(r);
+      if (!isPackagingRow(cells)) {
+        for (let d = 0; d < 7; d++) if (cells[d]) periods[target].veg[d] = _appendPiece(periods[target].veg[d], cells[d]);
       }
-      if (label === 'VEG LUNCH' || label === 'VEG DINNER') {
-        const target = label === 'VEG LUNCH' ? 'lunch' : 'dinner';
-        const cells = readDayCells(r);
-        for (let d = 0; d < 7; d++) {
-          if (cells[d]) periods[target].veg[d] = appendPiece(periods[target].veg[d], cells[d]);
-        }
-        contMode = 'vegside-' + target;
-        continue;
-      }
-      if (label === 'VEGETARIAN' || label === 'VEG' || label.startsWith('VEG ')) {
-        // Lenient: catches any VEG-prefixed label other than VEG LUNCH/DINNER
-        // (preserves backward compat with the Rexdale layout).
-        if (curPeriod) periods[curPeriod].veg = readDayCells(r);
-        contMode = (curPeriod === 'breakfast') ? 'breakfast-both' : null;
-        continue;
-      }
-      if (label === 'HALAL' || label === 'HALAL OPTION') {
-        if (curPeriod) periods[curPeriod].mainAlt = readDayCells(r);
-        contMode = null;
-        continue;
-      }
-      if (label === 'ALLERGENS' || label === 'ALLERGEN') {
-        if (curPeriod) periods[curPeriod].allergens = readDayCells(r);
-        contMode = null;
-        continue;
-      }
-      if (label === '') {
-        const cells = readDayCells(r);
-        if (!cells.some(c => c)) { contMode = null; continue; }
-        if (contMode === 'breakfast-both') {
-          for (let d = 0; d < 7; d++) {
-            if (!cells[d]) continue;
-            periods.breakfast.meals[d] = appendPiece(periods.breakfast.meals[d], cells[d]);
-            periods.breakfast.veg[d]   = appendPiece(periods.breakfast.veg[d],   cells[d]);
-          }
-        } else if (contMode === 'vegside-lunch' || contMode === 'vegside-dinner') {
-          const tp = contMode.endsWith('lunch') ? 'lunch' : 'dinner';
-          for (let d = 0; d < 7; d++) {
-            if (cells[d]) periods[tp].veg[d] = appendPiece(periods[tp].veg[d], cells[d]);
-          }
-        }
-        continue;
-      }
-      // Unknown label — break continuation chain
+      contMode = 'vegside-' + target;
+      continue;
+    }
+    if (label === 'VEGETARIAN' || label === 'VEG' || label.indexOf('VEG ') === 0) {
+      if (curPeriod) periods[curPeriod].veg = readDayCells(r);
+      contMode = (curPeriod === 'breakfast') ? 'breakfast-both' : null;
+      continue;
+    }
+    if (label === 'HALAL' || label === 'HALAL OPTION') {
+      if (curPeriod) periods[curPeriod].mainAlt = readDayCells(r);
       contMode = null;
+      continue;
     }
+    if (label === 'ALLERGENS' || label === 'ALLERGEN') {
+      if (curPeriod) periods[curPeriod].allergens = readDayCells(r);
+      contMode = null;
+      continue;
+    }
+    if (label === '') {
+      const cells = readDayCells(r);
+      if (!cells.some(c => c) || isPackagingRow(cells)) { contMode = null; continue; }
+      if (contMode === 'breakfast-both') {
+        for (let d = 0; d < 7; d++) {
+          if (!cells[d]) continue;
+          periods.breakfast.meals[d] = _appendPiece(periods.breakfast.meals[d], cells[d]);
+          periods.breakfast.veg[d]   = _appendPiece(periods.breakfast.veg[d],   cells[d]);
+        }
+      } else if (contMode === 'vegside-lunch' || contMode === 'vegside-dinner') {
+        const tp = contMode.endsWith('lunch') ? 'lunch' : 'dinner';
+        for (let d = 0; d < 7; d++) if (cells[d]) periods[tp].veg[d] = _appendPiece(periods[tp].veg[d], cells[d]);
+      }
+      continue;
+    }
+    // Unknown label (Container / Family Meal / legend) — break continuation.
+    contMode = null;
+  }
+  return periods;
+}
 
-    // Build week data
+// Write one resolved slot (chosen dish text + veg + halal + Intake allergens)
+// into a day object in the canonical MENU_DATA shape.
+function assignMenuSlot(day, period, mealText, vegText, halalText, allergenStr) {
+  const meal = _dedupePieces(mealText || '');
+  day[period] = meal;
+  day[period + '_veg'] = _dedupePieces(vegText || '');
+  if (halalText) day[period + '_halal'] = String(halalText).trim();
+  const segs = meal.split(',').map(s => s.trim()).filter(Boolean);
+  day[period + '_mainItem'] = segs[0] || '';
+  day[period + '_sides'] = segs.slice(1).join(', ');
+  day[period + '_flags'] = buildSlotFlags(allergenStr, meal);
+}
+
+// Merge the per-week Kitchen + Intake sheet rows into the MENU_DATA shape.
+// `sheets` = { '1': { kitchen: rows|null, intake: rows|null }, ... }.
+// Returns { menu, divergences, sheetsUsed }. Kitchen wins for dish text
+// (default); every slot where the two sheets disagree is recorded so the
+// review screen can let the user pick per-slot before applying.
+function parseMenuFromSheetRows(sheets) {
+  const menu = {};
+  const divergences = [];
+  const sheetsUsed = {};
+  for (let wk = 1; wk <= 4; wk++) {
+    const s = sheets[String(wk)];
+    if (!s || (!s.kitchen && !s.intake)) continue;
+    const kP = s.kitchen ? extractPeriodsFromRows(s.kitchen) : null;
+    const iP = s.intake ? extractPeriodsFromRows(s.intake) : null;
+    const menuP = kP || iP;   // dish text: Kitchen preferred
+    const allP  = iP || kP;   // allergens: Intake preferred
+    sheetsUsed[String(wk)] = { kitchen: !!kP, intake: !!iP };
     const weekData = {};
     DAYS_UPLOAD.forEach((dayName, di) => {
       const day = {};
-      ['breakfast','lunch','dinner'].forEach(p => {
-        if (!periods[p]) return;
-        day[p] = dedupePieces(periods[p].meals[di] || '');
-        day[p + '_veg'] = dedupePieces(periods[p].veg[di] || '');
-        if (periods[p].mainAlt[di]) day[p + '_mainAlt'] = periods[p].mainAlt[di].trim();
-        // Parse allergen flags
-        const flags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
-        const allergenStr = (periods[p].allergens[di] || '').toLowerCase();
-        if (allergenStr) {
-          allergenStr.split(/[,;]+/).forEach(token => {
-            const t = token.trim().replace(/[^a-z]/g, '');
-            if (ALLERGEN_FLAG_MAP[t]) flags[ALLERGEN_FLAG_MAP[t]] = true;
-          });
+      ['breakfast', 'lunch', 'dinner'].forEach(p => {
+        const meal   = menuP && menuP[p] ? menuP[p].meals[di] : '';
+        const veg    = menuP && menuP[p] ? menuP[p].veg[di] : '';
+        const halal  = menuP && menuP[p] ? (menuP[p].mainAlt[di] || '').trim() : '';
+        const allerg = allP  && allP[p]  ? (allP[p].allergens[di] || '') : '';
+        // Divergence: both sheets present and their regular dish text differs.
+        if (kP && iP && kP[p] && iP[p]) {
+          const kMeal = _dedupePieces(kP[p].meals[di] || '');
+          const iMeal = _dedupePieces(iP[p].meals[di] || '');
+          if (kMeal && iMeal && _normMeal(kMeal) !== _normMeal(iMeal)) {
+            divergences.push({
+              wk: String(wk), day: dayName, period: p,
+              kitchen: kMeal, intake: iMeal,
+              kitchenVeg: kP[p].veg[di] || '', intakeVeg: iP[p].veg[di] || '',
+              kitchenHalal: (kP[p].mainAlt[di] || '').trim(), intakeHalal: (iP[p].mainAlt[di] || '').trim(),
+              allergenStr: allerg
+            });
+          }
         }
-        // Name-based detection as fallback
-        const mealLower = (day[p] || '').toLowerCase();
-        if (/\bpork\b|\bham\b|\bpepperoni\b|\bbacon\b/.test(mealLower) && !/turkey bacon/.test(mealLower)) flags.hasPork = true;
-        if (/\bbeef\b|\bmeatloaf\b|\bstrogonoff\b/.test(mealLower)) flags.hasBeef = true;
-        if (/\bchicken\b/.test(mealLower)) flags.hasChicken = true;
-        if (/\bturkey\b/.test(mealLower)) flags.hasTurkey = true;
-        if (/\bfish\b|\btuna\b/.test(mealLower)) flags.hasFish = true;
-        if (/\bpasta\b|\bnoodle/.test(mealLower) && !mealLower.includes(',')) flags.isCarb = true;
-        // Auto-flag halal-certified for non-pork meat meals (site default) and
-        // for any meal whose name starts with "Halal ". User can opt out per
-        // meal via Edit Menu when an exception comes through.
-        if (!flags.hasPork && (flags.hasBeef || flags.hasChicken || flags.hasTurkey)) {
-          flags.halalCertifiedMeat = true;
-        }
-        if (/^halal\s/i.test(day[p] || '')) flags.halalCertifiedMeat = true;
-        day[p + '_flags'] = flags;
+        assignMenuSlot(day, p, meal, veg, halal, allerg);
       });
       weekData[dayName] = day;
     });
-    result[String(wk)] = weekData;
+    menu[String(wk)] = weekData;
   }
-  return result;
+  return { menu, divergences, sheetsUsed };
+}
+
+// Apply the user's per-divergence picks. picks[`${wk}-${day}-${period}`] ===
+// 'intake' rewrites that slot from the Intake variant; 'kitchen'/absent keeps
+// the default. Allergens always come from Intake either way.
+function applyMenuPicks(menu, divergences, picks) {
+  picks = picks || {};
+  (divergences || []).forEach(dv => {
+    if (picks[dv.wk + '-' + dv.day + '-' + dv.period] === 'intake') {
+      const day = menu[dv.wk] && menu[dv.wk][dv.day];
+      if (day) assignMenuSlot(day, dv.period, dv.intake, dv.intakeVeg, dv.intakeHalal, dv.allergenStr);
+    }
+  });
+  return menu;
+}
+/* DOOR_TESTABLE_CORE_END menu-parse */
+
+// Thin XLSX shell over the pure menu-parse core. Locates each week's Kitchen
+// + Intake sheets (tolerant of a leading space / casing / the "Week N" legacy
+// single sheet), converts them to header:1 row arrays, and hands off to
+// parseMenuFromSheetRows. Returns { menu, divergences, sheetsUsed }.
+function parseMenuWorkbook(wb) {
+  const rowsFor = name => XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:'' });
+  const findSheet = (wk, kind) => wb.SheetNames.find(n => new RegExp('Week\\s*' + wk + '\\s*' + kind, 'i').test(n));
+  const sheets = {};
+  for (let wk = 1; wk <= 4; wk++) {
+    const kName = findSheet(wk, 'Kitchen');
+    const iName = findSheet(wk, 'Intake');
+    // Legacy fallback: a single "Week N" sheet (old Rexdale layout) drives the
+    // Kitchen slot so its own allergen rows still flow.
+    const genericName = (!kName && !iName)
+      ? wb.SheetNames.find(n => new RegExp('Week\\s*' + wk, 'i').test(n))
+      : null;
+    sheets[String(wk)] = {
+      kitchen: kName ? rowsFor(kName) : (genericName ? rowsFor(genericName) : null),
+      intake:  iName ? rowsFor(iName) : null
+    };
+  }
+  return parseMenuFromSheetRows(sheets);
 }
 
 function triggerMenuUpload() {
@@ -15728,8 +15891,8 @@ function triggerMenuUpload() {
       try {
         const wb = XLSX.read(evt.target.result, {type:'array'});
         const parsed = parseMenuWorkbook(wb);
-        const weekCount = Object.keys(parsed).length;
-        if (weekCount === 0) { alert('Could not find any week sheets in this file.'); return; }
+        const weekCount = Object.keys(parsed.menu).length;
+        if (weekCount === 0) { alert('Could not find any week sheets in this file. Expected sheets named like "Week 1 Kitchen" / "Week 1 Intake".'); return; }
         showMenuUploadReview(parsed, file.name);
       } catch(err) {
         alert('Error parsing menu file: ' + err.message);
@@ -15740,34 +15903,68 @@ function triggerMenuUpload() {
   input.click();
 }
 
-function showMenuUploadReview(parsed, filename) {
-  // Count meals found
-  let totalMeals = 0, totalVeg = 0, totalAllergens = 0;
+function showMenuUploadReview(parseResult, filename) {
+  const menu = parseResult.menu || {};
+  const divergences = parseResult.divergences || [];
+  const sheetsUsed = parseResult.sheetsUsed || {};
+  const PERIOD_LABEL = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner' };
+  const dayShort = d => d.charAt(0) + d.slice(1).toLowerCase();
+
+  // Per-week summary + sheet provenance + allergen coverage.
+  let totalMeals = 0, totalVeg = 0, totalAllergens = 0, totalNoAllerg = 0;
   const summary = [];
   ['1','2','3','4'].forEach(wk => {
-    if (!parsed[wk]) { summary.push(`<div style="color:var(--muted);">Week ${wk}: not found</div>`); return; }
-    let wkMeals = 0, wkVeg = 0, wkAll = 0;
+    if (!menu[wk]) { summary.push(`<div style="color:var(--muted);">Week ${wk}: not found</div>`); return; }
+    let wkMeals = 0, wkVeg = 0, wkAll = 0, wkNoAll = 0;
     DAYS_UPLOAD.forEach(day => {
-      const d = parsed[wk][day] || {};
+      const d = menu[wk][day] || {};
       ['breakfast','lunch','dinner'].forEach(p => {
-        if (d[p]) wkMeals++;
+        if (d[p]) {
+          wkMeals++;
+          const fl = d[p + '_flags'] || {};
+          if (Object.values(fl).some(v => v === true)) wkAll++; else wkNoAll++;
+        }
         if (d[p + '_veg']) wkVeg++;
-        const fl = d[p + '_flags'] || {};
-        if (Object.values(fl).some(v => v)) wkAll++;
       });
     });
-    totalMeals += wkMeals; totalVeg += wkVeg; totalAllergens += wkAll;
-    summary.push(`<div><strong>Week ${wk}:</strong> ${wkMeals} meals, ${wkVeg} veg alts, ${wkAll} with allergen flags</div>`);
+    totalMeals += wkMeals; totalVeg += wkVeg; totalAllergens += wkAll; totalNoAllerg += wkNoAll;
+    const su = sheetsUsed[wk] || {};
+    const src = su.kitchen && su.intake ? 'Kitchen + Intake'
+      : su.kitchen ? 'Kitchen only' : su.intake ? 'Intake only' : 'single sheet';
+    summary.push(`<div><strong>Week ${wk}:</strong> ${wkMeals} meals, ${wkVeg} veg alts, ${wkAll} with allergen flags <span style="color:var(--muted);font-size:11px;">(${src})</span></div>`);
   });
 
-  // Sample preview: first week, first two days
-  const sampleWk = parsed['1'] || parsed[Object.keys(parsed)[0]];
+  // Divergences: Kitchen vs Intake dish text disagree for a slot. User picks
+  // which text is the real meal; Kitchen is the default.
+  let divHtml = '';
+  if (divergences.length) {
+    const byWeek = {};
+    divergences.forEach(dv => { (byWeek[dv.wk] = byWeek[dv.wk] || []).push(dv); });
+    divHtml = `<div style="margin-top:16px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px;">Kitchen vs Intake — ${divergences.length} slot${divergences.length!==1?'s':''} differ</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">The two sheets list different dishes for these slots. Pick the real meal (Kitchen is the default). Allergens come from the Intake sheet either way.</div>`;
+    Object.keys(byWeek).sort().forEach(wk => {
+      divHtml += `<div style="font-size:12px;font-weight:600;margin-top:8px;">Week ${wk}</div>`;
+      byWeek[wk].forEach(dv => {
+        const nm = `divpick-${dv.wk}-${dv.day}-${dv.period}`;
+        divHtml += `<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:6px;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">${dayShort(dv.day)} · ${PERIOD_LABEL[dv.period]}</div>
+          <label style="display:block;font-size:12px;cursor:pointer;margin-bottom:3px;"><input type="radio" name="${nm}" value="kitchen" checked style="vertical-align:middle;margin-right:6px;"><strong>Kitchen:</strong> ${escapeHtml(dv.kitchen)}</label>
+          <label style="display:block;font-size:12px;cursor:pointer;"><input type="radio" name="${nm}" value="intake" style="vertical-align:middle;margin-right:6px;"><strong>Intake:</strong> ${escapeHtml(dv.intake)}</label>
+        </div>`;
+      });
+    });
+    divHtml += `</div>`;
+  }
+
+  // Preview: first week lunch + dinner (regular + veg).
+  const sampleWk = menu['1'] || menu[Object.keys(menu)[0]];
   let sampleHtml = '';
   if (sampleWk) {
-    const previewDays = DAYS_UPLOAD.slice(0, 3);
+    const previewDays = DAYS_UPLOAD.slice(0, 4);
     sampleHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;">' +
       '<tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);"></th>' +
-      previewDays.map(d => `<th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">${d.charAt(0)+d.slice(1).toLowerCase()}</th>`).join('') + '</tr>';
+      previewDays.map(d => `<th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">${dayShort(d)}</th>`).join('') + '</tr>';
     ['lunch','dinner'].forEach(p => {
       sampleHtml += '<tr><td style="padding:4px;font-weight:600;text-transform:uppercase;color:var(--muted);">' + p + '</td>' +
         previewDays.map(d => `<td style="padding:4px;">${escapeHtml((sampleWk[d]||{})[p] || '—')}</td>`).join('') + '</tr>';
@@ -15777,15 +15974,22 @@ function showMenuUploadReview(parsed, filename) {
     sampleHtml += '</table>';
   }
 
+  const noAllergWarn = totalNoAllerg
+    ? `<div style="background:#fee2e2;border:1px solid #ef4444;border-radius:8px;padding:8px 12px;margin-top:12px;font-size:12px;color:#991b1b;">
+        <strong>${totalNoAllerg} meal${totalNoAllerg!==1?'s have':' has'} no detected allergens.</strong> Verify these in Edit Menu before service — a blank allergen list may mean the Intake sheet was missing that row, not that the dish is allergen-free.
+      </div>` : '';
+
   // Build modal
   const modal = document.createElement('div');
   modal.id = 'menu-upload-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML = `<div style="background:var(--paper);border-radius:12px;padding:24px;max-width:640px;width:95%;max-height:85vh;overflow-y:auto;">
+  modal.innerHTML = `<div style="background:var(--paper);border-radius:12px;padding:24px;max-width:640px;width:95%;max-height:88vh;overflow-y:auto;">
     <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Upload New Menu Rotation</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${escapeHtml(filename)}</div>
     <div style="margin-bottom:12px;">${summary.join('')}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Totals: ${totalMeals} meals, ${totalVeg} veg alternatives, ${totalAllergens} with auto-detected allergen flags</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Totals: ${totalMeals} meals, ${totalVeg} veg alternatives, ${totalAllergens} with allergen flags. Allergens are the union of the Intake sheet's list and the dishes' own names (never under-flags).</div>
+    ${noAllergWarn}
+    ${divHtml}
     <div style="font-size:13px;font-weight:600;margin-top:16px;margin-bottom:4px;">Week 1 Preview</div>
     ${sampleHtml}
     <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-top:16px;font-size:12px;">
@@ -15799,10 +16003,19 @@ function showMenuUploadReview(parsed, filename) {
   document.body.appendChild(modal);
 
   document.getElementById('menu-upload-confirm-btn').onclick = function() {
-    saveUploadedMenu(parsed);
+    // Gather per-divergence picks from the radios, then resolve the menu.
+    const picks = {};
+    divergences.forEach(dv => {
+      const sel = modal.querySelector(`input[name="divpick-${dv.wk}-${dv.day}-${dv.period}"]:checked`);
+      if (sel) picks[dv.wk + '-' + dv.day + '-' + dv.period] = sel.value;
+    });
+    const finalMenu = applyMenuPicks(menu, divergences, picks);
+    saveUploadedMenu(finalMenu);
     // Clear the base overlay (individual permanent changes no longer apply to old slots)
     saveMenuBaseOverlay({});
-    logMenuEvent('menu_permanent', 'Uploaded new 4-week rotation from ' + filename + ' (' + totalMeals + ' meals)');
+    const intakePicks = Object.values(picks).filter(v => v === 'intake').length;
+    logMenuEvent('menu_permanent', 'Uploaded new 4-week rotation from ' + filename + ' (' + totalMeals + ' meals'
+      + (divergences.length ? ', ' + intakePicks + '/' + divergences.length + ' slots set to Intake text' : '') + ')');
     showToast('New menu rotation applied.');
     modal.remove();
     renderMenuConfig();
