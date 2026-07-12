@@ -1717,6 +1717,7 @@ function updateCODEXBadge() {
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()">✏ Edit Menu</button>
       <button class="btn btn-ghost btn-sm" onclick="openTestMeal()" style="color:#7c3aed;border-color:#7c3aed;">&#x1F9EA; Test Meal</button>
+      <button class="btn btn-sm btn-mint" id="mc-publish-btn" onclick="publishMenuFromConfig()" title="Publish the current menu and DOOR state to GitHub (menu_current.json + routing_by_meal.json) so EXPO and HUB pick it up">&#x21EA; Publish</button>
     </div>
   </div>
   <div class="content">
@@ -15877,6 +15878,30 @@ function parseMenuWorkbook(wb) {
     };
   }
   return parseMenuFromSheetRows(sheets);
+}
+
+// Menu Config "⇪ Publish" button. Runs the same manual publish as Settings'
+// "Publish Now" (pushes menu_current.json + routing_by_meal.json + the rest to
+// GitHub so EXPO/HUB pick up the current menu), with inline button feedback on
+// top of publishToGitHub's own toast. No-token / stale-tab / Gate-9 cases are
+// all handled inside publishToGitHub.
+async function publishMenuFromConfig() {
+  const btn = document.getElementById('mc-publish-btn');
+  const label = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Publishing…'; }
+  try {
+    const res = await publishToGitHub(true);
+    if (btn) {
+      const good = res && res.ok && !res.degraded && !res.advisory;
+      btn.innerHTML = good ? 'Published ✓' : label;
+      if (good) setTimeout(() => { if (btn) btn.innerHTML = label; }, 2500);
+    }
+  } catch (e) {
+    // publishToGitHub already surfaced the failure toast; just restore the label.
+    if (btn) btn.innerHTML = label;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function triggerMenuUpload() {
