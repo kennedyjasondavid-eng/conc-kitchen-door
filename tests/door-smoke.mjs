@@ -1889,3 +1889,126 @@ test('door_state.json keeps registry data and provenance fields', () => {
     assert.ok(Array.isArray(resident.tags), `resident ${index} should carry tags[]`);
   }
 });
+
+// ── Menu-workbook parse core (Kitchen + Intake dual-sheet) ─────────────────
+function loadMenuParseCore() {
+  const html = readText('index.html');
+  const code = extractTestableCoreBlock(html, 'menu-parse');
+  const context = { Array, Object, String, RegExp };
+  vm.createContext(context);
+  vm.runInContext(code, context, { filename: 'index.html#menu-parse', timeout: 1000 });
+  for (const fn of ['parseMenuFromSheetRows', 'applyMenuPicks', 'buildSlotFlags', 'extractPeriodsFromRows']) {
+    assert.equal(typeof context[fn], 'function', `menu-parse core should expose ${fn}`);
+  }
+  return context;
+}
+
+// A compact Kitchen sheet (days in cols B–H) with a real-shaped layout:
+// section labels in col A, an UNLABELED packaging row after breakfast, a
+// vegetarian row, a halal row, and lunch/dinner. No allergen rows (Kitchen).
+function kitchenSheet() {
+  return [
+    ['WEEK 1','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+    ['BREAKFAST','Pork Breakfast sandwich','Pancakes','','','','',''],
+    ['Vegetarian','Vegan Sausage Sandwich','Pancakes veg','','','','',''],
+    ['','fruit & yoghurt','fruit & yoghurt','','','','',''],
+    ['','12 x 12 Thermfoil & Labels','Small Square & Soup Lids','','','','',''], // packaging (unlabeled)
+    ['LUNCH','Egg Salad Wrap, Bean Salad','Fully Loaded Sausage, Side Salad','','','','',''],
+    ['Vegetarian','Chickpea Wrap, Bean Salad','Vegan Sausage, Side Salad','','','','',''],
+    ['Halal Option','','','','','','',''],
+    ['DINNER','Pork Carnitas, Rice','Beef Strogonoff, Noodles','','','','',''],
+    ['Vegetarian','Veg carnitas, Rice','Mushroom Strogonoff, Noodles','','','','',''],
+    ['Halal option','Halal Chicken Carnitas','','','','','',''],
+  ];
+}
+
+// Matching Intake sheet: same days, ALLERGENS rows per meal, and a DIVERGENT
+// Sunday lunch dish (Ham Mac & Cheese vs Egg Salad Wrap).
+function intakeSheet() {
+  return [
+    ['WEEK 1','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+    ['BREAKFAST','Pork Breakfast sandwich','Pancakes','','','','',''],
+    ['Vegetarian','Vegan Sausage Sandwich','Pancakes veg','','','','',''],
+    ['','fruit & yoghurt','fruit & yoghurt','','','','',''],
+    ['Allergens','gluten, dairy, pork','gluten, dairy, egg','','','','',''],
+    ['LUNCH','Ham Mac & Cheese, Pea and Carrot','Halal Sausages, Baked Beans','','','','',''],
+    ['Vegetarian','Veg option','Veg sausage','','','','',''],
+    ['Allergens','pork, gluten, dairy','gluten, beef','','','','',''],
+    ['DINNER','Pork Carnitas, Rice','Beef Strogonoff, Noodles','','','','',''],
+    ['Vegetarian','Veg carnitas, Rice','Mushroom Strogonoff, Noodles','','','','',''],
+    ['Allergens','pork','gluten, beef, dairy','','','','',''],
+  ];
+}
+
+test('menu-parse: Kitchen drives dish text, Intake drives allergens, packaging never leaks', () => {
+  const core = loadMenuParseCore();
+  const res = core.parseMenuFromSheetRows({ '1': { kitchen: kitchenSheet(), intake: intakeSheet() } });
+  const sun = res.menu['1'].SUNDAY;
+
+  // Kitchen wins for dish text (Egg Salad Wrap), not the Intake divergent dish.
+  assert.equal(sun.lunch, 'Egg Salad Wrap, Bean Salad', 'Kitchen dish text should win by default');
+  assert.equal(sun.lunch_mainItem, 'Egg Salad Wrap', 'mainItem = first comma segment');
+  assert.equal(sun.lunch_sides, 'Bean Salad', 'sides = remaining segments');
+
+  // Packaging row must not leak into the breakfast text.
+  assert.ok(!/thermfoil|thermofoil|soup lid/i.test(sun.breakfast), 'packaging row must not leak into breakfast');
+  assert.ok(sun.breakfast.includes('fruit & yoghurt'), 'real breakfast side should merge');
+
+  // Halal row captured onto _halal for the pork dinner.
+  assert.equal(sun.dinner_halal, 'Halal Chicken Carnitas', 'halal option row should populate <meal>_halal');
+
+  // Provenance: both sheets used, and the divergent Sunday lunch is recorded.
+  assert.equal(res.sheetsUsed['1'].kitchen, true, 'kitchen sheet used');
+  assert.equal(res.sheetsUsed['1'].intake, true, 'intake sheet used');
+  const div = res.divergences.find(d => d.day === 'SUNDAY' && d.period === 'lunch');
+  assert.ok(div, 'divergent Sunday lunch should be recorded');
+  assert.equal(div.kitchen, 'Egg Salad Wrap, Bean Salad');
+  assert.equal(div.intake, 'Ham Mac & Cheese, Pea and Carrot');
+});
+
+test('menu-parse: allergens are the UNION of Intake list and dish-name detection (never under-flags)', () => {
+  const core = loadMenuParseCore();
+  const res = core.parseMenuFromSheetRows({ '1': { kitchen: kitchenSheet(), intake: intakeSheet() } });
+  const sun = res.menu['1'].SUNDAY;
+
+  // Egg Salad Wrap: Intake row (written for Ham Mac) lists pork/gluten/dairy;
+  // the dish name adds egg — union keeps them all, so egg is NOT dropped.
+  const lf = sun.lunch_flags;
+  assert.equal(lf.hasEgg, true, 'egg must be detected from "Egg Salad" even though Intake row omitted it');
+  assert.equal(lf.hasGluten, true, 'gluten from Intake list / "Wrap"');
+  assert.equal(lf.hasDairy, true, 'dairy from Intake list');
+  assert.equal(lf.hasPork, true, 'pork carried from the Intake list (over-flag is the safe direction)');
+
+  // Pork dinner stays halalCertifiedMeat:false so EXPO emits a halal cook;
+  // the beef dinner (non-pork meat) defaults to halalCertifiedMeat:true.
+  assert.equal(sun.dinner_flags.hasPork, true);
+  assert.equal(sun.dinner_flags.halalCertifiedMeat, false, 'pork slot must not be halal-certified');
+  assert.equal(res.menu['1'].MONDAY.dinner_flags.hasBeef, true);
+  assert.equal(res.menu['1'].MONDAY.dinner_flags.halalCertifiedMeat, true, 'non-pork meat defaults halal-certified');
+});
+
+test('menu-parse: per-divergence pick swaps to the Intake dish and re-derives the slot', () => {
+  const core = loadMenuParseCore();
+  const res = core.parseMenuFromSheetRows({ '1': { kitchen: kitchenSheet(), intake: intakeSheet() } });
+  core.applyMenuPicks(res.menu, res.divergences, { '1-SUNDAY-lunch': 'intake' });
+  const sun = res.menu['1'].SUNDAY;
+  assert.equal(sun.lunch, 'Ham Mac & Cheese, Pea and Carrot', 'pick=intake swaps the dish text');
+  assert.equal(sun.lunch_mainItem, 'Ham Mac & Cheese', 'mainItem re-derived after swap');
+  assert.equal(sun.lunch_flags.hasPork, true, 'allergens re-derived (Intake ham row + name detection)');
+});
+
+test('menu-parse: day columns are anchored on SUNDAY, so an offset layout (days start col C) still parses', () => {
+  const core = loadMenuParseCore();
+  // Week-3-style: an extra leading label column pushes SUNDAY to index 2.
+  const offset = [
+    ['WEEK 3','','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+    ['BREAKFAST','','Pork sandwich','Pancakes','','','','',''],
+    ['LUNCH','','Coronation Chicken Sandwich','Pulled Pork Sandwich','','','','',''],
+    ['DINNER','','Beef Meatballs Pasta','Roast Chicken, Rice','','','','',''],
+  ];
+  const res = core.parseMenuFromSheetRows({ '3': { kitchen: offset, intake: null } });
+  assert.equal(res.menu['3'].SUNDAY.lunch, 'Coronation Chicken Sandwich', 'SUNDAY column resolved past the offset');
+  assert.equal(res.menu['3'].MONDAY.dinner, 'Roast Chicken, Rice');
+  assert.equal(res.sheetsUsed['3'].kitchen, true, 'single-sheet legacy path uses the kitchen slot');
+  assert.equal(res.sheetsUsed['3'].intake, false, 'no intake sheet in the legacy path');
+});
