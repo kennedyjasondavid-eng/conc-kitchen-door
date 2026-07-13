@@ -695,7 +695,7 @@
 const DOOR_APP_VERSION = 'v31-standard.1';
 const DOOR_BUILD_DATE = '2026-06-26';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
-  menu_current: 31,
+  menu_current: 32,
   menu_reno: 2,
   routing_by_meal: 31,
   door_state: 30,
@@ -872,11 +872,6 @@ function updateCODEXBadge() {
 </aside>
 
 <main class="main">
-
-<!-- ===== ALT MENU BANNER (shown only when alternative menu source is active) ===== -->
-<div id="alt-menu-banner" style="display:none;background:#f59e0b;color:#fff;padding:6px 14px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.3px;border-bottom:1px solid rgba(0,0,0,.1)">
-  📋 ALTERNATIVE MENU ACTIVE — read-only view of <code style="background:rgba(0,0,0,.18);padding:1px 5px;border-radius:3px">menu_reno.json</code> · edits via Excel + generator only · <a href="#" onclick="event.preventDefault();toggleAltMenu()" style="color:#fff;text-decoration:underline;font-weight:700">switch back to standard</a>
-</div>
 
 <!-- ===== ENTER CHANGES ===== -->
 <div class="screen active" id="screen-enter">
@@ -1711,7 +1706,6 @@ function updateCODEXBadge() {
       <div class="topbar-sub">View the 4-week rotation, edit flags, and swap meals when the plan changes</div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm alt-menu-toggle" id="mc-alt-menu-btn" onclick="toggleAltMenu()" title="Toggle between standard menu and alternative (currently reno) menu source">📋 Alt Menu</button>
       <button class="btn btn-ghost btn-sm" id="mc-swap-slots-btn" onclick="enterSlotSwapMode()">⇄ Swap Slots</button>
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
@@ -10087,9 +10081,8 @@ async function pullSecondaryState(repo) {
     ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
     ['menu_overlay.json',    d => {
       const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
-      const merged = Object.assign({}, local);
-      Object.keys(d).forEach(wk => { merged[wk] = Object.assign({}, local[wk]||{}, d[wk]); });
-      localStorage.setItem('concMenuBase', JSON.stringify(merged));
+      const mergeResult = doorMergeMenuOverlayWithCloud(local, d);
+      localStorage.setItem('concMenuBase', JSON.stringify(mergeResult.merged));
     }],
     ['menu_current.json',    d => {
       // The file shape is { _meta: {...}, menu: {...} }; localStorage stores
@@ -11640,7 +11633,7 @@ function buildMenuJSON() {
     });
   });
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
+    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:DOOR_SCHEMA_VERSIONS.menu_current },
     menu
   };
 }
@@ -12000,13 +11993,50 @@ function doorCloneJSON(value) {
   return JSON.parse(JSON.stringify(value || {}));
 }
 
+// Standing overlay cutover. Any device/cloud overlay created before this marker
+// is incompatible with the July 2 standard-menu import and must contribute no
+// week/day edits. Keeping this as an epoch (rather than a one-shot local flag)
+// lets every boot and merge reject stale overlays until all devices converge.
+const DOOR_STANDARD_MENU_CUTOVER = 1783971058450;
+
+function doorOverlayHasCurrentCutover(overlay) {
+  return doorIsPlainObject(overlay) &&
+    doorIsPlainObject(overlay._meta) &&
+    Number(overlay._meta.standardCutover) === DOOR_STANDARD_MENU_CUTOVER;
+}
+
+function doorNormalizeMenuOverlay(overlay) {
+  const source = doorIsPlainObject(overlay) ? overlay : {};
+  const sourceMeta = doorIsPlainObject(source._meta) ? doorCloneJSON(source._meta) : {};
+  const normalized = {
+    _meta: Object.assign({}, sourceMeta, { standardCutover: DOOR_STANDARD_MENU_CUTOVER })
+  };
+
+  // A missing/old marker makes every week/day entry stale. Preserve metadata
+  // such as plainVegStirfryComponents, but never copy the incompatible edits.
+  if (!doorOverlayHasCurrentCutover(source)) return normalized;
+
+  Object.keys(source).forEach(function(weekKey) {
+    if (weekKey === '_meta' || !doorIsPlainObject(source[weekKey])) return;
+    normalized[weekKey] = doorCloneJSON(source[weekKey]);
+  });
+  return normalized;
+}
+
 function doorMergeMenuOverlayWithCloud(localOverlay, cloudOverlay) {
-  const local = doorIsPlainObject(localOverlay) ? localOverlay : {};
-  const cloud = doorIsPlainObject(cloudOverlay) ? cloudOverlay : {};
+  const local = doorNormalizeMenuOverlay(localOverlay);
+  const cloud = doorNormalizeMenuOverlay(cloudOverlay);
   const merged = doorCloneJSON(local);
   const addedDays = [];
 
+  // Metadata is not a week. Keep useful metadata from both sides while the
+  // local copy wins conflicts and the current cutover marker remains fixed.
+  merged._meta = Object.assign({}, cloud._meta || {}, local._meta || {}, {
+    standardCutover: DOOR_STANDARD_MENU_CUTOVER
+  });
+
   Object.keys(cloud).forEach(function(weekKey) {
+    if (weekKey === '_meta') return;
     if (!doorIsPlainObject(cloud[weekKey])) return;
     if (!doorIsPlainObject(merged[weekKey])) merged[weekKey] = {};
     Object.keys(cloud[weekKey]).forEach(function(dayKey) {
@@ -12018,7 +12048,7 @@ function doorMergeMenuOverlayWithCloud(localOverlay, cloudOverlay) {
   });
 
   return {
-    merged: addedDays.length ? merged : localOverlay,
+    merged: merged,
     addedDays: addedDays,
     addedCount: addedDays.length,
     hasCloudOnlyDays: addedDays.length > 0
@@ -12031,6 +12061,7 @@ function buildDoorOverlayMergeAdvisory(localOverlay, mergedOverlay, coreArtifact
   const addedDays = [];
 
   Object.keys(merged).forEach(function(weekKey) {
+    if (weekKey === '_meta') return;
     if (!doorIsPlainObject(merged[weekKey])) return;
     Object.keys(merged[weekKey]).forEach(function(dayKey) {
       if (!doorIsPlainObject(local[weekKey]) || !Object.prototype.hasOwnProperty.call(local[weekKey], dayKey)) {
@@ -12246,8 +12277,8 @@ async function _doPublishToGitHub(manual) {
     _pushes.push({ path, skipped: !!(r && r.skipped), reason: r && r.reason });
   };
   try {
-    const menuOverlay = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
-    const overlayToPush = await preMergeOverlayWithCloud(creds, menuOverlay);
+    const menuOverlay = doorNormalizeMenuOverlay(JSON.parse(localStorage.getItem('concMenuBase') || '{}'));
+    const overlayToPush = doorNormalizeMenuOverlay(await preMergeOverlayWithCloud(creds, menuOverlay));
     const overlayAdvisory = buildDoorOverlayMergeAdvisory(menuOverlay, overlayToPush, false);
     const overlayAdvisoryMsg = reportDoorOverlayMergeAdvisory(overlayAdvisory, manual);
     // The publish-overlay override (set just below) is what feeds the
@@ -13987,13 +14018,15 @@ function getWeekStartDate(targetWeekNum) {
 // localStorage overlay (concMenuBase) on top of the hardcoded
 // MENU_DATA constant. Make Permanent writes into this overlay.
 function loadMenuBaseOverlay() {
-  try { return JSON.parse(localStorage.getItem('concMenuBase') || '{}'); } catch(e) { return {}; }
+  try { return doorNormalizeMenuOverlay(JSON.parse(localStorage.getItem('concMenuBase') || '{}')); }
+  catch(e) { return doorNormalizeMenuOverlay({}); }
 }
 function saveMenuBaseOverlay(obj) {
-  localStorage.setItem('concMenuBase', JSON.stringify(obj));
+  const normalized = doorNormalizeMenuOverlay(obj);
+  localStorage.setItem('concMenuBase', JSON.stringify(normalized));
   // Push to GitHub so other devices get the updated menu overlay immediately
   try {
-    PublishAuth.sidePublish('menu_overlay.json', JSON.stringify(obj, null, 2), 'Menu overlay', true);
+    PublishAuth.sidePublish('menu_overlay.json', JSON.stringify(normalized, null, 2), 'Menu overlay', true);
   } catch(e) {}
   // Keep the stale-flags banner in sync with the overlay. A naive in-memory
   // cache goes wrong any time the overlay is wiped (e.g. Apply New Menu) or
@@ -14008,6 +14041,16 @@ function saveMenuBaseOverlay(obj) {
       renderStaleFlagsBanner();
     } catch(e) {}
   }
+}
+
+function guardStandardMenuWrite(actionLabel) {
+  if (localStorage.getItem('concAltMenuActive') !== '1') return true;
+  // A tab carried forward from the retired Alt Menu UI must not write the
+  // source it was displaying into the standard overlay. Clear the legacy
+  // state, block this attempt, and make the operator retry from standard.
+  ['concAltMenuActive','concAltMenuCache','concAltMenuStamp'].forEach(key => localStorage.removeItem(key));
+  alert('Alt Menu has been retired. DOOR returned to the standard menu. Re-open ' + actionLabel + ' and try again.');
+  return false;
 }
 
 var _doorPublishMenuOverlayOverride = null;
@@ -14162,126 +14205,11 @@ function saveUploadedMenu(obj) {
 function clearUploadedMenu() {
   localStorage.removeItem('concUploadedMenu');
 }
-// ─── Alternative menu source (read-only) ─────────────────────────────
-// Generic mechanism for swapping in a non-default menu cycle (currently
-// the reno menu generated from Excel and published as menu_reno.json).
-// When active, getMenuData() returns the alt menu's data verbatim — no
-// overlay/uploaded merging (alt menu is read-only; edits would conflict
-// with the next regen from Excel). Designed to extend to additional
-// alternative cycles (holiday menus, special events) in the future by
-// generalizing concAltMenuCache → a keyed dict of alt sources.
-//
-// v2 (reno-default): defaulted to ON during the reno period.
-// v31 standard cutover (2026-06): default flipped back to OFF — the standard menu
-// (baked MENU_DATA, now the v31 standard menu) is the default again. Anyone with no
-// localStorage value gets the STANDARD menu; reno is now an explicit opt-in (toggle
-// on → writes '1'). This is what makes a DOOR republish produce the v31 standard
-// artifacts instead of the reno alt menu (getMenuData checks the alt source first).
-function isAltMenuActive() {
-  return localStorage.getItem('concAltMenuActive') === '1';
-}
-function loadAltMenuCached() {
-  try { return JSON.parse(localStorage.getItem('concAltMenuCache') || 'null'); }
-  catch(e) { return null; }
-}
-async function ensureAltMenuCached(forceFresh) {
-  const cached = loadAltMenuCached();
-  const stamp = parseInt(localStorage.getItem('concAltMenuStamp') || '0', 10);
-  // Use cache if fresh (< 1 hour) and not forcing a refresh
-  if (!forceFresh && cached && (Date.now() - stamp < 3600000)) return cached;
-  try {
-    const res = await fetch('https://kennedyjasondavid-eng.github.io/conc-kitchen-door/menu_reno.json?_=' + Date.now());
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem('concAltMenuCache', JSON.stringify(data));
-      localStorage.setItem('concAltMenuStamp', String(Date.now()));
-      return data;
-    }
-  } catch(e) { /* fall through to cached */ }
-  return cached;  // network failed, return whatever's cached (or null)
-}
-async function toggleAltMenu() {
-  const becomingActive = !isAltMenuActive();
-  if (becomingActive) {
-    // Pull fresh on activation so the user sees the latest published alt menu.
-    const data = await ensureAltMenuCached(true);
-    if (!data || !data.menu) {
-      alert('Could not fetch alternative menu (menu_reno.json). Check network or that the file is published on GH Pages.');
-      return;
-    }
-  }
-  localStorage.setItem('concAltMenuActive', becomingActive ? '1' : '0');
-  location.reload();
-}
-
-// TTL for the alt-menu cache. Beyond this, the cache is treated as stale and
-// refreshed at the next opportunity (pre-warm on boot, or refreshAltMenuIfStale
-// before any plating download). Set to 1 hour to match ensureAltMenuCached.
-const ALT_MENU_CACHE_TTL_MS = 3600000;
-
-function _altMenuCacheStamp() {
-  return parseInt(localStorage.getItem('concAltMenuStamp') || '0', 10);
-}
-function isAltMenuCacheStale() {
-  return (Date.now() - _altMenuCacheStamp()) > ALT_MENU_CACHE_TTL_MS;
-}
-
-// Async refresh helper: awaitable, used at the head of plating-download paths
-// so users always get sheets generated from the freshest menu data. Wraps
-// ensureAltMenuCached() with a no-op when alt mode is off. Safe to call from
-// any plating-trigger handler — does nothing if cache is fresh.
-async function refreshAltMenuIfStale() {
-  if (!isAltMenuActive()) return;
-  if (!isAltMenuCacheStale()) return;
-  try { await ensureAltMenuCached(false); }
-  catch (e) { console.warn('[Alt Menu] background refresh failed:', e); }
-}
-
-// Synchronous pre-warm: when alt is the default and cache is empty OR stale,
-// block briefly to fetch menu_reno.json so the first paint shows alt content
-// rather than flashing the standard menu and re-rendering — and so that any
-// data edits pushed to GH Pages since the last visit are picked up at boot.
-// Sync XHR is deprecated but fine for this one-shot cold-start case.
-//
-// 2026-05-19: previously only refreshed on empty cache, which left stale data
-// in place indefinitely. Now also refreshes when cache is older than TTL.
-(function preWarmAltMenuCache() {
-  try {
-    if (!isAltMenuActive()) return;
-    const cached = loadAltMenuCached();
-    if (cached && !isAltMenuCacheStale()) return;
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/menu_reno.json?_=' + Date.now(), false);
-    xhr.send(null);
-    if (xhr.status === 200) {
-      const data = JSON.parse(xhr.responseText);
-      if (data && data.menu) {
-        localStorage.setItem('concAltMenuCache', JSON.stringify(data));
-        localStorage.setItem('concAltMenuStamp', String(Date.now()));
-      }
-    }
-  } catch (e) {
-    console.warn('[Alt Menu] Pre-warm fetch failed; first paint may show stale menu until next toggle:', e);
-  }
-})();
-
 // Returns a merged view of (uploadedMenu || MENU_DATA) + any permanent overlay.
 // Overlay is keyed identically to MENU_DATA: weekNum → dayName → {breakfast, lunch, dinner, *_veg, *_flags}.
 // Partial overlays are supported — a day with only a lunch override inherits breakfast/dinner from the constant.
 function getMenuData() {
   const publishOverlay = getDoorPublishMenuOverlayOverride();
-  // Alternative (reno) menu mode returns the alt source directly. The publish
-  // overlay override is concMenuBase (the STANDARD-menu day overlay) pre-merged
-  // with cloud; layering it onto the alt menu would inject standard-menu day
-  // edits — and standard-only days — into the reno content published as
-  // menu_current.json (cross-source contamination). The publish overlay is
-  // applied to the standard menu only (below), never to the alt menu.
-  if (isAltMenuActive()) {
-    const alt = loadAltMenuCached();
-    if (alt && alt.menu) return alt.menu;
-    // If toggle is on but cache is empty, fall through to standard rather
-    // than rendering nothing — defensive against corrupted localStorage.
-  }
   const uploaded = loadUploadedMenu();
   const base = uploaded || MENU_DATA;
   const overlay = publishOverlay || loadMenuBaseOverlay();
@@ -14857,6 +14785,7 @@ function applyMealSwap() {
 // SharePoint write via Microsoft Graph API — call sites don't change.
 function makePermanent() {
   if (!mcEditKey) return;
+  if (!guardStandardMenuWrite('Make Permanent')) return;
   const name = document.getElementById('mc-swap-name').value.trim();
   if (!name) { alert('Enter a replacement meal name before making it permanent.'); return; }
   const veg = document.getElementById('mc-swap-veg').value.trim();
@@ -15132,6 +15061,7 @@ function updateEditFlagsPreview() {
 
 function saveEditFlags() {
   if (!mcEditKey) return;
+  if (!guardStandardMenuWrite('Edit Flags')) return;
   const [wkStr, day, period] = mcEditKey.split('-');
   const week = wkStr;
 
@@ -15269,6 +15199,7 @@ function renderSwapsBanner() {
 
 // Make a specific swap permanent from the Active Swaps banner.
 function makeSwapPermanentFromBanner(swapKey) {
+  if (!guardStandardMenuWrite('Make Permanent')) return;
   const swaps = loadMealSwaps();
   const sw = swaps[swapKey];
   if (!sw) return;
@@ -16799,6 +16730,7 @@ function renderSectionPreviewInto(flags, el) {
 
 function saveMenuEdit() {
   if (!mcMenuEditKey) return;
+  if (!guardStandardMenuWrite('Edit Menu')) return;
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   // Require an explicit decision on soft/plain alternatives: either at least one
@@ -16924,6 +16856,9 @@ function _showHalalCertDialog(proteins, hasPorkInMain, slotBreakdown, callback) 
 }
 
 function _finishMenuSave(name, veg, flags) {
+  // Re-check after the async halal-certification prompt: source state could
+  // have changed while the dialog was open.
+  if (!guardStandardMenuWrite('Edit Menu')) return;
 
   const vegFlags = buildVegAltFlags();
   const vegAllergens = flagsToAllergenStr(vegFlags);
@@ -19200,6 +19135,18 @@ document.addEventListener('visibilitychange', function() {
 
 // ============================================================
 // INIT
+(function sweepLegacyMenuOverlayAtBoot() {
+  try {
+    const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
+    const normalized = doorNormalizeMenuOverlay(local);
+    localStorage.setItem('concMenuBase', JSON.stringify(normalized));
+  } catch(e) {
+    localStorage.setItem('concMenuBase', JSON.stringify(doorNormalizeMenuOverlay({})));
+  }
+  // The Alt Menu source and its cache were retired with the standard cutover.
+  ['concAltMenuActive','concAltMenuCache','concAltMenuStamp'].forEach(key => localStorage.removeItem(key));
+})();
+
 clearPastSwaps();
 initDynamic();
 
@@ -19218,9 +19165,8 @@ initDynamic();
       .then(remote => {
         if (!remote) return;
         const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
-        const merged = Object.assign({}, local);
-        Object.keys(remote).forEach(wk => { merged[wk] = Object.assign({}, local[wk]||{}, remote[wk]); });
-        localStorage.setItem('concMenuBase', JSON.stringify(merged));
+        const mergeResult = doorMergeMenuOverlayWithCloud(local, remote);
+        localStorage.setItem('concMenuBase', JSON.stringify(mergeResult.merged));
       }).catch(() => {});
 
     // menu_current.json — pull the canonical menu so a fresh browser/device
@@ -20115,7 +20061,6 @@ function buildBreakfastCombinedXlsx(weekA, weekB) {
 }
 
 async function downloadBreakfastCombined(filename, weekA, weekB) {
-  await refreshAltMenuIfStale();
   const wb = buildBreakfastCombinedXlsx(weekA, weekB);
   if (wb) XLSX.writeFile(wb, filename);
 }
@@ -20144,9 +20089,6 @@ function buildPlatingXlsx(period, weekNum) {
 }
 
 async function downloadPlatingSheet(filename, period, weekNum) {
-  // 2026-05-19: refresh stale menu cache before generating sheets so data
-  // edits pushed since the last boot land in the next plating xlsx.
-  await refreshAltMenuIfStale();
   const wb = buildPlatingXlsx(period, weekNum);
   if (wb) XLSX.writeFile(wb, filename);
 }
@@ -20422,9 +20364,6 @@ async function downloadAllFiles() {
   btns.forEach(b => { b.disabled = true; b.textContent = 'Building zip…'; });
 
   try {
-    // 2026-05-19: refresh stale menu cache before bundling the zip so edits
-    // pushed to menu_reno.json since the last boot land in the new sheets.
-    await refreshAltMenuIfStale();
     const zip = new JSZip();
     const files = buildAllFileList();
 
@@ -21588,27 +21527,6 @@ function toggleDarkMode(){
   document.querySelector('.dm-toggle').textContent=isDark?'☽':'☀';
 }
 (function(){if(localStorage.getItem('kdo-dark')){document.documentElement.setAttribute('data-theme','dark');const t=document.querySelector('.dm-toggle');if(t)t.textContent='☀';}})();
-// Boot-time visual state for the alt-menu toggle + banner.
-// v2: toggle now lives in Menu Config topbar (#mc-alt-menu-btn). Default is
-// ON during reno, so when active we relabel the button to "Switch to Standard"
-// and highlight it amber to mirror the banner.
-(function(){
-  if (typeof isAltMenuActive !== 'function') return;
-  const altBtn = document.getElementById('mc-alt-menu-btn');
-  if (!isAltMenuActive()) {
-    if (altBtn) altBtn.title = 'Switch to alternative menu source (currently: reno menu from menu_reno.json)';
-    return;
-  }
-  const banner = document.getElementById('alt-menu-banner');
-  if (banner) banner.style.display = 'block';
-  if (altBtn) {
-    altBtn.style.background = '#f59e0b';
-    altBtn.style.borderColor = '#f59e0b';
-    altBtn.style.color = '#fff';
-    altBtn.title = 'Alternative menu source ACTIVE (click to return to standard)';
-    altBtn.textContent = '📋 Switch to Standard';
-  }
-})();
 </script>
 </body>
 </html>

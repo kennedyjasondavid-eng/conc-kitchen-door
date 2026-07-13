@@ -44,6 +44,13 @@ function extractConstString(html, constName) {
   return match[1];
 }
 
+function extractConstNumber(html, constName) {
+  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = html.match(new RegExp(`const\\s+${escapedName}\\s*=\\s*([0-9]+)`));
+  assert.ok(match, `missing ${constName} numeric constant`);
+  return Number(match[1]);
+}
+
 function extractSchemaVersionMap(html) {
   const block = html.match(/const\s+DOOR_SCHEMA_VERSIONS\s*=\s*Object\.freeze\(\{([\s\S]*?)\}\);/);
   assert.ok(block, 'missing DOOR_SCHEMA_VERSIONS Object.freeze block');
@@ -174,6 +181,7 @@ function loadPublishValidationCore() {
   vm.createContext(context);
   vm.runInContext(code, context, { filename: 'index.html#publish-validation', timeout: 1000 });
   assert.equal(typeof context.validateDoorPublishArtifacts, 'function', 'publish core should expose validateDoorPublishArtifacts');
+  assert.equal(typeof context.doorNormalizeMenuOverlay, 'function', 'publish core should expose doorNormalizeMenuOverlay');
   assert.equal(typeof context.doorMergeMenuOverlayWithCloud, 'function', 'publish core should expose doorMergeMenuOverlayWithCloud');
   assert.equal(typeof context.buildDoorOverlayMergeAdvisory, 'function', 'publish core should expose buildDoorOverlayMergeAdvisory');
   return context;
@@ -183,7 +191,6 @@ function loadMenuDataCore(options = {}) {
   const html = readText('index.html');
   const localOverlay = options.localOverlay || {};
   const uploadedMenu = options.uploadedMenu || null;
-  const altMenu = options.altMenu || null;
   const menuData = options.menuData || {
     '1': {
       MONDAY: { lunch: 'Base Monday lunch' },
@@ -199,12 +206,6 @@ function loadMenuDataCore(options = {}) {
       getItem(key) {
         return key === 'concMenuBase' ? JSON.stringify(localOverlay) : null;
       }
-    },
-    isAltMenuActive() {
-      return !!options.altActive;
-    },
-    loadAltMenuCached() {
-      return altMenu;
     },
     loadMenuBaseOverlay() {
       return localOverlay;
@@ -238,6 +239,7 @@ function makePublishArtifact(name) {
 
 function loadPublishFlowHarness(options = {}) {
   const html = readText('index.html');
+  const standardCutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
   const statusEl = { textContent: '', style: { color: '' } };
   const pushed = [];
   const syncBars = [];
@@ -245,8 +247,12 @@ function loadPublishFlowHarness(options = {}) {
   const rememberedFailures = [];
   const consoleMessages = [];
   const overlayOverrides = [];
+  const localOverlay = options.localOverlay || {};
   const storage = {
-    concMenuBase: JSON.stringify(options.localOverlay || {}),
+    concMenuBase: JSON.stringify({
+      ...localOverlay,
+      _meta: { ...(localOverlay._meta || {}), standardCutover }
+    }),
     concCustomTagRules: '[]',
     concLearnedNR: '{}'
   };
@@ -463,6 +469,19 @@ test('index.html keeps the single-file DOOR safety surfaces', () => {
   for (const marker of publishMarkers) {
     assertContains(html, marker, `missing publish marker: ${marker}`);
   }
+});
+
+test('standard-menu cutover retires Alt Menu UI/paths and guards permanent writes', () => {
+  const html = readText('index.html');
+  const menuBuilder = extractFunctionBlock(html, 'buildMenuJSON');
+
+  assert.doesNotMatch(html, /id="mc-alt-menu-btn"/, 'the Alt Menu toggle should be retired');
+  assert.doesNotMatch(html, /id="alt-menu-banner"/, 'the Alt Menu banner should be retired');
+  assert.doesNotMatch(html, /function\s+(?:isAltMenuActive|toggleAltMenu|loadAltMenuCached|ensureAltMenuCached|refreshAltMenuIfStale)\b/, 'reno-source runtime paths should be retired');
+  assertContains(html, 'DOOR_STANDARD_MENU_CUTOVER', 'overlay pruning should carry a standing cutover marker');
+  assertContains(html, "guardStandardMenuWrite('Make Permanent')", 'Make Permanent should be source-guarded');
+  assertContains(html, "guardStandardMenuWrite('Edit Menu')", 'Edit Menu writes should be source-guarded');
+  assertContains(menuBuilder, 'version:DOOR_SCHEMA_VERSIONS.menu_current', 'menu export version should use the schema mirror');
 });
 
 test('index.html exposes the accessibility affordances from the elegance pass', () => {
@@ -1413,12 +1432,15 @@ test('publish validation reports missing required artifacts in warning-only mode
 
 test('overlay merge preserves local days and adds cloud-only days for advisory', () => {
   const core = loadPublishValidationCore();
+  const currentMeta = core.doorNormalizeMenuOverlay({})._meta;
   const local = {
+    _meta: { ...currentMeta },
     '1': {
       MONDAY: { lunch: 'Local lunch' }
     }
   };
   const cloud = {
+    _meta: { ...currentMeta },
     '1': {
       MONDAY: { lunch: 'Cloud lunch should not win' },
       TUESDAY: { dinner: 'Cloud dinner' }
@@ -1438,6 +1460,50 @@ test('overlay merge preserves local days and adds cloud-only days for advisory',
   assert.equal(result.merged['1'].MONDAY.lunch, 'Local lunch');
   assert.equal(result.merged['1'].TUESDAY.dinner, 'Cloud dinner');
   assert.equal(result.merged['2'].WEDNESDAY.breakfast, 'Cloud breakfast');
+});
+
+test('overlay cutover normalization prunes every unmarked legacy day and preserves metadata', () => {
+  const core = loadPublishValidationCore();
+  const legacy = {
+    _meta: { plainVegStirfryComponents: 'Carrot, Onion, Peppers' },
+    '1': { TUESDAY: { lunch: 'Stale reno lunch' } },
+    '4': { WEDNESDAY: { lunch: 'Stale reno sandwich' } }
+  };
+
+  const normalized = core.doorNormalizeMenuOverlay(legacy);
+
+  assert.equal(normalized['1'], undefined);
+  assert.equal(normalized['4'], undefined);
+  assert.equal(normalized._meta.plainVegStirfryComponents, 'Carrot, Onion, Peppers');
+  assert.equal(typeof normalized._meta.standardCutover, 'number');
+});
+
+test('overlay merge rejects stale cloud days and stale local days in both directions', () => {
+  const core = loadPublishValidationCore();
+  const currentMeta = core.doorNormalizeMenuOverlay({})._meta;
+  const currentLocal = {
+    _meta: { ...currentMeta },
+    '1': { MONDAY: { lunch: 'Current local lunch' } }
+  };
+  const staleCloud = {
+    _meta: { plainVegStirfryComponents: 'Carrot, Onion' },
+    '1': { TUESDAY: { lunch: 'Stale cloud lunch' } }
+  };
+
+  const staleCloudResult = core.doorMergeMenuOverlayWithCloud(currentLocal, staleCloud);
+  assert.equal(staleCloudResult.addedCount, 0);
+  assert.equal(staleCloudResult.merged['1'].MONDAY.lunch, 'Current local lunch');
+  assert.equal(staleCloudResult.merged['1'].TUESDAY, undefined);
+
+  const currentCloud = {
+    _meta: { ...currentMeta },
+    '2': { WEDNESDAY: { dinner: 'Current cloud dinner' } }
+  };
+  const staleLocalResult = core.doorMergeMenuOverlayWithCloud(staleCloud, currentCloud);
+  assert.equal(staleLocalResult.merged['1'], undefined);
+  assert.equal(staleLocalResult.merged['2'].WEDNESDAY.dinner, 'Current cloud dinner');
+  assert.equal(staleLocalResult.addedCount, 1);
+  assert.equal(staleLocalResult.addedDays.some((entry) => entry.week === '_meta'), false);
 });
 
 test('overlay advisory flags cloud-only days merged after core artifacts', () => {
@@ -1477,14 +1543,11 @@ test('overlay advisory is informational when cloud-only days merge before core a
   assert.match(advisory.message, /will include them in this publish/i);
 });
 
-test('getMenuData never lets the publish overlay contaminate the alt (reno) menu', () => {
+test('getMenuData always uses the standard source and applies the publish overlay', () => {
   const core = loadMenuDataCore({
-    altActive: true,
-    altMenu: {
-      menu: {
-        '1': {
-          TUESDAY: { dinner: 'Alt dinner' }
-        }
+    menuData: {
+      '1': {
+        TUESDAY: { dinner: 'Base dinner' }
       }
     },
     localOverlay: {
@@ -1494,30 +1557,24 @@ test('getMenuData never lets the publish overlay contaminate the alt (reno) menu
     }
   });
 
-  // No publish override: alt mode returns the alt source directly.
-  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Alt dinner');
+  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Local overlay dinner');
 
-  // During publish the STANDARD-menu overlay (concMenuBase, pre-merged with
-  // cloud) is set as the override. It must NOT be layered onto the reno menu:
-  // that would clobber a reno slot and inject standard-only days into the reno
-  // content published as menu_current.json (cross-source contamination).
   core.setDoorPublishMenuOverlayOverride({
     '1': {
-      TUESDAY: { dinner: 'Cloud publish overlay dinner' }, // would clobber a reno slot
-      WEDNESDAY: { dinner: 'Standard-only day' }           // a day absent from the reno menu
+      TUESDAY: { dinner: 'Cloud publish overlay dinner' },
+      WEDNESDAY: { dinner: 'Published standard day' }
     }
   });
   const published = core.getMenuData();
-  assert.equal(published['1'].TUESDAY.dinner, 'Alt dinner', 'reno slot must not be clobbered by the standard publish overlay');
-  assert.equal(published['1'].WEDNESDAY, undefined, 'a standard-only day must not be injected into the reno menu');
+  assert.equal(published['1'].TUESDAY.dinner, 'Cloud publish overlay dinner');
+  assert.equal(published['1'].WEDNESDAY.dinner, 'Published standard day');
 
   core.setDoorPublishMenuOverlayOverride(null);
-  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Alt dinner');
+  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Local overlay dinner');
 });
 
 test('getMenuData still applies normal overlay in standard menu mode', () => {
   const core = loadMenuDataCore({
-    altActive: false,
     menuData: {
       '1': {
         MONDAY: { lunch: 'Base lunch', dinner: 'Base dinner' }
@@ -1569,6 +1626,7 @@ test('publish flow shim builds menu and routing from pre-merged cloud overlay', 
   const harness = loadPublishFlowHarness({
     localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
     preMergeOverlayWithCloud: async (creds, localOverlay) => ({
+      _meta: localOverlay._meta,
       '1': {
         ...localOverlay['1'],
         TUESDAY: { dinner: 'Cloud dinner' }
@@ -1622,6 +1680,7 @@ test('publish flow shim keeps partial publish red when overlay days are merged',
     skippedPath: 'menu_current.json',
     skippedReason: 'empty_clobber',
     preMergeOverlayWithCloud: async (creds, localOverlay) => ({
+      _meta: localOverlay._meta,
       '1': {
         ...localOverlay['1'],
         TUESDAY: { dinner: 'Cloud dinner' }
@@ -1818,6 +1877,49 @@ test('published JSON snapshots are parseable and carry metadata', () => {
     assert.equal(typeof data, 'object', `${artifact} should parse as an object`);
     assert.ok(data._meta, `${artifact} should carry _meta provenance`);
   }
+});
+
+test('July 2 canonical import is published for the 11 repaired meal slots', () => {
+  const menu = readJson('menu_current.json');
+  const routing = readJson('routing_by_meal.json');
+  const expected = [
+    ['1', 'SUNDAY', 'dinner', 'Beef Strogonoff, Noodles'],
+    ['1', 'TUESDAY', 'lunch', 'Blackened fish, Sweet potatoes, Seasonal Vegetables'],
+    ['1', 'WEDNESDAY', 'lunch', 'Egg Salad Wrap, Bean Salad'],
+    ['2', 'TUESDAY', 'lunch', 'Halal Beef Burger, Chickpea Salad'],
+    ['2', 'WEDNESDAY', 'lunch', 'Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables'],
+    ['3', 'THURSDAY', 'lunch', 'Beef Nachos Supreme, Tortilla chips, Sour Cream'],
+    ['3', 'SATURDAY', 'lunch', 'Roasted Chicken leg, Pineapple Rice'],
+    ['3', 'SATURDAY', 'dinner', 'Pepperoni Pizza and Seasonal Soup'],
+    ['4', 'TUESDAY', 'lunch', 'Pork Tacos Al Pastor, Pea & Carrots'],
+    ['4', 'TUESDAY', 'dinner', 'BBQ Chicken Leg, Roasted Yam, Seasonal Veg'],
+    ['4', 'WEDNESDAY', 'lunch', 'Tuna Rex Salad']
+  ];
+
+  assert.equal(menu._meta.version, 32);
+  for (const [week, day, period, mealName] of expected) {
+    const dayData = menu.menu[week][day];
+    assert.equal(dayData[period], mealName, `W${week} ${day} ${period} should match the July 2 import`);
+    const flags = dayData[`${period}_flags`] || {};
+    assert.ok(Object.values(flags).some(Boolean), `W${week} ${day} ${period} should keep non-empty import allergen flags`);
+
+    const components = Object.keys(routing.routing[week][day][period]._components || {});
+    assert.ok(components.length > 0, `W${week} ${day} ${period} should have regenerated routing components`);
+    assert.ok(
+      components.some((component) => mealName.toLowerCase().includes(component.toLowerCase())),
+      `W${week} ${day} ${period} routing should include a canonical meal component`
+    );
+  }
+});
+
+test('checked-in menu overlay is the minimal marked standard-cutover artifact', () => {
+  const html = readText('index.html');
+  const overlay = readJson('menu_overlay.json');
+  const cutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
+
+  assert.equal(overlay._meta.standardCutover, cutover);
+  assert.equal(overlay._meta.plainVegStirfryComponents, 'Carrot, Onion, Peppers, Zucchini, Green Beans');
+  assert.equal(Object.keys(overlay).some((key) => /^[1-4]$/.test(key)), false, 'cutover overlay should carry no stale week/day edits');
 });
 
 test('menu_current.json keeps the four-week menu contract shape', () => {

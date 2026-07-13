@@ -10,8 +10,8 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.1'`** + `DOOR_BUILD_DATE = '2026-06-26'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **31** (the new STANDARD menu, live 2026-06-26), `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 31 (mirror, gate-checked).
-- **⚠ menu_current.json v31 was authored in-repo (file), NOT via DOOR's app state.** `getMenuData()` reads `loadUploadedMenu()` (`concUploadedMenu`) → else baked `MENU_DATA` → so DOOR's own app still holds the OLD menu unless `concUploadedMenu` is seeded with v31. A DOOR-side republish (`buildMenuJSON`/`buildRoutingByMealJSON`) would regenerate the OLD menu and could clobber v31. Either upload v31 into DOOR or update baked `MENU_DATA`. Deferred (Rex not using DOOR plating sheets now).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.1'`** + `DOOR_BUILD_DATE = '2026-06-26'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
 ## Architecture
@@ -26,7 +26,7 @@ Daily operational interface for Rexdale shelter meal service. Staff enter reside
 |---|---|
 | `menu_current.json` `{_meta, weeks[]}` (`version` increments) | EXPO `loadMenuFromDOOR` |
 | `menu_reno.json` (reno 4-week, LAN routing) | EXPO when `scheduleMode = reno` |
-| `menu_overlay.json` (user menu deltas) | applied on top of `menu_current.json` |
+| `menu_overlay.json` (post-import user deltas; cutover-stamped) | applied on top of `menu_current.json` |
 | `routing_by_meal.json` `{ wk: { DAY: { meal: { SectionLabel: n, _components: {dish: portions} } } } }` | EXPO portion math (section labels) · HUB portion-aware CODEX deep-links (`_components`) |
 | `registry_summary` · `meal_swaps` · `recent_log` · `learned_nr` · `custom_tag_rules` · `special_meals` · `door_state` | snapshots / informational |
 
@@ -40,13 +40,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Gate-9 structural block (PR #50):** a Stop-level *structural* defect in the artifacts (missing menu day, non-integer/negative routing count, missing routing slot, malformed `_components`, missing artifact/`_meta.version`) now **blocks the publish** — auto-publish skips ("Blocked — N structural defects"), a manual publish prompts to override. Clinical/diagnostic flags stay advisory. Downstream EXPO/HUB fall back to last-good-valid via their cache rather than ingest corruption.
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
-- **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, ~55 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+- **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 64 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
 ## Recent (2026-06-26) — STANDARD menu cutover
 - **`menu_current.json` → v31 (the new STANDARD menu), LIVE on `main` `5fdce16`.** The reno → standard cutover (DOOR → EXPO → HUB): DOOR is the menu source. Slot `_flags` carry union-of-streams allergens (anaphylaxis-safe — never under-flag) with two exceptions kept regular-only: `halalCertifiedMeat` and meat flags masked on non-main components. Allergens are CODEX-verified + Jason-confirmed for the new dishes (`menu_v31_allergen_*` artifacts).
 - **Halal fix:** `halalCertifiedMeat=false` on every `hasPork` slot. EXPO's decomposer emits a separate halal cook only when `halalCertifiedMeat===false`; 5 pork slots (Tandoori, Souvlaki, Adobo, Al Pastor, Sausages & Mash) were wrongly `true`, so halal residents got **no** cook. (One genuine remaining gap: **W1 MON "Fully Loaded Sausage"** has no halal option defined.)
 - **Build stamp** → `v31-standard.1` / `2026-06-26`; `DOOR_SCHEMA_VERSIONS.menu_current` → 31 (door-smoke gate-checked, 55/55).
-- **Open:** `routing_by_meal.json` is now regenerated for v31 (`_meta.version` 31, exported 2026-06-27 + Track-A `_meta.manualEdits` 2026-06-29) ✅. **Remaining:** make DOOR's *app state* self-consistent with the in-repo v31 menu — a DOOR-side republish could still clobber v31 (see "What this is" footgun above). Full record in EXPO's `EXPO_v9.39_STANDARD_CUTOVER_Handoff.md`.
+- `routing_by_meal.json` was regenerated for the standard cutover. The later July 2 workbook import is now the app-state authority; see the 2026-07-13 repair below.
+
+## Recent (2026-07-13) — overlay contamination repair
+- `menu_current.json` → v32. Eleven stale overlay slots were restored from Jason's July 2 workbook import, including their complete meal fields and allergen flags; matching `_components` routing slots were regenerated.
+- `menu_overlay.json` was reduced to metadata plus `standardCutover`. Every overlay merge normalizes both sides and rejects week/day entries without the current marker; `_meta` is never treated as a week.
+- The Menu Config **Alt Menu** toggle and its `menu_reno.json` cache/fetch paths are retired. Permanent/Edit Menu writes have a legacy-source guard, and boot clears retired alt-source state.
 
 ## Recent (2026-06-18)
 - Security + stability hardening (auth, output-encoding, stability gates) — PR #48 (`b716a24`); originally a Codex cloud session, reviewed against the HOUSE VISION/INSIGHTS before landing.
@@ -55,7 +60,7 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Recipe slot autosave now applies stream filters** (`recipeMatchesSlotDef`) so exact typed *off-stream* names no longer recipe-link and autofill the wrong allergen flags. Authored in a parallel CODEX/MISE session as the Gate-U3 prerequisite — PR #51 (`3ba4322`).
 
 ## ⚠️ Reno-menu footgun (shared with EXPO)
-`menu_reno.json` is **NOT** in DOOR's normal publish set — it's a static artifact generated from the Excel sources (`_gen_menu_reno.py`, in the EXPO repo). Editing the menu in DOOR's UI while in reno mode writes to overlay/state but **never reaches `menu_reno.json` on Pages**. One-off reno-menu fixes: (a) edit the Excel + regen, or (b) hand-edit `menu_reno.json` here — leave a `_meta.manualEdits` breadcrumb so the next regen doesn't silently undo it.
+`menu_reno.json` is **NOT** in DOOR's normal publish set — it remains a static artifact generated from the Excel sources (`_gen_menu_reno.py`, in the EXPO repo), but DOOR no longer offers an Alt Menu view or edit path for it. Reno-menu fixes belong in the Excel + generator flow; a hand edit must leave a `_meta.manualEdits` breadcrumb so the next regen does not silently undo it.
 
 ## Decisions — out of scope (2026-06-18)
 The "Elegance" advisory stream's structural proposals are **retired**, not deferred: in-file modularization, the namespace/IIFE convention, section banners, and standalone design tokens. They serve maker-comfort, not the telos (a tool that recedes / fewer staff errors), and modularizing the single-file app fights the string-matching test harness for no staff benefit. The accessibility *safe wins* (focus ring, keyboard nav, SR-announced banners, AA contrast) already landed; touch-targets + print fidelity remain a live-preview task with the architect.
