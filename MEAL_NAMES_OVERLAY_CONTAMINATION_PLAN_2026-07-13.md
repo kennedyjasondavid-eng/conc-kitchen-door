@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-13
 **Branch:** `claude/meal-names-edit-accuracy-rh36nx`
-**Status:** PLAN ONLY — no code or data changed yet. Overlay-cleanup strategy ruled by Jason: **blanket clear to standard**. One menu-truth confirmation still pending (see §5).
+**Status:** PLAN ONLY — no code or data changed yet. Rulings by Jason: overlay-cleanup strategy = **blanket clear to standard**; menu-truth = **built-in standard menu is the source of truth for the base rotation**, and the active Jul 14/15 swaps are **intentional one-time swaps — preserve them** (see §5). Ready to implement Phases 1+2 on Jason's go-ahead.
 
 ---
 
@@ -65,19 +65,16 @@ Net: three contaminated stores (`concMenuBase` overlay, published `menu_overlay.
 
 `menu_current.json` is DOOR's published contract, consumed by **EXPO** (`loadMenuFromDOOR`) and, transitively, **HUB**. A contaminated republish feeds reno names down the whole HOUSE pipeline. (EXPO's live board currently runs off its own baked standard menu, so the operational blast radius is limited today — but DOOR's published menu is wrong and will mislead any consumer that trusts it.)
 
-## 5. Decision needed from Jason (menu truth)
+## 5. Menu truth — RULED (Jason, 2026-07-13)
 
-Once the overlay is cleared, the base shows the **built-in standard**:
+The **built-in standard menu is the source of truth for the base rotation.** Once the overlay is cleared, the base correctly shows:
 
 - **W2 Tue lunch → `Halal Beef Burger, Chickpea Salad`**
 - **W2 Wed lunch → `Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables`**
 
-The two **active day-swaps** in the screenshot set the **opposite**:
+The two active day-swaps in the screenshot (Jul 14 Tue → `Fried Chicken and Sweet Potato Biscuit`, Jul 15 Wed → `Halal Beef Burger, Chickpea Salad`) are **intentional one-time swaps for those two dates only — PRESERVE them.** They are date-keyed in `meal_swaps.json` (`concMealSwaps`), completely separate from the base rotation and the `concMenuBase` overlay. Both `makePermanent` (`index.html:14900`) and the "Apply New Menu" reset (`index.html:16021`) explicitly leave active swaps untouched, so the blanket overlay clear does **not** disturb them. They are not redundant — they genuinely flip Tue/Wed for this week.
 
-- Jul 14 (W2 Tue) → `Fried Chicken and Sweet Potato Biscuit`
-- Jul 15 (W2 Wed) → `Halal Beef Burger, Chickpea Salad`
-
-**Confirm which is correct** (is the built-in standard menu the source of truth, or should Tue/Wed be flipped?) before the cleanup runs, so we don't "fix" the base to the wrong dish. The two swaps also become redundant once the base is right — review/revert them.
+**Do-not-touch for the cleanup:** `meal_swaps.json` / `concMealSwaps` (the date-keyed one-time swaps).
 
 ## 6. The fix (decision: blanket clear to standard)
 
@@ -105,7 +102,7 @@ Because of the four resurrection paths (§3), the cloud files must be corrected 
 ## 7. Risk / scope notes
 - Phase 1 and the republish touch JSON consumed by EXPO/HUB — deliberate, verified edits only; door-smoke Gate-9 structural validation must pass.
 - Blanket-clearing the overlay discards **all 31** current overrides. Any that were genuine, still-wanted standard-era permanent edits must be **re-applied via Make Permanent** afterward. (Per the ruling, standard `MENU_DATA` is authoritative; re-add only what's actually still wanted.)
-- Active Jul 14/15 swaps become redundant once the base is correct — review/revert.
+- The cleanup touches only the `concMenuBase` overlay + `concUploadedMenu` base cache. The active Jul 14/15 one-time swaps live in `meal_swaps.json` (`concMealSwaps`) and are **intentional — keep them.** Do not clear or revert them.
 
 ## 8. File/line index (for the implementer)
 | Concern | Location |
