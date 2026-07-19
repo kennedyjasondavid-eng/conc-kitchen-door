@@ -11626,8 +11626,21 @@ function buildMenuJSON() {
     Object.keys(src[wk]).forEach(dayName => {
       const d = { ...src[wk][dayName] };
       ['breakfast','lunch','dinner'].forEach(meal => {
-        const flags = d[meal + '_flags'];
-        if (flags) d['allergens_' + meal] = flagsToMenuAllergens(flags);
+        let flags = d[meal + '_flags'];
+        if (flags) {
+          // Pork is never halal-certified. A stored/imported flag that says otherwise
+          // tells EXPO the pork main covers halal and it skips the halal cook the menu
+          // names (the Halal <chicken> alt) — halal residents then get no dish. DOOR's
+          // live detectors already guard this (~L13713 default, ~L15595 auto-detect);
+          // enforce it on export too so imported data (the July-2 workbook, restored by
+          // the 2026-07-13 overlay repair) can't reach EXPO wrong. Clone — the day is a
+          // shallow copy, so its _flags is shared with app state; never mutate it.
+          if (flags.hasPork && flags.halalCertifiedMeat) {
+            flags = { ...flags, halalCertifiedMeat: false };
+            d[meal + '_flags'] = flags;
+          }
+          d['allergens_' + meal] = flagsToMenuAllergens(flags);
+        }
       });
       menu[wk][dayName] = d;
     });
