@@ -521,6 +521,28 @@ test('menu_current.json carries no pork slot flagged halal-certified (invariant)
   assert.deepEqual(offenders, [], `pork slots must never be halalCertifiedMeat:true — EXPO would skip the halal cook: ${offenders.join(', ')}`);
 });
 
+test('menu_current.json allergen lines stay consistent with the meal flags', () => {
+  // buildMenuJSON regenerates allergens_<meal> from <meal>_flags on export, so the two
+  // must never disagree. Guards the class where a stored flag (e.g. a stray hasPork on the
+  // vegetarian Egg Salad Wrap) leaks a wrong allergen token onto the plating sheet.
+  const menu = readJson('menu_current.json').menu;
+  const ORDER = [['hasGluten','gluten'],['hasDairy','dairy'],['hasEgg','egg'],['hasFish','fish'],
+    ['hasPeanuts','peanuts'],['hasTreeNuts','tree nuts'],['hasSesame','sesame'],['hasSoy','soy'],
+    ['hasMustard','mustard'],['hasShellfish','shellfish'],['hasSulphites','sulphites'],
+    ['hasPork','pork'],['hasBeef','beef'],['hasTurkey','turkey']];
+  const line = fl => ORDER.filter(([k]) => fl && fl[k]).map(([, l]) => l).join(', ');
+  const bad = [];
+  for (const [wk, week] of Object.entries(menu))
+    for (const [day, node] of Object.entries(week))
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        const fl = node[meal + '_flags'];
+        if (!fl) continue;
+        const expect = line(fl), got = node['allergens_' + meal] || '';
+        if (expect !== got) bad.push(`${wk}/${day}/${meal}: expected "${expect}", got "${got}"`);
+      }
+  assert.deepEqual(bad, [], `allergen lines must match flags: ${bad.join(' | ')}`);
+});
+
 test('index.html exposes the accessibility affordances from the elegance pass', () => {
   const html = readText('index.html');
   assert.match(html, /:focus-visible\s*\{/, 'a visible keyboard-focus ring (:focus-visible) should exist');
