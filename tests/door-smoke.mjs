@@ -484,6 +484,43 @@ test('standard-menu cutover retires Alt Menu UI/paths and guards permanent write
   assertContains(menuBuilder, 'version:DOOR_SCHEMA_VERSIONS.menu_current', 'menu export version should use the schema mirror');
 });
 
+test('buildMenuJSON enforces the pork-is-never-halal-certified invariant on export', () => {
+  // Pork can't be halal-certified. A stored/imported halalCertifiedMeat:true on a pork
+  // slot tells EXPO the pork main covers halal, so EXPO skips the halal cook the menu
+  // names (the Halal <chicken> alt) and halal residents get no dish. The guard corrects
+  // it on export so imported data (the July-2 workbook) can't reach EXPO wrong.
+  const html = readText('index.html');
+  const menuBuilder = extractFunctionBlock(html, 'buildMenuJSON');
+  const appState = {
+    '1': { SUNDAY: {
+      breakfast: 'Oatmeal', lunch: 'Roast Chicken', dinner: 'Pork Carnitas',
+      breakfast_flags: { hasPork: false, halalCertifiedMeat: false },
+      lunch_flags: { hasChicken: true, hasPork: false, halalCertifiedMeat: true },  // legit non-pork cert — must stay true
+      dinner_flags: { hasPork: true, halalCertifiedMeat: true }                     // wrong — must be forced false
+    } }
+  };
+  const context = { JSON, Object, Date, getMenuData: () => appState, flagsToMenuAllergens: () => 'x' };
+  vm.createContext(context);
+  vm.runInContext(`const DOOR_SCHEMA_VERSIONS = { menu_current: 32 };\n${menuBuilder}\nglobalThis.__out = buildMenuJSON();`,
+    context, { filename: 'index.html#buildMenuJSON', timeout: 1000 });
+  const out = context.__out.menu['1'].SUNDAY;
+  assert.equal(out.dinner_flags.halalCertifiedMeat, false, 'pork main must be forced halalCertifiedMeat:false on export');
+  assert.equal(out.lunch_flags.halalCertifiedMeat, true, 'a legit non-pork halal-certified main must stay true');
+  assert.equal(appState['1'].SUNDAY.dinner_flags.halalCertifiedMeat, true, 'the guard must clone _flags — never mutate app state');
+});
+
+test('menu_current.json carries no pork slot flagged halal-certified (invariant)', () => {
+  const menu = readJson('menu_current.json').menu;
+  const offenders = [];
+  for (const [wk, week] of Object.entries(menu))
+    for (const [day, node] of Object.entries(week))
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        const fl = node[meal + '_flags'];
+        if (fl && fl.hasPork && fl.halalCertifiedMeat) offenders.push(`${wk}/${day}/${meal}`);
+      }
+  assert.deepEqual(offenders, [], `pork slots must never be halalCertifiedMeat:true — EXPO would skip the halal cook: ${offenders.join(', ')}`);
+});
+
 test('index.html exposes the accessibility affordances from the elegance pass', () => {
   const html = readText('index.html');
   assert.match(html, /:focus-visible\s*\{/, 'a visible keyboard-focus ring (:focus-visible) should exist');
