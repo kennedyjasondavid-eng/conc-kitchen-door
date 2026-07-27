@@ -1971,14 +1971,57 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
   }
 });
 
-test('checked-in menu overlay is the minimal marked standard-cutover artifact', () => {
+test('checked-in menu overlay stays marked for the current cutover', () => {
   const html = readText('index.html');
   const overlay = readJson('menu_overlay.json');
   const cutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
 
   assert.equal(overlay._meta.standardCutover, cutover);
   assert.equal(overlay._meta.plainVegStirfryComponents, 'Carrot, Onion, Peppers, Zucchini, Green Beans');
-  assert.equal(Object.keys(overlay).some((key) => /^[1-4]$/.test(key)), false, 'cutover overlay should carry no stale week/day edits');
+
+  // Week/day entries are the overlay's JOB — it is the published "post-import user
+  // deltas" layer, so a menu edit made in the UI legitimately lands here.
+  //
+  // This assertion used to be `no week keys at all`, which froze the 2026-07-13
+  // post-repair state as a permanent invariant. It went red on 2026-07-19 the moment
+  // two real allergen fixes (stray hasPork on W1 WED Egg Salad Wrap; the W2 SAT halal
+  // main) were made through the UI, and stayed red on all 10 commits of every publish
+  // thereafter — nine days of red CI on healthy data. A check that fires on normal
+  // operation is not a check; it trains everyone to ignore the channel. (It also went
+  // unnoticed that HUB was serving a 14-day-old board in that same window.)
+  //
+  // The invariant that actually matters is the one the app enforces at merge time: an
+  // overlay entry must belong to the CURRENT cutover, so pre-cutover edits can never
+  // resurrect from another device or the cloud. Assert that, not emptiness.
+  const weekKeys = Object.keys(overlay).filter((key) => /^[1-4]$/.test(key));
+  const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const shapeProblems = [];
+  for (const wk of weekKeys) {
+    const week = overlay[wk];
+    assert.equal(typeof week, 'object', `overlay week ${wk} should be an object`);
+    for (const [day, node] of Object.entries(week || {})) {
+      if (!DAYS.includes(day)) shapeProblems.push(`${wk}/${day}: not a weekday key`);
+      else if (!node || typeof node !== 'object') shapeProblems.push(`${wk}/${day}: not an object`);
+      else if (Object.keys(node).length === 0) shapeProblems.push(`${wk}/${day}: empty edit`);
+    }
+  }
+  assert.deepEqual(shapeProblems, [], `overlay edits must be well-formed weekday nodes: ${shapeProblems.join(', ')}`);
+
+  // An overlay entry must not silently disagree with the canonical published menu:
+  // that combination is the 2026-07-13 contamination signature (a stale overlay day
+  // overriding the July 2 import). Agreement means the overlay is redundant, which is
+  // harmless; disagreement means one of the two is wrong and EXPO/HUB will diverge.
+  const menu = readJson('menu_current.json').menu;
+  const conflicts = [];
+  for (const wk of weekKeys)
+    for (const [day, node] of Object.entries(overlay[wk] || {}))
+      for (const [field, value] of Object.entries(node || {})) {
+        if (typeof value !== 'string' || !value) continue;
+        const canonical = menu?.[wk]?.[day]?.[field];
+        if (typeof canonical === 'string' && canonical !== value)
+          conflicts.push(`${wk}/${day}/${field}: overlay "${value}" vs menu_current "${canonical}"`);
+      }
+  assert.deepEqual(conflicts, [], `overlay must not contradict the published menu: ${conflicts.join(' | ')}`);
 });
 
 test('menu_current.json keeps the four-week menu contract shape', () => {
