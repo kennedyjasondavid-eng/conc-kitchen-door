@@ -24,13 +24,21 @@ Daily operational interface for Rexdale shelter meal service. Staff enter reside
 ## Published data contracts (DOOR = menu + resident source)
 | File | Consumer |
 |---|---|
-| `menu_current.json` `{_meta, weeks[]}` (`version` increments) | EXPO `loadMenuFromDOOR` |
+| `menu_current.json` `{_meta, weeks[]}` (`_meta.version` is a **schema constant, not a data revision** — see the version-contract note below) | EXPO `loadMenuFromDOOR` |
 | `menu_reno.json` (reno 4-week, LAN routing) | EXPO when `scheduleMode = reno` |
 | `menu_overlay.json` (post-import user deltas; cutover-stamped) | applied on top of `menu_current.json` |
 | `routing_by_meal.json` `{ wk: { DAY: { meal: { SectionLabel: n, _components: {dish: portions} } } } }` | EXPO portion math (section labels) · HUB portion-aware CODEX deep-links (`_components`) |
 | `registry_summary` · `meal_swaps` · `recent_log` · `learned_nr` · `custom_tag_rules` · `special_meals` · `door_state` | snapshots / informational |
 
 **Change a published schema → update the EXPO consumer in the same change set** (or stage via menu overlays).
+
+### ⚠ The version contract — `_meta.version` is NOT what it looks like (D7, 2026-07-27)
+Every consumer that reads `_meta.version` must know three facts, each proven on live data:
+1. **It is a hand-maintained SCHEMA constant** (`DOOR_SCHEMA_VERSIONS.<artifact>`), **not a data revision** — content changes do not bump it. Measured 2026-07-27: **23 menu fields changed 07-15→07-27, including an allergen flag flipping `hasPork` true→false, while it stayed `32`.**
+2. **It is NOT monotonic** (31 → 30 → 32 across 06-30/07-12/07-13). Only ever test **inequality**; never order-compare, never treat a lower number as older.
+3. **Each artifact keeps a SEPARATE counter** (2026-07-27: registry 30 / routing 31 / menu 32). Only `menu_current.json`'s counter is comparable to a consumer's `_doorMenu.version`; comparing any other pair is meaningless.
+
+This is why HUB's freshness check compares menu **content**, never these numbers (versions are at most a fallback inequality test). Cross-app record: `conc-kitchen-hub/HOUSE_SILENT_DRIFT_ACTION_PLAN_2026-07-27.md` §5 D7.
 
 ### `_components` (added 2026-06-10, the Stage 2 portions pipe)
 Each meal slot's `_components` maps every dish/side to its **total portions across all routing sections that receive it**, computed by the same engine as the plating sheets (`computePlatingData` + `getAltMeal` inside `buildRoutingByMealJSON`). HUB resolves its schedule items against this and appends `&portions=N` to CODEX recipe links, so a cook lands on the recipe pre-scaled. Notes baked into the design: `modified_main`/`bland_alt` sections eat the main meal's components; component keys merge case-insensitively; **anaphylactic residents are excluded** (they get a separate alternative) and the counts use the plating engine's smart flag defaults — so `_components` can legitimately disagree with the sibling section counts. **Never "reconcile" the two**; the plating engine is the authority. The block is try-guarded and additive — section counts stay byte-identical.
