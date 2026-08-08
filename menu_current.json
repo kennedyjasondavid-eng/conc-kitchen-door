@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-08T13:02:56.191Z",
+    "exported": "2026-08-08T13:05:39.199Z",
     "version": 32
   },
   "menu": {
@@ -1649,14 +1649,14 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Tuna Salad Sandwich & Fruit and Chips",
-        "lunch_veg": "Falafel Sandwich & Fruit and Chips, Sub Bun, Fruit and Chips",
-        "lunch_mainItem": "Tuna Salad Sandwich & Fruit and Chips",
-        "lunch_sides": "",
+        "lunch": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
+        "lunch_veg": "Falafel Sandwich, Chips, Fruit Cup",
+        "lunch_mainItem": "Tuna Salad Sandwich Mix",
+        "lunch_sides": "Chips, Fruit Cup",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": true,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -1769,7 +1769,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, fish",
+        "allergens_lunch": "gluten, egg, fish",
         "allergens_dinner": "",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -1778,11 +1778,11 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "Tuna Salad Sandwich & Fruit and Chips",
+            "recipeName": "Tuna Salad Sandwich Mix",
             "flags": {
               "hasGluten": true,
               "hasDairy": false,
-              "hasEgg": false,
+              "hasEgg": true,
               "hasFish": true,
               "hasPeanuts": false,
               "hasSoy": false,
@@ -1799,16 +1799,50 @@
               "isCarb": false,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasCoconut": false,
+              "hasBeans": false,
               "hasMushroom": false,
-              "hasBrassicas": false,
-              "hasCorn": false,
+              "hasCoconut": false,
               "hasNightshades": false,
-              "hasBeans": false
+              "hasBrassicas": false,
+              "hasCorn": false
             }
           },
           "veganalt": {
-            "manual": "Falafel Sandwich & Fruit and Chips, Sub Bun, Fruit and Chips",
+            "manual": "Falafel Sandwich",
+            "flags": {}
+          },
+          "starch": {
+            "recipeName": "Chips",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "xtra": {
+            "manual": "Fruit Cup",
             "flags": {}
           }
         }
