@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-07-27T15:58:01.791Z",
+    "exported": "2026-08-08T13:02:56.191Z",
     "version": 32
   },
   "menu": {
@@ -1673,12 +1673,12 @@
           "isCarb": false,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Arroz Con Pollo, Refried Beans",
         "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
@@ -1770,7 +1770,48 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
         "allergens_lunch": "gluten, fish",
-        "allergens_dinner": ""
+        "allergens_dinner": "",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Tuna Salad Sandwich & Fruit and Chips",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": true,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Falafel Sandwich & Fruit and Chips, Sub Bun, Fruit and Chips",
+            "flags": {}
+          }
+        }
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
