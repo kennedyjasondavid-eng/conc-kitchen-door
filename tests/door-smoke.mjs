@@ -1949,7 +1949,11 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
     ['2', 'WEDNESDAY', 'lunch', 'Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables'],
     ['3', 'THURSDAY', 'lunch', 'Beef Nachos Supreme, Tortilla chips, Sour Cream'],
     ['3', 'SATURDAY', 'lunch', 'Roasted Chicken leg, Pineapple Rice'],
-    ['3', 'SATURDAY', 'dinner', 'Pepperoni Pizza and Seasonal Soup'],
+    // 2026-08-09: Jason ruled the W3 SAT dinner line split ("and" -> ",") so EXPO reads the soup
+    // as its own menu component instead of one compound. The durable change lives in DOOR's
+    // Permanent/Edit Menu (app-state concUploadedMenu); accept the pre-edit July-2 value too so a
+    // republish before that editor change doesn't falsely fail this contamination guard.
+    ['3', 'SATURDAY', 'dinner', ['Pepperoni Pizza, Seasonal Soup', 'Pepperoni Pizza and Seasonal Soup']],
     ['4', 'TUESDAY', 'lunch', 'Pork Tacos Al Pastor, Pea & Carrots'],
     ['4', 'TUESDAY', 'dinner', 'BBQ Chicken Leg, Roasted Yam, Seasonal Veg'],
     ['4', 'WEDNESDAY', 'lunch', 'Tuna Rex Salad']
@@ -1958,14 +1962,15 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
   assert.equal(menu._meta.version, 32);
   for (const [week, day, period, mealName] of expected) {
     const dayData = menu.menu[week][day];
-    assert.equal(dayData[period], mealName, `W${week} ${day} ${period} should match the July 2 import`);
+    const acceptableNames = Array.isArray(mealName) ? mealName : [mealName];
+    assert.ok(acceptableNames.includes(dayData[period]), `W${week} ${day} ${period} should match the July 2 import (or a Jason-ruled edit): got ${JSON.stringify(dayData[period])}`);
     const flags = dayData[`${period}_flags`] || {};
     assert.ok(Object.values(flags).some(Boolean), `W${week} ${day} ${period} should keep non-empty import allergen flags`);
 
     const components = Object.keys(routing.routing[week][day][period]._components || {});
     assert.ok(components.length > 0, `W${week} ${day} ${period} should have regenerated routing components`);
     assert.ok(
-      components.some((component) => mealName.toLowerCase().includes(component.toLowerCase())),
+      acceptableNames.some((name) => components.some((component) => name.toLowerCase().includes(component.toLowerCase()))),
       `W${week} ${day} ${period} routing should include a canonical meal component`
     );
   }
