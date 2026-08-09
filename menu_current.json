@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-08T22:27:28.207Z",
+    "exported": "2026-08-09T13:31:19.432Z",
     "version": 32
   },
   "menu": {
@@ -3040,10 +3040,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "dinner": "Pepperoni Pizza and Seasonal Soup",
-        "dinner_veg": "Seasonal Soup",
-        "dinner_mainItem": "Pepperoni Pizza and Seasonal Soup",
-        "dinner_sides": "",
+        "dinner": "Pepperoni Pizza, Seasonal Soup",
+        "dinner_veg": "Pizza, Seasonal Soup",
+        "dinner_mainItem": "Pepperoni Pizza",
+        "dinner_sides": "Seasonal Soup",
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3061,18 +3061,74 @@
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
+          "isCarb": false,
           "halalCertifiedMeat": false,
-          "hasProcessedMeat": true,
-          "hasCoconut": false,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "allergens_lunch": "sesame, soy",
-        "allergens_dinner": "gluten, dairy, pork"
+        "allergens_dinner": "gluten, dairy, pork",
+        "dinner_softAlt": "",
+        "dinner_altMeals": [],
+        "dinner_altMealsNone": true,
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": "Halal Pizza",
+        "dinner_slots": {
+          "main": {
+            "manual": "Pepperoni Pizza",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasPork": true
+            }
+          },
+          "mainalt": {
+            "manual": "Halal Pizza",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true
+            }
+          },
+          "veganalt": {
+            "manual": "Pizza",
+            "flags": {}
+          },
+          "xtra": {
+            "recipeName": "Seasonal Soup",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          }
+        }
       }
     },
     "4": {
