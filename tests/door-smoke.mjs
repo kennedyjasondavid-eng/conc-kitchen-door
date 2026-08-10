@@ -2069,6 +2069,31 @@ test('menu_current.json W3 FRI lunch (Nigerian Fish) carries the operative Night
   assert.equal(fl.hasFish, true, 'W3 FRI lunch_flags.hasFish must remain true');
 });
 
+test('menu_current.json W1 TUE lunch: vegan main is Blackened Tofu + Spicy (CODEX reconciliation)', () => {
+  // The vegan main was "Roasted Tofu" (a distinct simple-roast, soy-only dish), but the
+  // regular main is Blackened fish and its vegan counterpart is Blackened Tofu — so the slot
+  // carried two competing vegan mains (Roasted Tofu from the menu + Blackened Tofu from EXPO's
+  // recipe companion). Reconciled to the intended pairing: lunch_veg = Blackened Tofu.
+  // CODEX (DOOR_RECIPE_DATA) classifies Blackened Tofu as ["Soy (Tofu)","Spicy (Blackening Spice)"]
+  // and Blackened Fish as ["Fish (Basa)","Spicy (Blackening Spice)"] — Spicy, NOT Nightshades
+  // (unlike the Nigerian pepper-sauce dishes above). So isSpicy flips true (union now spicy, and
+  // it corrects the already-spicy Blackened fish under-flag), hasNightshades stays false, and the
+  // allergen string stays "fish, soy" (DOOR never lists "spicy" in allergens_*). The veg-alt
+  // stream derives its allergens from the CODEX feed via getVegAltAllergenStr.
+  const menu = readJson('menu_current.json').menu;
+  const slot = menu['1'] && menu['1']['TUESDAY'];
+  assert.ok(slot, 'W1 TUESDAY node must exist');
+  assert.match(slot.lunch || '', /Blackened fish/, 'W1 TUE lunch should still be the Blackened fish slot');
+  assert.match(slot.lunch_veg || '', /^Blackened Tofu\b/, 'W1 TUE lunch_veg main must be Blackened Tofu');
+  assert.doesNotMatch(slot.lunch_veg || '', /Roasted Tofu/, 'W1 TUE lunch_veg must no longer name Roasted Tofu');
+  const fl = slot.lunch_flags || {};
+  assert.equal(fl.isSpicy, true, 'W1 TUE lunch_flags.isSpicy must be true (Blackening Spice on both streams)');
+  assert.equal(fl.hasNightshades, false, 'W1 TUE lunch_flags.hasNightshades stays false (CODEX: blackened = Spicy, not Nightshades)');
+  assert.equal(fl.hasSoy, true, 'W1 TUE lunch_flags.hasSoy must remain true (tofu)');
+  assert.equal(fl.hasFish, true, 'W1 TUE lunch_flags.hasFish must remain true (Blackened fish)');
+  assert.equal(slot.allergens_lunch, 'fish, soy', 'W1 TUE allergens_lunch stays "fish, soy" (spicy is a flag, never in the allergen string)');
+});
+
 test('routing_by_meal.json keeps numeric sections and component portion maps', () => {
   const routing = readJson('routing_by_meal.json');
   const routingWeeks = routing.routing;
