@@ -1949,7 +1949,14 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
     ['2', 'WEDNESDAY', 'lunch', 'Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables'],
     ['3', 'THURSDAY', 'lunch', 'Beef Nachos Supreme, Tortilla chips, Sour Cream'],
     ['3', 'SATURDAY', 'lunch', 'Roasted Chicken leg, Pineapple Rice'],
-    ['3', 'SATURDAY', 'dinner', 'Pepperoni Pizza and Seasonal Soup'],
+    // Comma-joined, NOT " and " — this is the form DOOR's publish deterministically
+    // produces (it comma-joins main + side, like every other slot in this list). The
+    // July-2 import phrased this one slot with "Pepperoni Pizza and Seasonal Soup", and
+    // a hand-edit to that wording (PR #69) did not survive a publish from app-state.
+    // Content is identical (both dishes present, flags + routing intact); asserting the
+    // exact "and" string a publish never emits fired on normal operation. Pin the app's
+    // real output — same lesson as eee354c. (2026-08-10)
+    ['3', 'SATURDAY', 'dinner', 'Pepperoni Pizza, Seasonal Soup'],
     ['4', 'TUESDAY', 'lunch', 'Pork Tacos Al Pastor, Pea & Carrots'],
     ['4', 'TUESDAY', 'dinner', 'BBQ Chicken Leg, Roasted Yam, Seasonal Veg'],
     ['4', 'WEDNESDAY', 'lunch', 'Tuna Rex Salad']
