@@ -2036,6 +2036,39 @@ test('menu_reno.json keeps the current reno four-week menu contract shape', () =
   assertMenuContractShape(menu, 'menu_reno.json');
 });
 
+test('menu_v31_allergen_confirmations: the two Nigerian dishes flag Nightshades + Spicy (decision record)', () => {
+  // The Jason-confirmed decision record. CODEX (recipe-hub) flags "Nigerian Styled
+  // Tofu" / "Nigerian Fish" with Nightshades (roasted peppers in the pepper & onion
+  // sauce + smoked paprika in the Nigerian spice mix) and Spicy; this file records
+  // the DOOR-side reconciliation (Q-A, ruled 2026-08-10 add-to-both). NOTE: this
+  // artifact is a human-decision record read by nothing at runtime — the operative
+  // plating flags live in menu_current.json (next test).
+  const conf = readJson('menu_v31_allergen_confirmations.json');
+  for (const dish of ['Nigerian Fish', 'Nigerian Styled Tofu']) {
+    const entry = conf[dish];
+    assert.ok(entry && entry.flags, `${dish} must be present with a flags object`);
+    assert.equal(entry.flags.hasNightshades, true, `${dish} must flag hasNightshades:true (roasted peppers + smoked paprika)`);
+    assert.equal(entry.flags.isSpicy, true, `${dish} must keep isSpicy:true`);
+  }
+});
+
+test('menu_current.json W3 FRI lunch (Nigerian Fish) carries the operative Nightshades + Spicy flags', () => {
+  // getIngredientConflicts()/routing read the menu slot's *_flags — NOT the
+  // confirmations record — so this is what actually surfaces the No-Nightshades
+  // advisory + Bland routing on the regular-stream plating sheet. nameDetectFlags()
+  // derives neither nightshades nor spicy, so these must be set on the slot.
+  // (The veg-alt stream, Nigerian Styled Tofu, derives its allergens from the CODEX
+  // feed via getVegAltAllergenStr, corrected in recipe-hub PR-1.)
+  const menu = readJson('menu_current.json').menu;
+  const slot = menu['3'] && menu['3']['FRIDAY'];
+  assert.ok(slot, 'W3 FRIDAY node must exist');
+  assert.match(slot.lunch || '', /Nigerian Fish/, 'W3 FRI lunch should still be the Nigerian Fish slot');
+  const fl = slot.lunch_flags || {};
+  assert.equal(fl.hasNightshades, true, 'W3 FRI lunch_flags.hasNightshades must be true (roasted peppers + smoked paprika)');
+  assert.equal(fl.isSpicy, true, 'W3 FRI lunch_flags.isSpicy must be true (confirmed spicy; triggers Bland routing)');
+  assert.equal(fl.hasFish, true, 'W3 FRI lunch_flags.hasFish must remain true');
+});
+
 test('routing_by_meal.json keeps numeric sections and component portion maps', () => {
   const routing = readJson('routing_by_meal.json');
   const routingWeeks = routing.routing;
