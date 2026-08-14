@@ -4,10 +4,13 @@
 > `DOOR_MENU_REPRESENTATION_FOOTGUN_INVESTIGATION_PROMPT_2026-08-14.md`. Every claim below was
 > verified against source (line anchors are to `conc-kitchen-door/index.html` at `f2e5877`
 > unless noted); measurements were run against the committed artifacts in the working tree.
-> Several of the brief's claims are **corrected** here — marked ⚠. A 2-lens adversarial
-> review (correctness/food-safety · completeness/fork-adequacy) is running; its folds land as
-> a follow-up commit on this branch and will be marked ⟲ inline. Jason rules §5's forks
-> before any build. Three interim rulings from Jason (2026-08-14) are recorded in §5/§7.
+> Several of the brief's claims are **corrected** here — marked ⚠. **Adversarially reviewed
+> 2026-08-14** (Lens 1 correctness/food-safety: 33 index.html anchors checked, 32 exact + 1
+> drift; all 12 measurements independently reproduced. Lens 2 completeness/fork-adequacy:
+> §0 byte-match verified against committed slots/pins, consumer sweep found no missed runtime
+> reader; verdict SHIP-WITH-FIXES). All findings from both lenses are folded, marked ⟲
+> inline. Jason rules §5's forks before any build. Three interim rulings from Jason
+> (2026-08-14) are recorded in §5/§7.
 
 ---
 
@@ -23,26 +26,48 @@ The Parsnip edit changed only the composed `lunch` strings (in both `menu_curren
 1. **Armed revert.** The editor restores a slot from `lunch_slots` on open (`:17035-17039`)
    and recomposes the line from slots on save (`buildMealName` `:16246-16254`). Neither slot
    has a Parsnip entry, so the next editor save + publish on either slot regenerates the line
-   **without** Parsnip — and reddens the door-smoke 11-slot pin (`tests/door-smoke.mjs:1948`).
-   Same mechanism that reverted #68/#69/#70 on 2026-08-10 (`392c9e6`).
+   **without** Parsnip. ⟲ On W1 TUE that reddens the door-smoke 11-slot pin
+   (`tests/door-smoke.mjs:1951`); **W2 SAT lunch has no door-smoke pin at all — its revert
+   would be fully silent** (the only nets are EXPO's baked-MENU mirror and HUB's freshness
+   compare). Same mechanism that reverted #68/#69/#70 on 2026-08-10 (`392c9e6`).
 2. **Live under-production risk.** `routing_by_meal.json` W2 SAT lunch `_components` carries
    `Parsnip/ Carrot: 16` — derived from the **vegan** line only. The dish is now on the
-   regular line (served to everyone, ~169 portions). Until routing regenerates from a
-   slot-backed menu, any consumer of `_components` under-counts by **~153 portions**.
+   regular line (served to everyone; the sibling regular sides count ~169). Until routing
+   regenerates from a slot-backed menu, any consumer of `_components` under-counts by
+   **~153 portions**.
 
-**The defuse (≈5 minutes, DOOR menu editor):**
+**The defuse (≈5 minutes, DOOR menu editor — do it on the device that carries current
+app-state; the overlay cloud-merge is day-atomic local-wins and both days have overlay
+entries):**
 
-1. Open **W1 TUE lunch** in the menu editor → add **"Parsnip and Carrot"** as a side slot
-   (`xtra`) → save.
-2. Same for **W2 SAT lunch** → save.
+1. Open **W1 TUE lunch** in the menu editor → put **"Parsnip and Carrot"** in the **Extras**
+   slot (the dessert/condiment slot, internal id `xtra` — ⟲ **NOT "Event Name"**, id
+   `extras`, which prefixes the line with " — " and breaks the pinned wording). Extras is the
+   only free slot that reproduces the pin — Veg Side is already occupied by Seasonal
+   Vegetables. → save.
+2. **W2 SAT lunch**: same Extras entry, and ⟲ **also trim the trailing ", Parsnip/ Carrot"
+   out of the Vegan-alt slot text** (`veganalt` currently reads "Vegan Nuggets, Roasted Yams,
+   Parsnip/ Carrot" — left alone, the recomposed vegan line names parsnip twice in two
+   spellings; the dedupe is exact-string only). → save.
 3. Publish (the save path auto-publishes via `publishAndSync`).
 
-**Verify after republish:** (a) door-smoke stays green — the recomposed lines must equal the
-pinned strings at `tests/door-smoke.mjs:1948` and `:1954` exactly (the slot join order is
-`main, starch, vegside, xtra`, so appending Parsnip as `xtra` reproduces the current wording);
-(b) W2 SAT lunch `_components` Parsnip count moves **16 → ~169**. *Note: if the editor's
-recomposed string does NOT byte-match the pin (e.g. slot text typed differently), fix the
-slot text, not the test — the pin is the published contract EXPO comma-splits.*
+**Verify after republish** ⟲ *(both corrected by review — the naive checks would read as
+failures on healthy data):*
+
+- (a) **W1 TUE:** the recomposed line byte-matches the pin at `tests/door-smoke.mjs:1951`
+  ("Blackened fish, Sweet potatoes, Seasonal Vegetables, Parsnip and Carrot" — join order is
+  `main, starch, vegside, xtra`, so Extras lands last). **W2 SAT has no pin** — verify
+  against the committed `menu_current.json` string ("Chicken tenders & Roasted Yams, Sweet
+  Potato, Seasonal Veg, Parsnip and Carrot"); review confirmed the recomposition byte-matches
+  it. If a recomposed string doesn't match, fix the slot text, not the test.
+- (b) **W2 SAT lunch `_components` gains a NEW key `Parsnip and Carrot` at the regular-section
+  count (~150+). The old vegan-line `Parsnip/ Carrot: 16` remains as a separate key** (unless
+  the veganalt trim in step 2 removes it) — component keys merge case-insensitively only. Do
+  not expect one merged ~169 count, and never hand-reconcile the two.
+- (c) ⟲ *Disclosed side effect (intended):* the save recomposes `lunch_veg`/`lunch_sides`
+  from slots, so both days' **vegan lines gain "Parsnip and Carrot"** — correct (the dish
+  serves everyone, and it's plant-based), but EXPO's next menu sync will surface these
+  veg-line deltas in its review panel; accept them there.
 
 Tracked as a dedicated GitHub issue (see the PR body) so this survives independently of the
 design review. **Ruled (Jason 2026-08-14): defuse immediately, ahead of any design ruling.**
@@ -213,9 +238,11 @@ publish+boot.
 The overlay has **two different granularities at once**: field-level union at runtime
 (`:14090`) but whole-day atom, local-wins, in the cloud merge (`:12056-12058`). And the
 door-smoke contradiction gate (`tests/door-smoke.mjs:1986-2037`) polices only **non-empty
-string fields present on both sides** — of the 66 overlay fields, only ~24 are even eligible;
-an overlay `_flags.hasPork` contradicting canonical would pass silently. The gate passes
-**vacuously** on current data.
+string fields present on both sides** — ⟲ of the 66 overlay fields, only 27 are even
+eligible (measured); an overlay `_flags.hasPork` contradicting canonical would pass silently.
+On current data the gate is **guaranteed-green by the self-reingest flattening** (its 27 real
+comparisons all match because publish made them match) — it cannot fire until something
+breaks the flattening.
 
 ### 2.3 P3 — "the composed line is a denormalized copy stored in several places" → **confirmed and quantified**
 
@@ -284,8 +311,13 @@ Hardening slices (all small):
   it claims to be.
 - **A-3 overlay propagation fix:** per-(week,day) `_editedAt` epoch stamp (a **number** —
   invisible to the string-only contradiction gate) + `doorMergeMenuOverlayWithCloud` becomes
-  **newest-wins per day** (local-wins fallback when unstamped). Without this, the contract's
-  overlay half is dead on arrival.
+  **newest-wins per day**. ⟲ Two review corrections: (i) the tie-break must be
+  **stamped-beats-unstamped** — every existing local overlay entry is unstamped, so a plain
+  "local-wins fallback when unstamped" would make a stamped committed cloud day lose to
+  exactly the stale local days it exists to displace; (ii) **A-3's merge grain is fork F4's
+  decision** — newest-wins-per-day implements F4's "otherwise" arm; a surface-and-ask ruling
+  requires slot-level diffing at merge time (closer to B's model) and reshapes A-3. Without
+  A-3, the contract's overlay half is dead on arrival.
 - **A-4 CI completeness linter:** any commit changing a menu day node must keep line ↔
   `_slots`/`_sides` consistent and bump `_meta.exported`. (The consistency check is P3's
   composer run in reverse — A-4 wants P3.0 first.)
@@ -294,8 +326,8 @@ Race matrix (edit vs publish):
 
 | Scenario | Today | A hardened |
 |---|---|---|
-| Commit lands; devices sync before next publish | survives only if stamped AND day has no overlay entry | survives |
-| Commit lands; stale open tab publishes | **clobbered** | survives (A-1) |
+| Commit lands; devices sync before next publish | survives only if stamped AND day has no overlay entry | survives ⟲ (overlay-carrying days need A-3 too — the local overlay day still overrides the ingested base via the day spread `:14090`) |
+| Commit lands; stale open tab publishes | **clobbered** | ⟲ survives via **A-1 + A-3 together**; A-1/A-2 alone protect only overlay-free days — and **both Parsnip days carry overlay entries**, so the motivating case needs A-3 |
 | Operator's unsynced overlay edit vs commit, same day | commit silently overridden | newest day wins (A-3) — still day-atomic, older side's other-field edits lose |
 | Two devices edit different meals of same day | one side lost | newest-wins: still lossy, now deterministic |
 | Publisher reboots | overlay flattened | fixed (A-2) |
@@ -334,13 +366,29 @@ An edit targeting a slotless day fails **loudly** (banner), never guessed.
 Why B beats A structurally: **the instruction survives an ignorant publish** — it lives in an
 artifact publish doesn't regenerate, so even a publish that raced past it leaves the edit
 standing for the next device to apply and republish. And because an applied edit *is* an
-editor edit downstream, it inherits every safety net (Gate-9, pork/halal, allergen regen,
-anaphylactic lockout, cutover prune) automatically. Zero consumer blast radius (new artifact
-nobody reads; `menu_current.json` shape unchanged). Agent edits become reviewable, provenanced
-slot-level PR diffs. Costs: highest build effort of the viable options (the writer-core
-extraction must be a move, not a copy); B fixes committed→device, not device↔device (A-3
-remains complementary); the old raw-edit door should be CI-closed (Option 0's linter) as the
-new one opens.
+editor edit downstream, it inherits the **export/publish** safety nets (Gate-9, pork/halal
+invariant, allergen regen, anaphylactic lockout, cutover prune) automatically.
+
+⟲ **Review correction (P1, food-safety) — the edit-TIME flag machinery is NOT inherited.**
+The editor's save flow, *above* `_finishMenuSave`, is where flags get made honest: manual
+checkboxes + `buildUnionFlags`, the **`MEAT_DETECT`** protein auto-detect, the **halal-cert
+dialog** (`:16758-16815`), and the recipe-link allergen autofill (`:17040-17046`). A raw
+inbox edit that names an allergenic dish with empty/wrong `flagPatch` would publish under-set
+`_flags`, and the export regen then produces a **consistent-but-wrong** `allergens_<meal>`
+line — under-flagging, in the anaphylactic domain, past Gate-9 (structural-only). **B is
+therefore only viable with a flag-derivation rule in `applyMenuSlotEdit`:** resolve
+`recipeName` slots against the CODEX feed to autofill flags (as the editor does); run
+`MEAT_DETECT` + union over the patched slots; **reject loudly** any `manual` slot text that
+is allergen-suggestive but arrives with empty flags (fail-closed — a rejected inbox edit
+becomes an editor checklist item). The §3.1 comparison row and the F1 lean stand only with
+this rule included in B's scope.
+
+Zero consumer blast radius (new artifact nobody reads; `menu_current.json` shape unchanged).
+Agent edits become reviewable, provenanced slot-level PR diffs. Costs: highest build effort of
+the viable options (the writer-core extraction must be a move, not a copy — and now includes
+the flag-derivation rule above); B fixes committed→device, not device↔device (A-3 remains
+complementary); the old raw-edit door should be CI-closed (Option 0's linter) as the new one
+opens.
 
 #### Option C — the repo artifact becomes authoritative (presented fairly; expected to lose)
 
@@ -363,7 +411,7 @@ no operator in the loop — superseded by B's explicit-instruction model.)
 | Committed edit survives ignorant publish | n/a | guarded, not guaranteed | **yes** | yes (definitional) |
 | Hand-sync tax per edit | full | full (CI-linted) | **none** (slot facts, recomposed) | none |
 | Overlay day-atomic trap | untouched | A-3 required | bypassed for committed edits | overlay retires |
-| Safety-net relocation risk | none | none | none (same writer path) | high |
+| Safety-net relocation risk | none | none | ⟲ none **iff** the flag-derivation rule ships with it (see the P1 correction above); raw flags would open under-flagging | high |
 | Offline / token posture | intact | intact | intact | violated |
 | Build cost | ~0 | small | medium (≈ P3.0) | large |
 
@@ -412,9 +460,11 @@ exactly. Proof design — a **shadow parity gate** in door-smoke, diagnostic fir
    `slots.veganalt` exists.
 3. **Slotless periods are counted, not failed** — a ratchet pinned `≤ 58`, decremented by
    backfill, ending at assert-zero.
-4. An **explicit known-divergence allowlist** (initially the two Parsnip periods) so the gate
-   lands green before the §0 defuse; the defuse empties it; a stale allowlist entry goes red
-   (the `eee354c` honesty rule: a check that fails on healthy data is not a check).
+4. An **explicit known-divergence allowlist**. ⟲ Lifecycle corrected for consistency with §6:
+   the expected order is defuse-first, so the allowlist is **authored EMPTY**; the two Parsnip
+   periods enter it only if the gate somehow ships before the §0 defuse. Either way a stale
+   entry goes red (the `eee354c` honesty rule: a check that fails on healthy data is not a
+   check).
 5. The same composers run over each overlay node's `_slots` — overlay self-consistency proven
    by the same gate.
 
@@ -476,8 +526,10 @@ Every consumer of `menu_current.json`, what it reads, and what each change class
    HUB's `compareBoardMenuToDoor` (hub :1500, `_normMealText` :1486) collapses whitespace but
    **not comma spacing** — drift fires the freshness banner board-wide; PROOF uses
    `split(',')[0]` with `*_mainItem` (proof :519, :623) for section attribution — keep
-   `_mainItem ≡ segment 0`. Also keep `*_halal` byte-stable: EXPO's D0.1 alignment gate reads
-   exactly `menu['2'].SATURDAY.lunch_halal` and blocks adoption of the whole menu on mismatch.
+   `_mainItem ≡ segment 0`. Also keep `*_halal` stable: EXPO's D0.1 alignment gate reads
+   exactly `menu['2'].SATURDAY.lunch_halal` and blocks adoption of the whole menu on mismatch
+   ⟲ (the gate normalizes case/punctuation and accepts 4 name variants — byte-stability is
+   the safe superset, not the literal bar; a normalized-equivalent emission stays green).
 3. **A field-level overlay is invisible to every runtime consumer** — only DOOR applies the
    overlay; `menu_current.json` is the merged output. Test-side casualties only.
 
@@ -489,7 +541,7 @@ Every consumer of `menu_current.json`, what it reads, and what each change class
 | EXPO `MEALS` payload :22040 → HUB freshness | `lunch`,`dinner` | ○ | ○ / **●** if bytes drift | ○ |
 | EXPO parity fixture gate | fixture ↔ baked literal (NOT ↔ DOOR) | ◐ red on next fixture refresh until re-bake (by design) | ○ invisible | ○ |
 | EXPO `jerk_tofu_menu_parity_gate` | DOOR live menu + **overlay `_slots` path** + routing | ○ | ◐ exact-string pin | **●** — but see below |
-| HUB `applyDOORMenu` :4212 | 10-field whitelist (no `lunch_halal` — pre-existing gap) | ○ | ○ | ○ |
+| HUB `applyDOORMenu` :4218 | 10-field whitelist (no `lunch_halal` — pre-existing gap) | ○ | ○ | ○ |
 | HUB `compareBoardMenuToDoor` :1500 | composed `lunch`/`dinner` | ○ | ○ / **●** on drift | ○ |
 | PROOF :519/:602-627 | `*_mainItem` (fallback `split(',')[0]`), `*_veg`, `*_halal` | ○ | ◐ keep `_mainItem ≡ seg0` | ○ |
 | recipe-hub `door_vegalt_safety_gate` | seeds `.menu` wholesale into `concUploadedMenu`, boots DOOR | ○ | ○ | ● indirect (boots merged state) |
@@ -508,12 +560,12 @@ re-pin is owed **under every option including "do nothing"** (§7).
 
 | # | Fork | Options | Lean |
 |---|---|---|---|
-| F1 | **Operating model** | editor-sole-authority + a legitimate import seam (A/B) vs repo-authoritative (C) vs forbid (0) | A-hardening now, **B as destination**, C recorded not-now-not-never |
-| F2 | **Do non-UI actors write menu facts at all?** | seam writes vs editor checklists forever | end-state: yes, via B's reviewable slot-level diffs. **Interim RULED (2026-08-14): checklists only until a seam ships** — no committed menu-JSON edits from any session |
-| F3 | **Seam payload** | slot-level facts only (composed-line edits unexpressible — P3-aligned) vs whole-node edits | slot-facts only |
-| F4 | **Collision policy** (committed edit vs local edit, same slot/day) | newest-wins / operator-wins / surface-and-ask | surface-and-ask for same-slot; newest-wins otherwise |
+| F1 | **Operating model** | editor-sole-authority + a legitimate import seam (A/B) vs repo-authoritative (C) vs forbid (0) | A-hardening now, **B as destination** ⟲ (contingent on B's flag-derivation rule, §3.1), C recorded not-now-not-never. *Evidence: C breaks offline/token + relocates the safety net; 0 keeps the tax; A leaves the hand-sync tax; B is the only shape where an edit survives an ignorant publish AND recomposition is automatic.* |
+| F2 | **Do non-UI actors write menu facts at all?** | seam writes vs editor checklists forever | end-state: yes, via B's reviewable slot-level diffs. **Interim RULED (2026-08-14): checklists only until a seam ships** — no committed menu-JSON edits from any session. ⟲ *Note: the interim rule is doc-enforced only — the Option-0 CI tripwire (reject menu-artifact-touching commits) is not scheduled until A-4; accept honor-system, or pull the tripwire forward as an early slice (your call).* |
+| F3 | **Seam payload** | slot-level facts only (composed-line edits unexpressible — P3-aligned) vs whole-node edits | slot-facts only. *Evidence: every historical revert was a line-only or node-partial edit; whole-node acceptance re-opens the P3 hand-sync tax inside the seam itself. If ruled whole-node, Option A's contract+linter is the shape, not B.* |
+| F4 | **Collision policy** (committed edit vs local edit, same slot/day) | newest-wins / operator-wins / surface-and-ask | surface-and-ask for same-slot; newest-wins otherwise. ⟲ *Mechanics per option: surface-and-ask = a non-blocking banner + publish proceeds with local (stale-tab-guard pattern); operator-wins = inbox entry parks as a checklist item; newest-wins = stamped-beats-unstamped compare (A-3). This ruling sets A-3's merge grain — see §3.1.* |
 | F5 | **Sequencing** | P3 composers first vs seam first | **P3.0/P3.1 first** — the composer is B's prerequisite and A-4's engine; plus A-1/A-2 alongside (no-regrets, correct under any ruling) |
-| F6 | **Publish-fetch failure posture** (A-1) | fail-open + advisory vs auto-publish-skips | mirror the stale-tab guard: auto skips, manual asks |
+| F6 | **Publish-fetch failure posture** (A-1) | fail-open + advisory vs auto-publish-skips | mirror the stale-tab guard: auto skips, manual asks. *Evidence: `preMergeOverlayWithCloud` today is fail-open; the guard's manual/auto asymmetry (`:12260-12274`) is the house pattern for exactly this trade.* |
 | F7 | **P3 owner** | (b) enforce-only vs (a) export-owns vs (c) read-time | (b) → (a) staged; (c) named only |
 | F8 | **Backfill vehicle** | in-app positional normalizer + republish vs manual editor pass ×58 | normalizer; manual only for W2 THU lunch |
 | F9 | **P2 endgame** | field-level delta (a) vs retire (b) vs publish-self-consistent (c) | (c) now; rule (a)/(b) together with F1 |
@@ -529,14 +581,18 @@ B inbox (after F1–F4 rulings) → P2(c) with P3.5 → P2(a)/(b) per F9.
 
 1. **Slice 0 — the §0 defuse.** Operational, editor-only, before anything else. Converts
    PR #72 from "armed to revert" to "landed as fact", closes the W2 SAT under-count, and
-   empties the P3.1 allowlist before it's ever written.
+   means the P3.1 allowlist is authored empty.
 2. **First code slice (after rulings): P3.0 + P3.1 + A-1/A-2.** Pure composer extraction
    (behavior-identical; editor delegates), the shadow parity gate (authored-to-fail against a
-   deliberately broken composer, then green 24/26→26/26 + ratchet ≤58), and the two no-regrets
-   ingest fixes (publish pre-merge exported-check; self-reingest timestamp). Zero
+   deliberately broken composer, then green 26/26 post-defuse + ratchet ≤58), and the two
+   no-regrets ingest fixes (publish pre-merge exported-check; self-reingest timestamp). Zero
    published-byte change — provable by re-running a publish build and diffing, plus door-smoke
    staying green. Normal DOOR gate discipline applies (authored-to-fail → build → 2-lens
-   review → fold).
+   review → fold). ⟲ *Scope honesty (review): A-1/A-2 alone do NOT close the unsynced-tab
+   clobber for overlay-carrying days (the day spread lets a stale local overlay day override
+   the ingested base — both Parsnip days are exactly this case); full closure needs A-3,
+   which waits on the F4 ruling. A-1/A-2 still fix the self-reingest flattening and protect
+   overlay-free days — worth landing regardless.*
 
 ---
 
@@ -590,6 +646,18 @@ B inbox (after F1–F4 rulings) → P2(c) with P3.5 → P2(a)/(b) per F9.
 *Investigation provenance: 3 line-anchored recon sweeps (publish path · overlay/gates/history ·
 cross-app consumers) + 2 design passes (P1 seam · P3/P2 representation), load-bearing claims
 re-verified first-hand (re-ingest gate `:19190-19202`, day-spread merge `:14079-14094`, overlay
-66/66 redundancy, 24/26 derivation parity, jerk_tofu gate red + absent from EXPO CI). A 2-lens
-adversarial review (correctness/food-safety · completeness/fork-adequacy) is in flight; its
-folds land as a follow-up commit on this branch, marked ⟲.*
+66/66 redundancy, 24/26 derivation parity, jerk_tofu gate red + absent from EXPO CI).*
+
+*Review record (2026-08-14, 2 lenses, both ran against source + committed data): **Lens 1
+correctness/food-safety** — 33 index.html anchors checked (32 exact, 1 drift fixed), 5
+door-smoke anchors (2 pin citations corrected), 12 cross-app anchors, 12 measurements
+independently reproduced (66/66 · 24/26 · 26/26 · 58/84 · 57/58 · 12/26 · 13 shapes · the
+`_meta.exported` history). Material findings folded ⟲: Option B's flag-derivation rule
+(under-flagging channel closed), the W2 SAT no-pin correction, the §0 side-effect disclosures
+(veg-line recomposition, double-parsnip veganalt trim, two-key `_components`), the A-1+A-3
+race-matrix correction with stamped-beats-unstamped. **Lens 2 completeness/fork-adequacy** —
+verdict SHIP-WITH-FIXES; consumer sweep found no missed runtime reader of `menu_current.json`
+in the six repos; folds ⟲: the Extras-vs-Event-Name slot trap, the allowlist lifecycle,
+F4/A-3 reconciliation + fork-table evidence lines, the interim-rule enforcement honesty note,
+the D0.1 normalization parenthetical, eligible-fields 27 (not ~24), "guaranteed-green" (not
+"vacuous").*
