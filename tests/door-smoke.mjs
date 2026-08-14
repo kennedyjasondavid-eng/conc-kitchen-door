@@ -1943,7 +1943,12 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
   const routing = readJson('routing_by_meal.json');
   const expected = [
     ['1', 'SUNDAY', 'dinner', 'Beef Strogonoff, Noodles'],
-    ['1', 'TUESDAY', 'lunch', 'Blackened fish, Sweet potatoes, Seasonal Vegetables'],
+    // Parsnip and Carrot roasted side added to the regular lunch line, served to
+    // everyone (mirrors EXPO #2 / PR #231; Jason 2026-08-13). Plain veg, no allergens,
+    // so the slot flags are unchanged. The durable authority is DOOR's app-state, so
+    // this must also be re-applied as a side in the menu editor + republished, or the
+    // next publish regenerates menu_current.json from app-state and reverts it.
+    ['1', 'TUESDAY', 'lunch', 'Blackened fish, Sweet potatoes, Seasonal Vegetables, Parsnip and Carrot'],
     ['1', 'WEDNESDAY', 'lunch', 'Egg Salad Wrap, Bean Salad'],
     ['2', 'TUESDAY', 'lunch', 'Halal Beef Burger, Chickpea Salad'],
     ['2', 'WEDNESDAY', 'lunch', 'Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables'],
