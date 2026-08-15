@@ -16,6 +16,19 @@
 
 ## §0 ⚠️ URGENT operational note — do this before the next publish (no code, no ruling needed)
 
+> **✅ OUTCOME (2026-08-15): DEFUSED — with two intended menu variations.** Jason executed
+> the defuse in the live editor; verified durable against `main`
+> (`_meta.exported: 2026-08-15T12:40:39.567Z`): both lunches slot-backed
+> (`vegside: Parsnip and Carrot`), overlay = menu, routing `Parsnip and Carrot` **167+4
+> (W1 TUE) / 165+4 (W2 SAT)** — the under-count is closed, and the W2 SAT veganalt tail was
+> trimmed. **Variations (Jason-ruled intended):** Parsnip **replaces** Seasonal Vegetables
+> on both lunches (Veg Side slot, not Extras), and the W2 SAT main is renamed
+> `Chicken Tenders`. Consequences: the door-smoke W1 TUE pin is red on `main` (re-pin the
+> test, never the menu) and EXPO's baked-MENU/fixture mirror is stale — both handed off in
+> **`DOOR_POST_DEFUSE_REMEDIATION_HANDOFF_2026-08-15.md`** (tracked on issue #75). The
+> publish threw 409s mid-flight but landed (see §1.6 note). The original instructions below
+> are retained as the §0 record.
+
 **DOOR PR #72 (the Parsnip mirror, commit `7b7772a`) is armed to silently revert, and W2 SAT
 is under-counting production right now.**
 
@@ -210,6 +223,15 @@ validation → **Gate-9** (`:12316-12338`; Stop-level structural defects block a
 manual) → **10 per-file commits** (`:12339-12351`, each `_ghPushFileNow` = one contents-API
 PUT, serialized through `_ghWriteQueue` with hydration / empty-clobber / >70%-shrink rails
 `:12145-12160`).
+
+> **Live incident (2026-08-15, during the §0 defuse — evidence for the silent-drift plan's
+> D1 atomic-publish slice):** overlapping publish waves (each save auto-publishes, plus the
+> overlay side-publish `:14042`) raced on file SHAs; the browser caches GitHub contents-API
+> responses ≤60s, so `_ghPushFileNow`'s single SHA-refetch retry (`:12170-12185`) re-grabbed
+> a stale SHA and failed loudly on `menu_overlay.json` + `menu_current.json` — while a later
+> wave landed everything. A page reload resolves it (fresh SHA fetches); the failure is a
+> 409 race, never auth. The 30%-shrink rail also correctly refused a shorter-than-cloud
+> `recent_log.json` in the same window (benign).
 
 ---
 
