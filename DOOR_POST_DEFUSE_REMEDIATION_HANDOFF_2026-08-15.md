@@ -65,7 +65,15 @@ evidence for the HOUSE silent-drift plan's D1 slice (port EXPO's `pushFilesToGit
 - Issue #75 is open with a "remediation pending" checklist; PR #74 (the design doc) is a
   draft awaiting Jason's fork rulings — this pickup does not touch its design content.
 
-## 3. DOOR slice — re-pin door-smoke (test-only)
+## 3. DOOR slice — re-pin door-smoke (test-only) — ✅ DONE 2026-08-15 (same session)
+
+> Executed as written: `origin/main` merged into the branch (post-defuse data), pin #2
+> re-pinned to `"Blackened fish, Sweet potatoes, Parsnip and Carrot"` with the comment
+> rewritten (intentional Seasonal-Veg replacement, Jason-ruled), sweep found no other stale
+> expectations (the `:1954` Seasonal Vegetables hit is W2 WEDNESDAY — an untouched slot),
+> door-smoke **70/70**. `main` CI goes green once PR #74 merges; the red runs on the
+> publish commits themselves stay red in history (expected). **The remaining pickup for a
+> fresh session is §4 (EXPO mirror) + §5 closeout only.** Original steps retained below.
 
 Branch: continue on `claude/door-menu-footguns-design-bnz1ws` (PR #74's branch), or a fresh
 branch off `main` if Jason prefers the design PR to stay docs-only — **ask via the PR if
