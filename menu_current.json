@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-10T22:23:12.513Z",
+    "exported": "2026-08-15T12:42:15.116Z",
     "version": 32
   },
   "menu": {
@@ -420,10 +420,10 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_dinner": "sulphites, pork",
-        "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables, Parsnip and Carrot",
-        "lunch_veg": "Blackened Tofu, Sweet potatoes, Seasonal Vegetables",
+        "lunch": "Blackened fish, Sweet potatoes, Parsnip and Carrot",
+        "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
         "lunch_mainItem": "Blackened fish",
-        "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
+        "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": false,
           "hasDairy": false,
@@ -476,7 +476,7 @@
               "hasBeef": false,
               "hasChicken": false,
               "hasTurkey": false,
-              "isSpicy": false,
+              "isSpicy": true,
               "isCarb": true,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
@@ -523,7 +523,7 @@
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Parsnip and Carrot",
             "flags": {}
           }
         }
@@ -1954,14 +1954,14 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Chicken tenders & Roasted Yams, Sweet Potato, Seasonal Veg, Parsnip and Carrot",
-        "lunch_veg": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot, Sweet Potato, Seasonal Veg",
+        "lunch": "Chicken Tenders, Sweet Potato, Parsnip and Carrot",
+        "lunch_veg": "Vegan Nuggets, Sweet Potato, Parsnip and Carrot",
         "lunch_halal": "Halal breaded chicken burgers",
-        "lunch_mainItem": "Chicken tenders & Roasted Yams",
-        "lunch_sides": "Sweet Potato, Seasonal Veg",
+        "lunch_mainItem": "Chicken Tenders",
+        "lunch_sides": "Sweet Potato, Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": true,
+          "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -1977,7 +1977,7 @@
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
-          "halalCertifiedMeat": true,
+          "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
@@ -2018,7 +2018,7 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten",
         "allergens_dinner": "beef",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -2027,10 +2027,10 @@
         "lunch_mainAlt": "Halal Breaded Chicken Burgers",
         "lunch_slots": {
           "main": {
-            "manual": "Chicken tenders & Roasted Yams",
+            "recipeName": "Chicken Tenders",
             "flags": {
               "hasGluten": true,
-              "hasDairy": true,
+              "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
@@ -2042,18 +2042,18 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": true,
+              "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
               "isCarb": false,
-              "halalCertifiedMeat": true,
+              "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasCoconut": false,
+              "hasBeans": false,
               "hasMushroom": false,
-              "hasBrassicas": false,
-              "hasCorn": false,
+              "hasCoconut": false,
               "hasNightshades": false,
-              "hasBeans": false
+              "hasBrassicas": false,
+              "hasCorn": false
             }
           },
           "mainalt": {
@@ -2087,18 +2087,15 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot",
-            "flags": {
-              "hasGluten": true,
-              "hasSoy": true
-            }
+            "manual": "Vegan Nuggets",
+            "flags": {}
           },
           "starch": {
             "manual": "Sweet Potato",
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Veg",
+            "manual": "Parsnip and Carrot",
             "flags": {}
           }
         }
