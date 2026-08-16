@@ -156,6 +156,11 @@ function extractFunctionBlock(html, functionName) {
 function loadComplianceConflictCore() {
   const html = readText('index.html');
   const code = extractTestableCoreBlock(html, 'compliance-conflicts');
+  // TAG_LABELS_MAP is defined above the core block; the display-allergen helper
+  // reads it at call time. Run the REAL literal from index.html into the context
+  // (never a hand-copied fixture that could drift from the app's own map).
+  const tagLabelsStmt = html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/);
+  assert.ok(tagLabelsStmt, 'missing TAG_LABELS_MAP object literal');
   const context = {
     Array,
     Object,
@@ -163,9 +168,11 @@ function loadComplianceConflictCore() {
     ROUTING_TAGS: extractStringSetLiteral(html, 'ROUTING_TAGS')
   };
   vm.createContext(context);
+  vm.runInContext(tagLabelsStmt[0], context, { filename: 'index.html#TAG_LABELS_MAP', timeout: 1000 });
   vm.runInContext(code, context, { filename: 'index.html#compliance-conflicts', timeout: 1000 });
   assert.equal(typeof context.checkResidentMealConflicts, 'function', 'compliance core should expose checkResidentMealConflicts');
   assert.equal(typeof context.computeDoorComplianceDiagnostics, 'function', 'compliance core should expose computeDoorComplianceDiagnostics');
+  assert.equal(typeof context.getAnaphDisplayAllergens, 'function', 'compliance core should expose getAnaphDisplayAllergens');
   return context;
 }
 
@@ -1214,6 +1221,44 @@ test('testable compliance core detects resident allergen and routing conflicts',
     'No Peanuts:allergen',
     'No Pork:restriction'
   ]);
+});
+
+test('anaph banner allergens: a gluten-only anaphylactic names GF (the F2 fix — the old scrape rendered nothing)', () => {
+  const core = loadComplianceConflictCore();
+  // v29-scoped resident: anaphylactic to gluten ONLY. Pre-fix, the banner sinks
+  // scraped tags for startsWith('No ') — 'GF' does not — so the red ALERT banner
+  // rendered "Rooms 305 ()" with the lethal allergen omitted.
+  const resident = { room: '305', isAnaph: true, anaphTags: ['glutenFree'], tags: ['GF'], avoidances: [] };
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident, { hasGluten: true })), ['GF']);
+  // And the resident-scoped (section header) form names it too.
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident)), ['GF']);
+});
+
+test('anaph banner allergens honor anaphTags scoping and the meal trigger (the enforcer\'s answer)', () => {
+  const core = loadComplianceConflictCore();
+  // Anaphylactic to peanuts only; also carries a NON-anaphylactic dietary No Dairy tag.
+  const resident = { room: '306', isAnaph: true, anaphTags: ['noPeanuts'], tags: ['No Peanuts', 'No Dairy'], avoidances: [] };
+  // Meal carries both — only the anaphTags-scoped trigger may render.
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident, { hasPeanuts: true, hasDairy: true })), ['No Peanuts']);
+  // Meal carries neither of the resident's anaph allergens — no trigger, empty.
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident, { hasDairy: true })), []);
+});
+
+test('anaph section-header allergens: backward-compat residents keep every allergen tag, never routing tags', () => {
+  const core = loadComplianceConflictCore();
+  // No anaphTags (pre-v29 record): the alternative-prep header must list ALL
+  // allergen-shaped tags — unmapped 'No *' ones included (no under-listing) and
+  // GF via the map — while routing tags like Halal stay out.
+  const resident = { room: '307', isAnaph: true, tags: ['No Eggs', 'GF', 'Halal'], avoidances: [] };
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident)), ['No Eggs', 'GF']);
+});
+
+test('anaph banner sinks derive through the shared helper, never the raw tag scrape', () => {
+  const html = readText('index.html');
+  const scrapes = html.match(/flatMap\(r=>r\.tags\.filter\(t=>t\.startsWith\('No '\)\)\)/g) || [];
+  assert.equal(scrapes.length, 0, 'no banner/header sink may scrape raw No-* tags for allergen text');
+  const helperUses = html.match(/getAnaphDisplayAllergens\(/g) || [];
+  assert.ok(helperUses.length >= 5, `all four sinks + definition should reference getAnaphDisplayAllergens (saw ${helperUses.length})`);
 });
 
 test('testable compliance core leaves clean resident and meal combinations alone', () => {
