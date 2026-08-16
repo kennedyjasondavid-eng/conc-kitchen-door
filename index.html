@@ -9786,7 +9786,12 @@ function saveRegistryState() {
       residents: REGISTRY_LIST,
       anaphRooms: anaphRooms
     }));
-  } catch(e) { console.warn('saveRegistryState failed:', e); }
+  } catch(e) {
+    // Registry state includes anaphRooms — a failed save must never be silent: the in-memory
+    // edit looks applied but reverts on the next reload of this device.
+    console.warn('saveRegistryState failed:', e);
+    try { showToast('⚠ Resident changes could NOT be saved on this device — they may revert after a reload. Free up storage and retry.'); } catch(_) {}
+  }
 }
 
 function loadRegistryState() {
@@ -12147,7 +12152,9 @@ async function _ghPushFileNow(creds, path, content) {
     return { skipped:true, reason:'not_hydrated' };
   }
   let sha, remoteSize=0;
-  try { const ex=await fetch(url,{headers}); if(ex.ok){ const j=await ex.json(); sha=j.sha; remoteSize=j.size||0; } } catch(e){}
+  // cache:'no-store' — the browser caches contents-API GETs ≤60s; a cached SHA here is what
+  // poisoned the 2026-08-15 409 retries (double-writes within a save land <60s apart).
+  try { const ex=await fetch(url,{headers,cache:'no-store'}); if(ex.ok){ const j=await ex.json(); sha=j.sha; remoteSize=j.size||0; } } catch(e){}
   const trimmed = (content||'').trim();
   const isEmpty = trimmed===''||trimmed==='{}'||trimmed==='[]'||trimmed==='null';
   const allowShrink = ALLOW_SHRINK_PATHS.has(path) || _ghForceOverwrite;
@@ -12175,7 +12182,7 @@ async function _ghPushFileNow(creds, path, content) {
   // something pathological that the user should see fail loudly.
   if(res.status === 409){
     console.warn('[GH] '+path+' 409 conflict \u2014 refetching SHA and retrying');
-    try { const ex=await fetch(url,{headers}); if(ex.ok){ const j=await ex.json(); sha=j.sha; } } catch(e){}
+    try { const ex=await fetch(url,{headers,cache:'no-store'}); if(ex.ok){ const j=await ex.json(); sha=j.sha; } } catch(e){}
     res = await doPut(sha);
   }
   if(!res.ok){
