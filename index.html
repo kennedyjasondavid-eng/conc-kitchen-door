@@ -8834,6 +8834,7 @@ function getTagClass(label) {
   return { 'Halal':'tag-halal', 'Vegan':'tag-vegan', 'Vegetarian':'tag-vegan', 'GF':'tag-gf', 'Diabetic':'tag-diabetic', 'No Dairy':'tag-nodairy', 'Anaphylactic':'tag-anaph', 'Moderate Allergy':'tag-moderate' }[label] || '';
 }
 
+/* DOOR_TESTABLE_CORE_START compliance-conflicts */
 // ============================================================
 // ROOM-LEVEL ANAPHYLACTIC CONTAINMENT
 // ============================================================
@@ -8851,7 +8852,6 @@ const ANAPH_TAG_TO_MEAL_FLAG = {
 // Maps resident allergen flags and accommodations to meal-level flags.
 // Used by checkResidentMealConflicts() to auto-detect conflicts at Generate time.
 // Routing tags (Halal, Diabetic, etc.) are handled by computeSections — not here.
-/* DOOR_TESTABLE_CORE_START compliance-conflicts */
 const RESIDENT_TO_MEAL_FLAG = {
   // Allergen flags (medically serious)
   'No Peanuts':     'hasPeanuts',
@@ -9078,6 +9078,33 @@ function computeDoorComplianceDiagnostics(input) {
     certainty: certainty,
     diagnosticIncomplete: diagnosticIncomplete
   };
+}
+
+// F2 ruling (2026-08-16): plating-sheet anaphylactic banner/header allergen text
+// derives from the SAME per-resident scoping the routing enforcer acts on
+// (anaphTags when set — v29 — and GF included via ANAPH_TAG_TO_MEAL_FLAG), never
+// a raw "tags that start with 'No '" scrape. The scrape ignored anaphTags
+// scoping and dropped GF entirely, so a gluten-only anaphylactic rendered a red
+// banner with NO allergen named. With mealFlags given, returns only the
+// allergens that TRIGGER on that meal (the enforcer's answer — mirrors
+// getAnaphConflictRooms' scoping); without, returns the resident's
+// anaphylactic-scoped allergen labels (what the separate alternative avoids).
+function getAnaphDisplayAllergens(resident, mealFlags) {
+  let labels;
+  if (resident.anaphTags && resident.anaphTags.length) {
+    labels = resident.anaphTags.map(k => TAG_LABELS_MAP[k]).filter(Boolean);
+  } else {
+    // Backward compat (no anaphTags): every 'No *' label plus map-recognized
+    // non-'No' labels like GF. Routing tags (Halal, Diabetic, ...) never
+    // belong in an allergen list.
+    labels = [...(resident.tags || []), ...(resident.avoidances || [])]
+      .filter(t => /^No /.test(t) || ANAPH_TAG_TO_MEAL_FLAG[t]);
+  }
+  if (!mealFlags) return labels;
+  return labels.filter(t => {
+    const f = ANAPH_TAG_TO_MEAL_FLAG[t];
+    return !!(f && mealFlags[f]);
+  });
 }
 
 /* DOOR_TESTABLE_CORE_END compliance-conflicts */
@@ -19925,7 +19952,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   // Anaphylactic banner
   if (conflictRooms.size > 0) {
     const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const allergens = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph).flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
+    const allergens = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
     addMerged('\u26A0  ANAPHYLACTIC ALERT \u2014 Rooms '+anaphNames+' ('+allergens+')', F.whB, '993333', B.thick, 18);
     addMerged('Today\u2019s meal contains allergen \u2014 Do not deliver to these rooms or roommates', F.whSm, '993333', B.thick, 14);
   }
@@ -19944,7 +19971,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
 
   // Anaphylactic section
   if (anaphSect.length) {
-    const allergens = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
+    const allergens = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>getAnaphDisplayAllergens(r)))].join(', ');
     addMerged('\u26A0  Anaphylactic Alternative ('+allergens+')', F.whB, '993333', B.thick, 16);
     addMerged(mealName.replace(/peanut/i,'(no peanut oil)')+' \u2014 prepared separately  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
     anaphSect.forEach(r => {
@@ -20708,7 +20735,7 @@ function buildPlatingHtml(pd, isTest) {
 
   if (conflictRooms.size > 0) {
     const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const algs = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph).flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
+    const algs = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
     h += `<tr><td colspan="3" class="ps-banner">⚠  ANAPHYLACTIC ALERT — Rooms ${escapeHtml(anaphNames)} (${escapeHtml(algs)})</td></tr>`;
     h += `<tr><td colspan="3" class="ps-banner-sub">Today’s meal contains allergen — Do not deliver to these rooms or roommates</td></tr>`;
   }
@@ -20724,7 +20751,7 @@ function buildPlatingHtml(pd, isTest) {
   h += `<tr><td></td><td class="ps-total">Diabetics</td><td class="ps-total-val">${diabCount}</td></tr>`;
 
   if (anaphSect.length) {
-    const alg = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>r.tags.filter(t=>t.startsWith('No '))))].join(', ');
+    const alg = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>getAnaphDisplayAllergens(r)))].join(', ');
     h += `<tr><td colspan="3" class="ps-anaph-hdr">⚠  Anaphylactic Alternative (${escapeHtml(alg)})</td></tr>`;
     h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(mealName.replace(/peanut/i,'(no peanut oil)'))} — prepared separately  |  ${escapeHtml(alg.toUpperCase())}</td></tr>`;
     anaphSect.forEach(r => {
