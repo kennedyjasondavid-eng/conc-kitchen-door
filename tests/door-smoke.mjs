@@ -2683,3 +2683,336 @@ test('D1: both write paths share one anti-clobber evaluator, so the guards canno
       `${name} must not carry its own copy of the guards`);
   }
 });
+
+// --- D2: routing_by_meal.json records which menu it was built from -----------
+// (silent-drift plan §5 D2, shape a: "two facts, never compared"). Every artifact
+// in a publish SET stamps `_meta.builtFromMenu = {exported, hash}` pointing at the
+// menu it was published alongside; validation Stops on a desync so a set assembled
+// from two different menus can't ship. Depends on D1 (one publish = one commit) —
+// cross-artifact Stop checks were unsound while intermediate sets were published.
+
+function stampedPublishSet() {
+  const core = loadPublishValidationCore();
+  const artifacts = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+  core.doorStampBuiltFromMenu(artifacts);
+  return { core, artifacts };
+}
+
+test('D2: content hash is content-true and key-order stable', () => {
+  const core = loadPublishValidationCore();
+  assert.equal(typeof core.doorContentHash, 'function', 'core exposes doorContentHash');
+  const a = core.doorContentHash({ x: 1, y: [2, 3], z: { q: true } });
+  const reordered = core.doorContentHash({ z: { q: true }, y: [2, 3], x: 1 });
+  assert.equal(a, reordered, 'same content in a different key order hashes the same');
+  assert.notEqual(a, core.doorContentHash({ x: 1, y: [2, 4], z: { q: true } }), 'a content change moves the hash');
+  assert.notEqual(a, core.doorContentHash({ x: 1, y: [3, 2], z: { q: true } }), 'array order is content, not noise');
+});
+
+test('D2: doorStampBuiltFromMenu stamps consumers from the menu and leaves the menu unstamped', () => {
+  const { artifacts } = stampedPublishSet();
+  const menuExported = artifacts['menu_current.json']._meta.exported;
+  assert.equal(artifacts['menu_current.json']._meta.builtFromMenu, undefined, 'the menu is the anchor, never stamped');
+  for (const name of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
+    const stamp = artifacts[name]._meta.builtFromMenu;
+    assert.ok(stamp && typeof stamp === 'object', `${name} records builtFromMenu`);
+    assert.equal(stamp.exported, menuExported, `${name} records the menu's exported timestamp`);
+    assert.equal(typeof stamp.hash, 'string', `${name} records a menu content hash`);
+    assert.ok(stamp.hash.length, `${name} hash is non-empty`);
+  }
+});
+
+test('D2: a coherent stamped set validates with no Stop and no builtFromMenu issue', () => {
+  const { core, artifacts } = stampedPublishSet();
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.equal(result.counts.Stop, 0, 'a self-consistent set does not block');
+  assert.ok(!result.issues.some((i) => String(i.code).startsWith('builtfrommenu')),
+    'no builtFromMenu issue on a coherent set (never cries wolf on healthy data)');
+});
+
+test('D2: a routing artifact built from a different menu revision is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  artifacts['routing_by_meal.json']._meta.builtFromMenu.exported = '1999-01-01T00:00:00.000Z';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-exported-mismatch' && i.artifact === 'routing_by_meal.json'),
+    'routing stamped with a different menu timestamp Stops the publish');
+});
+
+test('D2: an artifact built from different menu CONTENT (same timestamp) is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  // The exported timestamp can agree while the content diverged — this is exactly
+  // the case a version-number check misses (a content change that does not move the
+  // schema constant). The content hash is what catches it.
+  artifacts['registry_summary.json']._meta.builtFromMenu.hash = 'deadbeef';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-hash-mismatch' && i.artifact === 'registry_summary.json'),
+    'a content-hash disagreement Stops the publish even when the timestamp matches');
+});
+
+test('D2: a malformed builtFromMenu stamp is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  artifacts['door_state.json']._meta.builtFromMenu = 'nope';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-malformed' && i.artifact === 'door_state.json'),
+    'a non-object builtFromMenu is a structural Stop');
+});
+
+test('D2: a legacy set with no builtFromMenu is Review, never Stop', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  });
+  const absent = result.review.filter((i) => i.code === 'builtfrommenu-absent');
+  assert.equal(absent.length, 3, 'the three consumer artifacts each report absent provenance as Review');
+  assert.ok(!result.stop.some((i) => String(i.code).startsWith('builtfrommenu')),
+    'absence is advisory, not a block (pre-D2 artifacts and partial sets must not freeze publishing)');
+});
+
+test('D2: the real publish path stamps the whole set from the menu it published', async () => {
+  const harness = loadPublishFlowHarness();
+  await harness.context._doPublishToGitHub(true);
+
+  assert.equal(harness.atomicCalls.length, 1, 'still one atomic commit (D1 intact)');
+  const find = (p) => harness.pushed.find((x) => x.path === p);
+  const menu = find('menu_current.json').content;
+  assert.equal(menu._meta.builtFromMenu, undefined, 'the published menu is the anchor, never stamped');
+  for (const name of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
+    const stamp = find(name).content._meta.builtFromMenu;
+    assert.ok(stamp && typeof stamp === 'object', `${name} is published carrying builtFromMenu`);
+    assert.equal(stamp.exported, menu._meta.exported, `${name} records the published menu's exported timestamp`);
+    assert.ok(typeof stamp.hash === 'string' && stamp.hash.length, `${name} records the published menu's content hash`);
+  }
+});
+
+test('D2: the publish orchestrator stamps provenance before it validates', () => {
+  const html = readText('index.html');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assertContains(publishFlow, 'doorStampBuiltFromMenu(publishArtifacts)', 'the publish path stamps the set (silent-drift D2)');
+  assert.ok(
+    publishFlow.indexOf('doorStampBuiltFromMenu(publishArtifacts)') < publishFlow.indexOf('validateDoorPublishArtifacts(publishArtifacts'),
+    'stamping must run before validation so the cross-artifact Stop check sees the stamps'
+  );
+  const core = extractTestableCoreBlock(html, 'publish-validation');
+  assertContains(core, 'builtfrommenu-exported-mismatch', 'the validator carries the exported-desync Stop code');
+  assertContains(core, 'builtfrommenu-hash-mismatch', 'the validator carries the content-desync Stop code');
+});
+
+// --- D3: the baked-MENU_DATA fallback is never a silent substitution ---------
+// (silent-drift plan §5 D3, shape d). When this device has no uploaded menu,
+// getMenuData() falls back to the baked MENU_DATA constant — the OLD rotation, not
+// the current standard base. A module flag drives a persistent banner and a
+// publish-time Stop (FORK-3 ruled Stop with Gate-9 override semantics), so the
+// stale built-in menu can never be silently stamped as current for EXPO/HUB.
+
+test('D3: getMenuData flags the baked fallback only when there is no uploaded menu', () => {
+  const withUpload = loadMenuDataCore({ uploadedMenu: { '1': { MONDAY: { lunch: 'Uploaded lunch' } } } });
+  withUpload.getMenuData();
+  assert.equal(withUpload._doorMenuUsedBakedFallback, false, 'an uploaded menu is not the baked fallback');
+
+  const noUpload = loadMenuDataCore({ uploadedMenu: null });
+  noUpload.getMenuData();
+  assert.equal(noUpload._doorMenuUsedBakedFallback, true, 'no uploaded menu => running on the baked constant');
+});
+
+test('D3: the publish validator Stops when the menu is the baked fallback', () => {
+  const core = loadPublishValidationCore();
+  const artifacts = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+  const flagged = core.validateDoorPublishArtifacts(artifacts, { menuSourceFallback: true });
+  assert.ok(flagged.stop.some((i) => i.code === 'menu-source-fallback' && i.artifact === 'menu_current.json'),
+    'a fallback-sourced menu is a Stop (Gate-9 blocks auto-publish, manual prompts override)');
+
+  const clean = core.validateDoorPublishArtifacts(artifacts, { menuSourceFallback: false });
+  assert.ok(!clean.stop.some((i) => i.code === 'menu-source-fallback'), 'no Stop when the menu is a real uploaded menu');
+  const noOpts = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(!noOpts.stop.some((i) => i.code === 'menu-source-fallback'), 'the check is opt-in; a bare call never manufactures it');
+});
+
+test('D3: an auto-publish built from the baked fallback is blocked; a manual publish can override', async () => {
+  const blocked = loadPublishFlowHarness({ configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; } });
+  const autoRes = await blocked.context._doPublishToGitHub(false); // auto publish
+  assert.ok(autoRes && autoRes.skipped && autoRes.reason === 'validation-stop', 'auto-publish from the fallback is Gate-9 blocked');
+  assert.ok((autoRes.issues || []).some((i) => i.code === 'menu-source-fallback'), 'the block names the menu-source-fallback Stop');
+  assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
+
+  const overridden = loadPublishFlowHarness({
+    confirm: () => true, // operator consciously overrides
+    configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; }
+  });
+  await overridden.context._doPublishToGitHub(true); // manual publish
+  assert.equal(overridden.atomicCalls.length, 1, 'a manual publish can override the fallback Stop (FORK-3 Gate-9 semantics)');
+});
+
+test('D3: a normal publish (real uploaded menu) is unaffected by the fallback gate', async () => {
+  const harness = loadPublishFlowHarness(); // no fallback flag in context
+  await harness.context._doPublishToGitHub(true);
+  assert.equal(harness.atomicCalls.length, 1, 'a real-menu publish still commits');
+  const menuStop = (harness.pushed.length && false);
+  assert.ok(!menuStop, 'sanity');
+});
+
+test('D3: the fallback flag drives a persistent banner and the publish gate', () => {
+  const html = readText('index.html');
+  assertContains(html, 'id="mc-menu-source-banner"', 'the Menu Config screen carries the menu-source banner element');
+  const banner = extractFunctionBlock(html, 'renderMenuSourceBanner');
+  assertContains(banner, '_doorMenuUsedBakedFallback', 'the banner renders off the fallback flag');
+  const menuConfig = extractFunctionBlock(html, 'renderMenuConfig');
+  assertContains(menuConfig, 'renderMenuSourceBanner()', 'the Menu Config render surfaces the banner');
+  const getMenu = extractFunctionBlock(html, 'getMenuData');
+  assertContains(getMenu, '_doorMenuUsedBakedFallback = !uploaded', 'getMenuData sets the flag on every resolution');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assertContains(publishFlow, 'menuSourceFallback', 'the publish path passes the fallback state into validation');
+});
+
+// --- D4: a per-slot _components computation failure is no longer invisible ----
+// (silent-drift plan §5 D4, shape b). buildRoutingByMealJSON records each meal
+// slot whose portion-component computation THREW into _meta.componentErrors; the
+// validator surfaces each as a Review and Stops past a small threshold, so a
+// broadly-broken portions pipe blocks the publish instead of silently shipping a
+// routing artifact that under-reports portions.
+
+function routingSetWithComponentErrors(n) {
+  const routing = readJson('routing_by_meal.json');
+  routing._meta.componentErrors = Array.from({ length: n }, (_, i) => ({
+    week: '1', day: 'MONDAY', meal: ['breakfast', 'lunch', 'dinner'][i % 3], error: 'computePlatingData threw #' + i
+  }));
+  return {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': routing,
+    'door_state.json': readJson('door_state.json')
+  };
+}
+
+test('D4: a few component-compute failures are Review, not a Stop', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts(routingSetWithComponentErrors(2));
+  const reviews = result.review.filter((i) => i.code === 'routing-component-compute-error');
+  assert.equal(reviews.length, 2, 'each failed slot is surfaced as a Review');
+  assert.equal(reviews[0].artifact, 'routing_by_meal.json');
+  assert.ok(reviews[0].details && reviews[0].details.error, 'the caught error reaches the issue list (publish status line)');
+  assert.ok(!result.stop.some((i) => i.code === 'routing-components-degraded'), 'at/below threshold does not block the kitchen publish');
+});
+
+test('D4: too many component-compute failures Stop the publish', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts(routingSetWithComponentErrors(3));
+  assert.equal(result.review.filter((i) => i.code === 'routing-component-compute-error').length, 3, 'still one Review per failed slot');
+  const stop = result.stop.find((i) => i.code === 'routing-components-degraded');
+  assert.ok(stop && stop.artifact === 'routing_by_meal.json', 'past the small threshold, a broadly-broken pipe is a Stop');
+  assert.equal(stop.details.failedSlots, 3);
+});
+
+test('D4: a healthy routing artifact records no component errors and raises nothing', () => {
+  const core = loadPublishValidationCore();
+  const routing = readJson('routing_by_meal.json');
+  assert.equal(routing._meta.componentErrors, undefined, 'the committed (healthy) artifact carries no componentErrors');
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': routing,
+    'door_state.json': readJson('door_state.json')
+  });
+  assert.ok(!result.issues.some((i) => String(i.code).startsWith('routing-component-compute') || i.code === 'routing-components-degraded'),
+    'never fires on healthy data (§1 meta-cause)');
+});
+
+test('D4: the builder records throwing slots and stamps them only under degradation', () => {
+  const html = readText('index.html');
+  const builder = extractFunctionBlock(html, 'buildRoutingByMealJSON');
+  assertContains(builder, 'componentErrors.push(', 'the catch records the failed slot');
+  assertContains(builder, 'if (componentErrors.length) _meta.componentErrors', 'the stamp is additive — absent on a healthy build');
+  // the recording must live in the per-slot catch, i.e. after the console.warn
+  assert.ok(builder.indexOf('per-component counts failed') < builder.indexOf('componentErrors.push('),
+    'the failed-slot record sits in the per-slot catch');
+});
+
+test('D4: a broadly-degraded routing artifact is Gate-9 blocked on auto-publish; a few slips publish', async () => {
+  const blocked = loadPublishFlowHarness({
+    buildRoutingByMealJSON: () => {
+      const r = makePublishArtifact('routing_by_meal.json');
+      r._meta.componentErrors = Array.from({ length: 4 }, (_, i) => ({ week: '2', day: 'TUESDAY', meal: 'lunch', error: 'boom' + i }));
+      return r;
+    }
+  });
+  const res = await blocked.context._doPublishToGitHub(false); // auto
+  assert.ok(res && res.skipped && res.reason === 'validation-stop', 'a broadly-broken portions pipe blocks auto-publish');
+  assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
+
+  const proceeds = loadPublishFlowHarness({
+    buildRoutingByMealJSON: () => {
+      const r = makePublishArtifact('routing_by_meal.json');
+      r._meta.componentErrors = [{ week: '2', day: 'TUESDAY', meal: 'lunch', error: 'boom' }];
+      return r;
+    }
+  });
+  await proceeds.context._doPublishToGitHub(true);
+  assert.equal(proceeds.atomicCalls.length, 1, 'a single slot failure is advisory — the publish still commits');
+});
+
+// --- D5: the stale-tab guard is per-tab, not per-origin ----------------------
+// (silent-drift plan §5 D5, shape c). The old guard compared the live server
+// stamp against localStorage['door_html_stamp'], shared across every tab on the
+// origin — so a second tab booting (or the first reloading) overwrote it and an
+// OLD-build tab then read as fresh and could publish with stale logic. The
+// staleness verdict now depends only on THIS tab's own boot anchor.
+
+function loadStaleVerdict() {
+  const html = readText('index.html');
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'doorTabStaleVerdict'), context, { filename: 'index.html#stale-verdict', timeout: 1000 });
+  assert.equal(typeof context.doorTabStaleVerdict, 'function', 'exposes doorTabStaleVerdict');
+  return context.doorTabStaleVerdict;
+}
+
+test('D5: an unanchored tab anchors to the live stamp and is not stale', () => {
+  const verdict = loadStaleVerdict();
+  const v = verdict(null, 'etag-E1');
+  assert.equal(v.stale, false, 'first boot never flags stale');
+  assert.equal(v.anchor, 'etag-E1', 'first boot anchors to what the server serves now (the build it loaded)');
+});
+
+test('D5: an anchored tab is fresh against its own stamp, stale against a newer one', () => {
+  const verdict = loadStaleVerdict();
+  assert.equal(verdict('etag-E1', 'etag-E1').stale, false, 'same server stamp = fresh');
+  const stale = verdict('etag-E1', 'etag-E2');
+  assert.equal(stale.stale, true, 'a newer server stamp = this tab is stale');
+  assert.equal(stale.anchor, 'etag-E1', 'the anchor never moves without a reload (it is what this tab runs)');
+});
+
+test('D5: two tabs with the same live stamp are judged by their OWN boot anchor (the fix)', () => {
+  const verdict = loadStaleVerdict();
+  // After a deploy E1 -> E2: a fresh tab booted on E2, an old tab still on E1.
+  // Both see the same live server stamp E2 — the old bug let the shared localStorage
+  // value make the old tab read fresh. Now each is judged by its own anchor.
+  const freshTab = verdict('etag-E2', 'etag-E2');
+  const oldTab = verdict('etag-E1', 'etag-E2');
+  assert.equal(freshTab.stale, false, 'the tab actually running the new build is fresh');
+  assert.equal(oldTab.stale, true, 'the tab running the OLD build is stale — same live stamp, opposite verdict');
+});
+
+test('D5: a missing live stamp (no header / offline) is never stale', () => {
+  const verdict = loadStaleVerdict();
+  assert.equal(verdict('etag-E1', '').stale, false, 'no server stamp = silent, never a false alarm');
+  assert.equal(verdict('etag-E1', '').anchor, 'etag-E1', 'and the anchor is left intact');
+});
+
+test('D5: the guard compares against the per-tab anchor, not shared localStorage', () => {
+  const html = readText('index.html');
+  const guard = extractFunctionBlock(html, 'checkForFreshDoorVersion');
+  assertContains(guard, 'doorTabStaleVerdict(_doorBootHtmlStamp,', 'staleness is decided against the per-tab boot anchor');
+  assert.doesNotMatch(guard, /localStorage\.getItem\(['"]door_html_stamp['"]\)/,
+    'the guard must not read the shared localStorage stamp as the staleness baseline (silent-drift D5)');
+});

@@ -1723,6 +1723,7 @@ function updateCODEXBadge() {
     </div>
 
     <!-- Stale allergen flags banner (pre-v30 meals lacking per-slot snapshot) -->
+    <div id="mc-menu-source-banner" style="display:none;background:#fee2e2;border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-stale-flags-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
 
     <!-- Edit Menu mode banner -->
@@ -11718,6 +11719,13 @@ function buildRoutingByMealJSON() {
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   const menuData = getMenuData();
   const result = {};
+  // D4 (silent-drift, shape b): a per-slot _components computation that THROWS was
+  // console.warn-only, and the validator raised nothing unless ALL 84 slots lost
+  // their components. Record each throwing slot so the validator can surface the
+  // degradation (Review per slot, Stop past a small threshold). Anchored on the
+  // caught exception — a slot that legitimately produces no components (e.g. no
+  // residents route to it) is not an error and is not recorded.
+  const componentErrors = [];
 
   ['1','2','3','4'].forEach(wk => {
     result[wk] = {};
@@ -11790,13 +11798,19 @@ function buildRoutingByMealJSON() {
             });
             if (Object.keys(comp).length) result[wk][day][period]._components = comp;
           }
-        } catch(e) { console.warn('per-component counts failed', wk, day, period, e); }
+        } catch(e) {
+          console.warn('per-component counts failed', wk, day, period, e);
+          componentErrors.push({ week: wk, day: day, meal: period, error: String((e && e.message) || e) });
+        }
       });
     });
   });
 
+  const _meta = { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:DOOR_SCHEMA_VERSIONS.routing_by_meal };
+  // Additive + only present under degradation: a healthy build stamps nothing here.
+  if (componentErrors.length) _meta.componentErrors = componentErrors;
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:DOOR_SCHEMA_VERSIONS.routing_by_meal },
+    _meta: _meta,
     routing: result
   };
 }
@@ -11819,9 +11833,101 @@ function doorIsPlainObject(value) {
 const DOOR_EXPECTED_WEEKS = ['1','2','3','4'];
 const DOOR_EXPECTED_DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 const DOOR_EXPECTED_MEALS = ['breakfast','lunch','dinner'];
+// D4: past this many meal slots failing to compute their portion components, the
+// portions pipe is broadly broken and the publish is Stopped (Gate-9). At or below
+// it, each failure is a Review — advisory, publish proceeds. Small on purpose: a
+// single transient/edge slot failure should not block the kitchen's publish.
+const DOOR_COMPONENT_ERROR_STOP_THRESHOLD = 2;
 
 function doorIsNonNegativeInteger(value) {
   return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0;
+}
+
+// D2 (silent-drift): provenance stamp tying every artifact in a publish set to the
+// ONE menu it was built alongside. `_meta.builtFromMenu = {exported, hash}` gives
+// EXPO/HUB a single field to correlate routing/registry/state against the menu —
+// closing the "two facts, never compared" class (a cook handed a scale-up computed
+// against a menu the counts don't match). `exported` is the menu artifact's own
+// timestamp (monotonic by wall-clock); `hash` is content-true, so it moves on a
+// content change even though `_meta.version` (a schema constant) does not — this is
+// the change-detection signal FORK-4 routes consumers to instead of the version
+// counter (see the version contract / D7). ADDITIVE + OPTIONAL: an artifact without
+// it is legacy/pre-D2, never a Stop.
+function doorStableStringify(value) {
+  // Key-sorted serialization so the hash is stable regardless of object key order.
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(doorStableStringify).join(',') + ']';
+  return '{' + Object.keys(value).sort().map(function(k) {
+    return JSON.stringify(k) + ':' + doorStableStringify(value[k]);
+  }).join(',') + '}';
+}
+
+function doorContentHash(value) {
+  // djb2 over the sorted serialization. Drift-detection strength, not cryptographic;
+  // a collision only weakens the self-consistency check, never food safety.
+  const s = doorStableStringify(value);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
+  return (h >>> 0).toString(36);
+}
+
+function doorBuiltFromMenuStamp(menuArtifact) {
+  // The anchor pair a publish set records. Null when the menu artifact can't be
+  // read — the menu validators Stop on that separately, so this check stays quiet.
+  if (!doorIsPlainObject(menuArtifact) || !doorIsPlainObject(menuArtifact._meta)) return null;
+  if (typeof menuArtifact._meta.exported !== 'string' || !menuArtifact._meta.exported) return null;
+  if (!doorIsPlainObject(menuArtifact.menu)) return null;
+  return { exported: menuArtifact._meta.exported, hash: doorContentHash(menuArtifact.menu) };
+}
+
+function doorStampBuiltFromMenu(artifacts) {
+  // Orchestrator-owned stamping: routing/registry/state ALL reference the exact
+  // menu object built in this same set, so the four artifacts are provably one
+  // coherent publish even if a builder is later refactored to compute its own
+  // timestamp. Called in _doPublishToGitHub right after the artifacts are built and
+  // before validation. The menu itself is the anchor and is left unstamped.
+  if (!doorIsPlainObject(artifacts)) return;
+  const stamp = doorBuiltFromMenuStamp(artifacts['menu_current.json']);
+  if (!stamp) return;
+  ['routing_by_meal.json', 'registry_summary.json', 'door_state.json'].forEach(function(name) {
+    const artifact = artifacts[name];
+    if (doorIsPlainObject(artifact) && doorIsPlainObject(artifact._meta)) {
+      artifact._meta.builtFromMenu = { exported: stamp.exported, hash: stamp.hash };
+    }
+  });
+}
+
+function validateDoorBuiltFromMenu(artifacts, issues) {
+  // D2 cross-artifact Stop: every consumer artifact that records a builtFromMenu
+  // stamp must record the SAME menu (exported + content hash) as the menu being
+  // published in this set. A mismatch means the set was assembled from two
+  // different menus and would drift silently downstream — Stop, refuse to publish.
+  // A wholly-ABSENT stamp is a legacy/pre-D2 (or partial) set: Review, not Stop, so
+  // a healthy older set never blocks and the check never cries wolf on normal data
+  // (the meta-cause: a check that fires on healthy data trains everyone to ignore
+  // it). A real publish stamps all three via doorStampBuiltFromMenu, so the healthy
+  // path is present+matching → no issue at all.
+  const expected = doorBuiltFromMenuStamp(artifacts['menu_current.json']);
+  if (!expected) return; // menu missing/malformed — its own validators Stop on that
+  ['routing_by_meal.json', 'registry_summary.json', 'door_state.json'].forEach(function(name) {
+    const artifact = artifacts[name];
+    if (!doorIsPlainObject(artifact) || !doorIsPlainObject(artifact._meta)) return; // absent/invalid artifact handled by its own validator
+    const stamp = artifact._meta.builtFromMenu;
+    if (typeof stamp === 'undefined') {
+      issues.push(doorPublishValidationIssue('Review', 'builtfrommenu-absent', name, 'Artifact does not record which menu it was built from (pre-D2 provenance).'));
+      return;
+    }
+    if (!doorIsPlainObject(stamp) || typeof stamp.exported !== 'string' || typeof stamp.hash !== 'string') {
+      issues.push(doorPublishValidationIssue('Stop', 'builtfrommenu-malformed', name, 'Artifact _meta.builtFromMenu is malformed.', { builtFromMenu: stamp }));
+      return;
+    }
+    if (stamp.exported !== expected.exported) {
+      issues.push(doorPublishValidationIssue('Stop', 'builtfrommenu-exported-mismatch', name, 'Artifact was built from a different menu revision than the one being published.', { artifactExported: stamp.exported, menuExported: expected.exported }));
+    }
+    if (stamp.hash !== expected.hash) {
+      issues.push(doorPublishValidationIssue('Stop', 'builtfrommenu-hash-mismatch', name, 'Artifact was built from different menu content than the one being published.', { artifactHash: stamp.hash, menuHash: expected.hash }));
+    }
+  });
 }
 
 function validateDoorArtifactMeta(artifactName, artifact, issues) {
@@ -11968,6 +12074,22 @@ function validateDoorRoutingArtifact(artifactName, artifact, issues) {
   if (componentSlots === 0) {
     issues.push(doorPublishValidationIssue('Review', 'routing-components-missing', artifactName, 'Routing artifact has no _components portion maps.'));
   }
+  // D4 (silent-drift, shape b): surface per-slot component-computation failures the
+  // builder recorded (buildRoutingByMealJSON stamps _meta.componentErrors). Review
+  // per failed slot so the caught error reaches the publish status line; Stop past a
+  // small threshold so a broadly-broken portions pipe blocks (Gate-9) rather than
+  // shipping a routing artifact that silently under-reports portions. Absent on
+  // healthy builds → no issue, so this never fires on normal operation.
+  const _componentErrors = artifact._meta && artifact._meta.componentErrors;
+  if (Array.isArray(_componentErrors) && _componentErrors.length) {
+    _componentErrors.forEach(function(err) {
+      const detail = doorIsPlainObject(err) ? err : {};
+      issues.push(doorPublishValidationIssue('Review', 'routing-component-compute-error', artifactName, 'A meal slot failed to compute its portion components.', { week: detail.week, day: detail.day, meal: detail.meal, error: detail.error }));
+    });
+    if (_componentErrors.length > DOOR_COMPONENT_ERROR_STOP_THRESHOLD) {
+      issues.push(doorPublishValidationIssue('Stop', 'routing-components-degraded', artifactName, 'Too many meal slots failed to compute portion components — the portions pipe is broadly broken.', { failedSlots: _componentErrors.length, threshold: DOOR_COMPONENT_ERROR_STOP_THRESHOLD }));
+    }
+  }
 }
 
 function validateDoorStateArtifact(artifactName, artifact, issues) {
@@ -12006,7 +12128,7 @@ function validateDoorRegistrySummaryArtifact(artifactName, artifact, issues) {
   }
 }
 
-function validateDoorPublishArtifacts(artifacts) {
+function validateDoorPublishArtifacts(artifacts, options) {
   artifacts = artifacts || {};
   const issues = [];
   const required = ['menu_current.json', 'registry_summary.json', 'routing_by_meal.json', 'door_state.json'];
@@ -12020,6 +12142,15 @@ function validateDoorPublishArtifacts(artifacts) {
   if (artifacts['routing_by_meal.json']) validateDoorRoutingArtifact('routing_by_meal.json', artifacts['routing_by_meal.json'], issues);
   if (artifacts['door_state.json']) validateDoorStateArtifact('door_state.json', artifacts['door_state.json'], issues);
   if (artifacts['registry_summary.json']) validateDoorRegistrySummaryArtifact('registry_summary.json', artifacts['registry_summary.json'], issues);
+  validateDoorBuiltFromMenu(artifacts, issues);
+  // D3 (silent-drift, shape d): if the menu in this set was built from the baked
+  // MENU_DATA constant (this device has no uploaded menu), refuse to stamp it as the
+  // current menu. Stop → Gate-9 blocks auto-publish; a manual publish prompts a
+  // conscious override (FORK-3 ruled Stop with Gate-9 override semantics). Passed in
+  // explicitly (not read from a global) so the check stays a pure function.
+  if (options && options.menuSourceFallback && artifacts['menu_current.json']) {
+    issues.push(doorPublishValidationIssue('Stop', 'menu-source-fallback', 'menu_current.json', 'Menu was built from the built-in MENU_DATA fallback, not an uploaded menu. Re-import the current menu before publishing.'));
+  }
   return {
     issues: issues,
     stop: issues.filter(function(issue) { return issue.level === 'Stop'; }),
@@ -12456,7 +12587,16 @@ async function _doPublishToGitHub(manual) {
     } finally {
       setDoorPublishMenuOverlayOverride(null);
     }
-    const _publishValidation = validateDoorPublishArtifacts(publishArtifacts);
+    // D2 (silent-drift): stamp routing/registry/state with the menu they were built
+    // alongside, so this published SET carries one coherent provenance and menu <->
+    // routing can't drift silently downstream. Validation below Stops if any artifact
+    // records a different menu than the one in this set (Gate-9 blocks the publish).
+    doorStampBuiltFromMenu(publishArtifacts);
+    // D3 (silent-drift): buildMenuJSON() above called getMenuData(), which set
+    // _doorMenuUsedBakedFallback to whether this device is on the baked fallback.
+    // typeof-guarded so an undeclared context (tests) reads as false.
+    const _menuSourceFallback = (typeof _doorMenuUsedBakedFallback !== 'undefined' && _doorMenuUsedBakedFallback);
+    const _publishValidation = validateDoorPublishArtifacts(publishArtifacts, { menuSourceFallback: _menuSourceFallback });
     reportDoorPublishValidation(_publishValidation, manual);
     // Gate-9: hard-block on Stop-level STRUCTURAL defects (missing menu day,
     // non-integer/negative routing count, missing routing slot, malformed
@@ -14090,7 +14230,23 @@ function renderMenuConfig() {
   // Update swaps banner
   renderSwapsBanner();
   renderSpecialsBanner();
+  renderMenuSourceBanner();
   closeMealEdit();
+}
+
+// D3 (silent-drift): persistent, un-missable warning when DOOR is serving the
+// baked-in fallback menu rather than an uploaded one. Surfaced on the Menu Config
+// screen — the publish surface — so the operator re-imports before pushing a stale
+// menu to EXPO/HUB. getMenuData() (called above) sets the flag on every resolution.
+function renderMenuSourceBanner() {
+  const el = document.getElementById('mc-menu-source-banner');
+  if (!el) return;
+  if (!_doorMenuUsedBakedFallback) { el.style.display = 'none'; return; }
+  el.innerHTML =
+    '<strong style="color:#991b1b;">⚠ Menu source: built-in fallback</strong> ' +
+    '<span style="color:var(--muted);">This device has no uploaded menu, so DOOR is showing the built-in constant — not the current standard menu. ' +
+    'Re-import the menu workbook before publishing: a publish from here would stamp the stale built-in menu as current for EXPO and HUB.</span>';
+  el.style.display = 'block';
 }
 
 function openMealEdit(week, day, period) {
@@ -14372,9 +14528,20 @@ function clearUploadedMenu() {
 // Returns a merged view of (uploadedMenu || MENU_DATA) + any permanent overlay.
 // Overlay is keyed identically to MENU_DATA: weekNum → dayName → {breakfast, lunch, dinner, *_veg, *_flags}.
 // Partial overlays are supported — a day with only a lunch override inherits breakfast/dinner from the constant.
+// D3 (silent-drift, shape d): true while DOOR is running on the baked MENU_DATA
+// constant because this device has no uploaded menu. Read by renderMenuSourceBanner
+// (persistent warning) and the publish gate (menu-source-fallback Stop). Set on
+// every getMenuData() resolution so it always reflects the live menu source.
+let _doorMenuUsedBakedFallback = false;
+
 function getMenuData() {
   const publishOverlay = getDoorPublishMenuOverlayOverride();
   const uploaded = loadUploadedMenu();
+  // No uploaded menu (concUploadedMenu absent — cleared, fresh browser, wiped
+  // storage) means the base is the OLD baked rotation, not the current standard
+  // menu. Publishing that would stamp a stale menu as current for EXPO/HUB, and
+  // it must never be a silent substitution.
+  _doorMenuUsedBakedFallback = !uploaded;
   const base = uploaded || MENU_DATA;
   const overlay = publishOverlay || loadMenuBaseOverlay();
   return mergeDoorMenuDataWithOverlay(base, overlay);
@@ -19283,6 +19450,25 @@ function commitImportToQueue() {
 // old way. _doorStaleOverride records a one-time "publish anyway" for the session.
 var _doorTabStale = false;
 var _doorStaleOverride = false;
+// D5 (silent-drift, shape c): the version THIS tab is running, anchored in a module
+// variable (per-tab, per-load — a reload starts a fresh context and re-anchors).
+// The old guard compared the live server stamp against localStorage['door_html_stamp'],
+// which is shared across every tab on the origin: a second tab booting fresh, or the
+// first tab reloading, overwrote it to the newest stamp — so an OLD-build tab then
+// read as fresh and could publish with outdated publish/build logic. Now the
+// staleness authority is per-tab; localStorage is a cross-tab HINT only.
+var _doorBootHtmlStamp = null;
+
+function doorTabStaleVerdict(bootStamp, liveStamp) {
+  // Pure decision. bootStamp = the HTML stamp this tab anchored at boot (null/
+  // undefined until anchored); liveStamp = what the server serves right now. The
+  // verdict depends ONLY on this tab's own boot anchor, never on a value another tab
+  // can overwrite. A missing live stamp (no header / offline) is never stale.
+  if (!liveStamp) return { stale: false, anchor: bootStamp };
+  if (bootStamp === null || bootStamp === undefined) return { stale: false, anchor: liveStamp };
+  return { stale: bootStamp !== liveStamp, anchor: bootStamp };
+}
+
 function checkForFreshDoorVersion() {
   if (sessionStorage.getItem('door_just_reloaded')) {
     sessionStorage.removeItem('door_just_reloaded');
@@ -19295,11 +19481,13 @@ function checkForFreshDoorVersion() {
       .then(r => {
         if (!r.ok) return;
         const stamp = r.headers.get('etag') || r.headers.get('last-modified') || '';
-        if (!stamp) return;
-        const stored = localStorage.getItem('door_html_stamp');
-        if (!stored) { localStorage.setItem('door_html_stamp', stamp); return; }
-        if (stored !== stamp) {
-          console.log('[DOOR cache-check] new version detected:', stored, '->', stamp);
+        const verdict = doorTabStaleVerdict(_doorBootHtmlStamp, stamp);
+        _doorBootHtmlStamp = verdict.anchor;
+        // Cross-tab hint only (the newest stamp any tab has seen); nothing reads this
+        // as the staleness authority anymore — _doorBootHtmlStamp is, per tab.
+        if (stamp) localStorage.setItem('door_html_stamp', stamp);
+        if (verdict.stale) {
+          console.log('[DOOR cache-check] new version detected: this tab', _doorBootHtmlStamp, '-> server', stamp);
           _doorTabStale = true;
           showStaleVersionBanner(stamp);
         }
