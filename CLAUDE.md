@@ -7,6 +7,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 - Siblings: **EXPO** (`conc-kitchen-expo`, consumes DOOR's menu) · **HUB** (`conc-kitchen-hub`, daily board) · **MISE/CODEX** (`conc-recipe-hub`, recipe + allergen + cost source).
 - Machine-global HOUSE map: `~/.claude/CLAUDE.md`. Ecosystem vision (the "why"): `…\OneDrive - CHRISTIE OSSINGTON NEIGHBOURHOOD CENTRE\~CONC Project Management Tool~\CURRENT\CONC_Kitchen_Operations_Vision_V42.html`.
 - Design lessons (KNOWLEDGE owner): cross-HOUSE design wisdom + lessons live in `conc-kitchen-house/INSIGHTS.md` (the single owner) — read it before a design pass; point here, don't restate.
+- Implementation seams: `conc-kitchen-house/HOUSE_PROVEN_SEAMS.md` — problem classes solved once somewhere in HOUSE (quota-safe writes, token handling, atomic multi-file publish, escaper families, …); **port the seam, don't reinvent — cite the row**. DOOR owns row 4 (`PublishAuth`) and is the named gap in rows 1 (`setItemSafe`), 3 (`getSavedToken` trims but doesn't strip non-ASCII), and 5 (`_ghPushFileNow` per-file commits — the open D1 atomic-publish slice).
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
