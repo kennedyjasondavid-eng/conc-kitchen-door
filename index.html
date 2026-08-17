@@ -1723,6 +1723,7 @@ function updateCODEXBadge() {
     </div>
 
     <!-- Stale allergen flags banner (pre-v30 meals lacking per-slot snapshot) -->
+    <div id="mc-menu-source-banner" style="display:none;background:#fee2e2;border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-stale-flags-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
 
     <!-- Edit Menu mode banner -->
@@ -12093,7 +12094,7 @@ function validateDoorRegistrySummaryArtifact(artifactName, artifact, issues) {
   }
 }
 
-function validateDoorPublishArtifacts(artifacts) {
+function validateDoorPublishArtifacts(artifacts, options) {
   artifacts = artifacts || {};
   const issues = [];
   const required = ['menu_current.json', 'registry_summary.json', 'routing_by_meal.json', 'door_state.json'];
@@ -12108,6 +12109,14 @@ function validateDoorPublishArtifacts(artifacts) {
   if (artifacts['door_state.json']) validateDoorStateArtifact('door_state.json', artifacts['door_state.json'], issues);
   if (artifacts['registry_summary.json']) validateDoorRegistrySummaryArtifact('registry_summary.json', artifacts['registry_summary.json'], issues);
   validateDoorBuiltFromMenu(artifacts, issues);
+  // D3 (silent-drift, shape d): if the menu in this set was built from the baked
+  // MENU_DATA constant (this device has no uploaded menu), refuse to stamp it as the
+  // current menu. Stop → Gate-9 blocks auto-publish; a manual publish prompts a
+  // conscious override (FORK-3 ruled Stop with Gate-9 override semantics). Passed in
+  // explicitly (not read from a global) so the check stays a pure function.
+  if (options && options.menuSourceFallback && artifacts['menu_current.json']) {
+    issues.push(doorPublishValidationIssue('Stop', 'menu-source-fallback', 'menu_current.json', 'Menu was built from the built-in MENU_DATA fallback, not an uploaded menu. Re-import the current menu before publishing.'));
+  }
   return {
     issues: issues,
     stop: issues.filter(function(issue) { return issue.level === 'Stop'; }),
@@ -12549,7 +12558,11 @@ async function _doPublishToGitHub(manual) {
     // routing can't drift silently downstream. Validation below Stops if any artifact
     // records a different menu than the one in this set (Gate-9 blocks the publish).
     doorStampBuiltFromMenu(publishArtifacts);
-    const _publishValidation = validateDoorPublishArtifacts(publishArtifacts);
+    // D3 (silent-drift): buildMenuJSON() above called getMenuData(), which set
+    // _doorMenuUsedBakedFallback to whether this device is on the baked fallback.
+    // typeof-guarded so an undeclared context (tests) reads as false.
+    const _menuSourceFallback = (typeof _doorMenuUsedBakedFallback !== 'undefined' && _doorMenuUsedBakedFallback);
+    const _publishValidation = validateDoorPublishArtifacts(publishArtifacts, { menuSourceFallback: _menuSourceFallback });
     reportDoorPublishValidation(_publishValidation, manual);
     // Gate-9: hard-block on Stop-level STRUCTURAL defects (missing menu day,
     // non-integer/negative routing count, missing routing slot, malformed
@@ -14183,7 +14196,23 @@ function renderMenuConfig() {
   // Update swaps banner
   renderSwapsBanner();
   renderSpecialsBanner();
+  renderMenuSourceBanner();
   closeMealEdit();
+}
+
+// D3 (silent-drift): persistent, un-missable warning when DOOR is serving the
+// baked-in fallback menu rather than an uploaded one. Surfaced on the Menu Config
+// screen — the publish surface — so the operator re-imports before pushing a stale
+// menu to EXPO/HUB. getMenuData() (called above) sets the flag on every resolution.
+function renderMenuSourceBanner() {
+  const el = document.getElementById('mc-menu-source-banner');
+  if (!el) return;
+  if (!_doorMenuUsedBakedFallback) { el.style.display = 'none'; return; }
+  el.innerHTML =
+    '<strong style="color:#991b1b;">⚠ Menu source: built-in fallback</strong> ' +
+    '<span style="color:var(--muted);">This device has no uploaded menu, so DOOR is showing the built-in constant — not the current standard menu. ' +
+    'Re-import the menu workbook before publishing: a publish from here would stamp the stale built-in menu as current for EXPO and HUB.</span>';
+  el.style.display = 'block';
 }
 
 function openMealEdit(week, day, period) {
@@ -14465,9 +14494,20 @@ function clearUploadedMenu() {
 // Returns a merged view of (uploadedMenu || MENU_DATA) + any permanent overlay.
 // Overlay is keyed identically to MENU_DATA: weekNum → dayName → {breakfast, lunch, dinner, *_veg, *_flags}.
 // Partial overlays are supported — a day with only a lunch override inherits breakfast/dinner from the constant.
+// D3 (silent-drift, shape d): true while DOOR is running on the baked MENU_DATA
+// constant because this device has no uploaded menu. Read by renderMenuSourceBanner
+// (persistent warning) and the publish gate (menu-source-fallback Stop). Set on
+// every getMenuData() resolution so it always reflects the live menu source.
+let _doorMenuUsedBakedFallback = false;
+
 function getMenuData() {
   const publishOverlay = getDoorPublishMenuOverlayOverride();
   const uploaded = loadUploadedMenu();
+  // No uploaded menu (concUploadedMenu absent — cleared, fresh browser, wiped
+  // storage) means the base is the OLD baked rotation, not the current standard
+  // menu. Publishing that would stamp a stale menu as current for EXPO/HUB, and
+  // it must never be a silent substitution.
+  _doorMenuUsedBakedFallback = !uploaded;
   const base = uploaded || MENU_DATA;
   const overlay = publishOverlay || loadMenuBaseOverlay();
   return mergeDoorMenuDataWithOverlay(base, overlay);

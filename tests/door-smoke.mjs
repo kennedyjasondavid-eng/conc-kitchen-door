@@ -2796,10 +2796,81 @@ test('D2: the publish orchestrator stamps provenance before it validates', () =>
   const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
   assertContains(publishFlow, 'doorStampBuiltFromMenu(publishArtifacts)', 'the publish path stamps the set (silent-drift D2)');
   assert.ok(
-    publishFlow.indexOf('doorStampBuiltFromMenu(publishArtifacts)') < publishFlow.indexOf('validateDoorPublishArtifacts(publishArtifacts)'),
+    publishFlow.indexOf('doorStampBuiltFromMenu(publishArtifacts)') < publishFlow.indexOf('validateDoorPublishArtifacts(publishArtifacts'),
     'stamping must run before validation so the cross-artifact Stop check sees the stamps'
   );
   const core = extractTestableCoreBlock(html, 'publish-validation');
   assertContains(core, 'builtfrommenu-exported-mismatch', 'the validator carries the exported-desync Stop code');
   assertContains(core, 'builtfrommenu-hash-mismatch', 'the validator carries the content-desync Stop code');
+});
+
+// --- D3: the baked-MENU_DATA fallback is never a silent substitution ---------
+// (silent-drift plan §5 D3, shape d). When this device has no uploaded menu,
+// getMenuData() falls back to the baked MENU_DATA constant — the OLD rotation, not
+// the current standard base. A module flag drives a persistent banner and a
+// publish-time Stop (FORK-3 ruled Stop with Gate-9 override semantics), so the
+// stale built-in menu can never be silently stamped as current for EXPO/HUB.
+
+test('D3: getMenuData flags the baked fallback only when there is no uploaded menu', () => {
+  const withUpload = loadMenuDataCore({ uploadedMenu: { '1': { MONDAY: { lunch: 'Uploaded lunch' } } } });
+  withUpload.getMenuData();
+  assert.equal(withUpload._doorMenuUsedBakedFallback, false, 'an uploaded menu is not the baked fallback');
+
+  const noUpload = loadMenuDataCore({ uploadedMenu: null });
+  noUpload.getMenuData();
+  assert.equal(noUpload._doorMenuUsedBakedFallback, true, 'no uploaded menu => running on the baked constant');
+});
+
+test('D3: the publish validator Stops when the menu is the baked fallback', () => {
+  const core = loadPublishValidationCore();
+  const artifacts = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+  const flagged = core.validateDoorPublishArtifacts(artifacts, { menuSourceFallback: true });
+  assert.ok(flagged.stop.some((i) => i.code === 'menu-source-fallback' && i.artifact === 'menu_current.json'),
+    'a fallback-sourced menu is a Stop (Gate-9 blocks auto-publish, manual prompts override)');
+
+  const clean = core.validateDoorPublishArtifacts(artifacts, { menuSourceFallback: false });
+  assert.ok(!clean.stop.some((i) => i.code === 'menu-source-fallback'), 'no Stop when the menu is a real uploaded menu');
+  const noOpts = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(!noOpts.stop.some((i) => i.code === 'menu-source-fallback'), 'the check is opt-in; a bare call never manufactures it');
+});
+
+test('D3: an auto-publish built from the baked fallback is blocked; a manual publish can override', async () => {
+  const blocked = loadPublishFlowHarness({ configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; } });
+  const autoRes = await blocked.context._doPublishToGitHub(false); // auto publish
+  assert.ok(autoRes && autoRes.skipped && autoRes.reason === 'validation-stop', 'auto-publish from the fallback is Gate-9 blocked');
+  assert.ok((autoRes.issues || []).some((i) => i.code === 'menu-source-fallback'), 'the block names the menu-source-fallback Stop');
+  assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
+
+  const overridden = loadPublishFlowHarness({
+    confirm: () => true, // operator consciously overrides
+    configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; }
+  });
+  await overridden.context._doPublishToGitHub(true); // manual publish
+  assert.equal(overridden.atomicCalls.length, 1, 'a manual publish can override the fallback Stop (FORK-3 Gate-9 semantics)');
+});
+
+test('D3: a normal publish (real uploaded menu) is unaffected by the fallback gate', async () => {
+  const harness = loadPublishFlowHarness(); // no fallback flag in context
+  await harness.context._doPublishToGitHub(true);
+  assert.equal(harness.atomicCalls.length, 1, 'a real-menu publish still commits');
+  const menuStop = (harness.pushed.length && false);
+  assert.ok(!menuStop, 'sanity');
+});
+
+test('D3: the fallback flag drives a persistent banner and the publish gate', () => {
+  const html = readText('index.html');
+  assertContains(html, 'id="mc-menu-source-banner"', 'the Menu Config screen carries the menu-source banner element');
+  const banner = extractFunctionBlock(html, 'renderMenuSourceBanner');
+  assertContains(banner, '_doorMenuUsedBakedFallback', 'the banner renders off the fallback flag');
+  const menuConfig = extractFunctionBlock(html, 'renderMenuConfig');
+  assertContains(menuConfig, 'renderMenuSourceBanner()', 'the Menu Config render surfaces the banner');
+  const getMenu = extractFunctionBlock(html, 'getMenuData');
+  assertContains(getMenu, '_doorMenuUsedBakedFallback = !uploaded', 'getMenuData sets the flag on every resolution');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assertContains(publishFlow, 'menuSourceFallback', 'the publish path passes the fallback state into validation');
 });
