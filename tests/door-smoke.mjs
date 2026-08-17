@@ -2874,3 +2874,89 @@ test('D3: the fallback flag drives a persistent banner and the publish gate', ()
   const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
   assertContains(publishFlow, 'menuSourceFallback', 'the publish path passes the fallback state into validation');
 });
+
+// --- D4: a per-slot _components computation failure is no longer invisible ----
+// (silent-drift plan §5 D4, shape b). buildRoutingByMealJSON records each meal
+// slot whose portion-component computation THREW into _meta.componentErrors; the
+// validator surfaces each as a Review and Stops past a small threshold, so a
+// broadly-broken portions pipe blocks the publish instead of silently shipping a
+// routing artifact that under-reports portions.
+
+function routingSetWithComponentErrors(n) {
+  const routing = readJson('routing_by_meal.json');
+  routing._meta.componentErrors = Array.from({ length: n }, (_, i) => ({
+    week: '1', day: 'MONDAY', meal: ['breakfast', 'lunch', 'dinner'][i % 3], error: 'computePlatingData threw #' + i
+  }));
+  return {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': routing,
+    'door_state.json': readJson('door_state.json')
+  };
+}
+
+test('D4: a few component-compute failures are Review, not a Stop', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts(routingSetWithComponentErrors(2));
+  const reviews = result.review.filter((i) => i.code === 'routing-component-compute-error');
+  assert.equal(reviews.length, 2, 'each failed slot is surfaced as a Review');
+  assert.equal(reviews[0].artifact, 'routing_by_meal.json');
+  assert.ok(reviews[0].details && reviews[0].details.error, 'the caught error reaches the issue list (publish status line)');
+  assert.ok(!result.stop.some((i) => i.code === 'routing-components-degraded'), 'at/below threshold does not block the kitchen publish');
+});
+
+test('D4: too many component-compute failures Stop the publish', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts(routingSetWithComponentErrors(3));
+  assert.equal(result.review.filter((i) => i.code === 'routing-component-compute-error').length, 3, 'still one Review per failed slot');
+  const stop = result.stop.find((i) => i.code === 'routing-components-degraded');
+  assert.ok(stop && stop.artifact === 'routing_by_meal.json', 'past the small threshold, a broadly-broken pipe is a Stop');
+  assert.equal(stop.details.failedSlots, 3);
+});
+
+test('D4: a healthy routing artifact records no component errors and raises nothing', () => {
+  const core = loadPublishValidationCore();
+  const routing = readJson('routing_by_meal.json');
+  assert.equal(routing._meta.componentErrors, undefined, 'the committed (healthy) artifact carries no componentErrors');
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': routing,
+    'door_state.json': readJson('door_state.json')
+  });
+  assert.ok(!result.issues.some((i) => String(i.code).startsWith('routing-component-compute') || i.code === 'routing-components-degraded'),
+    'never fires on healthy data (§1 meta-cause)');
+});
+
+test('D4: the builder records throwing slots and stamps them only under degradation', () => {
+  const html = readText('index.html');
+  const builder = extractFunctionBlock(html, 'buildRoutingByMealJSON');
+  assertContains(builder, 'componentErrors.push(', 'the catch records the failed slot');
+  assertContains(builder, 'if (componentErrors.length) _meta.componentErrors', 'the stamp is additive — absent on a healthy build');
+  // the recording must live in the per-slot catch, i.e. after the console.warn
+  assert.ok(builder.indexOf('per-component counts failed') < builder.indexOf('componentErrors.push('),
+    'the failed-slot record sits in the per-slot catch');
+});
+
+test('D4: a broadly-degraded routing artifact is Gate-9 blocked on auto-publish; a few slips publish', async () => {
+  const blocked = loadPublishFlowHarness({
+    buildRoutingByMealJSON: () => {
+      const r = makePublishArtifact('routing_by_meal.json');
+      r._meta.componentErrors = Array.from({ length: 4 }, (_, i) => ({ week: '2', day: 'TUESDAY', meal: 'lunch', error: 'boom' + i }));
+      return r;
+    }
+  });
+  const res = await blocked.context._doPublishToGitHub(false); // auto
+  assert.ok(res && res.skipped && res.reason === 'validation-stop', 'a broadly-broken portions pipe blocks auto-publish');
+  assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
+
+  const proceeds = loadPublishFlowHarness({
+    buildRoutingByMealJSON: () => {
+      const r = makePublishArtifact('routing_by_meal.json');
+      r._meta.componentErrors = [{ week: '2', day: 'TUESDAY', meal: 'lunch', error: 'boom' }];
+      return r;
+    }
+  });
+  await proceeds.context._doPublishToGitHub(true);
+  assert.equal(proceeds.atomicCalls.length, 1, 'a single slot failure is advisory — the publish still commits');
+});

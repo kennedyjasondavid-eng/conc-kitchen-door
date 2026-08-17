@@ -11719,6 +11719,13 @@ function buildRoutingByMealJSON() {
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   const menuData = getMenuData();
   const result = {};
+  // D4 (silent-drift, shape b): a per-slot _components computation that THROWS was
+  // console.warn-only, and the validator raised nothing unless ALL 84 slots lost
+  // their components. Record each throwing slot so the validator can surface the
+  // degradation (Review per slot, Stop past a small threshold). Anchored on the
+  // caught exception — a slot that legitimately produces no components (e.g. no
+  // residents route to it) is not an error and is not recorded.
+  const componentErrors = [];
 
   ['1','2','3','4'].forEach(wk => {
     result[wk] = {};
@@ -11791,13 +11798,19 @@ function buildRoutingByMealJSON() {
             });
             if (Object.keys(comp).length) result[wk][day][period]._components = comp;
           }
-        } catch(e) { console.warn('per-component counts failed', wk, day, period, e); }
+        } catch(e) {
+          console.warn('per-component counts failed', wk, day, period, e);
+          componentErrors.push({ week: wk, day: day, meal: period, error: String((e && e.message) || e) });
+        }
       });
     });
   });
 
+  const _meta = { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:DOOR_SCHEMA_VERSIONS.routing_by_meal };
+  // Additive + only present under degradation: a healthy build stamps nothing here.
+  if (componentErrors.length) _meta.componentErrors = componentErrors;
   return {
-    _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:DOOR_SCHEMA_VERSIONS.routing_by_meal },
+    _meta: _meta,
     routing: result
   };
 }
@@ -11820,6 +11833,11 @@ function doorIsPlainObject(value) {
 const DOOR_EXPECTED_WEEKS = ['1','2','3','4'];
 const DOOR_EXPECTED_DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 const DOOR_EXPECTED_MEALS = ['breakfast','lunch','dinner'];
+// D4: past this many meal slots failing to compute their portion components, the
+// portions pipe is broadly broken and the publish is Stopped (Gate-9). At or below
+// it, each failure is a Review — advisory, publish proceeds. Small on purpose: a
+// single transient/edge slot failure should not block the kitchen's publish.
+const DOOR_COMPONENT_ERROR_STOP_THRESHOLD = 2;
 
 function doorIsNonNegativeInteger(value) {
   return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0;
@@ -12055,6 +12073,22 @@ function validateDoorRoutingArtifact(artifactName, artifact, issues) {
   }
   if (componentSlots === 0) {
     issues.push(doorPublishValidationIssue('Review', 'routing-components-missing', artifactName, 'Routing artifact has no _components portion maps.'));
+  }
+  // D4 (silent-drift, shape b): surface per-slot component-computation failures the
+  // builder recorded (buildRoutingByMealJSON stamps _meta.componentErrors). Review
+  // per failed slot so the caught error reaches the publish status line; Stop past a
+  // small threshold so a broadly-broken portions pipe blocks (Gate-9) rather than
+  // shipping a routing artifact that silently under-reports portions. Absent on
+  // healthy builds → no issue, so this never fires on normal operation.
+  const _componentErrors = artifact._meta && artifact._meta.componentErrors;
+  if (Array.isArray(_componentErrors) && _componentErrors.length) {
+    _componentErrors.forEach(function(err) {
+      const detail = doorIsPlainObject(err) ? err : {};
+      issues.push(doorPublishValidationIssue('Review', 'routing-component-compute-error', artifactName, 'A meal slot failed to compute its portion components.', { week: detail.week, day: detail.day, meal: detail.meal, error: detail.error }));
+    });
+    if (_componentErrors.length > DOOR_COMPONENT_ERROR_STOP_THRESHOLD) {
+      issues.push(doorPublishValidationIssue('Stop', 'routing-components-degraded', artifactName, 'Too many meal slots failed to compute portion components — the portions pipe is broadly broken.', { failedSlots: _componentErrors.length, threshold: DOOR_COMPONENT_ERROR_STOP_THRESHOLD }));
+    }
   }
 }
 
