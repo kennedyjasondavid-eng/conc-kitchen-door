@@ -2960,3 +2960,59 @@ test('D4: a broadly-degraded routing artifact is Gate-9 blocked on auto-publish;
   await proceeds.context._doPublishToGitHub(true);
   assert.equal(proceeds.atomicCalls.length, 1, 'a single slot failure is advisory — the publish still commits');
 });
+
+// --- D5: the stale-tab guard is per-tab, not per-origin ----------------------
+// (silent-drift plan §5 D5, shape c). The old guard compared the live server
+// stamp against localStorage['door_html_stamp'], shared across every tab on the
+// origin — so a second tab booting (or the first reloading) overwrote it and an
+// OLD-build tab then read as fresh and could publish with stale logic. The
+// staleness verdict now depends only on THIS tab's own boot anchor.
+
+function loadStaleVerdict() {
+  const html = readText('index.html');
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'doorTabStaleVerdict'), context, { filename: 'index.html#stale-verdict', timeout: 1000 });
+  assert.equal(typeof context.doorTabStaleVerdict, 'function', 'exposes doorTabStaleVerdict');
+  return context.doorTabStaleVerdict;
+}
+
+test('D5: an unanchored tab anchors to the live stamp and is not stale', () => {
+  const verdict = loadStaleVerdict();
+  const v = verdict(null, 'etag-E1');
+  assert.equal(v.stale, false, 'first boot never flags stale');
+  assert.equal(v.anchor, 'etag-E1', 'first boot anchors to what the server serves now (the build it loaded)');
+});
+
+test('D5: an anchored tab is fresh against its own stamp, stale against a newer one', () => {
+  const verdict = loadStaleVerdict();
+  assert.equal(verdict('etag-E1', 'etag-E1').stale, false, 'same server stamp = fresh');
+  const stale = verdict('etag-E1', 'etag-E2');
+  assert.equal(stale.stale, true, 'a newer server stamp = this tab is stale');
+  assert.equal(stale.anchor, 'etag-E1', 'the anchor never moves without a reload (it is what this tab runs)');
+});
+
+test('D5: two tabs with the same live stamp are judged by their OWN boot anchor (the fix)', () => {
+  const verdict = loadStaleVerdict();
+  // After a deploy E1 -> E2: a fresh tab booted on E2, an old tab still on E1.
+  // Both see the same live server stamp E2 — the old bug let the shared localStorage
+  // value make the old tab read fresh. Now each is judged by its own anchor.
+  const freshTab = verdict('etag-E2', 'etag-E2');
+  const oldTab = verdict('etag-E1', 'etag-E2');
+  assert.equal(freshTab.stale, false, 'the tab actually running the new build is fresh');
+  assert.equal(oldTab.stale, true, 'the tab running the OLD build is stale — same live stamp, opposite verdict');
+});
+
+test('D5: a missing live stamp (no header / offline) is never stale', () => {
+  const verdict = loadStaleVerdict();
+  assert.equal(verdict('etag-E1', '').stale, false, 'no server stamp = silent, never a false alarm');
+  assert.equal(verdict('etag-E1', '').anchor, 'etag-E1', 'and the anchor is left intact');
+});
+
+test('D5: the guard compares against the per-tab anchor, not shared localStorage', () => {
+  const html = readText('index.html');
+  const guard = extractFunctionBlock(html, 'checkForFreshDoorVersion');
+  assertContains(guard, 'doorTabStaleVerdict(_doorBootHtmlStamp,', 'staleness is decided against the per-tab boot anchor');
+  assert.doesNotMatch(guard, /localStorage\.getItem\(['"]door_html_stamp['"]\)/,
+    'the guard must not read the shared localStorage stamp as the staleness baseline (silent-drift D5)');
+});

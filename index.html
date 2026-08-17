@@ -19450,6 +19450,25 @@ function commitImportToQueue() {
 // old way. _doorStaleOverride records a one-time "publish anyway" for the session.
 var _doorTabStale = false;
 var _doorStaleOverride = false;
+// D5 (silent-drift, shape c): the version THIS tab is running, anchored in a module
+// variable (per-tab, per-load — a reload starts a fresh context and re-anchors).
+// The old guard compared the live server stamp against localStorage['door_html_stamp'],
+// which is shared across every tab on the origin: a second tab booting fresh, or the
+// first tab reloading, overwrote it to the newest stamp — so an OLD-build tab then
+// read as fresh and could publish with outdated publish/build logic. Now the
+// staleness authority is per-tab; localStorage is a cross-tab HINT only.
+var _doorBootHtmlStamp = null;
+
+function doorTabStaleVerdict(bootStamp, liveStamp) {
+  // Pure decision. bootStamp = the HTML stamp this tab anchored at boot (null/
+  // undefined until anchored); liveStamp = what the server serves right now. The
+  // verdict depends ONLY on this tab's own boot anchor, never on a value another tab
+  // can overwrite. A missing live stamp (no header / offline) is never stale.
+  if (!liveStamp) return { stale: false, anchor: bootStamp };
+  if (bootStamp === null || bootStamp === undefined) return { stale: false, anchor: liveStamp };
+  return { stale: bootStamp !== liveStamp, anchor: bootStamp };
+}
+
 function checkForFreshDoorVersion() {
   if (sessionStorage.getItem('door_just_reloaded')) {
     sessionStorage.removeItem('door_just_reloaded');
@@ -19462,11 +19481,13 @@ function checkForFreshDoorVersion() {
       .then(r => {
         if (!r.ok) return;
         const stamp = r.headers.get('etag') || r.headers.get('last-modified') || '';
-        if (!stamp) return;
-        const stored = localStorage.getItem('door_html_stamp');
-        if (!stored) { localStorage.setItem('door_html_stamp', stamp); return; }
-        if (stored !== stamp) {
-          console.log('[DOOR cache-check] new version detected:', stored, '->', stamp);
+        const verdict = doorTabStaleVerdict(_doorBootHtmlStamp, stamp);
+        _doorBootHtmlStamp = verdict.anchor;
+        // Cross-tab hint only (the newest stamp any tab has seen); nothing reads this
+        // as the staleness authority anymore — _doorBootHtmlStamp is, per tab.
+        if (stamp) localStorage.setItem('door_html_stamp', stamp);
+        if (verdict.stale) {
+          console.log('[DOOR cache-check] new version detected: this tab', _doorBootHtmlStamp, '-> server', stamp);
           _doorTabStale = true;
           showStaleVersionBanner(stamp);
         }
