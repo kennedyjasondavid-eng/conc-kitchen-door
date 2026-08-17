@@ -252,6 +252,7 @@ function loadPublishFlowHarness(options = {}) {
   const syncBars = [];
   const toasts = [];
   const rememberedFailures = [];
+  const atomicCalls = [];
   const consoleMessages = [];
   const overlayOverrides = [];
   const localOverlay = options.localOverlay || {};
@@ -318,6 +319,20 @@ function loadPublishFlowHarness(options = {}) {
       pushed.push({ path: artifactPath, content: JSON.parse(content) });
       return options.skippedPath === artifactPath ? { skipped: true, reason: options.skippedReason || 'test_skip' } : {};
     }),
+    // D1: the publish path stages the whole artifact set and commits it once.
+    // The stub records every staged file (so path/content assertions are
+    // unchanged from the per-file era) and returns the per-path verdict list the
+    // real ghPushFilesAtomic returns.
+    ghPushFilesAtomic: options.ghPushFilesAtomic || (async (creds, files, message) => {
+      atomicCalls.push({ message, paths: Array.from(files, (f) => f.path) });
+      const results = files.map((f) => {
+        pushed.push({ path: f.path, content: JSON.parse(f.content) });
+        return options.skippedPath === f.path
+          ? { path: f.path, skipped: true, reason: options.skippedReason || 'test_skip' }
+          : { path: f.path, skipped: false };
+      });
+      return { ok: true, results, commitSha: 'test-commit-sha', staged: results.filter((r) => !r.skipped).length };
+    }),
     preMergeOverlayWithCloud: options.preMergeOverlayWithCloud || (async (creds, localOverlay) => localOverlay),
     loadMealSwaps: () => [],
     loadSpecialMeals: () => [],
@@ -359,6 +374,7 @@ function loadPublishFlowHarness(options = {}) {
     rememberedFailures,
     consoleMessages,
     overlayOverrides,
+    atomicCalls,
     storage
   };
 }
@@ -2438,4 +2454,232 @@ test('computePlatingData routes the veg-alt lookup through the floor, not the ||
   // A stored operator override is a deliberate statement and still wins outright.
   assert.match(html, /const vegAllergenStr = vegAllergenStored/,
     'the stored menu-editor override keeps first precedence');
+});
+
+// --- D1: atomic publish (one publish = one commit) ------------------------
+// HOUSE_PROVEN_SEAMS.md row 5, ported from EXPO's pushFilesToGitHubAtomic.
+// DOOR wrote one Contents-API commit per artifact, so 9 of the 10 CI runs per
+// publish evaluated partially-published sets that never existed — and a crash
+// mid-publish shipped one for real. These gates pin the all-or-nothing property.
+function loadAtomicPublishHarness(options = {}) {
+  const html = readText('index.html');
+  const requests = [];
+  const syncBars = [];
+  const consoleMessages = [];
+  const rememberedFailures = [];
+  const remote = options.remote || {};          // path -> { sha, size }
+  const failAt = options.failAt || null;        // e.g. 'POST /git/commits'
+  let refSha = options.refSha || 'tip-sha-1';
+  let refMoves = 0;
+
+  const json = (body, status = 200) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+    statusText: 'stub'
+  });
+
+  const context = {
+    console: {
+      warn: (...a) => consoleMessages.push(a.join(' ')),
+      log: () => {},
+      error: () => {}
+    },
+    Promise, Date, Math, JSON, Set, Error, TextEncoder,
+    setTimeout: (fn) => fn(),                   // no real waiting in the retry path
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+    unescape: (s) => decodeURIComponent(s.replace(/%(?![0-9A-Fa-f]{2})/g, '%25')),
+    encodeURIComponent,
+    updateSyncBar: (message, color) => syncBars.push({ message, color }),
+    PublishAuth: {
+      githubHeaders: (token) => ({ Authorization: 'Bearer ' + token }),
+      classifyGitHubError: (status, message) => 'GitHub API ' + status + ': ' + message,
+      rememberFailure: (m) => rememberedFailures.push(m)
+    },
+    fetch: async (url, init = {}) => {
+      const method = init.method || 'GET';
+      const key = method + ' ' + url.replace(/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+/, '');
+      requests.push({ key, url, method, body: init.body ? JSON.parse(init.body) : null });
+      if (failAt && key === failAt) return json({ message: 'stub failure' }, 500);
+
+      if (method === 'GET' && key.includes('/contents/')) {
+        const p = key.split('/contents/')[1];
+        return Object.prototype.hasOwnProperty.call(remote, p)
+          ? json({ sha: remote[p].sha || 'blob-' + p, size: remote[p].size || 0 })
+          : json({ message: 'Not Found' }, 404);
+      }
+      if (key === 'GET /git/ref/heads/main') {
+        // conflictOnce: the first PATCH 422s, then the tip has moved.
+        return json({ object: { sha: refSha } });
+      }
+      if (key.startsWith('GET /git/commits/')) return json({ tree: { sha: 'tree-of-' + refSha } });
+      if (key === 'POST /git/blobs') return json({ sha: 'blob-sha-' + requests.filter(r => r.key === 'POST /git/blobs').length });
+      if (key === 'POST /git/trees') return json({ sha: 'new-tree-sha' });
+      if (key === 'POST /git/commits') return json({ sha: 'new-commit-sha' });
+      if (key === 'PATCH /git/refs/heads/main') {
+        refMoves++;
+        if (options.conflictOnce && refMoves === 1) { refSha = 'tip-sha-2'; return json({ message: 'not a fast forward' }, 422); }
+        return json({ object: { sha: 'new-commit-sha' } });
+      }
+      return json({ message: 'unexpected ' + key }, 500);
+    }
+  };
+  vm.createContext(context);
+  const prelude = [
+    'let _ghHydrated = ' + (options.hydrated === false ? 'false' : 'true') + ';',
+    'let _ghForceOverwrite = false;',
+    "const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json']);",
+    'let _ghWriteQueue = Promise.resolve();'
+  ].join('\n');
+  vm.runInContext([
+    prelude,
+    extractFunctionBlock(html, '_ghEvaluateWriteGuards'),
+    extractFunctionBlock(html, 'ghPushFilesAtomic'),
+    extractFunctionBlock(html, '_ghPushFilesAtomicNow')
+  ].join('\n\n'), context, { filename: 'index.html#atomic-publish', timeout: 2000 });
+
+  return { context, requests, syncBars, consoleMessages, rememberedFailures };
+}
+
+const ATOMIC_FILES = [
+  { path: 'menu_current.json', content: '{"a":1}' },
+  { path: 'routing_by_meal.json', content: '{"b":2}' },
+  { path: 'door_state.json', content: '{"c":3}' }
+];
+
+test('D1: a publish issues exactly ONE ref update, and every artifact is in that one tree', async () => {
+  const h = loadAtomicPublishHarness();
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+
+  const refPatches = h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main');
+  assert.equal(refPatches.length, 1, 'exactly one ref update per publish');
+
+  const trees = h.requests.filter((r) => r.key === 'POST /git/trees');
+  assert.equal(trees.length, 1, 'exactly one tree per publish');
+  assert.deepEqual(
+    Array.from(trees[0].body.tree, (e) => e.path).sort(),
+    ATOMIC_FILES.map((f) => f.path).sort(),
+    'every staged artifact appears in the single tree');
+  assert.equal(trees[0].body.base_tree, 'tree-of-tip-sha-1', 'the tree is built atop the current tip');
+
+  const commits = h.requests.filter((r) => r.key === 'POST /git/commits');
+  assert.equal(commits.length, 1, 'one commit per publish');
+  assert.deepEqual(Array.from(commits[0].body.parents), ['tip-sha-1'], 'commit parents the current tip');
+  assert.equal(refPatches[0].body.force, false, 'the ref move is fast-forward only');
+  assert.equal(res.staged, 3);
+  assert.equal(res.results.filter((r) => r.skipped).length, 0);
+});
+
+test('D1: a failure before the ref PATCH leaves the repo byte-identical', async () => {
+  for (const failAt of ['POST /git/blobs', 'POST /git/trees', 'POST /git/commits']) {
+    const h = loadAtomicPublishHarness({ failAt });
+    await assert.rejects(
+      () => h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg'),
+      /GitHub API 500/,
+      `${failAt} must fail loudly`);
+
+    assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 0,
+      `${failAt}: no ref update, so nothing became visible`);
+    // Blobs/trees/commits are content-addressed and unreferenced until the ref
+    // moves — writing them changes no path in the repo.
+    assert.equal(h.requests.filter((r) => r.method === 'PUT').length, 0,
+      `${failAt}: the per-file Contents PUT path must never be used as a fallback`);
+  }
+});
+
+test('D1: no fallback to the per-file Contents path — a publish never PUTs', async () => {
+  const h = loadAtomicPublishHarness();
+  await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+  assert.equal(h.requests.filter((r) => r.method === 'PUT').length, 0,
+    'the seam is explicit: fail loudly rather than half-land via the split path');
+});
+
+test('D1: the write queue still serializes concurrent publishes', async () => {
+  const h = loadAtomicPublishHarness();
+  const order = [];
+  const creds = { repo: 'o/r', token: 't' };
+  const a = h.context.ghPushFilesAtomic(creds, ATOMIC_FILES, 'first').then(() => order.push('a'));
+  const b = h.context.ghPushFilesAtomic(creds, ATOMIC_FILES, 'second').then(() => order.push('b'));
+  await Promise.all([a, b]);
+
+  assert.deepEqual(order, ['a', 'b'], 'the second publish waits for the first');
+  const patchIdx = h.requests.map((r, i) => (r.key === 'PATCH /git/refs/heads/main' ? i : -1)).filter((i) => i >= 0);
+  const treeIdx = h.requests.map((r, i) => (r.key === 'POST /git/trees' ? i : -1)).filter((i) => i >= 0);
+  assert.equal(patchIdx.length, 2, 'one ref update each — never merged, never dropped');
+  assert.ok(patchIdx[0] < treeIdx[1],
+    'the first publish completes its ref update before the second builds its tree (no interleave)');
+});
+
+test('D1: a guard-blocked artifact drops out of the tree but is still reported', async () => {
+  // menu_current.json is empty locally while the cloud copy is substantial —
+  // the empty-clobber guard must still refuse it, exactly as in the per-file era.
+  const h = loadAtomicPublishHarness({ remote: { 'menu_current.json': { sha: 's', size: 5000 } } });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, [
+    { path: 'menu_current.json', content: '{}' },
+    { path: 'door_state.json', content: '{"c":3}' }
+  ], 'msg');
+
+  const blocked = res.results.find((r) => r.path === 'menu_current.json');
+  assert.equal(blocked.skipped, true, 'the guard still blocks');
+  assert.equal(blocked.reason, 'empty_clobber', 'and the caller still gets the reason for its partial-publish line');
+
+  const tree = h.requests.find((r) => r.key === 'POST /git/trees');
+  assert.deepEqual(Array.from(tree.body.tree, (e) => e.path), ['door_state.json'],
+    'the blocked artifact is not committed; the surviving set still lands in one commit');
+  assert.equal(res.staged, 1);
+});
+
+test('D1: every artifact blocked means no commit at all', async () => {
+  const h = loadAtomicPublishHarness({ hydrated: false });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+
+  assert.equal(res.staged, 0);
+  assert.equal(res.commitSha, null);
+  assert.deepEqual(Array.from(res.results, (r) => r.reason), ['not_hydrated', 'not_hydrated', 'not_hydrated']);
+  assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 0,
+    'nothing to publish must not move the ref');
+});
+
+test('D1: a 422 (ref moved) rebuilds on the new tip and retries exactly once', async () => {
+  const h = loadAtomicPublishHarness({ conflictOnce: true });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+
+  assert.equal(res.ok, true, 'the retry succeeds');
+  const trees = h.requests.filter((r) => r.key === 'POST /git/trees');
+  assert.equal(trees.length, 2, 'the tree is rebuilt, not reused');
+  assert.equal(trees[1].body.base_tree, 'tree-of-tip-sha-2', 'rebuilt atop the NEW tip, not the stale one');
+  const commits = h.requests.filter((r) => r.key === 'POST /git/commits');
+  assert.deepEqual(Array.from(commits[1].body.parents), ['tip-sha-2'], 'the retry commit parents the new tip');
+  assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 2,
+    'exactly one retry — a second conflict is pathological and must fail loudly');
+});
+
+test('D1: the publish path stages the whole artifact set into ONE atomic call', async () => {
+  const harness = loadPublishFlowHarness({ localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } } });
+  await harness.context._doPublishToGitHub(true);
+
+  assert.equal(harness.atomicCalls.length, 1, 'one publish = one atomic call = one commit');
+  assert.deepEqual(harness.atomicCalls[0].paths, [
+    'menu_current.json', 'registry_summary.json', 'routing_by_meal.json', 'door_state.json',
+    'menu_overlay.json', 'custom_tag_rules.json', 'learned_nr.json', 'meal_swaps.json',
+    'special_meals.json', 'recent_log.json'
+  ], 'all ten artifacts go in the single commit');
+
+  // The per-file loop is what produced 10 commits; it must not come back.
+  const html = readText('index.html');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assert.doesNotMatch(publishFlow, /await\s+ghPushFile\s*\(/,
+    '_doPublishToGitHub must not push artifacts one at a time (silent-drift D1)');
+  assertContains(publishFlow, 'ghPushFilesAtomic', 'the publish path commits the set atomically');
+});
+
+test('D1: both write paths share one anti-clobber evaluator, so the guards cannot drift', () => {
+  const html = readText('index.html');
+  const single = extractFunctionBlock(html, '_ghPushFileNow');
+  const batch = extractFunctionBlock(html, '_ghPushFilesAtomicNow');
+  for (const [name, body] of [['_ghPushFileNow', single], ['_ghPushFilesAtomicNow', batch]]) {
+    assertContains(body, '_ghEvaluateWriteGuards', `${name} routes through the shared guard evaluator`);
+    assert.doesNotMatch(body, /empty_clobber|size_regression/,
+      `${name} must not carry its own copy of the guards`);
+  }
 });
