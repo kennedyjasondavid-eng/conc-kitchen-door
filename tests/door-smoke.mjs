@@ -2332,3 +2332,110 @@ test('menu-parse: day columns are anchored on SUNDAY, so an offset layout (days 
   assert.equal(res.sheetsUsed['3'].kitchen, true, 'single-sheet legacy path uses the kitchen slot');
   assert.equal(res.sheetsUsed['3'].intake, false, 'no intake sheet in the legacy path');
 });
+
+// --- veg-alt allergen floor (issue #63) -----------------------------------
+// getVegAltAllergenStr() is a component-partial, name-fuzzy lookup. It must only
+// ever ADD to the menu-flag fallback, never replace it — a fuzzy name match is
+// not authority to clear a declared allergen. These gates pin that floor and the
+// monotonicity it buys: _vegAltSafe can move true -> false, never false -> true.
+function loadVegAltAllergenFloor() {
+  const html = readText('index.html');
+  const context = { console };
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'mergeVegAltAllergenFloor'), context,
+    { filename: 'index.html#mergeVegAltAllergenFloor', timeout: 1000 });
+  return context.mergeVegAltAllergenFloor;
+}
+
+test('veg-alt floor: a partial feed lookup never drops a menu-declared allergen', () => {
+  const merge = loadVegAltAllergenFloor();
+
+  // Wk2 MON dinner — the veg main IS a peanut stew; the lookup matches only the
+  // rice side. PEANUTS must survive.
+  const peanut = merge('SESAME, SOY, NIGHTSHADES', 'PEANUTS');
+  assert.match(peanut, /PEANUTS/, 'peanut warning survives a side-only lookup');
+
+  // Wk4 SAT dinner — Massaman carries peanut + tree nut.
+  const massaman = merge('SESAME, SOY, NIGHTSHADES', 'PEANUTS, TREE NUTS, SOY, SULPHITES, Wheat, Coconut, SPICY');
+  for (const token of ['PEANUTS', 'TREE NUTS', 'SULPHITES', 'Coconut']) {
+    assert.ok(massaman.includes(token), `${token} survives the floor`);
+  }
+
+  // The lookup's own findings are kept too — the floor adds, it does not swap.
+  assert.match(massaman, /NIGHTSHADES/, 'feed-derived allergens are retained');
+});
+
+test('veg-alt floor: EGG/MUSTARD in the fallback always reaches the No-Egg check', () => {
+  const merge = loadVegAltAllergenFloor();
+
+  // Wk4 THU breakfast — the veg alt literally reads "Scrambled eggs & Vegan BF
+  // patties" while the feed lookup returned only GLUTEN, NIGHTSHADES. Pre-fix
+  // that suppressed the fallback and _vegAltSafe scored true, merging No Egg
+  // residents into the vegan pool.
+  const brk = merge('GLUTEN, NIGHTSHADES', 'Wheat, Dairy, Eggs, Processed Meat');
+  assert.match(brk, /EGG/i, 'egg reaches the _vegAltSafe regex');
+
+  // Wk4 THU dinner — "Vegetable Egg Noodles".
+  assert.match(merge('GLUTEN, SOY', 'SESAME, SOY, SULPHITES, Eggs'), /EGG/i);
+
+  // Mustard is the other _vegAltSafe token.
+  assert.match(merge('GLUTEN', 'MUSTARD'), /MUSTARD/i);
+});
+
+test('veg-alt floor: the result is always a superset of the fallback (monotone safety)', () => {
+  const merge = loadVegAltAllergenFloor();
+  const tokensOf = s => s.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+  const SYNONYMS = { WHEAT:'GLUTEN', MILK:'DAIRY', EGGS:'EGG' };
+  const canon = t => SYNONYMS[t] || t;
+
+  const cases = [
+    ['GLUTEN', 'Wheat, Dairy, Eggs'],
+    ['SESAME, SOY, NIGHTSHADES', 'PEANUTS'],
+    ['', 'PEANUTS, TREE NUTS'],
+    ['GLUTEN, OATS, SOY', ''],
+    ['', ''],
+  ];
+  for (const [lookup, fallback] of cases) {
+    const merged = tokensOf(merge(lookup, fallback)).map(canon);
+    for (const token of tokensOf(fallback).map(canon)) {
+      assert.ok(merged.includes(token), `floor keeps ${token} (lookup="${lookup}")`);
+    }
+    for (const token of tokensOf(lookup).map(canon)) {
+      assert.ok(merged.includes(token), `floor keeps ${token} (fallback="${fallback}")`);
+    }
+  }
+});
+
+test('veg-alt floor: DOOR flag vocabulary and CODEX feed labels do not double up', () => {
+  const merge = loadVegAltAllergenFloor();
+
+  // The feed says GLUTEN / DAIRY / EGG; DOOR's flags say Wheat / Dairy / Eggs.
+  // Same allergen — the plating sheet must not list it twice.
+  assert.equal(merge('GLUTEN', 'Wheat'), 'GLUTEN', 'Wheat collapses into GLUTEN');
+  assert.equal(merge('DAIRY', 'Dairy'), 'DAIRY', 'case-insensitive dedupe');
+  assert.equal(merge('MILK', 'Dairy'), 'MILK', 'MILK and Dairy are one allergen');
+  assert.equal(merge('EGG', 'Eggs'), 'EGG', 'EGG and Eggs are one allergen');
+
+  // Collapsing equivalents must never drop a genuinely distinct allergen.
+  assert.equal(merge('GLUTEN', 'Wheat, PEANUTS'), 'GLUTEN, PEANUTS');
+  // Empty on both sides stays falsy so computePlatingData can fall through to null.
+  assert.equal(merge('', ''), '');
+  assert.equal(merge(null, undefined), '');
+});
+
+test('computePlatingData routes the veg-alt lookup through the floor, not the || chain', () => {
+  const html = readText('index.html');
+
+  // The pre-fix precedence chain `stored || lookup || fallback` is the defect:
+  // a non-empty lookup short-circuits the fallback away.
+  assert.ok(
+    !/vegAllergenStored\s*\|\|\s*vegAllergenLookup\s*\|\|\s*vegAllergenFallback/.test(html),
+    'the replace-the-fallback precedence chain must not come back (issue #63)');
+
+  assert.match(html, /vegAllergenStored\s*\|\|\s*\n?\s*mergeVegAltAllergenFloor\(vegAllergenLookup,\s*vegAllergenFallback\)/,
+    'computePlatingData composes the lookup with the fallback as a floor');
+
+  // A stored operator override is a deliberate statement and still wins outright.
+  assert.match(html, /const vegAllergenStr = vegAllergenStored/,
+    'the stored menu-editor override keeps first precedence');
+});
