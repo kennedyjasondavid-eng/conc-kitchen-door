@@ -16452,6 +16452,42 @@ function getVegAltAllergenStr(mealVeg) {
   return [...allergenSet].join(', ').toUpperCase();
 }
 
+// FOOD SAFETY — the veg-alt allergen FLOOR (issue #63).
+//
+// getVegAltAllergenStr() fuzzy-matches each comma-component of the veg-alt text
+// against vegan-stream CODEX recipes. It is component-partial AND name-fuzzy: it
+// routinely matches a side and misses the veg main, and it can latch onto a
+// different dish entirely ('Roast Potato and Tofu Hash' -> 'Roast Tofu'). Letting
+// that answer REPLACE the menu-flag fallback silently drops real warnings — a veg
+// alt reading 'Scrambled eggs & Vegan BF patties' scored _vegAltSafe:true, which
+// merges No Egg residents into the vegan pool.
+//
+// Rule: the feed lookup may only ADD to the menu's own derived allergens, never
+// remove one. A fuzzy name match is not authority to clear a declared allergen;
+// the operator override (vegAllergens in the menu editor) is, and it still wins
+// outright upstream of this helper. Because the result is always a superset of
+// the fallback, _vegAltSafe can only move true -> false (No Egg residents get
+// their own alternative), never the reverse.
+//
+// Tokens dedupe on a canonical key so DOOR's flag vocabulary and CODEX's feed
+// labels cannot double up (Wheat/GLUTEN, Dairy/MILK, Eggs/EGG). Display keeps the
+// first-seen spelling; merging only ever collapses equivalents, never drops one.
+function mergeVegAltAllergenFloor(lookupStr, fallbackStr) {
+  const SYNONYMS = { WHEAT:'GLUTEN', MILK:'DAIRY', EGGS:'EGG' };
+  const canon = t => {
+    const u = t.trim().toUpperCase().replace(/\s+/g, ' ');
+    return SYNONYMS[u] || u;
+  };
+  const out = [], seen = new Set();
+  [lookupStr, fallbackStr].forEach(part => {
+    (part || '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
+      const k = canon(t);
+      if (!seen.has(k)) { seen.add(k); out.push(t); }
+    });
+  });
+  return out.join(', ');
+}
+
 let _LAST_SLOT_FLAGS = {};
 function updateSlotSummary() {
   const slotFlags = buildUnionFlags();
@@ -19835,17 +19871,22 @@ function computePlatingData(period, weekNum, dayName) {
     : (dayData['allergens_'+period] || '').toUpperCase();
   const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
   const vegAllergenLookup = typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '';
-  // Safe fallback: when neither override nor recipe-DB lookup tells us what's
-  // in the veg alt, derive from the main meal's flags minus protein flags.
-  // The Reno xlsx and similar layouts share one Allergens row between meat
-  // and veg versions of the same dish, so non-protein allergens (egg/dairy/
-  // gluten/etc.) almost always carry over. Without this, the smart no-egg
-  // routing fails open and No Egg residents can be served eggs.
+  // Safe floor: the main meal's flags minus protein flags. The Reno xlsx and
+  // similar layouts share one Allergens row between meat and veg versions of the
+  // same dish, so non-protein allergens (egg/dairy/gluten/etc.) almost always
+  // carry over. Without this, the smart no-egg routing fails open and No Egg
+  // residents can be served eggs.
   let vegAllergenFallback = '';
   const _safeFlags = {...mealFlags};
   ['hasPork','hasBeef','hasChicken','hasTurkey','hasFish','hasShellfish'].forEach(k => { _safeFlags[k] = false; });
   vegAllergenFallback = flagsToAllergenStr(_safeFlags).toUpperCase();
-  const vegAllergenStr = vegAllergenStored || vegAllergenLookup || vegAllergenFallback || null;
+  // Issue #63: the feed lookup is a FLOOR over that fallback, never a
+  // replacement — see mergeVegAltAllergenFloor(). A partial/fuzzy match used to
+  // suppress the fallback outright and drop peanut/tree-nut/egg warnings. A
+  // stored operator override is a deliberate statement and still wins outright.
+  const vegAllergenStr = vegAllergenStored
+    || mergeVegAltAllergenFloor(vegAllergenLookup, vegAllergenFallback)
+    || null;
 
   // Anaphylactic conflict detection
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
