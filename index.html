@@ -11824,6 +11824,93 @@ function doorIsNonNegativeInteger(value) {
   return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0;
 }
 
+// D2 (silent-drift): provenance stamp tying every artifact in a publish set to the
+// ONE menu it was built alongside. `_meta.builtFromMenu = {exported, hash}` gives
+// EXPO/HUB a single field to correlate routing/registry/state against the menu —
+// closing the "two facts, never compared" class (a cook handed a scale-up computed
+// against a menu the counts don't match). `exported` is the menu artifact's own
+// timestamp (monotonic by wall-clock); `hash` is content-true, so it moves on a
+// content change even though `_meta.version` (a schema constant) does not — this is
+// the change-detection signal FORK-4 routes consumers to instead of the version
+// counter (see the version contract / D7). ADDITIVE + OPTIONAL: an artifact without
+// it is legacy/pre-D2, never a Stop.
+function doorStableStringify(value) {
+  // Key-sorted serialization so the hash is stable regardless of object key order.
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(doorStableStringify).join(',') + ']';
+  return '{' + Object.keys(value).sort().map(function(k) {
+    return JSON.stringify(k) + ':' + doorStableStringify(value[k]);
+  }).join(',') + '}';
+}
+
+function doorContentHash(value) {
+  // djb2 over the sorted serialization. Drift-detection strength, not cryptographic;
+  // a collision only weakens the self-consistency check, never food safety.
+  const s = doorStableStringify(value);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
+  return (h >>> 0).toString(36);
+}
+
+function doorBuiltFromMenuStamp(menuArtifact) {
+  // The anchor pair a publish set records. Null when the menu artifact can't be
+  // read — the menu validators Stop on that separately, so this check stays quiet.
+  if (!doorIsPlainObject(menuArtifact) || !doorIsPlainObject(menuArtifact._meta)) return null;
+  if (typeof menuArtifact._meta.exported !== 'string' || !menuArtifact._meta.exported) return null;
+  if (!doorIsPlainObject(menuArtifact.menu)) return null;
+  return { exported: menuArtifact._meta.exported, hash: doorContentHash(menuArtifact.menu) };
+}
+
+function doorStampBuiltFromMenu(artifacts) {
+  // Orchestrator-owned stamping: routing/registry/state ALL reference the exact
+  // menu object built in this same set, so the four artifacts are provably one
+  // coherent publish even if a builder is later refactored to compute its own
+  // timestamp. Called in _doPublishToGitHub right after the artifacts are built and
+  // before validation. The menu itself is the anchor and is left unstamped.
+  if (!doorIsPlainObject(artifacts)) return;
+  const stamp = doorBuiltFromMenuStamp(artifacts['menu_current.json']);
+  if (!stamp) return;
+  ['routing_by_meal.json', 'registry_summary.json', 'door_state.json'].forEach(function(name) {
+    const artifact = artifacts[name];
+    if (doorIsPlainObject(artifact) && doorIsPlainObject(artifact._meta)) {
+      artifact._meta.builtFromMenu = { exported: stamp.exported, hash: stamp.hash };
+    }
+  });
+}
+
+function validateDoorBuiltFromMenu(artifacts, issues) {
+  // D2 cross-artifact Stop: every consumer artifact that records a builtFromMenu
+  // stamp must record the SAME menu (exported + content hash) as the menu being
+  // published in this set. A mismatch means the set was assembled from two
+  // different menus and would drift silently downstream — Stop, refuse to publish.
+  // A wholly-ABSENT stamp is a legacy/pre-D2 (or partial) set: Review, not Stop, so
+  // a healthy older set never blocks and the check never cries wolf on normal data
+  // (the meta-cause: a check that fires on healthy data trains everyone to ignore
+  // it). A real publish stamps all three via doorStampBuiltFromMenu, so the healthy
+  // path is present+matching → no issue at all.
+  const expected = doorBuiltFromMenuStamp(artifacts['menu_current.json']);
+  if (!expected) return; // menu missing/malformed — its own validators Stop on that
+  ['routing_by_meal.json', 'registry_summary.json', 'door_state.json'].forEach(function(name) {
+    const artifact = artifacts[name];
+    if (!doorIsPlainObject(artifact) || !doorIsPlainObject(artifact._meta)) return; // absent/invalid artifact handled by its own validator
+    const stamp = artifact._meta.builtFromMenu;
+    if (typeof stamp === 'undefined') {
+      issues.push(doorPublishValidationIssue('Review', 'builtfrommenu-absent', name, 'Artifact does not record which menu it was built from (pre-D2 provenance).'));
+      return;
+    }
+    if (!doorIsPlainObject(stamp) || typeof stamp.exported !== 'string' || typeof stamp.hash !== 'string') {
+      issues.push(doorPublishValidationIssue('Stop', 'builtfrommenu-malformed', name, 'Artifact _meta.builtFromMenu is malformed.', { builtFromMenu: stamp }));
+      return;
+    }
+    if (stamp.exported !== expected.exported) {
+      issues.push(doorPublishValidationIssue('Stop', 'builtfrommenu-exported-mismatch', name, 'Artifact was built from a different menu revision than the one being published.', { artifactExported: stamp.exported, menuExported: expected.exported }));
+    }
+    if (stamp.hash !== expected.hash) {
+      issues.push(doorPublishValidationIssue('Stop', 'builtfrommenu-hash-mismatch', name, 'Artifact was built from different menu content than the one being published.', { artifactHash: stamp.hash, menuHash: expected.hash }));
+    }
+  });
+}
+
 function validateDoorArtifactMeta(artifactName, artifact, issues) {
   if (!doorIsPlainObject(artifact)) {
     issues.push(doorPublishValidationIssue('Stop', 'artifact-not-object', artifactName, 'Published artifact is not a JSON object.'));
@@ -12020,6 +12107,7 @@ function validateDoorPublishArtifacts(artifacts) {
   if (artifacts['routing_by_meal.json']) validateDoorRoutingArtifact('routing_by_meal.json', artifacts['routing_by_meal.json'], issues);
   if (artifacts['door_state.json']) validateDoorStateArtifact('door_state.json', artifacts['door_state.json'], issues);
   if (artifacts['registry_summary.json']) validateDoorRegistrySummaryArtifact('registry_summary.json', artifacts['registry_summary.json'], issues);
+  validateDoorBuiltFromMenu(artifacts, issues);
   return {
     issues: issues,
     stop: issues.filter(function(issue) { return issue.level === 'Stop'; }),
@@ -12456,6 +12544,11 @@ async function _doPublishToGitHub(manual) {
     } finally {
       setDoorPublishMenuOverlayOverride(null);
     }
+    // D2 (silent-drift): stamp routing/registry/state with the menu they were built
+    // alongside, so this published SET carries one coherent provenance and menu <->
+    // routing can't drift silently downstream. Validation below Stops if any artifact
+    // records a different menu than the one in this set (Gate-9 blocks the publish).
+    doorStampBuiltFromMenu(publishArtifacts);
     const _publishValidation = validateDoorPublishArtifacts(publishArtifacts);
     reportDoorPublishValidation(_publishValidation, manual);
     // Gate-9: hard-block on Stop-level STRUCTURAL defects (missing menu day,

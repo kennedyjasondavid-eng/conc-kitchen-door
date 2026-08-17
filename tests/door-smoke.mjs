@@ -2683,3 +2683,123 @@ test('D1: both write paths share one anti-clobber evaluator, so the guards canno
       `${name} must not carry its own copy of the guards`);
   }
 });
+
+// --- D2: routing_by_meal.json records which menu it was built from -----------
+// (silent-drift plan §5 D2, shape a: "two facts, never compared"). Every artifact
+// in a publish SET stamps `_meta.builtFromMenu = {exported, hash}` pointing at the
+// menu it was published alongside; validation Stops on a desync so a set assembled
+// from two different menus can't ship. Depends on D1 (one publish = one commit) —
+// cross-artifact Stop checks were unsound while intermediate sets were published.
+
+function stampedPublishSet() {
+  const core = loadPublishValidationCore();
+  const artifacts = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+  core.doorStampBuiltFromMenu(artifacts);
+  return { core, artifacts };
+}
+
+test('D2: content hash is content-true and key-order stable', () => {
+  const core = loadPublishValidationCore();
+  assert.equal(typeof core.doorContentHash, 'function', 'core exposes doorContentHash');
+  const a = core.doorContentHash({ x: 1, y: [2, 3], z: { q: true } });
+  const reordered = core.doorContentHash({ z: { q: true }, y: [2, 3], x: 1 });
+  assert.equal(a, reordered, 'same content in a different key order hashes the same');
+  assert.notEqual(a, core.doorContentHash({ x: 1, y: [2, 4], z: { q: true } }), 'a content change moves the hash');
+  assert.notEqual(a, core.doorContentHash({ x: 1, y: [3, 2], z: { q: true } }), 'array order is content, not noise');
+});
+
+test('D2: doorStampBuiltFromMenu stamps consumers from the menu and leaves the menu unstamped', () => {
+  const { artifacts } = stampedPublishSet();
+  const menuExported = artifacts['menu_current.json']._meta.exported;
+  assert.equal(artifacts['menu_current.json']._meta.builtFromMenu, undefined, 'the menu is the anchor, never stamped');
+  for (const name of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
+    const stamp = artifacts[name]._meta.builtFromMenu;
+    assert.ok(stamp && typeof stamp === 'object', `${name} records builtFromMenu`);
+    assert.equal(stamp.exported, menuExported, `${name} records the menu's exported timestamp`);
+    assert.equal(typeof stamp.hash, 'string', `${name} records a menu content hash`);
+    assert.ok(stamp.hash.length, `${name} hash is non-empty`);
+  }
+});
+
+test('D2: a coherent stamped set validates with no Stop and no builtFromMenu issue', () => {
+  const { core, artifacts } = stampedPublishSet();
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.equal(result.counts.Stop, 0, 'a self-consistent set does not block');
+  assert.ok(!result.issues.some((i) => String(i.code).startsWith('builtfrommenu')),
+    'no builtFromMenu issue on a coherent set (never cries wolf on healthy data)');
+});
+
+test('D2: a routing artifact built from a different menu revision is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  artifacts['routing_by_meal.json']._meta.builtFromMenu.exported = '1999-01-01T00:00:00.000Z';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-exported-mismatch' && i.artifact === 'routing_by_meal.json'),
+    'routing stamped with a different menu timestamp Stops the publish');
+});
+
+test('D2: an artifact built from different menu CONTENT (same timestamp) is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  // The exported timestamp can agree while the content diverged — this is exactly
+  // the case a version-number check misses (a content change that does not move the
+  // schema constant). The content hash is what catches it.
+  artifacts['registry_summary.json']._meta.builtFromMenu.hash = 'deadbeef';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-hash-mismatch' && i.artifact === 'registry_summary.json'),
+    'a content-hash disagreement Stops the publish even when the timestamp matches');
+});
+
+test('D2: a malformed builtFromMenu stamp is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  artifacts['door_state.json']._meta.builtFromMenu = 'nope';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-malformed' && i.artifact === 'door_state.json'),
+    'a non-object builtFromMenu is a structural Stop');
+});
+
+test('D2: a legacy set with no builtFromMenu is Review, never Stop', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  });
+  const absent = result.review.filter((i) => i.code === 'builtfrommenu-absent');
+  assert.equal(absent.length, 3, 'the three consumer artifacts each report absent provenance as Review');
+  assert.ok(!result.stop.some((i) => String(i.code).startsWith('builtfrommenu')),
+    'absence is advisory, not a block (pre-D2 artifacts and partial sets must not freeze publishing)');
+});
+
+test('D2: the real publish path stamps the whole set from the menu it published', async () => {
+  const harness = loadPublishFlowHarness();
+  await harness.context._doPublishToGitHub(true);
+
+  assert.equal(harness.atomicCalls.length, 1, 'still one atomic commit (D1 intact)');
+  const find = (p) => harness.pushed.find((x) => x.path === p);
+  const menu = find('menu_current.json').content;
+  assert.equal(menu._meta.builtFromMenu, undefined, 'the published menu is the anchor, never stamped');
+  for (const name of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
+    const stamp = find(name).content._meta.builtFromMenu;
+    assert.ok(stamp && typeof stamp === 'object', `${name} is published carrying builtFromMenu`);
+    assert.equal(stamp.exported, menu._meta.exported, `${name} records the published menu's exported timestamp`);
+    assert.ok(typeof stamp.hash === 'string' && stamp.hash.length, `${name} records the published menu's content hash`);
+  }
+});
+
+test('D2: the publish orchestrator stamps provenance before it validates', () => {
+  const html = readText('index.html');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assertContains(publishFlow, 'doorStampBuiltFromMenu(publishArtifacts)', 'the publish path stamps the set (silent-drift D2)');
+  assert.ok(
+    publishFlow.indexOf('doorStampBuiltFromMenu(publishArtifacts)') < publishFlow.indexOf('validateDoorPublishArtifacts(publishArtifacts)'),
+    'stamping must run before validation so the cross-artifact Stop check sees the stamps'
+  );
+  const core = extractTestableCoreBlock(html, 'publish-validation');
+  assertContains(core, 'builtfrommenu-exported-mismatch', 'the validator carries the exported-desync Stop code');
+  assertContains(core, 'builtfrommenu-hash-mismatch', 'the validator carries the content-desync Stop code');
+});
