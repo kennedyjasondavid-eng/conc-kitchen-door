@@ -12168,15 +12168,16 @@ async function ghPushFile(creds, path, content) {
   return next;
 }
 
-async function _ghPushFileNow(creds, path, content) {
-  if (!creds || !creds.repo || !creds.token) throw new Error('GitHub token is not configured for publish.');
-  const repo = creds.repo;
-  const token = creds.token;
-  const url = 'https://api.github.com/repos/'+repo+'/contents/'+path;
-  const headers = PublishAuth.githubHeaders(token);
+// Shared anti-clobber evaluation for ONE artifact. Both the single-file
+// Contents-API path and the atomic batch path route through this, so the guards
+// can never drift apart as one path is edited. Returns { sha, block }: `block` is
+// a {skipped,reason} verdict to return verbatim, or null to proceed.
+async function _ghEvaluateWriteGuards(creds, path, content) {
+  const url = 'https://api.github.com/repos/'+creds.repo+'/contents/'+path;
+  const headers = PublishAuth.githubHeaders(creds.token);
   if(!_ghHydrated && !_ghForceOverwrite){
     console.warn('[GH] skip '+path+' \u2014 not hydrated from cloud yet');
-    return { skipped:true, reason:'not_hydrated' };
+    return { sha:undefined, block:{ skipped:true, reason:'not_hydrated' } };
   }
   let sha, remoteSize=0;
   // cache:'no-store' — the browser caches contents-API GETs ≤60s; a cached SHA here is what
@@ -12188,14 +12189,122 @@ async function _ghPushFileNow(creds, path, content) {
   if(isEmpty && remoteSize>10 && !allowShrink){
     console.warn('[GH] refuse '+path+' \u2014 local empty, remote='+remoteSize+'b');
     updateSyncBar('Save blocked \u2014 '+path+' empty locally (remote '+remoteSize+'b). Reload to sync.', '#dc2626');
-    return { skipped:true, reason:'empty_clobber' };
+    return { sha, block:{ skipped:true, reason:'empty_clobber' } };
   }
   const localBytes = new TextEncoder().encode(content).length;
   if(remoteSize>1024 && localBytes < remoteSize*0.3 && !allowShrink){
     console.warn('[GH] refuse '+path+' \u2014 local '+localBytes+'b is <30% of remote '+remoteSize+'b');
     updateSyncBar('Save blocked \u2014 '+path+' ('+localBytes+'b) much smaller than cloud ('+remoteSize+'b). Reload first.', '#dc2626');
-    return { skipped:true, reason:'size_regression' };
+    return { sha, block:{ skipped:true, reason:'size_regression' } };
   }
+  return { sha, block:null };
+}
+
+// Atomic multi-file publish \u2014 HOUSE_PROVEN_SEAMS.md row 5, ported from EXPO's
+// pushFilesToGitHubAtomic (v9.30.3). DOOR was that row's named gap: one publish
+// wrote 10 artifacts as 10 separate Contents-API commits, so 9 of the 10 CI runs
+// per publish evaluated partially-published, mutually-inconsistent artifact sets
+// that never really existed \u2014 and a crash mid-publish shipped one for real
+// (silent-drift slice D1; same class as the 2026-05-28 HUB incident, where a
+// version sidecar outran its payload and pinned every client to stale data).
+//
+// Git Data API: blobs -> tree atop the current tip -> commit -> ref PATCH. The ref
+// update is the all-or-nothing flip; a failure anywhere before it leaves the repo
+// byte-identical, because everything prior is content-addressed and unreferenced.
+// Fast-forward only (force:false), and \u2014 per the seam \u2014 there is deliberately NO
+// fallback to the per-file path: it fails loudly so the publish is retried whole
+// rather than half-landing.
+//
+// The per-file anti-clobber guards still run first, per path, through the shared
+// evaluator. A blocked artifact is dropped from the batch and reported exactly as
+// before; the surviving set is what lands in the single commit.
+async function ghPushFilesAtomic(creds, files, message) {
+  const next = _ghWriteQueue.then(() => _ghPushFilesAtomicNow(creds, files, message));
+  _ghWriteQueue = next.catch(() => {});
+  return next;
+}
+
+async function _ghPushFilesAtomicNow(creds, files, message) {
+  if (!creds || !creds.repo || !creds.token) throw new Error('GitHub token is not configured for publish.');
+  const headers = PublishAuth.githubHeaders(creds.token);
+  const base = 'https://api.github.com/repos/'+creds.repo;
+  const results = [];
+  const staged = [];
+  for (const f of (files||[])) {
+    const verdict = await _ghEvaluateWriteGuards(creds, f.path, f.content);
+    if (verdict.block) { results.push({ path:f.path, skipped:true, reason:verdict.block.reason }); continue; }
+    results.push({ path:f.path, skipped:false });
+    staged.push(f);
+  }
+  // Every artifact blocked (or nothing staged) \u2014 there is no commit to make.
+  // Returning without a ref update leaves the repo untouched; reporting the
+  // blocked set is the caller's job, unchanged from the per-file era.
+  if (!staged.length) return { ok:true, results, commitSha:null, staged:0 };
+
+  const ghJSON = async (method, apiPath, body) => {
+    const res = await fetch(base+apiPath, {
+      method,
+      headers,
+      cache: 'no-store',
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      const e = new Error(PublishAuth.classifyGitHubError(res.status, err.message||res.statusText));
+      e.status = res.status;
+      throw e;
+    }
+    return res.json();
+  };
+
+  const attempt = async () => {
+    const refData = await ghJSON('GET', '/git/ref/heads/main');
+    const baseCommitSha = refData.object.sha;
+    const baseCommit = await ghJSON('GET', '/git/commits/'+baseCommitSha);
+    const tree = [];
+    for (const f of staged) {
+      const blob = await ghJSON('POST', '/git/blobs', {
+        content: btoa(unescape(encodeURIComponent(f.content))),
+        encoding: 'base64'
+      });
+      tree.push({ path:f.path, mode:'100644', type:'blob', sha:blob.sha });
+    }
+    const newTree = await ghJSON('POST', '/git/trees', { base_tree: baseCommit.tree.sha, tree });
+    const commit = await ghJSON('POST', '/git/commits', {
+      message, tree: newTree.sha, parents: [baseCommitSha]
+    });
+    // The atomic point \u2014 the only call that makes the publish visible.
+    return await ghJSON('PATCH', '/git/refs/heads/main', { sha: commit.sha, force:false });
+  };
+
+  try {
+    const ref = await attempt();
+    return { ok:true, results, commitSha: ref && ref.object && ref.object.sha, staged: staged.length };
+  } catch(e) {
+    // 409/422 = the ref moved between our read and the PATCH (another device, or a
+    // racing publish). Rebuild once atop the new tip \u2014 the same single retry the
+    // per-file path allowed, for the same reason: a second conflict is pathological
+    // and the operator should see it fail.
+    if (e.status === 409 || e.status === 422) {
+      console.warn('[GH] atomic publish '+e.status+' \u2014 ref moved; rebuilding on the new tip, retrying once');
+      await new Promise(r => setTimeout(r, 250 + Math.random()*250));
+      const ref = await attempt();
+      return { ok:true, results, commitSha: ref && ref.object && ref.object.sha, staged: staged.length };
+    }
+    if (e.status === 401 || e.status === 403) PublishAuth.rememberFailure(e.message);
+    throw e;
+  }
+}
+
+async function _ghPushFileNow(creds, path, content) {
+  if (!creds || !creds.repo || !creds.token) throw new Error('GitHub token is not configured for publish.');
+  const repo = creds.repo;
+  const token = creds.token;
+  const url = 'https://api.github.com/repos/'+repo+'/contents/'+path;
+  const headers = PublishAuth.githubHeaders(token);
+  const _guard = await _ghEvaluateWriteGuards(creds, path, content);
+  if (_guard.block) return _guard.block;
+  let sha = _guard.sha;
   const doPut = async (putSha) => {
     const body = { message:'Update '+path+' \u2014 '+new Date().toISOString().slice(0,16), content:btoa(unescape(encodeURIComponent(content))), branch:'main' };
     if(putSha) body.sha = putSha;
@@ -12318,11 +12427,13 @@ async function _doPublishToGitHub(manual) {
     throw e;
   }
   if(statusEl){ statusEl.textContent='Publishing\u2026'; statusEl.style.color='var(--forest-mid)'; }
-  const _pushes = [];
-  const _push = async (path, content) => {
-    const r = await ghPushFile(creds, path, content);
-    _pushes.push({ path, skipped: !!(r && r.skipped), reason: r && r.reason });
-  };
+  // D1: artifacts are STAGED here and pushed as ONE commit below (see
+  // ghPushFilesAtomic). They used to go out as one Contents-API commit each, so a
+  // crash mid-publish shipped a mutually-inconsistent artifact set and every CI
+  // run but the last evaluated a state that never existed.
+  let _pushes = [];
+  const _staged = [];
+  const _push = (path, content) => { _staged.push({ path, content }); };
   try {
     const menuOverlay = doorNormalizeMenuOverlay(JSON.parse(localStorage.getItem('concMenuBase') || '{}'));
     const overlayToPush = doorNormalizeMenuOverlay(await preMergeOverlayWithCloud(creds, menuOverlay));
@@ -12370,19 +12481,25 @@ async function _doPublishToGitHub(manual) {
       // Manual override: operator chose to publish despite defects — fall through
       // and push; the post-push branch keeps the terminal status red (degraded).
     }
-    await _push('menu_current.json', JSON.stringify(publishArtifacts['menu_current.json'],null,2));
-    await _push('registry_summary.json', JSON.stringify(publishArtifacts['registry_summary.json'],null,2));
-    await _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
-    await _push('door_state.json', JSON.stringify(publishArtifacts['door_state.json'],null,2));
-    await _push('menu_overlay.json', JSON.stringify(overlayToPush,null,2));
+    _push('menu_current.json', JSON.stringify(publishArtifacts['menu_current.json'],null,2));
+    _push('registry_summary.json', JSON.stringify(publishArtifacts['registry_summary.json'],null,2));
+    _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
+    _push('door_state.json', JSON.stringify(publishArtifacts['door_state.json'],null,2));
+    _push('menu_overlay.json', JSON.stringify(overlayToPush,null,2));
     const customRules = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
-    await _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
+    _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
     const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
-    await _push('learned_nr.json', JSON.stringify(learnedNR,null,2));
-    await _push('meal_swaps.json', JSON.stringify(loadMealSwaps(),null,2));
-    await _push('special_meals.json', JSON.stringify(loadSpecialMeals(),null,2));
+    _push('learned_nr.json', JSON.stringify(learnedNR,null,2));
+    _push('meal_swaps.json', JSON.stringify(loadMealSwaps(),null,2));
+    _push('special_meals.json', JSON.stringify(loadSpecialMeals(),null,2));
     const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
-    await _push('recent_log.json', JSON.stringify(_logToSync,null,2));
+    _push('recent_log.json', JSON.stringify(_logToSync,null,2));
+    // One commit for the whole artifact set. Anti-clobber guards run per path
+    // inside; a blocked artifact drops out of the batch and is reported below in
+    // exactly the shape the per-file era produced.
+    const _atomic = await ghPushFilesAtomic(creds, _staged,
+      'Publish DOOR artifacts — ' + new Date().toISOString().slice(0,16));
+    _pushes = (_atomic && _atomic.results) || [];
     const timeStr = new Date().toLocaleTimeString();
     const _blocked = _pushes.filter(p=>p.skipped);
     if(_blocked.length){
