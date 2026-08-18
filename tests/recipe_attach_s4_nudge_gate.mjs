@@ -37,6 +37,18 @@ test('fires only on a named meal with no flags AND no recipe link', () => {
   assert.equal(noSrc(null, false, 'Rice'), true, 'missing flags object treated as empty');
 });
 
+test('DELIBERATE deferral (review P2): the mixed "linked main + unflagged manual side" case does NOT nudge', () => {
+  // Binding the main sets anyRecipeLinked → the meal has AN allergen source, so no nudge —
+  // even if a manual side ("Peanut Noodles") hides an unflagged allergen. That case is
+  // undetectable without crying wolf on innocent manual sides ("Rice"), so it is a conscious
+  // deferral: binding is the fix + the anaphylactic net (reads _flags) is the backstop, not
+  // this advisory. Pinned so the narrowing is a documented choice, not an accident.
+  assert.equal(noSrc({ hasChicken: true }, true, 'Grilled Chicken + Peanut Noodles'), false,
+    'a recipe-linked main suppresses the nudge (deliberate — see the index.html comment)');
+  assert.equal(noSrc({ hasChicken: true }, false, 'All-Manual Chicken Plate'), false,
+    'an all-manual meal WITH a set allergen flag is covered → no nudge');
+});
+
 test('NO CRY WOLF: not one committed meal fires the nudge', () => {
   const menu = JSON.parse(fs.readFileSync(path.join(root, 'menu_current.json'), 'utf8')).menu;
   const PERIODS = ['breakfast', 'lunch', 'dinner'];
@@ -61,4 +73,5 @@ test('source lock: the nudge is wired into updateSlotSummary', () => {
   assert.ok(summary.includes('_mealNoAllergenSource'), 'updateSlotSummary evaluates the nudge');
   assert.ok(summary.includes('No allergen source'), 'the nudge copy is rendered');
   assert.ok(summary.includes("anyRecipeLinked"), 'the nudge accounts for a recipe-linked slot');
+  assert.ok(summary.includes('gridPresent'), 'the nudge is guarded on the flag grid being in the DOM (review P3-1, anti-cry-wolf)');
 });

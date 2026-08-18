@@ -16905,10 +16905,23 @@ function updateSlotSummary() {
         buildAltMeals().map(a => `<div style="font-size:12px;color:#0891b2;margin-top:2px;">${a.type==='soft'?'Soft':'Plain'}: ${escapeHtml(a.text)}</div>`).join('');
       // Recipe-attach S4 (F-E safety nudge): a meal with text that will save with NO
       // allergen data at all — no flag set AND no recipe-linked slot. Closes the "typed a
-      // dish, forgot to link/flag it" hole. Meal-level on purpose (a per-slot check cries
-      // wolf on every legacy manual slot; the checkboxes/_flags are the real source).
+      // dish, forgot to link/flag it" hole.
+      //
+      // ⚠ DELIBERATELY MEAL-LEVEL, not the spec's literal per-slot check. A per-slot nudge
+      // would fire on all 39 legacy manual-no-flag slots (cry-wolf), because a manual side
+      // with no per-slot flags is INDISTINGUISHABLE from "Rice" (no allergens, correctly
+      // unflagged) vs "Peanut Noodles" (unflagged allergens) — both are just text. So the
+      // "linked main + one unflagged manual side" hole (review P2) is undetectable here
+      // without crying wolf; it is a PRE-EXISTING property of manual slots, and its real
+      // fix is BINDING (what this feature encourages) + the meal-level _flags the operator
+      // sets. The nudge only claims to catch the all-blank hole; the anaphylactic net is the
+      // safety backstop, not this advisory.
+      // Guard (review P3-1): only evaluate when the flag grid is actually in the DOM, so a
+      // future caller that runs before renderEditFlagGrid can't turn `flags` (which then
+      // falls back to the empty per-slot union) into a cry-wolf wall.
+      const gridPresent = FLAG_DEFS.length && document.getElementById(cbPrefix + FLAG_DEFS[0].key);
       const anyRecipeLinked = ['main','starch','vegside','xtra'].some(id => MEAL_SLOT_STATE[id] && MEAL_SLOT_STATE[id].recipeName);
-      if (_mealNoAllergenSource(flags, anyRecipeLinked, name)) {
+      if (gridPresent && _mealNoAllergenSource(flags, anyRecipeLinked, name)) {
         summaryEl.innerHTML += '<div style="margin-top:8px;padding:6px 10px;background:var(--amber-pale);border:1px solid #f59e0b;border-radius:6px;font-size:11px;color:#92400e;">⚠ No allergen source for this meal — link a recipe or set the allergen flags. It would plate with no allergen data.</div>';
       }
     } else {
