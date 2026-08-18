@@ -16721,6 +16721,11 @@ function _buildSlotSnapshot() {
     if (s) {
       if (s.recipeName) {
         snap[d.id] = { recipeName: s.recipeName, flags: s.flags || {} };
+        // Recipe-attach phase-2: carry the bound recipe's stable id when present (any bound
+        // slot — unlike displayText it is not main-group-only; it's a pure reference HUB uses
+        // for an exact deep-link). A phase-1 slot with no id adds no key, so its published
+        // `_slots` entry stays byte-identical.
+        if (s.recipeId) snap[d.id].recipeId = String(s.recipeId);
         // Recipe-attach S1: carry a display override ONLY on a bound main-group slot where
         // it actually differs from the recipe name. A legacy/default-display slot adds no
         // key, so its published `_slots` entry stays byte-identical to pre-S1.
@@ -17871,6 +17876,11 @@ function slotSelect(slotId, recipeName) {
   // Recipe-attach S2: a same-recipe re-confirm keeps the operator's display override;
   // a genuine recipe change drops it (the rename belonged to the old dish).
   if (sameRecipe && current.displayText) next.displayText = current.displayText;
+  // Recipe-attach phase-2 (store the id): additively record the CODEX recipe's stable id.
+  // Nothing reads it yet in DOOR; it is published in _slots so HUB can build an exact
+  // ?recipe= deep-link instead of a fuzzy display-text guess, and it is the anchor a later
+  // rename-survival step (id + published previousNames) drops onto with no rework.
+  if (recipe.recipeId) next.recipeId = String(recipe.recipeId);
   MEAL_SLOT_STATE[slotId] = next;
   const dd = document.getElementById('slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
@@ -17910,6 +17920,7 @@ function slotAutoSave(slotId, val) {
       flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(match.allergens),
     };
     if (sameRecipe && current.displayText) next.displayText = current.displayText;   // S2: keep the display override on re-confirm
+    if (match.recipeId) next.recipeId = String(match.recipeId);                      // phase-2: store the stable id (published for HUB deep-links)
     MEAL_SLOT_STATE[slotId] = next;
   } else {
     MEAL_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
