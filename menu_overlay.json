@@ -187,8 +187,8 @@
       }
     },
     "SUNDAY": {
-      "dinner": "Beef Strogonoff, Pasta",
-      "dinner_veg": "Mushroom Strogonoff, Pasta",
+      "dinner": "Beef Stroganoff, Pasta",
+      "dinner_veg": "Mushroom Stroganoff, Pasta",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -220,25 +220,68 @@
       "dinner_altMeals": [],
       "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
-      "dinner_mainItem": "Beef Strogonoff",
+      "dinner_mainItem": "Beef Stroganoff",
       "dinner_mainAlt": "",
       "dinner_sides": "Pasta",
       "dinner_slots": {
         "main": {
-          "manual": "Beef Strogonoff",
+          "recipeName": "Beef Stroganoff",
           "flags": {
-            "hasDairy": true,
-            "hasBeef": true,
             "hasGluten": true,
-            "hasNightshades": true
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
           }
         },
         "veganalt": {
-          "manual": "Mushroom Strogonoff",
+          "recipeName": "Mushroom Stroganoff",
           "flags": {
             "hasGluten": true,
-            "hasMushroom": true,
-            "hasNightshades": true
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
           }
         },
         "starch": {
