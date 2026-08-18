@@ -16523,7 +16523,7 @@ function renderAltMealsSection() {
 // ── Hub availability ──────────────────────────────────────────
 const HUB_ALLERGEN_MAP = {
   'Gluten':'hasGluten','Wheat':'hasGluten','Milk':'hasDairy','Dairy':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
-  'Eggs':'hasEgg','Egg':'hasEgg','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
+  'Eggs':'hasEgg','Egg':'hasEgg','Fish Sauce':'hasFish','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
   'Tree Nuts':'hasTreeNuts','Coconut':'hasCoconut','Corn':'hasCorn','Sulphites':'hasSulphites','Spicy':'isSpicy',
   'Nightshades':'hasNightshades','Tomato':'hasNightshades','Shellfish':'hasShellfish',
 };
@@ -16552,7 +16552,10 @@ function _hubAllergenResolve(allergens) {
   // Labels the feed carries that map to NO DOOR flag — ignored WITHOUT warning. (Warning
   // on a known non-allergen trains the operator to ignore the signal — no cry-wolf.) Meat
   // words are name-detected elsewhere (MEAT_DETECT); the rest are S0-observed non-flags.
-  const IGNORE = new Set(['none','not vegan friendly','oats','honey','onion','potato','chicken','pork','beef','turkey','fish sauce']);
+  // NOTE: 'fish sauce' is deliberately NOT here — it is fish (a priority anaphylaxis
+  // allergen), so it maps to hasFish above. Silently ignoring it would recreate the exact
+  // under-flag this slice removes, for the deadliest class.
+  const IGNORE = new Set(['none','not vegan friendly','oats','honey','onion','potato','chicken','pork','beef','turkey']);
   const surface = (typeof _hubUnmappedLabels !== 'undefined') ? _hubUnmappedLabels : null;
   const keys = new Set(), labels = new Set();
   (allergens || []).forEach(a => {

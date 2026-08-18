@@ -58,11 +58,24 @@ test('compound "X and Y" elements set BOTH flags (were dropped entirely)', () =>
   assert.deepEqual(on(set(c, ['Soy and Potato'])), ['hasSoy'], 'Soy set; Potato has no DOOR flag (ignored)');
 });
 
+test('fish sauce fail-SAFE to hasFish, never silently swallowed (review P2)', () => {
+  const c = freshCtx();
+  // fish sauce is fish — the deadliest class. Bare + compound must set hasFish, never land
+  // in a no-warn ignore hole. (Authored-to-fail vs the earlier IGNORE-set version.)
+  assert.equal(set(c, ['Fish Sauce']).hasFish, true, '"Fish Sauce" → hasFish');
+  assert.equal(set(c, ['fish sauce']).hasFish, true, 'case-insensitive');
+  assert.deepEqual(on(set(c, ['Soy and Fish Sauce'])), ['hasFish','hasSoy'], 'compound splits, fish preserved');
+  // and it must NOT surface as unmapped (it is mapped, not ignored)
+  assert.ok(!c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__.has('fish sauce'), 'mapped, so never surfaced');
+});
+
 test('back-compat: existing labels + qualifiers unchanged', () => {
   const c = freshCtx();
   assert.equal(set(c, ['Gluten (Soy Sauce)']).hasGluten, true, 'paren qualifier still stripped');
   assert.equal(set(c, ['Milk']).hasDairy, true);
-  assert.equal(set(c, ['Tree Nuts (Coconut, Coconut Milk)']).hasTreeNuts, true, 'comma inside paren is dropped, not split');
+  const treeNut = set(c, ['Tree Nuts (Coconut, Coconut Milk)']);
+  assert.equal(treeNut.hasTreeNuts, true, 'comma inside paren is dropped, not split');
+  assert.notEqual(treeNut.hasCoconut, true, 'the "(Coconut, ...)" qualifier must NOT leak a Coconut flag (over-split guard)');
   assert.deepEqual(on(set(c, ['None'])), [], '"None" sets nothing');
   assert.deepEqual(on(set(c, [])), [], 'empty sets nothing');
   // a real feed record
