@@ -16976,6 +16976,18 @@ function renderSlotCard(def, ns) {
     : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:#92400e;border-radius:8px;font-weight:600;margin-left:6px;" title="No CODEX recipe linked. Allergen flags here are manual — verify they're complete. Type to search CODEX, click a suggestion to link.">⚠ unlinked (manual)</span>` : '');
 
   const borderColor = hasValue ? (state.recipeName ? '#10b981' : '#60a5fa') : 'var(--border)';
+  // Recipe-attach S2: "Shown on menu as" — bound main-group slots only, regular editor only
+  // (SM has its own path). Lets the operator show e.g. "Pork Al Pastor Taco" while allergens
+  // stay linked to the bound "Pork Al Pastor". Absent on alt slots + manual + SM cards.
+  const showAsHtml = (ns === 'slot' && hasValue && state.recipeName && MAIN_SLOT_IDS.includes(def.id))
+    ? `<div style="margin-top:6px;">
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Shown on menu as <span style="font-style:italic;">(allergens stay linked to “${escapeHtml(state.recipeName)}”)</span></label>
+        <input type="text" id="slot-showas-${_escAttr(def.id)}" value="${_escAttr(state.displayText || state.recipeName)}"
+          oninput="${_escAttr('slotSetDisplayText(' + _jsArgLiteral(def.id) + ',this.value)')}"
+          style="width:100%;padding:4px 8px;border:1px dashed var(--border);border-radius:6px;font-size:12px;box-sizing:border-box;">
+        <div id="slot-routewarn-${_escAttr(def.id)}" style="margin-top:3px;">${_slotRouteWarnHTML(def.id)}</div>
+      </div>`
+    : '';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;">
       ${escapeHtml(def.label)}${optLabel}${matchBadge}
@@ -16992,6 +17004,7 @@ function renderSlotCard(def, ns) {
         onkeydown="${_escAttr(fn + 'Key(event,' + _jsArgLiteral(def.id) + ')')}">
       <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
     </div>
+    ${showAsHtml}
     ${chipHtml}
     ${qpHtml}
   </div>`;
@@ -17795,10 +17808,14 @@ function slotSelect(slotId, recipeName) {
   if (!recipe) return;
   const current = MEAL_SLOT_STATE[slotId];
   const sameRecipe = current && current.recipeName === recipeName;
-  MEAL_SLOT_STATE[slotId] = {
+  const next = {
     recipeName,
     flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(recipe.allergens),
   };
+  // Recipe-attach S2: a same-recipe re-confirm keeps the operator's display override;
+  // a genuine recipe change drops it (the rename belonged to the old dish).
+  if (sameRecipe && current.displayText) next.displayText = current.displayText;
+  MEAL_SLOT_STATE[slotId] = next;
   const dd = document.getElementById('slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   renderSlots();
@@ -17832,10 +17849,12 @@ function slotAutoSave(slotId, val) {
     // Preserve slot-level flag overrides when the same recipe is re-confirmed
     // on a subsequent blur. A genuine recipe change resets flags.
     const sameRecipe = current && current.recipeName === match.recipeName;
-    MEAL_SLOT_STATE[slotId] = {
+    const next = {
       recipeName: match.recipeName,
       flags: sameRecipe && current.flags ? current.flags : hubAllergenToFlags(match.allergens),
     };
+    if (sameRecipe && current.displayText) next.displayText = current.displayText;   // S2: keep the display override on re-confirm
+    MEAL_SLOT_STATE[slotId] = next;
   } else {
     MEAL_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
   }
@@ -17871,6 +17890,44 @@ function smSlotAutoSave(slotId, val) {
 function slotSetManual(slotId, val) {
   MEAL_SLOT_STATE[slotId] = val ? { manual: val } : null;
   updateSlotSummary();
+}
+
+// Recipe-attach S2: the "Shown on menu as" override for a bound main-group slot.
+// Setting a displayText that differs from the recipe name decouples the shown dish text
+// from the recipe the allergens come from. Live-updates (no full re-render) so the field
+// keeps focus while typing, mirroring slotSetManual.
+function slotSetDisplayText(slotId, val) {
+  const s = MEAL_SLOT_STATE[slotId];
+  if (!s || !s.recipeName || !MAIN_SLOT_IDS.includes(slotId)) return;   // bound main-group only
+  val = (val || '').trim();
+  if (!val || val === s.recipeName) delete s.displayText;              // default display = no override
+  else s.displayText = val;
+  _refreshSlotRoutingWarn(slotId);
+  updateSlotSummary();
+}
+
+// EXPO routes on the dish NAME. A display rename that drops a significant word of the
+// recipe name (especially the protein) may not route there — so surface it as a SOFT,
+// non-blocking caution (ruled 2026-08-18: free rename + soft warn). Allergens are always
+// safe (DOOR-owned, flags-driven), so this never blocks. Returns the missing words.
+function _slotDisplayRoutingWarn(recipeName, displayText) {
+  if (!recipeName || !displayText || displayText === recipeName) return [];
+  const STOP = new Set(['and','the','with','of','in','on','or','for','de','to']);
+  const words = s => String(s).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+  const disp = new Set(words(displayText));
+  return [...new Set(words(recipeName))].filter(w => !disp.has(w));
+}
+function _slotRouteWarnHTML(slotId) {
+  const s = MEAL_SLOT_STATE[slotId];
+  if (!s || !s.recipeName || !s.displayText) return '';
+  const missing = _slotDisplayRoutingWarn(s.recipeName, s.displayText);
+  if (!missing.length) return '';
+  const q = missing.map(w => '“' + escapeHtml(w) + '”').join(', ');
+  return `<span style="font-size:10px;color:#92400e;line-height:1.35;">⚠ ${q} ${missing.length > 1 ? "aren't" : "isn't"} in the shown name — EXPO routes on the dish name, so this may not route. Allergens stay linked, so they're safe.</span>`;
+}
+function _refreshSlotRoutingWarn(slotId) {
+  const el = document.getElementById('slot-routewarn-' + slotId);
+  if (el) el.innerHTML = _slotRouteWarnHTML(slotId);
 }
 
 function slotKey(e, slotId) {
