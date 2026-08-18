@@ -859,6 +859,7 @@ test('regular menu slot summary renders staff-entered slot text safely', () => {
     FLAG_DEFS: [],
     _LAST_SLOT_FLAGS: {},
     testMealActive: false,
+    MEAL_SLOT_STATE: {},
     buildUnionFlags() { return {}; },
     buildVegAltFlags() { return {}; },
     buildAltMeals() { return [{ type: 'plain', text: '<svg onload=alert(2)> Plain alt' }]; },
@@ -871,6 +872,7 @@ test('regular menu slot summary renders staff-entered slot text safely', () => {
   vm.createContext(context);
   vm.runInContext([
     extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, '_mealNoAllergenSource'),
     extractFunctionBlock(html, 'updateSlotSummary')
   ].join('\n\n'), context, { filename: 'index.html#xss-slot-summary', timeout: 1000 });
 
@@ -1006,6 +1008,7 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
   vm.runInContext([
     extractOutputEncodingBlock(html),
     'function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== "undefined" && Array.isArray(DOOR_RECIPE_DATA); }',
+    extractFunctionBlock(html, '_hubAllergenResolve'),
     extractFunctionBlock(html, '_allergenPreview'),
     extractFunctionBlock(html, 'recipeMatchesSlotDef'),
     extractFunctionBlock(html, 'slotSearch'),
@@ -1059,6 +1062,7 @@ test('recipe slot autosave applies stream filters before exact recipe linking', 
   vm.createContext(context);
   vm.runInContext([
     extractFunctionBlock(html, 'isHubLoaded'),
+    extractFunctionBlock(html, '_hubAllergenResolve'),
     extractFunctionBlock(html, 'hubAllergenToFlags'),
     extractFunctionBlock(html, 'recipeMatchesSlotDef'),
     extractFunctionBlock(html, 'slotAutoSave'),
@@ -2003,7 +2007,11 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
   const menu = readJson('menu_current.json');
   const routing = readJson('routing_by_meal.json');
   const expected = [
-    ['1', 'SUNDAY', 'dinner', 'Beef Strogonoff, Noodles'],
+    // D6 (2026-08-18): the July-2 import carried a typo ("Strogonoff") and stale side
+    // wording ("Noodles"); Jason corrected both in the DOOR menu editor and republished,
+    // so the committed menu now reads "Beef Stroganoff, Pasta". Pin the corrected string —
+    // the earlier pin froze the broken import text (the eee354c / gate-#58 lesson).
+    ['1', 'SUNDAY', 'dinner', 'Beef Stroganoff, Pasta'],
     // Parsnip and Carrot landed as a slot fact via the menu editor 2026-08-15
     // (issue #75 defuse) — durable, survives publishes. Jason intentionally put it
     // in the Veg Side slot, REPLACING Seasonal Vegetables on this lunch (ruled
@@ -2013,8 +2021,14 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
     ['1', 'TUESDAY', 'lunch', 'Blackened fish, Sweet potatoes, Parsnip and Carrot'],
     ['1', 'WEDNESDAY', 'lunch', 'Egg Salad Wrap, Bean Salad'],
     ['2', 'TUESDAY', 'lunch', 'Halal Beef Burger, Chickpea Salad'],
-    ['2', 'WEDNESDAY', 'lunch', 'Fried Chicken and Sweet Potato Biscuit, Seasonal Vegetables'],
-    ['3', 'THURSDAY', 'lunch', 'Beef Nachos Supreme, Tortilla chips, Sour Cream'],
+    // D6 (2026-08-18): Jason's menu-editor pass corrected the doubled-biscuit / "Brocolli"
+    // regression on this slot — the July-2 canonical side was Broccoli, and "Seasonal
+    // Vegetables" was itself a corruption. Pin the corrected committed text.
+    ['2', 'WEDNESDAY', 'lunch', 'Oven Fried Chicken, Sweet Potato Biscuit, Broccoli'],
+    // D6 (2026-08-18): Jason-confirmed intentional dish swap (Beef Nachos ↔ Crispy Chicken
+    // Tender lunches). Flags + veg-alt (Crispy Vegan Tender Wrap) + routing regenerated to
+    // match. The menu editor is the durable authority; pin the committed dish.
+    ['3', 'THURSDAY', 'lunch', 'Crispy Chicken Tender Wrap'],
     ['3', 'SATURDAY', 'lunch', 'Roasted Chicken leg, Pineapple Rice'],
     // Comma-joined, NOT " and " — this is the form DOOR's publish deterministically
     // produces (it comma-joins main + side, like every other slot in this list). The
@@ -2024,7 +2038,9 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
     // exact "and" string a publish never emits fired on normal operation. Pin the app's
     // real output — same lesson as eee354c. (2026-08-10)
     ['3', 'SATURDAY', 'dinner', 'Pepperoni Pizza, Seasonal Soup'],
-    ['4', 'TUESDAY', 'lunch', 'Pork Tacos Al Pastor, Pea & Carrots'],
+    // D6 (2026-08-18): Jason's editor rephrasing ("Pork Tacos Al Pastor" → "Pork Al Pastor
+    // Taco"; "Pea & Carrots" → "Peas & Carrot"). Pin the committed text.
+    ['4', 'TUESDAY', 'lunch', 'Pork Al Pastor Taco, Peas & Carrot'],
     ['4', 'TUESDAY', 'dinner', 'BBQ Chicken Leg, Roasted Yam, Seasonal Veg'],
     ['4', 'WEDNESDAY', 'lunch', 'Tuna Rex Salad']
   ];
@@ -2763,11 +2779,21 @@ test('D2: a malformed builtFromMenu stamp is a Stop', () => {
 
 test('D2: a legacy set with no builtFromMenu is Review, never Stop', () => {
   const core = loadPublishValidationCore();
+  // Manufacture the legacy/pre-D2 condition: strip builtFromMenu from the three consumer
+  // artifacts. Reading the committed artifacts directly is not durable — they self-heal to
+  // present-and-matching on DOOR's next publish (they now carry the stamp), so a test that
+  // depends on them staying stamp-less fires on healthy data. Assert the VALIDATOR behavior
+  // (absent → Review, never Stop) independent of the committed tree's current stamp state.
+  const stripStamp = (name) => {
+    const art = readJson(name);
+    if (art && art._meta) delete art._meta.builtFromMenu;
+    return art;
+  };
   const result = core.validateDoorPublishArtifacts({
     'menu_current.json': readJson('menu_current.json'),
-    'registry_summary.json': readJson('registry_summary.json'),
-    'routing_by_meal.json': readJson('routing_by_meal.json'),
-    'door_state.json': readJson('door_state.json')
+    'registry_summary.json': stripStamp('registry_summary.json'),
+    'routing_by_meal.json': stripStamp('routing_by_meal.json'),
+    'door_state.json': stripStamp('door_state.json')
   });
   const absent = result.review.filter((i) => i.code === 'builtfrommenu-absent');
   assert.equal(absent.length, 3, 'the three consumer artifacts each report absent provenance as Review');
