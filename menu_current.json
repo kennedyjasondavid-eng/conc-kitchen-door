@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-18T17:24:57.875Z",
+    "exported": "2026-08-18T17:27:09.809Z",
     "version": 32
   },
   "menu": {
@@ -3804,14 +3804,14 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy",
-        "lunch": "Pork Tacos Al Pastor, Pea & Carrots",
-        "lunch_veg": "Vegetarian Tacos, Pea & Carrots, Tortilla 7', Peas & Carrot",
+        "lunch": "Pork Al Pastor Taco, Peas & Carrot",
+        "lunch_veg": "Vegan Tacos al Pastor, Peas & Carrot",
         "lunch_halal": "Halal chicken al pastor",
-        "lunch_mainItem": "Pork Tacos Al Pastor",
-        "lunch_sides": "Pea & Carrots",
+        "lunch_mainItem": "Pork Al Pastor Taco",
+        "lunch_sides": "Peas & Carrot",
         "lunch_flags": {
-          "hasGluten": true,
-          "hasDairy": true,
+          "hasGluten": false,
+          "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -3823,18 +3823,18 @@
           "hasSulphites": false,
           "hasPork": true,
           "hasBeef": false,
-          "hasChicken": false,
+          "hasChicken": true,
           "hasTurkey": false,
-          "isSpicy": false,
-          "isCarb": true,
+          "isSpicy": true,
+          "isCarb": false,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "BBQ Chicken Leg, Roasted Yam, Seasonal Veg",
         "dinner_veg": "BBQ Chik'n Tenders, Roasted Yam, Seasonal Veg, Sweet Potato, Peas & Carrot",
@@ -3867,8 +3867,31 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "allergens_lunch": "gluten, dairy, pork",
-        "allergens_dinner": ""
+        "allergens_lunch": "pork",
+        "allergens_dinner": "",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "Chicken Al Pastor Taco",
+        "lunch_slots": {
+          "main": {
+            "manual": "Pork Al Pastor Taco",
+            "flags": {}
+          },
+          "mainalt": {
+            "manual": "Chicken Al Pastor Taco",
+            "flags": {}
+          },
+          "veganalt": {
+            "manual": "Vegan Tacos al Pastor",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Peas & Carrot",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
