@@ -1,0 +1,104 @@
+# DOOR — Attach a CODEX recipe to a menu dish, independent of display text — Spec (2026-08-18)
+
+> **STATUS: forks RULED ("follow the leans", Jason 2026-08-18) · adversarial plan-review RAN + FOLDED (REVISE→ready) · awaiting build authorization. No app code yet.**
+> Grounded in a firsthand recon of `index.html` (line refs below are from the 2026-08-18 tree). All §1 line refs + symbol behaviors were independently verified against source in the review.
+> **Review folds (2026-08-18):** (P1) F-D must NOT reroute the plating name-detect `:20164` — that was a food-safety regression on the pork/halal path; keep save-on-recipe + plating-on-display as an additive union (§3.3). (P2) scope the 🔗 bind to MAIN-GROUP slots only — `buildUnionFlags` drops alt-slot flags at save (§3.2, guard #1). (P2) guard #3 needs a RUNTIME unmapped-label surface, not just a baked-data CI gate; exclude the `None` sentinel (§4). (P3) build-checklist so `displayText` isn't dropped by `_buildSlotSnapshot`/`slotSelect`/`slotAutoSave` (§3.2); F-F is near-free because `_slots` already publishes (§3.5). The un-weld core (F-A) was confirmed sound + back-compat.
+
+## 0. Problem + telos
+Any dish whose menu name is **not verbatim a CODEX recipe name** — `X Taco`, `X Wrap`, `X Bowl`, `X on a Bun`, any compound plate — currently cannot carry the recipe's allergen data. The instant the operator types the real dish text (e.g. adds "Taco" to "Pork al Pastor"), the slot stops being recipe-linked and its CODEX allergens are **never captured**. Because plating and the anaphylactic net read the *stored flags* — never re-deriving from a recipe — those allergens are invisible at service.
+
+**This is a food-safety non-capture, not a cosmetic link miss.** The telos: let an operator show the dish's real name on the sheet while a bound recipe drives the allergen flags — so the recipe and the label can differ without dropping safety data.
+
+## 1. The real mechanism (recon, with line refs)
+- **Feed.** `DOOR_RECIPE_DATA` loads in the `loadRecipeData` IIFE (`:744-780`) from the recipe-hub Pages `DOOR_RECIPE_DATA.json`, cached to `localStorage['door_recipe_data_cache']`, baked fallback at `:742`. It is a **flat array**, `{recipeName, category, stream, allergens[]}` — **no `recipeId`, no index** (every lookup is a linear `.find`).
+- **Matcher = exact-name-only, editor-only, bind-time.** `slotSelect(slotId,recipeName)` `:17734` (`DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName)`); `slotAutoSave(slotId,val)` `:17756` (exact, case-insensitive; fuzzy **deliberately removed** `:17764` — "silently substituted recipes the user didn't intend"). Special-meal twins `smSlotSelect` `:17671` / `smSlotAutoSave` `:17798`. The typeahead `slotSearch` `:17708` is `.includes` gated by `recipeMatchesSlotDef` `:17701` — populates the dropdown only; selection still exact-matches. **No general fuzzy matcher, no alias table.**
+- **Two allergen worlds; the match touches only the first.**
+  - *World 1 — editor flag auto-fill (bind time).* `hubAllergenToFlags(allergens)` `:16533` maps a recipe's `allergens[]` → boolean flags via `HUB_ALLERGEN_MAP` `:16524`. Runs **only** inside `slotSelect`/`slotAutoSave`. On save, `buildUnionFlags` `:16595` ORs each slot's `.flags`, then manual checkbox overrides `:17115` and `MEAT_DETECT` regex on slot **text** `:17121`; `_finishMenuSave` `:17225` writes `_flags` `:17244` and the per-slot snapshot `_slots` `:17253` (`_buildSlotSnapshot` `:16646` stores `{recipeName|manual, flags}`).
+  - *World 2 — plating + anaphylaxis (live safety net).* `computePlatingData` `:20123` reads allergens from the **stored `_flags`** `:20158` (never re-matches a recipe). `getAnaphConflictRooms` `:9149` keys off that same `_flags` object.
+- **The "drop" is really non-capture.** A typed dish ≠ any recipe name takes the `else` branch `:17780` → slot becomes `{manual:val, flags:{}}`. No CODEX allergens are pulled in; `_flags` reflect only manual checkboxes + `MEAT_DETECT`. It is **not** active deletion — but the anaphylactic net can never self-heal a missed bind because it never re-derives from the recipe.
+- **The binding already exists but is welded to display.** A meal is `MEAL_SLOT_STATE` `:16379` over `MEAL_SLOT_DEFS` `:16368` (`main/mainalt/noporkalt/veganalt/starch/vegside/xtra/extras`). Each slot = `null | {recipeName,flags} | {manual,flags}`. The displayed string is **derived**: `buildMealName` `:16564` and `buildMainItem`/`buildSides`/`buildVegAlt` `:16575-16593` all do `s.recipeName || s.manual` — **binding and display share one field. That weld is the whole problem.** Persistence: `concUploadedMenu` overlay keys `period` / `period+'_flags'` / `_mainItem` / `_sides` / `_veg` / `_slots` (`:17242-17253`).
+- **Veg-alt is a SEPARATE live, floor-only, vegan-scoped matcher** — `getVegAltAllergenStr` `:16713` + `mergeVegAltAllergenFloor` `:16759`, called at plating `:20178-20194`. Do **not** route this feature through it.
+- **DOOR builds no recipe deep-link.** The `?recipe=` deep-link is HUB's job (`rcpUrlWithFallback`, its own 12-char fuzzy on display text) — same decoupling problem one hop downstream, independent of DOOR.
+- **No `recipeId` anywhere** in DOOR (`grep` = 0). CODEX "DOOR tolerance" = DOOR *ignores* an added id harmlessly, not that it reads one.
+
+## 2. Forks — RULED (follow the leans, Jason 2026-08-18)
+- **F-A (a)** — a **per-slot `displayText` decoupled from `recipeName`**, reusing the existing `_slots` machinery. (Not a global display→recipe alias table — DOOR already binds per-slot; a global table would be a second, redundant mechanism.)
+- **F-B (a) now, (b) later** — bind by **recipe name** (works today). `recipeId` (survives CODEX renames) is a **phase-2** robustness upgrade and is **gated on CODEX publishing ids into `DOOR_RECIPE_DATA.json`** (absent today).
+- **F-C (a)** — a bound recipe **auto-fills flags as a floor; operator manual overrides always win** and are never silently overwritten (the existing "operator statement wins" posture, cf. `vegAllergens` at `:20177/:20192`).
+- **F-D (a), refined by review (safety-strengthening).** Meat flags are **not in the CODEX feed** — they are name-detected at two additive sites, so the safe reading of F-D(a) is a *union*, not a swap: the **save-time** detect (`MEAT_DETECT`/`_detectInSlot` `:17129`) + halal-cert prompt `:17150` already read `recipeName || manual` (recipe-name-preferred — no change needed), while the **plating-time** name-detect (`computePlatingData` `:20164`, "only set, never clear") is **left reading the display label** as a free additive backstop. Rerouting the plating site to the recipe name (the naïve F-D(a)) is a **food-safety regression** — a label naming a protein the recipe name omits (e.g. "Pork & Beef Meatloaf" bound to recipe "Meatloaf"; "Arroz Con Pollo" where `\bchicken\b` ≠ "Pollo") would drop `hasPork`, and the `hasPork⇒!halalCertifiedMeat` export invariant never fires. Keeping both sites gives two-sided coverage: protein-in-recipe-not-label caught at save, protein-in-label-not-recipe caught at plating. **Neither site ever under-flags.**
+- **F-E — yes** — a visible editor warning when a slot has display text but **no allergen source** (no bound recipe AND no set flags).
+- **F-F (a)** — DOOR-only v1; **additively publish the bound recipe per slot** in the exported menu artifact so HUB's phase-2 deep-link can target it exactly (HUB consumption itself deferred).
+
+## 3. Design
+### 3.1 Data model (the un-weld)
+A slot value gains an optional `displayText`. The three shapes:
+| Shape | Meaning | Display | Allergen source |
+|---|---|---|---|
+| `{manual, flags}` | unbound (today) — **unchanged** | `manual` | `flags` (manual/MEAT_DETECT only) |
+| `{recipeName, flags}` | bound, welded (today) — **back-compat** | `recipeName` | recipe (via bind-time auto-fill) |
+| `{recipeName, displayText, flags}` | **new** — bound + decoupled | `displayText` | recipe (via bind-time auto-fill) |
+
+- Display builders (`buildMealName` `:16564`, `buildMainItem`/`buildSides`/`buildVegAlt` `:16575-16593`) resolve **`displayText || recipeName || manual`** — so an existing welded slot (no `displayText`) renders exactly as today (back-compat proven by `ux`-neutral gate).
+- Allergen flags still derive from `recipeName` through the unchanged `hubAllergenToFlags → buildUnionFlags` path, independent of `displayText`. World 2 (plating/anaphylaxis) is **untouched** — it keeps reading `_flags`; the point is that `_flags` now get *populated* on dishes whose label ≠ the recipe name.
+
+### 3.2 Editor UX (`renderSlotCard` `:16874`)
+- Add a **"🔗 Recipe"** binding control (reusing `slotSearch`/`recipeMatchesSlotDef` typeahead) **plus a separate "Shown as" free-text field** for `displayText`.
+- **⚠ Scope the 🔗 bind to the MAIN-GROUP slots only** (`main`/`starch`/`vegside`/`xtra`/`extras`) — **not** the alt slots (`mainalt`/`noporkalt`/`veganalt`). `buildUnionFlags` (`:16600`) deliberately ORs `.flags` from the main group and **excludes the alt slots** (so alt allergens don't pollute the regular CONTAINS line); a recipe bound to an alt slot would set `slot.flags` that are **dropped at save** → the anaphylactic net never sees them → the exact silent non-capture this feature exists to kill. Alt-slot allergen capture is a *separate* mechanism (the plating-time veg-alt floor `getVegAltAllergenStr`, do-not-touch) — so alt slots stay display/manual in v1. (Alt-slot binding is a harder, separate problem; deferred + documented, not attempted in v1.)
+- Selecting a recipe runs the `slotSelect` flag-autofill path against the **bound recipe**, regardless of what "Shown as" says.
+- **Operator-override preservation (F-C):** a (re)bind auto-fills flags but **never clears a manually-checked flag** (model on the `sameRecipe` flag-preserve at `:17738`). The recipe is a floor; a manual box that's on stays on.
+- **Build-checklist (so the binding + label actually persist — review P3):**
+  - `_buildSlotSnapshot` (`:16651`) currently does `if (s.recipeName) snap = {recipeName, flags}` — it **must also carry `displayText`**, or a decoupled slot loses its label on save→reopen→publish. (`_restoreSlotSnapshot` `:16665` spreads `{...val}`, so it round-trips once the snapshot stores it.)
+  - `slotSelect` (`:17739`) and `slotAutoSave` (`:17776`) *replace* the whole slot value → they must **preserve `current.displayText`** on a (re)bind (mirror the existing `sameRecipe` flag-preserve at `:17738`).
+  - the **"Shown as" writer** must preserve `recipeName` + `flags` (write `displayText` only), never clobber the slot to `{displayText}`.
+
+### 3.3 Meat/halal detection (F-D — review-refined; the P1 fix)
+**Meat flags (`hasPork`/`hasChicken`/`hasTurkey`/`hasBeef`) are NOT in the CODEX feed** — `HUB_ALLERGEN_MAP` has no meat keys and no recipe's `allergens[]` lists a meat. Meat is captured only by **name detection at two additive ("only set, never clear") sites**:
+- **Save-time** `_detectInSlot` (`:17129`) already reads `s.recipeName || s.manual` — recipe-name-preferred when bound. **No change.** Also the halal-cert prompt (`:17150`) — no change.
+- **Plating-time** `computePlatingData` name-detect (`:20164`) reads the meal's main-item/name string. After the un-weld, `_mainItem` *is* the display label — so **leaving this site alone means it reads the display**, which (being additive) can only *add* a meat flag the recipe name missed.
+
+**The rule: do NOT reroute the plating site to the recipe name.** Keep save-time on the recipe name (authoritative, already there) and plating on the display (additive backstop). This is two-sided and **never under-flags**:
+- protein named in the recipe but not the label → caught at **save** (recipe-name read);
+- protein named in the label but not the recipe → caught at **plating** (display read).
+
+Rerouting the plating site (the naïve reading of F-D(a)) is a **strict food-safety regression** vs today — it would drop `hasPork` on "Pork & Beef Meatloaf"→"Meatloaf" / "Arroz Con Pollo"→a no-"chicken" recipe name, so the `hasPork⇒!halalCertifiedMeat` invariant (`buildMenuJSON`) never fires and No-Pork routing breaks. Optional belt-and-suspenders: have save-time `_detectInSlot` scan `recipeName + ' ' + displayText` (still additive — meat flags are name-derived, independent of the allergen feed, so an over-flag is conservative and never imports another recipe's allergens).
+- **Residual (unchanged by any option):** a compound label AND a bound recipe that BOTH omit a protein present in the dish under-detects it — pure operator-modeling error; the F-E nudge is the backstop. Not a v1 blocker.
+
+### 3.4 Safety nudge (F-E)
+In the editor (mirroring `renderStaleFlagsBanner`/`renderMenuSourceBanner`), warn when a slot has **non-empty display text but no allergen source** — no bound recipe **and** an empty `flags` object: *"⚠ No allergen source — link a recipe or set flags."* This closes the exact "typed a dish, forgot to link/flag it" hole this feature is about.
+
+### 3.5 Publish the binding (F-F — near-free per review)
+**`_slots` already ships in `menu_current.json`** — `buildMenuJSON` shallow-copies the whole day (`{...src[wk][dayName]}`), so the per-slot binding (incl. `recipeName` + `displayText`, once §3.2's build-checklist carries them) publishes with **no new export code.** So F-F is: **carry the binding inside `_slots`** (drop the alternative `_recipeNames` map — less surface). Nothing downstream is required to read it. **Allergen-feed-neutral** — the export still regenerates `allergens_<meal>` from `_flags` and enforces `hasPork⇒!halal`; an additive field doesn't perturb that, Gate-9 (which checks presence/validity of known fields, not absence of unknowns), or `_meta.builtFromMenu` (its content hash legitimately moves only on a real content change). HUB phase-2 consumes it to build an exact `?recipe=` link instead of its fuzzy display-text guess. **Confirm EXPO tolerates the extra `_slots` fields** (expected, per the DOOR-tolerance pattern — it already ignores `_slots`).
+
+## 4. Food-safety guards (hard invariants — each gated)
+1. **A binding on a MAIN-GROUP slot MUST write `_flags`.** A `displayText`-only change that doesn't refresh flags is forbidden. Gate: a bound `main`/`starch`/`vegside`/`xtra` slot whose recipe carries allergens produces the corresponding `_flags`. **Scope caveat (review P2):** `buildUnionFlags` excludes the alt slots, so this guarantee holds only for the main group — which is exactly why §3.2 scopes the 🔗 bind to the main group. An alt-slot binding is *not* offered in v1 precisely because its flags wouldn't reach `_flags`.
+2. **Never reduce coverage.** Post-rebind/decouple, `_flags ⊇ operator manual flags` — operator overrides survive (F-C). The recipe is a floor, like `mergeVegAltAllergenFloor`.
+3. **`HUB_ALLERGEN_MAP` coverage — CI gate + a RUNTIME surface (review P2).** Every distinct allergen label a CODEX recipe can carry must map to a flag, else a bound recipe under-flags silently (`hubAllergenToFlags` `:16540` silently ignores an unmapped category via `if (key && key in f)`).
+   - *CI gate (baked data):* assert every distinct `allergens[]` label in the **baked** `DOOR_RECIPE_DATA_FALLBACK` is in `HUB_ALLERGEN_MAP`. Parse category as `split('(')[0].trim()`, **exclude the `None` sentinel** (special-cased in `hubAllergenToFlags`), skip empties. Measured 2026-08-18: **all baked labels already map** (Gluten/Soy/Sulphites/Tree Nuts/Peanuts/Nightshades/Spicy/Fish/Milk/Eggs/Sesame/Mustard) — no latent bug; the gate is green today.
+   - *Runtime surface (the part that actually guards live-feed drift):* a CI gate can only see the baked fallback — it **cannot** catch a new label CODEX adds to the **live** `DOOR_RECIPE_DATA.json`. So add a one-time `console.warn` + editor banner (mirroring `renderStaleFlagsBanner`) when a non-`None` category absent from `HUB_ALLERGEN_MAP` is seen at load/bind. This is the standing DOOR↔CODEX contract per the HOUSE cross-repo data-contract rule; it must fail loud, never silent.
+4. **Meat/halal never under-flagged** — the `hasPork ⇒ halalCertifiedMeat:false` export invariant (already live) is untouched, and §3.3's two-site union (save reads recipe, plating reads display) means neither site under-flags.
+5. **Anaphylactic net unchanged in mechanism** — still reads `_flags`; guard #1 is what makes bound allergens reach it.
+
+## 5. Slices (deletion-first where possible; each authored-to-fail gated in `door-smoke`)
+- **S0 — probe (no app code).** Measure the live menu: how many `{manual}` slots' text exactly- or closely-matches a CODEX recipe name (the addressable "should be bound but isn't" population) — quantifies value + yields real test cases (Pork al Pastor Taco, etc.). **Also assert two facts the build depends on:** (i) alt-slot (`mainalt`/`noporkalt`/`veganalt`) `.flags` do **not** reach the saved `_flags` (proves the §3.2 main-group scoping is necessary, not cosmetic); (ii) the per-slot `_slots` binding survives a `concUploadedMenu` workbook re-import (else bindings are silently lost on the next import — confirm the base-overlay `_slots` persistence). Diagnostic script, not a gate.
+- **S1 — data model + display decouple.** Slot gains `displayText`; builders resolve `displayText || recipeName || manual`; welded/manual slots byte-identical; `_buildSlotSnapshot` carries `displayText`. Gate: a decoupled slot shows `displayText` yet derives allergens from `recipeName`; a legacy welded/manual slot + the derived `_mainItem`/`_sides`/`_veg` + `buildMenuJSON` output render byte-identical; a save→snapshot→restore round-trip preserves `displayText`.
+- **S2 — editor UX (main-group scope).** The 🔗 bind + "Shown as" control in `renderSlotCard`, **offered on main-group slots only**; flag-autofill against the bound recipe; `slotSelect`/`slotAutoSave` preserve `displayText` on rebind; operator-override preservation. Gate: bind "Pork al Pastor" + show "Pork al Pastor Taco" on a `main` slot → `_flags` carry the recipe's allergens (incl. Nightshades/Spicy/Sulphites per CODEX); a manually-set flag survives a rebind; the 🔗 control is absent on alt slots.
+- **S3 — meat/halal two-site union (F-D) + the coverage gate + the runtime unmapped-label surface (guard #3).** Gate: a bound slot whose recipe name carries a meat word flags it at save even when the label omits it (recipe→save), AND a label carrying a meat word the recipe name omits still flags it at plating (label→plating, additive — **do NOT reroute `:20164`**); the baked-data coverage gate is green with `None` excluded; a synthetic unmapped label triggers the runtime warn/banner.
+- **S4 — safety nudge (F-E).** The no-allergen-source warning (main-group slot with text but no bound recipe AND empty flags). Gate: text + no recipe + no flags → warning; bound or flagged → none.
+- **S5 — publish the binding (F-F).** Carry the binding **inside the already-published `_slots`** (no new export code — `buildMenuJSON` already ships `_slots`); allergen-feed-neutral. Gate: the exported `menu_current.json` `_slots` carry `recipeName`+`displayText`; the allergen-derived fields (`allergens_<meal>`, `_flags`) are byte-neutral vs pre-slice; EXPO/HUB consumers unaffected.
+
+## 6. Do-not-touch / boundaries
+- **Veg-alt floor matcher** (`getVegAltAllergenStr` / `mergeVegAltAllergenFloor`) — untouched; separate path.
+- **No re-introduction of fuzzy exact-matching** — binding is an explicit operator choice (fuzzy was removed for good reason).
+- **Anaphylactic net mechanism** (`getAnaphConflictRooms`, reads `_flags`) — unchanged.
+- **No `recipeId` in v1** — phase 2, gated on CODEX publishing ids into `DOOR_RECIPE_DATA.json`.
+- **Publish path** (`ghPushFilesAtomic`, Gate-9, `_meta.builtFromMenu`) — unchanged.
+- **`_flags` schema + the published data contracts** — unchanged (the binding stamp is additive/optional).
+
+## 7. Phasing
+- **Phase 1 (this spec):** DOOR editor — display decouple, allergen capture on bound dishes, F-D meat detection, F-E nudge, F-F publish the binding.
+- **Phase 2 (separate, gated):** `recipeId` robustness (needs CODEX to add ids to `DOOR_RECIPE_DATA.json` first, so a recipe rename doesn't break a binding); HUB consumes the published binding for exact deep-links; optional EXPO `NAME_ALIASES` convergence.
+
+## 8. Cross-app notes
+- **CODEX (MISE):** phase-2 recipeId is a CODEX ask (publish stable ids in `DOOR_RECIPE_DATA.json`). The `HUB_ALLERGEN_MAP` coverage gate (#3) is a standing DOOR↔CODEX contract — if CODEX adds an allergen category DOOR doesn't map, it must surface loudly, per the HOUSE cross-repo data-contract rule.
+- **HUB:** phase-2 consumer of the published binding (`rcpUrlWithFallback` gets an exact target). No change in phase 1.
+- **EXPO:** unaffected (it aliases via `NAME_ALIASES` for scheduling; allergens are DOOR-owned).
