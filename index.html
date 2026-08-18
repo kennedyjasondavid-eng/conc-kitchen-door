@@ -16721,6 +16721,10 @@ function _restoreSlotSnapshot(slots) {
     const val = slots[id];
     if (val && (val.recipeName || val.manual)) {
       MEAL_SLOT_STATE[id] = { ...val };
+      // Recipe-attach S1: mirror the write-side guard — displayText is a main-group-only
+      // fact. Strip a stray one off an alt slot (only reachable via a hand-edited/imported
+      // `_slots`) so the invariant holds symmetrically on read as well as write.
+      if (MEAL_SLOT_STATE[id].displayText && !MAIN_SLOT_IDS.includes(id)) delete MEAL_SLOT_STATE[id].displayText;
     }
   });
   return true;
