@@ -1,8 +1,13 @@
 // Recipe-attach phase-2 (store + publish the id).
-// Binding a CODEX recipe additively stores its stable recipeId on the slot; the snapshot
-// persists it and buildMenuJSON publishes it in _slots (for HUB's exact ?recipe= deep-link).
-// Nothing in DOOR reads it yet. Authored-to-fail: pre-slice, no bind stores recipeId and the
-// snapshot carries none. Byte-neutral: a recipe WITHOUT an id (the baked fallback) adds no key.
+// Binding a CODEX recipe additively stores its recipeId on the slot; the snapshot persists it
+// and buildMenuJSON publishes it in _slots (for HUB's exact ?recipe= deep-link). Nothing in
+// DOOR reads it yet.
+// Authored-to-fail (redden if the store/publish lines are reverted): test 1 (bind stores the id)
+// and test 3 (snapshot persists it) — the two genuinely new behaviors. Tests 4/5 CHARACTERIZE
+// pre-existing guarantees the feature relies on (restore's wholesale {...val}; buildMenuJSON's
+// verbatim _slots copy + allergen regeneration from _flags only), so they stay green on revert
+// by design — they earn their place as neutrality/round-trip proofs, not as new-code coverage.
+// Byte-neutral: a recipe WITHOUT an id (the baked fallback) adds no key.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
