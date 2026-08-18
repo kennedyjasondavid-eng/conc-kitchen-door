@@ -1006,6 +1006,7 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
   vm.runInContext([
     extractOutputEncodingBlock(html),
     'function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== "undefined" && Array.isArray(DOOR_RECIPE_DATA); }',
+    extractFunctionBlock(html, '_hubAllergenResolve'),
     extractFunctionBlock(html, '_allergenPreview'),
     extractFunctionBlock(html, 'recipeMatchesSlotDef'),
     extractFunctionBlock(html, 'slotSearch'),
@@ -1059,6 +1060,7 @@ test('recipe slot autosave applies stream filters before exact recipe linking', 
   vm.createContext(context);
   vm.runInContext([
     extractFunctionBlock(html, 'isHubLoaded'),
+    extractFunctionBlock(html, '_hubAllergenResolve'),
     extractFunctionBlock(html, 'hubAllergenToFlags'),
     extractFunctionBlock(html, 'recipeMatchesSlotDef'),
     extractFunctionBlock(html, 'slotAutoSave'),

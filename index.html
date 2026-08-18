@@ -16522,23 +16522,66 @@ function renderAltMealsSection() {
 
 // ── Hub availability ──────────────────────────────────────────
 const HUB_ALLERGEN_MAP = {
-  'Gluten':'hasGluten','Wheat':'hasGluten','Milk':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
-  'Eggs':'hasEgg','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
-  'Tree Nuts':'hasTreeNuts','Sulphites':'hasSulphites','Spicy':'isSpicy',
-  'Nightshades':'hasNightshades','Shellfish':'hasShellfish',
+  'Gluten':'hasGluten','Wheat':'hasGluten','Milk':'hasDairy','Dairy':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
+  'Eggs':'hasEgg','Egg':'hasEgg','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
+  'Tree Nuts':'hasTreeNuts','Coconut':'hasCoconut','Corn':'hasCorn','Sulphites':'hasSulphites','Spicy':'isSpicy',
+  'Nightshades':'hasNightshades','Tomato':'hasNightshades','Shellfish':'hasShellfish',
 };
+// Recipe-attach S1 (2026-08-18): the live CODEX feed labels don't all exact-match
+// the map above — it uses inconsistent casing ("egg"/"Egg"/"Eggs", "dairy"/"Dairy"),
+// synonyms ("Dairy"↔"Milk", "Tomato"↔"Nightshades"), and compound "X and Y" elements
+// that an exact whole-string lookup dropped ENTIRELY (both allergens lost). S0 measured
+// 49/240 recipes carrying a dropped label. Since binding runs this parse, that under-
+// capture would scale with the recipe-attach feature — so we normalize the READ here
+// (case-fold + compound-split + canonical synonyms). This never changes WHICH allergens
+// a recipe declares (CODEX still owns that); it reads CODEX's own labels correctly.
+// Runtime surface: non-noise labels DOOR couldn't map — module-level so a warning
+// dedupes and the surface accumulates across binds. guard #3: never silently dropped.
+const _hubUnmappedLabels = new Set();
+try { if (typeof window !== 'undefined') window.__DOOR_UNMAPPED_ALLERGEN_LABELS__ = _hubUnmappedLabels; } catch (e) {}
+
+// The ONE normalized parse, shared by the flag setter and the editor preview so what
+// the operator is shown can never diverge from what actually gets flagged.
+// Returns { keys:Set<flagKey>, labels:Set<shown label> }.
+// Self-contained (LC index + ignore-set built inline) so the door-smoke harness, which
+// extracts single function blocks, can run it without pulling separate module consts;
+// the 19-key rebuild is bind-time-only, so its cost is irrelevant.
+function _hubAllergenResolve(allergens) {
+  const lc = {};
+  for (const k in HUB_ALLERGEN_MAP) lc[k.toLowerCase()] = HUB_ALLERGEN_MAP[k];
+  // Labels the feed carries that map to NO DOOR flag — ignored WITHOUT warning. (Warning
+  // on a known non-allergen trains the operator to ignore the signal — no cry-wolf.) Meat
+  // words are name-detected elsewhere (MEAT_DETECT); the rest are S0-observed non-flags.
+  const IGNORE = new Set(['none','not vegan friendly','oats','honey','onion','potato','chicken','pork','beef','turkey','fish sauce']);
+  const surface = (typeof _hubUnmappedLabels !== 'undefined') ? _hubUnmappedLabels : null;
+  const keys = new Set(), labels = new Set();
+  (allergens || []).forEach(a => {
+    if (a == null) return;
+    const base = String(a).split('(')[0];                          // drop the "(source)" qualifier
+    base.split(/\s+and\s+|\s*&\s*|\s*,\s*/i).forEach(part => {      // split compound "X and Y" / "X & Y" / "X, Y"
+      // strip a leading conjunction: the feed carries pre-mangled junk like "and Not Vegan
+      // Friendly" where "and" sits at the fragment start (no leading space for the split to
+      // catch). No real allergen name starts with "and ", so this only cleans noise — and
+      // it stops that fragment crying wolf on the unmapped surface.
+      const p = part.trim().toLowerCase().replace(/^and\s+/, '');
+      if (!p || p === 'none') return;
+      const key = lc[p];
+      if (key) { keys.add(key); labels.add(p); }
+      else if (!IGNORE.has(p) && surface && !surface.has(p)) {
+        surface.add(p);
+        try { console.warn('[DOOR] CODEX allergen label not mapped to a DOOR flag (under-flag risk): "' + p + '" — add it to HUB_ALLERGEN_MAP or the ignore set.'); } catch (e) {}
+      }
+    });
+  });
+  return { keys, labels };
+}
 
 function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA); }
 
 function hubAllergenToFlags(allergens) {
   const f = {};
   if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(d => { f[d.key] = false; });
-  (allergens || []).forEach(a => {
-    if (a === 'None') return;
-    const cat = a.split('(')[0].trim();
-    const key = HUB_ALLERGEN_MAP[cat];
-    if (key && key in f) f[key] = true;
-  });
+  _hubAllergenResolve(allergens).keys.forEach(key => { if (key in f) f[key] = true; });
   return f;
 }
 
@@ -17688,12 +17731,9 @@ function smSlotSelect(slotId, recipeName) {
 // honest about consequences so they're not surprised by an auto-set flag.
 function _allergenPreview(allergens) {
   if (!allergens || !allergens.length) return '';
-  const tokens = [];
-  (allergens || []).forEach(a => {
-    if (a === 'None') return;
-    const cat = a.split('(')[0].trim();
-    if (HUB_ALLERGEN_MAP[cat]) tokens.push(cat.toLowerCase());
-  });
+  // Recipe-attach S1: use the shared normalized resolver so the preview shows exactly
+  // the allergens that hubAllergenToFlags will set (case-fold + compound-split included).
+  const tokens = [..._hubAllergenResolve(allergens).labels];
   if (!tokens.length) return '<span style="color:var(--muted);font-style:italic;">no priority allergens</span>';
   return tokens.map(t => `<span style="display:inline-block;font-size:10px;padding:1px 6px;margin:0 2px 0 0;border-radius:8px;background:#fee2e2;color:#991b1b;">${t}</span>`).join('');
 }
