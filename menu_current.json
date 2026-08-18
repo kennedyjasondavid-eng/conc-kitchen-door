@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-18T17:22:12.283Z",
+    "exported": "2026-08-18T17:22:49.190Z",
     "version": 32
   },
   "menu": {
@@ -2944,8 +2944,8 @@
         "allergens_dinner": "sulphites, pork",
         "lunch": "Crispy Chicken Tender Wrap",
         "lunch_veg": "Crispy Vegan Tender Wrap",
-        "lunch_mainItem": "Beef Nachos Supreme",
-        "lunch_sides": "Tortilla chips, Sour Cream",
+        "lunch_mainItem": "Crispy Chicken Tender Wrap",
+        "lunch_sides": "",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2966,14 +2966,58 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
-        "allergens_lunch": "gluten, dairy"
+        "allergens_lunch": "gluten, dairy",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Crispy Chicken Tender Wrap",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Crispy Vegan Tender Wrap",
+            "flags": {
+              "hasGluten": true,
+              "hasSoy": true
+            }
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, Vienna Roll",
