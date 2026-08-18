@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-15T12:42:15.116Z",
+    "exported": "2026-08-18T17:19:43.051Z",
     "version": 32
   },
   "menu": {
@@ -1954,14 +1954,14 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Chicken Tenders, Sweet Potato, Parsnip and Carrot",
-        "lunch_veg": "Vegan Nuggets, Sweet Potato, Parsnip and Carrot",
+        "lunch": "Chicken tenders & Roasted Yams, Sweet Potato, Seasonal Veg",
+        "lunch_veg": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot, Sweet Potato, Seasonal Veg",
         "lunch_halal": "Halal breaded chicken burgers",
-        "lunch_mainItem": "Chicken Tenders",
-        "lunch_sides": "Sweet Potato, Parsnip and Carrot",
+        "lunch_mainItem": "Chicken tenders & Roasted Yams",
+        "lunch_sides": "Sweet Potato, Seasonal Veg",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
+          "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -1977,7 +1977,7 @@
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
-          "halalCertifiedMeat": false,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
@@ -2018,7 +2018,7 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy",
-        "allergens_lunch": "gluten",
+        "allergens_lunch": "gluten, dairy",
         "allergens_dinner": "beef",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -2027,10 +2027,10 @@
         "lunch_mainAlt": "Halal Breaded Chicken Burgers",
         "lunch_slots": {
           "main": {
-            "recipeName": "Chicken Tenders",
+            "manual": "Chicken tenders & Roasted Yams",
             "flags": {
               "hasGluten": true,
-              "hasDairy": false,
+              "hasDairy": true,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
@@ -2042,18 +2042,18 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": false,
+              "hasChicken": true,
               "hasTurkey": false,
               "isSpicy": false,
               "isCarb": false,
-              "halalCertifiedMeat": false,
+              "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
               "hasCoconut": false,
-              "hasNightshades": false,
+              "hasMushroom": false,
               "hasBrassicas": false,
-              "hasCorn": false
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
             }
           },
           "mainalt": {
@@ -2087,15 +2087,18 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan Nuggets",
-            "flags": {}
+            "manual": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot",
+            "flags": {
+              "hasGluten": true,
+              "hasSoy": true
+            }
           },
           "starch": {
             "manual": "Sweet Potato",
             "flags": {}
           },
           "vegside": {
-            "manual": "Parsnip and Carrot",
+            "manual": "Seasonal Veg",
             "flags": {}
           }
         }
@@ -2606,9 +2609,9 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Crispy Chicken Tender Wrap",
-        "lunch_veg": "Crispy Vegan Tender Wrap",
-        "lunch_mainItem": "Crispy Chicken Tender Wrap",
+        "lunch": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
+        "lunch_veg": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+        "lunch_mainItem": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
         "lunch_sides": "",
         "lunch_flags": {
           "hasGluten": true,
@@ -2623,19 +2626,19 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": false,
-          "hasChicken": true,
+          "hasBeef": true,
+          "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Baked Tomato Fish, Couscous, Broccoli",
         "dinner_veg": "Baked Tomato Tofu, Couscous, Broccoli",
@@ -2710,8 +2713,49 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, dairy",
-        "allergens_dinner": "gluten, fish"
+        "allergens_lunch": "gluten, dairy, beef",
+        "allergens_dinner": "gluten, fish",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+            "flags": {}
+          }
+        }
       },
       "THURSDAY": {
         "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, Vienna roll",
@@ -2870,8 +2914,8 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
         "allergens_dinner": "sulphites, pork",
-        "lunch": "Beef Nachos Supreme, Tortilla chips, Sour Cream",
-        "lunch_veg": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+        "lunch": "Crispy Chicken Tender Wrap",
+        "lunch_veg": "Crispy Vegan Tender Wrap",
         "lunch_mainItem": "Beef Nachos Supreme",
         "lunch_sides": "Tortilla chips, Sour Cream",
         "lunch_flags": {
@@ -2887,8 +2931,8 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": true,
-          "hasChicken": false,
+          "hasBeef": false,
+          "hasChicken": true,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
@@ -2901,7 +2945,7 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "allergens_lunch": "gluten, dairy, beef"
+        "allergens_lunch": "gluten, dairy"
       },
       "FRIDAY": {
         "breakfast": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, Vienna Roll",
