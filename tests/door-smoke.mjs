@@ -872,6 +872,7 @@ test('regular menu slot summary renders staff-entered slot text safely', () => {
   vm.createContext(context);
   vm.runInContext([
     extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, '_mealNoAllergenSource'),
     extractFunctionBlock(html, 'updateSlotSummary')
   ].join('\n\n'), context, { filename: 'index.html#xss-slot-summary', timeout: 1000 });
 

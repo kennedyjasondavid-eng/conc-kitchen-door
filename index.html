@@ -16903,6 +16903,14 @@ function updateSlotSummary() {
         (veg        ? `<div style="font-size:12px;color:var(--muted);">Veg alt: ${escapeHtml(veg)}</div>` : '') +
         (noPorkAlt  ? `<div style="font-size:12px;color:#7c3aed;margin-top:2px;">No Pork alt: ${escapeHtml(noPorkAlt)}</div>` : '') +
         buildAltMeals().map(a => `<div style="font-size:12px;color:#0891b2;margin-top:2px;">${a.type==='soft'?'Soft':'Plain'}: ${escapeHtml(a.text)}</div>`).join('');
+      // Recipe-attach S4 (F-E safety nudge): a meal with text that will save with NO
+      // allergen data at all — no flag set AND no recipe-linked slot. Closes the "typed a
+      // dish, forgot to link/flag it" hole. Meal-level on purpose (a per-slot check cries
+      // wolf on every legacy manual slot; the checkboxes/_flags are the real source).
+      const anyRecipeLinked = ['main','starch','vegside','xtra'].some(id => MEAL_SLOT_STATE[id] && MEAL_SLOT_STATE[id].recipeName);
+      if (_mealNoAllergenSource(flags, anyRecipeLinked, name)) {
+        summaryEl.innerHTML += '<div style="margin-top:8px;padding:6px 10px;background:var(--amber-pale);border:1px solid #f59e0b;border-radius:6px;font-size:11px;color:#92400e;">⚠ No allergen source for this meal — link a recipe or set the allergen flags. It would plate with no allergen data.</div>';
+      }
     } else {
       summaryEl.style.display = 'none';
     }
@@ -17230,12 +17238,14 @@ function saveMenuEdit() {
   // Detect per slot
   function _detectInSlot(slotId) {
     const s = MEAL_SLOT_STATE[slotId];
-    // Recipe-attach S3 (two-site meat union, belt-and-suspenders): scan the recipe name
-    // AND the display rename AND any manual text. Meat is name-derived and this only SETS
-    // flags (additive), so reading the display can only ADD a meat flag the recipe name
-    // missed ("Meatloaf" shown "Pork & Beef Meatloaf") — never removes one, never imports
-    // another recipe's allergens. The plating-time detector reads the display too, so the
-    // union catches a protein named in EITHER the recipe or the display, at both sites.
+    // Recipe-attach S3 (meat union, belt-and-suspenders): scan the recipe name AND the
+    // display rename AND any manual text. Meat is name-derived and this only SETS flags
+    // (additive), so reading the display can only ADD a meat flag the recipe name missed
+    // ("Meatloaf" shown "Pork & Beef Meatloaf") — never removes one, never imports another
+    // recipe's allergens. ⚠ THIS SAVE SITE IS THE SOLE AUTHORITY for hasPork/hasBeef:
+    // computePlatingData does NOT re-detect them (it re-detects only chicken/turkey/halal
+    // from the display name as an additive backstop). So the display scan here is
+    // load-bearing — do not remove it thinking "plating covers it"; for pork/beef it does not.
     const val = s ? [s.recipeName, s.displayText, s.manual].filter(Boolean).join(' ') : '';
     if (!val) return [];
     return MEAT_DETECT.filter(m => m.kw.test(val)).map(m => ({ ...m }));
@@ -17961,6 +17971,15 @@ function _slotRouteWarnHTML(slotId) {
 function _refreshSlotRoutingWarn(slotId) {
   const el = document.getElementById('slot-routewarn-' + slotId);
   if (el) el.innerHTML = _slotRouteWarnHTML(slotId);
+}
+
+// Recipe-attach S4 (F-E): does this meal have NO allergen source? A named meal that will
+// save with zero flags AND no recipe-linked slot plates with no allergen data. Pure +
+// meal-level (a linked recipe OR any set flag counts as a source), so it stays quiet on
+// every current meal (all carry _flags) and fires only on the genuine "forgot" hole.
+function _mealNoAllergenSource(flags, anyRecipeLinked, name) {
+  if (!name || anyRecipeLinked) return false;
+  return !Object.keys(flags || {}).some(k => flags[k] === true);
 }
 
 function slotKey(e, slotId) {
@@ -21418,7 +21437,9 @@ function generateTestPlating() {
   ];
   function _detectSlot(slotId) {
     var s = MEAL_SLOT_STATE[slotId];
-    var val = s ? (s.recipeName || s.manual || '') : '';
+    // Recipe-attach S3: scan the display rename too (additive) so the Test-Meal preview
+    // matches what saveMenuEdit's _detectInSlot will bake — parity with the save site.
+    var val = s ? [s.recipeName, s.displayText, s.manual].filter(Boolean).join(' ') : '';
     if (!val) return [];
     return MEAT_DETECT.filter(function(m) { return m.kw.test(val); });
   }

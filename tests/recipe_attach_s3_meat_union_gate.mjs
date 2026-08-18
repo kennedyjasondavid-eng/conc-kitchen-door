@@ -101,6 +101,8 @@ test('guard #3 banner renders the unmapped labels and hides when none', () => {
 
 test('source locks: _detectInSlot reads displayText; the banner is wired', () => {
   assertContains(fnBlock('_detectInSlot'), 's.displayText', '_detectInSlot scans the display rename (two-site union)');
+  // Test-Meal preview parity: its detector reads the display too, so the sandbox matches save
+  assertContains(fnBlock('generateTestPlating'), 's.displayText', 'the Test-Meal detector scans the display for save-parity');
   // banner reads the S0.5 surface and is called in the menu render flow
   assertContains(fnBlock('renderUnmappedAllergenBanner'), '_hubUnmappedLabels', 'banner reads the unmapped-label surface');
   assertContains(html, 'renderUnmappedAllergenBanner();', 'banner is invoked in the render flow');
