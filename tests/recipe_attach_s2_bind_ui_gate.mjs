@@ -68,6 +68,10 @@ test('the soft routing warn fires only when a recipe word is dropped, never bloc
   assert.deepEqual(warn('Pork Al Pastor', 'pork al pastor taco'), [], 'case-insensitive; still no warn');
   assert.deepEqual(warn('Pork Al Pastor', 'Pork Al Pastor'), [], 'identical = not decoupled = no warn');
   assert.deepEqual(warn('Pork Al Pastor', ''), [], 'empty display = no warn');
+  // punctuation is stripped to spaces (never treated as / kept in a word) before matching
+  assert.deepEqual(warn('Mac & Cheese', 'Macaroni Cheese'), ['mac'], '"&" is stripped; word-matching drops "mac"');
+  assert.deepEqual(warn('Sauté Tofu', 'Grilled Tofu'), ['saut'], 'accent strips to the ascii token "saut"; a real word-drop still warns');
+  assert.deepEqual(warn('Sauté Tofu', 'Saut Tofu'), [], 'accented recipe matches its de-accented display — no false warn');
 });
 
 test('bind a recipe + rename the display → shows the rename, allergens stay from the recipe', () => {
@@ -114,4 +118,15 @@ test('the "Shown as" control is gated to the regular editor + bound main-group s
   // the two bind paths preserve the override on re-confirm
   assertContains(fnBlock('slotAutoSave'), 'sameRecipe && current.displayText', 'slotAutoSave preserves displayText on same-recipe re-confirm');
   assertContains(fnBlock('slotSelect'), 'sameRecipe && current.displayText', 'slotSelect preserves displayText on same-recipe re-confirm');
+});
+
+test('the new display sinks are escaped, and carb-detect keys off the recipe (source locks)', () => {
+  const card = fnBlock('renderSlotCard');
+  // the sole new stored-input HTML sink: the "Shown as" input value MUST go through _escAttr
+  assertContains(card, '_escAttr(state.displayText', 'the display-text input value is _escAttr-escaped (XSS surface locked)');
+  assertContains(fnBlock('_slotRouteWarnHTML'), 'escapeHtml(w)', 'the routing-warn words are escapeHtml-escaped');
+  // P3-1 fold: carb auto-detect must probe the recipe identity, not just the renamed display
+  const summary = fnBlock('updateSlotSummary');
+  assertContains(summary, 'carbProbe', 'carb detect uses the recipe-inclusive probe, not the display name alone');
+  assertContains(summary, 's.recipeName', 'the carb probe reads recipe names so a rename cannot suppress isCarb');
 });

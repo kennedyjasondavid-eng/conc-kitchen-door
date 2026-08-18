@@ -859,6 +859,7 @@ test('regular menu slot summary renders staff-entered slot text safely', () => {
     FLAG_DEFS: [],
     _LAST_SLOT_FLAGS: {},
     testMealActive: false,
+    MEAL_SLOT_STATE: {},
     buildUnionFlags() { return {}; },
     buildVegAltFlags() { return {}; },
     buildAltMeals() { return [{ type: 'plain', text: '<svg onload=alert(2)> Plain alt' }]; },

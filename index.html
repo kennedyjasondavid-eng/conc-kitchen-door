@@ -16888,7 +16888,13 @@ function updateSlotSummary() {
   }
   if (name) {
     const carbCb = document.getElementById(cbPrefix + 'isCarb');
-    if (carbCb && !carbCb.checked && detectIsCarb(name)) {
+    // Recipe-attach S2: carb auto-detect keys off the RECIPE identity, not the display
+    // rename — a dish shown as "Harvest Bowl" that is actually "Rice Pilaf" must still
+    // auto-flag isCarb (diabetic-relevant). Probe the display name PLUS the main-group
+    // recipe names so a rename can never suppress the carb signal.
+    const carbProbe = name + ' ' + ['main', 'starch', 'vegside', 'xtra']
+      .map(id => { const s = MEAL_SLOT_STATE[id]; return s ? (s.recipeName || '') : ''; }).join(' ');
+    if (carbCb && !carbCb.checked && detectIsCarb(carbProbe)) {
       carbCb.checked = true;
       if (carbCb.parentElement) carbCb.parentElement.style.background = '#2563eb10';
       const hintId = testMealActive ? 'tm-iscarb-hint' : 'mc-iscarb-hint';
