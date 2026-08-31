@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-08-31T09:41:06.986Z",
+    "exported": "2026-08-31T09:41:36.372Z",
     "version": 32
   },
   "menu": {
@@ -909,9 +909,9 @@
           "hasBeans": false
         },
         "lunch": "Fully Loaded Sausage, Side Salad",
-        "lunch_veg": "Fully Loaded Vegan Sausages, Side Salad, Sausage Bun",
-        "lunch_mainItem": "Chicken Burger",
-        "lunch_sides": "Home Fries",
+        "lunch_veg": "Fully Loaded Vegan Sausages, Side Salad",
+        "lunch_mainItem": "Fully Loaded Sausage",
+        "lunch_sides": "Side Salad",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -924,20 +924,20 @@
           "hasMustard": false,
           "hasShellfish": false,
           "hasSulphites": false,
-          "hasPork": false,
+          "hasPork": true,
           "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": false,
-          "halalCertifiedMeat": true,
+          "halalCertifiedMeat": false,
           "hasProcessedMeat": true,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Roast Chicken, Couscous, Chickpea Shakshuka",
         "dinner_veg": "Roast Tofu, Couscous, Chickpea Shakshuka",
@@ -1035,8 +1035,56 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, beef",
-        "allergens_dinner": "gluten, sulphites"
+        "allergens_lunch": "gluten, pork, beef",
+        "allergens_dinner": "gluten, sulphites",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Fully Loaded Sausage",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Fully Loaded Vegan Sausages",
+            "flags": {
+              "hasSoy": true,
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Side Salad",
+            "flags": {}
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Turkey & Cheese and Eggs, Yogurt",
