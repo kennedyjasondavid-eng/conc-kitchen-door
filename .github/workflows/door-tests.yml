@@ -5,6 +5,22 @@ on:
   push:
     branches:
       - main
+    # Budget: DOOR auto-publishes to main constantly, and each publish also makes
+    # separate single-file "Update <sidecar>.json" commits. Skip a run when a push
+    # touches ONLY files that no gate reads (verified: change_log.json / push-log.txt
+    # / docs). A mixed commit that also touches index.html or any read artifact still
+    # runs. PR runs are never path-filtered.
+    paths-ignore:
+      - 'change_log.json'
+      - 'push-log.txt'
+      - '**/*.md'
+
+# Budget: collapse a burst of publishes on the same ref — cancel superseded
+# in-progress runs so only the latest state is validated (no coverage loss; an
+# intermediate commit that is immediately superseded needs no independent run).
+concurrency:
+  group: door-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

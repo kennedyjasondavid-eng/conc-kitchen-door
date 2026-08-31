@@ -913,11 +913,19 @@ test('daily import prompt renders synced import filename safely', () => {
         return Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null;
       }
     },
-    changesQueue: []
+    changesQueue: [],
+    // Hardening 2026-09: updateDailyImportPrompt now prepends the stale-registry
+    // banner. An empty registry is never stale, so the banner is silent here and
+    // the XSS assertion below is unaffected.
+    REGISTRY_LIST: []
   };
   vm.createContext(context);
   vm.runInContext([
     extractOutputEncodingBlock(html),
+    'const DOOR_REGISTRY_STALE_WARN_DAYS = ' + extractConstNumber(html, 'DOOR_REGISTRY_STALE_WARN_DAYS') + ';',
+    extractFunctionBlock(html, 'doorFreshestImportTs'),
+    extractFunctionBlock(html, 'doorRegistryStaleAssessment'),
+    extractFunctionBlock(html, '_doorRegistryStaleBannerHTML'),
     extractFunctionBlock(html, 'updateDailyImportPrompt')
   ].join('\n\n'), context, { filename: 'index.html#xss-daily-import-prompt', timeout: 1000 });
 
@@ -3041,4 +3049,140 @@ test('D5: the guard compares against the per-tab anchor, not shared localStorage
   assertContains(guard, 'doorTabStaleVerdict(_doorBootHtmlStamp,', 'staleness is decided against the per-tab boot anchor');
   assert.doesNotMatch(guard, /localStorage\.getItem\(['"]door_html_stamp['"]\)/,
     'the guard must not read the shared localStorage stamp as the staleness baseline (silent-drift D5)');
+});
+
+// ============================================================================
+// Registry sync/staleness hardening (2026-09)
+// Incident: the resident registry silently froze for ~3.5 months (every resident
+// stuck at one lastImported date) — daily imports were never APPLIED, and an
+// unrelated publish could clobber a freshly-reconciled registry because the sync
+// guard compared the whole-file _meta.exported (bumps on ANY publish) instead of
+// the registry-DATA timestamp. Each import then diffed against the stale baseline
+// and surfaced months of change at once, reading as "wrong intakes/discharges."
+// ============================================================================
+function loadRegistryHardening() {
+  const html = readText('index.html');
+  const warnDays = extractConstNumber(html, 'DOOR_REGISTRY_STALE_WARN_DAYS');
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(
+    'const DOOR_REGISTRY_STALE_WARN_DAYS = ' + warnDays + ';\n' +
+    extractFunctionBlock(html, 'doorRegistryDataTs') + '\n' +
+    extractFunctionBlock(html, 'doorRegistrySyncShouldSkip') + '\n' +
+    extractFunctionBlock(html, 'doorFreshestImportTs') + '\n' +
+    extractFunctionBlock(html, 'doorRegistryStaleAssessment') + '\n',
+    context, { filename: 'index.html#registry-hardening', timeout: 1000 });
+  return { context, warnDays };
+}
+
+test('HARDENING: doorRegistryDataTs prefers registryModifiedAt over the file exported time', () => {
+  const { context } = loadRegistryHardening();
+  const f = context.doorRegistryDataTs;
+  const reg = new Date('2026-05-20T00:00:00Z').getTime();
+  const exp = new Date('2026-08-31T00:00:00Z').getTime();
+  assert.equal(f({ registryModifiedAt: '2026-05-20T00:00:00Z', exported: '2026-08-31T00:00:00Z' }), reg,
+    'uses registryModifiedAt (the DATA time), not exported (the publish time)');
+  assert.equal(f({ exported: '2026-08-31T00:00:00Z' }), exp, 'falls back to exported for legacy files without the field');
+  assert.equal(f(null), 0, 'null meta → 0');
+  assert.equal(f({}), 0, 'meta with neither field → 0');
+  assert.equal(f({ registryModifiedAt: 'not-a-date' }), 0, 'garbage date → 0');
+});
+
+test('HARDENING: a menu-only publish (stale residents, fresh file) does NOT clobber a newer local registry', () => {
+  const { context } = loadRegistryHardening();
+  const shouldSkip = context.doorRegistrySyncShouldSkip;
+  const localProv = new Date('2026-09-01T10:00:00Z').getTime(); // device reconciled Sept 1
+  // Remote: residents last changed May 20 (registryModifiedAt) but the file was
+  // just republished Aug 31 (exported) for a MENU edit. The pre-hardening guard
+  // compared exported (Aug 31 > Sept-1? no — but > the device's OLDER provenance
+  // in the real freeze), and would clobber. The fix compares registryModifiedAt.
+  const remoteMeta = { registryModifiedAt: '2026-05-20T00:00:00Z', exported: '2026-08-31T00:00:00Z' };
+  assert.equal(shouldSkip(remoteMeta, localProv, false), true,
+    'remote registry DATA is older than local → skip the clobber (the fix)');
+  // Proof the trap is closed: had it compared exported (Aug 31) vs a device whose
+  // provenance predated Aug 31, it would apply. Simulate that device:
+  const staleDeviceProv = new Date('2026-08-01T00:00:00Z').getTime();
+  assert.equal(shouldSkip(remoteMeta, staleDeviceProv, false), true,
+    'even a device with Aug-1 provenance keeps its data: remote registry (May 20) is still older than Aug 1');
+});
+
+test('HARDENING: a genuinely newer remote registry IS adopted; manual sync always applies; missing info applies', () => {
+  const { context } = loadRegistryHardening();
+  const shouldSkip = context.doorRegistrySyncShouldSkip;
+  const localProv = new Date('2026-09-01T10:00:00Z').getTime();
+  // Remote residents genuinely changed Sept 2 (newer than local) → do NOT skip (adopt).
+  assert.equal(shouldSkip({ registryModifiedAt: '2026-09-02T00:00:00Z' }, localProv, false), false,
+    'newer remote registry data → apply');
+  // Manual Sync is an explicit override — never skips, even with older remote data.
+  assert.equal(shouldSkip({ registryModifiedAt: '2020-01-01T00:00:00Z' }, localProv, true), false,
+    'manual sync always applies');
+  // No local provenance (first run) → apply.
+  assert.equal(shouldSkip({ registryModifiedAt: '2026-05-20T00:00:00Z' }, 0, false), false,
+    'no local provenance → apply (legacy behaviour, nothing to protect)');
+  // Legacy remote file (only exported) still orders correctly via the fallback.
+  assert.equal(shouldSkip({ exported: '2026-05-20T00:00:00Z' }, localProv, false), true, 'legacy older file → skip');
+  assert.equal(shouldSkip({ exported: '2026-09-05T00:00:00Z' }, localProv, false), false, 'legacy newer file → apply');
+});
+
+test('HARDENING: staleness assessment keys on the freshest lastImported and does not cry wolf on empty', () => {
+  const { context, warnDays } = loadRegistryHardening();
+  const assess = context.doorRegistryStaleAssessment;
+  const now = new Date('2026-09-01T00:00:00Z').getTime();
+  const daysAgo = (n) => new Date(now - n * 86400000).toISOString().slice(0, 10);
+  // The freeze: freshest resident imported ~104 days ago (May 20 → Sept 1) → stale.
+  const frozen = assess([{ lastImported: '2026-05-20' }, { lastImported: '2026-05-20' }], now);
+  assert.equal(frozen.stale, true, 'a 3.5-month-old registry is stale');
+  assert.ok(frozen.days >= 100, 'reports ~104 days, got ' + frozen.days);
+  // Freshest is today → current.
+  assert.equal(assess([{ lastImported: daysAgo(0) }, { lastImported: '2026-05-20' }], now).stale, false,
+    'if ANY resident was imported today the registry is current (freshest wins)');
+  // No lastImported anywhere (brand-new/empty) → never stale (no false alarm).
+  const empty = assess([{ room: '101' }, {}], now);
+  assert.equal(empty.stale, false, 'no lastImported anywhere → not stale');
+  assert.equal(empty.days, null, 'unknown freshness reports null days');
+  // Threshold boundary is wired to the const (>=).
+  assert.equal(assess([{ lastImported: daysAgo(warnDays) }], now).stale, true, 'exactly warnDays → stale');
+  assert.equal(assess([{ lastImported: daysAgo(warnDays - 1) }], now).stale, false, 'warnDays-1 → not stale');
+});
+
+test('HARDENING: buildStateJSON publishes registryModifiedAt from registry provenance', () => {
+  const html = readText('index.html');
+  const fn = extractFunctionBlock(html, 'buildStateJSON');
+  assertContains(fn, 'registryModifiedAt:', 'buildStateJSON must publish _meta.registryModifiedAt');
+  assertContains(fn, "localStorage.getItem('concRegistryProvenance')",
+    'registryModifiedAt derives from the registry provenance, not the file publish time');
+});
+
+test('HARDENING: pullStateFromGitHub compares the registry-data ts (not raw exported) and adopts registryModifiedAt', () => {
+  const html = readText('index.html');
+  const fn = extractFunctionBlock(html, 'pullStateFromGitHub');
+  assertContains(fn, 'doorRegistrySyncShouldSkip(state._meta', 'the sync guard routes through the hardened helper');
+  assertContains(fn, 'setRegistryProvenance(state._meta.registryModifiedAt',
+    'adopting a snapshot stamps provenance from the registry-data time, not the file publish time');
+  assert.doesNotMatch(fn, /_remoteExportedTs/,
+    'the pre-hardening whole-file exported comparison must be gone (silent-drift: a menu-only publish must not clobber a newer registry)');
+});
+
+test('HARDENING: the Enter-Changes prompt surfaces a loud stale-registry banner', () => {
+  const html = readText('index.html');
+  const prompt = extractFunctionBlock(html, 'updateDailyImportPrompt');
+  assertContains(prompt, 'const _staleBanner = _doorRegistryStaleBannerHTML();', 'the prompt computes the stale banner');
+  assertContains(prompt, 'el.innerHTML = _staleBanner +', 'the banner is prepended to the rendered prompt');
+  // Behaviour: the banner fires on a stale registry, is silent on a current one.
+  const context = { REGISTRY_LIST: [] };
+  const warnDays = extractConstNumber(html, 'DOOR_REGISTRY_STALE_WARN_DAYS');
+  vm.createContext(context);
+  vm.runInContext(
+    'const DOOR_REGISTRY_STALE_WARN_DAYS = ' + warnDays + ';\n' +
+    extractFunctionBlock(html, 'doorFreshestImportTs') + '\n' +
+    extractFunctionBlock(html, 'doorRegistryStaleAssessment') + '\n' +
+    extractFunctionBlock(html, '_doorRegistryStaleBannerHTML') + '\n',
+    context, { filename: 'index.html#stale-banner', timeout: 1000 });
+  context.REGISTRY_LIST.length = 0;
+  context.REGISTRY_LIST.push({ lastImported: '2026-05-20' });
+  const stale = context._doorRegistryStaleBannerHTML();
+  assert.ok(stale && stale.includes('out of date'), 'stale registry → a visible "out of date" banner');
+  context.REGISTRY_LIST.length = 0;
+  context.REGISTRY_LIST.push({ lastImported: new Date().toISOString().slice(0, 10) });
+  assert.equal(context._doorRegistryStaleBannerHTML(), '', 'current registry → no banner (silent)');
 });

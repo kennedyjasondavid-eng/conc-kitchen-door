@@ -9808,6 +9808,61 @@ function setRegistryProvenance(iso) {
   try { localStorage.setItem('concRegistryProvenance', iso || new Date().toISOString()); } catch(e) {}
 }
 
+// ── Registry sync/staleness hardening (2026-09) ────────────────────────────
+// Incident: the resident registry silently froze for ~3.5 months (every resident
+// stuck at one lastImported date) because daily imports were never APPLIED, and —
+// separately — an unrelated publish could clobber a freshly-reconciled registry.
+// Each new import then diffed against the stale baseline and surfaced months of
+// change at once, which reads to staff as "wrong intakes/discharges/updates."
+const DOOR_REGISTRY_STALE_WARN_DAYS = 7;
+
+// Registry-DATA timestamp from a published snapshot's _meta, in ms. Prefer
+// registryModifiedAt (when the residents themselves last changed); fall back to
+// exported (the whole-file publish time) for legacy files that predate the field.
+// The distinction is the fix: exported bumps on ANY publish (a menu-only edit
+// included), so comparing it let a publish carrying stale residents out-rank a
+// newer local registry.
+function doorRegistryDataTs(meta) {
+  if (!meta) return 0;
+  const v = meta.registryModifiedAt || meta.exported;
+  const t = v ? new Date(v).getTime() : 0;
+  return isNaN(t) ? 0 : t;
+}
+
+// True → an auto-sync should SKIP overwriting the local registry with the remote
+// snapshot (the remote's registry DATA is not newer than ours). Manual Sync is an
+// explicit override and never skips. Missing timestamps → apply (legacy behaviour).
+function doorRegistrySyncShouldSkip(remoteMeta, localProvTs, manual) {
+  if (manual) return false;
+  const remoteTs = doorRegistryDataTs(remoteMeta);
+  if (!localProvTs || !remoteTs) return false;
+  return remoteTs <= localProvTs;
+}
+
+// Freshest lastImported across residents (an apply stamps every present resident,
+// v29), in ms. 0 when none carry one — a brand-new/empty registry, which is NOT
+// treated as stale (so an empty registry never cries wolf).
+function doorFreshestImportTs(residents) {
+  let best = 0;
+  (residents || []).forEach(function(r) {
+    if (!r || !r.lastImported) return;
+    const t = new Date(r.lastImported).getTime();
+    if (!isNaN(t) && t > best) best = t;
+  });
+  return best;
+}
+
+// Is the registry stale? Ground truth = days since the freshest lastImported.
+// Unknown (no lastImported anywhere) is never stale. warnDays defaults to the
+// const above; passed explicitly by the gate to exercise the threshold.
+function doorRegistryStaleAssessment(residents, nowTs, warnDays) {
+  const wd = (typeof warnDays === 'number') ? warnDays : DOOR_REGISTRY_STALE_WARN_DAYS;
+  const freshest = doorFreshestImportTs(residents);
+  if (!freshest) return { stale: false, days: null, freshestTs: 0 };
+  const days = Math.floor((nowTs - freshest) / 86400000);
+  return { stale: days >= wd, days: days, freshestTs: freshest };
+}
+
 function saveRegistryState() {
   try {
     localStorage.setItem('concRegistryState', JSON.stringify({
@@ -10016,9 +10071,28 @@ function revertLastGenerate() {
   showToast('Registry reverted to ' + ts);
 }
 
+// Loud, non-blocking banner shown on the Enter Changes screen when the resident
+// registry is stale (see DOOR_REGISTRY_STALE_WARN_DAYS). Ground truth is the
+// freshest lastImported across residents — independent of concLastImportDate,
+// which can read "today" even when an import was viewed but never APPLIED (the
+// exact shape of the freeze incident). Returns '' when the registry is current.
+function _doorRegistryStaleBannerHTML() {
+  const a = doorRegistryStaleAssessment(REGISTRY_LIST, Date.now());
+  if (!a.stale) return '';
+  const freshest = a.freshestTs
+    ? new Date(a.freshestTs).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' })
+    : 'unknown';
+  return '<div style="padding:12px 14px;background:#fee2e2;border:1px solid #dc2626;border-radius:8px;font-size:13px;margin-bottom:10px;">' +
+    '<div style="font-weight:700;color:#991b1b;">&#x26A0; Resident registry is ' + a.days + ' days out of date</div>' +
+    '<div style="color:#7f1d1d;margin-top:4px;">The registry was last updated from a daily list on <strong>' + freshest + '</strong>. ' +
+    'Until you import today&rsquo;s list and run <strong>Review &amp; Generate</strong>, every import shows a large backlog of changes &mdash; those are real and overdue, not errors. ' +
+    'Import and apply once to catch the registry up; the daily view returns to normal after that.</div></div>';
+}
+
 function updateDailyImportPrompt() {
   const el = document.getElementById('daily-import-prompt');
   if (!el) return;
+  const _staleBanner = _doorRegistryStaleBannerHTML();
   const lastImport = localStorage.getItem('concLastImportDate');
   const today = new Date().toDateString();
   const nrPending = localStorage.getItem('concUnresolvedNR');
@@ -10042,7 +10116,7 @@ function updateDailyImportPrompt() {
       const genTime = new Date(lastGen).toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
       statusLine = `<div style="margin-top:4px;font-size:12px;color:#15803d;">Sheets generated at ${genTime}. Enter new changes below or re-import if the roster has been updated.</div>`;
     }
-    el.innerHTML = `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
+    el.innerHTML = _staleBanner + `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
       `<div style="display:flex;align-items:center;gap:10px;">` +
       `<span style="font-size:15px">&#x2713;</span>` +
       `<span style="color:#15803d;font-weight:600;flex:1;">Today's roster imported${fname ? ' — ' + escapeHtml(fname) : ''}</span>` +
@@ -10057,7 +10131,7 @@ function updateDailyImportPrompt() {
     const _btn2Bg = _dk ? '#2a2520' : '#fff';
     const _btn2Bd = _dk ? '#5c4d30' : '#fcd34d';
     const _sub = _dk ? '#a08050' : '#b45309';
-    el.innerHTML = `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
+    el.innerHTML = _staleBanner + `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">` +
       `<span style="font-size:18px">&#x2261;</span>` +
       `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:${_title};">Start today's update</div></div>` +
@@ -10223,12 +10297,17 @@ async function pullStateFromGitHub(manual) {
     // snapshot's _meta.exported against our local provenance. Manual Sync bypasses
     // (explicit override); a snapshot with no timestamp applies (legacy — our own
     // publishes always stamp _meta.exported).
-    const _remoteExportedTs = state._meta && state._meta.exported ? new Date(state._meta.exported).getTime() : 0;
+    // Hardening 2026-09: compare the registry-DATA timestamp, not the whole-file
+    // _meta.exported (which bumps on ANY publish — a menu-only edit included). A
+    // publish carrying stale residents but a fresh file timestamp must not clobber
+    // a device's freshly-reconciled registry. registryModifiedAt is the publishing
+    // device's registry provenance; legacy files without it fall back to exported.
     const _localProvTs = getRegistryProvenanceTs();
-    if (!manual && _localProvTs && _remoteExportedTs && _remoteExportedTs <= _localProvTs) {
-      const _exp = new Date(state._meta.exported).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    if (doorRegistrySyncShouldSkip(state._meta, _localProvTs, manual)) {
+      const _regTs = doorRegistryDataTs(state._meta);
+      const _exp = new Date(_regTs).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
       updateSyncBar('Local registry is current — kept ' + REGISTRY_LIST.length + ' residents (cloud copy ' + _exp + ' is older)', 'var(--forest-mid)');
-      console.log('[DOOR v31] registry sync skipped — local data newer than snapshot (' + new Date(_localProvTs).toISOString() + ' >= ' + state._meta.exported + ')');
+      console.log('[DOOR] registry sync skipped — local registry newer than snapshot (' + new Date(_localProvTs).toISOString() + ' >= registryModifiedAt ' + (state._meta && (state._meta.registryModifiedAt || state._meta.exported)) + ')');
       return;
     }
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
@@ -10237,8 +10316,12 @@ async function pullStateFromGitHub(manual) {
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
     saveRegistryState();
-    // v31: local now mirrors the pulled snapshot — provenance is its export time.
-    if (state._meta && state._meta.exported) setRegistryProvenance(state._meta.exported);
+    // Hardening 2026-09: local now mirrors the pulled snapshot — provenance is the
+    // snapshot's REGISTRY-data time (registryModifiedAt), not its file publish time,
+    // so a later menu-only publish can't out-rank this adopted registry.
+    if (state._meta && (state._meta.registryModifiedAt || state._meta.exported)) {
+      setRegistryProvenance(state._meta.registryModifiedAt || state._meta.exported);
+    }
     if (state.lastImportDate) {
       localStorage.setItem('concLastImportDate', state.lastImportDate);
       localStorage.setItem('concLastImportFile', state.lastImportFile || '');
@@ -11686,8 +11769,17 @@ function buildMenuJSON() {
 }
 
 function buildStateJSON() {
+  const _exported = new Date().toISOString();
+  // Hardening 2026-09: registryModifiedAt records when the RESIDENT data last
+  // actually changed (this device's registry provenance), independent of the file
+  // publish time in exported. Consumers' sync guard compares this, so a menu-only
+  // publish can't clobber a newer registry on another device. Falls back to
+  // exported when provenance is unset (legacy-equivalent behaviour).
+  let _regProv = null;
+  try { _regProv = localStorage.getItem('concRegistryProvenance'); } catch(e) {}
   return {
-    _meta: { source:'KitchenDOOR', version:30, exported:new Date().toISOString(),
+    _meta: { source:'KitchenDOOR', version:30, exported:_exported,
+             registryModifiedAt: _regProv || _exported,
              site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', count:REGISTRY_LIST.length,
              lastModifiedBy: getOperatorName() || 'unknown' },
     residents: REGISTRY_LIST,
