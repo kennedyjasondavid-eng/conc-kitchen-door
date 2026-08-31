@@ -110,16 +110,31 @@ test('buildMenuJSON publishes recipeId in _slots and the id is allergen-NEUTRAL'
   assert.deepEqual(Object.keys(withId.lunch_flags).sort(), Object.keys(without.lunch_flags).sort(), '_flags identical');
 });
 
-test('NO CRY WOLF / opt-in: not one committed slot carries a recipeId today', () => {
+test('opt-in + well-formed: committed recipeIds are additive, never universal, always valid', () => {
+  // A rebind legitimately stamps a recipeId (the feature working as designed), so
+  // "zero committed slots carry one" is NOT the invariant — asserting it cried wolf
+  // on every publish after the first real rebind (the eee354c lesson: a check that
+  // fails on healthy data is not a check). The invariants that actually matter and
+  // never false-fire: every present recipeId is well-formed, and the feature stays
+  // OPT-IN (a publish must never auto-stamp an id onto every slot).
   const menu = JSON.parse(fs.readFileSync(path.join(root, 'menu_current.json'), 'utf8')).menu;
   let slots = 0, withId = 0;
+  const malformed = [];
   for (const w of Object.keys(menu)) for (const d of Object.keys(menu[w])) {
     const day = menu[w][d];
     for (const k of Object.keys(day)) {
       if (!k.endsWith('_slots') || !day[k] || typeof day[k] !== 'object') continue;
-      for (const sid of Object.keys(day[k])) { slots++; if (day[k][sid] && 'recipeId' in day[k][sid]) withId++; }
+      for (const sid of Object.keys(day[k])) {
+        const slot = day[k][sid];
+        slots++;
+        if (slot && 'recipeId' in slot) {
+          withId++;
+          if (typeof slot.recipeId !== 'string' || !slot.recipeId.trim()) malformed.push(`${w}/${d}/${k}/${sid}`);
+        }
+      }
     }
   }
   assert.ok(slots > 0, 'sanity: found slots');
-  assert.equal(withId, 0, `${withId}/${slots} committed slots carry recipeId — the feature must be opt-in (menu byte-unchanged until a rebind)`);
+  assert.equal(malformed.length, 0, `malformed recipeId(s): ${malformed.join(', ')} — a bound id must be a non-empty string`);
+  assert.ok(withId < slots, `${withId}/${slots} slots carry recipeId — must stay opt-in; a publish must never auto-stamp every slot`);
 });
