@@ -289,12 +289,10 @@
           "flags": {}
         }
       }
-    }
-  },
-  "2": {
-    "SATURDAY": {
-      "lunch": "Chicken tenders & Roasted Yams, Sweet Potato, Seasonal Veg",
-      "lunch_veg": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot, Sweet Potato, Seasonal Veg",
+    },
+    "MONDAY": {
+      "lunch": "Chicken Burger, Home Fries",
+      "lunch_veg": "Crispy Quinoa Cake Burger, Home Fries, Burger Bun",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -315,6 +313,39 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
+        "hasCoconut": false,
+        "hasMushroom": false,
+        "hasBrassicas": false,
+        "hasCorn": false,
+        "hasNightshades": false,
+        "hasBeans": false
+      }
+    }
+  },
+  "2": {
+    "SATURDAY": {
+      "lunch": "Chicken Tenders, Sweet Potato, Parsnip and Carrot",
+      "lunch_veg": "Vegan Nuggets, Sweet Potato, Parsnip and Carrot",
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
@@ -326,15 +357,15 @@
       "lunch_altMeals": [],
       "lunch_altMealsNone": true,
       "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Chicken tenders & Roasted Yams",
+      "lunch_mainItem": "Chicken Tenders",
       "lunch_mainAlt": "Halal Breaded Chicken Burgers",
-      "lunch_sides": "Sweet Potato, Seasonal Veg",
+      "lunch_sides": "Sweet Potato, Parsnip and Carrot",
       "lunch_slots": {
         "main": {
-          "manual": "Chicken tenders & Roasted Yams",
+          "recipeName": "Chicken Tenders",
           "flags": {
             "hasGluten": true,
-            "hasDairy": true,
+            "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
@@ -346,18 +377,18 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": true,
+            "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
             "isCarb": false,
-            "halalCertifiedMeat": true,
+            "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
-            "hasCoconut": false,
+            "hasBeans": false,
             "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
+            "hasCoconut": false,
             "hasNightshades": false,
-            "hasBeans": false
+            "hasBrassicas": false,
+            "hasCorn": false
           }
         },
         "mainalt": {
@@ -391,18 +422,15 @@
           }
         },
         "veganalt": {
-          "manual": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot",
-          "flags": {
-            "hasGluten": true,
-            "hasSoy": true
-          }
+          "manual": "Vegan Nuggets",
+          "flags": {}
         },
         "starch": {
           "manual": "Sweet Potato",
           "flags": {}
         },
         "vegside": {
-          "manual": "Seasonal Veg",
+          "manual": "Parsnip and Carrot",
           "flags": {}
         }
       }
