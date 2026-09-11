@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.4';
+const DOOR_APP_VERSION = 'v31-standard.5';
 const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9959,7 +9959,9 @@ function doorDeviceCapabilityInput() {
 // to render a given state (gates); omit to compute live.
 function _doorDeviceBannerHTML(capOpt) {
   const c = capOpt || doorDeviceCapability(doorDeviceCapabilityInput());
-  if (!c || c.level === 'none') return '';
+  // P2: the inline connection-key card rides inside the banner while open.
+  const cardHtml = (typeof _doorConnectCardOpen !== 'undefined' && _doorConnectCardOpen && typeof _doorConnectCardHTML === 'function') ? _doorConnectCardHTML() : '';
+  if (!c || c.level === 'none') return cardHtml;
   const red = c.level === 'red';
   const bg = red ? '#fee2e2' : '#fef3c7', bd = red ? '#dc2626' : '#f59e0b', ti = red ? '#991b1b' : '#92400e', tx = red ? '#7f1d1d' : '#78350f';
   const BTN = { connect: 'Connect', name: 'Set name', settings: 'Open settings', reload: 'Reload' };
@@ -9977,16 +9979,91 @@ function _doorDeviceBannerHTML(capOpt) {
     '</div>').join('');
   const tail = c.reasons.length ? '' : '<div style="margin-top:6px;">&mdash; the last publish did not go through. Generate again, or use Publish Now in settings.</div>';
   return '<div style="padding:12px 14px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:8px;font-size:13px;margin-bottom:10px;color:' + tx + ';">' +
-    '<div style="font-weight:700;color:' + ti + ';">' + head + '</div>' + rows + tail + '</div>';
+    '<div style="font-weight:700;color:' + ti + ';">' + head + '</div>' + rows + tail + cardHtml + '</div>';
 }
 
-// The one action behind each banner button. P2 replaces 'connect' with the inline
-// connection-key card; for now it opens Settings (where the key lives).
+// The one action behind each banner button. 'connect' opens the inline connection-key
+// card (P2) right inside the banner; 'settings' is the remaining Settings hop.
 function doorDeviceBannerFix(action) {
   if (action === 'reload') { location.reload(); return; }
+  if (action === 'connect') {
+    _doorConnectCardOpen = true;
+    updateDailyImportPrompt();
+    const k = document.getElementById('door-connect-key'); if (k) k.focus();
+    return;
+  }
   if (action === 'name') { if (typeof ensureOperatorName === 'function') ensureOperatorName(); updateDailyImportPrompt(); return; }
   const nav = document.querySelector('[data-screen="settings"]');
   if (typeof showScreen === 'function') showScreen('settings', nav);
+}
+
+// P2 (publish-resilience plan, 2026-09-11): connect at the moment of need.
+// When a publish is skipped for want of a connection key, or staff press the banner's
+// Connect button, an INLINE card asks for the key the kitchen lead supplied, tests it,
+// stores it, and immediately re-runs the owed publish. F4 ruling: staff copy never
+// says "token" or "GitHub" — admin guidance (how Jason issues a key) lives in README.
+// Also closes HOUSE_PROVEN_SEAMS row 3 for DOOR: the key is sanitized before it can
+// reach an Authorization header (ported from EXPO getGHToken, v9.29).
+let _doorConnectCardOpen = false;
+
+function doorSanitizeConnectionKey(raw) {
+  // Smart quotes / zero-width / invisible whitespace from a rich-text paste are
+  // non-ISO-8859-1 and make the fetch Authorization header constructor throw.
+  return String(raw == null ? '' : raw).replace(/[^\x20-\x7E]/g, '').trim();
+}
+
+// Turns any validate/publish error into kitchen words. kind: rejected | network | other.
+function doorConnectFailureCopy(message) {
+  const m = String(message || '');
+  if (/401|403|unauthori|bad credentials|forbidden|rejected|not accepted|token|expired/i.test(m)) {
+    return { kind: 'rejected', text: 'That key was not accepted. Check with Jason for this computer’s current key.' };
+  }
+  if (/failed to fetch|network|load failed|unreachable|timed? ?out|offline/i.test(m)) {
+    return { kind: 'network', text: 'Couldn’t reach the shared board. Check the internet connection and try again.' };
+  }
+  return { kind: 'other', text: 'The connection could not be confirmed. Try again, or ask Jason.' };
+}
+
+function _doorConnectCardHTML() {
+  return '<div id="door-connect-card" style="margin-top:10px;padding:12px 14px;background:#fff;border:1px solid #d1d5db;border-radius:8px;font-size:13px;color:#111827;">' +
+    '<div style="font-weight:700;">Connect this computer to the shared board</div>' +
+    '<div style="margin-top:4px;color:#4b5563;">Paste the connection key for this computer. It is issued once per computer &mdash; ask Jason (kitchen lead) if you don&rsquo;t have one.</div>' +
+    '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">' +
+      '<input type="password" id="door-connect-key" autocomplete="off" spellcheck="false" placeholder="connection key" style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-family:monospace;font-size:13px;" onkeydown="if(event.key===\'Enter\'){doorConnectCardSubmit();}">' +
+      '<button class="btn btn-sm" style="background:var(--forest);color:#fff;font-size:12px;padding:6px 12px;" onclick="doorConnectCardSubmit()">Test &amp; connect</button>' +
+      '<button class="btn btn-ghost btn-sm" style="font-size:12px;padding:6px 10px;" onclick="doorConnectCardClose()">Cancel</button>' +
+    '</div>' +
+    '<div id="door-connect-status" style="margin-top:6px;font-size:12px;color:var(--muted);min-height:16px;"></div>' +
+  '</div>';
+}
+
+function doorConnectCardClose() {
+  _doorConnectCardOpen = false;
+  if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
+}
+
+async function doorConnectCardSubmit() {
+  const input = document.getElementById('door-connect-key');
+  const status = document.getElementById('door-connect-status');
+  const say = (t, c) => { if (status) { status.textContent = t; status.style.color = c || 'var(--muted)'; } };
+  const key = doorSanitizeConnectionKey(input ? input.value : '');
+  if (!key) { say('Paste the connection key first.', '#dc2626'); return; }
+  say('Checking the connection…');
+  try {
+    const repo = PublishAuth.getRepo();
+    await PublishAuth.validateToken(key, repo);
+    PublishAuth.saveValidatedToken(key, repo);
+    _doorConnectCardOpen = false;
+    if (input) input.value = '';
+    if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
+    // The publish that was owed when the card opened goes out now (P3 makes this the
+    // outbox drain; until then, one re-run of the auto path).
+    if (typeof publishAndSync === 'function') publishAndSync('connected — sending this computer’s changes');
+  } catch (err) {
+    const copy = doorConnectFailureCopy(err && err.message);
+    if (copy.kind === 'rejected' && PublishAuth && typeof PublishAuth.rememberFailure === 'function') PublishAuth.rememberFailure(err.message);
+    say(copy.text, '#dc2626');
+  }
 }
 
 // Freshest lastImported across residents (an apply stamps every present resident,
@@ -10166,6 +10243,8 @@ function publishAndSync(context) {
     if (result && result.skipped) {
       const reason = result.message || 'publish skipped';
       _recordSkip(result.reason, reason);
+      // P2: no connection key is the one skip staff can fix on the spot — open the card.
+      if (result.reason === 'missing_auth') _doorConnectCardOpen = true;
       updateSyncBar('Saved locally — not published · ' + reason + ' · ' + timeStr, '#dc2626');
       if (typeof showToast === 'function') showToast('Saved locally, not published — ' + reason);
       if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
@@ -11625,10 +11704,12 @@ const PublishAuth = {
     return ((document.getElementById('gh-repo') || {}).value || appSettings['gh-repo'] || DEFAULT_SETTINGS['gh-repo'] || '').trim();
   },
   getSavedToken() {
-    return (appSettings['gh-token'] || '').trim();
+    // P2 / seam row 3: sanitize on READ as well as on save, so a key stored by an
+    // older build with paste artifacts can't break the Authorization header.
+    return doorSanitizeConnectionKey(appSettings['gh-token'] || '');
   },
   getTypedToken() {
-    return ((document.getElementById('gh-token') || {}).value || '').trim();
+    return doorSanitizeConnectionKey((document.getElementById('gh-token') || {}).value || '');
   },
   getExpiryInput() {
     return ((document.getElementById('gh-token-expiry') || {}).value || '').trim();
@@ -11774,7 +11855,7 @@ const PublishAuth = {
     return res.json();
   },
   saveValidatedToken(token, repo) {
-    appSettings['gh-token'] = (token || '').trim();
+    appSettings['gh-token'] = doorSanitizeConnectionKey(token || '');
     appSettings['gh-repo'] = (repo || this.getRepo()).trim();
     const expiry = this.getExpiryInput();
     this.setMeta({
