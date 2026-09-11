@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.6';
+const DOOR_APP_VERSION = 'v31-standard.7';
 const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1687,6 +1687,7 @@ function updateCODEXBadge() {
                   <button class="btn btn-ghost btn-sm" onclick="testGHPublish()">Test &amp; Save Token</button>
                   <button class="btn btn-ghost btn-sm" onclick="PublishAuth.forgetToken(true)">Forget Token</button>
                   <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true).catch(function(){})">Publish Now</button>
+                  <button class="btn btn-ghost btn-sm" onclick="doorFirstRunReopen()" title="Re-run the one-time setup card (name, connection key, site)">Set up this computer again</button>
                   <span id="gh-status" role="status" aria-live="polite" style="font-size:12px;color:var(--muted);"></span>
                 </div>
               </div>
@@ -9915,7 +9916,8 @@ const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
 function doorDeviceCapability(inp) {
   inp = inp || {};
   const reasons = [];
-  if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the shared board — no connection key', action: 'connect' });
+  if (!inp.hasToken && inp.readOnly) reasons.push({ code: 'read-only', label: 'this computer was set up as read-only — connect it to send changes to the shared board', action: 'connect' }); // P4 (F2)
+  else if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the shared board — no connection key', action: 'connect' });
   else if (inp.tokenExpired) reasons.push({ code: 'connection-expired', label: 'this computer’s connection key has expired', action: 'connect' });
   if (!(inp.operatorName || '').trim()) reasons.push({ code: 'no-operator', label: 'no operator name on this computer — changes would publish as “unknown”', action: 'name' });
   if (inp.autoPublishOn === false) reasons.push({ code: 'auto-publish-off', label: DOOR_PUBLISH_SKIP_REASONS.auto_publish_off.label, action: 'settings' });
@@ -9957,7 +9959,8 @@ function doorDeviceCapabilityInput() {
     lastError: meta.lastError ? { message: meta.lastError, at: meta.lastErrorAt || null } : null,
     lastGeneratedAt: g('concLastGenerated'),
     lastPublishOkAt: g('concLastPublishOk'),
-    outbox: doorOutboxRead()
+    outbox: doorOutboxRead(),
+    readOnly: g('concDeviceReadOnly') === '1' // P4: set up as read-only (F2)
   };
 }
 
@@ -10060,6 +10063,7 @@ async function doorConnectCardSubmit() {
     const repo = PublishAuth.getRepo();
     await PublishAuth.validateToken(key, repo);
     PublishAuth.saveValidatedToken(key, repo);
+    try { localStorage.removeItem('concDeviceReadOnly'); } catch (e) {} // P4: a read-only device that connects is no longer read-only
     _doorConnectCardOpen = false;
     if (input) input.value = '';
     if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
@@ -10126,6 +10130,108 @@ function doorOutboxDrain(trigger) {
   if (!hasKey) return 0;
   if (typeof publishAndSync === 'function') publishAndSync('sending ' + list.length + ' unpublished change set' + (list.length === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');
   return list.length;
+}
+
+// P4 (publish-resilience plan, 2026-09-11): first-run device setup card.
+// A genuinely NEW device — no operator name, nothing ever generated, nothing owed,
+// setup never completed — gets a one-time card on Enter Changes: operator name
+// (required), connection key (optional — Test & connect, or skip and run read-only,
+// F2), and the site this copy is set to. Skipping records concDeviceReadOnly and the
+// P1 banner carries the consequence in its own words. Re-openable from Settings.
+let _doorFirstRunForce = false;
+
+// Pure. inp = { operatorName, lastGeneratedAt, outboxCount, firstRunDone }
+function doorIsNewDevice(inp) {
+  inp = inp || {};
+  if (inp.firstRunDone) return false;
+  if ((inp.operatorName || '').trim()) return false;
+  if (inp.lastGeneratedAt) return false;
+  if ((inp.outboxCount || 0) > 0) return false;
+  return true;
+}
+
+function doorFirstRunShouldShow() {
+  if (_doorFirstRunForce) return true;
+  const g = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  return doorIsNewDevice({
+    operatorName: (typeof getOperatorName === 'function') ? getOperatorName() : (g('concOperatorName') || ''),
+    lastGeneratedAt: g('concLastGenerated'),
+    outboxCount: (typeof doorOutboxRead === 'function') ? doorOutboxRead().length : 0,
+    firstRunDone: g('concFirstRunDone') === '1'
+  });
+}
+
+function _doorFirstRunCardHTML() {
+  const site = (typeof currentSite !== 'undefined' && currentSite && (currentSite.name || currentSite.id)) || 'Rexdale';
+  const name = (typeof getOperatorName === 'function') ? getOperatorName() : '';
+  return '<div id="door-firstrun-card" style="padding:14px 16px;background:#eef2ff;border:1px solid #6366f1;border-radius:8px;font-size:13px;margin-bottom:10px;color:#1e1b4b;">' +
+    '<div style="font-weight:700;font-size:14px;color:#3730a3;">Set up this computer for DOOR</div>' +
+    '<div style="margin-top:4px;color:#3730a3;">Once per computer. Your name is stamped on every change you make; the connection key lets this computer send changes to the shared board.</div>' +
+    '<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;">' +
+      '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:180px;">Your name<input id="door-firstrun-name" type="text" autocomplete="off" value="' + _escAttr(escapeHtml(name)) + '" placeholder="e.g. Joan" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-size:13px;"></label>' +
+      '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:220px;">Connection key (optional &mdash; ask Jason, kitchen lead)<input id="door-firstrun-key" type="password" autocomplete="off" spellcheck="false" placeholder="connection key" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-family:monospace;font-size:13px;"></label>' +
+      '<div style="font-size:12px;color:#3730a3;padding-bottom:8px;">Site: <strong>' + escapeHtml(site) + '</strong></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">' +
+      '<button class="btn btn-sm" style="background:#4f46e5;color:#fff;font-size:12px;padding:6px 12px;" onclick="doorFirstRunSubmit()">Set up this computer</button>' +
+      '<button class="btn btn-ghost btn-sm" style="font-size:12px;padding:6px 10px;" onclick="doorFirstRunSkip()">Skip &mdash; this computer will only read</button>' +
+      '<span id="door-firstrun-status" style="font-size:12px;color:var(--muted);"></span>' +
+    '</div>' +
+  '</div>';
+}
+
+function _doorFirstRunName(status) {
+  const el = document.getElementById('door-firstrun-name');
+  const name = (el ? el.value : '').trim();
+  if (!name) { if (status) { status.textContent = 'Enter your name first — it is stamped on every change you make.'; status.style.color = '#dc2626'; } return null; }
+  return name;
+}
+
+async function doorFirstRunSubmit() {
+  const status = document.getElementById('door-firstrun-status');
+  const say = (t, c) => { if (status) { status.textContent = t; status.style.color = c || 'var(--muted)'; } };
+  const name = _doorFirstRunName(status); if (!name) return;
+  setOperatorName(name);
+  const keyEl = document.getElementById('door-firstrun-key');
+  const key = doorSanitizeConnectionKey(keyEl ? keyEl.value : '');
+  if (key) {
+    say('Checking the connection…');
+    try {
+      const repo = PublishAuth.getRepo();
+      await PublishAuth.validateToken(key, repo);
+      PublishAuth.saveValidatedToken(key, repo);
+      try { localStorage.removeItem('concDeviceReadOnly'); } catch (e) {}
+    } catch (err) {
+      const copy = doorConnectFailureCopy(err && err.message);
+      if (copy.kind === 'rejected' && PublishAuth && typeof PublishAuth.rememberFailure === 'function') PublishAuth.rememberFailure(err.message);
+      say(copy.text + ' You can also skip and connect later.', '#dc2626');
+      return; // name is saved; setup stays open until the key is right or skipped
+    }
+  } else {
+    try { localStorage.setItem('concDeviceReadOnly', '1'); } catch (e) {}
+  }
+  try { localStorage.setItem('concFirstRunDone', '1'); } catch (e) {}
+  _doorFirstRunForce = false;
+  if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
+  if (key && typeof doorOutboxDrain === 'function') doorOutboxDrain('first-run');
+}
+
+function doorFirstRunSkip() {
+  const status = document.getElementById('door-firstrun-status');
+  const name = _doorFirstRunName(status); if (!name) return;
+  setOperatorName(name);
+  try { localStorage.setItem('concDeviceReadOnly', '1'); localStorage.setItem('concFirstRunDone', '1'); } catch (e) {}
+  _doorFirstRunForce = false;
+  if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
+}
+
+// Settings → "Set up this computer again": re-show the card regardless of state.
+function doorFirstRunReopen() {
+  _doorFirstRunForce = true;
+  const nav = document.querySelector('[data-screen="enter"]');
+  if (typeof showScreen === 'function') showScreen('enter', nav);
+  if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
+  const el = document.getElementById('door-firstrun-name'); if (el) el.focus();
 }
 
 // Freshest lastImported across residents (an apply stamps every present resident,
@@ -10403,8 +10509,11 @@ function updateDailyImportPrompt() {
   const el = document.getElementById('daily-import-prompt');
   if (!el) return;
   const _staleBanner = _doorRegistryStaleBannerHTML();
+  // P4: a genuinely new device gets the one-time setup card first; while it shows, the
+  // P1 device banner is suppressed (the card already asks for the same two things).
+  const _firstRun = (typeof doorFirstRunShouldShow === 'function' && doorFirstRunShouldShow() && typeof _doorFirstRunCardHTML === 'function') ? _doorFirstRunCardHTML() : '';
   // P1: standing "this computer can't publish / has unpublished work" banner (typeof-guarded for narrow harnesses)
-  const _deviceBanner = (typeof _doorDeviceBannerHTML === 'function') ? _doorDeviceBannerHTML() : '';
+  const _deviceBanner = _firstRun ? '' : ((typeof _doorDeviceBannerHTML === 'function') ? _doorDeviceBannerHTML() : '');
   const lastImport = localStorage.getItem('concLastImportDate');
   const today = new Date().toDateString();
   const nrPending = localStorage.getItem('concUnresolvedNR');
@@ -10428,7 +10537,7 @@ function updateDailyImportPrompt() {
       const genTime = new Date(lastGen).toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
       statusLine = `<div style="margin-top:4px;font-size:12px;color:#15803d;">Sheets generated at ${genTime}. Enter new changes below or re-import if the roster has been updated.</div>`;
     }
-    el.innerHTML = _staleBanner + _deviceBanner + `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
+    el.innerHTML = _staleBanner + _firstRun + _deviceBanner + `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
       `<div style="display:flex;align-items:center;gap:10px;">` +
       `<span style="font-size:15px">&#x2713;</span>` +
       `<span style="color:#15803d;font-weight:600;flex:1;">Today's roster imported${fname ? ' — ' + escapeHtml(fname) : ''}</span>` +
@@ -10443,7 +10552,7 @@ function updateDailyImportPrompt() {
     const _btn2Bg = _dk ? '#2a2520' : '#fff';
     const _btn2Bd = _dk ? '#5c4d30' : '#fcd34d';
     const _sub = _dk ? '#a08050' : '#b45309';
-    el.innerHTML = _staleBanner + _deviceBanner + `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
+    el.innerHTML = _staleBanner + _firstRun + _deviceBanner + `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">` +
       `<span style="font-size:18px">&#x2261;</span>` +
       `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:${_title};">Start today's update</div></div>` +
