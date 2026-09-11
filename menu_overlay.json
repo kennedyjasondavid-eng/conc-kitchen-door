@@ -79,8 +79,8 @@
       }
     },
     "TUESDAY": {
-      "lunch": "Blackened fish, Sweet potatoes, Parsnip and Carrot",
-      "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
+      "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
+      "lunch_veg": "Blackened Tofu, Sweet potatoes, Seasonal Vegetables",
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -114,7 +114,7 @@
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Blackened fish",
       "lunch_mainAlt": "",
-      "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
+      "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
       "lunch_slots": {
         "main": {
           "manual": "Blackened fish",
@@ -134,7 +134,7 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": true,
+            "isSpicy": false,
             "isCarb": true,
             "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
@@ -181,7 +181,7 @@
           "flags": {}
         },
         "vegside": {
-          "manual": "Parsnip and Carrot",
+          "manual": "Seasonal Vegetables",
           "flags": {}
         }
       }
@@ -481,11 +481,11 @@
   },
   "2": {
     "SATURDAY": {
-      "lunch": "Chicken Tenders, Sweet Potato, Parsnip and Carrot",
-      "lunch_veg": "Vegan Nuggets, Sweet Potato, Parsnip and Carrot",
+      "lunch": "Chicken tenders & Roasted Yams, Sweet Potato, Seasonal Veg",
+      "lunch_veg": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot, Sweet Potato, Seasonal Veg",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": false,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -501,7 +501,7 @@
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
@@ -514,15 +514,15 @@
       "lunch_altMeals": [],
       "lunch_altMealsNone": true,
       "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Chicken Tenders",
+      "lunch_mainItem": "Chicken tenders & Roasted Yams",
       "lunch_mainAlt": "Halal Breaded Chicken Burgers",
-      "lunch_sides": "Sweet Potato, Parsnip and Carrot",
+      "lunch_sides": "Sweet Potato, Seasonal Veg",
       "lunch_slots": {
         "main": {
-          "recipeName": "Chicken Tenders",
+          "manual": "Chicken tenders & Roasted Yams",
           "flags": {
             "hasGluten": true,
-            "hasDairy": false,
+            "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
@@ -534,18 +534,18 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": false,
+            "hasChicken": true,
             "hasTurkey": false,
             "isSpicy": false,
             "isCarb": false,
-            "halalCertifiedMeat": false,
+            "halalCertifiedMeat": true,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": false,
+            "hasMushroom": false,
             "hasBrassicas": false,
-            "hasCorn": false
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           }
         },
         "mainalt": {
@@ -579,15 +579,18 @@
           }
         },
         "veganalt": {
-          "manual": "Vegan Nuggets",
-          "flags": {}
+          "manual": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot",
+          "flags": {
+            "hasGluten": true,
+            "hasSoy": true
+          }
         },
         "starch": {
           "manual": "Sweet Potato",
           "flags": {}
         },
         "vegside": {
-          "manual": "Parsnip and Carrot",
+          "manual": "Seasonal Veg",
           "flags": {}
         }
       }

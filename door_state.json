@@ -2,14 +2,14 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 30,
-    "exported": "2026-09-11T12:19:56.766Z",
-    "registryModifiedAt": "2026-09-11T12:19:54.146Z",
+    "exported": "2026-09-11T15:29:27.501Z",
+    "registryModifiedAt": "2026-09-11T15:29:27.175Z",
     "site": "rexdale",
     "count": 165,
-    "lastModifiedBy": "Jason Kennedy (via Claude)",
+    "lastModifiedBy": "Joan Wandera",
     "builtFromMenu": {
-      "exported": "2026-09-11T12:19:56.651Z",
-      "hash": "av0qu1"
+      "exported": "2026-09-11T15:29:27.440Z",
+      "hash": "15eioqd"
     }
   },
   "residents": [
@@ -155,7 +155,7 @@
       "preferences": [],
       "avoidances": [],
       "_tierMigrated": true,
-      "lastImported": "2026-05-20",
+      "lastImported": "2026-09-11",
       "_history": [
         {
           "snapshot": {
@@ -1184,13 +1184,12 @@
       "tags": [
         "GF",
         "No Shellfish",
-        "Lactose Intolerant",
-        "No Tree Nuts"
+        "Lactose Intolerant"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "GF, No Shellfish, Lactose Intolerant, No Tree Nuts",
+      "rawRestriction": "GF, No Shellfish, Lactose Intolerant",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1200,17 +1199,52 @@
         "No Shellfish",
         "Lactose Intolerant"
       ],
-      "allergenFlags": [
-        "No Tree Nuts"
-      ],
+      "allergenFlags": [],
       "accommodations": [],
       "preferences": [],
-      "avoidances": [
-        "No Tree Nuts"
-      ],
+      "avoidances": [],
       "_tierMigrated": true,
       "lastImported": "2026-09-11",
       "_history": [
+        {
+          "snapshot": {
+            "room": "1207",
+            "section": "Vegan / Vegetarian",
+            "tags": [
+              "GF",
+              "No Shellfish",
+              "Lactose Intolerant",
+              "No Tree Nuts"
+            ],
+            "restrictions": [
+              "GF",
+              "No Shellfish",
+              "Lactose Intolerant"
+            ],
+            "allergenFlags": [
+              "No Tree Nuts"
+            ],
+            "accommodations": [],
+            "preferences": [],
+            "avoidances": [
+              "No Tree Nuts"
+            ],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "rawRestriction": "GF, No Shellfish, Lactose Intolerant, No Tree Nuts",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "Soy Milk only",
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-11T13:48:36.006Z",
+          "date": "Sep 11",
+          "desc": "Queue update — GF, No Shellfish, Lactose Intolerant → Vegan / Vegetarian",
+          "by": "Joan Wandera"
+        },
         {
           "snapshot": {
             "room": "1207",
@@ -1248,14 +1282,14 @@
       "section": "Soft Meals",
       "tags": [
         "Soft Meals",
-        "No Coconut",
         "No Tree Nuts",
-        "No Corn"
+        "No Corn",
+        "No Coconut"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Soft Meals, No Coconut, No Tree Nuts, No Corn",
+      "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -1265,8 +1299,8 @@
         "Soft Meals"
       ],
       "allergenFlags": [
-        "No Coconut",
-        "No Tree Nuts"
+        "No Tree Nuts",
+        "No Coconut"
       ],
       "accommodations": [
         "No Corn"
@@ -1275,8 +1309,8 @@
         "No Corn"
       ],
       "avoidances": [
-        "No Coconut",
         "No Tree Nuts",
+        "No Coconut",
         "No Corn"
       ],
       "_tierMigrated": true,
@@ -1293,9 +1327,55 @@
             "section": "Soft Meals",
             "tags": [
               "Soft Meals",
-              "No Coconut",
               "No Tree Nuts",
               "No Corn"
+            ],
+            "restrictions": [
+              "Soft Meals"
+            ],
+            "allergenFlags": [
+              "No Tree Nuts"
+            ],
+            "accommodations": [
+              "No Corn"
+            ],
+            "preferences": [
+              "No Corn"
+            ],
+            "avoidances": [
+              "No Tree Nuts",
+              "No Corn"
+            ],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "anaphTags": [
+              "noCoconut",
+              "noTreeNuts"
+            ],
+            "rawRestriction": "Soft Meals, No Tree Nuts, No Corn",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "No Popcorn",
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-11T15:29:27.174Z",
+          "date": "Sep 11",
+          "desc": "Queue update — Soft Meals, No Tree Nuts, No Corn, No Coconut → Soft Meals",
+          "by": "Joan Wandera"
+        },
+        {
+          "snapshot": {
+            "room": "213",
+            "section": "Soft Meals",
+            "tags": [
+              "Soft Meals",
+              "No Coconut",
+              "No Tree Nuts",
+              "No Corn",
+              "Halal"
             ],
             "restrictions": [
               "Soft Meals"
@@ -1317,7 +1397,7 @@
             ],
             "confirm": "Provisional",
             "confirmBy": "—",
-            "isAnaph": true,
+            "isAnaph": false,
             "anaphTags": [
               "noCoconut",
               "noTreeNuts"
@@ -1330,10 +1410,10 @@
             "serviceNote": "No Popcorn",
             "_tierMigrated": true
           },
-          "ts": "2026-09-11T12:19:54.145Z",
+          "ts": "2026-09-11T13:48:36.006Z",
           "date": "Sep 11",
-          "desc": "Queue update — Soft Meals, No Coconut, No Tree Nuts, No Corn → Soft Meals",
-          "by": "Jason Kennedy (via Claude)"
+          "desc": "Queue update — Soft Meals, No Tree Nuts, No Corn → Soft Meals",
+          "by": "Joan Wandera"
         }
       ]
     },
@@ -1954,7 +2034,8 @@
       "tags": [
         "No Pork",
         "No Spicy",
-        "Soft Meals"
+        "Soft Meals",
+        "Halal"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
@@ -3210,7 +3291,7 @@
       "preferences": [],
       "avoidances": [],
       "_tierMigrated": true,
-      "lastImported": "2026-05-20",
+      "lastImported": "2026-09-11",
       "_history": [
         {
           "snapshot": {
@@ -3265,7 +3346,7 @@
       "preferences": [],
       "avoidances": [],
       "_tierMigrated": true,
-      "lastImported": "2026-05-20",
+      "lastImported": "2026-09-11",
       "_history": [
         {
           "snapshot": {
@@ -4142,24 +4223,20 @@
     },
     {
       "room": "613a",
-      "section": "Vegan / Vegetarian",
+      "section": "Gluten Free",
       "tags": [
-        "GF",
-        "No Fish",
-        "No Shellfish"
+        "GF"
       ],
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "GF, No Fish, No Shellfish",
+      "rawRestriction": "GF",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
       "pendingReversion": false,
       "restrictions": [
-        "GF",
-        "No Fish",
-        "No Shellfish"
+        "GF"
       ],
       "allergenFlags": [],
       "accommodations": [],
@@ -4168,6 +4245,40 @@
       "_tierMigrated": true,
       "lastImported": "2026-09-11",
       "_history": [
+        {
+          "snapshot": {
+            "room": "613a",
+            "section": "Vegan / Vegetarian",
+            "tags": [
+              "GF",
+              "No Fish",
+              "No Shellfish",
+              "Halal"
+            ],
+            "restrictions": [
+              "GF",
+              "No Fish",
+              "No Shellfish"
+            ],
+            "allergenFlags": [],
+            "accommodations": [],
+            "preferences": [],
+            "avoidances": [],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "rawRestriction": "GF, No Fish, No Shellfish",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-11T13:48:36.006Z",
+          "date": "Sep 11",
+          "desc": "Queue update — GF → Gluten Free",
+          "by": "Joan Wandera"
+        },
         {
           "snapshot": {
             "room": "613a",
@@ -4201,24 +4312,20 @@
     },
     {
       "room": "613b",
-      "section": "Vegan / Vegetarian",
+      "section": "Regular",
       "tags": [
-        "Halal",
-        "No Fish",
-        "No Shellfish"
+        "Halal"
       ],
-      "confirm": "Provisional",
+      "confirm": "Confirmed",
       "confirmBy": "Auto",
       "isAnaph": false,
-      "rawRestriction": "Halal, No Fish, No Shellfish",
+      "rawRestriction": "Halal",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
       "pendingReversion": false,
       "restrictions": [
-        "Halal",
-        "No Fish",
-        "No Shellfish"
+        "Halal"
       ],
       "allergenFlags": [],
       "accommodations": [],
@@ -4227,6 +4334,39 @@
       "_tierMigrated": true,
       "lastImported": "2026-09-11",
       "_history": [
+        {
+          "snapshot": {
+            "room": "613b",
+            "section": "Vegan / Vegetarian",
+            "tags": [
+              "Halal",
+              "No Fish",
+              "No Shellfish"
+            ],
+            "restrictions": [
+              "Halal",
+              "No Fish",
+              "No Shellfish"
+            ],
+            "allergenFlags": [],
+            "accommodations": [],
+            "preferences": [],
+            "avoidances": [],
+            "confirm": "Provisional",
+            "confirmBy": "Auto",
+            "isAnaph": false,
+            "rawRestriction": "Halal, No Fish, No Shellfish",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-11T13:48:36.006Z",
+          "date": "Sep 11",
+          "desc": "Queue update — Halal → Regular",
+          "by": "Joan Wandera"
+        },
         {
           "snapshot": {
             "room": "613b",
@@ -4319,26 +4459,55 @@
       "room": "808",
       "section": "Regular",
       "tags": [
-        "No Pork"
+        "Regular"
       ],
-      "confirm": "Provisional",
-      "confirmBy": "—",
+      "confirm": "N/A",
+      "confirmBy": "Auto",
       "isAnaph": false,
-      "rawRestriction": "No Pork",
+      "rawRestriction": "Regular",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
       "pendingReversion": false,
       "restrictions": [
-        "No Pork"
+        "Regular"
       ],
       "allergenFlags": [],
       "accommodations": [],
       "preferences": [],
       "avoidances": [],
       "_tierMigrated": true,
-      "lastImported": "2026-05-20",
+      "lastImported": "2026-09-11",
       "_history": [
+        {
+          "snapshot": {
+            "room": "808",
+            "section": "Regular",
+            "tags": [
+              "No Pork"
+            ],
+            "restrictions": [
+              "No Pork"
+            ],
+            "allergenFlags": [],
+            "accommodations": [],
+            "preferences": [],
+            "avoidances": [],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "rawRestriction": "No Pork",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-11T13:48:36.006Z",
+          "date": "Sep 11",
+          "desc": "Queue update — Regular → Regular",
+          "by": "Joan Wandera"
+        },
         {
           "snapshot": {
             "room": "808a",
@@ -4625,13 +4794,13 @@
       "room": "1215b",
       "section": "Regular",
       "tags": [
-        "No Brassicas",
-        "No Nightshades"
+        "Regular",
+        "Halal"
       ],
-      "confirm": "Confirmed",
+      "confirm": "N/A",
       "confirmBy": "Auto",
       "isAnaph": false,
-      "rawRestriction": "No Brassicas, No Nightshades",
+      "rawRestriction": "Regular",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -4640,22 +4809,54 @@
       "restrictions": [
         "Regular"
       ],
-      "allergenFlags": [
-        "No Nightshades"
-      ],
-      "accommodations": [
-        "No Brassicas"
-      ],
-      "preferences": [
-        "No Brassicas"
-      ],
-      "avoidances": [
-        "No Nightshades",
-        "No Brassicas"
-      ],
+      "allergenFlags": [],
+      "accommodations": [],
+      "preferences": [],
+      "avoidances": [],
       "_tierMigrated": true,
       "lastImported": "2026-09-11",
       "_history": [
+        {
+          "snapshot": {
+            "room": "1215b",
+            "section": "Regular",
+            "tags": [
+              "No Brassicas",
+              "No Nightshades",
+              "Halal"
+            ],
+            "restrictions": [
+              "Regular"
+            ],
+            "allergenFlags": [
+              "No Nightshades"
+            ],
+            "accommodations": [
+              "No Brassicas"
+            ],
+            "preferences": [
+              "No Brassicas"
+            ],
+            "avoidances": [
+              "No Nightshades",
+              "No Brassicas"
+            ],
+            "confirm": "Confirmed",
+            "confirmBy": "Auto",
+            "isAnaph": false,
+            "rawRestriction": "No Brassicas, No Nightshades",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "No Caulilower/ Tomatoes / Cucumber / Broccoli",
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-11T13:48:36.006Z",
+          "date": "Sep 11",
+          "desc": "Queue update — Regular → Regular",
+          "by": "Joan Wandera"
+        },
         {
           "snapshot": {
             "room": "1215b",
@@ -4852,7 +5053,7 @@
       "pendingReversion": false,
       "serviceNote": "",
       "_tierMigrated": true,
-      "lastImported": "2026-05-20",
+      "lastImported": "2026-09-11",
       "_history": [
         {
           "snapshot": {
@@ -4983,7 +5184,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "408",
@@ -5007,7 +5209,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "702",
@@ -5031,7 +5234,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "605",
@@ -5055,7 +5259,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "701b",
@@ -5079,7 +5284,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "903a",
@@ -5103,7 +5309,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "903b",
@@ -5127,7 +5334,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     },
     {
       "room": "416b",
@@ -5151,7 +5359,8 @@
       "complianceDeadline": "",
       "pendingReversion": false,
       "serviceNote": "From daily list import (room split)",
-      "_tierMigrated": true
+      "_tierMigrated": true,
+      "lastImported": "2026-09-11"
     }
   ],
   "anaphRooms": [
