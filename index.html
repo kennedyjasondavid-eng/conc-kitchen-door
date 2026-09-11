@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.8';
+const DOOR_APP_VERSION = 'v31-standard.9';
 const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -7823,6 +7823,7 @@ const DOOR_INLINE_HANDLER_ALLOWLIST = {
   nrUndoReview: true,
   nrRemovePending: true,
   nrAddPending: true,
+  nrAddAmbiguous: true, // P6 — "Which did intake mean?" answers
   nrDoneReview: true,
   nrToggleTagSelect: true,
   makeSwapPermanentFromBanner: true,
@@ -9234,6 +9235,23 @@ function nrAddPending(room, sid) {
   buildReview();
 }
 
+// P6: one answer to "Which did intake mean?" for a bare noun. choice: 'no' | 'prefers' | 'skip'.
+// A second answer for the same noun REPLACES the first (one judgment per noun).
+function nrAddAmbiguous(room, sid, noun, choice) {
+  const n = String(noun || '').trim(); if (!n) return;
+  const entry = choice === 'no' ? { action: 'note', value: 'No ' + n, noun: n }
+              : choice === 'prefers' ? { action: 'note', value: 'Prefers ' + n, noun: n }
+              : { action: 'skip', value: '', noun: n };
+  let nrRes = {};
+  try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
+  const key = '_pending_' + room;
+  const pending = (nrRes[key] || []).filter(d => (d.noun || '').toLowerCase() !== n.toLowerCase());
+  pending.push(entry);
+  nrRes[key] = pending;
+  localStorage.setItem('concNRResolutions', JSON.stringify(nrRes));
+  buildReview();
+}
+
 function nrRemovePending(room, idx) {
   let nrRes = {};
   try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
@@ -9262,7 +9280,11 @@ function nrDoneReview(room) {
       const label = TAG_LABELS_MAP[d.value];
       if (label && !(r.tags||[]).includes(label)) (r.tags = r.tags||[]).push(label);
     }
-    if (d.action === 'note') {
+    if (d.action === 'note' && d.value) {
+      // P6: a specific answer ("No White Rice" / "Prefers White Rice") IS the note — never
+      // the whole raw intake line.
+      r.serviceNote = dedupeServiceNote(r.serviceNote, d.value);
+    } else if (d.action === 'note') {
       const nrItem = (JSON.parse(localStorage.getItem('concUnresolvedNR')||'[]')).find(x=>x.room===room);
       if (nrItem) {
         // Only save as note if it's not just the rawRestriction text (already stored there)
@@ -9472,8 +9494,8 @@ function buildReview() {
       const pending = (nrResolutions['_pending_' + r.room] || []);
       const pendingHtml = pending.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding-left:58px;margin-bottom:6px;">${
         pending.map((d,di) => {
-          const lbl = d.action==='skip' ? 'Not applicable'
-            : d.action==='note' ? 'Service note'
+          const lbl = d.action==='skip' ? (d.noun ? 'Not applicable: ' + d.noun : 'Not applicable')
+            : d.action==='note' ? (d.value || 'Service note')
             : (TAG_LABELS_MAP[d.value] || d.value);
           return `<span style="background:#fde68a;color:#78350f;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
             ${escapeHtml(lbl)}
@@ -9488,6 +9510,20 @@ function buildReview() {
           <span style="font-size:11px;color:#78350f;font-style:italic;flex:1;">"${escapeHtml(r.text)}"</span>
         </div>
         ${pendingHtml}
+        ${(() => {
+          // P6: bare nouns the sheet listed without "No" — a human judgment, one per noun.
+          const open = (r.ambiguous || []).filter(n => !pending.some(d => (d.noun || '').toLowerCase() === String(n).toLowerCase()));
+          if (!open.length) return '';
+          return `<div style="padding-left:58px;margin-bottom:8px;">
+            <div style="font-size:11px;color:#92400e;font-weight:600;margin-bottom:4px;">Which did intake mean? (listed without &ldquo;No&rdquo;)</div>
+            ${open.map(n => `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px;">
+              <span style="font-family:monospace;font-size:12px;background:#fef3c7;color:#78350f;padding:1px 8px;border-radius:4px;">${escapeHtml(n)}</span>
+              <button onclick="${_escJsAttrCall('nrAddAmbiguous', [r.room, sid, n, 'no'])}" style="font-size:11px;padding:3px 10px;background:#991b1b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">No ${escapeHtml(n)}</button>
+              <button onclick="${_escJsAttrCall('nrAddAmbiguous', [r.room, sid, n, 'prefers'])}" style="font-size:11px;padding:3px 10px;background:#166534;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Prefers ${escapeHtml(n)}</button>
+              <button onclick="${_escJsAttrCall('nrAddAmbiguous', [r.room, sid, n, 'skip'])}" style="font-size:11px;padding:3px 10px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Not applicable</button>
+            </div>`).join('')}
+          </div>`;
+        })()}
         <div style="display:flex;gap:6px;align-items:center;padding-left:58px;flex-wrap:wrap;">
           <span style="font-size:11px;color:#92400e;font-weight:600;white-space:nowrap;">${pending.length ? 'Add another:' : 'Classify as:'}</span>
           <select id="nr-action-${_escAttr(sid)}" onchange="${_escJsAttrCall('nrToggleTagSelect', [sid])}"
@@ -18947,6 +18983,10 @@ const IMPORT_TAG_RULES = [
 
 // Tokens to ignore (summary rows, noise)
 const IMPORT_IGNORE_RE = /^(regular|meals? breakdown|single-dietary|shared -dietary|diabetics|total meals)$/i;
+// P6: bare fragments left over after a rule consumed the meaningful part ("No potassium
+// foods" → "foods"; "Diabetic Diet" → "Diet"; "… for dinner / lunch" → "lunch"). Never an
+// ingredient, so never a "which did intake mean?" question.
+const IMPORT_BARE_NOISE_RE = /^(foods?|meals?|diet|dietary|lunch|dinner|breakfast|only|snacks?|drinks?|options?|items?)$/i;
 
 // Levenshtein distance for fuzzy fallback
 function importLevenshtein(a, b) {
@@ -18979,7 +19019,10 @@ const IMPORT_FUZZY_VOCAB = [
 // ─── Comma-separated negation propagation (P4 v26) ─────────────────────────
 // "No Popcorn, Corn, Nuts, Coconuts" → "No Popcorn, No Corn, No Nuts, No Coconuts"
 // Handles the common pattern where "No" prefixes a list but only appears on the first item.
-function expandCommaNegations(text) {
+// P6 (2026-09-11): `implied` (optional array) receives every bare noun this expander
+// prefixed with "No " — normalizeRestriction uses it to tell an INFERRED restriction
+// (the implied "No X" matched a rule) from an AMBIGUOUS one (it matched nothing).
+function expandCommaNegations(text, implied) {
   const parts = text.split(',');
   if (parts.length < 2) return text;
   const result = [];
@@ -18994,6 +19037,7 @@ function expandCommaNegations(text) {
       result.push(seg);
     } else if (activePrefix && /^[a-zA-Z]{2,25}(\s+[a-zA-Z]{2,15})?$/.test(seg)) {
       // Bare noun following a "No X" segment — propagate prefix
+      if (Array.isArray(implied)) implied.push(seg);
       result.push(activePrefix + seg);
     } else {
       // Not a simple noun or no active prefix — reset
@@ -19006,7 +19050,7 @@ function expandCommaNegations(text) {
 
 // ─── Slash expansion ────────────────────────────────────────────────────────
 // "No Cauliflower/Tomatoes/Cucumber" → "No Cauliflower, No Tomatoes, No Cucumber"
-function expandSlashNegations(text) {
+function expandSlashNegations(text, implied) {
   const QUALIFIED   = /^(no |halal|vegan|vegetarian|diabetic|gluten|lactose|low |soft )/i;
   const SIMPLE_NEG  = /^no\s+[a-zA-Z]{2,20}(\s+[a-zA-Z]{2,15})?$/i;  // "No Fish", "No Pork" — simple only
   const SIMPLE_NOUN = /^[a-zA-Z]{2,20}(\s+[a-zA-Z]{2,15})?$/;
@@ -19019,7 +19063,7 @@ function expandSlashNegations(text) {
       lastWasSimpleNo = SIMPLE_NEG.test(t); // only true for clean "No Noun" — not long sentences
       return t;
     }
-    if (lastWasSimpleNo && i > 0 && SIMPLE_NOUN.test(t) && !t.includes(',')) { return 'No ' + t; }
+    if (lastWasSimpleNo && i > 0 && SIMPLE_NOUN.test(t) && !t.includes(',')) { if (Array.isArray(implied)) implied.push(t); return 'No ' + t; }
     lastWasSimpleNo = false;
     return t;
   }).join(', ');
@@ -19087,10 +19131,15 @@ function labelToPattern(label) {
 
 // Main normalizer. Input: raw restriction string from col C. Output: { tags, unmatched, isAnaphCandidate, rawText }
 function normalizeRestriction(raw) {
-  if (!raw) return { tags: {}, unmatched: [], isAnaphCandidate: false, rawText: '' };
+  if (!raw) return { tags: {}, unmatched: [], ambiguous: [], isAnaphCandidate: false, rawText: '' };
   const rawText = String(raw).trim();
-  const commaExpanded = expandCommaNegations(rawText);
-  const expanded = expandSlashNegations(commaExpanded);
+  // P6: bare nouns the expanders prefixed with an implied "No". If the implied "No X"
+  // matches a rule it is an INFERRED restriction (pork, red meat, gluten, coconut…). If it
+  // matches nothing it is AMBIGUOUS — "no X" or "prefers X" is a human judgment (Jason
+  // ruling 2026-09-11) — and is carried as `ambiguous` so Review & Generate can ask.
+  const _implied = [];
+  const commaExpanded = expandCommaNegations(rawText, _implied);
+  const expanded = expandSlashNegations(commaExpanded, _implied);
   const tags = {};
   const matched = new Set();
   const unmatched = [];
@@ -19134,12 +19183,31 @@ function normalizeRestriction(raw) {
     });
     if (best && bestDist <= 2) {
       tags[best] = true;
-    } else {
-      unmatched.push(tok);
+      return;
     }
+    // P6: a BARE noun (no "No"/qualifier of its own — e.g. "Coconut" after "Halal /") is
+    // only on the sheet because it is a problem. If "No <noun>" matches a rule it is a
+    // known restriction → inferred silently. If it matches nothing → ambiguous → ask.
+    const _bare = /^[a-zA-Z]{2,25}(\s+[a-zA-Z]{2,15})?$/.test(tok)
+      && !/^(no|low|soft|halal|vegan|vegetarian|diabetic|gluten|lactose|allergic|prefers?)\b/i.test(tok)
+      && !IMPORT_BARE_NOISE_RE.test(tok); // "foods", "Diet", "lunch" — fragments, not ingredients; never a question
+    if (_bare) {
+      const hit = effectiveRules.find(rule => new RegExp(rule.re.source, rule.re.flags.replace('g', '')).test('No ' + tok));
+      if (hit) { tags[hit.tag] = true; return; }
+      _implied.push(tok);
+    }
+    unmatched.push(tok);
   });
 
-  return { tags, unmatched, isAnaphCandidate, rawText };
+  // P6: an implied/bare noun that is still unmatched is a question, not a restriction.
+  const _unmatchedLow = new Set(unmatched.map(u => u.toLowerCase().trim()));
+  const ambiguous = [];
+  _implied.forEach(noun => {
+    const n = String(noun).trim(); const low = n.toLowerCase();
+    if (n && (_unmatchedLow.has('no ' + low) || _unmatchedLow.has(low)) && !ambiguous.includes(n)) ambiguous.push(n);
+  });
+
+  return { tags, unmatched, ambiguous, isAnaphCandidate, rawText };
 }
 
 // Parses the uploaded workbook. Returns array of { room, parsed: normalizeRestriction result }
@@ -19277,7 +19345,9 @@ function diffImportAgainstRegistry(entries) {
   };
 
   const flagNeedsReviewIfApplicable = (e, isNewOrChanged) => {
-    if (!isNewOrChanged) return;
+    // P6 (2026-09-11): no longer gated on isNewOrChanged. Unresolved text on a room whose
+    // TAG SET did not change (1106: "White Rice / Bread") used to be silent forever. The
+    // learned map + _resolved_text below still silence a room once a person has answered.
     if (!(e.parsed.unmatched.length || e.parsed.isAnaphCandidate)) return;
     let learned = {};
     try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch(err) {}
@@ -19286,7 +19356,8 @@ function diffImportAgainstRegistry(entries) {
     if (roomLearned['_resolved_text'] === rawNorm) return;
     const stillUnmatched = e.parsed.unmatched.filter(tok => !roomLearned[tok.toLowerCase().trim()]);
     if (stillUnmatched.length || (e.parsed.isAnaphCandidate && !roomLearned['_anaph'])) {
-      needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText });
+      needsReview.push({ room: e.room, unmatched: stillUnmatched, isAnaphCandidate: e.parsed.isAnaphCandidate, rawText: e.parsed.rawText,
+        ambiguous: (e.parsed.ambiguous || []).filter(n => stillUnmatched.some(u => { const l = u.toLowerCase().trim(); return l === ('no ' + n).toLowerCase() || l === n.toLowerCase(); })) });
     }
   };
 
@@ -20173,7 +20244,7 @@ function commitImportToQueue() {
     });
     if (unresolved.length) {
       localStorage.setItem('concUnresolvedNR', JSON.stringify(
-        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', '), isAnaphCandidate: r.isAnaphCandidate || false }))
+        unresolved.map(r => ({ room: r.room, text: r.rawText || r.unmatched.join(', '), isAnaphCandidate: r.isAnaphCandidate || false, ambiguous: r.ambiguous || [] }))
       ));
     } else {
       localStorage.removeItem('concUnresolvedNR');
