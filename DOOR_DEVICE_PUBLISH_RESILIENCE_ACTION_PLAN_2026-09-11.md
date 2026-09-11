@@ -1,6 +1,6 @@
 # DOOR — Device publish resilience: action plan (near-term tier)
 
-*Authored 2026-09-11 from the registry-drift review (`docs/DOOR_REGISTRY_DRIFT_REVIEW_2026-09-11.md`). Planning only; no app code in this commit. Forks in §7 await Jason before any slice is built.*
+*Authored 2026-09-11 from the registry-drift review (`docs/DOOR_REGISTRY_DRIFT_REVIEW_2026-09-11.md`). Planning only; no app code in this commit. **Forks F1–F5 RULED by Jason 2026-09-11 (§7) — build is unblocked, order P0→P5.***
 
 ## 1. Telos
 
@@ -55,7 +55,7 @@ A standing banner on Enter Changes, rendered by `updateDailyImportPrompt` next t
 **Gate** `tests/device_capability_banner_gate.mjs`: pure-function truth table (each reason alone, combined, none); source scan that `updateDailyImportPrompt` calls the renderer and that every `_doPublishToGitHub` skip reason has a banner mapping (enumerate the reason strings; fail on an unmapped one). Red: function absent.
 
 ### P2 — Connect at the moment of need
-When `publishAndSync` receives `skipped:true`, and on the P1 [Connect] button: an inline card (not the Settings screen) with masked token field, **Test & connect** (authenticated `GET /user`, honest 401-vs-network copy), and Cancel. On success: `PublishAuth` stores the token, then publishes the pending state immediately (P3 drain; in P2, re-run the just-skipped publish). Port EXPO PR-B `testGHConnection` / `_backupStatusLineHTML` verbatim where they fit; sanitize the token (seam row 3 — closes DOOR's named gap).
+When `publishAndSync` receives `skipped:true`, and on the P1 [Connect] button: an inline card (not the Settings screen) with a masked **connection key** field (F4: never the word "token" or "GitHub" on the staff surface — the key is admin-provisioned, see README admin section), **Test & connect** (authenticated `GET /user`, honest 401-vs-network copy), and Cancel. On success: `PublishAuth` stores the token, then publishes the pending state immediately (P3 drain; in P2, re-run the just-skipped publish). Port EXPO PR-B `testGHConnection` / `_backupStatusLineHTML` verbatim where they fit; sanitize the token (seam row 3 — closes DOOR's named gap).
 **Gate** `tests/connect_at_need_gate.mjs`: vm-extract the card + handlers with a stubbed `fetch`; 200 → stored + publish invoked once; 401 → not stored, refusal copy; network → not stored, distinct copy; token with smart quotes → sanitized before header build. Source scan: `publishAndSync` skip branch calls the card opener. Red: symbols absent.
 
 ### P3 — Durable publish outbox
@@ -63,7 +63,7 @@ When `publishAndSync` receives `skipped:true`, and on the P1 [Connect] button: a
 **Gate** `tests/publish_outbox_gate.mjs`: skipped publish → one entry; three skips → three entries; boot with token → drain publishes once and empties; publish failure → entry retained; quota-exceeded `setItem` → `setItemSafe` path, no throw, loud console. Red: store absent.
 
 ### P4 — First-run device setup card
-On boot, if operator name is empty **and** `concPublishOutbox`/`concLastGenerated` are absent (a genuinely new device), show a one-time card before Enter Changes: operator name (required), GitHub connection (Test & connect, or "skip — this computer will only read"), site confirmation. Skipping is allowed and recorded; the P1 banner then carries the consequence. Re-openable from Settings.
+On boot, if operator name is empty **and** `concPublishOutbox`/`concLastGenerated` are absent (a genuinely new device), show a one-time card before Enter Changes: operator name (required), connection key (Test & connect, or "skip — this computer will only read"; F4 wording: no GitHub concepts), site confirmation. Skipping is allowed and recorded; the P1 banner then carries the consequence. Re-openable from Settings.
 **Gate** `tests/first_run_setup_gate.mjs`: predicate truth table (new device / returning device / name set but no token); skip path records `concDeviceReadOnly` and P1 shows the amber banner; completing sets name + token via `PublishAuth`. Red: predicate absent.
 
 ### P5 — Registry-artifact publish gating
@@ -73,12 +73,14 @@ In `_doPublishToGitHub`, before building the file set: if the remote `door_state
 ## 6. Verification cadence (per slice)
 `node --test tests/*.mjs` green (new gate authored red first, receipt in the PR) · `door-smoke` untouched and green · manual: fresh browser profile (empty localStorage) → P4 card → skip → P1 red banner after Generate → P2 connect → P3 drain → cloud `door_state.json` count/`registryModifiedAt` move · `git diff --check` · APP_VERSION stamp bump per PR.
 
-## 7. Forks for Jason (leans marked)
-- **F1 Outbox shape:** pointer flag (lean) vs. payload replay log. Pointer is one source of truth; replay risks resurrecting superseded state.
-- **F2 First-run "skip":** allow read-only devices (lean) vs. require connection before use. Comfort Hotel staff may legitimately only read.
-- **F3 P5 override:** manual Publish Now can force the older roster with a dated confirm (lean) vs. never. Needed for deliberate rollback.
-- **F4 Token scope guidance:** document a repo-scoped fine-grained PAT for DOOR only (lean) in the connect card's help text, vs. keep silent. Public repo means any token pasted here can write to it; scoping limits blast radius.
-- **F5 Order:** P0→P1→P2→P3→P4→P5 (lean) or P5 first (it alone stops the frozen-roster republish). P5 first is defensible if the catch-up import is delayed.
+## 7. Forks — RULED 2026-09-11 (Jason)
+| Fork | Ruling | Consequence for the build |
+|---|---|---|
+| **F1 Outbox shape** | **Pointer flag** | `concPublishOutbox` records that a publish is owed + provenance; drain publishes CURRENT state once. No payload replay. |
+| **F2 First-run skip** | **Allow read-only** | Operator name required; connection optional; skipping sets `concDeviceReadOnly` and the P1 banner carries the consequence. |
+| **F3 P5 override** | **Allow, dated confirm** | Manual Publish Now may push an older roster after a confirm naming both `registryModifiedAt` dates; auto-publish never. |
+| **F4 Token guidance** | **Staff must not have to engage with GitHub.** | The Connect card shows **no GitHub concepts** — the field is labelled a *connection key* that the kitchen lead supplies, one line "ask Jason for this device's key", Test & connect. Scoped-PAT creation guidance moves to an **admin section of `README.md`** (Jason provisions one fine-grained, repo-scoped token per device). This also confirms the mid-term tier: M365 sign-in is the real answer for staff; the GitHub lane stays an admin-provisioned bridge. P2 + P4 copy updated accordingly. |
+| **F5 Order** | **P0 → P5 in sequence** | The roster is caught up (`86f2f0c`); the re-freeze window before P5 is accepted and covered by the P1 banner on the stale machine. |
 
 ## 8. Do not touch
 Import parsing/diff (`IMPORT_TAG_RULES`, `normalizeRestriction`, `diffImportAgainstRegistry`), routing/section logic, `pullStateFromGitHub`'s read-side guard, the atomic publish mechanics, artifact schemas/versions, the stale-registry banner's ground truth (P0 only moves *when* it is stamped). No Graph/M365 code.
