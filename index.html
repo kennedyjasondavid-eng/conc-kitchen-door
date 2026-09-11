@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.3';
+const DOOR_APP_VERSION = 'v31-standard.4';
 const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9887,6 +9887,108 @@ function doorApplyPendingImportStamp() {
   return doorStampImportedRooms(p.rooms, p.date);
 }
 
+// P1 (publish-resilience plan, 2026-09-11): the STANDING device-capability banner.
+// A device that could not publish used to say so only as a one-shot red line under
+// Generate; three months of daily entries died on one machine that way. This is a
+// persistent, dated, counted banner on Enter Changes: what is missing, how much work
+// exists only here, one button per fix. It never blocks import or Generate.
+// F4 ruling: staff copy never says "token" or "GitHub" — the credential is the
+// "connection key" the kitchen lead supplies (admin guidance lives in README).
+const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
+  auto_publish_off:            { label: 'auto-publish is switched off on this computer', action: 'settings' },
+  'stale-tab':                 { label: 'this tab is out of date', action: 'reload' },
+  'stale-tab-cancelled':       { label: 'the last publish was cancelled because this tab is out of date', action: 'reload' },
+  missing_auth:                { label: 'no connection key on this computer', action: 'connect' },
+  not_hydrated:                { label: 'this tab had not finished loading the shared copy', action: 'reload' },
+  empty_clobber:               { label: 'this computer’s copy was empty — reload to sync first', action: 'reload' },
+  size_regression:             { label: 'this computer’s copy was much smaller than the shared one — reload first', action: 'reload' },
+  blocked:                     { label: 'part of the last publish was blocked — reload if the shared copy is newer', action: 'reload' },
+  'validation-stop':           { label: 'the last publish was blocked by a data check', action: 'settings' },
+  'validation-stop-cancelled': { label: 'the last publish was cancelled at a data check', action: 'settings' },
+  error:                       { label: 'the last publish failed', action: 'connect' }
+});
+
+// Pure. inp = { hasToken, tokenExpired, operatorName, autoPublishOn, tabStale,
+//   lastSkip:{reason,message,at}|null, lastError:{message,at}|null,
+//   lastGeneratedAt:iso|null, lastPublishOkAt:iso|null }
+// → { canPublish, reasons:[{code,label,action}], unpublished:{pending,since}, level:'none'|'amber'|'red' }
+function doorDeviceCapability(inp) {
+  inp = inp || {};
+  const reasons = [];
+  if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the shared board — no connection key', action: 'connect' });
+  else if (inp.tokenExpired) reasons.push({ code: 'connection-expired', label: 'this computer’s connection key has expired', action: 'connect' });
+  if (!(inp.operatorName || '').trim()) reasons.push({ code: 'no-operator', label: 'no operator name on this computer — changes would publish as “unknown”', action: 'name' });
+  if (inp.autoPublishOn === false) reasons.push({ code: 'auto-publish-off', label: DOOR_PUBLISH_SKIP_REASONS.auto_publish_off.label, action: 'settings' });
+  if (inp.tabStale) reasons.push({ code: 'stale-tab', label: DOOR_PUBLISH_SKIP_REASONS['stale-tab'].label, action: 'reload' });
+  if (inp.lastSkip && inp.lastSkip.reason) {
+    const m = DOOR_PUBLISH_SKIP_REASONS[inp.lastSkip.reason] || { label: 'the last publish did not go through' + (inp.lastSkip.message ? ' (' + inp.lastSkip.message + ')' : ''), action: 'settings' };
+    // don't double-report a cause already listed live (e.g. missing key AND missing_auth skip)
+    const dup = (m.action === 'connect' && reasons.some(r => r.action === 'connect')) ||
+                (inp.lastSkip.reason === 'stale-tab' && inp.tabStale) ||
+                (inp.lastSkip.reason === 'auto_publish_off' && inp.autoPublishOn === false);
+    if (!dup) reasons.push({ code: 'last-skip', label: m.label, action: m.action, at: inp.lastSkip.at || null });
+  }
+  const gen = inp.lastGeneratedAt ? new Date(inp.lastGeneratedAt).getTime() : 0;
+  const ok = inp.lastPublishOkAt ? new Date(inp.lastPublishOkAt).getTime() : 0;
+  const pending = !!gen && (!ok || gen > ok);
+  const canPublish = reasons.length === 0;
+  const level = pending ? 'red' : (reasons.length ? 'amber' : 'none');
+  return { canPublish, reasons, unpublished: { pending, since: pending ? inp.lastGeneratedAt : null }, level };
+}
+
+// Live reader for the pure function. Everything is read at call time — no cached fossil.
+function doorDeviceCapabilityInput() {
+  const g = (k) => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+  const gj = (k) => { try { return JSON.parse(g(k) || 'null'); } catch(e) { return null; } };
+  const cb = (typeof document !== 'undefined') ? document.querySelector('[onclick*="gh_auto_publish"] input') : null;
+  const meta = (typeof PublishAuth !== 'undefined' && PublishAuth.getMeta) ? PublishAuth.getMeta() : {};
+  return {
+    hasToken: !!((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : ''),
+    tokenExpired: !!((typeof PublishAuth !== 'undefined' && PublishAuth.isExpired) ? PublishAuth.isExpired() : false),
+    operatorName: (typeof getOperatorName === 'function') ? getOperatorName() : (g('concOperatorName') || ''),
+    autoPublishOn: cb ? !!cb.checked : true,
+    tabStale: (typeof _doorTabStale !== 'undefined') ? !!_doorTabStale : false,
+    lastSkip: gj('concLastPublishSkip'),
+    lastError: meta.lastError ? { message: meta.lastError, at: meta.lastErrorAt || null } : null,
+    lastGeneratedAt: g('concLastGenerated'),
+    lastPublishOkAt: g('concLastPublishOk')
+  };
+}
+
+// Renders the banner (or '' when there is nothing to say). Pass a capability object
+// to render a given state (gates); omit to compute live.
+function _doorDeviceBannerHTML(capOpt) {
+  const c = capOpt || doorDeviceCapability(doorDeviceCapabilityInput());
+  if (!c || c.level === 'none') return '';
+  const red = c.level === 'red';
+  const bg = red ? '#fee2e2' : '#fef3c7', bd = red ? '#dc2626' : '#f59e0b', ti = red ? '#991b1b' : '#92400e', tx = red ? '#7f1d1d' : '#78350f';
+  const BTN = { connect: 'Connect', name: 'Set name', settings: 'Open settings', reload: 'Reload' };
+  let head;
+  if (c.unpublished.pending) {
+    const since = c.unpublished.since ? new Date(c.unpublished.since).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    head = '&#x26A0; Changes on this computer have NOT reached the shared board' + (since ? ' (generated ' + escapeHtml(since) + ')' : '');
+  } else {
+    head = '&#x26A0; This computer can’t publish to the shared board yet';
+  }
+  const rows = c.reasons.map(r =>
+    '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">' +
+      '<span style="flex:1;">&mdash; ' + escapeHtml(r.label) + '</span>' +
+      '<button class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:' + bd + ';color:#fff;flex-shrink:0;" onclick="doorDeviceBannerFix(' + _escAttr(JSON.stringify(r.action)) + ')">' + BTN[r.action] + '</button>' +
+    '</div>').join('');
+  const tail = c.reasons.length ? '' : '<div style="margin-top:6px;">&mdash; the last publish did not go through. Generate again, or use Publish Now in settings.</div>';
+  return '<div style="padding:12px 14px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:8px;font-size:13px;margin-bottom:10px;color:' + tx + ';">' +
+    '<div style="font-weight:700;color:' + ti + ';">' + head + '</div>' + rows + tail + '</div>';
+}
+
+// The one action behind each banner button. P2 replaces 'connect' with the inline
+// connection-key card; for now it opens Settings (where the key lives).
+function doorDeviceBannerFix(action) {
+  if (action === 'reload') { location.reload(); return; }
+  if (action === 'name') { if (typeof ensureOperatorName === 'function') ensureOperatorName(); updateDailyImportPrompt(); return; }
+  const nav = document.querySelector('[data-screen="settings"]');
+  if (typeof showScreen === 'function') showScreen('settings', nav);
+}
+
 // Freshest lastImported across residents (an apply stamps every present resident,
 // v29; stamped at APPLY since P0), in ms. 0 when none carry one — a brand-new/empty registry, which is NOT
 // treated as stale (so an empty registry never cries wolf).
@@ -10054,13 +10156,22 @@ function publishAndSync(context) {
   const timeStr = new Date().toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
   const op = getOperatorName();
   updateSyncBar('Syncing…', 'var(--forest-mid)');
+  // P1: every skipped/failed auto-publish is RECORDED (concLastPublishSkip) so the
+  // standing device banner can name it and its fix; a successful publish clears it
+  // (in _doPublishToGitHub). The banner re-renders on every outcome.
+  const _recordSkip = (reason, message) => {
+    try { localStorage.setItem('concLastPublishSkip', JSON.stringify({ reason: reason || 'skipped', message: message || '', at: new Date().toISOString() })); } catch(e) {}
+  };
   publishToGitHub(false).then((result) => {
     if (result && result.skipped) {
       const reason = result.message || 'publish skipped';
+      _recordSkip(result.reason, reason);
       updateSyncBar('Saved locally — not published · ' + reason + ' · ' + timeStr, '#dc2626');
       if (typeof showToast === 'function') showToast('Saved locally, not published — ' + reason);
+      if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
       return;
     }
+    if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
     if (result && result.degraded) {
       // Published, but the preflight flagged a Stop-level structural defect:
       // must not read green on the visible sync bar (carries fix#1's intent
@@ -10073,8 +10184,10 @@ function publishAndSync(context) {
     updateSyncBar('Synced ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
   }).catch((err) => {
     const msg = (err && err.message) ? err.message : 'sync failed';
+    _recordSkip('error', msg);
     updateSyncBar('Saved locally — not published · ' + msg + ' · ' + timeStr, '#dc2626');
     if (typeof showToast === 'function') showToast('Saved locally, not published — ' + msg);
+    if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
   });
 }
 
@@ -10141,6 +10254,8 @@ function updateDailyImportPrompt() {
   const el = document.getElementById('daily-import-prompt');
   if (!el) return;
   const _staleBanner = _doorRegistryStaleBannerHTML();
+  // P1: standing "this computer can't publish / has unpublished work" banner (typeof-guarded for narrow harnesses)
+  const _deviceBanner = (typeof _doorDeviceBannerHTML === 'function') ? _doorDeviceBannerHTML() : '';
   const lastImport = localStorage.getItem('concLastImportDate');
   const today = new Date().toDateString();
   const nrPending = localStorage.getItem('concUnresolvedNR');
@@ -10164,7 +10279,7 @@ function updateDailyImportPrompt() {
       const genTime = new Date(lastGen).toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
       statusLine = `<div style="margin-top:4px;font-size:12px;color:#15803d;">Sheets generated at ${genTime}. Enter new changes below or re-import if the roster has been updated.</div>`;
     }
-    el.innerHTML = _staleBanner + `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
+    el.innerHTML = _staleBanner + _deviceBanner + `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
       `<div style="display:flex;align-items:center;gap:10px;">` +
       `<span style="font-size:15px">&#x2713;</span>` +
       `<span style="color:#15803d;font-weight:600;flex:1;">Today's roster imported${fname ? ' — ' + escapeHtml(fname) : ''}</span>` +
@@ -10179,7 +10294,7 @@ function updateDailyImportPrompt() {
     const _btn2Bg = _dk ? '#2a2520' : '#fff';
     const _btn2Bd = _dk ? '#5c4d30' : '#fcd34d';
     const _sub = _dk ? '#a08050' : '#b45309';
-    el.innerHTML = _staleBanner + `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
+    el.innerHTML = _staleBanner + _deviceBanner + `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">` +
       `<span style="font-size:18px">&#x2261;</span>` +
       `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:${_title};">Start today's update</div></div>` +
@@ -12791,6 +12906,10 @@ async function _doPublishToGitHub(manual) {
       if(manual) showToast(msg+'. Check console; reload if cloud is newer.');
       return { skipped:true, reason:'blocked', message:msg };
     } else {
+      // P1: the artifact set landed (one commit). Record the success so the device
+      // banner can tell "work exists only here" from "published", and clear any
+      // earlier recorded skip — a real publish is the only thing that clears it.
+      try { localStorage.setItem('concLastPublishOk', new Date().toISOString()); localStorage.removeItem('concLastPublishSkip'); } catch(e) {}
       // Publish wasn't blocked, so it's now safe to persist the cloud-merged
       // overlay locally (future sessions/renders see the same cloud-only days).
       // Deferred from before the push so a failed/partial publish leaves
