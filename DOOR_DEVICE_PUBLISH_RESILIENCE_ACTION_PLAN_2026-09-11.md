@@ -106,6 +106,24 @@ On boot, if operator name is empty **and** `concPublishOutbox`/`concLastGenerate
 In `_doPublishToGitHub`, before building the file set: if the remote `door_state.json` `_meta.registryModifiedAt` is **newer** than local `getRegistryProvenanceTs()`, publish menu artifacts only and omit `door_state.json`, `registry_summary.json`, `routing_by_meal.json` (routing is registry-derived). Sync bar + P1 banner say "menu published · roster on this computer is older than the shared one — not sent". Manual Publish Now may override with an explicit confirm naming both dates. Legacy remote (no `registryModifiedAt`) → publish as today.
 **Gate** `tests/registry_publish_gating_gate.mjs`: stub remote meta newer → file set excludes the three; older/equal/absent → includes; manual override → includes with confirm called. Source scan pins the three filenames in the gated set. Red: gating absent.
 
+**BUILT 2026-09-11 — branch `claude/door-p5-registry-gating`, `DOOR_APP_VERSION v31-standard.8`. Design refined in build: ADOPT-then-publish, not omit.**
+- Omitting the three registry artifacts would have left `routing_by_meal.json` (registry-derived) and the `builtFromMenu` stamps desynced from a freshly published menu, and left the stale machine stale. Instead, `_doPublishToGitHub` runs `doorRegistryPublishPreflight(manual)` **after credentials and before any artifact is built**: it reads the shared `door_state.json` `_meta` (raw, unauthenticated, no-store), and `doorRegistryPublishGate(remoteMeta, localProvTs)` decides `remote-newer | local-current | legacy | unknown`. On `remote-newer` the **auto path adopts the shared roster via the existing read-side `pullStateFromGitHub(false)`** (safe: "local older" means local holds no unpublished registry edits — provenance moves on every local registry change) and then publishes a coherent four-artifact set from it. **Manual (F3):** a confirm naming both dates — OK = use the shared roster (recommended), Cancel = **force** this computer's older roster (rollback; the sync bar goes amber and says so). Legacy/unreachable remote → publish as today; the preflight never throws.
+- The success line names the outcome: "· used the shared roster (newer than this computer’s copy)" / "· FORCED this computer’s older roster (rollback)". No new skip reason (nothing is skipped), so the P1 reason map is unchanged.
+- Receipts: gate authored red **0/6** on pre-P5 `index.html`, **6/6** after; full suite **206/206**; `git diff --check` clean. Headless e2e against the **live** shared roster, simulating the stale machine (roster trimmed to 160, provenance May 20): auto preflight → adopted, 165 back, provenance = shared `registryModifiedAt`; manual + Cancel → forced, roster untouched, prompt names **May 20, 2026** and **Sep 11, 2026**; manual + OK → adopted; local current → `local-current`, no-op; zero non-GET GitHub calls; no pageerror.
+- **Note on the "omit" gate text above:** superseded by this refinement; the shipped gate asserts the adopt/force/no-op contract instead.
+
+## 10. Line status — near-term tier COMPLETE (2026-09-11)
+| Slice | PR | Version |
+|---|---|---|
+| P0 stamp at apply | #89 merged | v31-standard.3 |
+| P1 device-capability banner | #90 merged | v31-standard.4 |
+| P2 connect at need + seam row 3 | #91 merged | v31-standard.5 |
+| P3 durable outbox + seam row 1 | #92 merged | v31-standard.6 |
+| P4 first-run setup card | #93 merged | v31-standard.7 |
+| P5 registry publish gating (adopt-then-publish) | draft | v31-standard.8 |
+
+Definition of done (§9) check: a new computer sees it is not connected (P1/P4), connects in one card (P2/P4), every Generate reaches the board once connected (P3), and a menu-only machine can no longer publish a roster older than the shared one (P5). Review report §3 items 1, 4, 5 and §5's design gap are closed. **Remaining DoD item after P5 merges:** update the HOUSE ledger row for DOOR (version + seam rows 1 and 3 closed) in `~/.claude/CLAUDE.md` and `conc-kitchen-house/HOUSE_PROVEN_SEAMS.md` — cross-app facts, written once the version is on `main`. Review §3 item 4 (re-pull on focus) was not built in this tier; the boot drain plus the banner cover the practical case, and it can ride the mid-term M365 work.
+
 ## 6. Verification cadence (per slice)
 `node --test tests/*.mjs` green (new gate authored red first, receipt in the PR) · `door-smoke` untouched and green · manual: fresh browser profile (empty localStorage) → P4 card → skip → P1 red banner after Generate → P2 connect → P3 drain → cloud `door_state.json` count/`registryModifiedAt` move · `git diff --check` · APP_VERSION stamp bump per PR.
 

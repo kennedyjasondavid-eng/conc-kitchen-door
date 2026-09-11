@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.7';
+const DOOR_APP_VERSION = 'v31-standard.8';
 const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -10234,6 +10234,54 @@ function doorFirstRunReopen() {
   const el = document.getElementById('door-firstrun-name'); if (el) el.focus();
 }
 
+// P5 (publish-resilience plan, 2026-09-11): registry publish gating — adopt-then-publish.
+// The frozen-roster republish: a machine that only edited menus published ITS roster
+// into door_state.json for 40 publishes (May 21 – Aug 31). Before every publish, ask the
+// shared board for its registry timestamp. If the shared roster is NEWER than this
+// computer's, the auto path ADOPTS it first (the same read-side pull the boot sync uses —
+// safe, because "local older" means local holds no unpublished registry edits) and then
+// publishes a coherent four-artifact set from the newer roster. (The plan's first cut
+// was "omit the registry artifacts"; that would leave routing/menu stamps desynced and
+// the stale machine stale. Adopting heals it.) A MANUAL Publish Now may instead FORCE
+// the older roster after a confirm naming both dates (F3 — the rollback path).
+// Legacy remote (no registryModifiedAt) or unreachable remote → publish as today.
+async function doorFetchRemoteRegistryMeta() {
+  const repo = ((typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door');
+  const res = await fetch('https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now(), { cache: 'no-store' });
+  if (!res || !res.ok) return null;
+  const j = await res.json();
+  return (j && j._meta) ? j._meta : null;
+}
+
+// Pure. → { adopt, reason: remote-newer|local-current|legacy|unknown, remoteTs, localTs }
+function doorRegistryPublishGate(remoteMeta, localProvTs) {
+  const localTs = localProvTs || 0;
+  if (!remoteMeta) return { adopt: false, reason: 'unknown', remoteTs: 0, localTs };
+  if (!remoteMeta.registryModifiedAt) return { adopt: false, reason: 'legacy', remoteTs: 0, localTs };
+  const remoteTs = new Date(remoteMeta.registryModifiedAt).getTime();
+  if (isNaN(remoteTs)) return { adopt: false, reason: 'unknown', remoteTs: 0, localTs };
+  if (remoteTs > localTs) return { adopt: true, reason: 'remote-newer', remoteTs, localTs };
+  return { adopt: false, reason: 'local-current', remoteTs, localTs };
+}
+
+// → { adopted, forced, gate }. Never throws (a failed remote read = publish as today).
+async function doorRegistryPublishPreflight(manual) {
+  let meta = null;
+  try { meta = await doorFetchRemoteRegistryMeta(); } catch (e) { meta = null; }
+  const gate = doorRegistryPublishGate(meta, (typeof getRegistryProvenanceTs === 'function') ? getRegistryProvenanceTs() : 0);
+  if (!gate.adopt) return { adopted: false, forced: false, gate };
+  const fmt = (ts) => ts ? new Date(ts).toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'never updated';
+  if (manual && typeof confirm === 'function') {
+    const useShared = confirm(
+      'The shared board’s roster (' + fmt(gate.remoteTs) + ') is newer than this computer’s (' + fmt(gate.localTs) + ').\n\n' +
+      'OK — publish using the shared roster (recommended).\n' +
+      'Cancel — force this computer’s OLDER roster onto the shared board (rollback; every other computer will adopt it).');
+    if (!useShared) return { adopted: false, forced: true, gate };
+  }
+  await pullStateFromGitHub(false); // quiet read-side adoption; the guard passes because remote is newer
+  return { adopted: true, forced: false, gate };
+}
+
 // Freshest lastImported across residents (an apply stamps every present resident,
 // v29; stamped at APPLY since P0), in ms. 0 when none carry one — a brand-new/empty registry, which is NOT
 // treated as stale (so an empty registry never cries wolf).
@@ -13078,6 +13126,13 @@ async function _doPublishToGitHub(manual) {
   // ghPushFilesAtomic). They used to go out as one Contents-API commit each, so a
   // crash mid-publish shipped a mutually-inconsistent artifact set and every CI
   // run but the last evaluated a state that never existed.
+  // P5: before building anything, make sure this computer's roster is not OLDER than
+  // the shared board's. Auto path adopts the shared roster; manual may force (F3).
+  let _registryPreflight = { adopted: false, forced: false, gate: null };
+  if (typeof doorRegistryPublishPreflight === 'function') {
+    try { _registryPreflight = await doorRegistryPublishPreflight(manual) || _registryPreflight; }
+    catch (e) { console.warn('[DOOR] registry publish preflight:', e); }
+  }
   let _pushes = [];
   const _staged = [];
   const _push = (path, content) => { _staged.push({ path, content }); };
@@ -13204,7 +13259,10 @@ async function _doPublishToGitHub(manual) {
         return { ok:true, advisory: overlayAdvisory };
       }
       if(statusEl){ statusEl.textContent='Published ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
-      updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr, 'var(--forest)');
+      // P5: say which roster went out when the preflight had to intervene.
+      const _rosterNote = _registryPreflight.adopted ? ' · used the shared roster (newer than this computer’s copy)'
+                        : (_registryPreflight.forced ? ' · FORCED this computer’s older roster (rollback)' : '');
+      updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr + _rosterNote, _registryPreflight.forced ? '#d97706' : 'var(--forest)');
       if(manual) showToast('Published to GitHub ✓');
       return { ok:true };
     }
