@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.5';
+const DOOR_APP_VERSION = 'v31-standard.6';
 const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9928,12 +9928,17 @@ function doorDeviceCapability(inp) {
                 (inp.lastSkip.reason === 'auto_publish_off' && inp.autoPublishOn === false);
     if (!dup) reasons.push({ code: 'last-skip', label: m.label, action: m.action, at: inp.lastSkip.at || null });
   }
+  // P3: the outbox count is the primary "work exists only here" signal; the
+  // last-Generate-vs-last-publish timestamp proxy stays as the fallback.
+  const outbox = Array.isArray(inp.outbox) ? inp.outbox : [];
   const gen = inp.lastGeneratedAt ? new Date(inp.lastGeneratedAt).getTime() : 0;
   const ok = inp.lastPublishOkAt ? new Date(inp.lastPublishOkAt).getTime() : 0;
-  const pending = !!gen && (!ok || gen > ok);
+  const proxyPending = !!gen && (!ok || gen > ok);
+  const pending = outbox.length > 0 || proxyPending;
+  const since = outbox.length ? (outbox[0].ts || null) : (proxyPending ? inp.lastGeneratedAt : null);
   const canPublish = reasons.length === 0;
   const level = pending ? 'red' : (reasons.length ? 'amber' : 'none');
-  return { canPublish, reasons, unpublished: { pending, since: pending ? inp.lastGeneratedAt : null }, level };
+  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, level };
 }
 
 // Live reader for the pure function. Everything is read at call time — no cached fossil.
@@ -9951,7 +9956,8 @@ function doorDeviceCapabilityInput() {
     lastSkip: gj('concLastPublishSkip'),
     lastError: meta.lastError ? { message: meta.lastError, at: meta.lastErrorAt || null } : null,
     lastGeneratedAt: g('concLastGenerated'),
-    lastPublishOkAt: g('concLastPublishOk')
+    lastPublishOkAt: g('concLastPublishOk'),
+    outbox: doorOutboxRead()
   };
 }
 
@@ -9968,7 +9974,8 @@ function _doorDeviceBannerHTML(capOpt) {
   let head;
   if (c.unpublished.pending) {
     const since = c.unpublished.since ? new Date(c.unpublished.since).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-    head = '&#x26A0; Changes on this computer have NOT reached the shared board' + (since ? ' (generated ' + escapeHtml(since) + ')' : '');
+    const n = c.unpublished.count || 0;
+    head = '&#x26A0; ' + (n > 1 ? n + ' sets of changes' : 'Changes') + ' on this computer have NOT reached the shared board' + (since ? ' (' + (n ? 'oldest ' : 'generated ') + escapeHtml(since) + ')' : '');
   } else {
     head = '&#x26A0; This computer can’t publish to the shared board yet';
   }
@@ -10056,14 +10063,69 @@ async function doorConnectCardSubmit() {
     _doorConnectCardOpen = false;
     if (input) input.value = '';
     if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
-    // The publish that was owed when the card opened goes out now (P3 makes this the
-    // outbox drain; until then, one re-run of the auto path).
-    if (typeof publishAndSync === 'function') publishAndSync('connected — sending this computer’s changes');
+    // P3: drain the outbox — everything owed goes out as ONE publish of current state.
+    // If nothing was recorded as owed (e.g. the card was opened from the banner before
+    // any Generate), there is nothing to send yet; the next Generate publishes normally.
+    doorOutboxDrain('connect');
   } catch (err) {
     const copy = doorConnectFailureCopy(err && err.message);
     if (copy.kind === 'rejected' && PublishAuth && typeof PublishAuth.rememberFailure === 'function') PublishAuth.rememberFailure(err.message);
     say(copy.text, '#dc2626');
   }
+}
+
+// P3 (publish-resilience plan, 2026-09-11): the durable publish OUTBOX (F1 = pointer).
+// Every skipped or failed publish appends {ts, context, reason, registryModifiedAt} —
+// never a payload; the state is already in localStorage. Drain = publish CURRENT state
+// once (after Connect, at boot when a key exists). Only a landed publish clears it.
+// Writes go through doorSetItemSafe — HOUSE_PROVEN_SEAMS row 1 ported for DOOR: on
+// quota, drop the expendable pre-Generate undo snapshot and retry once; fail loud.
+const DOOR_PUBLISH_OUTBOX_KEY = 'concPublishOutbox';
+const DOOR_OUTBOX_MAX = 50;
+const DOOR_EXPENDABLE_KEYS = ['concRegistrySnapshot'];
+
+function doorSetItemSafe(key, value) {
+  try { localStorage.setItem(key, value); return true; }
+  catch (e) {
+    try { DOOR_EXPENDABLE_KEYS.forEach(function(k) { localStorage.removeItem(k); }); } catch (e2) {}
+    try { localStorage.setItem(key, value); return true; }
+    catch (e3) {
+      console.warn('[DOOR] doorSetItemSafe: write to "' + key + '" failed even after dropping expendable keys — ' + ((e3 && e3.message) || e3));
+      return false;
+    }
+  }
+}
+
+function doorOutboxRead() {
+  let raw = null;
+  try { raw = localStorage.getItem(DOOR_PUBLISH_OUTBOX_KEY); } catch (e) {}
+  if (!raw) return [];
+  try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+
+function doorOutboxAppend(context, reason) {
+  const list = doorOutboxRead();
+  let prov = null;
+  try { const t = (typeof getRegistryProvenanceTs === 'function') ? getRegistryProvenanceTs() : 0; prov = t ? new Date(t).toISOString() : null; } catch (e) {}
+  list.push({ ts: new Date().toISOString(), context: String(context || ''), reason: String(reason || 'skipped'), registryModifiedAt: prov });
+  while (list.length > DOOR_OUTBOX_MAX) list.shift();
+  doorSetItemSafe(DOOR_PUBLISH_OUTBOX_KEY, JSON.stringify(list));
+  return list.length;
+}
+
+function doorOutboxClear() {
+  try { localStorage.removeItem(DOOR_PUBLISH_OUTBOX_KEY); } catch (e) {}
+}
+
+// Returns the number of owed entries it attempted to send (0 = nothing to do or no key).
+// Does NOT clear — _doPublishToGitHub clears on a landed commit.
+function doorOutboxDrain(trigger) {
+  const list = doorOutboxRead();
+  if (!list.length) return 0;
+  const hasKey = !!((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : '');
+  if (!hasKey) return 0;
+  if (typeof publishAndSync === 'function') publishAndSync('sending ' + list.length + ' unpublished change set' + (list.length === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');
+  return list.length;
 }
 
 // Freshest lastImported across residents (an apply stamps every present resident,
@@ -10243,6 +10305,7 @@ function publishAndSync(context) {
     if (result && result.skipped) {
       const reason = result.message || 'publish skipped';
       _recordSkip(result.reason, reason);
+      if (typeof doorOutboxAppend === 'function') doorOutboxAppend(context, result.reason); // P3: owed until one lands
       // P2: no connection key is the one skip staff can fix on the spot — open the card.
       if (result.reason === 'missing_auth') _doorConnectCardOpen = true;
       updateSyncBar('Saved locally — not published · ' + reason + ' · ' + timeStr, '#dc2626');
@@ -10263,7 +10326,14 @@ function publishAndSync(context) {
     updateSyncBar('Synced ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
   }).catch((err) => {
     const msg = (err && err.message) ? err.message : 'sync failed';
-    _recordSkip('error', msg);
+    // P3 (found by the e2e): with NO key at all, _doPublishToGitHub THROWS from the
+    // credentials lookup instead of returning a missing_auth skip — so classify here,
+    // or the outbox records "error" and the P2 card never auto-opens on a new device.
+    const _noKey = !((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : '');
+    const _code = _noKey ? 'missing_auth' : (/expir/i.test(msg) ? 'missing_auth' : 'error');
+    _recordSkip(_code, msg);
+    if (typeof doorOutboxAppend === 'function') doorOutboxAppend(context, _code); // P3
+    if (_code === 'missing_auth') _doorConnectCardOpen = true;
     updateSyncBar('Saved locally — not published · ' + msg + ' · ' + timeStr, '#dc2626');
     if (typeof showToast === 'function') showToast('Saved locally, not published — ' + msg);
     if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
@@ -12991,6 +13061,7 @@ async function _doPublishToGitHub(manual) {
       // banner can tell "work exists only here" from "published", and clear any
       // earlier recorded skip — a real publish is the only thing that clears it.
       try { localStorage.setItem('concLastPublishOk', new Date().toISOString()); localStorage.removeItem('concLastPublishSkip'); } catch(e) {}
+      if (typeof doorOutboxClear === 'function') doorOutboxClear(); // P3: the debt is paid — current state is on the shared board
       // Publish wasn't blocked, so it's now safe to persist the cloud-merged
       // overlay locally (future sessions/renders see the same cloud-only days).
       // Deferred from before the push so a failed/partial publish leaves
@@ -20317,7 +20388,10 @@ updateRevertButton();
 // Silent (non-manual) — updates registry and re-renders if remote data is newer.
 // v31: route through ensureRegistrySynced so the import flow can await this same
 // in-flight pull (otherwise the first import races the +500ms sync — see handleImportFile).
-setTimeout(() => { ensureRegistrySynced(); }, 500);
+// P3: once the boot sync has settled, send anything this device still owes (a
+// previous session's Generate that never published). No-op without a key or an
+// empty outbox; a skip re-records itself, so this cannot loop.
+setTimeout(() => { ensureRegistrySynced().then(() => { setTimeout(() => { try { doorOutboxDrain('boot'); } catch (e) { console.warn('[DOOR] boot outbox drain:', e); } }, 1500); }); }, 500);
 
 // ============================================================
 // INTAKE MODE (?intake URL parameter)

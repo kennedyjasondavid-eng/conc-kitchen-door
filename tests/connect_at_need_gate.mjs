@@ -95,17 +95,24 @@ test('card HTML: masked key field, kitchen-lead wording, Test & connect + Cancel
   assert.ok(!NO_GH.test(out.replace(/doorConnect\w+/g, '')), 'card copy leaked GitHub vocabulary');
 });
 
-function submitSandbox({ validate, typed }) {
+// P3: after a successful connect the card DRAINS the outbox (doorOutboxDrain), which
+// publishes once only when something is owed and a key is now saved.
+function submitSandbox({ validate, typed, outbox }) {
   const calls = { validate: [], saved: [], published: [], prompt: 0 };
   const status = { textContent: '', style: {} };
   const input = { value: typed };
+  const store = outbox ? { concPublishOutbox: JSON.stringify(outbox) } : {};
+  let savedKey = '';
   const sb = {
     console, calls, status, input,
     _doorConnectCardOpen: true,
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    getRegistryProvenanceTs: () => 0,
     PublishAuth: {
       getRepo: () => 'org/repo',
+      getSavedToken: () => savedKey,
       validateToken: async (t, r) => { calls.validate.push(t); return validate(t, r); },
-      saveValidatedToken: (t, r) => { calls.saved.push(t); },
+      saveValidatedToken: (t, r) => { calls.saved.push(t); savedKey = t; },
       rememberFailure: () => {}
     },
     publishAndSync: (ctx) => { calls.published.push(ctx); },
@@ -113,18 +120,30 @@ function submitSandbox({ validate, typed }) {
     document: { getElementById: (id) => id === 'door-connect-key' ? input : (id === 'door-connect-status' ? status : null) }
   };
   vm.createContext(sb);
-  vm.runInContext([fnBlock('doorSanitizeConnectionKey'), fnBlock('doorConnectFailureCopy'), fnBlock('doorConnectCardClose'), fnBlock('doorConnectCardSubmit')].join('\n'), sb);
+  vm.runInContext([fnBlock('doorSanitizeConnectionKey'), fnBlock('doorConnectFailureCopy'), fnBlock('doorConnectCardClose'), fnBlock('doorConnectCardSubmit'),
+    fnBlock('doorSetItemSafe'), fnBlock('doorOutboxRead'), fnBlock('doorOutboxAppend'), fnBlock('doorOutboxClear'), fnBlock('doorOutboxDrain')].join('\n') +
+    "\nconst DOOR_PUBLISH_OUTBOX_KEY='concPublishOutbox';\nconst DOOR_OUTBOX_MAX=50;\nconst DOOR_EXPENDABLE_KEYS=['concRegistrySnapshot'];", sb);
   return sb;
 }
 
-test('submit: a key that validates is stored (sanitized), the card closes, and the owed publish runs exactly once', async () => {
-  const sb = submitSandbox({ validate: async () => ({}), typed: '“good_key_123”\n' });
+test('submit: a key that validates is stored (sanitized), the card closes, and the owed publish drains exactly once', async () => {
+  const owed = [{ ts: '2026-09-11T09:00:00Z', context: 'plating sheets generated', reason: 'missing_auth' }];
+  const sb = submitSandbox({ validate: async () => ({}), typed: '“good_key_123”\n', outbox: owed });
   await vm.runInContext('doorConnectCardSubmit()', sb);
   assert.deepEqual([...sb.calls.validate], ['good_key_123'], 'validated with the SANITIZED key');
   assert.deepEqual([...sb.calls.saved], ['good_key_123']);
-  assert.equal(sb.calls.published.length, 1, 'owed publish re-run once');
+  assert.equal(sb.calls.published.length, 1, 'owed publish drained once');
+  assert.match(sb.calls.published[0], /1 unpublished/);
   assert.equal(sb._doorConnectCardOpen, false, 'card closed');
   assert.ok(sb.calls.prompt >= 1, 'banner re-rendered');
+});
+
+test('submit: a key that validates with NOTHING owed stores the key and publishes nothing (the next Generate publishes normally)', async () => {
+  const sb = submitSandbox({ validate: async () => ({}), typed: 'good_key_123', outbox: null });
+  await vm.runInContext('doorConnectCardSubmit()', sb);
+  assert.deepEqual([...sb.calls.saved], ['good_key_123']);
+  assert.equal(sb.calls.published.length, 0, 'nothing owed → no publish');
+  assert.equal(sb._doorConnectCardOpen, false);
 });
 
 test('submit: a rejected key is NOT stored, nothing publishes, status says rejected in kitchen words', async () => {
@@ -153,6 +172,14 @@ test('submit: an empty field never calls out', async () => {
 
 test('wiring: Connect button opens the card inline; a missing_auth skip auto-opens it; the banner renders it while open', () => {
   assert.match(fnBlock('doorDeviceBannerFix'), /_doorConnectCardOpen\s*=\s*true/);
-  assert.match(fnBlock('publishAndSync'), /missing_auth[\s\S]{0,200}_doorConnectCardOpen\s*=\s*true/);
+  const pas = fnBlock('publishAndSync');
+  assert.match(pas, /missing_auth[\s\S]{0,200}_doorConnectCardOpen\s*=\s*true/);
+  // P3 e2e finding: with NO key, _doPublishToGitHub THROWS from the credentials lookup
+  // (it never returns a missing_auth skip), so the catch branch must classify a missing
+  // key itself — otherwise a brand-new device records "error" and the card never opens.
+  const catchBranch = pas.slice(pas.lastIndexOf('.catch('));
+  assert.match(catchBranch, /getSavedToken\(\)/, 'catch branch must check for a missing key');
+  assert.match(catchBranch, /missing_auth/, 'catch branch must classify a missing key as missing_auth');
+  assert.match(catchBranch, /_doorConnectCardOpen\s*=\s*true/, 'catch branch must open the card on a missing key');
   assert.match(fnBlock('_doorDeviceBannerHTML'), /_doorConnectCardOpen[\s\S]{0,200}_doorConnectCardHTML\(\)/);
 });
