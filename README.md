@@ -129,6 +129,19 @@ If you change one of these schemas, update the consumer in the same change set, 
 
 The HTA is a Windows-only HTML Application that wraps `git`. It auto-detects which machine you're on by checking the OneDrive path. Edit the HTA if paths change.
 
+### Admin — issuing a connection key for a DOOR device (ruling F4, 2026-09-11)
+
+Staff never deal with GitHub. Each computer that publishes needs one **connection key**, which is a GitHub fine-grained personal access token that the kitchen lead (Jason) creates and hands over. DOOR's staff-facing screens call it a "connection key" and never say "token" or "GitHub"; a gate enforces that copy.
+
+1. GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token.
+2. Resource owner: your account. **Repository access: Only select repositories → `conc-kitchen-door`.** Nothing else.
+3. Permissions: **Contents: Read and write.** Leave every other permission at "No access".
+4. Expiration: up to one year. Note the date; DOOR shows it in Settings and warns 14 days out.
+5. Give the key to the device once. Staff paste it into the **Connect** card that appears on Enter Changes whenever a computer cannot publish (or under Settings → GitHub connection → Test & Save). DOOR strips paste artifacts (smart quotes, invisible characters) before use.
+6. If a computer is lost or replaced, revoke that key on GitHub. Because it is scoped to this one repo with contents-only rights, that is the whole blast radius.
+
+Why this shape: the repo is public, so any key pasted into a public page can write to it. Scoping the key to one repo and one permission limits what a leaked key can do; per-device issuance means one revocation retires one machine. The longer-term answer for staff is Microsoft 365 sign-in (HOUSE build-path phase 6), after which no key is needed at all.
+
 ### Related apps
 
 | App | Repo | Role w.r.t. DOOR |
