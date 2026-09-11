@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.2';
-const DOOR_BUILD_DATE = '2026-08-31';
+const DOOR_APP_VERSION = 'v31-standard.3';
+const DOOR_BUILD_DATE = '2026-09-11';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -9787,6 +9787,9 @@ function applyQueueToRegistry() {
   // Rebuild REGISTRY_MAP
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
   REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
+  // P0: the queue is applied — NOW the imported rooms (incl. new intakes) are
+  // "current as of" the import date. Consumes concPendingImportStamp.
+  doorApplyPendingImportStamp();
   saveRegistryState();
   setRegistryProvenance(); // v31: queue applied locally — local is now the freshest copy
 }
@@ -9839,8 +9842,53 @@ function doorRegistrySyncShouldSkip(remoteMeta, localProvTs, manual) {
   return remoteTs <= localProvTs;
 }
 
+// P0 (publish-resilience plan, 2026-09-11): "registry current as of" means APPLIED,
+// not viewed. commitImportToQueue used to stamp lastImported the moment an import
+// was committed to the queue — before Review & Generate ever applied it — so an
+// import that was committed and then abandoned read as current to the stale
+// banner. Now commit RECORDS the imported room list here when it queued changes,
+// and applyQueueToRegistry stamps those rooms once the queue is applied. A
+// zero-change import (nothing to apply; the roster is verified current) stamps
+// immediately so a daily "0 changes" check still keeps the banner honest.
+const DOOR_PENDING_IMPORT_STAMP_KEY = 'concPendingImportStamp';
+
+function doorStampImportedRooms(rooms, dateStr) {
+  let n = 0;
+  (rooms || []).forEach(function(room) {
+    const r = REGISTRY_MAP[String(room).toLowerCase()];
+    if (r) { r.lastImported = dateStr; n++; }
+  });
+  return n;
+}
+
+// Called by commitImportToQueue with the rooms on the imported list and the count
+// of changes it queued. Returns 'stamped' | 'pending' | 'none'.
+function doorRecordImportStamp(rooms, dateStr, queuedCount) {
+  if (!rooms || !rooms.length) return 'none';
+  if (!queuedCount) {
+    doorStampImportedRooms(rooms, dateStr);
+    saveRegistryState();
+    return 'stamped';
+  }
+  try { localStorage.setItem(DOOR_PENDING_IMPORT_STAMP_KEY, JSON.stringify({ date: dateStr, rooms: rooms })); } catch(e) {}
+  return 'pending';
+}
+
+// Called by applyQueueToRegistry after the registry map is rebuilt (so a new
+// intake is stampable). Consumes the pending record; malformed → cleared, no-op.
+function doorApplyPendingImportStamp() {
+  let raw = null;
+  try { raw = localStorage.getItem(DOOR_PENDING_IMPORT_STAMP_KEY); } catch(e) {}
+  if (!raw) return 0;
+  try { localStorage.removeItem(DOOR_PENDING_IMPORT_STAMP_KEY); } catch(e) {}
+  let p = null;
+  try { p = JSON.parse(raw); } catch(e) { return 0; }
+  if (!p || !Array.isArray(p.rooms) || typeof p.date !== 'string' || !p.date) return 0;
+  return doorStampImportedRooms(p.rooms, p.date);
+}
+
 // Freshest lastImported across residents (an apply stamps every present resident,
-// v29), in ms. 0 when none carry one — a brand-new/empty registry, which is NOT
+// v29; stamped at APPLY since P0), in ms. 0 when none carry one — a brand-new/empty registry, which is NOT
 // treated as stale (so an empty registry never cries wolf).
 function doorFreshestImportTs(residents) {
   let best = 0;
@@ -19699,14 +19747,12 @@ function commitImportToQueue() {
   localStorage.setItem('concLastImportFile', IMPORT_STATE.fileName || '');
   if (IMPORT_STATE && IMPORT_STATE.entries) localStorage.setItem('concLastImportCount', String(IMPORT_STATE.entries.length));
 
-  // v29: Stamp lastImported on all residents present in the import file
+  // v29 → P0 (2026-09-11): lastImported is stamped when the queue is APPLIED
+  // (applyQueueToRegistry), not here at commit. Record the imported rooms; a
+  // zero-change import stamps immediately (nothing to apply). See doorRecordImportStamp.
   const _importDate = new Date().toISOString().slice(0, 10);
   if (IMPORT_STATE && IMPORT_STATE.entries) {
-    IMPORT_STATE.entries.forEach(e => {
-      const r = REGISTRY_MAP[e.room.toLowerCase()];
-      if (r) r.lastImported = _importDate;
-    });
-    saveRegistryState();
+    doorRecordImportStamp(IMPORT_STATE.entries.map(e => e.room), _importDate, pushed);
   }
 
   closeImportDialog();
