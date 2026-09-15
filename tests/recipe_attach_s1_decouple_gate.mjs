@@ -75,16 +75,20 @@ test('legacy welded + manual slots resolve byte-identically (no displayText path
   assert.equal('displayText' in snap.starch, false, 'a manual slot never carries displayText');
 });
 
-test('snapshot carries displayText ONLY for a decoupled main-group slot', () => {
+test('snapshot carries displayText for any decoupled BOUND slot (main group + alt slots)', () => {
   const c = freshCtx();
   c.MEAL_SLOT_STATE.main = { recipeName: 'Pork Al Pastor', displayText: 'Pork Al Pastor Taco', flags: { hasNightshades: true } };
-  // an ALT slot with a stray displayText must NOT persist it (bind is main-group-only)
-  c.MEAL_SLOT_STATE.veganalt = { recipeName: 'Tofu Al Pastor', displayText: 'Tofu Taco', flags: {} };
+  // an ALT slot with a display override now persists it too (shown-as generalized to all bound slots)
+  c.MEAL_SLOT_STATE.veganalt = { recipeName: 'Tofu Al Pastor', displayText: 'Vegan Al Pastor Taco', flags: {} };
   const snap = c._buildSlotSnapshot();
   assert.equal(snap.main.displayText, 'Pork Al Pastor Taco', 'decoupled main-group slot persists displayText');
   assert.deepEqual(Object.keys(snap.main), ['recipeName', 'flags', 'displayText'], 'displayText is APPENDED last, never inserted before the byte-neutral pair');
   assert.deepEqual(snap.main.flags, { hasNightshades: true }, 'flags still carried');
-  assert.equal('displayText' in snap.veganalt, false, 'an alt slot never persists displayText');
+  assert.equal(snap.veganalt.displayText, 'Vegan Al Pastor Taco', 'a bound alt slot now persists its display override');
+  // an unbound / display===recipe slot still adds no key (byte-neutral)
+  c.MEAL_SLOT_STATE.starch = { recipeName: 'Rice', displayText: 'Rice', flags: {} };
+  const snap2 = c._buildSlotSnapshot();
+  assert.equal('displayText' in snap2.starch, false, 'display === recipe adds no key');
 });
 
 test('save → snapshot → restore round-trip preserves displayText', () => {
@@ -99,15 +103,18 @@ test('save → snapshot → restore round-trip preserves displayText', () => {
   assert.equal(c.buildMainItem(), 'Pork Al Pastor Taco', 'and still resolves after restore');
 });
 
-test('restore mirrors the write-side guard: a stray alt-slot displayText is stripped', () => {
+test('restore mirrors the write-side guard: bound-slot displayText is kept, an unbound stray is stripped', () => {
   const c = freshCtx();
-  // a hand-edited / imported _slots that the write path would never produce
   c._restoreSlotSnapshot({
     main: { recipeName: 'Pork Al Pastor', displayText: 'Pork Al Pastor Taco', flags: {} },
-    veganalt: { recipeName: 'Tofu Al Pastor', displayText: 'Sneaky Taco', flags: {} },
+    veganalt: { recipeName: 'Tofu Al Pastor', displayText: 'Vegan Taco', flags: {} },
+    // a hand-edited / imported _slots the write path would never produce: displayText on a
+    // MANUAL (unbound) slot — no recipe to stay linked to, so it must be dropped
+    starch: { manual: 'Rice', displayText: 'Sneaky Rice', flags: {} },
   });
-  assert.equal(c.MEAL_SLOT_STATE.main.displayText, 'Pork Al Pastor Taco', 'main-group displayText is honoured');
-  assert.equal('displayText' in c.MEAL_SLOT_STATE.veganalt, false, 'alt-slot displayText is dropped on restore (invariant holds on read too)');
+  assert.equal(c.MEAL_SLOT_STATE.main.displayText, 'Pork Al Pastor Taco', 'bound main-group displayText is honoured');
+  assert.equal(c.MEAL_SLOT_STATE.veganalt.displayText, 'Vegan Taco', 'bound alt-slot displayText is honoured on restore');
+  assert.equal('displayText' in c.MEAL_SLOT_STATE.starch, false, 'an UNBOUND slot displayText is dropped on restore (bound-only invariant holds on read too)');
 });
 
 test('displayText never leaks into allergen flags or the veg-alt string', () => {

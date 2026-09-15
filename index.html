@@ -17245,9 +17245,9 @@ let _noPorkAltVisible = false;
 // Recipe-attach S1 (2026-08-18): the shown dish text for a slot. A slot may carry a
 // displayText that DIFFERS from its bound recipeName — e.g. show "Pork Al Pastor Taco"
 // on the menu while the allergen flags come from the bound recipe "Pork Al Pastor".
-// displayText is only ever WRITTEN on a bound main-group slot (enforced at the snapshot
-// + the S2 editor), and is absent everywhere else — so for every legacy/unbound/manual
-// slot this resolves to exactly `recipeName || manual` as before (byte-identical).
+// displayText is only ever WRITTEN on a BOUND slot (any recipe-linked slot; enforced at
+// the snapshot + the S2 editor), and is absent on legacy/unbound/manual slots — so for
+// those this resolves to exactly `recipeName || manual` as before (byte-identical).
 function _slotText(s) { return s ? (s.displayText || s.recipeName || s.manual || '') : ''; }
 
 function buildMealName() {
@@ -17340,10 +17340,10 @@ function _buildSlotSnapshot() {
         // for an exact deep-link). A phase-1 slot with no id adds no key, so its published
         // `_slots` entry stays byte-identical.
         if (s.recipeId) snap[d.id].recipeId = String(s.recipeId);
-        // Recipe-attach S1: carry a display override ONLY on a bound main-group slot where
-        // it actually differs from the recipe name. A legacy/default-display slot adds no
-        // key, so its published `_slots` entry stays byte-identical to pre-S1.
-        if (s.displayText && s.displayText !== s.recipeName && MAIN_SLOT_IDS.includes(d.id)) {
+        // Recipe-attach S1: carry a display override on any bound slot where it actually
+        // differs from the recipe name. A legacy/default-display slot adds no key, so its
+        // published `_slots` entry stays byte-identical to pre-S1.
+        if (s.displayText && s.displayText !== s.recipeName) {
           snap[d.id].displayText = s.displayText;
         }
       }
@@ -17361,10 +17361,10 @@ function _restoreSlotSnapshot(slots) {
     const val = slots[id];
     if (val && (val.recipeName || val.manual)) {
       MEAL_SLOT_STATE[id] = { ...val };
-      // Recipe-attach S1: mirror the write-side guard — displayText is a main-group-only
-      // fact. Strip a stray one off an alt slot (only reachable via a hand-edited/imported
-      // `_slots`) so the invariant holds symmetrically on read as well as write.
-      if (MEAL_SLOT_STATE[id].displayText && !MAIN_SLOT_IDS.includes(id)) delete MEAL_SLOT_STATE[id].displayText;
+      // Recipe-attach S1: displayText rides along on any bound slot. Strip a stray one off an
+      // UNBOUND (manual) slot — it has no recipe to stay linked to, so a shown-as override is
+      // meaningless there — keeping read and write symmetric.
+      if (MEAL_SLOT_STATE[id].displayText && !MEAL_SLOT_STATE[id].recipeName) delete MEAL_SLOT_STATE[id].displayText;
     }
   });
   return true;
@@ -17643,10 +17643,11 @@ function renderSlotCard(def, ns) {
     : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:#92400e;border-radius:8px;font-weight:600;margin-left:6px;" title="No CODEX recipe linked. Allergen flags here are manual — verify they're complete. Type to search CODEX, click a suggestion to link.">⚠ unlinked (manual)</span>` : '');
 
   const borderColor = hasValue ? (state.recipeName ? '#10b981' : '#60a5fa') : 'var(--border)';
-  // Recipe-attach S2: "Shown on menu as" — bound main-group slots only, regular editor only
-  // (SM has its own path). Lets the operator show e.g. "Pork Al Pastor Taco" while allergens
-  // stay linked to the bound "Pork Al Pastor". Absent on alt slots + manual + SM cards.
-  const showAsHtml = (ns === 'slot' && hasValue && state.recipeName && MAIN_SLOT_IDS.includes(def.id))
+  // Recipe-attach S2: "Shown on menu as" — ANY bound slot (main group + the alt slots),
+  // regular editor only (SM has its own path). Lets the operator show e.g. "Pork Al Pastor
+  // Taco" / "Vegan Nacho Mix" while allergens stay linked to the bound recipe. Absent on
+  // manual (unbound) + SM cards. The bound recipe check (state.recipeName) excludes both.
+  const showAsHtml = (ns === 'slot' && hasValue && state.recipeName)
     ? `<div style="margin-top:6px;">
         <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Shown on menu as <span style="font-style:italic;">(allergens stay linked to “${escapeHtml(state.recipeName)}”)</span></label>
         <input type="text" id="slot-showas-${_escAttr(def.id)}" value="${_escAttr(state.displayText || state.recipeName)}"
@@ -18404,14 +18405,14 @@ function smSlotSearch(slotId, query) {
   dd.innerHTML = results.length
     ? results.map(r => {
         const hilite = highlightHtml(r.recipeName, q);
-        return `<div onclick="${_escJsAttrCall('smSlotSelect', [slotId, r.recipeName])}"
+        return `<div onclick="${_escJsAttrCall('smSlotSelect', [slotId, r.recipeName])}" onmousedown="event.preventDefault()"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
           <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
         </div>`;
       }).join('')
-    : `<div onclick="${_escJsAttrCall('smSlotSaveManual', [slotId])}"
+    : `<div onclick="${_escJsAttrCall('smSlotSaveManual', [slotId])}" onmousedown="event.preventDefault()"
         style="padding:10px 12px;font-size:12px;color:#2563eb;cursor:pointer;"
         onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
         ＋ Add "<strong>${escapeHtml(q)}</strong>" manually (no allergen data)</div>`;
@@ -18467,14 +18468,14 @@ function slotSearch(slotId, query) {
   dd.innerHTML = results.length
     ? results.map(r => {
         const hilite = highlightHtml(r.recipeName, q);
-        return `<div onclick="${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}"
+        return `<div onclick="${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}" onmousedown="event.preventDefault()"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
           <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
         </div>`;
       }).join('')
-    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "' + escapeHtml(query) + '" manually (no allergen data)</span></div>';
+    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "' + escapeHtml(query) + '" manually (no allergen data)</span></div>';
   dd.style.display = 'block';
 }
 
@@ -18512,7 +18513,11 @@ function slotClear(slotId) {
 function slotAutoSave(slotId, val) {
   val = (val || '').trim();
   const dd = document.getElementById('slot-dd-' + slotId);
-  if (dd && dd.style.display !== 'none') return; // dropdown selection takes priority
+  // Commit the typed text. A dropdown ROW click keeps input focus (mousedown-preventDefault),
+  // so a real recipe selection never blurs into here — only a genuine click-away / Enter does,
+  // and the operator's exact text must be kept (never forced onto a partial CODEX match). Hide
+  // any open dropdown and fall through to the exact-match-or-manual commit below.
+  if (dd) dd.style.display = 'none';
   if (!val) { MEAL_SLOT_STATE[slotId] = null; renderSlots(); updateSlotSummary(); return; }
   const current = MEAL_SLOT_STATE[slotId];
   // Don't overwrite a recipe-linked entry with the same name
@@ -18546,7 +18551,9 @@ function slotAutoSave(slotId, val) {
 function smSlotAutoSave(slotId, val) {
   val = (val || '').trim();
   const dd = document.getElementById('sm-slot-dd-' + slotId);
-  if (dd && dd.style.display !== 'none') return;
+  // Commit the typed text — a row click keeps focus (mousedown-preventDefault), so only a
+  // genuine click-away / Enter reaches here and the exact text must be kept (see slotAutoSave).
+  if (dd) dd.style.display = 'none';
   if (!val) { SM_SLOT_STATE[slotId] = null; renderSmSlots(); updateSmSlotSummary(); return; }
   const current = SM_SLOT_STATE[slotId];
   if (current && current.recipeName && current.recipeName === val) return;
@@ -18573,13 +18580,13 @@ function slotSetManual(slotId, val) {
   updateSlotSummary();
 }
 
-// Recipe-attach S2: the "Shown on menu as" override for a bound main-group slot.
+// Recipe-attach S2: the "Shown on menu as" override for any bound slot.
 // Setting a displayText that differs from the recipe name decouples the shown dish text
 // from the recipe the allergens come from. Live-updates (no full re-render) so the field
 // keeps focus while typing, mirroring slotSetManual.
 function slotSetDisplayText(slotId, val) {
   const s = MEAL_SLOT_STATE[slotId];
-  if (!s || !s.recipeName || !MAIN_SLOT_IDS.includes(slotId)) return;   // bound main-group only
+  if (!s || !s.recipeName) return;   // any bound slot (allergens stay linked to the recipe)
   val = (val || '').trim();
   if (!val || val === s.recipeName) delete s.displayText;              // default display = no override
   else s.displayText = val;
@@ -18624,20 +18631,14 @@ function slotKey(e, slotId) {
   const dd = document.getElementById('slot-dd-' + slotId);
   if (e.key === 'Escape') { if (dd) dd.style.display = 'none'; }
   if (e.key === 'Enter') {
-    // Only auto-pick a dropdown row if the dropdown is actually visible AND
-    // it has selectable recipe rows (the "No matches" panel uses a span, not
-    // a div[onclick], so this condition skips it correctly).
-    const ddOpen = dd && dd.style.display !== 'none';
-    const first = ddOpen ? dd.querySelector('div[onclick]') : null;
-    if (first) { first.click(); return; }
-    // No selectable recipe row — preserve the user's exact typed text rather
-    // than running the fuzzy partial-match in slotAutoSave (which silently
-    // substitutes things like "Fruit Cup" for "Fruit").
+    // Commit exactly what was typed — never auto-adopt a partial/close CODEX match just
+    // because it's on top of the dropdown. slotAutoSave links only on an EXACT recipe-name
+    // match (for its allergens) and keeps anything else as free manual text. To take a
+    // similarly-named recipe, click it in the dropdown.
+    e.preventDefault();
+    if (dd) dd.style.display = 'none';
     const inp = document.getElementById('slot-search-' + slotId);
-    if (inp) {
-      if (dd) dd.style.display = 'none';
-      slotSaveManual(slotId, inp.value.trim());
-    }
+    if (inp) slotAutoSave(slotId, inp.value.trim());
   }
 }
 
@@ -18669,9 +18670,11 @@ function smSlotKey(e, slotId) {
   const dd = document.getElementById('sm-slot-dd-' + slotId);
   if (e.key === 'Escape') { if (dd) dd.style.display = 'none'; }
   if (e.key === 'Enter') {
-    const first = dd && dd.querySelector('div[onclick]');
-    if (first) { first.click(); return; }
-    smSlotSaveManual(slotId);
+    // Commit exactly what was typed — never auto-adopt a partial CODEX match (see slotKey).
+    e.preventDefault();
+    if (dd) dd.style.display = 'none';
+    const inp = document.getElementById('sm-slot-search-' + slotId);
+    if (inp) smSlotAutoSave(slotId, inp.value.trim());
   }
 }
 function smSlotSaveManual(slotId, val) {

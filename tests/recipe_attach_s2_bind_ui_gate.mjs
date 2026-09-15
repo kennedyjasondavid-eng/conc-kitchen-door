@@ -85,15 +85,16 @@ test('bind a recipe + rename the display → shows the rename, allergens stay fr
   assert.deepEqual(onFlags(c.MEAL_SLOT_STATE.main.flags), ['hasNightshades'], 'renaming the display NEVER changes the flags');
 });
 
-test('slotSetDisplayText: clears on empty / equal-to-recipe, and is a no-op off a bound main-group slot', () => {
+test('slotSetDisplayText: clears on empty / equal-to-recipe; works on any bound slot; no-op off a manual slot', () => {
   const c = freshCtx();
   c.slotSelect('main', 'Pork Al Pastor');
   c.slotSetDisplayText('main', 'Taco'); assert.equal(c.MEAL_SLOT_STATE.main.displayText, 'Taco');
   c.slotSetDisplayText('main', 'Pork Al Pastor'); assert.equal('displayText' in c.MEAL_SLOT_STATE.main, false, 'display === recipe clears the override');
   c.slotSetDisplayText('main', 'Taco'); c.slotSetDisplayText('main', '   '); assert.equal('displayText' in c.MEAL_SLOT_STATE.main, false, 'blank clears');
-  // no-op on an alt slot (bound) and on a manual slot
+  // a BOUND alt slot now accepts a display override (generalized to all bound slots)
   c.MEAL_SLOT_STATE.veganalt = { recipeName: 'Tofu Al Pastor', flags: {} };
-  c.slotSetDisplayText('veganalt', 'Tofu Taco'); assert.equal('displayText' in c.MEAL_SLOT_STATE.veganalt, false, 'alt slot rejects a display override');
+  c.slotSetDisplayText('veganalt', 'Vegan Al Pastor Taco'); assert.equal(c.MEAL_SLOT_STATE.veganalt.displayText, 'Vegan Al Pastor Taco', 'a bound alt slot now accepts a display override');
+  // still a no-op on a MANUAL (unbound) slot — no recipe to stay linked to
   c.MEAL_SLOT_STATE.main = { manual: 'House Dish', flags: {} };
   c.slotSetDisplayText('main', 'Anything'); assert.equal('displayText' in c.MEAL_SLOT_STATE.main, false, 'a manual (unbound) slot rejects a display override');
 });
@@ -109,10 +110,11 @@ test('display override survives a same-recipe re-confirm, drops on a genuine rec
   assert.deepEqual(onFlags(c.MEAL_SLOT_STATE.main.flags), ['hasFish'], 'flags follow the new recipe');
 });
 
-test('the "Shown as" control is gated to the regular editor + bound main-group slots (source)', () => {
+test('the "Shown as" control is gated to the regular editor + ANY bound slot, not just main (source)', () => {
   const card = fnBlock('renderSlotCard');
   assertContains(card, "ns === 'slot'", 'showAsHtml is regular-editor-only (absent on sm-slot cards)');
-  assertContains(card, 'MAIN_SLOT_IDS.includes(def.id)', 'showAsHtml is main-group-only (absent on alt slots)');
+  assert.ok(/const showAsHtml =[^;]*state\.recipeName\)/.test(card), 'showAsHtml gates on a bound recipe (state.recipeName), not on MAIN_SLOT_IDS');
+  assert.ok(!/showAsHtml =[^;]*MAIN_SLOT_IDS/.test(card), 'showAsHtml is no longer restricted to MAIN_SLOT_IDS — it renders on the alt slots too');
   assertContains(card, 'slotSetDisplayText(', 'the shown-as input wires to slotSetDisplayText');
   assertContains(card, '${showAsHtml}', 'the block is actually rendered into the card');
   // the two bind paths preserve the override on re-confirm
