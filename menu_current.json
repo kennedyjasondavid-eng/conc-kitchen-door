@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-09-14T13:17:09.174Z",
+    "exported": "2026-09-15T16:11:44.626Z",
     "version": 32
   },
   "menu": {
@@ -2857,12 +2857,12 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
-        "lunch_veg": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
-        "lunch_mainItem": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
-        "lunch_sides": "",
+        "lunch": "Beef Nachos, Tortillas",
+        "lunch_veg": "Vegan Nachos, Tortillas",
+        "lunch_mainItem": "Beef Nachos",
+        "lunch_sides": "Tortillas",
         "lunch_flags": {
-          "hasGluten": true,
+          "hasGluten": false,
           "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
@@ -2878,13 +2878,13 @@
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
+          "isCarb": false,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": false
         },
@@ -2961,7 +2961,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, dairy, beef",
+        "allergens_lunch": "dairy, beef",
         "allergens_dinner": "gluten, fish",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -2970,10 +2970,10 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
+            "recipeName": "Beef Nacho Mix",
             "flags": {
-              "hasGluten": true,
-              "hasDairy": true,
+              "hasGluten": false,
+              "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
@@ -2984,23 +2984,32 @@
               "hasShellfish": false,
               "hasSulphites": false,
               "hasPork": false,
-              "hasBeef": true,
+              "hasBeef": false,
               "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
-              "isCarb": true,
-              "halalCertifiedMeat": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasCoconut": false,
+              "hasBeans": false,
               "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
               "hasBrassicas": false,
-              "hasCorn": false,
-              "hasNightshades": false,
-              "hasBeans": false
-            }
+              "hasCorn": false
+            },
+            "recipeId": "beef-nacho-mix",
+            "displayText": "Beef Nachos"
           },
           "veganalt": {
-            "manual": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+            "manual": "Vegan Nachos",
+            "flags": {
+              "hasGluten": true,
+              "hasNightshades": true
+            }
+          },
+          "starch": {
+            "manual": "Tortillas",
             "flags": {}
           }
         }
