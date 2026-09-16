@@ -481,11 +481,11 @@
   },
   "2": {
     "SATURDAY": {
-      "lunch": "Chicken tenders & Roasted Yams, Sweet Potato, Seasonal Veg",
-      "lunch_veg": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot, Sweet Potato, Seasonal Veg",
+      "lunch": "Chicken Tenders, Sweet Potato, Seasonal Veg",
+      "lunch_veg": "Vegan Tenders, Sweet Potato, Seasonal Veg",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": true,
+        "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -501,7 +501,7 @@
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": true,
-        "halalCertifiedMeat": true,
+        "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
@@ -514,15 +514,15 @@
       "lunch_altMeals": [],
       "lunch_altMealsNone": true,
       "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Chicken tenders & Roasted Yams",
+      "lunch_mainItem": "Chicken Tenders",
       "lunch_mainAlt": "Halal Breaded Chicken Burgers",
       "lunch_sides": "Sweet Potato, Seasonal Veg",
       "lunch_slots": {
         "main": {
-          "manual": "Chicken tenders & Roasted Yams",
+          "recipeName": "Chicken Tenders",
           "flags": {
             "hasGluten": true,
-            "hasDairy": true,
+            "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
@@ -538,15 +538,16 @@
             "hasTurkey": false,
             "isSpicy": false,
             "isCarb": false,
-            "halalCertifiedMeat": true,
+            "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
-            "hasCoconut": false,
+            "hasBeans": false,
             "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
+            "hasCoconut": false,
             "hasNightshades": false,
-            "hasBeans": false
-          }
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "recipeId": "chicken-tenders"
         },
         "mainalt": {
           "recipeName": "Halal Breaded Chicken Burgers",
@@ -564,7 +565,7 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": false,
+            "hasChicken": true,
             "hasTurkey": false,
             "isSpicy": true,
             "isCarb": false,
@@ -579,7 +580,7 @@
           }
         },
         "veganalt": {
-          "manual": "Vegan Nuggets, Roasted Yams, Parsnip/ Carrot",
+          "manual": "Vegan Tenders",
           "flags": {
             "hasGluten": true,
             "hasSoy": true
