@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-09-15T21:08:50.456Z",
+    "exported": "2026-09-16T11:58:46.066Z",
     "version": 32
   },
   "menu": {
@@ -2857,10 +2857,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Beef Nachos, Tortillas",
-        "lunch_veg": "Vegan Nachos, Tortillas",
-        "lunch_mainItem": "Beef Nachos",
-        "lunch_sides": "Tortillas",
+        "lunch": "Beef Nachos Supreme, Tortillas, Sour Cream",
+        "lunch_veg": "Vegan Nacho, Tortillas, Sour Cream",
+        "lunch_mainItem": "Beef Nachos Supreme",
+        "lunch_sides": "Tortillas, Sour Cream",
         "lunch_flags": {
           "hasGluten": false,
           "hasDairy": true,
@@ -2886,7 +2886,7 @@
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
-          "hasCorn": false
+          "hasCorn": true
         },
         "dinner": "Baked Tomato Fish, Couscous, Broccoli",
         "dinner_veg": "Baked Tomato Tofu, Couscous, Broccoli",
@@ -2999,18 +2999,49 @@
               "hasCorn": false
             },
             "recipeId": "beef-nacho-mix",
-            "displayText": "Beef Nachos"
+            "displayText": "Beef Nachos Supreme"
           },
           "veganalt": {
-            "manual": "Vegan Nachos",
+            "manual": "Vegan Nacho",
             "flags": {
-              "hasGluten": true,
-              "hasNightshades": true
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
             }
           },
           "starch": {
             "manual": "Tortillas",
-            "flags": {}
+            "flags": {
+              "hasCorn": true
+            }
+          },
+          "xtra": {
+            "manual": "Sour Cream",
+            "flags": {
+              "hasDairy": true
+            }
           }
         }
       },
