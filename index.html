@@ -681,7 +681,7 @@
   body.intake-mode .nav-item:not([data-screen="enter"]) { display: none; }
   body.intake-mode .nav-section-label { display: none; }
   body.intake-mode .daily-prompt-wrap { display: none; }
-  body.intake-mode #screen-enter .topbar-right .btn:not(#intake-save-btn):not([title="Sync"]) { display: none; }
+  body.intake-mode #screen-enter .topbar-right .btn:not(#intake-save-btn):not(#refresh-list-btn) { display: none; }
   body.intake-mode #screen-enter .two-col-65 > div:last-child > .card:nth-child(2) { display: none; } /* meal context */
   body.intake-mode .sidebar-footer { display: none; }
   body.intake-mode .sidebar a.nav-item { display: none; } /* external links */
@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.9';
-const DOOR_BUILD_DATE = '2026-09-11';
+const DOOR_APP_VERSION = 'v31-standard.10';
+const DOOR_BUILD_DATE = '2026-09-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -881,14 +881,14 @@ function updateCODEXBadge() {
       <div class="topbar-sub">Record today's intakes, discharges, and restriction updates</div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Pull latest registry state from GitHub">&#x21BB; Sync</button>
-      <button class="btn btn-ghost btn-sm" onclick="openUploadDialog()" title="Upload today's meal list xlsx and generate changes automatically">&#x2191; Import Daily List</button>
+      <button class="btn btn-ghost btn-sm" id="refresh-list-btn" onclick="pullStateFromGitHub(true)" title="Get the latest resident list from the kitchen">&#x21BB; Refresh list</button>
+      <button class="btn btn-ghost btn-sm" onclick="openUploadDialog()" title="Import today's meal list and add the changes automatically">&#x2191; Import Daily List</button>
       <button class="btn btn-ghost btn-sm" onclick="clearQueue()">Clear Queue</button>
       <button class="btn btn-mint" onclick="addChange()">+ Add Change</button>
     </div>
   </div>
   <div class="sync-bar" id="enter-sync-bar">
-    <span class="sync-bar-status" id="sync-status" role="status" aria-live="polite">Checking registry…</span>
+    <span class="sync-bar-status" id="sync-status" role="status" aria-live="polite">Checking the resident list…</span>
     <span id="last-generated-indicator" style="font-size:12px;color:var(--muted);"></span>
     <button id="revert-gen-btn" class="btn btn-ghost btn-sm" style="display:none;font-size:11px;padding:2px 8px;margin-left:auto;color:#dc2626;border-color:#fecaca;" onclick="revertLastGenerate()">↩ Undo last generate</button>
   </div>
@@ -5164,8 +5164,8 @@ const MENU_DATA = {
                 "isCarb": false,
                 "halalCertifiedMeat": true
             },
-            "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
-            "lunch_veg": "Roasted Tofu, Sweet potatoes, Seasonal Vegetables",
+            "lunch": "Blackened fish, Sweet potatoes, Parsnip and Carrot",
+            "lunch_veg": "Roasted Tofu, Sweet potatoes, Parsnip and Carrot",
             "allergens_lunch": "fish, soy, sulphites",
             "lunch_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
             "lunch_altMeals": [
@@ -5176,7 +5176,7 @@ const MENU_DATA = {
                 }
             ],
             "lunch_mainItem": "Blackened fish",
-            "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
+            "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
             "lunch_flags": {
                 "hasGluten": false,
                 "hasDairy": false,
@@ -9390,7 +9390,7 @@ function goToNeedsReview() {
       document.getElementById('import-footer').style.display = 'flex';
       switchImportTab('review');
     } else {
-      showToast('Import session has expired — re-import the daily list to classify restrictions.');
+      showToast('This import has expired — re-import today’s meal list to keep classifying restrictions.');
     }
   }, 100);
 }
@@ -9427,8 +9427,8 @@ function buildReview() {
     const drift = net - _lastImportCount;
     const driftLabel = drift > 0 ? ('+' + drift) : String(drift);
     reconcileHtml = '<div class="alert alert-warn"><span class="alert-icon">⚠</span><div class="alert-body">' +
-      '<strong>Registry count (' + net + ') differs from last roster import (' + _lastImportCount + ') by ' + driftLabel + '.</strong><br>' +
-      'This may indicate missed intakes or discharges. Re-import today\'s meal list to reconcile, or review the change log for unprocessed entries.</div></div>';
+      '<strong>The resident list (' + net + ') doesn’t match today’s meal list (' + _lastImportCount + ') — off by ' + driftLabel + '.</strong><br>' +
+      'Some intakes or discharges may have been missed. Re-import today’s meal list to line them up, or check the change log for anything not yet applied.</div></div>';
   }
 
   // Room-level anaphylactic containment — informational (routing is automatic)
@@ -9932,17 +9932,17 @@ function doorApplyPendingImportStamp() {
 // F4 ruling: staff copy never says "token" or "GitHub" — the credential is the
 // "connection key" the kitchen lead supplies (admin guidance lives in README).
 const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
-  auto_publish_off:            { label: 'auto-publish is switched off on this computer', action: 'settings' },
-  'stale-tab':                 { label: 'this tab is out of date', action: 'reload' },
-  'stale-tab-cancelled':       { label: 'the last publish was cancelled because this tab is out of date', action: 'reload' },
+  auto_publish_off:            { label: 'this computer isn’t set to send changes to the kitchen on its own', action: 'settings' },
+  'stale-tab':                 { label: 'this page is out of date', action: 'reload' },
+  'stale-tab-cancelled':       { label: 'the last send was cancelled because this page is out of date', action: 'reload' },
   missing_auth:                { label: 'no connection key on this computer', action: 'connect' },
-  not_hydrated:                { label: 'this tab had not finished loading the shared copy', action: 'reload' },
-  empty_clobber:               { label: 'this computer’s copy was empty — reload to sync first', action: 'reload' },
-  size_regression:             { label: 'this computer’s copy was much smaller than the shared one — reload first', action: 'reload' },
-  blocked:                     { label: 'part of the last publish was blocked — reload if the shared copy is newer', action: 'reload' },
-  'validation-stop':           { label: 'the last publish was blocked by a data check', action: 'settings' },
-  'validation-stop-cancelled': { label: 'the last publish was cancelled at a data check', action: 'settings' },
-  error:                       { label: 'the last publish failed', action: 'connect' }
+  not_hydrated:                { label: 'this page hadn’t finished loading the latest list', action: 'reload' },
+  empty_clobber:               { label: 'this computer’s copy was out of date — reload first', action: 'reload' },
+  size_regression:             { label: 'this computer’s copy was out of date — reload first', action: 'reload' },
+  blocked:                     { label: 'some changes haven’t reached the kitchen yet — reload to finish sending them', action: 'reload' },
+  'validation-stop':           { label: 'the last send was stopped by a data check', action: 'settings' },
+  'validation-stop-cancelled': { label: 'the last send was cancelled at a data check', action: 'settings' },
+  error:                       { label: 'the last send didn’t go through', action: 'connect' }
 });
 
 // Pure. inp = { hasToken, tokenExpired, operatorName, autoPublishOn, tabStale,
@@ -9952,10 +9952,10 @@ const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
 function doorDeviceCapability(inp) {
   inp = inp || {};
   const reasons = [];
-  if (!inp.hasToken && inp.readOnly) reasons.push({ code: 'read-only', label: 'this computer was set up as read-only — connect it to send changes to the shared board', action: 'connect' }); // P4 (F2)
-  else if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the shared board — no connection key', action: 'connect' });
+  if (!inp.hasToken && inp.readOnly) reasons.push({ code: 'read-only', label: 'this computer was set up as read-only — connect it to send changes to the kitchen', action: 'connect' }); // P4 (F2)
+  else if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the kitchen — no connection key', action: 'connect' });
   else if (inp.tokenExpired) reasons.push({ code: 'connection-expired', label: 'this computer’s connection key has expired', action: 'connect' });
-  if (!(inp.operatorName || '').trim()) reasons.push({ code: 'no-operator', label: 'no operator name on this computer — changes would publish as “unknown”', action: 'name' });
+  if (!(inp.operatorName || '').trim()) reasons.push({ code: 'no-operator', label: 'no name on this computer — changes would be sent as “unknown”', action: 'name' });
   if (inp.autoPublishOn === false) reasons.push({ code: 'auto-publish-off', label: DOOR_PUBLISH_SKIP_REASONS.auto_publish_off.label, action: 'settings' });
   if (inp.tabStale) reasons.push({ code: 'stale-tab', label: DOOR_PUBLISH_SKIP_REASONS['stale-tab'].label, action: 'reload' });
   if (inp.lastSkip && inp.lastSkip.reason) {
@@ -10014,16 +10014,16 @@ function _doorDeviceBannerHTML(capOpt) {
   if (c.unpublished.pending) {
     const since = c.unpublished.since ? new Date(c.unpublished.since).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
     const n = c.unpublished.count || 0;
-    head = '&#x26A0; ' + (n > 1 ? n + ' sets of changes' : 'Changes') + ' on this computer have NOT reached the shared board' + (since ? ' (' + (n ? 'oldest ' : 'generated ') + escapeHtml(since) + ')' : '');
+    head = '&#x26A0; ' + (n > 1 ? n + ' sets of changes' : 'Changes') + ' on this computer have NOT reached the kitchen' + (since ? ' (' + (n ? 'oldest ' : 'generated ') + escapeHtml(since) + ')' : '');
   } else {
-    head = '&#x26A0; This computer can’t publish to the shared board yet';
+    head = '&#x26A0; This computer can’t send changes to the kitchen yet';
   }
   const rows = c.reasons.map(r =>
     '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">' +
       '<span style="flex:1;">&mdash; ' + escapeHtml(r.label) + '</span>' +
       '<button class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:' + bd + ';color:#fff;flex-shrink:0;" onclick="doorDeviceBannerFix(' + _escAttr(JSON.stringify(r.action)) + ')">' + BTN[r.action] + '</button>' +
     '</div>').join('');
-  const tail = c.reasons.length ? '' : '<div style="margin-top:6px;">&mdash; the last publish did not go through. Generate again, or use Publish Now in settings.</div>';
+  const tail = c.reasons.length ? '' : '<div style="margin-top:6px;">&mdash; the last send didn’t go through. Generate again.</div>';
   return '<div style="padding:12px 14px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:8px;font-size:13px;margin-bottom:10px;color:' + tx + ';">' +
     '<div style="font-weight:700;color:' + ti + ';">' + head + '</div>' + rows + tail + cardHtml + '</div>';
 }
@@ -10065,14 +10065,14 @@ function doorConnectFailureCopy(message) {
     return { kind: 'rejected', text: 'That key was not accepted. Check with Jason for this computer’s current key.' };
   }
   if (/failed to fetch|network|load failed|unreachable|timed? ?out|offline/i.test(m)) {
-    return { kind: 'network', text: 'Couldn’t reach the shared board. Check the internet connection and try again.' };
+    return { kind: 'network', text: 'Couldn’t reach the kitchen. Check the internet connection and try again.' };
   }
   return { kind: 'other', text: 'The connection could not be confirmed. Try again, or ask Jason.' };
 }
 
 function _doorConnectCardHTML() {
   return '<div id="door-connect-card" style="margin-top:10px;padding:12px 14px;background:#fff;border:1px solid #d1d5db;border-radius:8px;font-size:13px;color:#111827;">' +
-    '<div style="font-weight:700;">Connect this computer to the shared board</div>' +
+    '<div style="font-weight:700;">Connect this computer to the kitchen</div>' +
     '<div style="margin-top:4px;color:#4b5563;">Paste the connection key for this computer. It is issued once per computer &mdash; ask Jason (kitchen lead) if you don&rsquo;t have one.</div>' +
     '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">' +
       '<input type="password" id="door-connect-key" autocomplete="off" spellcheck="false" placeholder="connection key" style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-family:monospace;font-size:13px;" onkeydown="if(event.key===\'Enter\'){doorConnectCardSubmit();}">' +
@@ -10202,7 +10202,7 @@ function _doorFirstRunCardHTML() {
   const name = (typeof getOperatorName === 'function') ? getOperatorName() : '';
   return '<div id="door-firstrun-card" style="padding:14px 16px;background:#eef2ff;border:1px solid #6366f1;border-radius:8px;font-size:13px;margin-bottom:10px;color:#1e1b4b;">' +
     '<div style="font-weight:700;font-size:14px;color:#3730a3;">Set up this computer for DOOR</div>' +
-    '<div style="margin-top:4px;color:#3730a3;">Once per computer. Your name is stamped on every change you make; the connection key lets this computer send changes to the shared board.</div>' +
+    '<div style="margin-top:4px;color:#3730a3;">Once per computer. Your name is stamped on every change you make; the connection key lets this computer send changes to the kitchen.</div>' +
     '<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;">' +
       '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:180px;">Your name<input id="door-firstrun-name" type="text" autocomplete="off" value="' + _escAttr(escapeHtml(name)) + '" placeholder="e.g. Joan" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-size:13px;"></label>' +
       '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:220px;">Connection key (optional &mdash; ask Jason, kitchen lead)<input id="door-firstrun-key" type="password" autocomplete="off" spellcheck="false" placeholder="connection key" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-family:monospace;font-size:13px;"></label>' +
@@ -10309,9 +10309,9 @@ async function doorRegistryPublishPreflight(manual) {
   const fmt = (ts) => ts ? new Date(ts).toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'never updated';
   if (manual && typeof confirm === 'function') {
     const useShared = confirm(
-      'The shared board’s roster (' + fmt(gate.remoteTs) + ') is newer than this computer’s (' + fmt(gate.localTs) + ').\n\n' +
-      'OK — publish using the shared roster (recommended).\n' +
-      'Cancel — force this computer’s OLDER roster onto the shared board (rollback; every other computer will adopt it).');
+      'The kitchen has a newer resident list (' + fmt(gate.remoteTs) + ') than this computer (' + fmt(gate.localTs) + ').\n\n' +
+      'OK — use the kitchen’s newer list (recommended).\n' +
+      'Cancel — send this computer’s OLDER list instead (this replaces the newer one everywhere).');
     if (!useShared) return { adopted: false, forced: true, gate };
   }
   await pullStateFromGitHub(false); // quiet read-side adoption; the guard passes because remote is newer
@@ -10443,10 +10443,10 @@ function seedRegistryFromRoster(entries) {
   logMenuEvent('seed_registry', 'Seeded registry from roster: ' + newResidents.length + ' residents loaded');
   closeImportDialog();
   renderRegistry(REGISTRY_LIST);
-  updateSyncBar('Registry seeded — ' + newResidents.length + ' residents · ' + new Date().toLocaleTimeString(), '#15803d');
+  updateSyncBar('Resident list set up — ' + newResidents.length + ' residents · ' + new Date().toLocaleTimeString(), '#15803d');
   updateDailyImportPrompt();
   // v25: Publish seeded registry to GitHub for multi-device sync
-  publishAndSync('registry seeded · ' + newResidents.length + ' residents');
+  publishAndSync('resident list set up · ' + newResidents.length + ' residents');
 
   // Navigate to Review & Generate so user can hit Generate immediately.
   // Seed bypasses changesQueue by design — generateFiles() runs fine with empty queue.
@@ -10458,11 +10458,11 @@ function seedRegistryFromRoster(entries) {
   if (reviewBody) {
     reviewBody.innerHTML = '<div style="padding:20px 24px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;display:flex;align-items:center;gap:14px;">' +
       '<span style="font-size:24px;">✓</span>' +
-      '<div><div style="font-weight:700;font-size:14px;color:#15803d;">Registry seeded — ' + newResidents.length + ' residents loaded</div>' +
-      '<div style="font-size:13px;color:#166534;margin-top:3px;">No individual changes to review. Click Commit Changes and Generate Files to produce plating sheets from the current roster.</div></div>' +
+      '<div><div style="font-weight:700;font-size:14px;color:#15803d;">Resident list set up — ' + newResidents.length + ' residents loaded</div>' +
+      '<div style="font-size:13px;color:#166534;margin-top:3px;">No individual changes to review. Click Commit Changes and Generate Files to make today’s plating sheets.</div></div>' +
       '</div>';
   }
-  showToast('Registry seeded — ' + newResidents.length + ' residents. Ready to generate.');
+  showToast('Resident list set up — ' + newResidents.length + ' residents. Ready to generate.');
 }
 
 function clearAndReseed() {
@@ -10471,7 +10471,7 @@ function clearAndReseed() {
   localStorage.removeItem('concLastImportDate');
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length);
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
-  updateSyncBar('Registry cleared — import a roster to seed', 'var(--muted)');
+  updateSyncBar('Resident list cleared — import today’s list to set it up again.', 'var(--muted)');
   updateDailyImportPrompt();
 }
 
@@ -10484,7 +10484,7 @@ function updateSyncBar(msg, color) {
 function publishAndSync(context) {
   const timeStr = new Date().toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
   const op = getOperatorName();
-  updateSyncBar('Syncing…', 'var(--forest-mid)');
+  updateSyncBar('Sending to the kitchen…', 'var(--forest-mid)');
   // P1: every skipped/failed auto-publish is RECORDED (concLastPublishSkip) so the
   // standing device banner can name it and its fix; a successful publish clears it
   // (in _doPublishToGitHub). The banner re-renders on every outcome.
@@ -10498,8 +10498,8 @@ function publishAndSync(context) {
       if (typeof doorOutboxAppend === 'function') doorOutboxAppend(context, result.reason); // P3: owed until one lands
       // P2: no connection key is the one skip staff can fix on the spot — open the card.
       if (result.reason === 'missing_auth') _doorConnectCardOpen = true;
-      updateSyncBar('Saved locally — not published · ' + reason + ' · ' + timeStr, '#dc2626');
-      if (typeof showToast === 'function') showToast('Saved locally, not published — ' + reason);
+      updateSyncBar('Saved on this computer — not sent to the kitchen yet · ' + timeStr, '#dc2626');
+      if (typeof showToast === 'function') showToast('Saved on this computer — not sent to the kitchen yet.');
       if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
       return;
     }
@@ -10509,11 +10509,13 @@ function publishAndSync(context) {
       // must not read green on the visible sync bar (carries fix#1's intent
       // onto the auto-publish path).
       const reason = result.message || 'published with preflight issues';
-      updateSyncBar(reason + ' · ' + timeStr, '#dc2626');
-      if (typeof showToast === 'function') showToast(reason);
+      console.warn('[DOOR auto-publish degraded]', reason);
+      const staffMsg = 'Sent to the kitchen — but a data check flagged something on today’s list. Let Jason know so he can look.';
+      updateSyncBar(staffMsg, '#dc2626');
+      if (typeof showToast === 'function') showToast(staffMsg);
       return;
     }
-    updateSyncBar('Synced ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
+    updateSyncBar('Sent to the kitchen ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
   }).catch((err) => {
     const msg = (err && err.message) ? err.message : 'sync failed';
     // P3 (found by the e2e): with NO key at all, _doPublishToGitHub THROWS from the
@@ -10524,8 +10526,8 @@ function publishAndSync(context) {
     _recordSkip(_code, msg);
     if (typeof doorOutboxAppend === 'function') doorOutboxAppend(context, _code); // P3
     if (_code === 'missing_auth') _doorConnectCardOpen = true;
-    updateSyncBar('Saved locally — not published · ' + msg + ' · ' + timeStr, '#dc2626');
-    if (typeof showToast === 'function') showToast('Saved locally, not published — ' + msg);
+    updateSyncBar('Saved on this computer — couldn’t send to the kitchen just now. Try Generate again; if it keeps happening, tell Jason.', '#dc2626');
+    if (typeof showToast === 'function') showToast('Saved on this computer — couldn’t send to the kitchen just now. Try Generate again; if it keeps happening, tell Jason.');
     if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
   });
 }
@@ -10546,7 +10548,7 @@ function setOperatorName(name) {
 }
 function ensureOperatorName() {
   if (getOperatorName()) return true;
-  const name = prompt('Enter your name (stored on this device for change attribution):');
+  const name = prompt('Enter your name (saved on this computer; it’s shown on the changes you make):');
   if (name && name.trim()) { setOperatorName(name); return true; }
   return false;
 }
@@ -10554,11 +10556,11 @@ function ensureOperatorName() {
 // v25: Revert registry to pre-generate snapshot
 function revertLastGenerate() {
   const raw = localStorage.getItem('concRegistrySnapshot');
-  if (!raw) { showToast('No snapshot available — nothing to revert.'); return; }
+  if (!raw) { showToast('Nothing to undo — no earlier version saved.'); return; }
   const snap = JSON.parse(raw);
   const meta = snap._meta || {};
   const ts = meta.snapshotAt ? new Date(meta.snapshotAt).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'unknown time';
-  if (!confirm('Revert registry to the snapshot from ' + ts + '?\n\nThis undoes the last Generate and restores ' + snap.residents.length + ' residents to their pre-generate state.')) return;
+  if (!confirm('Undo the last Generate (from ' + ts + ')?\n\nThis puts the resident list back to how it was before — ' + snap.residents.length + ' residents.')) return;
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...snap.residents);
   if (snap.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...snap.anaphRooms);
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
@@ -10567,8 +10569,8 @@ function revertLastGenerate() {
   renderRegistry(REGISTRY_LIST);
   localStorage.removeItem('concRegistrySnapshot');
   updateRevertButton();
-  publishAndSync('reverted to pre-generate snapshot');
-  showToast('Registry reverted to ' + ts);
+  publishAndSync('undid the last Generate');
+  showToast('Undone — resident list is back to ' + ts + '.');
 }
 
 // Loud, non-blocking banner shown on the Enter Changes screen when the resident
@@ -10619,12 +10621,12 @@ function updateDailyImportPrompt() {
         `<button class="btn btn-sm" style="background:var(--forest);color:#fff;font-size:11px;padding:3px 10px;" onclick="showScreen('review',document.querySelector('[data-screen=review]'))">Review & Generate →</button></div>`;
     } else if (genToday) {
       const genTime = new Date(lastGen).toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
-      statusLine = `<div style="margin-top:4px;font-size:12px;color:#15803d;">Sheets generated at ${genTime}. Enter new changes below or re-import if the roster has been updated.</div>`;
+      statusLine = `<div style="margin-top:4px;font-size:12px;color:#15803d;">Sheets generated at ${genTime} — enter new changes below, or re-import if the meal list has changed.</div>`;
     }
     el.innerHTML = _staleBanner + _firstRun + _deviceBanner + `<div style="padding:10px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:13px;">` +
       `<div style="display:flex;align-items:center;gap:10px;">` +
       `<span style="font-size:15px">&#x2713;</span>` +
-      `<span style="color:#15803d;font-weight:600;flex:1;">Today's roster imported${fname ? ' — ' + escapeHtml(fname) : ''}</span>` +
+      `<span style="color:#15803d;font-weight:600;flex:1;">Today's meal list imported${fname ? ' — ' + escapeHtml(fname) : ''}</span>` +
       `<button class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;" onclick="openUploadDialog()">Re-import</button>` +
       `</div>${statusLine}</div>`;
   } else {
@@ -10645,7 +10647,7 @@ function updateDailyImportPrompt() {
       `<button class="btn btn-sm" style="background:${_btnBg};color:#fff;flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">&#x2191; Import Daily Meal List</button>` +
       `<button class="btn btn-sm" style="background:${_btn2Bg};color:${_title};border:1px solid ${_btn2Bd};flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">&#x270E; Enter Changes Manually</button>` +
       `</div>` +
-      `<div style="font-size:11px;color:${_sub};margin-top:8px;">Import the meal list to catch roster changes automatically, or enter individual changes below.</div>` +
+      `<div style="font-size:11px;color:${_sub};margin-top:8px;">Import today's meal list to add changes automatically, or enter changes below.</div>` +
       `</div>`;
   }
 }
@@ -10772,11 +10774,11 @@ async function pullStateFromGitHub(manual) {
   const repo  = PublishAuth.getRepo() || 'kennedyjasondavid-eng/conc-kitchen-door';
 
   if (!repo && manual) {
-    showToast('No GitHub repo set — go to Settings first.');
+    showToast('This computer isn’t connected to the kitchen yet. Use Connect, or ask Jason.');
     return;
   }
 
-  updateSyncBar('Syncing…', 'var(--muted)');
+  updateSyncBar('Getting the latest from the kitchen…', 'var(--muted)');
   // Secondary pulls (menu_overlay, swaps, specials, log, rules, learned) run
   // independently of door_state.json. A missing or failed registry pull must
   // not gate overlay sync, otherwise menu_overlay.json fixes pushed to GitHub
@@ -10788,13 +10790,13 @@ async function pullStateFromGitHub(manual) {
     const rawUrl = 'https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now();
     const res = await fetch(rawUrl);
     if (!res.ok) {
-      if (manual) showToast('No state file found yet — run Generate from the primary device first.');
-      updateSyncBar('No remote state yet', 'var(--muted)');
+      if (manual) showToast('Nothing to get yet — the kitchen has no saved list. Import today’s list and Generate first.');
+      updateSyncBar('No saved list in the kitchen yet', 'var(--muted)');
       return;
     }
     const state = await res.json();
     if (!state.residents || !state.residents.length) {
-      if (manual) showToast('Remote state file is empty.');
+      if (manual) showToast('Nothing to get yet — the kitchen has no saved list. Import today’s list and Generate first.');
       return;
     }
     // v31: Freshness guard — don't let an OLDER published snapshot clobber NEWER
@@ -10811,7 +10813,7 @@ async function pullStateFromGitHub(manual) {
     if (doorRegistrySyncShouldSkip(state._meta, _localProvTs, manual)) {
       const _regTs = doorRegistryDataTs(state._meta);
       const _exp = new Date(_regTs).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-      updateSyncBar('Local registry is current — kept ' + REGISTRY_LIST.length + ' residents (cloud copy ' + _exp + ' is older)', 'var(--forest-mid)');
+      updateSyncBar('This computer already has the newest list — kept ' + REGISTRY_LIST.length + ' residents.', 'var(--forest-mid)');
       console.log('[DOOR] registry sync skipped — local registry newer than snapshot (' + new Date(_localProvTs).toISOString() + ' >= registryModifiedAt ' + (state._meta && (state._meta.registryModifiedAt || state._meta.exported)) + ')');
       return;
     }
@@ -10834,9 +10836,9 @@ async function pullStateFromGitHub(manual) {
     }
     const exportedAt = state._meta && state._meta.exported ? new Date(state._meta.exported) : null;
     const timeStr = exportedAt ? exportedAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-    const msg = 'Synced ✓ — ' + state.residents.length + ' residents' + (timeStr ? ' · ' + timeStr : '');
+    const msg = 'Got the latest from the kitchen ✓ — ' + state.residents.length + ' residents' + (timeStr ? ' · ' + timeStr : '');
     updateSyncBar(msg, 'var(--forest)');
-    if (manual) showToast('Registry synced — ' + state.residents.length + ' residents loaded.');
+    if (manual) showToast('Got the latest from the kitchen ✓ — ' + state.residents.length + ' residents.');
     renderRegistry(REGISTRY_LIST);
     updateDailyImportPrompt();
     // Secondary pulls already kicked off before the door_state.json fetch so
@@ -10844,8 +10846,8 @@ async function pullStateFromGitHub(manual) {
   } catch(e) {
     console.error('pullStateFromGitHub error:', e.name, e.message, e.stack);
     const msg = (e.message || e.name || 'unknown').slice(0, 80);
-    if (manual) showToast('Sync failed — ' + msg);
-    updateSyncBar('Sync failed — ' + msg.slice(0,35), '#dc2626');
+    if (manual) showToast('Couldn’t get the latest — check the internet and try again. If it keeps happening, tell Jason.');
+    updateSyncBar('Couldn’t get the latest — check the internet and try again.', '#dc2626');
   }
 }
 
@@ -10956,8 +10958,13 @@ function generateFiles() {
     // Now only publishAndSync fires (single publish path).
     publishAndSync('plating sheets generated');
   } else {
-    const _syncHint = hasToken ? '' : (_tokenExpired ? ' · publishing token expired — rotate in Settings' : ' · enable auto-publish in Settings for multi-device sync');
-    updateSyncBar('Saved locally — ' + REGISTRY_LIST.length + ' residents · ' + genTimeStr + _syncHint, 'var(--forest-mid)');
+    const who = 'Saved on this computer — ' + REGISTRY_LIST.length + ' residents. ';
+    const hint = _tokenExpired
+      ? 'Not sent to the kitchen: this computer’s connection key has expired. Use Connect to enter a new one, or ask Jason.'
+      : (!hasToken
+          ? 'Not sent to the kitchen: this computer isn’t connected yet. Use Connect, or ask Jason.'
+          : 'Not sent to the kitchen: this computer isn’t set to send changes on its own. Ask Jason to switch that on.');
+    updateSyncBar(who + hint, 'var(--forest-mid)');
   }
 }
 
@@ -12010,12 +12017,12 @@ const PublishAuth = {
     }
   },
   notePublishSkipped(context, visible) {
-    const msg = (context ? context + ' ' : '') + 'saved locally, not published — GitHub token needs setup.';
+    const msg = 'Saved on this computer — not sent to the kitchen (this computer isn’t connected). Use Connect, or ask Jason.';
     if (visible) {
       updateSyncBar(msg, '#dc2626');
       if (typeof showToast === 'function') showToast(msg);
     }
-    this.renderStatus('Publishing blocked — token needs setup or rotation.', '#dc2626');
+    this.renderStatus('Not sent — this computer isn’t connected. Use Connect.', '#dc2626');
   },
   isExpired() {
     const days = this.daysUntil(this.getMeta().expiryDate);
@@ -12056,26 +12063,26 @@ const PublishAuth = {
     try {
       creds = this._getSavedCredentials();
     } catch(e) {
-      const detail = (e && e.message) ? e.message : 'GitHub token needs setup.';
-      const msg = label + ' saved locally, not published — ' + detail;
-      if (visible) this.renderStatus('Publishing blocked — token needs setup or rotation.', '#dc2626');
+      const detail = (e && e.message) ? e.message : 'not connected';
+      const msg = 'Saved on this computer — not sent to the kitchen (this computer isn’t connected). Use Connect, or ask Jason.';
+      if (visible) this.renderStatus('Not sent — this computer isn’t connected. Use Connect.', '#dc2626');
       this.showSidePublishResult(msg, '#dc2626', visible, 300);
       return Promise.resolve({ skipped:true, reason:'missing_auth', error:detail });
     }
     return ghPushFile(creds, path, content).then(result => {
       if (result && result.skipped) {
-        const msg = label + ' saved locally, publish blocked — ' + (result.reason || 'check sync state') + '.';
+        const msg = label + ' — saved on this computer, not sent to the kitchen.';
         this.showSidePublishResult(msg, '#dc2626', visible);
         return result;
       }
       if (visible) {
-        const msg = label + ' published to GitHub ✓';
+        const msg = label + ' — sent to the kitchen ✓';
         this.showSidePublishResult(msg, 'var(--forest)', visible);
       }
       return result;
     }).catch(err => {
       const detail = (err && err.message) ? err.message : String(err || 'unknown error');
-      const msg = label + ' saved locally, publish failed — ' + detail;
+      const msg = label + ' — saved on this computer, couldn’t send to the kitchen. Try again.';
       if (/token|github|access|refused|rejected/i.test(detail)) this.rememberFailure(detail);
       this.showSidePublishResult(msg, '#dc2626', visible);
       console.warn(label + ' publish failed:', err);
@@ -12136,7 +12143,7 @@ const PublishAuth = {
     this.renderStatus('Repo access confirmed; write will be confirmed on next publish.', 'var(--forest)');
   },
   forgetToken(confirmFirst) {
-    if (confirmFirst && !confirm('Forget the GitHub publishing token on this device?')) return;
+    if (confirmFirst && !confirm('Disconnect this computer from the kitchen? You’ll need the connection key to connect it again.')) return;
     appSettings['gh-token'] = '';
     try {
       localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
@@ -12870,27 +12877,33 @@ function reportDoorPublishValidation(validation, manual) {
     ? 'Publish preflight found would-block issues; continuing in warning-only mode (' + validation.counts.Stop + ' Stop, ' + validation.counts.Review + ' Review)'
     : 'Publish preflight review warning; continuing in warning-only mode (' + validation.counts.Review + ' Review)';
   console.warn('[DOOR publish preflight]', msg, validation.issues);
-  updateSyncBar(msg, validation.counts.Stop ? '#dc2626' : '#d97706');
-  if (manual && typeof showToast === 'function') showToast(msg);
+  const staffMsg = 'Sent to the kitchen — but a data check flagged something on today’s list. Let Jason know so he can look.';
+  updateSyncBar(staffMsg, validation.counts.Stop ? '#dc2626' : '#d97706');
+  if (manual && typeof showToast === 'function') showToast(staffMsg);
 }
 
 function reportDoorOverlayMergeAdvisory(advisory, manual) {
   if (!advisory || !advisory.addedCount || advisory.level !== 'Review') return null;
   const msg = 'Publish advisory — cloud menu overlay added ' + advisory.addedCount + ' day(s) after menu/routing were prepared; reload and republish.';
   console.warn('[DOOR publish overlay advisory]', msg, advisory);
-  updateSyncBar(msg, '#d97706');
-  if (manual && typeof showToast === 'function') showToast(msg);
-  return msg;
+  const staffMsg = 'The menu changed after today’s sheets were made. Reload this page and Generate again so the kitchen gets the current version.';
+  updateSyncBar(staffMsg, '#d97706');
+  if (manual && typeof showToast === 'function') showToast(staffMsg);
+  return staffMsg;
 }
 
 // Anti-clobber guards. _ghHydrated flips true after boot fetches settle (see bootRemoteState).
 // _ghForceOverwrite is reserved for an explicit "Reset & overwrite cloud" action.
 // ALLOW_SHRINK_PATHS bypasses the empty-clobber and size-regression checks for
-// files that legitimately shrink toward empty (e.g., meal_swaps.json clears
-// when the last pending swap is reverted, which would otherwise be blocked).
+// files that legitimately shrink (e.g., meal_swaps.json clears when the last
+// pending swap is reverted; recent_log.json is a rolling tail of recent activity
+// whose length differs benignly per device — flagged "the rail working as
+// designed" in the 2026-08-15 remediation). These are display/convenience
+// artifacts, not the authoritative registry/menu the clobber-guard exists to
+// protect, so a shrink here is noise, not a stale-device signal.
 let _ghHydrated = false;
 let _ghForceOverwrite = false;
-const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json']);
+const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'recent_log.json']);
 let _ghWriteQueue = Promise.resolve();
 
 async function ghPushFile(creds, path, content) {
@@ -12919,13 +12932,13 @@ async function _ghEvaluateWriteGuards(creds, path, content) {
   const allowShrink = ALLOW_SHRINK_PATHS.has(path) || _ghForceOverwrite;
   if(isEmpty && remoteSize>10 && !allowShrink){
     console.warn('[GH] refuse '+path+' \u2014 local empty, remote='+remoteSize+'b');
-    updateSyncBar('Save blocked \u2014 '+path+' empty locally (remote '+remoteSize+'b). Reload to sync.', '#dc2626');
+    updateSyncBar('Not sent to the kitchen \u2014 this computer\u2019s copy is out of date. Reload first so newer changes aren\u2019t overwritten.', '#dc2626');
     return { sha, block:{ skipped:true, reason:'empty_clobber' } };
   }
   const localBytes = new TextEncoder().encode(content).length;
   if(remoteSize>1024 && localBytes < remoteSize*0.3 && !allowShrink){
     console.warn('[GH] refuse '+path+' \u2014 local '+localBytes+'b is <30% of remote '+remoteSize+'b');
-    updateSyncBar('Save blocked \u2014 '+path+' ('+localBytes+'b) much smaller than cloud ('+remoteSize+'b). Reload first.', '#dc2626');
+    updateSyncBar('Not sent to the kitchen \u2014 this computer\u2019s copy looks out of date. Reload first so newer changes aren\u2019t overwritten.', '#dc2626');
     return { sha, block:{ skipped:true, reason:'size_regression' } };
   }
   return { sha, block:null };
@@ -13138,10 +13151,10 @@ async function _doPublishToGitHub(manual) {
       return { skipped:true, reason:'stale-tab', message:'stale tab — reload to publish with the latest logic' };
     }
     const proceed = (typeof confirm === 'function')
-      ? confirm('This tab is running an older DOOR build than the one published.\n\nPublishing from a stale tab can push data built with outdated logic. Reloading first is safer.\n\nPublish anyway?')
+      ? confirm('This page is running an older version of DOOR.\n\nReload first so the kitchen gets the current version.\n\nSend anyway?')
       : true;
     if (!proceed) {
-      if(statusEl){ statusEl.textContent='Publish cancelled — stale tab; reload to publish'; statusEl.style.color='#dc2626'; }
+      if(statusEl){ statusEl.textContent='Not sent — this page is out of date. Reload first.'; statusEl.style.color='#dc2626'; }
       return { skipped:true, reason:'stale-tab-cancelled', message:'stale tab — publish cancelled' };
     }
     if (typeof _doorStaleOverride !== 'undefined') _doorStaleOverride = true;
@@ -13153,8 +13166,9 @@ async function _doPublishToGitHub(manual) {
     creds = manual ? PublishAuth.getCredentialsForManualPublish() : PublishAuth._getSavedCredentials();
   } catch(e) {
     PublishAuth.rememberFailure(e.message);
-    if(statusEl){ statusEl.textContent='Failed: '+e.message; statusEl.style.color='#dc2626'; }
-    if(manual) showToast(e.message);
+    console.warn('[DOOR publish] credentials:', e.message);
+    if(statusEl){ statusEl.textContent='Not sent — this computer isn’t connected. Use Connect, or ask Jason.'; statusEl.style.color='#dc2626'; }
+    if(manual) showToast('This computer isn’t connected to the kitchen yet. Use Connect, or ask Jason.');
     throw e;
   }
   if(statusEl){ statusEl.textContent='Publishing\u2026'; statusEl.style.color='var(--forest-mid)'; }
@@ -13219,7 +13233,7 @@ async function _doPublishToGitHub(manual) {
         return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
       }
       const _proceedStop = (typeof confirm === 'function')
-        ? confirm(_structuralStop + ' structural defect' + (_structuralStop === 1 ? '' : 's') + ' detected in the publish artifacts.\n\nPublishing will send malformed data to EXPO/HUB. Fixing the source data is strongly preferred.\n\nPublish anyway?')
+        ? confirm('Today’s list has data problems that could send the wrong info to the kitchen.\n\nIt’s better to fix it and try again. Send anyway?')
         : true;
       if (!_proceedStop) {
         if(statusEl){ statusEl.textContent='Publish cancelled — ' + _blockMsg; statusEl.style.color='#dc2626'; }
@@ -13252,9 +13266,11 @@ async function _doPublishToGitHub(manual) {
     if(_blocked.length){
       const _names = _blocked.map(s=>s.path.replace('.json','')).join(', ');
       const msg = 'Partial publish — '+_blocked.length+'/'+_pushes.length+' blocked ('+_names+')';
-      if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#dc2626'; }
-      updateSyncBar(msg+' · '+timeStr, '#dc2626');
-      if(manual) showToast(msg+'. Check console; reload if cloud is newer.');
+      console.warn('[DOOR publish]', msg);
+      const staffMsg = 'Some of today’s changes didn’t reach the kitchen. Reload this page and Generate again. If it keeps happening, tell Jason.';
+      if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#dc2626'; }
+      updateSyncBar(staffMsg, '#dc2626');
+      if(manual) showToast(staffMsg);
       return { skipped:true, reason:'blocked', message:msg };
     } else {
       // P1: the artifact set landed (one commit). Record the success so the device
@@ -13277,10 +13293,11 @@ async function _doPublishToGitHub(manual) {
         // — the single upstream source must never read green on a flagged snapshot
         // — and mark the result degraded so the auto wrapper would render it red.
         const _stopMsg = 'Published with ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' — verify downstream';
-        const msg = _stopMsg + ' · ' + timeStr;
-        if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#dc2626'; }
-        updateSyncBar(msg, '#dc2626');
-        if(manual) showToast('Published, but ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' detected — verify downstream.');
+        console.warn('[DOOR publish]', _stopMsg);
+        const staffMsg = 'Sent to the kitchen — but a data check flagged something on today’s list. Let Jason know so he can look.';
+        if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#dc2626'; }
+        updateSyncBar(staffMsg, '#dc2626');
+        if(manual) showToast(staffMsg);
         // degraded:true so the auto-publish wrapper (publishAndSync) renders this
         // RED rather than overwriting it with a green "Synced ✓". The file did
         // publish (Gate-5 is non-blocking), but the snapshot is flagged — and the
@@ -13289,23 +13306,25 @@ async function _doPublishToGitHub(manual) {
       }
       if (overlayAdvisoryMsg) {
         const msg = 'Published with advisory — reload and republish menu/routing · ' + timeStr;
-        if(statusEl){ statusEl.textContent=msg; statusEl.style.color='#d97706'; }
-        updateSyncBar(msg, '#d97706');
-        if(manual) showToast('Published with advisory — reload and republish.');
+        console.warn('[DOOR publish]', msg);
+        const staffMsg = 'Sent to the kitchen — but the menu changed after today’s sheets were made. Reload this page and Generate again so the kitchen has the current version.';
+        if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#d97706'; }
+        updateSyncBar(staffMsg, '#d97706');
+        if(manual) showToast(staffMsg);
         return { ok:true, advisory: overlayAdvisory };
       }
-      if(statusEl){ statusEl.textContent='Published ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
-      // P5: say which roster went out when the preflight had to intervene.
-      const _rosterNote = _registryPreflight.adopted ? ' · used the shared roster (newer than this computer’s copy)'
-                        : (_registryPreflight.forced ? ' · FORCED this computer’s older roster (rollback)' : '');
-      updateSyncBar('Pushed to GitHub ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr + _rosterNote, _registryPreflight.forced ? '#d97706' : 'var(--forest)');
-      if(manual) showToast('Published to GitHub ✓');
+      if(statusEl){ statusEl.textContent='Sent to the kitchen ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
+      // P5: say which resident list went out when the preflight had to intervene.
+      const _rosterNote = _registryPreflight.adopted ? ' · used the newest resident list (newer than this computer’s copy)'
+                        : (_registryPreflight.forced ? ' · sent this computer’s OLDER list (rollback)' : '');
+      updateSyncBar('Sent to the kitchen ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr + _rosterNote, _registryPreflight.forced ? '#d97706' : 'var(--forest)');
+      if(manual) showToast('Sent to the kitchen ✓');
       return { ok:true };
     }
   } catch(err) {
     console.error('GitHub publish failed:',err);
-    if(statusEl){ statusEl.textContent='Failed: '+err.message; statusEl.style.color='#dc2626'; }
-    if(manual) showToast('Publish failed \u2014 check token and repo in Settings.');
+    if(statusEl){ statusEl.textContent='Couldn\u2019t send to the kitchen \u2014 try again.'; statusEl.style.color='#dc2626'; }
+    if(manual) showToast('Couldn\u2019t send to the kitchen. Try again; if it keeps happening, tell Jason.');
     throw err;
   }
 }
@@ -19215,7 +19234,7 @@ function normalizeRestriction(raw) {
 
 // Parses the uploaded workbook. Returns array of { room, parsed: normalizeRestriction result }
 function parseImportWorkbook(workbook) {
-  if (!workbook.SheetNames.length) throw new Error('Workbook has no sheets.');
+  if (!workbook.SheetNames.length) throw Object.assign(new Error('This file looks empty. Check you picked today’s meal list.'), { staff: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   // Convert to array-of-arrays (header:1, defval:null)
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
@@ -19234,7 +19253,7 @@ function parseImportWorkbook(workbook) {
     const parsed = normalizeRestriction(restrictionText);
     entries.push({ room: roomRaw, parsed });
   }
-  if (!entries.length) throw new Error('No data rows found. Check that the sheet has rooms in column A and "1" in column B.');
+  if (!entries.length) throw Object.assign(new Error('Couldn’t find any residents in this file. Check you picked today’s meal list — if it’s the right file, tell Jason (the layout may have changed).'), { staff: true });
   return entries;
 }
 
@@ -19524,7 +19543,7 @@ function handleImportFile(file) {
   errEl.style.display = 'none';
 
   if (typeof XLSX === 'undefined') {
-    errEl.textContent = 'xlsx library not loaded. Refresh the page and try again.';
+    errEl.textContent = 'Couldn’t open the file reader. Reload this page and import again.';
     errEl.style.display = 'block';
     return;
   }
@@ -19553,12 +19572,14 @@ function handleImportFile(file) {
 
     } catch (err) {
       console.error(err);
-      errEl.textContent = 'Parse error: ' + err.message;
+      // Our own parse checks throw plain, staff-friendly messages (marked .staff);
+      // an unexpected library error gets a generic plain fallback, never raw text.
+      errEl.textContent = err && err.staff ? err.message : 'Couldn’t read that file. Check it’s today’s meal list; if it’s right, tell Jason.';
       errEl.style.display = 'block';
     }
   };
   reader.onerror = () => {
-    errEl.textContent = 'Failed to read file.';
+    errEl.textContent = 'Couldn’t read that file. Check it’s today’s meal list; if it’s right, tell Jason.';
     errEl.style.display = 'block';
   };
   reader.readAsArrayBuffer(file);
@@ -19647,10 +19668,10 @@ function renderImportReview(keepTab) {
     if (noPersistedState || REGISTRY_LIST.length === 0) {
       seedBannerEl.style.display = 'flex';
       seedBannerEl.innerHTML = '<div style="font-size:18px">&#x25C7;</div>' +
-        '<div class="seed-banner-text"><strong>First run detected — seed the registry?</strong>' +
-        'Load all ' + IMPORT_STATE.entries.length + ' residents from this roster directly, skipping the diff. ' +
-        'Recommended for initial setup.</div>' +
-        '<button class="btn btn-mint btn-sm" style="flex-shrink:0;" onclick="seedRegistryFromRoster(IMPORT_STATE.entries)">Seed Registry</button>';
+        '<div class="seed-banner-text"><strong>First time on this computer — load everyone from today’s list?</strong>' +
+        'Load all ' + IMPORT_STATE.entries.length + ' residents from today’s meal list, without the change-by-change review. ' +
+        'Best for setting up a new computer.</div>' +
+        '<button class="btn btn-mint btn-sm" style="flex-shrink:0;" onclick="seedRegistryFromRoster(IMPORT_STATE.entries)">Load everyone</button>';
     } else {
       seedBannerEl.style.display = 'none';
     }
@@ -20079,8 +20100,8 @@ function updateImportFooterCount() {
     if (noChanges && hasState) {
       const nrCount = IMPORT_STATE.diff.needsReview.length;
       document.getElementById('import-selected-count').textContent = nrCount
-        ? `No roster changes — ${nrCount} item${nrCount!==1?'s':''} for Review & Generate`
-        : 'No changes — roster matches registry';
+        ? `No changes to the resident list — ${nrCount} item${nrCount!==1?'s':''} for Review & Generate`
+        : 'No changes — the resident list matches today’s meal list';
     }
   }
 }
@@ -20494,7 +20515,7 @@ initDynamic();
     const meta = typeof restored === 'object' ? restored : {};
     const saved = meta.saved ? new Date(meta.saved) : null;
     const timeStr = saved ? saved.toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
-    updateSyncBar('Registry loaded — ' + REGISTRY_LIST.length + ' residents' + (timeStr ? ' · saved ' + timeStr : ''), 'var(--forest-mid)');
+    updateSyncBar('Resident list loaded — ' + REGISTRY_LIST.length + ' residents' + (timeStr ? ' · saved ' + timeStr : ''), 'var(--forest-mid)');
   } else {
     // No local state — try silent pull from public GitHub repo (raw URL — no auth, no CORS)
     const repo = (typeof appSettings !== 'undefined' && appSettings['gh-repo']) || 'kennedyjasondavid-eng/conc-kitchen-door';
@@ -20518,14 +20539,14 @@ initDynamic();
           const exportedAt = state._meta && state._meta.exported ? new Date(state._meta.exported) : null;
           const ts = exportedAt ? exportedAt.toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
           const modBy = state._meta && state._meta.lastModifiedBy ? ' by ' + state._meta.lastModifiedBy : '';
-          updateSyncBar('Auto-synced ✓ — ' + state.residents.length + ' residents' + (ts ? ' · ' + ts + modBy : ''), 'var(--forest)');
+          updateSyncBar('Got the latest from the kitchen ✓ — ' + state.residents.length + ' residents' + (ts ? ' · ' + ts + modBy : ''), 'var(--forest)');
           renderRegistry(REGISTRY_LIST);
           updateDailyImportPrompt();
         } else {
-          updateSyncBar('No remote state yet — import a roster to begin', 'var(--muted)');
+          updateSyncBar('No saved list yet — import today’s meal list to begin.', 'var(--muted)');
         }
       })
-      .catch(() => updateSyncBar('Registry using built-in data', 'var(--muted)'));
+      .catch(() => updateSyncBar('Using the built-in resident list — import today’s list to update it.', 'var(--muted)'));
   }
 })();
 

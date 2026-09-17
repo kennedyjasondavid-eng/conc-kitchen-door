@@ -1748,9 +1748,9 @@ test('publish flow shim ends green on a clean publish', async () => {
   ]);
   assert.equal(result.ok, true);
   assert.equal(Object.prototype.hasOwnProperty.call(result, 'advisory'), false);
-  assert.match(harness.statusEl.textContent, /Published/);
+  assert.match(harness.statusEl.textContent, /Sent to the kitchen/);
   assert.equal(harness.statusEl.style.color, 'var(--forest)');
-  assert.match(lastSync.message, /Pushed to GitHub/);
+  assert.match(lastSync.message, /Sent to the kitchen/);
   assert.equal(lastSync.color, 'var(--forest)');
 });
 
@@ -1792,9 +1792,9 @@ test('publish flow shim builds menu and routing from pre-merged cloud overlay', 
 
   assert.equal(result.ok, true);
   assert.equal(Object.prototype.hasOwnProperty.call(result, 'advisory'), false);
-  assert.match(harness.statusEl.textContent, /Published/);
+  assert.match(harness.statusEl.textContent, /Sent to the kitchen/);
   assert.equal(harness.statusEl.style.color, 'var(--forest)');
-  assert.match(lastSync.message, /Pushed to GitHub/);
+  assert.match(lastSync.message, /Sent to the kitchen/);
   assert.equal(lastSync.color, 'var(--forest)');
   assert.equal(overlayPush.content['1'].TUESDAY.dinner, 'Cloud dinner');
   assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY.dinner, 'Cloud dinner');
@@ -1825,9 +1825,9 @@ test('publish flow shim keeps partial publish red when overlay days are merged',
 
   assert.equal(result.skipped, true);
   assert.equal(result.reason, 'blocked');
-  assert.match(harness.statusEl.textContent, /Partial publish/);
+  assert.match(harness.statusEl.textContent, /didn.t reach the kitchen/);
   assert.equal(harness.statusEl.style.color, '#dc2626');
-  assert.match(lastSync.message, /Partial publish/);
+  assert.match(lastSync.message, /didn.t reach the kitchen/);
   assert.equal(lastSync.color, '#dc2626');
   // L11104: a blocked publish must NOT persist the cloud-merged overlay locally,
   // so concMenuBase stays at the pre-publish value (not ahead of what published).
@@ -1853,8 +1853,8 @@ test('Gate-9: a manual OVERRIDE of a structural defect publishes but reads RED',
   assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
   assert.equal(result.degraded, true, 'an overridden structural publish stays degraded so the terminal signal is red');
   assert.ok(harness.pushed.some((p) => p.path === 'menu_current.json'), 'the override publishes the flagged artifact');
-  assert.doesNotMatch(harness.statusEl.textContent, /Published ✓/);
-  assert.match(harness.statusEl.textContent, /preflight Stop/i);
+  assert.doesNotMatch(harness.statusEl.textContent, /Sent to the kitchen ✓/);
+  assert.match(harness.statusEl.textContent, /data check flagged/i);
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.notEqual(lastSync.color, 'var(--forest)');
 });
@@ -1915,7 +1915,7 @@ test('publishAndSync renders a degraded (Stop-flagged) auto-publish RED, not gre
   const last = h.syncBars.at(-1);
   assert.notEqual(last.color, 'var(--forest)', 'a degraded auto-publish must not paint the sync bar green');
   assert.equal(last.color, '#dc2626');
-  assert.match(last.message, /Stop/i);
+  assert.match(last.message, /data check flagged/i);
 });
 
 test('publishAndSync paints a clean auto-publish green', async () => {
@@ -1924,7 +1924,7 @@ test('publishAndSync paints a clean auto-publish green', async () => {
   await new Promise((r) => setTimeout(r, 10));
   const last = h.syncBars.at(-1);
   assert.equal(last.color, 'var(--forest)');
-  assert.match(last.message, /Synced/);
+  assert.match(last.message, /Sent to the kitchen/);
 });
 
 test('publish flow shim routes builder failures through visible publish failure handling', async () => {
@@ -1939,9 +1939,9 @@ test('publish flow shim routes builder failures through visible publish failure 
     /builder exploded/
   );
 
-  assert.match(harness.statusEl.textContent, /Failed: builder exploded/);
+  assert.match(harness.statusEl.textContent, /Couldn.t send to the kitchen/);
   assert.equal(harness.statusEl.style.color, '#dc2626');
-  assert.ok(harness.toasts.some((message) => /Publish failed/i.test(message)));
+  assert.ok(harness.toasts.some((message) => /Couldn.t send to the kitchen/i.test(message)));
 });
 
 test('publish flow shim skips auto-publish from a stale tab (saved locally, not pushed)', async () => {
@@ -1990,8 +1990,8 @@ test('publish flow shim surfaces missing credentials before pushing', async () =
 
   assert.deepEqual(harness.pushed, []);
   assert.ok(harness.rememberedFailures.some((message) => /GitHub token/i.test(message)));
-  assert.ok(harness.toasts.some((message) => /GitHub token/i.test(message)));
-  assert.match(harness.statusEl.textContent, /Failed: GitHub token is not configured/);
+  assert.ok(harness.toasts.some((message) => /connected to the kitchen/i.test(message)));
+  assert.match(harness.statusEl.textContent, /Not sent — this computer isn.t connected/);
   assert.equal(harness.statusEl.style.color, '#dc2626');
 });
 
@@ -2026,7 +2026,7 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
     // 2026-08-15), so the composer's real output has no Seasonal Vegetables. Plain
     // veg, no allergens; slot flags unchanged. Pin matches the app's comma-join
     // output (the gate-#58 lesson: a check that fails on healthy data is not a check).
-    ['1', 'TUESDAY', 'lunch', 'Blackened fish, Sweet potatoes, Parsnip and Carrot'],
+    ['1', 'TUESDAY', 'lunch', 'Blackened Fish, Sweet potatoes, Parsnip and Carrot'],
     ['1', 'WEDNESDAY', 'lunch', 'Egg Salad Wrap, Bean Salad'],
     ['2', 'TUESDAY', 'lunch', 'Halal Beef Burger, Chickpea Salad'],
     // D6 (2026-08-18): Jason's menu-editor pass corrected the doubled-biscuit / "Brocolli"
@@ -2175,21 +2175,23 @@ test('menu_current.json W1 TUE lunch: vegan main is Blackened Tofu + Spicy (CODE
   // CODEX (DOOR_RECIPE_DATA) classifies Blackened Tofu as ["Soy (Tofu)","Spicy (Blackening Spice)"]
   // and Blackened Fish as ["Fish (Basa)","Spicy (Blackening Spice)"] — Spicy, NOT Nightshades
   // (unlike the Nigerian pepper-sauce dishes above). So isSpicy flips true (union now spicy, and
-  // it corrects the already-spicy Blackened fish under-flag), hasNightshades stays false, and the
-  // allergen string stays "fish, soy" (DOOR never lists "spicy" in allergens_*). The veg-alt
+  // it corrects the already-spicy Blackened Fish under-flag), hasNightshades stays false, and the
+  // regular stream's allergen string stays "fish" (DOOR never lists "spicy" in allergens_*).
+  // Soy belongs to the vegan-alt slot instead of leaking into the regular meal flags; the veg-alt
   // stream derives its allergens from the CODEX feed via getVegAltAllergenStr.
   const menu = readJson('menu_current.json').menu;
   const slot = menu['1'] && menu['1']['TUESDAY'];
   assert.ok(slot, 'W1 TUESDAY node must exist');
-  assert.match(slot.lunch || '', /Blackened fish/, 'W1 TUE lunch should still be the Blackened fish slot');
+  assert.match(slot.lunch || '', /Blackened Fish/, 'W1 TUE lunch should still be the Blackened Fish slot');
   assert.match(slot.lunch_veg || '', /^Blackened Tofu\b/, 'W1 TUE lunch_veg main must be Blackened Tofu');
   assert.doesNotMatch(slot.lunch_veg || '', /Roasted Tofu/, 'W1 TUE lunch_veg must no longer name Roasted Tofu');
   const fl = slot.lunch_flags || {};
   assert.equal(fl.isSpicy, true, 'W1 TUE lunch_flags.isSpicy must be true (Blackening Spice on both streams)');
   assert.equal(fl.hasNightshades, false, 'W1 TUE lunch_flags.hasNightshades stays false (CODEX: blackened = Spicy, not Nightshades)');
-  assert.equal(fl.hasSoy, true, 'W1 TUE lunch_flags.hasSoy must remain true (tofu)');
-  assert.equal(fl.hasFish, true, 'W1 TUE lunch_flags.hasFish must remain true (Blackened fish)');
-  assert.equal(slot.allergens_lunch, 'fish, soy', 'W1 TUE allergens_lunch stays "fish, soy" (spicy is a flag, never in the allergen string)');
+  assert.equal(fl.hasSoy, false, 'W1 TUE regular lunch flags must not inherit soy from the vegan alternative');
+  assert.equal(fl.hasFish, true, 'W1 TUE lunch_flags.hasFish must remain true (Blackened Fish)');
+  assert.equal(slot.lunch_slots?.veganalt?.flags?.hasSoy, true, 'W1 TUE vegan-alt slot retains the Blackened Tofu soy flag');
+  assert.equal(slot.allergens_lunch, 'fish', 'W1 TUE regular allergen line stays fish-only (vegan-alt soy is routed separately)');
 });
 
 test('routing_by_meal.json keeps numeric sections and component portion maps', () => {
@@ -2552,7 +2554,7 @@ function loadAtomicPublishHarness(options = {}) {
   const prelude = [
     'let _ghHydrated = ' + (options.hydrated === false ? 'false' : 'true') + ';',
     'let _ghForceOverwrite = false;',
-    "const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json']);",
+    "const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'recent_log.json']);",
     'let _ghWriteQueue = Promise.resolve();'
   ].join('\n');
   vm.runInContext([
@@ -2706,6 +2708,76 @@ test('D1: both write paths share one anti-clobber evaluator, so the guards canno
     assert.doesNotMatch(body, /empty_clobber|size_regression/,
       `${name} must not carry its own copy of the guards`);
   }
+});
+
+test('friction: recent_log.json may shrink (display-only tail); the registry stays protected; the staff message leaks no filename or bytes', async () => {
+  // recent_log.json is a rolling activity tail whose length differs benignly per
+  // device. Blocking its push stranded real work in the outbox and lit the "not
+  // reached the shared board" banner on a healthy computer (the confusion Joan
+  // reported). It now bypasses the shrink guard; the authoritative registry does not.
+  const html = readText('index.html');
+  const setLine = html.match(/const ALLOW_SHRINK_PATHS = new Set\(\[([^\]]*)\]\)/);
+  assert.ok(setLine && /'recent_log\.json'/.test(setLine[1]),
+    'recent_log.json is in ALLOW_SHRINK_PATHS');
+
+  const h = loadAtomicPublishHarness({ remote: {
+    'recent_log.json':       { sha: 's1', size: 18833 },
+    'registry_summary.json': { sha: 's2', size: 18833 }
+  } });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, [
+    { path: 'recent_log.json',       content: '[{"x":1}]' }, // tiny vs 18833 — but allow-shrink
+    { path: 'registry_summary.json', content: '{"a":1}' }    // tiny — must still be refused
+  ], 'msg');
+
+  const rl = res.results.find((r) => r.path === 'recent_log.json');
+  const reg = res.results.find((r) => r.path === 'registry_summary.json');
+  assert.notEqual(rl.skipped, true, 'the recent-activity tail is allowed to shrink');
+  assert.equal(reg.skipped, true, 'the authoritative registry is still clobber-protected');
+  assert.equal(reg.reason, 'size_regression');
+
+  // The staff-facing sync-bar message speaks plainly — no filename, no byte count.
+  const msg = h.syncBars.map((s) => s.message).join(' | ');
+  assert.doesNotMatch(msg, /\.json|\d+\s*b\b/i, 'no filename or byte count leaks to staff');
+  assertContains(msg, 'the kitchen', 'it speaks in staff language');
+});
+
+test('plain-language: staff-facing messages speak in kitchen terms, not app jargon', () => {
+  // The 2026 plain-language sweep: front-line entry staff (import → enter changes →
+  // Generate → auto-send) should never see filenames, byte counts, "publish/sync/
+  // registry/token/GitHub", or raw error text. This gate pins the staff-visible copy
+  // so a later edit can't quietly reintroduce the jargon. (Authored-to-fail: every
+  // PRESENT pattern is absent, and every ABSENT pattern present, in the pre-sweep file.)
+  const html = readText('index.html');
+
+  // The header button renamed from "Sync"; intake-mode keeps it visible by id, not title.
+  assert.match(html, /&#x21BB; Refresh list<\/button>/, 'header button reads “Refresh list”');
+  assert.doesNotMatch(html, /&#x21BB; Sync</, 'the old “Sync” button label is gone');
+  assert.match(html, /:not\(#refresh-list-btn\)/, 'intake-mode keeps the refresh button visible by id');
+
+  // Plain forms staff should see (\\. stands in for a curly apostrophe — encoding-robust).
+  const PRESENT = [
+    /Sent to the kitchen ✓ — /,                 // auto-send success
+    /Sending to the kitchen…/,                       // auto-send in-flight
+    /Got the latest from the kitchen ✓/,             // refresh success
+    /Nothing to get yet — the kitchen has no saved list/,
+    /Couldn.t find any residents in this file/,           // import error
+    /this page is out of date/,                           // stale-page banner reason
+    /Some of today.s changes didn.t reach the kitchen/,   // partial send
+    /Today's meal list imported/,                         // green import box
+    /Resident list loaded — /,                       // boot
+    /This computer isn.t connected to the kitchen yet/    // refresh w/o connection
+  ];
+  for (const re of PRESENT) assert.match(html, re, 'expected plain copy: ' + re);
+
+  // Retired jargon that used to face staff (internal console/record strings are exempt).
+  const ABSENT = [
+    /Save blocked —/,                                // byte-count clobber line
+    /No data rows found\. Check that the sheet/,          // import "column A/B"
+    /to GitHub ✓/,                                   // "Pushed/Published to GitHub ✓"
+    /Registry synced —/,
+    /this tab is out of date/                             // old banner reason
+  ];
+  for (const re of ABSENT) assert.doesNotMatch(html, re, 'retired jargon should be gone: ' + re);
 });
 
 // --- D2: routing_by_meal.json records which menu it was built from -----------
