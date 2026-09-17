@@ -2011,7 +2011,7 @@ test('published JSON snapshots are parseable and carry metadata', () => {
   }
 });
 
-test('July 2 canonical import is published for the 11 repaired meal slots', () => {
+test('July 2 canonical import is published for the remaining repaired meal slots', () => {
   const menu = readJson('menu_current.json');
   const routing = readJson('routing_by_meal.json');
   const expected = [
@@ -2020,13 +2020,6 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
     // so the committed menu now reads "Beef Stroganoff, Pasta". Pin the corrected string —
     // the earlier pin froze the broken import text (the eee354c / gate-#58 lesson).
     ['1', 'SUNDAY', 'dinner', 'Beef Stroganoff, Pasta'],
-    // Parsnip and Carrot landed as a slot fact via the menu editor 2026-08-15
-    // (issue #75 defuse) — durable, survives publishes. Jason intentionally put it
-    // in the Veg Side slot, REPLACING Seasonal Vegetables on this lunch (ruled
-    // 2026-08-15), so the composer's real output has no Seasonal Vegetables. Plain
-    // veg, no allergens; slot flags unchanged. Pin matches the app's comma-join
-    // output (the gate-#58 lesson: a check that fails on healthy data is not a check).
-    ['1', 'TUESDAY', 'lunch', 'Blackened Fish, Sweet potatoes, Parsnip and Carrot'],
     ['1', 'WEDNESDAY', 'lunch', 'Egg Salad Wrap, Bean Salad'],
     ['2', 'TUESDAY', 'lunch', 'Halal Beef Burger, Chickpea Salad'],
     // D6 (2026-08-18): Jason's menu-editor pass corrected the doubled-biscuit / "Brocolli"
@@ -2067,6 +2060,61 @@ test('July 2 canonical import is published for the 11 repaired meal slots', () =
       `W${week} ${day} ${period} routing should include a canonical meal component`
     );
   }
+});
+
+test('W1 Tuesday lunch preserves the architect-set menu composition', () => {
+  // Jason's menu ruling is represented by structured slots, not only by the final
+  // comma-joined display string. Pin each decision separately so a changed main,
+  // starch, side, or vegan counterpart identifies the fact that drifted.
+  const slot = readJson('menu_current.json').menu['1']?.TUESDAY;
+  assert.ok(slot, 'W1 TUESDAY node must exist');
+  const slotName = (entry) => entry?.recipeName || entry?.manual || '';
+
+  assert.equal(slotName(slot.lunch_slots?.main), 'Blackened Fish', 'regular main remains Blackened Fish');
+  assert.equal(slotName(slot.lunch_slots?.starch), 'Sweet potatoes', 'starch remains Sweet potatoes');
+  assert.equal(slotName(slot.lunch_slots?.vegside), 'Parsnip and Carrot', 'veg side remains Parsnip and Carrot');
+  assert.equal(slotName(slot.lunch_slots?.veganalt), 'Blackened Tofu', 'vegan counterpart remains Blackened Tofu');
+
+  // Keep the public menu wording honest without making it carry the allergen and
+  // routing responsibilities tested below.
+  assert.equal(slot.lunch, 'Blackened Fish, Sweet potatoes, Parsnip and Carrot');
+  assert.equal(slot.lunch_veg, 'Blackened Tofu, Sweet potatoes, Parsnip and Carrot');
+  assert.equal(slot.lunch_sides, 'Sweet potatoes, Parsnip and Carrot');
+});
+
+test('W1 Tuesday lunch keeps regular and vegan allergens in their own streams', () => {
+  // CODEX classifies Blackened Fish as Fish + Spicy and Blackened Tofu as Soy +
+  // Spicy. The regular stream must not inherit soy from the vegan alternative,
+  // and the vegan alternative must not inherit fish from the regular main.
+  const slot = readJson('menu_current.json').menu['1']?.TUESDAY;
+  assert.ok(slot, 'W1 TUESDAY node must exist');
+  const regular = slot.lunch_flags || {};
+  const vegan = slot.lunch_slots?.veganalt?.flags || {};
+
+  assert.equal(regular.hasFish, true, 'regular Blackened Fish retains its fish flag');
+  assert.equal(regular.hasSoy, false, 'regular meal does not inherit vegan-alt soy');
+  assert.equal(regular.isSpicy, true, 'regular Blackened Fish retains its spicy flag');
+  assert.equal(regular.hasNightshades, false, 'blackening spice is spicy, not Nightshades');
+
+  assert.equal(vegan.hasFish, false, 'vegan Blackened Tofu does not inherit regular-stream fish');
+  assert.equal(vegan.hasSoy, true, 'vegan Blackened Tofu retains its soy flag');
+  assert.equal(vegan.isSpicy, true, 'vegan Blackened Tofu retains its spicy flag');
+  assert.equal(vegan.hasNightshades, false, 'vegan blackening spice is spicy, not Nightshades');
+
+  assert.equal(slot.allergens_lunch, 'fish', 'regular allergen line stays fish-only');
+});
+
+test('W1 Tuesday published routing matches the architect-set menu components', () => {
+  const components = readJson('routing_by_meal.json').routing['1']?.TUESDAY?.lunch?._components || {};
+  for (const component of ['Blackened Fish', 'Blackened Tofu', 'Sweet potatoes', 'Parsnip and Carrot']) {
+    assert.ok(Number.isInteger(components[component]) && components[component] > 0,
+      `routing includes a positive portion count for ${component}`);
+  }
+  assert.equal(
+    Object.keys(components).some((component) => /^(?:Seasonal Vegetables|Roasted Tofu)(?:\s|\(|$)/i.test(component)),
+    false,
+    'retired Seasonal Vegetables and Roasted Tofu do not survive in W1 Tuesday routing'
+  );
 });
 
 test('checked-in menu overlay stays marked for the current cutover', () => {
@@ -2165,33 +2213,6 @@ test('menu_current.json W3 FRI lunch (Nigerian Fish) carries the operative Night
   assert.equal(fl.hasNightshades, true, 'W3 FRI lunch_flags.hasNightshades must be true (roasted peppers + smoked paprika)');
   assert.equal(fl.isSpicy, true, 'W3 FRI lunch_flags.isSpicy must be true (confirmed spicy; triggers Bland routing)');
   assert.equal(fl.hasFish, true, 'W3 FRI lunch_flags.hasFish must remain true');
-});
-
-test('menu_current.json W1 TUE lunch: vegan main is Blackened Tofu + Spicy (CODEX reconciliation)', () => {
-  // The vegan main was "Roasted Tofu" (a distinct simple-roast, soy-only dish), but the
-  // regular main is Blackened fish and its vegan counterpart is Blackened Tofu — so the slot
-  // carried two competing vegan mains (Roasted Tofu from the menu + Blackened Tofu from EXPO's
-  // recipe companion). Reconciled to the intended pairing: lunch_veg = Blackened Tofu.
-  // CODEX (DOOR_RECIPE_DATA) classifies Blackened Tofu as ["Soy (Tofu)","Spicy (Blackening Spice)"]
-  // and Blackened Fish as ["Fish (Basa)","Spicy (Blackening Spice)"] — Spicy, NOT Nightshades
-  // (unlike the Nigerian pepper-sauce dishes above). So isSpicy flips true (union now spicy, and
-  // it corrects the already-spicy Blackened Fish under-flag), hasNightshades stays false, and the
-  // regular stream's allergen string stays "fish" (DOOR never lists "spicy" in allergens_*).
-  // Soy belongs to the vegan-alt slot instead of leaking into the regular meal flags; the veg-alt
-  // stream derives its allergens from the CODEX feed via getVegAltAllergenStr.
-  const menu = readJson('menu_current.json').menu;
-  const slot = menu['1'] && menu['1']['TUESDAY'];
-  assert.ok(slot, 'W1 TUESDAY node must exist');
-  assert.match(slot.lunch || '', /Blackened Fish/, 'W1 TUE lunch should still be the Blackened Fish slot');
-  assert.match(slot.lunch_veg || '', /^Blackened Tofu\b/, 'W1 TUE lunch_veg main must be Blackened Tofu');
-  assert.doesNotMatch(slot.lunch_veg || '', /Roasted Tofu/, 'W1 TUE lunch_veg must no longer name Roasted Tofu');
-  const fl = slot.lunch_flags || {};
-  assert.equal(fl.isSpicy, true, 'W1 TUE lunch_flags.isSpicy must be true (Blackening Spice on both streams)');
-  assert.equal(fl.hasNightshades, false, 'W1 TUE lunch_flags.hasNightshades stays false (CODEX: blackened = Spicy, not Nightshades)');
-  assert.equal(fl.hasSoy, false, 'W1 TUE regular lunch flags must not inherit soy from the vegan alternative');
-  assert.equal(fl.hasFish, true, 'W1 TUE lunch_flags.hasFish must remain true (Blackened Fish)');
-  assert.equal(slot.lunch_slots?.veganalt?.flags?.hasSoy, true, 'W1 TUE vegan-alt slot retains the Blackened Tofu soy flag');
-  assert.equal(slot.allergens_lunch, 'fish', 'W1 TUE regular allergen line stays fish-only (vegan-alt soy is routed separately)');
 });
 
 test('routing_by_meal.json keeps numeric sections and component portion maps', () => {
