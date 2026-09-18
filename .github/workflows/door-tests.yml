@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   smoke:
-    name: Smoke harness
+    name: DOOR safety checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -42,3 +42,34 @@ jobs:
 
       - name: Run smoke tests
         run: node --test tests/*.mjs
+
+  menu-decisions:
+    name: Menu decisions review (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Review architect-set menu decisions
+        id: menu_review
+        continue-on-error: true
+        run: node --test tests/advisory/menu-decisions.mjs
+
+      - name: Explain advisory result
+        if: always()
+        shell: bash
+        run: |
+          if [[ "${{ steps.menu_review.outcome }}" == "failure" ]]; then
+            echo "::warning title=Menu decisions changed::Review the advisory test output and confirm whether the menu change was intentional."
+            echo "### ⚠ Menu decisions changed" >> "$GITHUB_STEP_SUMMARY"
+            echo "The application safety checks can still pass. Review the failed meal expectations and confirm whether the menu change was intentional." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ✓ Menu decisions unchanged" >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.11';
+const DOOR_APP_VERSION = 'v31-standard.12';
 const DOOR_BUILD_DATE = '2026-09-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -12754,6 +12754,40 @@ function validateDoorRegistrySummaryArtifact(artifactName, artifact, issues) {
   }
 }
 
+function validateDoorMenuOverlayArtifact(artifactName, overlay, menuArtifact, issues) {
+  if (!doorIsPlainObject(overlay)) {
+    issues.push(doorPublishValidationIssue('Stop', 'overlay-not-object', artifactName, 'Menu overlay is not a JSON object.'));
+    return;
+  }
+  if (!doorOverlayHasCurrentCutover(overlay)) {
+    issues.push(doorPublishValidationIssue('Stop', 'overlay-cutover-stale', artifactName, 'Menu overlay does not carry the current standard-menu cutover marker.'));
+    return;
+  }
+
+  const menu = doorIsPlainObject(menuArtifact) && doorIsPlainObject(menuArtifact.menu) ? menuArtifact.menu : {};
+  Object.keys(overlay).forEach(function(weekKey) {
+    if (weekKey === '_meta') return;
+    if (DOOR_EXPECTED_WEEKS.indexOf(weekKey) === -1 || !doorIsPlainObject(overlay[weekKey])) {
+      issues.push(doorPublishValidationIssue('Stop', 'overlay-week-invalid', artifactName, 'Menu overlay contains an invalid week.', { week: weekKey }));
+      return;
+    }
+    Object.keys(overlay[weekKey]).forEach(function(dayKey) {
+      const node = overlay[weekKey][dayKey];
+      if (DOOR_EXPECTED_DAYS.indexOf(dayKey) === -1 || !doorIsPlainObject(node) || Object.keys(node).length === 0) {
+        issues.push(doorPublishValidationIssue('Stop', 'overlay-day-invalid', artifactName, 'Menu overlay contains an invalid or empty day edit.', { week: weekKey, day: dayKey }));
+        return;
+      }
+      Object.keys(node).forEach(function(field) {
+        const value = node[field];
+        const canonical = menu[weekKey] && menu[weekKey][dayKey] ? menu[weekKey][dayKey][field] : undefined;
+        if (typeof value === 'string' && value && typeof canonical === 'string' && canonical !== value) {
+          issues.push(doorPublishValidationIssue('Stop', 'overlay-menu-conflict', artifactName, 'Menu overlay contradicts the menu being published.', { week: weekKey, day: dayKey, field: field }));
+        }
+      });
+    });
+  });
+}
+
 function validateDoorPublishArtifacts(artifacts, options) {
   artifacts = artifacts || {};
   const issues = [];
@@ -12768,6 +12802,7 @@ function validateDoorPublishArtifacts(artifacts, options) {
   if (artifacts['routing_by_meal.json']) validateDoorRoutingArtifact('routing_by_meal.json', artifacts['routing_by_meal.json'], issues);
   if (artifacts['door_state.json']) validateDoorStateArtifact('door_state.json', artifacts['door_state.json'], issues);
   if (artifacts['registry_summary.json']) validateDoorRegistrySummaryArtifact('registry_summary.json', artifacts['registry_summary.json'], issues);
+  if (artifacts['menu_overlay.json']) validateDoorMenuOverlayArtifact('menu_overlay.json', artifacts['menu_overlay.json'], artifacts['menu_current.json'], issues);
   validateDoorBuiltFromMenu(artifacts, issues);
   // D3 (silent-drift, shape d): if the menu in this set was built from the baked
   // MENU_DATA constant (this device has no uploaded menu), refuse to stamp it as the
@@ -13222,7 +13257,8 @@ async function _doPublishToGitHub(manual) {
         'menu_current.json': buildMenuJSON(),
         'registry_summary.json': buildRegistrySummaryJSON(),
         'routing_by_meal.json': buildRoutingByMealJSON(),
-        'door_state.json': buildStateJSON()
+        'door_state.json': buildStateJSON(),
+        'menu_overlay.json': overlayToPush
       };
     } finally {
       setDoorPublishMenuOverlayOverride(null);
@@ -13243,12 +13279,17 @@ async function _doPublishToGitHub(manual) {
     // _components, missing artifact / _meta.version). These are unambiguous
     // contract violations with no false-positive risk, so DOOR — the single
     // upstream source — refuses to push them rather than feed EXPO/HUB malformed
-    // data. Auto-publish skips; a manual publish lets the operator override.
+    // data. Auto-publish skips; a manual publish lets the operator override most
+    // structural findings. Overlay cutover/conflict failures are never overridable:
+    // they mean the menu layers disagree, so there is no coherent set to send.
     const _structuralStop = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
+    const _overlayStop = !!(_publishValidation && _publishValidation.stop && _publishValidation.stop.some(function(issue) {
+      return issue && issue.artifact === 'menu_overlay.json';
+    }));
     if (_structuralStop) {
       const _blockMsg = 'Blocked — ' + _structuralStop + ' structural defect' + (_structuralStop === 1 ? '' : 's') + ' (fix the data before publishing)';
       const _blockStaffMsg = 'Not sent — a data check found a problem in today’s information. Fix it and try again, or ask Jason.';
-      if (!manual) {
+      if (!manual || _overlayStop) {
         if(statusEl){ statusEl.textContent=_blockStaffMsg; statusEl.style.color='#dc2626'; }
         return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
       }
@@ -13266,7 +13307,7 @@ async function _doPublishToGitHub(manual) {
     _push('registry_summary.json', JSON.stringify(publishArtifacts['registry_summary.json'],null,2));
     _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
     _push('door_state.json', JSON.stringify(publishArtifacts['door_state.json'],null,2));
-    _push('menu_overlay.json', JSON.stringify(overlayToPush,null,2));
+    _push('menu_overlay.json', JSON.stringify(publishArtifacts['menu_overlay.json'],null,2));
     const customRules = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
     _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
     const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');

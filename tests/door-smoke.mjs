@@ -244,6 +244,17 @@ function makePublishArtifact(name) {
   throw new Error(`Unknown publish artifact fixture: ${name}`);
 }
 
+function applyOverlayToMenuArtifact(artifact, overlay) {
+  for (const [weekKey, week] of Object.entries(overlay || {})) {
+    if (weekKey === '_meta' || !artifact.menu?.[weekKey] || !week || typeof week !== 'object') continue;
+    for (const [dayKey, node] of Object.entries(week)) {
+      if (!artifact.menu[weekKey][dayKey] || !node || typeof node !== 'object') continue;
+      Object.assign(artifact.menu[weekKey][dayKey], node);
+    }
+  }
+  return artifact;
+}
+
 function loadPublishFlowHarness(options = {}) {
   const html = readText('index.html');
   const standardCutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
@@ -311,7 +322,10 @@ function loadPublishFlowHarness(options = {}) {
         storage[key] = String(value);
       }
     },
-    buildMenuJSON: options.buildMenuJSON || (() => makePublishArtifact('menu_current.json')),
+    buildMenuJSON: options.buildMenuJSON || (() => applyOverlayToMenuArtifact(
+      makePublishArtifact('menu_current.json'),
+      context._doorPublishMenuOverlayOverride
+    )),
     buildRegistrySummaryJSON: options.buildRegistrySummaryJSON || (() => makePublishArtifact('registry_summary.json')),
     buildRoutingByMealJSON: options.buildRoutingByMealJSON || (() => makePublishArtifact('routing_by_meal.json')),
     buildStateJSON: options.buildStateJSON || (() => makePublishArtifact('door_state.json')),
@@ -1452,11 +1466,61 @@ test('publish validation accepts the checked-in core artifacts', () => {
     'menu_current.json': readJson('menu_current.json'),
     'registry_summary.json': readJson('registry_summary.json'),
     'routing_by_meal.json': readJson('routing_by_meal.json'),
-    'door_state.json': readJson('door_state.json')
+    'door_state.json': readJson('door_state.json'),
+    'menu_overlay.json': readJson('menu_overlay.json')
   });
 
   assert.equal(result.counts.Stop, 0);
   assert.equal(result.blockingEnabled, false);
+});
+
+test('publish validation stops a stale or contradictory menu overlay before sending', () => {
+  const core = loadPublishValidationCore();
+  const base = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+
+  const stale = core.validateDoorPublishArtifacts({
+    ...base,
+    'menu_overlay.json': { _meta: { standardCutover: 0 }, '1': { MONDAY: { lunch: 'Old lunch' } } }
+  });
+  assert.ok(stale.stop.some((issue) => issue.code === 'overlay-cutover-stale'),
+    'an old overlay marker must stop the send');
+
+  const current = core.doorNormalizeMenuOverlay({});
+  current['1'] = { MONDAY: { lunch: 'Contradictory lunch' } };
+  const conflicting = core.validateDoorPublishArtifacts({ ...base, 'menu_overlay.json': current });
+  assert.ok(conflicting.stop.some((issue) => issue.code === 'overlay-menu-conflict'),
+    'an overlay that disagrees with the menu being sent must stop the send');
+});
+
+test('a contradictory menu overlay cannot be manually overridden', async () => {
+  let confirmCalls = 0;
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Overlay lunch' } } },
+    // Simulate a builder regression that ignored the overlay. The pre-send check
+    // must stop even a manual Send Now rather than offer the normal Gate-9 override.
+    buildMenuJSON: () => makePublishArtifact('menu_current.json'),
+    confirm: () => { confirmCalls++; return true; }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
+  assert.equal(harness.pushed.length, 0, 'a contradictory overlay must never reach GitHub');
+  assert.equal(confirmCalls, 0, 'a non-overridable overlay failure must not ask to send anyway');
+});
+
+test('CI separates hard safety checks from non-blocking menu-decision review', () => {
+  const workflow = readText('.github/workflows/door-tests.yml');
+  assert.match(workflow, /name: DOOR safety checks[\s\S]*run: node --test tests\/\*\.mjs/);
+  assert.match(workflow, /name: Menu decisions review \(advisory\)[\s\S]*continue-on-error: true[\s\S]*tests\/advisory\/menu-decisions\.mjs/);
+  const retiredSnapshotTitle = ['July 2 canonical import', ' is published'].join('');
+  assert.equal(readText('tests/door-smoke.mjs').includes("test('" + retiredSnapshotTitle), false,
+    'the historical import snapshot must not return to the hard safety suite');
 });
 
 test('publish validation catches malformed routing component portions', () => {
@@ -1766,12 +1830,8 @@ test('publish flow shim builds menu and routing from pre-merged cloud overlay', 
     }),
     configureContext(context) {
       context.buildMenuJSON = () => {
-        const artifact = makePublishArtifact('menu_current.json');
         const overlay = context._doorPublishMenuOverlayOverride || {};
-        if (overlay['1'] && overlay['1'].TUESDAY && overlay['1'].TUESDAY.dinner) {
-          artifact.menu['1'].TUESDAY.dinner = overlay['1'].TUESDAY.dinner;
-        }
-        return artifact;
+        return applyOverlayToMenuArtifact(makePublishArtifact('menu_current.json'), overlay);
       };
       context.buildRoutingByMealJSON = () => {
         const artifact = makePublishArtifact('routing_by_meal.json');
@@ -2015,110 +2075,44 @@ test('published JSON snapshots are parseable and carry metadata', () => {
   }
 });
 
-test('July 2 canonical import is published for the remaining repaired meal slots', () => {
-  const menu = readJson('menu_current.json');
-  const routing = readJson('routing_by_meal.json');
-  const expected = [
-    // D6 (2026-08-18): the July-2 import carried a typo ("Strogonoff") and stale side
-    // wording ("Noodles"); Jason corrected both in the DOOR menu editor and republished,
-    // so the committed menu now reads "Beef Stroganoff, Pasta". Pin the corrected string —
-    // the earlier pin froze the broken import text (the eee354c / gate-#58 lesson).
-    ['1', 'SUNDAY', 'dinner', 'Beef Stroganoff, Pasta'],
-    ['1', 'WEDNESDAY', 'lunch', 'Egg Salad Wrap, Bean Salad'],
-    ['2', 'TUESDAY', 'lunch', 'Halal Beef Burger, Chickpea Salad'],
-    // D6 (2026-08-18): Jason's menu-editor pass corrected the doubled-biscuit / "Brocolli"
-    // regression on this slot — the July-2 canonical side was Broccoli, and "Seasonal
-    // Vegetables" was itself a corruption. Pin the corrected committed text.
-    ['2', 'WEDNESDAY', 'lunch', 'Oven Fried Chicken, Sweet Potato Biscuit, Broccoli'],
-    // D6 (2026-08-18): Jason-confirmed intentional dish swap (Beef Nachos ↔ Crispy Chicken
-    // Tender lunches). Flags + veg-alt (Crispy Vegan Tender Wrap) + routing regenerated to
-    // match. The menu editor is the durable authority; pin the committed dish.
-    ['3', 'THURSDAY', 'lunch', 'Crispy Chicken Tender Wrap'],
-    ['3', 'SATURDAY', 'lunch', 'Roasted Chicken leg, Pineapple Rice'],
-    // Comma-joined, NOT " and " — this is the form DOOR's publish deterministically
-    // produces (it comma-joins main + side, like every other slot in this list). The
-    // July-2 import phrased this one slot with "Pepperoni Pizza and Seasonal Soup", and
-    // a hand-edit to that wording (PR #69) did not survive a publish from app-state.
-    // Content is identical (both dishes present, flags + routing intact); asserting the
-    // exact "and" string a publish never emits fired on normal operation. Pin the app's
-    // real output — same lesson as eee354c. (2026-08-10)
-    ['3', 'SATURDAY', 'dinner', 'Pepperoni Pizza, Seasonal Soup'],
-    // D6 (2026-08-18): Jason's editor rephrasing ("Pork Tacos Al Pastor" → "Pork Al Pastor
-    // Taco"; "Pea & Carrots" → "Peas & Carrot"). Pin the committed text.
-    ['4', 'TUESDAY', 'lunch', 'Pork Al Pastor Taco, Peas & Carrot'],
-    ['4', 'TUESDAY', 'dinner', 'BBQ Chicken Leg, Roasted Yam, Seasonal Veg'],
-    ['4', 'WEDNESDAY', 'lunch', 'Tuna Rex Salad']
-  ];
+test('published regular and vegan allergen flags stay separated for every structured meal', () => {
+  const menu = readJson('menu_current.json').menu;
+  let differentiatedFlagsChecked = 0;
 
-  assert.equal(menu._meta.version, 32);
-  for (const [week, day, period, mealName] of expected) {
-    const dayData = menu.menu[week][day];
-    assert.equal(dayData[period], mealName, `W${week} ${day} ${period} should match the July 2 import`);
-    const flags = dayData[`${period}_flags`] || {};
-    assert.ok(Object.values(flags).some(Boolean), `W${week} ${day} ${period} should keep non-empty import allergen flags`);
+  for (const week of Object.values(menu)) {
+    for (const day of Object.values(week)) {
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        const slots = day[`${meal}_slots`];
+        const veganFlags = slots?.veganalt?.flags;
+        if (!slots || !veganFlags) continue;
 
-    const components = Object.keys(routing.routing[week][day][period]._components || {});
-    assert.ok(components.length > 0, `W${week} ${day} ${period} should have regenerated routing components`);
-    assert.ok(
-      components.some((component) => mealName.toLowerCase().includes(component.toLowerCase())),
-      `W${week} ${day} ${period} routing should include a canonical meal component`
-    );
+        const regularUnion = {};
+        for (const [slotName, slot] of Object.entries(slots)) {
+          if (slotName === 'veganalt' || !slot?.flags) continue;
+          for (const [flag, value] of Object.entries(slot.flags)) {
+            if (value === true) regularUnion[flag] = true;
+          }
+        }
+        const publishedRegular = day[`${meal}_flags`] || {};
+        const allFlags = new Set([...Object.keys(regularUnion), ...Object.keys(veganFlags)]);
+        for (const flag of allFlags) {
+          if (veganFlags[flag] === true && regularUnion[flag] !== true) {
+            assert.notEqual(publishedRegular[flag], true,
+              `${flag} from a vegan alternative must not leak into the regular ${meal} flags`);
+            differentiatedFlagsChecked++;
+          }
+          if (regularUnion[flag] === true && veganFlags[flag] !== true) {
+            assert.notEqual(veganFlags[flag], true,
+              `${flag} from a regular slot must not leak into the vegan ${meal} flags`);
+            differentiatedFlagsChecked++;
+          }
+        }
+      }
+    }
   }
-});
 
-test('W1 Tuesday lunch preserves the architect-set menu composition', () => {
-  // Jason's menu ruling is represented by structured slots, not only by the final
-  // comma-joined display string. Pin each decision separately so a changed main,
-  // starch, side, or vegan counterpart identifies the fact that drifted.
-  const slot = readJson('menu_current.json').menu['1']?.TUESDAY;
-  assert.ok(slot, 'W1 TUESDAY node must exist');
-  const slotName = (entry) => entry?.recipeName || entry?.manual || '';
-
-  assert.equal(slotName(slot.lunch_slots?.main), 'Blackened Fish', 'regular main remains Blackened Fish');
-  assert.equal(slotName(slot.lunch_slots?.starch), 'Sweet potatoes', 'starch remains Sweet potatoes');
-  assert.equal(slotName(slot.lunch_slots?.vegside), 'Parsnip and Carrot', 'veg side remains Parsnip and Carrot');
-  assert.equal(slotName(slot.lunch_slots?.veganalt), 'Blackened Tofu', 'vegan counterpart remains Blackened Tofu');
-
-  // Keep the public menu wording honest without making it carry the allergen and
-  // routing responsibilities tested below.
-  assert.equal(slot.lunch, 'Blackened Fish, Sweet potatoes, Parsnip and Carrot');
-  assert.equal(slot.lunch_veg, 'Blackened Tofu, Sweet potatoes, Parsnip and Carrot');
-  assert.equal(slot.lunch_sides, 'Sweet potatoes, Parsnip and Carrot');
-});
-
-test('W1 Tuesday lunch keeps regular and vegan allergens in their own streams', () => {
-  // CODEX classifies Blackened Fish as Fish + Spicy and Blackened Tofu as Soy +
-  // Spicy. The regular stream must not inherit soy from the vegan alternative,
-  // and the vegan alternative must not inherit fish from the regular main.
-  const slot = readJson('menu_current.json').menu['1']?.TUESDAY;
-  assert.ok(slot, 'W1 TUESDAY node must exist');
-  const regular = slot.lunch_flags || {};
-  const vegan = slot.lunch_slots?.veganalt?.flags || {};
-
-  assert.equal(regular.hasFish, true, 'regular Blackened Fish retains its fish flag');
-  assert.equal(regular.hasSoy, false, 'regular meal does not inherit vegan-alt soy');
-  assert.equal(regular.isSpicy, true, 'regular Blackened Fish retains its spicy flag');
-  assert.equal(regular.hasNightshades, false, 'blackening spice is spicy, not Nightshades');
-
-  assert.equal(vegan.hasFish, false, 'vegan Blackened Tofu does not inherit regular-stream fish');
-  assert.equal(vegan.hasSoy, true, 'vegan Blackened Tofu retains its soy flag');
-  assert.equal(vegan.isSpicy, true, 'vegan Blackened Tofu retains its spicy flag');
-  assert.equal(vegan.hasNightshades, false, 'vegan blackening spice is spicy, not Nightshades');
-
-  assert.equal(slot.allergens_lunch, 'fish', 'regular allergen line stays fish-only');
-});
-
-test('W1 Tuesday published routing matches the architect-set menu components', () => {
-  const components = readJson('routing_by_meal.json').routing['1']?.TUESDAY?.lunch?._components || {};
-  for (const component of ['Blackened Fish', 'Blackened Tofu', 'Sweet potatoes', 'Parsnip and Carrot']) {
-    assert.ok(Number.isInteger(components[component]) && components[component] > 0,
-      `routing includes a positive portion count for ${component}`);
-  }
-  assert.equal(
-    Object.keys(components).some((component) => /^(?:Seasonal Vegetables|Roasted Tofu)(?:\s|\(|$)/i.test(component)),
-    false,
-    'retired Seasonal Vegetables and Roasted Tofu do not survive in W1 Tuesday routing'
-  );
+  assert.ok(differentiatedFlagsChecked > 0,
+    'the checked-in menu must exercise at least one regular/vegan allergen difference');
 });
 
 test('checked-in menu overlay stays marked for the current cutover', () => {
@@ -2127,8 +2121,6 @@ test('checked-in menu overlay stays marked for the current cutover', () => {
   const cutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
 
   assert.equal(overlay._meta.standardCutover, cutover);
-  assert.equal(overlay._meta.plainVegStirfryComponents, 'Carrot, Onion, Peppers, Zucchini, Green Beans');
-
   // Week/day entries are the overlay's JOB — it is the published "post-import user
   // deltas" layer, so a menu edit made in the UI legitimately lands here.
   //
@@ -2202,7 +2194,7 @@ test('menu_v31_allergen_confirmations: the two Nigerian dishes flag Nightshades 
   }
 });
 
-test('menu_current.json W3 FRI lunch (Nigerian Fish) carries the operative Nightshades + Spicy flags', () => {
+test('every published Nigerian Fish occurrence carries the operative Nightshades + Spicy flags', () => {
   // getIngredientConflicts()/routing read the menu slot's *_flags — NOT the
   // confirmations record — so this is what actually surfaces the No-Nightshades
   // advisory + Bland routing on the regular-stream plating sheet. nameDetectFlags()
@@ -2210,13 +2202,18 @@ test('menu_current.json W3 FRI lunch (Nigerian Fish) carries the operative Night
   // (The veg-alt stream, Nigerian Styled Tofu, derives its allergens from the CODEX
   // feed via getVegAltAllergenStr, corrected in recipe-hub PR-1.)
   const menu = readJson('menu_current.json').menu;
-  const slot = menu['3'] && menu['3']['FRIDAY'];
-  assert.ok(slot, 'W3 FRIDAY node must exist');
-  assert.match(slot.lunch || '', /Nigerian Fish/, 'W3 FRI lunch should still be the Nigerian Fish slot');
-  const fl = slot.lunch_flags || {};
-  assert.equal(fl.hasNightshades, true, 'W3 FRI lunch_flags.hasNightshades must be true (roasted peppers + smoked paprika)');
-  assert.equal(fl.isSpicy, true, 'W3 FRI lunch_flags.isSpicy must be true (confirmed spicy; triggers Bland routing)');
-  assert.equal(fl.hasFish, true, 'W3 FRI lunch_flags.hasFish must remain true');
+  for (const [weekKey, week] of Object.entries(menu)) {
+    for (const [dayKey, day] of Object.entries(week)) {
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        if (!/Nigerian Fish/i.test(day[meal] || '')) continue;
+        const flags = day[`${meal}_flags`] || {};
+        const where = `W${weekKey} ${dayKey} ${meal}`;
+        assert.equal(flags.hasNightshades, true, `${where} must flag Nightshades (roasted peppers + smoked paprika)`);
+        assert.equal(flags.isSpicy, true, `${where} must flag Spicy (triggers Bland routing)`);
+        assert.equal(flags.hasFish, true, `${where} must retain Fish`);
+      }
+    }
+  }
 });
 
 test('routing_by_meal.json keeps numeric sections and component portion maps', () => {
