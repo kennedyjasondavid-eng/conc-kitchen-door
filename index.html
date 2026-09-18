@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.10';
-const DOOR_BUILD_DATE = '2026-09-17';
+const DOOR_APP_VERSION = 'v31-standard.11';
+const DOOR_BUILD_DATE = '2026-09-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -1651,42 +1651,42 @@ function updateCODEXBadge() {
             </div>
           </div>
 
-          <!-- GITHUB PUBLISH -->
+          <!-- KITCHEN CONNECTION (GitHub-backed; staff copy stays provider-neutral) -->
           <div class="card" style="margin-top:16px;">
-            <div class="card-header"><span style="font-size:15px;">&#x203A;</span><h2>Live Data Sync</h2></div>
+            <div class="card-header"><span style="font-size:15px;">&#x203A;</span><h2>Kitchen connection</h2></div>
             <div class="card-body">
               <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
-                Publish menu and headcount data to the DOOR repo after Generate or menu changes.
-                Production Hub fetches this data on load. No resident names or PII are published.
+                Send the current menu and resident counts to the kitchen after Generate or menu changes.
+                EXPO and HUB use this information. Resident names are never sent.
               </div>
               <div class="cb-item" onclick="toggleCb(this,'gh_auto_publish')" style="margin-bottom:10px;">
                 <input type="checkbox" checked><div class="cb-box" style="background:var(--forest);"><span class="cb-check" style="display:block;">✓</span></div>
-                <span class="cb-label">Auto-publish after Generate and menu changes</span>
+                <span class="cb-label">Send changes to the kitchen automatically after Generate and menu changes</span>
               </div>
               <div style="font-size:11px;color:var(--muted);padding:8px 0;border-top:1px solid var(--border);margin-top:8px;cursor:pointer;user-select:none;" onclick="const d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';this.querySelector('span').textContent=d.style.display==='none'?'▸':'▾';">
-                <span>▸</span> Advanced — token, repo, manual publish
+                <span>▸</span> Advanced connection setup
               </div>
               <div style="display:none;">
                 <div class="form-group mb-12">
-                  <label>GitHub personal access token</label>
-                  <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
-                  <div class="form-hint">Fine-grained token with selected repo only and Contents read/write. <a href="https://github.com/settings/personal-access-tokens/new?name=KitchenDOOR%20Publish%20Token&description=Publishes%20KitchenDOOR%20JSON%20snapshots&expires_in=90&contents=write" target="_blank" style="color:var(--forest-mid);">Create token</a></div>
+                  <label>Connection key</label>
+                  <input type="password" id="gh-token" placeholder="Paste connection key" autocomplete="off">
+                  <div class="form-hint">Issued for this computer by the kitchen lead. <a href="https://github.com/settings/personal-access-tokens/new?name=KitchenDOOR%20Publish%20Token&description=Publishes%20KitchenDOOR%20JSON%20snapshots&expires_in=90&contents=write" target="_blank" style="color:var(--forest-mid);">Create or replace key (kitchen lead)</a></div>
                 </div>
                 <div class="form-group mb-12">
-                  <label>Token expiry date</label>
+                  <label>Connection key expiry date</label>
                   <input type="date" id="gh-token-expiry">
-                  <div class="form-hint">Used for local reminders. GitHub is still the authority if a token is revoked or expires early.</div>
+                  <div class="form-hint">Used for reminders. Ask Jason if the key stops working early.</div>
                 </div>
                 <div class="form-group mb-12">
-                  <label>Repository</label>
+                  <label>Kitchen destination</label>
                   <input type="text" id="gh-repo" placeholder="kennedyjasondavid-eng/conc-kitchen-door">
-                  <div class="form-hint">owner/repo format. Files publish to repo root as menu_current.json and registry_summary.json.</div>
+                  <div class="form-hint">Set by the kitchen lead.</div>
                 </div>
                 <div id="gh-auth-status" style="font-size:12px;line-height:1.5;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--cream);color:var(--muted);margin-bottom:10px;"></div>
                 <div style="display:flex;gap:8px;align-items:center;margin-top:12px;">
-                  <button class="btn btn-ghost btn-sm" onclick="testGHPublish()">Test &amp; Save Token</button>
-                  <button class="btn btn-ghost btn-sm" onclick="PublishAuth.forgetToken(true)">Forget Token</button>
-                  <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true).catch(function(){})">Publish Now</button>
+                  <button class="btn btn-ghost btn-sm" onclick="testGHPublish()">Test &amp; Save Connection</button>
+                  <button class="btn btn-ghost btn-sm" onclick="PublishAuth.forgetToken(true)">Disconnect</button>
+                  <button class="btn btn-ghost btn-sm" onclick="publishToGitHub(true).catch(function(){})">Send Now</button>
                   <button class="btn btn-ghost btn-sm" onclick="doorFirstRunReopen()" title="Re-run the one-time setup card (name, connection key, site)">Set up this computer again</button>
                   <span id="gh-status" role="status" aria-live="polite" style="font-size:12px;color:var(--muted);"></span>
                 </div>
@@ -1712,7 +1712,7 @@ function updateCODEXBadge() {
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()">✏ Edit Menu</button>
       <button class="btn btn-ghost btn-sm" onclick="openTestMeal()" style="color:#7c3aed;border-color:#7c3aed;">&#x1F9EA; Test Meal</button>
-      <button class="btn btn-sm btn-mint" id="mc-publish-btn" onclick="publishMenuFromConfig()" title="Publish the current menu and DOOR state to GitHub (menu_current.json + routing_by_meal.json) so EXPO and HUB pick it up">&#x21EA; Publish</button>
+      <button class="btn btn-sm btn-mint" id="mc-publish-btn" onclick="publishMenuFromConfig()" title="Send the current menu to the kitchen so EXPO and HUB can use it">&#x21EA; Send to kitchen</button>
     </div>
   </div>
   <div class="content">
@@ -9605,7 +9605,7 @@ function buildReview() {
         </summary>
         <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fecaca;font-size:12px;color:#7f1d1d;line-height:1.8;">
           ${autoDischarges.map(room => `<span style="font-family:'DM Mono',monospace;background:#fee2e2;padding:1px 8px;border-radius:4px;margin-right:4px;white-space:nowrap;">Rm ${escapeHtml(room)}</span>`).join('')}
-          <div style="margin-top:6px;font-size:11px;color:#991b1b;">These rooms were in the registry at session start but are no longer present. Removed via import, sync, or previous session.</div>
+          <div style="margin-top:6px;font-size:11px;color:#991b1b;">These rooms were on the resident list at session start but are no longer present. Removed during import, refresh, or a previous session.</div>
         </div>
       </details>
     </div>`;
@@ -9959,7 +9959,9 @@ function doorDeviceCapability(inp) {
   if (inp.autoPublishOn === false) reasons.push({ code: 'auto-publish-off', label: DOOR_PUBLISH_SKIP_REASONS.auto_publish_off.label, action: 'settings' });
   if (inp.tabStale) reasons.push({ code: 'stale-tab', label: DOOR_PUBLISH_SKIP_REASONS['stale-tab'].label, action: 'reload' });
   if (inp.lastSkip && inp.lastSkip.reason) {
-    const m = DOOR_PUBLISH_SKIP_REASONS[inp.lastSkip.reason] || { label: 'the last publish did not go through' + (inp.lastSkip.message ? ' (' + inp.lastSkip.message + ')' : ''), action: 'settings' };
+    // Historical builds stored raw provider errors here. Never echo that saved
+    // diagnostic into the standing staff banner.
+    const m = DOOR_PUBLISH_SKIP_REASONS[inp.lastSkip.reason] || { label: 'the last send didn’t go through — try again, or ask Jason', action: 'settings' };
     // don't double-report a cause already listed live (e.g. missing key AND missing_auth skip)
     const dup = (m.action === 'connect' && reasons.some(r => r.action === 'connect')) ||
                 (inp.lastSkip.reason === 'stale-tab' && inp.tabStale) ||
@@ -10058,9 +10060,25 @@ function doorSanitizeConnectionKey(raw) {
   return String(raw == null ? '' : raw).replace(/[^\x20-\x7E]/g, '').trim();
 }
 
-// Turns any validate/publish error into kitchen words. kind: rejected | network | other.
+// Turns any saved/provider error into kitchen words. Raw diagnostics may be kept in
+// metadata and the console, but must never be rendered to staff.
 function doorConnectFailureCopy(message) {
   const m = String(message || '');
+  if (/past its recorded expiry|expired|expiry date/i.test(m)) {
+    return { kind: 'expired', text: 'This computer’s connection key has expired. Ask Jason for the current key.' };
+  }
+  if (/test\s*&?\s*save|pasted.*before|unsaved/i.test(m)) {
+    return { kind: 'unsaved', text: 'Test and save the connection key before sending.' };
+  }
+  if (/set up a github token|enter a github token|no publishing token|token is not configured|missing_auth|no connection key/i.test(m)) {
+    return { kind: 'missing', text: 'This computer isn’t connected to the kitchen yet. Paste the connection key, or ask Jason.' };
+  }
+  if (/set github repo|enter the github repo|could not find this repo|selected repository|\b404\b/i.test(m)) {
+    return { kind: 'setup', text: 'This computer’s kitchen connection isn’t fully set up. Ask Jason.' };
+  }
+  if (/\b409\b|conflict/i.test(m)) {
+    return { kind: 'conflict', text: 'The kitchen changed while this computer was sending. Reload and try again.' };
+  }
   if (/401|403|unauthori|bad credentials|forbidden|rejected|not accepted|token|expired/i.test(m)) {
     return { kind: 'rejected', text: 'That key was not accepted. Check with Jason for this computer’s current key.' };
   }
@@ -11474,7 +11492,7 @@ function debouncedComplianceSave() {
     // Update banner to saved state
     const banner = document.getElementById('compliance-pending-banner');
     if (banner && banner.style.display !== 'none') {
-      banner.innerHTML = '<strong style="color:#15803d;">✓ Saved</strong> — changes synced to registry.';
+      banner.innerHTML = '<strong style="color:#15803d;">✓ Saved</strong> — resident list updated.';
       banner.style.background = '#f0fdf4';
       banner.style.borderColor = '#86efac';
       setTimeout(() => { banner.style.display = 'none'; banner.innerHTML = '<strong style="color:#92400e;">Unsaved changes</strong> — saving…'; banner.style.background = '#fef3c7'; banner.style.borderColor = '#f59e0b'; }, 2000);
@@ -11998,17 +12016,18 @@ const PublishAuth = {
       const expiry = meta.expiryDate || '';
       const days = this.daysUntil(expiry);
       let text = message || '';
+      let stateColor = token ? 'var(--forest)' : '#dc2626';
       if (!text) {
-        if (!token) text = meta.migrationNeeded ? 'Shared/legacy token found. Test & Save before publishing.' : 'No publishing token saved on this device.';
-        else if (days !== null && days < 0) text = 'Publishing token is past its recorded expiry date. Rotate before publishing.';
-        else if (meta.lastError) text = meta.lastError;
-        else if (meta.legacyRetestNeeded) text = 'Publishing token exists from an older DOOR version. Publishing can continue, but Test & Save is recommended.';
-        else if (days !== null && days <= 14) text = 'Publishing token saved. Expires in ' + days + ' day(s). Rotate soon.';
-        else text = 'Publishing token saved for ' + this.getRepo() + (expiry ? ' until ' + expiry + '.' : '.');
+        if (!token) text = meta.migrationNeeded ? 'This computer has an older saved connection. Test and save it again, or ask Jason.' : 'This computer isn’t connected to the kitchen yet. Use Test & Save Connection, or ask Jason.';
+        else if (days !== null && days < 0) { text = 'This computer’s connection key has expired. Ask Jason for the current key.'; stateColor = '#dc2626'; }
+        else if (meta.lastError) { text = doorConnectFailureCopy(meta.lastError).text; stateColor = '#dc2626'; }
+        else if (meta.legacyRetestNeeded) { text = 'This computer has an older saved connection. Test and save it again when convenient.'; stateColor = '#92400e'; }
+        else if (days !== null && days <= 14) { text = 'Kitchen connection saved. The key expires in ' + days + ' day(s); ask Jason to replace it soon.'; stateColor = '#92400e'; }
+        else text = 'This computer is connected to the kitchen' + (expiry ? ' until ' + expiry + '.' : '.');
       }
       box.textContent = text;
-      box.style.color = color || (token ? 'var(--forest)' : '#dc2626');
-      box.style.borderColor = token ? 'var(--forest-mid)' : '#fca5a5';
+      box.style.color = color || stateColor;
+      box.style.borderColor = (color || stateColor) === '#dc2626' ? '#fca5a5' : 'var(--forest-mid)';
     }
     const status = document.getElementById('gh-status');
     if (status && message) {
@@ -12109,7 +12128,7 @@ const PublishAuth = {
     meta.lastError = message;
     meta.lastErrorAt = new Date().toISOString();
     this.setMeta(meta);
-    this.renderStatus(message, '#dc2626');
+    this.renderStatus(doorConnectFailureCopy(message).text, '#dc2626');
   },
   async validateToken(token, repo) {
     token = (token || '').trim();
@@ -12140,7 +12159,7 @@ const PublishAuth = {
     } catch(e) { console.warn('Token save failed:', e); }
     const input = document.getElementById('gh-token');
     if (input) input.value = '';
-    this.renderStatus('Repo access confirmed; write will be confirmed on next publish.', 'var(--forest)');
+    this.renderStatus('Kitchen connection confirmed.', 'var(--forest)');
   },
   forgetToken(confirmFirst) {
     if (confirmFirst && !confirm('Disconnect this computer from the kitchen? You’ll need the connection key to connect it again.')) return;
@@ -12151,7 +12170,7 @@ const PublishAuth = {
     this.setMeta({ authModel: 'fine-grained-pat-explicit-v1', forgottenAt: new Date().toISOString() });
     const input = document.getElementById('gh-token');
     if (input) input.value = '';
-    this.renderStatus('Publishing token forgotten on this device.', '#dc2626');
+    this.renderStatus('This computer is disconnected from the kitchen.', '#dc2626');
   },
   migrateLegacyState() {
     const meta = this.getMeta();
@@ -12197,7 +12216,7 @@ function saveSettings() {
     localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
     localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms));
   } catch(e) { console.warn('Settings save failed:', e); }
-  PublishAuth.renderStatus('Settings saved. Token changes require Test & Save Token.', 'var(--forest)');
+  PublishAuth.renderStatus('Settings saved. Use Test & Save Connection after changing the connection key.', 'var(--forest)');
   // Show saved indicator
   const btn = document.querySelector('[onclick="saveSettings()"]');
   if (btn) {
@@ -13171,7 +13190,7 @@ async function _doPublishToGitHub(manual) {
     if(manual) showToast('This computer isn’t connected to the kitchen yet. Use Connect, or ask Jason.');
     throw e;
   }
-  if(statusEl){ statusEl.textContent='Publishing\u2026'; statusEl.style.color='var(--forest-mid)'; }
+  if(statusEl){ statusEl.textContent='Sending to the kitchen\u2026'; statusEl.style.color='var(--forest-mid)'; }
   // D1: artifacts are STAGED here and pushed as ONE commit below (see
   // ghPushFilesAtomic). They used to go out as one Contents-API commit each, so a
   // crash mid-publish shipped a mutually-inconsistent artifact set and every CI
@@ -13228,15 +13247,16 @@ async function _doPublishToGitHub(manual) {
     const _structuralStop = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
     if (_structuralStop) {
       const _blockMsg = 'Blocked — ' + _structuralStop + ' structural defect' + (_structuralStop === 1 ? '' : 's') + ' (fix the data before publishing)';
+      const _blockStaffMsg = 'Not sent — a data check found a problem in today’s information. Fix it and try again, or ask Jason.';
       if (!manual) {
-        if(statusEl){ statusEl.textContent=_blockMsg; statusEl.style.color='#dc2626'; }
+        if(statusEl){ statusEl.textContent=_blockStaffMsg; statusEl.style.color='#dc2626'; }
         return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
       }
       const _proceedStop = (typeof confirm === 'function')
         ? confirm('Today’s list has data problems that could send the wrong info to the kitchen.\n\nIt’s better to fix it and try again. Send anyway?')
         : true;
       if (!_proceedStop) {
-        if(statusEl){ statusEl.textContent='Publish cancelled — ' + _blockMsg; statusEl.style.color='#dc2626'; }
+        if(statusEl){ statusEl.textContent='Send cancelled — nothing was sent to the kitchen.'; statusEl.style.color='#dc2626'; }
         return { skipped:true, reason:'validation-stop-cancelled', message:_blockMsg, validationStop:_structuralStop };
       }
       // Manual override: operator chose to publish despite defects — fall through
@@ -13333,15 +13353,18 @@ async function testGHPublish() {
   const token=PublishAuth.getTypedToken()||PublishAuth.getSavedToken();
   const repo=PublishAuth.getRepo();
   const s=document.getElementById('gh-status');
-  if(!token||!repo){ if(s){s.textContent='Enter token and repo first';s.style.color='#dc2626';} return; }
-  if(s){s.textContent='Testing\u2026';s.style.color='var(--muted)';}
+  if(!token){ if(s){s.textContent='Paste the connection key first.';s.style.color='#dc2626';} return; }
+  if(!repo){ if(s){s.textContent='This computer’s kitchen destination isn’t set. Ask Jason.';s.style.color='#dc2626';} return; }
+  if(s){s.textContent='Checking the connection\u2026';s.style.color='var(--muted)';}
   try {
     await PublishAuth.validateToken(token, repo);
     PublishAuth.saveValidatedToken(token, repo);
-    if(s){s.textContent='Repo access confirmed; write confirmed on next publish.';s.style.color='var(--forest)';}
+    if(s){s.textContent='Kitchen connection confirmed.';s.style.color='var(--forest)';}
   } catch(err){
-    PublishAuth.rememberFailure(err.message || 'Network error');
-    if(s){s.textContent=err.message || 'Network error';s.style.color='#dc2626';}
+    const detail=err.message || 'Network error';
+    const copy=doorConnectFailureCopy(detail);
+    PublishAuth.rememberFailure(detail);
+    if(s){s.textContent=copy.text;s.style.color='#dc2626';}
   }
 }
 
@@ -14880,7 +14903,7 @@ function renderMenuSourceBanner() {
   el.innerHTML =
     '<strong style="color:#991b1b;">⚠ Menu source: built-in fallback</strong> ' +
     '<span style="color:var(--muted);">This device has no uploaded menu, so DOOR is showing the built-in constant — not the current standard menu. ' +
-    'Re-import the menu workbook before publishing: a publish from here would stamp the stale built-in menu as current for EXPO and HUB.</span>';
+    'Import the current menu workbook before sending; otherwise EXPO and HUB could receive the older built-in menu.</span>';
   el.style.display = 'block';
 }
 
@@ -16804,12 +16827,12 @@ function parseMenuWorkbook(wb) {
 async function publishMenuFromConfig() {
   const btn = document.getElementById('mc-publish-btn');
   const label = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = 'Publishing…'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Sending…'; }
   try {
     const res = await publishToGitHub(true);
     if (btn) {
       const good = res && res.ok && !res.degraded && !res.advisory;
-      btn.innerHTML = good ? 'Published ✓' : label;
+      btn.innerHTML = good ? 'Sent ✓' : label;
       if (good) setTimeout(() => { if (btn) btn.innerHTML = label; }, 2500);
     }
   } catch (e) {
@@ -20367,7 +20390,7 @@ function showStaleVersionBanner(newStamp) {
   bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;border-bottom:2px solid #f59e0b;color:#92400e;padding:10px 18px;display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.06);';
   bar.innerHTML =
     '<span style="font-size:16px;">↻</span>' +
-    '<span style="flex:1;">A newer version of DOOR is published. Reload to use the latest logic before publishing — until you do, auto-publish is paused and manual publish will ask first.</span>' +
+    '<span style="flex:1;">A newer version of DOOR is available. Reload before sending changes; automatic sending is paused until you do.</span>' +
     '<button id="door-stale-reload" style="background:#92400e;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Reload now</button>' +
     '<button id="door-stale-dismiss" title="Hide until next refresh" style="background:none;border:1px solid #f59e0b;color:#92400e;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;">Dismiss</button>';
   document.body.appendChild(bar);
@@ -20839,7 +20862,7 @@ function renderIntakeQueue() {
   if (sub) sub.textContent = 'Intake Portal';
   const topRight = document.querySelector('#screen-enter .topbar-right');
   if (topRight) {
-    topRight.innerHTML = '<button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Sync">\u{1f504} Sync</button>' +
+    topRight.innerHTML = '<button class="btn btn-ghost btn-sm" onclick="pullStateFromGitHub(true)" title="Get the latest resident list from the kitchen">\u{1f504} Refresh list</button>' +
       '<button class="btn btn-mint" id="intake-save-btn" onclick="addToIntakeQueue()">\uff0b Add to Queue</button>';
   }
   const queueHeader = document.querySelector('#screen-enter .card-header:has(#queue-count-label)');
