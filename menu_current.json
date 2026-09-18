@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-09-17T19:53:21.145Z",
+    "exported": "2026-09-18T12:15:13.039Z",
     "version": 32
   },
   "menu": {
@@ -357,11 +357,11 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": true,
+              "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": true,
-              "isCarb": true,
-              "halalCertifiedMeat": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
@@ -375,9 +375,7 @@
           },
           "veganalt": {
             "manual": "Crispy Quinoa Cake Burger",
-            "flags": {
-              "hasGluten": true
-            }
+            "flags": {}
           },
           "starch": {
             "recipeName": "Home Fry Potatoes",
@@ -567,9 +565,9 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_dinner": "sulphites, pork",
-        "lunch": "Blackened Fish, Sweet potatoes, Parsnip and Carrot",
+        "lunch": "Blackened fish, Sweet potatoes, Parsnip and Carrot",
         "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
-        "lunch_mainItem": "Blackened Fish",
+        "lunch_mainItem": "Blackened fish",
         "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": false,
@@ -577,7 +575,7 @@
           "hasEgg": false,
           "hasFish": true,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -598,7 +596,7 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "allergens_lunch": "fish",
+        "allergens_lunch": "fish, soy",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
         "lunch_altMealsNone": true,
@@ -606,14 +604,14 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "recipeName": "Blackened Fish",
+            "manual": "Blackened fish",
             "flags": {
               "hasGluten": false,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": true,
               "hasPeanuts": false,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
@@ -624,17 +622,16 @@
               "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": true,
-              "isCarb": false,
+              "isCarb": true,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
               "hasCoconut": false,
-              "hasNightshades": false,
+              "hasMushroom": false,
               "hasBrassicas": false,
-              "hasCorn": false
-            },
-            "recipeId": "blackened-fish"
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
           },
           "veganalt": {
             "recipeName": "Blackened Tofu",
@@ -2205,11 +2202,11 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Chicken Tenders, Sweet Potato, Seasonal Veg",
-        "lunch_veg": "Vegan Tenders, Sweet Potato, Seasonal Veg",
+        "lunch": "Chicken Tenders, Sweet Potato, Parsnip and Carrot",
+        "lunch_veg": "Vegan Nuggets, Sweet Potato, Parsnip and Carrot",
         "lunch_halal": "Halal breaded chicken burgers",
         "lunch_mainItem": "Chicken Tenders",
-        "lunch_sides": "Sweet Potato, Seasonal Veg",
+        "lunch_sides": "Sweet Potato, Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -2293,10 +2290,10 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": true,
+              "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
-              "isCarb": true,
+              "isCarb": false,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
               "hasBeans": false,
@@ -2305,8 +2302,7 @@
               "hasNightshades": false,
               "hasBrassicas": false,
               "hasCorn": false
-            },
-            "recipeId": "chicken-tenders"
+            }
           },
           "mainalt": {
             "recipeName": "Halal Breaded Chicken Burgers",
@@ -2324,7 +2320,7 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": true,
+              "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": true,
               "isCarb": false,
@@ -2339,18 +2335,15 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan Tenders",
-            "flags": {
-              "hasGluten": true,
-              "hasSoy": true
-            }
+            "manual": "Vegan Nuggets",
+            "flags": {}
           },
           "starch": {
             "manual": "Sweet Potato",
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Veg",
+            "manual": "Parsnip and Carrot",
             "flags": {}
           }
         }
@@ -2861,12 +2854,12 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Beef Nachos Supreme, Tortillas, Sour Cream",
-        "lunch_veg": "Vegan Nachos Supreme, Tortillas, Sour Cream",
-        "lunch_mainItem": "Beef Nachos Supreme",
-        "lunch_sides": "Tortillas, Sour Cream",
+        "lunch": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
+        "lunch_veg": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+        "lunch_mainItem": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
+        "lunch_sides": "",
         "lunch_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
@@ -2882,15 +2875,15 @@
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": false,
+          "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
-          "hasNightshades": true,
+          "hasNightshades": false,
           "hasBrassicas": false,
-          "hasCorn": true
+          "hasCorn": false
         },
         "dinner": "Baked Tomato Fish, Couscous, Broccoli",
         "dinner_veg": "Baked Tomato Tofu, Couscous, Broccoli",
@@ -2965,7 +2958,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "dairy, beef",
+        "allergens_lunch": "gluten, dairy, beef",
         "allergens_dinner": "gluten, fish",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -2974,9 +2967,9 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "recipeName": "Beef Nacho Mix",
+            "manual": "Beef Nachos Supreme & Tortilla chips & Sour Cream",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": true,
               "hasEgg": false,
               "hasFish": false,
@@ -2992,62 +2985,20 @@
               "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
-              "isCarb": false,
+              "isCarb": true,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
               "hasCoconut": false,
-              "hasNightshades": true,
+              "hasMushroom": false,
               "hasBrassicas": false,
-              "hasCorn": true
-            },
-            "recipeId": "beef-nacho-mix",
-            "displayText": "Beef Nachos Supreme"
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
           },
           "veganalt": {
-            "recipeName": "Vegan Nacho Mix",
-            "flags": {
-              "hasGluten": false,
-              "hasDairy": false,
-              "hasEgg": false,
-              "hasFish": false,
-              "hasPeanuts": false,
-              "hasSoy": true,
-              "hasTreeNuts": false,
-              "hasSesame": false,
-              "hasMustard": false,
-              "hasShellfish": false,
-              "hasSulphites": false,
-              "hasPork": false,
-              "hasBeef": false,
-              "hasChicken": false,
-              "hasTurkey": false,
-              "isSpicy": false,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
-              "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
-              "hasCoconut": false,
-              "hasNightshades": true,
-              "hasBrassicas": false,
-              "hasCorn": false
-            },
-            "recipeId": "vegan-nacho-mix",
-            "displayText": "Vegan Nachos Supreme"
-          },
-          "starch": {
-            "manual": "Tortillas",
-            "flags": {
-              "hasCorn": true
-            }
-          },
-          "xtra": {
-            "manual": "Sour Cream",
-            "flags": {
-              "hasDairy": true
-            }
+            "manual": "Vegetarian Nachos Supreme, Tortilla chips, Sour Cream",
+            "flags": {}
           }
         }
       },
