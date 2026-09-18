@@ -1874,6 +1874,9 @@ test('Gate-9: an auto-publish is BLOCKED (not pushed) on a structural defect', a
   assert.equal(result.skipped, true);
   assert.equal(result.reason, 'validation-stop');
   assert.equal(harness.pushed.length, 0, 'a structural defect must block the auto-publish before any push reaches GitHub');
+  assert.match(harness.statusEl.textContent, /data check found a problem/i);
+  assert.doesNotMatch(harness.statusEl.textContent, /structural|publish|artifact/i,
+    'the staff status translates the internal validation failure');
 });
 
 test('Gate-9: a manual publish cancelled at the structural-defect prompt does not push', async () => {
@@ -1892,6 +1895,7 @@ test('Gate-9: a manual publish cancelled at the structural-defect prompt does no
   assert.equal(result.skipped, true);
   assert.equal(result.reason, 'validation-stop-cancelled');
   assert.equal(harness.pushed.length, 0, 'a cancelled structural publish must not push');
+  assert.match(harness.statusEl.textContent, /Send cancelled — nothing was sent to the kitchen/);
 });
 
 test('stale-tab override is scoped to manual — a background auto-sync still skips', async () => {
@@ -2786,7 +2790,13 @@ test('plain-language: staff-facing messages speak in kitchen terms, not app jarg
     /Some of today.s changes didn.t reach the kitchen/,   // partial send
     /Today's meal list imported/,                         // green import box
     /Resident list loaded — /,                       // boot
-    /This computer isn.t connected to the kitchen yet/    // refresh w/o connection
+    /This computer isn.t connected to the kitchen yet/,   // refresh w/o connection
+    /<h2>Kitchen connection<\/h2>/,                       // Settings card
+    /Advanced connection setup/,
+    /Test &amp; Save Connection/,
+    />Disconnect<\/button>/,
+    />Send Now<\/button>/,
+    /&#x21EA; Send to kitchen<\/button>/
   ];
   for (const re of PRESENT) assert.match(html, re, 'expected plain copy: ' + re);
 
@@ -2796,9 +2806,74 @@ test('plain-language: staff-facing messages speak in kitchen terms, not app jarg
     /No data rows found\. Check that the sheet/,          // import "column A/B"
     /to GitHub ✓/,                                   // "Pushed/Published to GitHub ✓"
     /Registry synced —/,
-    /this tab is out of date/                             // old banner reason
+    /this tab is out of date/,                            // old banner reason
+    /<h2>Live Data Sync<\/h2>/,
+    /Advanced — token, repo, manual publish/,
+    /Test &amp; Save Token/,
+    />Forget Token<\/button>/,
+    />Publish Now<\/button>/,
+    /Enter token and repo first/,
+    /Publishing token forgotten on this device/,
+    /No publishing token saved on this device/,
+    /changes synced to registry/,
+    /A newer version of DOOR is published/,
+    /Re-import the menu workbook before publishing/,
+    /btn\.innerHTML = 'Publishing…'/,
+    /btn\.innerHTML = good \? 'Published ✓'/,
+    /title="Sync">\\u\{1f504\} Sync<\/button>/
   ];
   for (const re of ABSENT) assert.doesNotMatch(html, re, 'retired jargon should be gone: ' + re);
+
+  const testConnection = extractFunctionBlock(html, 'testGHPublish');
+  assert.doesNotMatch(testConnection, /s\.textContent\s*=\s*err\.message/,
+    'the connection test must translate raw provider errors before showing them');
+  assert.match(html, /else if \(meta\.lastError\) \{ text = doorConnectFailureCopy\(meta\.lastError\)\.text;/,
+    'saved provider errors must be translated before Settings renders them');
+});
+
+test('plain-language: provider failures are translated and legacy saved messages cannot leak into the banner', () => {
+  const html = readText('index.html');
+
+  const failureContext = {};
+  vm.runInNewContext(
+    extractFunctionBlock(html, 'doorConnectFailureCopy') + '\nthis.translate = doorConnectFailureCopy;',
+    failureContext
+  );
+  const rawFailures = [
+    'Set up a GitHub token in Settings before publishing.',
+    'GitHub rejected the token. It may be expired, revoked, or mistyped.',
+    'GitHub could not find this repo/file for the saved token.',
+    'Failed to fetch from api.github.com',
+    'GitHub API 500: request failed'
+  ];
+  for (const raw of rawFailures) {
+    const copy = failureContext.translate(raw).text;
+    assert.doesNotMatch(copy, /github|token|repo|publish|sync|shared board|api/i,
+      `translated staff copy must hide provider jargon for: ${raw}`);
+    assert.match(copy, /kitchen|connection|key/i, `translated copy should give a useful kitchen action for: ${raw}`);
+  }
+
+  const skipBlock = html.match(/const\s+DOOR_PUBLISH_SKIP_REASONS\s*=\s*Object\.freeze\(\{[\s\S]*?\}\);/);
+  assert.ok(skipBlock, 'missing publish-skip reason map');
+  const capabilityContext = {};
+  vm.runInNewContext(
+    skipBlock[0] + '\n' + extractFunctionBlock(html, 'doorDeviceCapability') + '\nthis.capability = doorDeviceCapability;',
+    capabilityContext
+  );
+  const cap = capabilityContext.capability({
+    hasToken: true,
+    operatorName: 'Joan',
+    autoPublishOn: true,
+    lastSkip: {
+      reason: 'old-provider-error',
+      message: 'GitHub token missing; shared board unavailable',
+      at: '2026-09-17T12:00:00Z'
+    }
+  });
+  const visibleReasons = cap.reasons.map((reason) => reason.label).join(' | ');
+  assert.doesNotMatch(visibleReasons, /github|token|publish|sync|shared board/i,
+    'historical raw failure text must not be repeated in the standing banner');
+  assertContains(visibleReasons, 'last send didn’t go through', 'the banner gives a plain replacement message');
 });
 
 // --- D2: routing_by_meal.json records which menu it was built from -----------
