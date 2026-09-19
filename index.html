@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.12';
-const DOOR_BUILD_DATE = '2026-09-18';
+const DOOR_APP_VERSION = 'v31-standard.13';
+const DOOR_BUILD_DATE = '2026-09-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -2113,6 +2113,27 @@ const SITE_CONFIGS = {
 
 let currentSite = null;
 
+function updateResidentCountDisplays(liveCount) {
+  if (!currentSite) return;
+  const isRexdale = currentSite === SITE_CONFIGS.rexdale;
+  const hasLiveCount = isRexdale && Number.isInteger(liveCount) && liveCount >= 0;
+  const count = hasLiveCount ? liveCount : currentSite.residentCount;
+
+  const sub = document.getElementById('site-sub-label');
+  if (sub) sub.textContent = hasLiveCount
+    ? currentSite.name + ' Shelter · ' + count + ' residents'
+    : currentSite.sub;
+
+  const totalLabel = document.querySelector('.total-label');
+  if (totalLabel) totalLabel.textContent = currentSite.name + ' Residents';
+  ['total-count', 'stat-total'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = count;
+  });
+  const badge = document.getElementById('preview-total-badge');
+  if (badge) badge.textContent = count + ' residents';
+}
+
 function selectSite(siteKey) {
   currentSite = SITE_CONFIGS[siteKey];
   localStorage.setItem('conc_selected_site', siteKey);
@@ -2121,22 +2142,9 @@ function selectSite(siteKey) {
   const sel = document.getElementById('site-dropdown');
   if (sel) sel.value = siteKey;
 
-  // Update sidebar sub-label
-  const sub = document.getElementById('site-sub-label');
-  if (sub) sub.textContent = currentSite.sub;
-
-  // Update sidebar footer
-  const totalLabel = document.querySelector('.total-label');
-  if (totalLabel) totalLabel.textContent = currentSite.name + ' Residents';
-
-  // Update resident count displays
-  const count = currentSite.residentCount;
-  ['total-count', 'stat-total'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = count;
-  });
-  const badge = document.getElementById('preview-total-badge');
-  if (badge) badge.textContent = count + ' residents';
+  // Use the configured count until the live registry has loaded. renderRegistry()
+  // replaces Rexdale's placeholder with the real local registry count.
+  updateResidentCountDisplays();
 
   // Update DEFAULT_SETTINGS SharePoint paths
   DEFAULT_SETTINGS['sp-plating'] = currentSite.spPlating;
@@ -9945,7 +9953,7 @@ const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
   error:                       { label: 'the last send didn’t go through', action: 'connect' }
 });
 
-// Pure. inp = { hasToken, tokenExpired, operatorName, autoPublishOn, tabStale,
+// Pure. inp = { hasToken, tokenExpired, operatorName, autoPublishOn, tabStale, sendInFlight,
 //   lastSkip:{reason,message,at}|null, lastError:{message,at}|null,
 //   lastGeneratedAt:iso|null, lastPublishOkAt:iso|null }
 // → { canPublish, reasons:[{code,label,action}], unpublished:{pending,since}, level:'none'|'amber'|'red' }
@@ -9977,8 +9985,13 @@ function doorDeviceCapability(inp) {
   const pending = outbox.length > 0 || proxyPending;
   const since = outbox.length ? (outbox[0].ts || null) : (proxyPending ? inp.lastGeneratedAt : null);
   const canPublish = reasons.length === 0;
-  const level = pending ? 'red' : (reasons.length ? 'amber' : 'none');
-  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, level };
+  // A freshly generated set is briefly newer than the last successful send while
+  // that send is still in progress. That is not a failure and must not produce the
+  // red "didn't reach the kitchen" banner. The terminal success/failure rerender
+  // below decides what staff see once the request actually finishes.
+  const sendInFlight = !!inp.sendInFlight;
+  const level = sendInFlight ? 'none' : (pending ? 'red' : (reasons.length ? 'amber' : 'none'));
+  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, sendInFlight, level };
 }
 
 // Live reader for the pure function. Everything is read at call time — no cached fossil.
@@ -9998,6 +10011,7 @@ function doorDeviceCapabilityInput() {
     lastGeneratedAt: g('concLastGenerated'),
     lastPublishOkAt: g('concLastPublishOk'),
     outbox: doorOutboxRead(),
+    sendInFlight: (typeof _doorPublishInFlight !== 'undefined') ? !!_doorPublishInFlight : false,
     readOnly: g('concDeviceReadOnly') === '1' // P4: set up as read-only (F2)
   };
 }
@@ -10499,17 +10513,21 @@ function updateSyncBar(msg, color) {
 }
 
 // v25: Unified publish + sync bar update helper
+let _doorPublishInFlight = false;
+
 function publishAndSync(context) {
   const timeStr = new Date().toLocaleTimeString('en-CA', { hour:'2-digit', minute:'2-digit' });
   const op = getOperatorName();
+  _doorPublishInFlight = true;
   updateSyncBar('Sending to the kitchen…', 'var(--forest-mid)');
+  if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
   // P1: every skipped/failed auto-publish is RECORDED (concLastPublishSkip) so the
   // standing device banner can name it and its fix; a successful publish clears it
   // (in _doPublishToGitHub). The banner re-renders on every outcome.
   const _recordSkip = (reason, message) => {
     try { localStorage.setItem('concLastPublishSkip', JSON.stringify({ reason: reason || 'skipped', message: message || '', at: new Date().toISOString() })); } catch(e) {}
   };
-  publishToGitHub(false).then((result) => {
+  return publishToGitHub(false).then((result) => {
     if (result && result.skipped) {
       const reason = result.message || 'publish skipped';
       _recordSkip(result.reason, reason);
@@ -10518,10 +10536,8 @@ function publishAndSync(context) {
       if (result.reason === 'missing_auth') _doorConnectCardOpen = true;
       updateSyncBar('Saved on this computer — not sent to the kitchen yet · ' + timeStr, '#dc2626');
       if (typeof showToast === 'function') showToast('Saved on this computer — not sent to the kitchen yet.');
-      if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
       return;
     }
-    if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
     if (result && result.degraded) {
       // Published, but the preflight flagged a Stop-level structural defect:
       // must not read green on the visible sync bar (carries fix#1's intent
@@ -10546,6 +10562,8 @@ function publishAndSync(context) {
     if (_code === 'missing_auth') _doorConnectCardOpen = true;
     updateSyncBar('Saved on this computer — couldn’t send to the kitchen just now. Try Generate again; if it keeps happening, tell Jason.', '#dc2626');
     if (typeof showToast === 'function') showToast('Saved on this computer — couldn’t send to the kitchen just now. Try Generate again; if it keeps happening, tell Jason.');
+  }).finally(() => {
+    _doorPublishInFlight = false;
     if (typeof updateDailyImportPrompt === 'function') updateDailyImportPrompt();
   });
 }
@@ -10995,6 +11013,9 @@ function resetAndGoHome() {
 // REGISTRY
 // ============================================================
 function renderRegistry(data) {
+  // Rexdale's sidebar count is operational data, not a configured capacity.
+  // Keep it tied to the complete live registry even when this table is filtered.
+  updateResidentCountDisplays(REGISTRY_LIST.length);
   const dk = document.documentElement.getAttribute('data-theme')==='dark';
   const sectionColors = dk
     ? { 'Halal':'#1a2a20','Vegan':'#1a2a20','Gluten Free':'#2a2520','No Dairy':'#2a2030','Diabetic':'#1a2332','Regular':'#21262d' }
