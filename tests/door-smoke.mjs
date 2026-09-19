@@ -397,17 +397,30 @@ function loadPublishAndSyncHarness(options = {}) {
   const html = readText('index.html');
   const syncBars = [];
   const toasts = [];
+  const promptStates = [];
+  const storage = {};
   const context = {
     Date,
     updateSyncBar(message, color) { syncBars.push({ message, color }); },
     showToast(message) { toasts.push(message); },
+    updateDailyImportPrompt() { promptStates.push(context._doorPublishInFlight); },
     getOperatorName: () => options.operator || '',
-    publishToGitHub: () => Promise.resolve(options.result),
+    publishToGitHub: options.publishToGitHub || (() => Promise.resolve(options.result)),
+    localStorage: {
+      getItem(key) { return Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null; },
+      setItem(key, value) { storage[key] = String(value); }
+    },
+    PublishAuth: { getSavedToken: () => 'test-key' },
+    doorOutboxAppend() {}
   };
   vm.createContext(context);
-  vm.runInContext(extractFunctionBlock(html, 'publishAndSync'), context, { filename: 'index.html#publish-and-sync', timeout: 1000 });
+  vm.runInContext(
+    'var _doorPublishInFlight = false;\nvar _doorConnectCardOpen = false;\n' + extractFunctionBlock(html, 'publishAndSync'),
+    context,
+    { filename: 'index.html#publish-and-sync', timeout: 1000 }
+  );
   assert.equal(typeof context.publishAndSync, 'function', 'publish-and-sync core should expose publishAndSync');
-  return { context, syncBars, toasts };
+  return { context, syncBars, toasts, promptStates, storage };
 }
 
 function extractOutputEncodingBlock(html) {
@@ -1989,6 +2002,81 @@ test('publishAndSync paints a clean auto-publish green', async () => {
   const last = h.syncBars.at(-1);
   assert.equal(last.color, 'var(--forest)');
   assert.match(last.message, /Sent to the kitchen/);
+});
+
+test('publishAndSync keeps the standing banner out of failure mode until the send finishes', async () => {
+  let finishSend;
+  const pendingSend = new Promise((resolve) => { finishSend = resolve; });
+  const h = loadPublishAndSyncHarness({ publishToGitHub: () => pendingSend });
+
+  const operation = h.context.publishAndSync('plating sheets generated');
+  assert.equal(h.context._doorPublishInFlight, true, 'the send is marked in progress before the first banner rerender');
+  assert.equal(h.promptStates.at(-1), true, 'the banner rerenders in the in-progress state');
+  assert.match(h.syncBars.at(-1).message, /Sending to the kitchen/);
+
+  finishSend({ ok: true });
+  await operation;
+  assert.equal(h.context._doorPublishInFlight, false, 'the in-progress marker clears after a terminal result');
+  assert.equal(h.promptStates.at(-1), false, 'the banner rerenders after success can be verified');
+  assert.match(h.syncBars.at(-1).message, /Sent to the kitchen/);
+});
+
+test('standing banner treats newer generated work as pending only after an active send ends', () => {
+  const html = readText('index.html');
+  const skipBlock = html.match(/const\s+DOOR_PUBLISH_SKIP_REASONS\s*=\s*Object\.freeze\(\{[\s\S]*?\}\);/);
+  assert.ok(skipBlock, 'missing publish-skip reason map');
+  const context = {};
+  vm.runInNewContext(
+    skipBlock[0] + '\n' + extractFunctionBlock(html, 'doorDeviceCapability') + '\nthis.capability = doorDeviceCapability;',
+    context
+  );
+  const input = {
+    hasToken: true,
+    operatorName: 'Jason',
+    autoPublishOn: true,
+    lastGeneratedAt: '2026-09-18T16:27:25Z',
+    lastPublishOkAt: '2026-09-18T12:33:27Z',
+    outbox: []
+  };
+
+  const sending = context.capability({ ...input, sendInFlight: true });
+  assert.equal(sending.unpublished.pending, true, 'the work remains truthfully pending until the send lands');
+  assert.equal(sending.level, 'none', 'pending work must not read as a failure during the active send');
+
+  const failed = context.capability({ ...input, sendInFlight: false });
+  assert.equal(failed.level, 'red', 'the standing warning returns if the send ends without a success marker');
+});
+
+test('Rexdale sidebar resident count is refreshed from the complete live registry', () => {
+  const html = readText('index.html');
+  const renderRegistry = extractFunctionBlock(html, 'renderRegistry');
+  assertContains(renderRegistry, 'updateResidentCountDisplays(REGISTRY_LIST.length)',
+    'filtered registry views must keep the sidebar tied to the complete registry');
+
+  const elements = new Map([
+    ['site-sub-label', { textContent: '' }],
+    ['total-count', { textContent: '' }],
+    ['stat-total', { textContent: '' }],
+    ['preview-total-badge', { textContent: '' }]
+  ]);
+  const totalLabel = { textContent: '' };
+  const rexdale = { name: 'Rexdale', sub: 'Rexdale Shelter · configured', residentCount: 181 };
+  const context = {
+    Number,
+    SITE_CONFIGS: { rexdale },
+    currentSite: rexdale,
+    document: {
+      getElementById(id) { return elements.get(id) || null; },
+      querySelector(selector) { return selector === '.total-label' ? totalLabel : null; }
+    }
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'updateResidentCountDisplays'), context);
+  context.updateResidentCountDisplays(169);
+
+  assert.equal(elements.get('site-sub-label').textContent, 'Rexdale Shelter · 169 residents');
+  assert.equal(elements.get('total-count').textContent, 169);
+  assert.equal(elements.get('preview-total-badge').textContent, '169 residents');
 });
 
 test('publish flow shim routes builder failures through visible publish failure handling', async () => {
