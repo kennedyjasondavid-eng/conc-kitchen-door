@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.14';
+const DOOR_APP_VERSION = 'v31-standard.15';
 const DOOR_BUILD_DATE = '2026-09-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -17967,6 +17967,7 @@ function renderSectionPreviewInto(flags, el) {
 function saveMenuEdit() {
   if (!mcMenuEditKey) return;
   if (!guardStandardMenuWrite('Edit Menu')) return;
+  _commitLiveSlotInputs();   // save reads MEAL_SLOT_STATE — take whatever is in the boxes right now
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   // Require an explicit decision on soft/plain alternatives: either at least one
@@ -18646,6 +18647,46 @@ function slotClear(slotId) {
   updateSlotSummary();
 }
 
+// Lost-edit fix (2026-09-20): free-typed text in a slot's SEARCH input only reaches
+// MEAL_SLOT_STATE on blur / Enter / dropdown-row click (the per-keystroke handler there is
+// the CODEX typeahead, not a commit). Clicking Save right after typing could therefore save
+// the PREVIOUS text — a real publish went out with an empty diff that way. Every save path
+// now commits whatever the live inputs hold first, routed through the SAME function a blur
+// uses (slotAutoSave), so exact-recipe matching, manual fallback, flag preservation and the
+// "don't overwrite a linked recipe with its own name" rule are identical to a blur.
+// Read-only on the DOM: no timers, no focus tricks, no blur() calls. Manual-only slots
+// (def.manual → slotSetManual) and "Shown on menu as" (slotSetDisplayText) already commit
+// per keystroke and are untouched. Values are read for ALL slots before any commit, because
+// slotAutoSave re-renders the cards and would reset the inputs we had not read yet.
+function _commitLiveSlotInputs() {
+  const pending = [];
+  MEAL_SLOT_DEFS.forEach(def => {
+    if (def.manual) return;
+    const inp = document.getElementById('slot-search-' + def.id);
+    if (!inp) return;                                      // panel not rendered — nothing to commit
+    const val = (inp.value || '').trim();
+    const s = MEAL_SLOT_STATE[def.id];
+    const cur = s ? (s.recipeName || s.manual || '') : '';
+    if (val !== cur) pending.push([def.id, val]);
+  });
+  pending.forEach(p => slotAutoSave(p[0], p[1]));
+}
+
+// Special Meal editor — same blur-only commit, same save-reads-state shape. See above.
+function _commitLiveSmSlotInputs() {
+  const pending = [];
+  MEAL_SLOT_DEFS.forEach(def => {
+    if (def.manual) return;
+    const inp = document.getElementById('sm-slot-search-' + def.id);
+    if (!inp) return;
+    const val = (inp.value || '').trim();
+    const s = SM_SLOT_STATE[def.id];
+    const cur = s ? (s.recipeName || s.manual || '') : '';
+    if (val !== cur) pending.push([def.id, val]);
+  });
+  pending.forEach(p => smSlotAutoSave(p[0], p[1]));
+}
+
 function slotAutoSave(slotId, val) {
   val = (val || '').trim();
   const dd = document.getElementById('slot-dd-' + slotId);
@@ -18959,6 +19000,7 @@ function renderSmAllergenGrid(checked) {
 }
 
 function saveSpecialMeal() {
+  _commitLiveSmSlotInputs();   // save reads SM_SLOT_STATE — take whatever is in the boxes right now
   const date   = document.getElementById('sm-date').value;
   const period = document.getElementById('sm-period').value;
   const notes  = (document.getElementById('sm-notes') || {}).value || '';
