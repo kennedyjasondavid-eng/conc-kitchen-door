@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.13';
+const DOOR_APP_VERSION = 'v31-standard.14';
 const DOOR_BUILD_DATE = '2026-09-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1866,6 +1866,8 @@ function updateCODEXBadge() {
         <div>
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#2563eb;font-weight:700;" id="mc-menu-edit-context"></div>
           <div style="font-size:16px;font-weight:700;margin-top:2px;" id="mc-menu-edit-title"></div>
+          <!-- D1: filled by openMenuEdit when this meal is still read from the menu text -->
+          <div id="mc-menu-edit-legacy"></div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="closeMenuEdit()">Close</button>
       </div>
@@ -17116,6 +17118,12 @@ const MEAL_SLOT_DEFS = [
 ];
 
 let MEAL_SLOT_STATE = {};
+// D1 (2026-09-20): did the meal currently open in Edit Menu arrive from a saved `_slots`
+// snapshot, or was it re-parsed from the menu text? DOOR only writes `_slots` when a meal
+// is re-saved here, so a meal imported from the workbook and never re-saved has none —
+// its dishes are read from text and carry no recipe link for EXPO to plan from. Display
+// only: set in openMenuEdit, read only by the header notice.
+let _mcSlotsBlockPresent = false;
 let testMealActive = false;
 let _testPlaygroundFlags = {};
 let _lastTestPd = null;
@@ -17472,6 +17480,20 @@ function _restoreSlotSnapshot(slots) {
     }
   });
   return true;
+}
+
+// D1 (2026-09-20): the one-line notice for a meal whose dishes were read from the menu
+// text because it has never been re-saved through this editor. Meal-level, so it renders
+// ONCE in the editor header — not on every slot card, where it would read as a per-slot
+// fact. Pure: nothing is written, nothing is published; saving the meal records the slots
+// and the notice stops appearing. Anything other than a restored snapshot reads as legacy.
+function doorLegacySlotNoticeHTML(slotsBlockPresent) {
+  if (slotsBlockPresent) return '';
+  return '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--border);border-radius:10px;'
+    + 'background:var(--cream);color:var(--muted);font-size:10px;font-weight:600;text-transform:none;letter-spacing:0;" '
+    + 'title="This meal was imported from the menu text and never re-saved here. Its dishes are read from the text; '
+    + 'save this meal to record which recipe each dish is (EXPO then plans from the linked recipe).">'
+    + '&#x27F3; from menu text &mdash; save to link</div>';
 }
 
 const CARB_KEYWORDS = /\b(rice|pasta|noodles?|potato|potatoes|mac|macaroni|bread|roti|couscous|pita|naan|spaghetti|linguine|fettuccine|orzo|gnocchi|polenta|quinoa|farro|bulgur|barley|pilaf|biryani|fried rice|congee|porridge|oat|oatmeal|pancake|waffle|bagel|biscuit|wrap|tortilla|dumpling|pierogi|lasagna|grits)\b/i;
@@ -18234,15 +18256,22 @@ function openMenuEdit(week, day, period) {
   const title = document.getElementById('mc-menu-edit-title');
   if (ctx) ctx.textContent = 'Week ' + week + ' \u2014 ' + dayDisplay + ' ' + periodDisplay;
   if (title) title.textContent = existing ? existing.name + ' (edited)' : (dayData[period] || '\u2014');
+  // D1: cleared here, filled below once we know which branch populated the slots.
+  const legacyEl = document.getElementById('mc-menu-edit-legacy');
+  if (legacyEl) legacyEl.innerHTML = '';
 
   const revertBtn = document.getElementById('mc-menu-revert-btn');
   if (revertBtn) revertBtn.style.display = existing ? 'inline-flex' : 'none';
 
   // Initialise slots
   initSlotState();
+  // D1: assume "read from the menu text" until a snapshot actually restores, so a stale
+  // value from the previously opened meal can never make this one look linked.
+  _mcSlotsBlockPresent = false;
   // v30: Try slot snapshot first (lossless restore from previous save)
   const savedSlots = dayData[period + '_slots'];
   if (savedSlots && _restoreSlotSnapshot(savedSlots)) {
+    _mcSlotsBlockPresent = true;
     // Slot snapshot restored — apply flags from snapshot
     const rotFlags = dayData[period + '_flags'];
     if (rotFlags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...(MEAL_SLOT_STATE['main'].flags || {}), ...rotFlags};
@@ -18285,6 +18314,9 @@ function openMenuEdit(week, day, period) {
   // Populate allergen flag grid from saved flags or rotation defaults
   const initFlags = (existing && existing.flags) ? existing.flags : (dayData[period + '_flags'] || {});
   renderEditFlagGrid(initFlags);
+
+  // D1: one meal-level line in the header when the dishes came from the menu text.
+  if (legacyEl) legacyEl.innerHTML = doorLegacySlotNoticeHTML(_mcSlotsBlockPresent);
 
   renderSlots();
   // Reset the transition tracker so the first updateSlotSummary on a freshly
