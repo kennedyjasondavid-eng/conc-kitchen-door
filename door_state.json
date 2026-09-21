@@ -2,13 +2,13 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 30,
-    "exported": "2026-09-21T15:56:58.763Z",
+    "exported": "2026-09-21T15:57:50.957Z",
     "registryModifiedAt": "2026-09-21T15:56:58.162Z",
     "site": "rexdale",
     "count": 171,
     "lastModifiedBy": "JK",
     "builtFromMenu": {
-      "exported": "2026-09-21T15:56:58.694Z",
+      "exported": "2026-09-21T15:57:50.892Z",
       "hash": "1wvet32"
     }
   },
@@ -5455,12 +5455,13 @@
     },
     {
       "room": "1007",
-      "section": "Regular",
+      "section": "Gluten Free",
       "tags": [
+        "GF",
         "Low Sodium"
       ],
       "restrictions": [
-        "Regular"
+        "GF"
       ],
       "allergenFlags": [],
       "accommodations": [
@@ -5475,7 +5476,7 @@
       "confirm": "Provisional",
       "confirmBy": "—",
       "isAnaph": false,
-      "rawRestriction": "Low Sodium",
+      "rawRestriction": "GF, Low Sodium",
       "isModerate": false,
       "moderateNote": "",
       "complianceDeadline": "",
@@ -5484,6 +5485,42 @@
       "_tierMigrated": true,
       "lastImported": "2026-09-21",
       "_history": [
+        {
+          "snapshot": {
+            "room": "1007",
+            "section": "Regular",
+            "tags": [
+              "Low Sodium"
+            ],
+            "restrictions": [
+              "Regular"
+            ],
+            "allergenFlags": [],
+            "accommodations": [
+              "Low Sodium"
+            ],
+            "preferences": [
+              "Low Sodium"
+            ],
+            "avoidances": [
+              "Low Sodium"
+            ],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "rawRestriction": "Low Sodium",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "Prefers Protein; Low Sodium /Low Carbohydrates diet/No Rice /Pasta -Flavouring Beans / Protein",
+            "_tierMigrated": true
+          },
+          "ts": "2026-09-21T15:57:50.778Z",
+          "date": "Sep 21",
+          "desc": "Direct edit — GF, Low Sodium → Gluten Free",
+          "by": "JK"
+        },
         {
           "snapshot": {
             "room": "1007",
@@ -5516,7 +5553,8 @@
           "desc": "Queue update — Low Sodium → Regular",
           "by": "JK"
         }
-      ]
+      ],
+      "anaphTags": []
     },
     {
       "room": "716",
