@@ -79,8 +79,8 @@
       }
     },
     "TUESDAY": {
-      "lunch": "Blackened fish, Sweet potatoes, Parsnip and Carrot",
-      "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
+      "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
+      "lunch_veg": "Blackened Tofu, Sweet potatoes, Seasonal Vegetables",
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -114,7 +114,7 @@
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Blackened fish",
       "lunch_mainAlt": "",
-      "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
+      "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
       "lunch_slots": {
         "main": {
           "manual": "Blackened fish",
@@ -134,7 +134,7 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": true,
+            "isSpicy": false,
             "isCarb": true,
             "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
@@ -181,7 +181,7 @@
           "flags": {}
         },
         "vegside": {
-          "manual": "Parsnip and Carrot",
+          "manual": "Seasonal Vegetables",
           "flags": {}
         }
       }
@@ -344,11 +344,11 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": true,
+            "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": true,
-            "isCarb": true,
-            "halalCertifiedMeat": true,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
             "hasBeans": false,
             "hasMushroom": false,
@@ -362,9 +362,7 @@
         },
         "veganalt": {
           "manual": "Crispy Quinoa Cake Burger",
-          "flags": {
-            "hasGluten": true
-          }
+          "flags": {}
         },
         "starch": {
           "recipeName": "Home Fry Potatoes",
