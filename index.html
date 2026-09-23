@@ -948,6 +948,7 @@ function updateCODEXBadge() {
                 <div class="cb-item" onclick="toggleCb(this,'vegetarian')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Vegetarian</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noPork')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Pork</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'diabetic')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Diabetic</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowCarb')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Carb</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'softMeals')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Soft Meals</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noProcessedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Processed Food</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'glutenFree')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Gluten Free</span></div>
@@ -8773,7 +8774,7 @@ function renderRecentLog() {
 // ============================================================
 const TAG_LABELS_MAP = {
   halal:'Halal', vegan:'Vegan', vegetarian:'Vegetarian', glutenFree:'GF',
-  softMeals:'Soft Meals', noDairy:'No Dairy', noPork:'No Pork', diabetic:'Diabetic',
+  softMeals:'Soft Meals', noDairy:'No Dairy', noPork:'No Pork', diabetic:'Diabetic', lowCarb:'Low Carb',
   lowSodium:'Low Sodium', noFish:'No Fish', noShellfish:'No Shellfish', noEggs:'No Eggs',
   noPeanuts:'No Peanuts', noCoconut:'No Coconut', noBeef:'No Beef',
   noSpicy:'No Spicy', blandDiet:'Bland Diet', noMushroom:'No Mushroom', noSoy:'No Soy', noSesame:'No Sesame',
@@ -8841,11 +8842,15 @@ const TAG_LABELS_MAP = {
   });
 })();
 
+function hasCarbAccommodation(resident) {
+  return (resident.tags || []).some(tag => tag === 'Diabetic' || tag === 'Low Carb');
+}
+
 function getTagLabels(tags) {
   return Object.keys(tags).filter(k => tags[k] && TAG_LABELS_MAP[k]).map(k => TAG_LABELS_MAP[k]);
 }
 function getTagClass(label) {
-  return { 'Halal':'tag-halal', 'Vegan':'tag-vegan', 'Vegetarian':'tag-vegan', 'GF':'tag-gf', 'Diabetic':'tag-diabetic', 'No Dairy':'tag-nodairy', 'Anaphylactic':'tag-anaph', 'Moderate Allergy':'tag-moderate' }[label] || '';
+  return { 'Halal':'tag-halal', 'Vegan':'tag-vegan', 'Vegetarian':'tag-vegan', 'GF':'tag-gf', 'Diabetic':'tag-diabetic', 'Low Carb':'tag-diabetic', 'No Dairy':'tag-nodairy', 'Anaphylactic':'tag-anaph', 'Moderate Allergy':'tag-moderate' }[label] || '';
 }
 
 /* DOOR_TESTABLE_CORE_START compliance-conflicts */
@@ -14553,7 +14558,7 @@ const ROUTING_RULES = [
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
   {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy','Lactose Intolerant'], triggers:['hasDairy'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:6,  key:'no_beef', label:'No Beef',            tags:['No Beef'],              triggers:['hasBeef'],           altType:'vegan_alt', mergeInto:'vegan'},
-  {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic'],             triggers:['isCarb'],            altType:'modified_main'},
+  {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic','Low Carb'],             triggers:['isCarb'],            altType:'modified_main'},
   {p:8,  key:'bland',   label:'Bland',              tags:['No Spicy'],             triggers:['isSpicy'],           altType:'bland_alt'},
   {p:9,  key:'soft',    label:'Soft Meals',         tags:['Soft Meals'],           always:true,                    altType:'soft'},
   {p:10, key:'no_egg',  label:'No Egg / Mustard',   tags:['No Eggs'],              triggers:['hasEgg'],            altType:'modified_main'},
@@ -14577,7 +14582,7 @@ const ROUTING_RULES = [
 
 const ROUTING_TAGS = new Set([
   // Medical
-  'Diabetic', 'Soft Meals', 'Bland Diet',
+  'Diabetic', 'Low Carb', 'Soft Meals', 'Bland Diet',
   // Religious/Cultural
   'Halal', 'Vegan', 'Vegetarian', 'No Pork',
   // Conditional routing (activate sections when triggered by meal flags)
@@ -15652,7 +15657,7 @@ const FLAG_DEFS = [
   {key:'hasTurkey',   label:'Turkey',     color:'#c2410c', primary:false, tip:'Meal contains turkey. Activates Halal section when meat is not halal-certified.'},
   // Routing flags — meal-level only (shown in bottom grid, not per-slot)
   {key:'isSpicy',     label:'Spicy',      color:'#f97316', primary:false, mealLevel:true, tip:'Meal is spicy. Activates Bland section.'},
-  {key:'isCarb',        label:'Carb-swap',       color:'#2563eb', primary:false, mealLevel:true, tip:'Main component is a high-carb format. Activates Diabetic section.'},
+  {key:'isCarb',        label:'Carb-swap',       color:'#2563eb', primary:false, mealLevel:true, tip:'Main component is a high-carb format. Activates the shared Diabetic / Low Carb section.'},
   {key:'halalCertifiedMeat', label:'Halal-Certified Meat', color:'#059669', primary:false, mealLevel:true, tip:'Main protein is halal-certified (e.g. Halal Beef Meatballs). Halal residents eat the regular meal. Use with hasBeef/hasPork to still route No Beef/No Pork residents to an alternative.'},
   {key:'hasProcessedMeat', label:'Processed Meat',   color:'#7c3aed', primary:false, mealLevel:true, tip:'Meal contains processed meat products (sausages, ham, deli meat, hot dogs, pepperoni). Activates routing for No Processed Foods residents. Do NOT set for scratch-cooked pork or beef.'},
   // Ingredient-level flags — conflict detection and plating sheet notes, no routing section
@@ -15746,6 +15751,7 @@ const COMPLIANCE_TIERS = {
   'No Mustard':         'doc',   // Allergen
   'No Sulphites':       'doc',   // Medical / allergen
   'No Coconut':         'doc',   // Allergen
+  'Low Carb':           'doc',   // Dietary accommodation — H&W confirmation
   'Diabetic':           'doc',   // Medical — requires H&W confirmation
   'Soft Meals':         'doc',   // Medical / clinical — requires H&W or site manager confirmation
   'Low Sodium':         'doc',   // Medical dietary restriction
@@ -19101,6 +19107,7 @@ const generatedFiles = []; // {filename, builder} — persists in session
 // Tag-key vocabulary, ordered so longer/more-specific phrases match first.
 // Each entry: { re: RegExp, tag: TAG_LABELS_MAP key, preclude?: tag to clear if matched }
 const IMPORT_TAG_RULES = [
+  { re: /\blow[\s-]*carb(?:ohydrate)?s?\b/i, tag: 'lowCarb' },
   // Sections / lifestyle — checked first because they can subsume other tokens
   { re: /\bhalal\b/i,                                tag: 'halal' },
   { re: /\bvegan\b/i,                                tag: 'vegan' },
@@ -19187,6 +19194,7 @@ function importLevenshtein(a, b) {
 // Fuzzy pass — after exact rules, try Lev ≤ 2 against a vocabulary of key terms.
 // Only runs on tokens that didn't match any IMPORT_TAG_RULES entry.
 const IMPORT_FUZZY_VOCAB = [
+  ['low carb','lowCarb'], ['low carbohydrate','lowCarb'],
   ['halal','halal'], ['vegan','vegan'], ['vegetarian','vegetarian'], ['diabetic','diabetic'],
   ['gluten free','glutenFree'], ['no wheat','glutenFree'],
   ['no dairy','noDairy'], ['no diary','noDairy'], ['lactose','noDairy'],
@@ -19423,7 +19431,7 @@ function importSectionForTags(tags) {
   if (tags.vegan || tags.vegetarian) return 'Vegan';
   if (tags.glutenFree) return 'Gluten Free';
   if (tags.noDairy) return 'No Dairy';
-  if (tags.diabetic) return 'Diabetic';
+  if (tags.diabetic || tags.lowCarb) return 'Diabetic';
   if (tags.noPork) return 'Regular';  // folds into Halal on pork days via routing, not section
   return 'Regular';
 }
@@ -20363,7 +20371,7 @@ function commitImportToQueue() {
 
   // Auto-apply modifier-only tag additions (lowSodium, lowFat, lactoIntolerant, etc.)
   // These don't change routing sections — apply without requiring manual field acceptance.
-  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','noPork','noBeef','noFish','noShellfish','diabetic','softMeals','noSpicy','blandDiet','noProcessedFood']);
+  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','noPork','noBeef','noFish','noShellfish','diabetic','lowCarb','softMeals','noSpicy','blandDiet','noProcessedFood']);
   diff.updates.forEach(u => {
     const fieldSel = selections.updates.get(u.room);
     if (fieldSel && Object.values(fieldSel).some(v => v)) return; // operator already made selections
@@ -21266,7 +21274,7 @@ function computePlatingData(period, weekNum, dayName) {
     regularSection.residents.forEach(r => {
       const conflicts = checkResidentMealConflicts(mealFlags, r);
       const conflictNote = formatConflictNote(conflicts);
-      const svcNote = r.serviceNote || '';
+      const svcNote = [(r.tags || []).includes('Low Carb') ? 'extra veg less starch' : '', r.serviceNote].filter(Boolean).join(' · ');
       if (conflicts.length || svcNote) {
         regularNotes.push({ room: r.room, rawRestriction: r.rawRestriction || '', tags: r.tags || [], conflictNote, serviceNote: svcNote });
       }
@@ -21362,7 +21370,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   sections.filter(s => s.rule.key !== 'regular').forEach(s => {
     const altMeal = getAltMeal(s.rule.altType, ctx);
     const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
-    const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
+    const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.key === 'diabetic' ? 'Diabetic / Low Carb' : s.rule.label;
     const title = 'Special Meal '+specialIdx+' ('+sectionLabel+mergeNote+')';
     // Allergen string per section type:
     // modified_main / bland_alt: same dish — inherit main meal allergens
@@ -21400,7 +21408,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     addMerged(altMealLine, F.stdB, 'FCE4D6', B.thin, 22);
     const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
     s.residents.forEach(r => {
-      const isDiab = (r.tags||[]).includes('Diabetic');
+      const isDiab = hasCarbAccommodation(r);
       const bg = isDiab ? '92D050' : null;
       const baseNote = isDiab ? 'extra veg less starch' : '';
       const ingredientNote = CONFLICT_MAP
@@ -21436,7 +21444,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   // Footer
   addRow(xCell('Total Restrictions',F.stdB,'F0F0F0',B.thick), xCell('',F.std,'F0F0F0',B.thick), xCell(String(totalRestrictions),F.stdB,'FFFF00',B.thick,A.center), 15);
   addRow(xCell('Total Standard',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(regCount),F.stdB,'FFFF00',B.thin,A.center), 14);
-  addMerged('Diabetics - Less starch, more veg', F.stdB, '92D050', B.thin, 14);
+  addMerged('Diabetic / Low Carb - Less starch, more veg', F.stdB, '92D050', B.thin, 14);
 
   // Build worksheet
   const ws = XLSX.utils.aoa_to_sheet([]);
@@ -21682,7 +21690,7 @@ function buildLabelsXlsx(ds) {
         lblRow3[col+1] = xCell('', F.std, null, null);
         return;
       }
-      const bg = r.isAnaph ? 'FFC7CE' : (r.tags||[]).includes('Diabetic') ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
+      const bg = r.isAnaph ? 'FFC7CE' : hasCarbAccommodation(r) ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
       const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
       // Manual shrink-to-fit: xlsx-js-style 1.2.0 ignores the alignment.shrinkToFit
       // attribute on write, so step the font size down based on text length to make
@@ -21696,7 +21704,7 @@ function buildLabelsXlsx(ds) {
       lblRow1[col+1] = {v: sectionText, t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
-      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : (r.tags||[]).includes('Diabetic') ? '○ Less starch / more veg' : '';
+      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : hasCarbAccommodation(r) ? '○ Less starch / more veg' : '';
       const flagSz = flagTxt.length > 22 ? 7 : flagTxt.length > 17 ? 8 : 9;
       lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:flagSz,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
@@ -22172,13 +22180,13 @@ function buildPlatingHtml(pd, isTest) {
       : altMeal;
     const mergeNote = s._mergedLabels ? ' incl. ' + s._mergedLabels.join(', ') : '';
     const title = `Special Meal ${sectNum} (${s.rule.label}${mergeNote})`;
-    const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.label;
+    const sectionLabel = s.rule.key === 'soft' ? 'Alternative Meals' : s.rule.key === 'diabetic' ? 'Diabetic / Low Carb' : s.rule.label;
     const titleLine = `Special Meal ${sectNum} (${sectionLabel}${mergeNote})`;
     h += `<tr><td colspan="3" class="ps-sect-hdr">${escapeHtml(titleLine)}</td></tr>`;
     h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(altMealLine)}</td></tr>`;
     const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
     res.forEach(r => {
-      const isDiab  = r.tags && r.tags.includes('Diabetic');
+      const isDiab  = hasCarbAccommodation(r);
       const baseNote = isDiab ? 'extra veg less starch' : '';
       const ingredientNote = CONFLICT_MAP
         .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
@@ -22407,7 +22415,7 @@ function computeTestPlatingData(flags) {
     regularSection.residents.forEach(function(r) {
       var conflicts = checkResidentMealConflicts(mealFlags, r);
       var conflictNote = formatConflictNote(conflicts);
-      var svcNote = r.serviceNote || '';
+      var svcNote = [(r.tags || []).includes('Low Carb') ? 'extra veg less starch' : '', r.serviceNote].filter(Boolean).join(' · ');
       if (conflicts.length || svcNote) {
         regularNotes.push({ room:r.room, rawRestriction:r.rawRestriction||'', tags:r.tags||[], conflictNote:conflictNote, serviceNote:svcNote });
       }
@@ -22577,7 +22585,7 @@ function printLabels() {
 
   function getLabelBg(r) {
     if (r.isAnaph) return '#FFC7CE';
-    if ((r.tags||[]).includes('Diabetic')) return '#92D050';
+    if (hasCarbAccommodation(r)) return '#92D050';
     const s = r.section || '';
     if (s === 'Halal' || (r.tags||[]).includes('Halal')) return '#C6EFCE';
     if (/vegan|vegetarian/i.test(s) || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) return '#BDD7EE';
@@ -22587,7 +22595,7 @@ function printLabels() {
   function getLabelFlag(r) {
     if (r.isAnaph) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
     if (r.isModerate) return {text:'⚡ Moderate allergy', color:'#994400'};
-    if ((r.tags||[]).includes('Diabetic')) return {text:'○ Less starch / more veg', color:'#444'};
+    if (hasCarbAccommodation(r)) return {text:'○ Less starch / more veg', color:'#444'};
     return null;
   }
 
@@ -22677,7 +22685,7 @@ function openDemoFile(filename, idx) {
     const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;">
       ${restricted.map(r => {
-        const bg = r.isAnaph ? '#ffcccc' : (r.section==='Diabetic'||r.tags.includes('Diabetic')) ? '#d6f0dd' : '#fff';
+        const bg = r.isAnaph ? '#ffcccc' : hasCarbAccommodation(r) ? '#d6f0dd' : '#fff';
         return `<div style="border:1.5px solid #999;padding:6px 8px;background:${bg};min-height:52px;">
           <div style="font-size:16px;font-weight:700;">${escapeHtml(r.room)}</div>
           <div style="font-size:10px;font-weight:700;">${escapeHtml(r.rawRestriction||r.tags.filter(t=>t!=='Regular').join(', '))}</div>
