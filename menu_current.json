@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-09-23T13:45:56.013Z",
+    "exported": "2026-09-23T16:44:52.501Z",
     "version": 32
   },
   "menu": {
@@ -357,11 +357,11 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": false,
+              "hasChicken": true,
               "hasTurkey": false,
               "isSpicy": true,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
@@ -375,7 +375,9 @@
           },
           "veganalt": {
             "manual": "Crispy Quinoa Cake Burger",
-            "flags": {}
+            "flags": {
+              "hasGluten": true
+            }
           },
           "starch": {
             "recipeName": "Home Fry Potatoes",
@@ -565,10 +567,10 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_dinner": "sulphites, pork",
-        "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
-        "lunch_veg": "Blackened Tofu, Sweet potatoes, Seasonal Vegetables",
+        "lunch": "Blackened fish, Sweet potatoes, Parsnip and Carrot",
+        "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
         "lunch_mainItem": "Blackened fish",
-        "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
+        "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": false,
           "hasDairy": false,
@@ -621,7 +623,7 @@
               "hasBeef": false,
               "hasChicken": false,
               "hasTurkey": false,
-              "isSpicy": false,
+              "isSpicy": true,
               "isCarb": true,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
@@ -668,7 +670,7 @@
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Parsnip and Carrot",
             "flags": {}
           }
         }
