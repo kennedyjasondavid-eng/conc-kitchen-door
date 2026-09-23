@@ -2164,6 +2164,11 @@ test('published JSON snapshots are parseable and carry metadata', () => {
 });
 
 test('published regular and vegan allergen flags stay separated for every structured meal', () => {
+  const html = readText('index.html');
+  const flagDefs = html.match(/const FLAG_DEFS = (\[[\s\S]*?\n\]);/);
+  assert.ok(flagDefs, 'missing flag definitions');
+  const mealLevelFlags = new Set(vm.runInNewContext(flagDefs[1])
+    .filter(flag => flag.mealLevel).map(flag => flag.key));
   const menu = readJson('menu_current.json').menu;
   let differentiatedFlagsChecked = 0;
 
@@ -2184,6 +2189,10 @@ test('published regular and vegan allergen flags stay separated for every struct
         const publishedRegular = day[`${meal}_flags`] || {};
         const allFlags = new Set([...Object.keys(regularUnion), ...Object.keys(veganFlags)]);
         for (const flag of allFlags) {
+          // Routing flags can be explicitly set at meal level in the editor.
+          // A snapshot cannot prove that a shared value leaked from veganalt.
+          // Exercise automatic routing-flag isolation directly below instead.
+          if (mealLevelFlags.has(flag)) continue;
           if (veganFlags[flag] === true && regularUnion[flag] !== true) {
             assert.notEqual(publishedRegular[flag], true,
               `${flag} from a vegan alternative must not leak into the regular ${meal} flags`);
@@ -2201,6 +2210,37 @@ test('published regular and vegan allergen flags stay separated for every struct
 
   assert.ok(differentiatedFlagsChecked > 0,
     'the checked-in menu must exercise at least one regular/vegan allergen difference');
+});
+
+test('automatic regular flags exclude vegan-only Spicy while explicit meal Spicy remains valid', () => {
+  const html = readText('index.html');
+  const state = {
+    main: { flags: { hasFish: true, isSpicy: false } },
+    veganalt: { flags: { hasSoy: true, isSpicy: true } },
+    starch: { flags: {} }, vegside: { flags: {} }
+  };
+  const grid = { innerHTML: '' };
+  const context = vm.createContext({
+    MEAL_SLOT_STATE: state,
+    FLAG_DEFS: [
+      { key: 'hasFish', label: 'Fish', color: '#000' },
+      { key: 'hasSoy', label: 'Soy', color: '#000' },
+      { key: 'isSpicy', label: 'Spicy', color: '#000', mealLevel: true }
+    ],
+    testMealActive: false,
+    document: { getElementById: () => grid }
+  });
+  vm.runInContext(extractFunctionBlock(html, 'buildUnionFlags') + '\n' +
+    extractFunctionBlock(html, 'renderEditFlagGrid'), context);
+  assert.equal(context.buildUnionFlags().isSpicy, false);
+  assert.equal(context.buildUnionFlags().hasSoy, false);
+  assert.equal(context.buildUnionFlags().hasFish, true);
+  context.renderEditFlagGrid({ isSpicy: true });
+  assert.match(grid.innerHTML, /id="mc-edit-flag-isSpicy" checked/);
+  context.renderEditFlagGrid({ isSpicy: false });
+  assert.doesNotMatch(grid.innerHTML, /id="mc-edit-flag-isSpicy" checked/);
+  state.main.flags.isSpicy = true;
+  assert.equal(context.buildUnionFlags().isSpicy, true);
 });
 
 test('checked-in menu overlay stays marked for the current cutover', () => {
