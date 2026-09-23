@@ -948,7 +948,6 @@ function updateCODEXBadge() {
                 <div class="cb-item" onclick="toggleCb(this,'vegetarian')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Vegetarian</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noPork')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Pork</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'diabetic')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Diabetic</span></div>
-                <div class="cb-item" onclick="toggleCb(this,'lowCarb')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Carb</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'softMeals')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Soft Meals</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noProcessedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Processed Food</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'glutenFree')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Gluten Free</span></div>
@@ -982,6 +981,7 @@ function updateCODEXBadge() {
                 <div class="cb-item" onclick="toggleCb(this,'noBrassicas')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Brassicas</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noTurkey')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Turkey</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'noFriedFood')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">No Fried Food</span></div>
+                <div class="cb-item" onclick="toggleCb(this,'lowCarb')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Carb</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'lowSodium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Sodium</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'lowFat')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Fat</span></div>
                 <div class="cb-item" onclick="toggleCb(this,'lowPotassium')"><input type="checkbox"><div class="cb-box"><span class="cb-check">✓</span></div><span class="cb-label">Low Potassium</span></div>
@@ -14582,7 +14582,7 @@ const ROUTING_RULES = [
 
 const ROUTING_TAGS = new Set([
   // Medical
-  'Diabetic', 'Low Carb', 'Soft Meals', 'Bland Diet',
+  'Diabetic', 'Soft Meals', 'Bland Diet',
   // Religious/Cultural
   'Halal', 'Vegan', 'Vegetarian', 'No Pork',
   // Conditional routing (activate sections when triggered by meal flags)
@@ -14605,7 +14605,9 @@ const ACCOMMODATION_TAGS = new Set([
   // Documented accommodations — requires H&W or care team support
   'No Mushroom', 'No Beans', 'No Corn', 'No Brassicas',
   'No Turkey', 'No Fried Food',
-  // Dietary accommodations (non-routing medical context)
+  // Low Carb shares carb-swap routing while remaining an accommodation.
+  'Low Carb',
+  // Other dietary accommodations
   'Low Sodium', 'Low Fat', 'Low Potassium',
   'Other'
 ]);
@@ -14616,6 +14618,14 @@ const PREFERENCE_TAGS = ACCOMMODATION_TAGS; // alias for backward compat
 
 // Migrate a resident record from flat tags[] to three-bucket model
 function migrateResidentTiers(r) {
+  // Reclassify records saved before Low Carb moved to accommodations.
+  // Preserve the flat routing tags and all unrelated dietary information.
+  if (r._tierMigrated && (r.restrictions || []).includes('Low Carb')) {
+    r.restrictions = r.restrictions.filter(t => t !== 'Low Carb');
+    r.accommodations = [...new Set([...(r.accommodations || []), 'Low Carb'])];
+    r.preferences = r.accommodations;
+    r.avoidances = [...new Set([...(r.avoidances || []), 'Low Carb'])];
+  }
   if (r._tierMigrated) return;
   const oldTags = r.tags || [];
   r.restrictions = oldTags.filter(t => ROUTING_TAGS.has(t) || t === 'Regular');
@@ -14630,23 +14640,23 @@ function migrateResidentTiers(r) {
 }
 
 function getResidentAvoidances(r) {
-  if (!r._tierMigrated) migrateResidentTiers(r);
+  migrateResidentTiers(r);
   return r.avoidances && r.avoidances.length ? r.avoidances : [];
 }
 
 function getResidentAllergenFlags(r) {
-  if (!r._tierMigrated) migrateResidentTiers(r);
+  migrateResidentTiers(r);
   return r.allergenFlags && r.allergenFlags.length ? r.allergenFlags : [];
 }
 
 function getResidentPreferences(r) {
-  if (!r._tierMigrated) migrateResidentTiers(r);
+  migrateResidentTiers(r);
   return r.accommodations && r.accommodations.length ? r.accommodations : [];
 }
 function getResidentAccommodations(r) { return getResidentPreferences(r); }
 
 function getResidentRestrictions(r) {
-  if (!r._tierMigrated) migrateResidentTiers(r);
+  migrateResidentTiers(r);
   if (r.restrictions && r.restrictions.length) return r.restrictions;
   return (r.tags || []).filter(t => ROUTING_TAGS.has(t) || t === 'Regular');
 }

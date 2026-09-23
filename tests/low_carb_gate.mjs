@@ -29,3 +29,23 @@ test('imports recognize low-carb variants without a diabetic diagnosis',()=>{
 test('all inline scripts parse',()=>{
  for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) if(match[1].trim()) new vm.Script(match[1]);
 });
+
+test('Low Carb is an accommodation, including previously migrated residents',()=>{
+ const tiers=vm.createContext({});
+ vm.runInContext(between('const ROUTING_TAGS =', 'function getAltMeal('),tiers);
+ const resident={tags:['Low Carb','Halal'],restrictions:['Low Carb','Halal'],accommodations:['Low Sodium'],allergenFlags:['No Peanuts'],avoidances:['No Peanuts','Low Sodium'],_tierMigrated:true,isAnaph:true};
+ tiers.resident=resident;
+ vm.runInContext('migrateResidentTiers(resident); migrateResidentTiers(resident);',tiers);
+ assert.deepEqual([...resident.restrictions],['Halal']);
+ assert.deepEqual([...resident.accommodations],['Low Sodium','Low Carb']);
+ assert.deepEqual([...resident.avoidances],['No Peanuts','Low Sodium','Low Carb']);
+ assert.deepEqual(resident.tags,['Low Carb','Halal']);
+ assert.equal(resident.isAnaph,true);
+ tiers.fresh={tags:['Low Carb']};
+ vm.runInContext('migrateResidentTiers(fresh)',tiers);
+ assert.deepEqual([...tiers.fresh.restrictions],[]);
+ assert.deepEqual([...tiers.fresh.accommodations],['Low Carb']);
+ const intake=between('<!-- RESTRICTION FIELDS -->','<!-- RIGHT PANEL -->');
+ const control=intake.indexOf("toggleCb(this,'lowCarb')");
+ assert.ok(control>intake.indexOf('>Accommodations <'));
+});
