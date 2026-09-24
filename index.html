@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.15';
-const DOOR_BUILD_DATE = '2026-09-19';
+const DOOR_APP_VERSION = 'v31-standard.16';
+const DOOR_BUILD_DATE = '2026-09-24';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -12888,11 +12888,49 @@ function doorNormalizeMenuOverlay(overlay) {
   return normalized;
 }
 
+// Each real menu edit stamps its day in _meta.dayEditedAt["<week>|<DAY>"] (ms). When a
+// day exists on both sides the NEWER stamp wins, and a stamped day beats an unstamped
+// (pre-stamp) copy. Two unstamped copies keep the original rule — local wins — so nothing
+// moves until someone edits, and that edit then converges every device. Without this the
+// local copy always won, and two devices overwrote each other on every publish (W1 TUE
+// lunch flipped Parsnip and Carrot <-> Seasonal Vegetables, 2026-09-21..24).
+function doorOverlayDayStamp(overlay, weekKey, dayKey) {
+  const m = doorIsPlainObject(overlay) && doorIsPlainObject(overlay._meta) ? overlay._meta.dayEditedAt : null;
+  const v = doorIsPlainObject(m) ? Number(m[weekKey + '|' + dayKey]) : NaN;
+  return isFinite(v) && v > 0 ? v : 0;
+}
+
+function doorStampOverlayEdits(prevOverlay, nextOverlay, now) {
+  const prev = doorIsPlainObject(prevOverlay) ? prevOverlay : {};
+  const next = doorCloneJSON(nextOverlay);
+  if (!doorIsPlainObject(next._meta)) next._meta = {};
+  const prevStamps = doorIsPlainObject(prev._meta) && doorIsPlainObject(prev._meta.dayEditedAt) ? prev._meta.dayEditedAt : {};
+  const stamps = Object.assign({}, prevStamps, doorIsPlainObject(next._meta.dayEditedAt) ? next._meta.dayEditedAt : {});
+  Object.keys(next).forEach(function(weekKey) {
+    if (weekKey === '_meta' || !doorIsPlainObject(next[weekKey])) return;
+    Object.keys(next[weekKey]).forEach(function(dayKey) {
+      const before = doorIsPlainObject(prev[weekKey]) ? prev[weekKey][dayKey] : undefined;
+      if (JSON.stringify(before) !== JSON.stringify(next[weekKey][dayKey])) stamps[weekKey + '|' + dayKey] = now;
+    });
+  });
+  next._meta.dayEditedAt = stamps;
+  return next;
+}
+
 function doorMergeMenuOverlayWithCloud(localOverlay, cloudOverlay) {
   const local = doorNormalizeMenuOverlay(localOverlay);
   const cloud = doorNormalizeMenuOverlay(cloudOverlay);
   const merged = doorCloneJSON(local);
   const addedDays = [];
+  const adoptedDays = [];
+  const stamps = {};
+  [cloud, local].forEach(function(side) {
+    const m = side._meta && doorIsPlainObject(side._meta.dayEditedAt) ? side._meta.dayEditedAt : {};
+    Object.keys(m).forEach(function(k) {
+      const v = Number(m[k]);
+      if (isFinite(v) && v > 0 && !(stamps[k] >= v)) stamps[k] = v;
+    });
+  });
 
   // Metadata is not a week. Keep useful metadata from both sides while the
   // local copy wins conflicts and the current cutover marker remains fixed.
@@ -12908,14 +12946,22 @@ function doorMergeMenuOverlayWithCloud(localOverlay, cloudOverlay) {
       if (!Object.prototype.hasOwnProperty.call(merged[weekKey], dayKey)) {
         merged[weekKey][dayKey] = doorCloneJSON(cloud[weekKey][dayKey]);
         addedDays.push({ week: weekKey, day: dayKey });
+      } else if (doorOverlayDayStamp(cloud, weekKey, dayKey) > doorOverlayDayStamp(local, weekKey, dayKey) &&
+                 JSON.stringify(cloud[weekKey][dayKey]) !== JSON.stringify(merged[weekKey][dayKey])) {
+        merged[weekKey][dayKey] = doorCloneJSON(cloud[weekKey][dayKey]);
+        adoptedDays.push({ week: weekKey, day: dayKey });
       }
     });
   });
+  if (Object.keys(stamps).length) merged._meta.dayEditedAt = stamps;
+  else delete merged._meta.dayEditedAt;
 
   return {
     merged: merged,
     addedDays: addedDays,
     addedCount: addedDays.length,
+    adoptedDays: adoptedDays,
+    adoptedCount: adoptedDays.length,
     hasCloudOnlyDays: addedDays.length > 0
   };
 }
@@ -13157,16 +13203,11 @@ async function _ghPushFileNow(creds, path, content) {
 }
 
 // Before pushing menu_overlay.json, fetch the current cloud version and
-// add any (week, day) entries that exist there but not locally. Local
-// entries always win for days both have — the user's recent local work
-// isn't overridden by a stale cloud day. This catches the multi-device
-// scenario where another device adds a new day's edits between our pulls;
-// without it, our push would silently wipe the other device's work.
-//
-// Per-key merging within a shared day is deliberately not attempted —
-// there's no per-key timestamp to determine "newer", and the kitchen's
-// usual usage is one device at a time. Day-level union catches the
-// realistic conflict cases while being predictable enough to debug.
+// merge it: (week, day) entries missing locally are added, and for a day
+// both sides have the NEWER edit wins (per-day stamps in _meta.dayEditedAt;
+// see doorMergeMenuOverlayWithCloud). Without this, a device holding an old
+// copy of a day silently overwrote another device's newer edit on every
+// publish. Merging stays day-level — a day is small and edited as one unit.
 async function preMergeOverlayWithCloud(creds, localOverlay) {
   try {
     const repo = creds.repo;
@@ -13183,6 +13224,9 @@ async function preMergeOverlayWithCloud(creds, localOverlay) {
     const mergeResult = doorMergeMenuOverlayWithCloud(localOverlay, cloud);
     if (mergeResult.addedCount > 0) {
       console.warn('[GH] preMergeOverlayWithCloud: added ' + mergeResult.addedCount + ' day-level entries from cloud that were missing locally', mergeResult.addedDays);
+    }
+    if (mergeResult.adoptedCount > 0) {
+      console.warn('[GH] preMergeOverlayWithCloud: took ' + mergeResult.adoptedCount + ' newer day edit(s) from another device', mergeResult.adoptedDays);
     }
     return mergeResult.merged;
   } catch(e) {
@@ -15097,8 +15141,12 @@ function loadMenuBaseOverlay() {
   try { return doorNormalizeMenuOverlay(JSON.parse(localStorage.getItem('concMenuBase') || '{}')); }
   catch(e) { return doorNormalizeMenuOverlay({}); }
 }
-function saveMenuBaseOverlay(obj) {
-  const normalized = doorNormalizeMenuOverlay(obj);
+function saveMenuBaseOverlay(obj, opts) {
+  // A real edit stamps the days it changed so the newest edit wins on every device
+  // (doorMergeMenuOverlayWithCloud). An automatic tidy-up (opts.noStamp) never stamps —
+  // it must not make an old copy look like a fresh edit.
+  let normalized = doorNormalizeMenuOverlay(obj);
+  if (!(opts && opts.noStamp)) normalized = doorStampOverlayEdits(loadMenuBaseOverlay(), normalized, Date.now());
   localStorage.setItem('concMenuBase', JSON.stringify(normalized));
   // Push to GitHub so other devices get the updated menu overlay immediately
   try {
@@ -15209,7 +15257,7 @@ function sweepAltFlagPollution(opts) {
       });
     });
   });
-  if (!dryRun && report.flagsDropped > 0) saveMenuBaseOverlay(overlay);
+  if (!dryRun && report.flagsDropped > 0) saveMenuBaseOverlay(overlay, { noStamp: true });
   return report;
 }
 let _STALE_FLAG_MEALS = [];
