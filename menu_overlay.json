@@ -79,15 +79,15 @@
       }
     },
     "TUESDAY": {
-      "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
-      "lunch_veg": "Blackened Tofu, Sweet potatoes, Seasonal Vegetables",
+      "lunch": "Blackened Fish, Sweet potatoes, Parsnip and Carrot",
+      "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": true,
         "hasPeanuts": false,
-        "hasSoy": true,
+        "hasSoy": false,
         "hasTreeNuts": false,
         "hasSesame": false,
         "hasMustard": false,
@@ -112,19 +112,19 @@
       "lunch_altMeals": [],
       "lunch_altMealsNone": true,
       "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Blackened fish",
+      "lunch_mainItem": "Blackened Fish",
       "lunch_mainAlt": "",
-      "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
+      "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
       "lunch_slots": {
         "main": {
-          "manual": "Blackened fish",
+          "recipeName": "Blackened Fish",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
             "hasEgg": false,
             "hasFish": true,
             "hasPeanuts": false,
-            "hasSoy": true,
+            "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
@@ -134,17 +134,18 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": true,
+            "isSpicy": true,
+            "isCarb": false,
             "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
-            "hasCoconut": false,
+            "hasBeans": false,
             "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
+            "hasCoconut": false,
             "hasNightshades": false,
-            "hasBeans": false
-          }
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "recipeId": "blackened-fish"
         },
         "veganalt": {
           "recipeName": "Blackened Tofu",
@@ -181,7 +182,7 @@
           "flags": {}
         },
         "vegside": {
-          "manual": "Seasonal Vegetables",
+          "manual": "Parsnip and Carrot",
           "flags": {}
         }
       }
@@ -344,11 +345,11 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": false,
+            "hasChicken": true,
             "hasTurkey": false,
             "isSpicy": true,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
             "hasProcessedMeat": false,
             "hasBeans": false,
             "hasMushroom": false,
@@ -362,7 +363,9 @@
         },
         "veganalt": {
           "manual": "Crispy Quinoa Cake Burger",
-          "flags": {}
+          "flags": {
+            "hasGluten": true
+          }
         },
         "starch": {
           "recipeName": "Home Fry Potatoes",
@@ -1188,6 +1191,9 @@
   },
   "_meta": {
     "plainVegStirfryComponents": "Carrot, Onion, Peppers, Zucchini, Green Beans",
-    "standardCutover": 1783971058450
+    "standardCutover": 1783971058450,
+    "dayEditedAt": {
+      "1|TUESDAY": 1790339773002
+    }
   }
 }
