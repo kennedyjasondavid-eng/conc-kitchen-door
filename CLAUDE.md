@@ -53,6 +53,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-09-24/25) — menu days: the newest edit wins, and a computer that disagrees says so (`v31-standard.16` → `.17`, PR #106)
+The W1 TUE lunch side flipped Parsnip and Carrot ⇄ Seasonal Vegetables five times between 2026-09-21 and 09-24. `doorMergeMenuOverlayWithCloud` let the local copy of a day always win, so two devices kept overwriting each other.
+- **Newest edit wins (`.16`).**
+  - A real menu edit stamps its day in `_meta.dayEditedAt`, and the merge takes the newer stamp.
+  - The automatic flag sweep never stamps.
+  - Two unstamped copies keep the old rule, so nothing moves until someone edits; that one edit settles every device.
+  - Gate: `menu_overlay_newest_wins_gate` 8/8.
+- **Say when this computer disagrees (`.17`, HOUSE streamline P4).**
+  - After the boot or sync merge, Menu Config shows one calm line listing the days where this computer's copy still differs from the published one and is not a newer edit (the pre-stamp case). Sending from here would replace the other computer's version.
+  - **Use the published one** takes the published day with its stamp, written locally only.
+  - Gate: `menu_overlay_differs_gate` 6/6. Suite 268/268.
+
 ## Recent (2026-09-20) — a fast Save right after typing no longer loses the dish (`v31-standard.15`)
 Free-typed text in a slot's SEARCH box only reached `MEAL_SLOT_STATE` on blur / Enter / dropdown-row click (the per-keystroke handler there is the CODEX typeahead, not a commit), while `saveMenuEdit` reads STATE via `buildMealName`/`_buildSlotSnapshot` — so clicking Save fast enough after typing saved the PREVIOUS text, and a real publish went out with an empty diff that way. New `_commitLiveSlotInputs()` runs first (after the write guard, before `buildMealName`) and routes each changed search box through the **same** `slotAutoSave` a blur uses, so exact-recipe matching, manual fallback, flag preservation and the don't-overwrite-a-linked-recipe rule are identical; it reads every box before committing any, because `slotAutoSave` re-renders the cards. `_commitLiveSmSlotInputs()` mirrors it in the Special Meal editor, which has the same blur-only commit and the same save-reads-state shape. No timers, no focus tricks, no schema/publish change.
 - **Gate:** `tests/slot_editor_live_commit_gate.mjs` (9 tests), authored-to-fail **8 red / 1 pass** against pre-slice `origin/main` → **9/9 green** (the pre-green one locks the blur commit in place — the helper is a backstop, not a replacement). Suite **240 → 249**, `node --test tests/*.mjs` all green. No publish.
