@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.16';
-const DOOR_BUILD_DATE = '2026-09-24';
+const DOOR_APP_VERSION = 'v31-standard.17';
+const DOOR_BUILD_DATE = '2026-09-25';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -1726,6 +1726,7 @@ function updateCODEXBadge() {
 
     <!-- Stale allergen flags banner (pre-v30 meals lacking per-slot snapshot) -->
     <div id="mc-menu-source-banner" style="display:none;background:#fee2e2;border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
+    <div id="mc-overlay-diff-banner" role="status" style="display:none;background:var(--card,#fff);border:1px solid var(--border,#d1d5db);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-unmapped-allergen-banner" style="display:none;background:#fee2e2;border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-stale-flags-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
 
@@ -10741,6 +10742,7 @@ async function pullSecondaryState(repo) {
       const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
       const mergeResult = doorMergeMenuOverlayWithCloud(local, d);
       localStorage.setItem('concMenuBase', JSON.stringify(mergeResult.merged));
+      doorRecordOverlayCloudDiff(mergeResult.merged, d);
     }],
     ['menu_current.json',    d => {
       // The file shape is { _meta: {...}, menu: {...} }; localStorage stores
@@ -12997,6 +12999,21 @@ function buildDoorOverlayMergeAdvisory(localOverlay, mergedOverlay, coreArtifact
         : 'Cloud menu overlay had days missing locally; menu and routing JSON will include them in this publish.'
   };
 }
+// P4: pure — see _doorOverlayCloudDiff below.
+function doorOverlayDaysDifferingFromCloud(merged, cloud) {
+  const m = doorNormalizeMenuOverlay(merged), c = doorNormalizeMenuOverlay(cloud);
+  const out = [];
+  Object.keys(m).forEach(function(weekKey) {
+    if (weekKey === '_meta' || !doorIsPlainObject(m[weekKey]) || !doorIsPlainObject(c[weekKey])) return;
+    Object.keys(m[weekKey]).forEach(function(dayKey) {
+      if (!Object.prototype.hasOwnProperty.call(c[weekKey], dayKey)) return;
+      if (JSON.stringify(c[weekKey][dayKey]) === JSON.stringify(m[weekKey][dayKey])) return;
+      if (doorOverlayDayStamp(m, weekKey, dayKey) > doorOverlayDayStamp(c, weekKey, dayKey)) return;
+      out.push({ week: weekKey, day: dayKey });
+    });
+  });
+  return out;
+}
 /* DOOR_TESTABLE_CORE_END publish-validation */
 
 function reportDoorPublishValidation(validation, manual) {
@@ -13200,6 +13217,53 @@ async function _ghPushFileNow(creds, path, content) {
     throw new Error(msg);
   }
   return res.json();
+}
+
+// P4 (EXPO_DISH_EDIT_STREAMLINE_PLAN_2026-09-24.md §3 P4): say when this computer's menu disagrees with
+// the published one. After the merge, a day both sides have that still differs — and whose local copy is
+// NOT a newer edit (both copies unstamped, the pre-stamp case) — is a disagreement: publishing from here
+// would overwrite the other computer's version. A newer local edit is not listed; it is simply unpublished.
+let _doorOverlayCloudDiff = { days: [], cloud: null };
+function doorRecordOverlayCloudDiff(merged, cloud) {
+  try { _doorOverlayCloudDiff = { days: doorOverlayDaysDifferingFromCloud(merged, cloud), cloud: doorNormalizeMenuOverlay(cloud) }; }
+  catch (e) { _doorOverlayCloudDiff = { days: [], cloud: null }; }
+  if (typeof renderOverlayDiffBanner === 'function') { try { renderOverlayDiffBanner(); } catch (e) {} }
+  return _doorOverlayCloudDiff.days;
+}
+function renderOverlayDiffBanner() {
+  const el = document.getElementById('mc-overlay-diff-banner');
+  if (!el) return;
+  const days = (_doorOverlayCloudDiff && _doorOverlayCloudDiff.days) || [];
+  if (!days.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const names = days.map(function(d) { return 'Wk' + d.week + ' ' + String(d.day).slice(0, 3); });
+  el.innerHTML = 'This computer’s menu differs from the published menu on ' + days.length + ' day' + (days.length === 1 ? '' : 's') +
+    ' (' + escapeHtml(names.join(', ')) + '). Sending from here would replace the other computer’s version. ' +
+    '<button type="button" class="btn btn-sm" onclick="doorUsePublishedMenuDays()">Use the published one</button>';
+  el.style.display = 'block';
+}
+// Take the published copy of each listed day, with its stamp. Written locally only — it already matches the published file.
+function doorUsePublishedMenuDays() {
+  const diff = _doorOverlayCloudDiff || {};
+  const days = diff.days || [], cloud = diff.cloud;
+  if (!days.length || !cloud) return 0;
+  const local = loadMenuBaseOverlay();
+  if (!doorIsPlainObject(local._meta)) local._meta = {};
+  const stamps = doorIsPlainObject(local._meta.dayEditedAt) ? Object.assign({}, local._meta.dayEditedAt) : {};
+  days.forEach(function(d) {
+    if (!doorIsPlainObject(cloud[d.week]) || !Object.prototype.hasOwnProperty.call(cloud[d.week], d.day)) return;
+    if (!doorIsPlainObject(local[d.week])) local[d.week] = {};
+    local[d.week][d.day] = doorCloneJSON(cloud[d.week][d.day]);
+    const cs = doorOverlayDayStamp(cloud, d.week, d.day);
+    if (cs) stamps[d.week + '|' + d.day] = cs; else delete stamps[d.week + '|' + d.day];
+  });
+  if (Object.keys(stamps).length) local._meta.dayEditedAt = stamps; else delete local._meta.dayEditedAt;
+  localStorage.setItem('concMenuBase', JSON.stringify(doorNormalizeMenuOverlay(local)));
+  const n = days.length;
+  _doorOverlayCloudDiff = { days: [], cloud: cloud };
+  renderOverlayDiffBanner();
+  if (typeof renderMenuConfig === 'function') { try { renderMenuConfig(); } catch (e) {} }
+  if (typeof showToast === 'function') showToast('Using the published menu for ' + n + ' day' + (n === 1 ? '' : 's') + '.');
+  return n;
 }
 
 // Before pushing menu_overlay.json, fetch the current cloud version and
@@ -15011,6 +15075,7 @@ function renderMenuConfig() {
   renderSwapsBanner();
   renderSpecialsBanner();
   renderMenuSourceBanner();
+  renderOverlayDiffBanner();
   renderUnmappedAllergenBanner();
   closeMealEdit();
 }
@@ -20643,6 +20708,7 @@ initDynamic();
         const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
         const mergeResult = doorMergeMenuOverlayWithCloud(local, remote);
         localStorage.setItem('concMenuBase', JSON.stringify(mergeResult.merged));
+        doorRecordOverlayCloudDiff(mergeResult.merged, remote);
       }).catch(() => {});
 
     // menu_current.json — pull the canonical menu so a fresh browser/device
