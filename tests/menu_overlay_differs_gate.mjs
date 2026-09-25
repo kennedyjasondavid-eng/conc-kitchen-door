@@ -104,3 +104,34 @@ test('the boot fetch and the sync pull both record the disagreement; Menu Config
   assert.ok(/renderMenuSourceBanner\(\);\n  renderOverlayDiffBanner\(\);/.test(html));
   assert.ok(html.includes('id="mc-overlay-diff-banner"'));
 });
+
+test('a day edited on this computer after the sync is never replaced (the line re-checks the current copy)', () => {
+  const store = { concMenuBase: JSON.stringify(ov(SEASONAL)) };
+  const el = { style: {}, innerHTML: '' };
+  const c = {
+    Array, JSON, Object, Number, isFinite, String,
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+    document: { getElementById: id => (id === 'mc-overlay-diff-banner' ? el : null) },
+    PublishAuth: { sidePublish: () => {} }, showToast: () => {}, renderMenuConfig: () => {},
+    escapeHtml: v => String(v),
+  };
+  vm.createContext(c);
+  const s = html.indexOf('/* DOOR_TESTABLE_CORE_START publish-validation */');
+  const e = html.indexOf('/* DOOR_TESTABLE_CORE_END publish-validation */');
+  vm.runInContext(html.slice(s, e), c);
+  vm.runInContext(['let _doorOverlayCloudDiff = { days: [], cloud: null };', fnBlock('loadMenuBaseOverlay'), fnBlock('doorRecordOverlayCloudDiff'), fnBlock('renderOverlayDiffBanner'), fnBlock('doorUsePublishedMenuDays')].join('\n'), c);
+  c.doorRecordOverlayCloudDiff(C.doorMergeMenuOverlayWithCloud(ov(SEASONAL), ov(PARSNIP)).merged, ov(PARSNIP));
+  assert.equal(el.style.display, 'block');
+  const EDITED = { lunch: 'Blackened fish, Sweet potatoes, Roasted Squash' };
+  store.concMenuBase = JSON.stringify(ov(EDITED, 999)); // edited here since the sync, with a fresh stamp
+  c.renderOverlayDiffBanner();
+  assert.equal(el.style.display, 'none', 'the line clears once the day is a newer local edit');
+  assert.equal(c.doorUsePublishedMenuDays(), 0, 'nothing is replaced');
+  assert.equal(JSON.parse(store.concMenuBase)['1'].TUESDAY.lunch, EDITED.lunch, 'the local edit is kept');
+});
+
+test('key order alone is never a difference', () => {
+  const a = { _meta: META(), '1': { TUESDAY: { lunch: 'x', dinner: 'y' } } };
+  const b = { _meta: META(), '1': { TUESDAY: { dinner: 'y', lunch: 'x' } } };
+  assert.equal(C.doorOverlayDaysDifferingFromCloud(a, b).length, 0);
+});

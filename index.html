@@ -12999,7 +12999,12 @@ function buildDoorOverlayMergeAdvisory(localOverlay, mergedOverlay, coreArtifact
         : 'Cloud menu overlay had days missing locally; menu and routing JSON will include them in this publish.'
   };
 }
-// P4: pure — see _doorOverlayCloudDiff below.
+// P4: pure — see _doorOverlayCloudDiff below. Key order never counts as a difference.
+function doorStableJSON(v) {
+  if (Array.isArray(v)) return '[' + v.map(doorStableJSON).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(function(k) { return JSON.stringify(k) + ':' + doorStableJSON(v[k]); }).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
 function doorOverlayDaysDifferingFromCloud(merged, cloud) {
   const m = doorNormalizeMenuOverlay(merged), c = doorNormalizeMenuOverlay(cloud);
   const out = [];
@@ -13007,7 +13012,7 @@ function doorOverlayDaysDifferingFromCloud(merged, cloud) {
     if (weekKey === '_meta' || !doorIsPlainObject(m[weekKey]) || !doorIsPlainObject(c[weekKey])) return;
     Object.keys(m[weekKey]).forEach(function(dayKey) {
       if (!Object.prototype.hasOwnProperty.call(c[weekKey], dayKey)) return;
-      if (JSON.stringify(c[weekKey][dayKey]) === JSON.stringify(m[weekKey][dayKey])) return;
+      if (doorStableJSON(c[weekKey][dayKey]) === doorStableJSON(m[weekKey][dayKey])) return;
       if (doorOverlayDayStamp(m, weekKey, dayKey) > doorOverlayDayStamp(c, weekKey, dayKey)) return;
       out.push({ week: weekKey, day: dayKey });
     });
@@ -13233,7 +13238,10 @@ function doorRecordOverlayCloudDiff(merged, cloud) {
 function renderOverlayDiffBanner() {
   const el = document.getElementById('mc-overlay-diff-banner');
   if (!el) return;
-  const days = (_doorOverlayCloudDiff && _doorOverlayCloudDiff.days) || [];
+  // Re-checked against this computer's CURRENT copy every render: a day edited since the last sync (a newer
+  // stamp) is only unpublished now, and is never offered for replacement.
+  const cloud = _doorOverlayCloudDiff && _doorOverlayCloudDiff.cloud;
+  const days = cloud ? doorOverlayDaysDifferingFromCloud(loadMenuBaseOverlay(), cloud) : [];
   if (!days.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
   const names = days.map(function(d) { return 'Wk' + d.week + ' ' + String(d.day).slice(0, 3); });
   el.innerHTML = 'This computer’s menu differs from the published menu on ' + days.length + ' day' + (days.length === 1 ? '' : 's') +
@@ -13243,10 +13251,11 @@ function renderOverlayDiffBanner() {
 }
 // Take the published copy of each listed day, with its stamp. Written locally only — it already matches the published file.
 function doorUsePublishedMenuDays() {
-  const diff = _doorOverlayCloudDiff || {};
-  const days = diff.days || [], cloud = diff.cloud;
-  if (!days.length || !cloud) return 0;
+  const cloud = (_doorOverlayCloudDiff || {}).cloud;
+  if (!cloud) return 0;
   const local = loadMenuBaseOverlay();
+  const days = doorOverlayDaysDifferingFromCloud(local, cloud); // re-checked now: never replaces a newer local edit
+  if (!days.length) { renderOverlayDiffBanner(); return 0; }
   if (!doorIsPlainObject(local._meta)) local._meta = {};
   const stamps = doorIsPlainObject(local._meta.dayEditedAt) ? Object.assign({}, local._meta.dayEditedAt) : {};
   days.forEach(function(d) {
