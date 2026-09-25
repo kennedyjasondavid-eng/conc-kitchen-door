@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-09-24T13:38:32.589Z",
+    "exported": "2026-09-25T12:36:13.599Z",
     "version": 32
   },
   "menu": {
@@ -357,11 +357,11 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": false,
+              "hasChicken": true,
               "hasTurkey": false,
               "isSpicy": true,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
@@ -375,7 +375,9 @@
           },
           "veganalt": {
             "manual": "Crispy Quinoa Cake Burger",
-            "flags": {}
+            "flags": {
+              "hasGluten": true
+            }
           },
           "starch": {
             "recipeName": "Home Fry Potatoes",
@@ -565,17 +567,17 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_dinner": "sulphites, pork",
-        "lunch": "Blackened fish, Sweet potatoes, Seasonal Vegetables",
-        "lunch_veg": "Blackened Tofu, Sweet potatoes, Seasonal Vegetables",
-        "lunch_mainItem": "Blackened fish",
-        "lunch_sides": "Sweet potatoes, Seasonal Vegetables",
+        "lunch": "Blackened Fish, Sweet potatoes, Parsnip and Carrot",
+        "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
+        "lunch_mainItem": "Blackened Fish",
+        "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": false,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": true,
           "hasPeanuts": false,
-          "hasSoy": true,
+          "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -596,7 +598,7 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "allergens_lunch": "fish, soy",
+        "allergens_lunch": "fish",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
         "lunch_altMealsNone": true,
@@ -604,14 +606,14 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "Blackened fish",
+            "recipeName": "Blackened Fish",
             "flags": {
               "hasGluten": false,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": true,
               "hasPeanuts": false,
-              "hasSoy": true,
+              "hasSoy": false,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
@@ -621,17 +623,18 @@
               "hasBeef": false,
               "hasChicken": false,
               "hasTurkey": false,
-              "isSpicy": false,
-              "isCarb": true,
+              "isSpicy": true,
+              "isCarb": false,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasCoconut": false,
+              "hasBeans": false,
               "hasMushroom": false,
-              "hasBrassicas": false,
-              "hasCorn": false,
+              "hasCoconut": false,
               "hasNightshades": false,
-              "hasBeans": false
-            }
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "blackened-fish"
           },
           "veganalt": {
             "recipeName": "Blackened Tofu",
@@ -668,7 +671,7 @@
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Parsnip and Carrot",
             "flags": {}
           }
         }
