@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.17';
-const DOOR_BUILD_DATE = '2026-09-25';
+const DOOR_APP_VERSION = 'v31-standard.18';
+const DOOR_BUILD_DATE = '2026-10-02';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -11966,11 +11966,24 @@ function toggleMobileNav() { document.body.classList.toggle('nav-open'); }
 function closeMobileNav() { document.body.classList.remove('nav-open'); }
 
 // Deep-link via URL hash: e.g. https://.../door/#plating opens the Plating screen
-function applyHashRoute() {
-  const h = (location.hash || '').replace(/^#/, '').trim();
-  if (!h) return;
-  const nav = document.querySelector('[data-screen="' + h + '"]');
-  if (nav && document.getElementById('screen-' + h)) showScreen(h, nav);
+// EXPO links "#menu-config/edit/<week>/<DAY>/<period>" (Fix in DOOR): Menu Config on that week, Edit Menu
+// on, that meal's editor open. It waits for the boot menu sync (_doorBootMenuSync, at most 8 s) so the
+// editor never shows a copy of the day the cloud merge is about to replace, then clears the hash.
+var _doorBootMenuSync = null;
+async function applyHashRoute() {
+  const route = doorParseHashRoute(location.hash);
+  if (!route) return;
+  const nav = document.querySelector('[data-screen="' + route.screen + '"]');
+  if (!nav || !document.getElementById('screen-' + route.screen)) return;
+  if (!route.edit) { showScreen(route.screen, nav); return; }
+  try { if (_doorBootMenuSync) await Promise.race([_doorBootMenuSync, new Promise(r => setTimeout(r, 8000))]); } catch (e) {}
+  mcWeek = route.edit.week;
+  showScreen(route.screen, nav);
+  if (!editMenuMode) toggleEditMenuMode();
+  openMenuEdit(route.edit.week, route.edit.day, route.edit.period);
+  const panel = document.getElementById('mc-menu-edit-panel');
+  if (panel && panel.scrollIntoView) panel.scrollIntoView({ block: 'start' });
+  try { history.replaceState(null, '', location.pathname + location.search + '#' + route.screen); } catch (e) {}
 }
 window.addEventListener('hashchange', applyHashRoute);
 window.addEventListener('DOMContentLoaded', applyHashRoute);
@@ -13018,6 +13031,23 @@ function doorOverlayDaysDifferingFromCloud(merged, cloud) {
     });
   });
   return out;
+}
+// EXPO "Fix in DOOR" deep link (2026-10-02): "#menu-config/edit/<week>/<DAY>/<period>" names one meal of
+// the menu. Pure — returns { screen, edit } (edit null when absent or malformed) or null for an empty hash.
+function doorParseHashRoute(hash) {
+  const h = String(hash || '').replace(/^#/, '').trim();
+  if (!h) return null;
+  const parts = h.split('/');
+  const screen = parts[0];
+  if (!screen) return null;
+  if (screen !== 'menu-config' || parts[1] !== 'edit') return { screen, edit: null };
+  const week = Number(parts[2]);
+  const day = String(parts[3] || '').toUpperCase();
+  const period = String(parts[4] || '').toLowerCase();
+  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const ok = Number.isInteger(week) && week >= 1 && week <= 4 && days.indexOf(day) !== -1 &&
+    ['breakfast','lunch','dinner'].indexOf(period) !== -1;
+  return { screen, edit: ok ? { week, day, period } : null };
 }
 /* DOOR_TESTABLE_CORE_END publish-validation */
 
@@ -20710,7 +20740,7 @@ initDynamic();
     const bust = '?_=' + Date.now();
 
     // menu_overlay.json
-    fetch(base + 'menu_overlay.json' + bust)
+    const _overlaySync = fetch(base + 'menu_overlay.json' + bust)
       .then(r => r.ok ? r.json() : null)
       .then(remote => {
         if (!remote) return;
@@ -20725,7 +20755,7 @@ initDynamic();
     // as the freshness signal: only overwrite local when the cloud copy is
     // newer than this session's last upload, so a fresh local upload isn't
     // wiped by a stale cloud copy.
-    fetch(base + 'menu_current.json' + bust)
+    const _currentSync = fetch(base + 'menu_current.json' + bust)
       .then(r => r.ok ? r.json() : null)
       .then(remote => {
         if (!remote || !remote.menu) return;
@@ -20738,6 +20768,9 @@ initDynamic();
           console.warn('[GH] pulled menu_current.json from cloud (file ts: ' + (remote._meta && remote._meta.exported) + ')');
         }
       }).catch(() => {});
+
+    // A deep link into the menu editor waits for these two (applyHashRoute).
+    _doorBootMenuSync = Promise.allSettled([_overlaySync, _currentSync]);
 
     // Hydration gate: arm _ghHydrated after boot fetches have had time to settle, or 5s fallback.
     Promise.allSettled([
