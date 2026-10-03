@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.17'`** + `DOOR_BUILD_DATE = '2026-09-25'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.18'`** + `DOOR_BUILD_DATE = '2026-10-02'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,9 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-02) — EXPO "Fix in DOOR" opens the exact meal (`v31-standard.18`)
+EXPO's "What the board needs" rows for a new dish or a batch with no consumer link to DOOR. The link now names the meal: `#menu-config/edit/<week>/<DAY>/<period>` (pure parser `doorParseHashRoute`, in the publish-validation testable core) opens Menu Config on that week, turns Edit Menu on, and opens that meal's editor. It waits for the boot menu sync (`_doorBootMenuSync`, the overlay + `menu_current.json` fetches, at most 8 s) so the editor never shows a copy of the day the cloud merge is about to replace (the Parsnip class), then clears the hash so a reload does not reopen it. A malformed link opens Menu Config alone; plain `#<screen>` links are unchanged. Gate `menu_edit_deeplink_gate` 5/5 (authored red 0/5 on `main`); suite 275/275. Plan: `conc-kitchen-expo/EXPO_BOARD_NEEDS_SMOOTHING_PLAN_2026-10-02.md` S5.
 
 ## Recent (2026-09-24/25) — menu days: the newest edit wins, and a computer that disagrees says so (`v31-standard.16` → `.17`, PR #106)
 The W1 TUE lunch side flipped Parsnip and Carrot ⇄ Seasonal Vegetables five times between 2026-09-21 and 09-24. `doorMergeMenuOverlayWithCloud` let the local copy of a day always win, so two devices kept overwriting each other.
