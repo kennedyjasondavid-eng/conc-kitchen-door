@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.18';
-const DOOR_BUILD_DATE = '2026-10-02';
+const DOOR_APP_VERSION = 'v31-standard.19';
+const DOOR_BUILD_DATE = '2026-10-04';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -15442,6 +15442,38 @@ function clearUploadedMenu() {
 // every getMenuData() resolution so it always reflects the live menu source.
 let _doorMenuUsedBakedFallback = false;
 
+// Brassica words in a dish name (broccoli, cauliflower, cabbage, slaw, kale, collards, …). Includes common
+// misspellings seen in the menu (Brocolli). "Gomen" is the Ethiopian collard dish.
+const DOOR_BRASSICA_RE = /brocc|brocol|cauliflower|cabbage|\bkale\b|collard|brussel|bok ?ch(oy|oi)|\bnapp?a\b|slaw\b|kohlrabi|rapini|\bgomen\b/i;
+
+// The menu as read (Menu Config, plating, routing, publish) carries hasBrassicas on any meal whose dish text names a
+// brassica, whatever the stored flag says — the stored flags came from imports that never set it. Additive only:
+// never clears a flag. Days are copied, never mutated (the base may be MENU_DATA or shared app state).
+function doorApplyTextDetectedFlags(menu) {
+  if (!menu || typeof menu !== 'object') return menu;
+  const out = {};
+  Object.keys(menu).forEach(wk => {
+    const days = menu[wk];
+    if (!days || typeof days !== 'object' || wk === '_meta') { out[wk] = days; return; }
+    out[wk] = {};
+    Object.keys(days).forEach(dayName => {
+      const d = days[dayName];
+      if (!d || typeof d !== 'object') { out[wk][dayName] = d; return; }
+      let copy = null;
+      ['breakfast','lunch','dinner'].forEach(meal => {
+        const text = [d[meal], d[meal + '_veg'], d[meal + '_sides']].filter(x => typeof x === 'string').join(' , ');
+        if (!DOOR_BRASSICA_RE.test(text)) return;
+        const flags = d[meal + '_flags'];
+        if (flags && flags.hasBrassicas) return;
+        if (!copy) copy = { ...d };
+        copy[meal + '_flags'] = { ...(flags || emptyMealFlags()), hasBrassicas: true };
+      });
+      out[wk][dayName] = copy || d;
+    });
+  });
+  return out;
+}
+
 function getMenuData() {
   const publishOverlay = getDoorPublishMenuOverlayOverride();
   const uploaded = loadUploadedMenu();
@@ -15452,7 +15484,8 @@ function getMenuData() {
   _doorMenuUsedBakedFallback = !uploaded;
   const base = uploaded || MENU_DATA;
   const overlay = publishOverlay || loadMenuBaseOverlay();
-  return mergeDoorMenuDataWithOverlay(base, overlay);
+  const merged = mergeDoorMenuDataWithOverlay(base, overlay);
+  return (typeof doorApplyTextDetectedFlags === 'function') ? doorApplyTextDetectedFlags(merged) : merged;
 }
 
 // Given a (week, day, period) rotation slot, return the next calendar Date
@@ -16815,6 +16848,9 @@ function nameDetectFlags(mealText, flags) {
   // slot's Intake row was written for a different meal). Additive only.
   if (/\begg\b|\beggs\b|frittata|omelet|scrambled|\bmayo\b|aioli|\bquiche\b|pancake/.test(m)) flags.hasEgg = true;
   if (/cheese|\bcream\b|butter|yoghurt|yogurt|\bmilk\b|alfredo|\branch\b|tzatziki|parmesan|mozzarella|paneer|\bghee\b/.test(m)) flags.hasDairy = true;
+  // Brassicas (2026-10-04): every brassica meal had hasBrassicas false — nothing read it from the dish text, so a
+  // No Brassicas resident was never flagged. Additive only, like the allergens above.
+  if (typeof DOOR_BRASSICA_RE !== 'undefined' && DOOR_BRASSICA_RE.test(m)) flags.hasBrassicas = true;
   if (/\bbread\b|\bbun\b|\bbuns\b|\bpasta\b|noodle|\bnaan\b|\bwrap\b|tortilla|breaded|\bflour\b|couscous|biscuit|\bpizza\b|lasagn|\bmac\b|pancake|\bbagel|\broll\b|\bsub\b|dumpling|spring roll|\bgyro\b|\bpita\b|\bgnocchi\b|\bwedges\b/.test(m)) flags.hasGluten = true;
   return flags;
 }
