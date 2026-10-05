@@ -2,13 +2,13 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 30,
-    "exported": "2026-10-05T12:45:46.086Z",
-    "registryModifiedAt": "2026-10-05T12:45:45.685Z",
+    "exported": "2026-10-05T12:46:31.185Z",
+    "registryModifiedAt": "2026-10-05T12:46:31.077Z",
     "site": "rexdale",
-    "count": 169,
+    "count": 168,
     "lastModifiedBy": "Joan Wandera",
     "builtFromMenu": {
-      "exported": "2026-10-05T12:45:46.026Z",
+      "exported": "2026-10-05T12:46:31.135Z",
       "hash": "1tknpop"
     }
   },
@@ -3859,7 +3859,7 @@
       "lastImported": "2026-10-05"
     },
     {
-      "room": "315a",
+      "room": "315",
       "section": "Regular",
       "tags": [
         "No Mushroom"
@@ -3872,7 +3872,9 @@
       "moderateNote": "",
       "complianceDeadline": "",
       "pendingReversion": false,
-      "restrictions": [],
+      "restrictions": [
+        "Regular"
+      ],
       "allergenFlags": [],
       "accommodations": [
         "No Mushroom"
@@ -3884,31 +3886,42 @@
         "No Mushroom"
       ],
       "_tierMigrated": true,
-      "lastImported": "2026-09-29"
-    },
-    {
-      "room": "315b",
-      "section": "Regular",
-      "tags": [
-        "No Pork"
-      ],
-      "confirm": "Provisional",
-      "confirmBy": "—",
-      "isAnaph": false,
-      "rawRestriction": "No Pork",
-      "isModerate": false,
-      "moderateNote": "",
-      "complianceDeadline": "",
-      "pendingReversion": false,
-      "restrictions": [
-        "No Pork"
-      ],
-      "allergenFlags": [],
-      "accommodations": [],
-      "preferences": [],
-      "avoidances": [],
-      "_tierMigrated": true,
-      "lastImported": "2026-09-29"
+      "lastImported": "2026-10-05",
+      "_history": [
+        {
+          "snapshot": {
+            "room": "315a",
+            "section": "Regular",
+            "tags": [
+              "No Mushroom"
+            ],
+            "restrictions": [],
+            "allergenFlags": [],
+            "accommodations": [
+              "No Mushroom"
+            ],
+            "preferences": [
+              "No Mushroom"
+            ],
+            "avoidances": [
+              "No Mushroom"
+            ],
+            "confirm": "Confirmed",
+            "confirmBy": "Auto",
+            "isAnaph": false,
+            "rawRestriction": "No Mushroom",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "_tierMigrated": true
+          },
+          "ts": "2026-10-05T12:46:31.077Z",
+          "date": "Oct 5",
+          "desc": "Room reassigned: 315a → 315",
+          "by": "Joan Wandera"
+        }
+      ]
     },
     {
       "room": "401b",
