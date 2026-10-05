@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-10-05T12:46:31.135Z",
+    "exported": "2026-10-05T18:45:23.406Z",
     "version": 32
   },
   "menu": {
@@ -706,10 +706,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "dinner": "Butter Chicken, Naan, Seasonal Vegetables",
-        "dinner_veg": "Butter Chickpeas, Naan, Seasonal Vegetables",
+        "dinner": "Butter Chicken, Naan, Green Beans",
+        "dinner_veg": "Butter Chickpeas, Naan, Green Beans",
         "dinner_mainItem": "Butter Chicken",
-        "dinner_sides": "Naan, Seasonal Vegetables",
+        "dinner_sides": "Naan, Green Beans",
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -793,7 +793,7 @@
             }
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Green Beans",
             "flags": {}
           }
         },
@@ -1656,15 +1656,15 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_dinner": "pork",
-        "lunch": "Halal Beef Burger, Chickpea Salad",
-        "lunch_veg": "Veggie Burger, Chickpea Salad, Burger Buns",
-        "lunch_mainItem": "Halal Beef Burger",
-        "lunch_sides": "Chickpea Salad",
+        "lunch": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
+        "lunch_veg": "Falafel Sandwich, Chips, Fruit Cup",
+        "lunch_mainItem": "Tuna Salad Sandwich Mix",
+        "lunch_sides": "Chips, Fruit Cup",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
-          "hasEgg": false,
-          "hasFish": false,
+          "hasEgg": true,
+          "hasFish": true,
           "hasPeanuts": false,
           "hasSoy": false,
           "hasTreeNuts": false,
@@ -1673,21 +1673,96 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": true,
+          "hasBeef": false,
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": false,
-          "halalCertifiedMeat": true,
+          "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
-        "allergens_lunch": "gluten, beef"
+        "allergens_lunch": "gluten, egg, fish",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "recipeName": "Tuna Salad Sandwich Mix",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": true,
+              "hasFish": true,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "manual": "Falafel Sandwich",
+            "flags": {}
+          },
+          "starch": {
+            "recipeName": "Chips",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "xtra": {
+            "manual": "Fruit Cup",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -1874,13 +1949,13 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "CONC Salad - Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
-        "lunch_veg": "CONC Salad - Vegan Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan, CONC salad",
-        "lunch_mainItem": "CONC Salad - Beef",
-        "lunch_sides": "lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
+        "lunch": "Halal Beef Burger, Chickpea Salad",
+        "lunch_veg": "Veggie Burger, Chickpea Salad, Burger Buns",
+        "lunch_mainItem": "Halal Beef Burger",
+        "lunch_sides": "Chickpea Salad",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": true,
+          "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -1895,12 +1970,12 @@
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
+          "isCarb": false,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasCoconut": false,
           "hasMushroom": false,
-          "hasBrassicas": true,
+          "hasBrassicas": false,
           "hasCorn": false,
           "hasNightshades": false,
           "hasBeans": false
@@ -1938,8 +2013,19 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, dairy, beef",
-        "allergens_dinner": "pork"
+        "allergens_lunch": "gluten, beef",
+        "allergens_dinner": "pork",
+        "lunch_slots": {
+          "main": {
+            "manual": "Halal Beef Burger"
+          },
+          "veganalt": {
+            "manual": "Veggie Burger"
+          },
+          "vegside": {
+            "manual": "Chickpea Salad"
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Ham, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
@@ -1973,15 +2059,15 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
-        "lunch_veg": "Falafel Sandwich, Chips, Fruit Cup",
-        "lunch_mainItem": "Tuna Salad Sandwich Mix",
-        "lunch_sides": "Chips, Fruit Cup",
+        "lunch": "CONC Salad - Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
+        "lunch_veg": "CONC Salad - Vegan Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan, CONC salad",
+        "lunch_mainItem": "CONC Salad - Beef",
+        "lunch_sides": "lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
-          "hasEgg": true,
-          "hasFish": true,
+          "hasDairy": true,
+          "hasEgg": false,
+          "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
           "hasTreeNuts": false,
@@ -1990,19 +2076,19 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": false,
+          "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": false,
-          "halalCertifiedMeat": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasBeans": false,
-          "hasMushroom": false,
           "hasCoconut": false,
+          "hasMushroom": false,
+          "hasBrassicas": true,
+          "hasCorn": false,
           "hasNightshades": false,
-          "hasBrassicas": false,
-          "hasCorn": false
+          "hasBeans": false
         },
         "dinner": "Arroz Con Pollo, Refried Beans",
         "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
@@ -2093,7 +2179,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, egg, fish",
+        "allergens_lunch": "gluten, dairy, beef",
         "allergens_dinner": "",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -2102,72 +2188,10 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "recipeName": "Tuna Salad Sandwich Mix",
-            "flags": {
-              "hasGluten": true,
-              "hasDairy": false,
-              "hasEgg": true,
-              "hasFish": true,
-              "hasPeanuts": false,
-              "hasSoy": false,
-              "hasTreeNuts": false,
-              "hasSesame": false,
-              "hasMustard": false,
-              "hasShellfish": false,
-              "hasSulphites": false,
-              "hasPork": false,
-              "hasBeef": false,
-              "hasChicken": false,
-              "hasTurkey": false,
-              "isSpicy": false,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
-              "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
-              "hasCoconut": false,
-              "hasNightshades": false,
-              "hasBrassicas": false,
-              "hasCorn": false
-            }
+            "manual": "CONC Salad - Beef"
           },
           "veganalt": {
-            "manual": "Falafel Sandwich",
-            "flags": {}
-          },
-          "starch": {
-            "recipeName": "Chips",
-            "flags": {
-              "hasGluten": false,
-              "hasDairy": false,
-              "hasEgg": false,
-              "hasFish": false,
-              "hasPeanuts": false,
-              "hasSoy": false,
-              "hasTreeNuts": false,
-              "hasSesame": false,
-              "hasMustard": false,
-              "hasShellfish": false,
-              "hasSulphites": false,
-              "hasPork": false,
-              "hasBeef": false,
-              "hasChicken": false,
-              "hasTurkey": false,
-              "isSpicy": false,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
-              "hasProcessedMeat": false,
-              "hasBeans": false,
-              "hasMushroom": false,
-              "hasCoconut": false,
-              "hasNightshades": false,
-              "hasBrassicas": false,
-              "hasCorn": false
-            }
-          },
-          "xtra": {
-            "manual": "Fruit Cup",
-            "flags": {}
+            "manual": "CONC Salad - Vegan Beef"
           }
         }
       },
@@ -2203,11 +2227,11 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Chicken Tenders, Sweet Potato, Seasonal Vegetables",
-        "lunch_veg": "Vegan Tenders, Sweet Potato, Seasonal Vegetables",
+        "lunch": "Chicken Tenders, Sweet Potato, Roasted Parsnip and Carrot",
+        "lunch_veg": "Vegan Tenders, Sweet Potato, Roasted Parsnip and Carrot",
         "lunch_halal": "Halal breaded chicken burgers",
         "lunch_mainItem": "Chicken Tenders",
-        "lunch_sides": "Sweet Potato, Seasonal Vegetables",
+        "lunch_sides": "Sweet Potato, Roasted Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -2235,10 +2259,10 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "dinner": "Beef Meatloaf, Seasonal Vegetables, Potatoes",
-        "dinner_veg": "Vegan Meatloaf, Seasonal Vegetables, Potatoes, Butternut Squash",
+        "dinner": "Beef Meatloaf, Roasted Zucchini, Potatoes",
+        "dinner_veg": "Vegan Meatloaf, Roasted Zucchini, Potatoes, Butternut Squash",
         "dinner_mainItem": "Beef Meatloaf",
-        "dinner_sides": "Seasonal Vegetables, Potatoes",
+        "dinner_sides": "Roasted Zucchini, Potatoes",
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
@@ -2348,7 +2372,7 @@
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Roasted Parsnip and Carrot",
             "flags": {}
           }
         }
@@ -2580,10 +2604,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "dinner": "Roast Chicken, Moroccan Rice, Seasonal Vegetables",
-        "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice, Seasonal Vegetables",
+        "dinner": "Roast Chicken, Moroccan Rice, Green Beans",
+        "dinner_veg": "Roasted Portobello Mushrooms, Moroccan Rice, Green Beans",
         "dinner_mainItem": "Roast Chicken",
-        "dinner_sides": "Moroccan Rice, Seasonal Vegetables",
+        "dinner_sides": "Moroccan Rice, Green Beans",
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
@@ -2659,7 +2683,7 @@
             }
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Green Beans",
             "flags": {}
           }
         },
@@ -3206,38 +3230,38 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
         "allergens_dinner": "sulphites, pork",
-        "lunch": "Crispy Chicken Tender Wrap",
-        "lunch_veg": "Crispy Vegan Tender Wrap",
-        "lunch_mainItem": "Crispy Chicken Tender Wrap",
-        "lunch_sides": "",
+        "lunch": "All Beef Hotdog, Toppings, Side Salad",
+        "lunch_veg": "Vegan Hotdog, Toppings, Side Salad",
+        "lunch_mainItem": "All Beef Hotdog",
+        "lunch_sides": "Toppings, Side Salad",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": true,
+          "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
-          "hasMustard": false,
+          "hasMustard": true,
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": false,
-          "hasChicken": true,
+          "hasBeef": true,
+          "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
+          "isCarb": false,
           "halalCertifiedMeat": true,
-          "hasProcessedMeat": false,
-          "hasBeans": false,
-          "hasMushroom": false,
+          "hasProcessedMeat": true,
           "hasCoconut": false,
-          "hasNightshades": false,
+          "hasMushroom": false,
           "hasBrassicas": false,
-          "hasCorn": false
+          "hasCorn": false,
+          "hasNightshades": false,
+          "hasBeans": false
         },
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, soy, mustard, beef",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
         "lunch_altMealsNone": true,
@@ -3245,41 +3269,16 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "Crispy Chicken Tender Wrap",
-            "flags": {
-              "hasGluten": true,
-              "hasDairy": true,
-              "hasEgg": false,
-              "hasFish": false,
-              "hasPeanuts": false,
-              "hasSoy": false,
-              "hasTreeNuts": false,
-              "hasSesame": false,
-              "hasMustard": false,
-              "hasShellfish": false,
-              "hasSulphites": false,
-              "hasPork": false,
-              "hasBeef": false,
-              "hasChicken": true,
-              "hasTurkey": false,
-              "isSpicy": false,
-              "isCarb": true,
-              "halalCertifiedMeat": true,
-              "hasProcessedMeat": false,
-              "hasCoconut": false,
-              "hasMushroom": false,
-              "hasBrassicas": false,
-              "hasCorn": false,
-              "hasNightshades": false,
-              "hasBeans": false
-            }
+            "manual": "All Beef Hotdog"
           },
           "veganalt": {
-            "manual": "Crispy Vegan Tender Wrap",
-            "flags": {
-              "hasGluten": true,
-              "hasSoy": true
-            }
+            "manual": "Vegan Hotdog"
+          },
+          "xtra": {
+            "manual": "Toppings"
+          },
+          "vegside": {
+            "manual": "Side Salad"
           }
         }
       },
@@ -3315,10 +3314,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Nigerian Fish, Lime Coconut Rice, Seasonal Vegetables",
-        "lunch_veg": "Nigerian Styled Tofu, Lime Coconut Rice, Seasonal Vegetables",
+        "lunch": "Nigerian Fish, Lime Coconut Rice, Cauliflower & Green Bean",
+        "lunch_veg": "Nigerian Styled Tofu, Lime Coconut Rice, Cauliflower & Green Bean",
         "lunch_mainItem": "Nigerian Fish",
-        "lunch_sides": "Lime Coconut Rice, Seasonal Vegetables",
+        "lunch_sides": "Lime Coconut Rice, Cauliflower & Green Bean",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -3343,15 +3342,15 @@
           "hasMushroom": false,
           "hasCoconut": true,
           "hasNightshades": true,
-          "hasBrassicas": false,
+          "hasBrassicas": true,
           "hasCorn": false
         },
-        "dinner": "Chicken and Mushroom Fried Rice",
-        "dinner_veg": "Soy-Free Mushroom Fried Rice",
+        "dinner": "Chicken and Mushroom Fried Rice, Spring Roll, Bok Choy",
+        "dinner_veg": "Soy-Free Mushroom Fried Rice, Spring Roll, Bok Choy",
         "dinner_mainItem": "Chicken and Mushroom Fried Rice",
-        "dinner_sides": "",
+        "dinner_sides": "Spring Roll, Bok Choy",
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -3374,7 +3373,7 @@
           "hasMushroom": true,
           "hasCoconut": false,
           "hasNightshades": false,
-          "hasBrassicas": false,
+          "hasBrassicas": true,
           "hasCorn": false
         },
         "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
@@ -3426,7 +3425,7 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, pork, turkey",
         "allergens_lunch": "gluten, fish, sulphites",
-        "allergens_dinner": "sesame, soy",
+        "allergens_dinner": "gluten, sesame, soy",
         "lunch_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
         "lunch_altMeals": [
           {
@@ -3484,7 +3483,7 @@
             }
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Cauliflower & Green Bean",
             "flags": {}
           }
         }
@@ -3553,10 +3552,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "dinner": "Pepperoni Pizza, Seasonal Soup",
-        "dinner_veg": "Pizza, Seasonal Soup",
+        "dinner": "Pepperoni Pizza, Side Salad",
+        "dinner_veg": "Pizza, Side Salad",
         "dinner_mainItem": "Pepperoni Pizza",
-        "dinner_sides": "Seasonal Soup",
+        "dinner_sides": "Side Salad",
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -3612,7 +3611,7 @@
             "flags": {}
           },
           "xtra": {
-            "recipeName": "Seasonal Soup",
+            "manual": "Side Salad",
             "flags": {
               "hasGluten": false,
               "hasDairy": false,
@@ -3892,10 +3891,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "dinner": "Fish Curry, Steamed Rice, Seasonal Vegetables",
-        "dinner_veg": "Tofu Curry, Steamed Rice, Seasonal Vegetables",
+        "dinner": "Fish Curry, Steamed Rice, Roasted Zucchini",
+        "dinner_veg": "Tofu Curry, Steamed Rice, Roasted Zucchini",
         "dinner_mainItem": "Fish Curry",
-        "dinner_sides": "Steamed Rice, Seasonal Vegetables",
+        "dinner_sides": "Steamed Rice, Roasted Zucchini",
         "dinner_flags": {
           "hasGluten": false,
           "hasDairy": false,
@@ -3968,7 +3967,7 @@
             "flags": {}
           },
           "vegside": {
-            "manual": "Seasonal Vegetables",
+            "manual": "Roasted Zucchini",
             "flags": {}
           },
           "softalt": {
@@ -4285,10 +4284,10 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Chicken Shawarma, Cabbage Stirfry, Mujadarrah Rice, Garlic Sauce",
-        "lunch_veg": "Vegetarian Shawarma, Cabbage Stirfry, Mujadarrah Rice, Garlic Sauce",
-        "lunch_mainItem": "Chicken Shawarma",
-        "lunch_sides": "Cabbage Stirfry, Mujadarrah Rice, Garlic Sauce",
+        "lunch": "Beef Burger, Side Salad",
+        "lunch_veg": "Veggie Burger, Side Salad",
+        "lunch_mainItem": "Beef Burger",
+        "lunch_sides": "Side Salad",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -4302,16 +4301,16 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": false,
-          "hasChicken": true,
+          "hasBeef": true,
+          "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": true,
+          "isCarb": false,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasCoconut": false,
           "hasMushroom": false,
-          "hasBrassicas": true,
+          "hasBrassicas": false,
           "hasCorn": false,
           "hasNightshades": false,
           "hasBeans": false
@@ -4405,8 +4404,24 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten",
-        "allergens_dinner": "gluten, egg, sesame, soy, sulphites"
+        "allergens_lunch": "gluten, beef",
+        "allergens_dinner": "gluten, egg, sesame, soy, sulphites",
+        "lunch_softAlt": "",
+        "lunch_altMeals": [],
+        "lunch_altMealsNone": true,
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": "",
+        "lunch_slots": {
+          "main": {
+            "manual": "Beef Burger"
+          },
+          "veganalt": {
+            "manual": "Veggie Burger"
+          },
+          "vegside": {
+            "manual": "Side Salad"
+          }
+        }
       },
       "FRIDAY": {
         "breakfast": "Ham, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
