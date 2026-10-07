@@ -535,11 +535,11 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
-            "hasChicken": false,
+            "hasChicken": true,
             "hasTurkey": false,
             "isSpicy": true,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
             "hasProcessedMeat": false,
             "hasBeans": false,
             "hasMushroom": false,
@@ -553,7 +553,9 @@
         },
         "veganalt": {
           "manual": "Crispy Quinoa Cake Burger",
-          "flags": {}
+          "flags": {
+            "hasGluten": true
+          }
         },
         "starch": {
           "recipeName": "Home Fry Potatoes",
@@ -1462,15 +1464,13 @@
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_dinner": "pork",
-      "lunch": "Halal Beef Burger, Chickpea Salad",
-      "lunch_veg": "Veggie Burger, Chickpea Salad, Burger Buns",
-      "lunch_mainItem": "Halal Beef Burger",
-      "lunch_sides": "Chickpea Salad",
+      "lunch": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
+      "lunch_veg": "Falafel Sandwich, Chips, Fruit Cup",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
-        "hasEgg": false,
-        "hasFish": false,
+        "hasEgg": true,
+        "hasFish": true,
         "hasPeanuts": false,
         "hasSoy": false,
         "hasTreeNuts": false,
@@ -1479,32 +1479,21 @@
         "hasShellfish": false,
         "hasSulphites": false,
         "hasPork": false,
-        "hasBeef": true,
+        "hasBeef": false,
         "hasChicken": false,
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": false,
-        "halalCertifiedMeat": true,
+        "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": false,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": false
       },
-      "allergens_lunch": "gluten, beef",
-      "lunch_slots": {
-        "main": {
-          "manual": "Halal Beef Burger"
-        },
-        "veganalt": {
-          "manual": "Veggie Burger"
-        },
-        "vegside": {
-          "manual": "Chickpea Salad"
-        }
-      }
+      "allergens_lunch": "gluten, beef"
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -1670,15 +1659,13 @@
       },
       "allergens_breakfast": "gluten, dairy",
       "allergens_dinner": "pork",
-      "lunch": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
-      "lunch_veg": "Falafel Sandwich, Chips, Fruit Cup",
-      "lunch_mainItem": "Tuna Salad Sandwich Mix",
-      "lunch_sides": "Chips, Fruit Cup",
+      "lunch": "Halal Beef Burger, Chickpea Salad",
+      "lunch_veg": "Veggie Burger, Chickpea Salad, Burger Buns",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
-        "hasEgg": true,
-        "hasFish": true,
+        "hasEgg": false,
+        "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
         "hasTreeNuts": false,
@@ -1687,96 +1674,21 @@
         "hasShellfish": false,
         "hasSulphites": false,
         "hasPork": false,
-        "hasBeef": false,
+        "hasBeef": true,
         "hasChicken": false,
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": false,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": false,
+        "hasBeans": false
       },
-      "allergens_lunch": "gluten, egg, fish",
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
-      "lunch_noPorkAlt": "",
-      "lunch_mainAlt": "",
-      "lunch_slots": {
-        "main": {
-          "recipeName": "Tuna Salad Sandwich Mix",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": true,
-            "hasFish": true,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": false,
-            "hasBrassicas": false,
-            "hasCorn": false
-          }
-        },
-        "veganalt": {
-          "manual": "Falafel Sandwich",
-          "flags": {}
-        },
-        "starch": {
-          "recipeName": "Chips",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": false,
-            "hasBrassicas": false,
-            "hasCorn": false
-          }
-        },
-        "xtra": {
-          "manual": "Fruit Cup",
-          "flags": {}
-        }
-      }
+      "allergens_lunch": "gluten, egg, fish"
     }
   },
   "3": {
@@ -3875,7 +3787,7 @@
       "3|WEDNESDAY": 1791114241572,
       "1|WEDNESDAY": 1791225921868,
       "1|SUNDAY": 1791118602095,
-      "2|THURSDAY": 1791225921868,
+      "2|THURSDAY": 1791386313427,
       "3|FRIDAY": 1791225921868,
       "3|SUNDAY": 1791118602095,
       "4|TUESDAY": 1791134853983,
@@ -3885,7 +3797,7 @@
       "1|FRIDAY": 1791134853983,
       "2|WEDNESDAY": 1791134853983,
       "2|MONDAY": 1791134853983,
-      "2|TUESDAY": 1791225921868,
+      "2|TUESDAY": 1791386311681,
       "4|FRIDAY": 1791134853983,
       "4|SUNDAY": 1791134853983,
       "4|WEDNESDAY": 1791134853983,
