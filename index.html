@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.20';
-const DOOR_BUILD_DATE = '2026-10-06';
+const DOOR_APP_VERSION = 'v31-standard.21';
+const DOOR_BUILD_DATE = '2026-10-07';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -17942,6 +17942,14 @@ function toggleEditMenuMode() {
   renderMenuConfig();
 }
 
+// V7: a hand-typed dish that is a recipe's name in all but spelling details offers the link.
+function _slotLinkSuggestionHTML(def, state, fn) {
+  if (!state || !state.manual || state.recipeName || def.manual) return '';
+  const sug = doorRecipeSuggestionFor(def, state.manual);
+  if (!sug) return '';
+  return `<div class="slot-link-suggest" style="margin-top:6px;font-size:11px;color:#065f46;">Link to “${escapeHtml(sug.recipeName)}”? Its allergens come with it.
+    <button onclick="${_escAttr(fn + 'Select(' + _jsArgLiteral(def.id) + ',' + _jsArgLiteral(sug.recipeName) + ')')}" class="btn btn-ghost btn-sm" style="font-size:11px;margin-left:4px;">Link</button></div>`;
+}
 function renderSlotCard(def, ns) {
   // ns = 'slot' (Edit Menu) or 'sm-slot' (Special Meal)
   const state = ns === 'slot' ? MEAL_SLOT_STATE[def.id] : SM_SLOT_STATE[def.id];
@@ -18015,6 +18023,7 @@ function renderSlotCard(def, ns) {
       <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
     </div>
     ${showAsHtml}
+    ${_slotLinkSuggestionHTML(def, state, fn)}
     ${chipHtml}
     ${qpHtml}
   </div>`;
@@ -18186,6 +18195,13 @@ function saveMenuEdit() {
   _commitLiveSlotInputs();   // save reads MEAL_SLOT_STATE — take whatever is in the boxes right now
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
+  // V7: a slot that reads like several dishes is asked about here, not guessed at later by EXPO.
+  const _runOn = doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS);
+  if (_runOn.length) {
+    const lines = _runOn.map(r => '  • ' + r.label + ': "' + r.text + '"').join('\n');
+    const ok = confirm('These slots read like more than one dish:\n\n' + lines + '\n\nEXPO plans one dish per slot, so it may miss one of them. Put each dish in its own slot (Starch Side, Veg Side, Extras).\n\nOK = save as it is   ·   Cancel = go back and split them');
+    if (!ok) return;
+  }
   // Require an explicit decision on soft/plain alternatives: either at least one
   // is specified, or the user has affirmatively marked "none required".
   const _alts = buildAltMeals();
@@ -18743,17 +18759,64 @@ function renderSmSlots() {
   container.innerHTML = MEAL_SLOT_DEFS.map(def => renderSlotCard(def, 'sm-slot')).join('');
 }
 
+// V7 (2026-10-07, Jason: "follow your leans, go ahead with 2, 3, 4 and 5"): binding a dish to its
+// recipe is the normal path. The dropdown lists the best match first (same name → starts with the
+// text → a word starts with it → contains it), and a dish typed by hand whose name is a recipe's in
+// all but case, punctuation, "&"/"and" or a plural is offered "Link to …" on its card. Nothing links
+// on its own: picking the recipe stays the operator's click (exact typed names already link on blur).
+function doorNormDishName(s) {
+  return String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean)
+    .map(w => (w.length > 3 && /oes$/.test(w)) ? w.slice(0, -2) : ((w.length > 3 && /[^s]s$/.test(w)) ? w.slice(0, -1) : w)).join(' ');
+}
+// 0 same name · 1 starts with the text · 2 a word starts with it · 3 contains it · -1 no match.
+function doorRecipeMatchRank(recipeName, query) {
+  const n = String(recipeName || '').toLowerCase(), q = String(query || '').trim().toLowerCase();
+  if (!q) return 3;
+  if (n === q || doorNormDishName(n) === doorNormDishName(q)) return 0;
+  if (n.startsWith(q)) return 1;
+  const words = ' ' + n.replace(/[^a-z0-9]+/g, ' '), qw = q.replace(/[^a-z0-9]+/g, ' ').trim();
+  if (qw && words.includes(' ' + qw)) return 2;
+  if (n.includes(q)) return 3;
+  return -1;
+}
+function doorRankedRecipeMatches(def, query, limit) {
+  if (!def || !isHubLoaded()) return [];
+  return DOOR_RECIPE_DATA.filter(r => recipeMatchesSlotDef(def, r))
+    .map((r, i) => ({ r, i, k: doorRecipeMatchRank(r.recipeName, query) }))
+    .filter(x => x.k >= 0)
+    .sort((a, b) => a.k - b.k || a.i - b.i)
+    .slice(0, limit || 6).map(x => x.r);
+}
+// A recipe whose name is this hand-typed dish in all but case, punctuation, "&"/"and" or a plural.
+function doorRecipeSuggestionFor(def, text) {
+  const t = doorNormDishName(text);
+  if (!def || !t || !isHubLoaded()) return null;
+  return DOOR_RECIPE_DATA.find(r => recipeMatchesSlotDef(def, r) && doorNormDishName(r.recipeName) === t) || null;
+}
+// V7: slots whose text reads like several dishes in one ("A & B", "A, B", "A; B", "A + B"). EXPO reads one
+// dish per slot, so a run-on line is guessed at later (the Wk3 WED nachos line went missing that way).
+// A slot linked to a recipe that is itself named that way is fine; the Event Name slot is free text.
+const DOOR_RUNON_RE = /\s&\s|,|;|\s\+\s/;
+function doorRunOnSlots(state, defs) {
+  const out = [];
+  (defs || []).forEach(def => {
+    const st = state && state[def.id];
+    if (!st || def.manual) return;
+    const text = st.displayText || st.recipeName || st.manual || '';
+    if (!text || !DOOR_RUNON_RE.test(text)) return;
+    if (st.recipeName && text === st.recipeName) return;
+    out.push({ id: def.id, label: def.label, text });
+  });
+  return out;
+}
+
 function smSlotSearch(slotId, query) {
   const dd = document.getElementById('sm-slot-dd-' + slotId);
   if (!dd) return;
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
-  const results = DOOR_RECIPE_DATA.filter(r => {
-    if (!recipeMatchesSlotDef(def, r)) return false;
-    if (q.length < 1) return true;
-    return r.recipeName.toLowerCase().includes(q);
-  }).slice(0, 6);
+  const results = doorRankedRecipeMatches(def, q, 6);   // V7: best match first
   if (!results.length && !q) { dd.style.display = 'none'; return; }
   dd.innerHTML = results.length
     ? results.map(r => {
@@ -18812,11 +18875,7 @@ function slotSearch(slotId, query) {
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
-  const results = DOOR_RECIPE_DATA.filter(r => {
-    if (!recipeMatchesSlotDef(def, r)) return false;
-    if (q.length < 1) return true;
-    return r.recipeName.toLowerCase().includes(q);
-  }).slice(0, 6);
+  const results = doorRankedRecipeMatches(def, q, 6);   // V7: best match first
   if (!results.length && !q) { dd.style.display = 'none'; return; }
   dd.innerHTML = results.length
     ? results.map(r => {
