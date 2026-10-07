@@ -1046,6 +1046,10 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
     extractFunctionBlock(html, '_hubAllergenResolve'),
     extractFunctionBlock(html, '_allergenPreview'),
     extractFunctionBlock(html, 'recipeMatchesSlotDef'),
+    // 2026-10-07 (V7): both searches list the best match first through these helpers.
+    extractFunctionBlock(html, 'doorNormDishName'),
+    extractFunctionBlock(html, 'doorRecipeMatchRank'),
+    extractFunctionBlock(html, 'doorRankedRecipeMatches'),
     extractFunctionBlock(html, 'slotSearch'),
     extractFunctionBlock(html, 'smSlotSearch')
   ].join('\n\n'), context, { filename: 'index.html#xss-slot-search', timeout: 1000 });
