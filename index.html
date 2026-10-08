@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.25';
+const DOOR_APP_VERSION = 'v31-standard.26';
 const DOOR_BUILD_DATE = '2026-10-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9957,6 +9957,7 @@ const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
   blocked:                     { label: 'some changes haven’t reached the kitchen yet — reload to finish sending them', action: 'reload' },
   'validation-stop':           { label: 'the last send was stopped by a data check', action: 'settings' },
   'validation-stop-cancelled': { label: 'the last send was cancelled at a data check', action: 'settings' },
+  'registry-cancelled':        { label: 'the last send was cancelled at the resident-list question', action: 'settings' },
   error:                       { label: 'the last send didn’t go through', action: 'connect' }
 });
 
@@ -10339,19 +10340,24 @@ function doorRegistryPublishGate(remoteMeta, localProvTs) {
   return { adopt: false, reason: 'local-current', remoteTs, localTs };
 }
 
-// → { adopted, forced, gate }. Never throws (a failed remote read = publish as today).
+// → { adopted, forced, cancelled, gate }. Never throws (a failed remote read = publish as today).
+// 2026-10-08: the manual question has three answers (doorAsk). Use the kitchen's list, send this
+// computer's older list on purpose, or go back — Escape and a click outside send nothing.
 async function doorRegistryPublishPreflight(manual) {
   let meta = null;
   try { meta = await doorFetchRemoteRegistryMeta(); } catch (e) { meta = null; }
   const gate = doorRegistryPublishGate(meta, (typeof getRegistryProvenanceTs === 'function') ? getRegistryProvenanceTs() : 0);
   if (!gate.adopt) return { adopted: false, forced: false, gate };
   const fmt = (ts) => ts ? new Date(ts).toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'never updated';
-  if (manual && typeof confirm === 'function') {
-    const useShared = confirm(
-      'The kitchen has a newer resident list (' + fmt(gate.remoteTs) + ') than this computer (' + fmt(gate.localTs) + ').\n\n' +
-      'OK — use the kitchen’s newer list (recommended).\n' +
-      'Cancel — send this computer’s OLDER list instead (this replaces the newer one everywhere).');
-    if (!useShared) return { adopted: false, forced: true, gate };
+  if (manual && typeof doorAsk === 'function') {
+    const answer = await doorAsk({
+      title: 'The kitchen has a newer resident list',
+      lines: ['The kitchen’s resident list is from ' + fmt(gate.remoteTs) + '. This computer’s is from ' + fmt(gate.localTs) + '.',
+        'Use the kitchen’s newer list (recommended). Sending this computer’s older list replaces the newer one everywhere.'],
+      cancelLabel: 'Go back', altLabel: 'Send this computer’s older list', goLabel: 'Use the kitchen’s newer list'
+    });
+    if (answer === 'alt') return { adopted: false, forced: true, gate };
+    if (answer !== true) return { adopted: false, forced: false, cancelled: true, gate };
   }
   await pullStateFromGitHub(false); // quiet read-side adoption; the guard passes because remote is newer
   return { adopted: true, forced: false, gate };
@@ -12203,8 +12209,12 @@ const PublishAuth = {
     if (input) input.value = '';
     this.renderStatus('Kitchen connection confirmed.', 'var(--forest)');
   },
-  forgetToken(confirmFirst) {
-    if (confirmFirst && !confirm('Disconnect this computer from the kitchen? You’ll need the connection key to connect it again.')) return;
+  async forgetToken(confirmFirst) {
+    if (confirmFirst && typeof doorAsk === 'function' && !(await doorAsk({
+      title: 'Disconnect this computer?',
+      lines: ['This computer will stop sending to the kitchen. You’ll need the connection key to connect it again.'],
+      cancelLabel: 'Stay connected', goLabel: 'Disconnect'
+    }))) return;
     appSettings['gh-token'] = '';
     try {
       localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
@@ -13481,8 +13491,12 @@ async function _doPublishToGitHub(manual) {
     if (!manual) {
       return { skipped:true, reason:'stale-tab', message:'stale tab — reload to publish with the latest logic' };
     }
-    const proceed = (typeof confirm === 'function')
-      ? confirm('This page is running an older version of DOOR.\n\nReload first so the kitchen gets the current version.\n\nSend anyway?')
+    const proceed = (typeof doorAsk === 'function')
+      ? await doorAsk({
+          title: 'This page is out of date',
+          lines: ['This page is running an older version of DOOR.', 'Reload first so the kitchen gets the current version.'],
+          cancelLabel: 'Don’t send', goLabel: 'Send anyway'
+        })
       : true;
     if (!proceed) {
       if(statusEl){ statusEl.textContent='Not sent — this page is out of date. Reload first.'; statusEl.style.color='#dc2626'; }
@@ -13513,6 +13527,10 @@ async function _doPublishToGitHub(manual) {
   if (typeof doorRegistryPublishPreflight === 'function') {
     try { _registryPreflight = await doorRegistryPublishPreflight(manual) || _registryPreflight; }
     catch (e) { console.warn('[DOOR] registry publish preflight:', e); }
+  }
+  if (_registryPreflight.cancelled) {
+    if(statusEl){ statusEl.textContent='Not sent — nothing was sent to the kitchen.'; statusEl.style.color='#dc2626'; }
+    return { skipped:true, reason:'registry-cancelled', message:'resident-list question — publish cancelled' };
   }
   let _pushes = [];
   const _staged = [];
@@ -13570,8 +13588,12 @@ async function _doPublishToGitHub(manual) {
         if(statusEl){ statusEl.textContent=_blockStaffMsg; statusEl.style.color='#dc2626'; }
         return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
       }
-      const _proceedStop = (typeof confirm === 'function')
-        ? confirm('Today’s list has data problems that could send the wrong info to the kitchen.\n\nIt’s better to fix it and try again. Send anyway?')
+      const _proceedStop = (typeof doorAsk === 'function')
+        ? await doorAsk({
+            title: 'Today’s list has a data problem',
+            lines: ['Today’s list has data problems that could send the wrong info to the kitchen.', 'It’s better to fix it and try again.'],
+            cancelLabel: 'Don’t send', goLabel: 'Send anyway'
+          })
         : true;
       if (!_proceedStop) {
         if(statusEl){ statusEl.textContent='Send cancelled — nothing was sent to the kitchen.'; statusEl.style.color='#dc2626'; }
@@ -16109,8 +16131,9 @@ function applyMealSwap() {
 // Writes to the concMenuBase localStorage overlay, which layers on top of the
 // hardcoded MENU_DATA constant. Phase 5 will swap this implementation for a
 // SharePoint write via Microsoft Graph API — call sites don't change.
-function makePermanent() {
+async function makePermanent() {
   if (!mcEditKey) return;
+  const editKey = mcEditKey;
   if (!guardStandardMenuWrite('Make Permanent')) return;
   const name = document.getElementById('mc-swap-name').value.trim();
   if (!name) { alert('Enter a replacement meal name before making it permanent.'); return; }
@@ -16124,13 +16147,13 @@ function makePermanent() {
   const [wkStr, day, period] = mcEditKey.split('-');
   const week = parseInt(wkStr, 10);
 
-  if (!confirm(
-    `Make this a permanent change to the rotation?\n\n` +
-    `Slot: Week ${week} · ${dayLabel(day)} · ${period}\n` +
-    `New meal: ${name}\n\n` +
-    `This affects every occurrence of Wk${week} ${dayLabel(day)} ${period} going forward. ` +
-    `Any scheduled one-time swap for this slot will be cleared.`
-  )) return;
+  const ok = await doorAsk({
+    title: 'Make this a permanent change?',
+    lines: [`Week ${week} · ${dayLabel(day)} · ${period}: ${name}`,
+      `This changes every Wk${week} ${dayLabel(day)} ${period} from now on. Any one-time swap for this meal is cleared.`],
+    cancelLabel: 'Go back', goLabel: 'Make permanent'
+  });
+  if (!ok || mcEditKey !== editKey) return;
 
   // Write to the overlay
   const overlay = loadMenuBaseOverlay();
@@ -16176,22 +16199,34 @@ function makePermanent() {
   publishAndSync('menu swap made permanent');
 }
 
-function revertMealSwap() {
+async function revertMealSwap() {
   if (!mcEditKey) return;
+  const editKey = mcEditKey;
   const [wkStr, day, period] = mcEditKey.split('-');
   const week = parseInt(wkStr, 10);
 
   // What layers are currently active for this slot?
   const targetDate = nextDateForSlot(week, day);
-  const swaps = loadMealSwaps();
+  let swaps = loadMealSwaps();
   const skey = targetDate ? targetDate.toISOString().slice(0,10) + '-' + period : null;
-  const hasSwap = skey && swaps[skey];
+  let hasSwap = skey && swaps[skey];
 
-  const overlay = loadMenuBaseOverlay();
-  const hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
+  let overlay = loadMenuBaseOverlay();
+  let hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
 
   if (hasPermanent) {
-    if (!confirm(`Remove the permanent change on Wk${week} ${dayLabel(day)} ${period} and restore the original rotation meal?`)) return;
+    const ok = await doorAsk({
+      title: 'Remove the permanent change?',
+      lines: [`Wk${week} ${dayLabel(day)} ${period} goes back to the original rotation meal.`],
+      cancelLabel: 'Keep it', goLabel: 'Restore the original'
+    });
+    if (!ok || mcEditKey !== editKey) return;
+    // Read again: the question waited for an answer and a menu sync may have written meanwhile.
+    swaps = loadMealSwaps(); hasSwap = skey && swaps[skey];
+    overlay = loadMenuBaseOverlay();
+    hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
+  }
+  if (hasPermanent) {
     delete overlay[String(week)][day][period];
     delete overlay[String(week)][day][period + '_veg'];
     delete overlay[String(week)][day][period + '_flags'];
@@ -16219,17 +16254,22 @@ function revertMealSwap() {
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
 }
 
-function clearAllSwaps() {
+async function clearAllSwaps() {
   const swaps = loadMealSwaps();
   const today = new Date().toISOString().slice(0,10);
   const activeSwaps = Object.keys(swaps).filter(k => k.slice(0,10) >= today);
   const sessionSwaps = Object.keys(mealSwaps);
   const total = activeSwaps.length + sessionSwaps.length;
   if (!total) { alert('No active swaps to clear.'); return; }
-  if (!confirm(`Clear ${total} active swap${total!==1?'s':''}? Permanent menu changes are not affected.`)) return;
+  if (!(await doorAsk({
+    title: `Clear ${total} active swap${total!==1?'s':''}?`,
+    lines: ['Permanent menu changes are not affected.'],
+    cancelLabel: 'Keep them', goLabel: 'Clear swaps'
+  }))) return;
 
-  activeSwaps.forEach(k => { delete swaps[k]; REVERTED_SWAP_KEYS.add(k); });
-  saveMealSwaps(swaps);
+  const fresh = loadMealSwaps();   // read again: the question waited for an answer
+  activeSwaps.forEach(k => { delete fresh[k]; REVERTED_SWAP_KEYS.add(k); });
+  saveMealSwaps(fresh);
   mealSwaps = {};
 
   logMenuEvent('menu_swap', `Cleared all active swaps (${total} total)`);
@@ -16524,7 +16564,7 @@ function renderSwapsBanner() {
 }
 
 // Make a specific swap permanent from the Active Swaps banner.
-function makeSwapPermanentFromBanner(swapKey) {
+async function makeSwapPermanentFromBanner(swapKey) {
   if (!guardStandardMenuWrite('Make Permanent')) return;
   const swaps = loadMealSwaps();
   const sw = swaps[swapKey];
@@ -16536,12 +16576,13 @@ function makeSwapPermanentFromBanner(swapKey) {
   const week = md.week;
   const dayName = md.day;
 
-  if (!confirm(
-    `Make this a permanent change to the rotation?\n\n` +
-    `Slot: Week ${week} · ${dayLabel(dayName)} · ${period}\n` +
-    `New meal: ${sw.specialName}\n\n` +
-    `This affects every occurrence of Wk${week} ${dayLabel(dayName)} ${period} going forward.`
-  )) return;
+  if (!(await doorAsk({
+    title: 'Make this a permanent change?',
+    lines: [`Week ${week} · ${dayLabel(dayName)} · ${period}: ${sw.specialName}`,
+      `This changes every Wk${week} ${dayLabel(dayName)} ${period} from now on.`],
+    cancelLabel: 'Go back', goLabel: 'Make permanent'
+  }))) return;
+  if (!loadMealSwaps()[swapKey]) return;   // the swap was reverted while the question was open
 
   // Write to base overlay
   const overlay = loadMenuBaseOverlay();
@@ -16675,8 +16716,12 @@ function renderSpecialsBanner() {
   }).join('');
 }
 
-function removeSpecialMeal(key) {
-  if (!confirm('Remove special meal for ' + key + '?')) return;
+async function removeSpecialMeal(key) {
+  if (!(await doorAsk({
+    title: 'Remove this special meal?',
+    lines: ['The special meal for ' + key + ' is removed. The rotation meal is served instead.'],
+    cancelLabel: 'Keep it', goLabel: 'Remove'
+  }))) return;
   const meals = loadSpecialMeals();
   delete meals[key];
   saveSpecialMeals(meals);
@@ -18245,6 +18290,8 @@ function renderSectionPreviewInto(flags, el) {
 // 2026-10-08 (Jason: "go with your leans, 1 and 2"): Save asks its questions in DOOR's own dialog, not a
 // browser confirm() — same look as the Halal Certification Check, two labelled buttons, Escape = go back.
 // Resolves true for goLabel, false for cancelLabel / Escape / a click outside. Text is set as text, never HTML.
+// 2026-10-08: an optional altLabel adds a third button that resolves 'alt' (the registry preflight's
+// "send this computer's older list"), so going back always means sending nothing.
 function doorAsk(opts) {
   return new Promise(resolve => {
     const o = opts || {};
@@ -18269,7 +18316,10 @@ function doorAsk(opts) {
     const row = document.createElement('div'); row.style.display = 'flex'; row.style.gap = '8px'; row.style.justifyContent = 'flex-end'; row.style.marginTop = '6px';
     const back = document.createElement('button'); back.className = 'btn btn-ghost door-ask-cancel'; back.textContent = o.cancelLabel || 'Go back';
     const go = document.createElement('button'); go.className = 'btn btn-primary door-ask-go'; go.textContent = o.goLabel || 'Save';
-    row.appendChild(back); row.appendChild(go); body.appendChild(row);
+    row.appendChild(back);
+    let alt = null;
+    if (o.altLabel) { alt = document.createElement('button'); alt.className = 'btn btn-ghost door-ask-alt'; alt.textContent = o.altLabel; row.appendChild(alt); }
+    row.appendChild(go); body.appendChild(row);
     box.appendChild(head); box.appendChild(body); overlay.appendChild(box);
     let done = false;
     const finish = (v) => { if (done) return; done = true; document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(v); };
@@ -18277,6 +18327,7 @@ function doorAsk(opts) {
     overlay.addEventListener('click', ev => { if (ev.target === overlay) finish(false); });
     back.onclick = () => finish(false);
     go.onclick = () => finish(true);
+    if (alt) alt.onclick = () => finish('alt');
     document.addEventListener('keydown', onKey, true);
     document.body.appendChild(overlay);
     try { back.focus(); } catch (e) {}
@@ -18488,8 +18539,9 @@ function _finishMenuSave(name, veg, flags) {
   publishAndSync('menu edit saved');
 }
 
-function revertMenuEdit() {
+async function revertMenuEdit() {
   if (!mcMenuEditKey) return;
+  const editKey = mcMenuEditKey;
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
   const overlay = loadMenuBaseOverlay();
@@ -18500,8 +18552,16 @@ function revertMenuEdit() {
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
   const origName = dayData[period] || '\u2014';
-  if (!confirm('Reset "' + currentName + '" back to "' + origName + '"?')) return;
-  if (hasOverlay) {
+  const ok = await doorAsk({
+    title: 'Reset this meal?',
+    lines: ['“' + currentName + '” goes back to “' + origName + '”.'],
+    cancelLabel: 'Keep it', goLabel: 'Reset'
+  });
+  if (!ok || mcMenuEditKey !== editKey) return;
+  // Read again: the question waited for an answer and a menu sync may have written meanwhile.
+  const fresh = loadMenuBaseOverlay();
+  if (fresh[week] && fresh[week][day] && (period in fresh[week][day])) {
+    const overlay = fresh;
     delete overlay[week][day][period];
     delete overlay[week][day][period + '_veg'];
     delete overlay[week][day][period + '_flags'];

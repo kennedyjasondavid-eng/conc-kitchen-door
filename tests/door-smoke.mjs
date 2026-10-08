@@ -364,6 +364,9 @@ function loadPublishFlowHarness(options = {}) {
     context._doorPublishMenuOverlayOverride = overlay;
   };
   context.confirm = options.confirm || (() => true);
+  // 2026-10-08 re-pin (publish_menu_ask_gate): the publish questions ask through doorAsk, not confirm().
+  // options.confirm still answers them, so each test keeps its meaning.
+  context.doorAsk = async (o) => (options.confirm || (() => true))(o);
   if ('tabStale' in options) context._doorTabStale = options.tabStale;
   if ('staleOverride' in options) context._doorStaleOverride = options.staleOverride;
   if (typeof options.configureContext === 'function') {

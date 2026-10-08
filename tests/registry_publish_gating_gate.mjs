@@ -58,7 +58,9 @@ function preflightSandbox({ meta, fetchThrows, localTs, confirmAnswer }) {
     getRegistryProvenanceTs: () => localTs,
     doorFetchRemoteRegistryMeta: async () => { if (fetchThrows) throw new Error('offline'); return meta; },
     pullStateFromGitHub: async (manual) => { calls.pull.push(manual); },
-    confirm: (msg) => { calls.confirm.push(msg); return confirmAnswer; }
+    // 2026-10-08 re-pin (publish_menu_ask_gate): the question asks through doorAsk with three answers.
+    // confirmAnswer true → use the kitchen's list; false → the older-list button ('alt'), as Cancel meant before.
+    doorAsk: async (o) => { calls.confirm.push([o.title].concat(o.lines || []).join('\n')); return confirmAnswer ? true : 'alt'; }
   };
   vm.createContext(sb);
   vm.runInContext(fnBlock('doorRegistryPublishGate') + '\n' + fnBlock('doorRegistryPublishPreflight'), sb);
@@ -73,7 +75,7 @@ test('preflight (auto): shared roster newer → adopts via the read-side pull, n
   assert.equal(sb.calls.confirm.length, 0, 'auto path never prompts');
 });
 
-test('preflight (manual, F3): OK → adopt shared; Cancel → FORCE this computer’s older roster; the prompt names BOTH dates', async () => {
+test('preflight (manual, F3): use the kitchen’s list → adopt shared; the older-list button → FORCE this computer’s older roster; the prompt names BOTH dates', async () => {
   const ok = preflightSandbox({ meta: REMOTE_NEWER, localTs: LOCAL_OLD, confirmAnswer: true });
   const r1 = await vm.runInContext('doorRegistryPublishPreflight(true)', ok);
   assert.equal(r1.adopted, true); assert.equal(r1.forced, false); assert.equal(ok.calls.pull.length, 1);
@@ -104,6 +106,7 @@ test('wiring: _doPublishToGitHub runs the preflight after credentials and BEFORE
   assert.ok(build > 0 && pre < build, 'before the artifacts are built (they must come from the adopted roster)');
   assert.match(pub, /_registryPreflight[\s\S]*?(adopted|forced)[\s\S]*?updateSyncBar/, 'the outcome reaches the sync bar');
   const pf = fnBlock('doorRegistryPublishPreflight');
-  assert.match(pf, /manual\s*&&[\s\S]{0,80}confirm/, 'confirm gated on manual');
+  // 2026-10-08 re-pin: the question is doorAsk now (publish_menu_ask_gate).
+  assert.match(pf, /manual\s*&&[\s\S]{0,80}doorAsk/, 'the question is gated on manual');
   assert.match(pf, /pullStateFromGitHub\(false\)/, 'adoption reuses the read-side pull, quietly');
 });
