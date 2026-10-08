@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.24'`** + `DOOR_BUILD_DATE = '2026-10-08'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.25'`** + `DOOR_BUILD_DATE = '2026-10-08'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,11 +53,23 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-08) — the "differs from the published menu" line says what differs (`v31-standard.24`)
+## Recent (2026-10-08) — the "differs from the published menu" line says what differs (`v31-standard.25`)
 Jason: the P4 line named "1 day (Wk1 MON)" and asked him to pick a copy with no basis. The live case was four **per-dish editor tags** on Wk1 MON lunch (Chicken / Carb-swap / Halal-Certified Meat on the chicken burger, Gluten on the quinoa burger) inside `lunch_slots` — the menu, alternatives and meal-level flags were identical, so plates and routing were the same either way.
 - **`doorOverlayDayDifferences(localDay, cloudDay, flagLabels)`** (testable core) → one plain-words row per difference `{meal, what, here, published, staffSees}`. `staffSees` is false only for `<period>_slots` (plating/routing/published allergens never read it); an unknown field counts as staff-visible; a tag absent on one side reads as off.
 - **`renderOverlayDiffBanner`**: when every difference is editor-only it reads as a note ("…different editor details… Plates, routing and allergens are the same on both computers"); otherwise it keeps the P4 warning and marks editor-only rows. A native `<details>` "Show what’s different" table lists each meal with an **Open in Edit Menu** link (`#menu-config/edit/…`), and the line names both choices: open the meal and save it to keep this computer’s, or **Use the published one**. Display only — nothing written or sent.
-- **Gate:** `tests/menu_overlay_diff_details_gate.mjs` (7), authored red 7/7 against `origin/main` `9fd65b2`; `menu_overlay_differs_gate` unchanged and green. Suite **300 → 307**.
+- **Gate:** `tests/menu_overlay_diff_details_gate.mjs` (7), authored red 7/7 against `origin/main` `f595a0e`; `menu_overlay_differs_gate` unchanged and green. Suite **305 → 312**.
+
+## Recent (2026-10-08) — Daily Entry, registry and compliance questions ask in DOOR's own dialog (`v31-standard.24`)
+Jason, 2026-10-08: "follow your leans, go ahead with 1, 2 and 3". This is item 3: the next screens after Save move off browser `confirm()` to `doorAsk`. There are 13 questions across 12 functions:
+- **Daily Entry and registry:** revert a resident, clear the queue, remove a queued change, reset the registry, undo the last Generate, save the intake queue, and the two questions on a direct save (discharge; room already here).
+- **Compliance:** confirm, resolve, re-open.
+- **Edit Menu and home:** leave Edit Menu / go home (two questions), undo the last menu change.
+
+Each question has a title and named buttons ("Clear queue" / "Keep them", "Undo Generate" / "Go back"). Escape, a click outside or Go back mean go back and change nothing. The functions are now `async`; their callers are onclick handlers that ignore the return value. Nothing saved or published changes.
+
+11 browser `confirm()` calls remain: the publish path (`_doPublishToGitHub`, the registry preflight's two-option question, the hash-route disconnect) and the menu screens (meal swaps, special meals, make permanent, revert menu edit). They are left for their own pass.
+
+Gate `tests/daily_entry_ask_gate.mjs` (5), authored red 4/5 on `main`; the fifth checks the dialog wording and has nothing to check there. Two runtime checks drive the real Clear queue and Undo Generate bodies: Go back leaves the queue, the resident list and the saved snapshot alone. Suite 305/305 after merging #115.
 
 ## Recent (2026-10-08) — "Stale Allergen Flags" banner retired (`v31-standard.23`)
 The Menu Config banner listed every overlay meal without a `<period>_slots` snapshot (42 on Jason's device) and said "open Edit Menu, click each meal and save to refresh". **The instruction refreshed nothing:** the edit grid opens with the meal's saved flags checked and `saveMenuEdit` ORs them in, so a re-save only ever adds flags; and the cleanup `sweepAltFlagPollution` runs non-dry **once per device** (`concAltFlagSweepV1`), then only dry-ran to count meals for the banner. The residual risk was alt-slot **over**-flagging — the safe direction, and intended under the cutover's union-of-streams policy. A missing snapshot's real cost (no recipe link for EXPO) is already shown per meal by D1's "⟳ from menu text — save to link".

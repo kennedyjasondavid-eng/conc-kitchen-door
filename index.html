@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.24';
+const DOOR_APP_VERSION = 'v31-standard.25';
 const DOOR_BUILD_DATE = '2026-10-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -7954,8 +7954,8 @@ function revertResident(room, historyIndex) {
   return true;
 }
 
-function confirmRevertResidentFromEditor(room, historyIndex) {
-  if (!confirm('Revert Room ' + room + ' to this prior state?')) return;
+async function confirmRevertResidentFromEditor(room, historyIndex) {
+  if (!(await doorAsk({ title: 'Revert Room ' + room, lines: ['Put Room ' + room + ' back to this earlier state?'], goLabel: 'Revert', cancelLabel: 'Go back' }))) return;
   revertResident(room, historyIndex);
   closeChangeEditor();
   renderRegistry(REGISTRY_LIST);
@@ -8290,9 +8290,9 @@ function openEditFromRegistry(room) {
   openRegistryEditor(room);
 }
 
-function clearQueue() {
+async function clearQueue() {
   if (!changesQueue.length) { showToast('Queue is already empty.'); return; }
-  if (!confirm(`Clear all ${changesQueue.length} change${changesQueue.length!==1?'s':''} from the queue?`)) return;
+  if (!(await doorAsk({ title: 'Clear the queue', lines: [`Clear all ${changesQueue.length} change${changesQueue.length!==1?'s':''} from the queue? They have not been saved.`], goLabel: 'Clear queue', cancelLabel: 'Keep them' }))) return;
   changesQueue = [];
   renderQueue();
   updateBadge();
@@ -8728,11 +8728,11 @@ function saveRegistryEdit() {
   showToast('Room ' + ceRoom + ' saved directly ✓');
 }
 
-function removeFromEditor() {
+async function removeFromEditor() {
   if (ceMode === 'registry') return; // not applicable
   if (ceEditIndex < 0) return;
   const c = changesQueue[ceEditIndex];
-  if (!confirm('Remove Room ' + c.room + ' from the queue?')) return;
+  if (!(await doorAsk({ title: 'Remove from queue', lines: ['Remove Room ' + c.room + ' from the queue?'], goLabel: 'Remove', cancelLabel: 'Keep it' }))) return;
   changesQueue.splice(ceEditIndex, 1);
   closeChangeEditor();
   renderQueue();
@@ -10504,8 +10504,8 @@ function seedRegistryFromRoster(entries) {
   showToast('Resident list set up — ' + newResidents.length + ' residents. Ready to generate.');
 }
 
-function clearAndReseed() {
-  if (!confirm('Reset registry to empty and re-seed from next import? All local changes will be lost.')) return;
+async function clearAndReseed() {
+  if (!(await doorAsk({ title: 'Reset the registry', lines: ['Empty the registry on this computer and fill it again from the next import?', 'All changes made on this computer will be lost.'], goLabel: 'Reset registry', cancelLabel: 'Go back' }))) return;
   localStorage.removeItem('concRegistryState');
   localStorage.removeItem('concLastImportDate');
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length);
@@ -10597,13 +10597,13 @@ function ensureOperatorName() {
 }
 
 // v25: Revert registry to pre-generate snapshot
-function revertLastGenerate() {
+async function revertLastGenerate() {
   const raw = localStorage.getItem('concRegistrySnapshot');
   if (!raw) { showToast('Nothing to undo — no earlier version saved.'); return; }
   const snap = JSON.parse(raw);
   const meta = snap._meta || {};
   const ts = meta.snapshotAt ? new Date(meta.snapshotAt).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'unknown time';
-  if (!confirm('Undo the last Generate (from ' + ts + ')?\n\nThis puts the resident list back to how it was before — ' + snap.residents.length + ' residents.')) return;
+  if (!(await doorAsk({ title: 'Undo the last Generate', lines: ['Undo the last Generate (from ' + ts + ')?', 'This puts the resident list back to how it was before — ' + snap.residents.length + ' residents.'], goLabel: 'Undo Generate', cancelLabel: 'Go back' }))) return;
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...snap.residents);
   if (snap.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...snap.anaphRooms);
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
@@ -11212,10 +11212,10 @@ function updateComplianceBatchBar() {
   });
 }
 
-function batchConfirmCompliance() {
+async function batchConfirmCompliance() {
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  if (!confirm(`Confirm ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as documentation verified?`)) return;
+  if (!(await doorAsk({ title: 'Confirm documentation', lines: [`Mark ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as documentation verified?`], goLabel: 'Confirm', cancelLabel: 'Go back' }))) return;
   const by = getOperatorName();
   const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
   rooms.forEach(room => {
@@ -11246,10 +11246,10 @@ function batchSetDeadline() {
   saveRegistryState(); renderComplianceView(); publishAndSync('batch deadline set');
 }
 
-function batchResolveCompliance() {
+async function batchResolveCompliance() {
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  const revert = confirm(`Resolve ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}?\n\nOK = Resolve as confirmed (keep restrictions)\nCancel = Abort`);
+  const revert = await doorAsk({ title: 'Resolve compliance', lines: [`Resolve ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as confirmed? Their restrictions are kept.`], goLabel: 'Resolve as confirmed', cancelLabel: 'Go back' });
   if (!revert) return;
   const by = getOperatorName();
   const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
@@ -11683,10 +11683,10 @@ function renderComplianceView() {
 }
 
 // --- Re-open resolved compliance item (#6) ---
-function reopenComplianceItem(room) {
+async function reopenComplianceItem(room) {
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) return;
-  if (!confirm(`Re-open compliance review for Room ${room}? This will move them back to the active list.`)) return;
+  if (!(await doorAsk({ title: 'Re-open review', lines: [`Re-open compliance review for Room ${room}? They move back to the active list.`], goLabel: 'Re-open', cancelLabel: 'Go back' }))) return;
   const prevAction = r.complianceResolved;
   const prevBy = r.complianceResolvedBy || '';
   r.complianceResolved = '';
@@ -17324,16 +17324,16 @@ function getMenuEdit(week, day, period) {
   return loadMenuEdits()[week+'-'+day+'-'+period] || null;
 }
 
-function goHome() {
+async function goHome() {
   // Edit Menu mode is a modal session — warn before leaving
   if (editMenuMode) {
-    if (!confirm('Edit Menu mode is active. Leave and exit Edit Menu mode?\n\nAlready-saved menu edits are kept.')) return;
+    if (!(await doorAsk({ title: 'Leave Edit Menu', lines: ['Edit Menu mode is on. Leave it and go home?', 'Menu edits you already saved are kept.'], goLabel: 'Leave', cancelLabel: 'Stay' }))) return;
     toggleEditMenuMode();
   }
 
   // Clear queue if anything is pending
   if (changesQueue.length) {
-    if (!confirm('You have ' + changesQueue.length + ' change' + (changesQueue.length!==1?'s':'') + ' in the queue. Going home will clear them.\n\nProceed?')) return;
+    if (!(await doorAsk({ title: 'Go home', lines: ['You have ' + changesQueue.length + ' change' + (changesQueue.length!==1?'s':'') + ' in the queue. Going home clears them.'], goLabel: 'Clear and go home', cancelLabel: 'Stay' }))) return;
     changesQueue = [];
   }
 
@@ -18719,7 +18719,7 @@ function appendChangeLog(entry) {
   // Phase 5: push to SharePoint here
 }
 
-function revertLastChange() {
+async function revertLastChange() {
   const log = loadChangeLog();
   if (!log.length) { alert('No changes to undo.'); return; }
 
@@ -18736,7 +18736,7 @@ function revertLastChange() {
     alert('Cannot undo this type of entry.'); return;
   }
 
-  if (!confirm('Undo: ' + description + '?')) return;
+  if (!(await doorAsk({ title: 'Undo last change', lines: ['Undo the ' + description + '?'], goLabel: 'Undo', cancelLabel: 'Go back' }))) return;
 
   if (last.type === 'permanent_edit') {
     const edits = loadMenuEdits();
@@ -21266,7 +21266,7 @@ function editQueueItem(id) {
   removeFromQueue(id);
 }
 
-function commitIntakeQueue() {
+async function commitIntakeQueue() {
   if (!INTAKE_QUEUE.length) { showToast('Queue is empty.'); return; }
   const parts = [];
   const ic = INTAKE_QUEUE.filter(q => q.type === 'intake').length;
@@ -21275,7 +21275,7 @@ function commitIntakeQueue() {
   if (ic) parts.push(ic + ' intake' + (ic > 1 ? 's' : ''));
   if (uc) parts.push(uc + ' update' + (uc > 1 ? 's' : ''));
   if (dc) parts.push(dc + ' discharge' + (dc > 1 ? 's' : ''));
-  if (!confirm('Commit ' + INTAKE_QUEUE.length + ' changes to registry?\n\n' + parts.join(', ') + '\n\nThis updates the live registry and plating sheets.')) return;
+  if (!(await doorAsk({ title: 'Save to the registry', lines: ['Save ' + INTAKE_QUEUE.length + ' change' + (INTAKE_QUEUE.length !== 1 ? 's' : '') + ' to the registry: ' + parts.join(', ') + '.', 'This updates the live registry and plating sheets.'], goLabel: 'Save changes', cancelLabel: 'Go back' }))) return;
 
   let applied = 0; const errors = [];
   INTAKE_QUEUE.forEach(q => {
@@ -21390,7 +21390,7 @@ function renderIntakeQueue() {
 })();
 
 // Direct save from Enter Changes form (intake mode)
-function saveDirectFromForm() {
+async function saveDirectFromForm() {
   const type = document.getElementById('change-type').value;
   const room = (document.getElementById('room-number').value || '').trim();
   if (!room) { showToast('Enter a room number first.'); return; }
@@ -21398,7 +21398,7 @@ function saveDirectFromForm() {
   if (type === 'discharge') {
     const r = REGISTRY_MAP[room.toLowerCase()];
     if (!r) { showToast('Room ' + room + ' not found in registry.'); return; }
-    if (!confirm('Discharge Room ' + room + '? This removes them from all plating sheets.')) return;
+    if (!(await doorAsk({ title: 'Discharge Room ' + room, lines: ['Discharge Room ' + room + '? They come off every plating sheet.'], goLabel: 'Discharge', cancelLabel: 'Go back' }))) return;
     // v31: remove EVERY matching record (duplicate-safe — see applyQueueToRegistry).
     for (let i = REGISTRY_LIST.length - 1; i >= 0; i--) {
       if (REGISTRY_LIST[i].room.toLowerCase() === room.toLowerCase()) {
@@ -21430,7 +21430,7 @@ function saveDirectFromForm() {
   const existing = REGISTRY_MAP[room.toLowerCase()];
 
   if (type === 'intake' && existing) {
-    if (!confirm('Room ' + room + ' already exists. Overwrite with new data?')) return;
+    if (!(await doorAsk({ title: 'Room ' + room + ' is already here', lines: ['Room ' + room + ' is already in the registry. Replace it with what you entered?'], goLabel: 'Replace', cancelLabel: 'Go back' }))) return;
   }
 
   // Build/update resident
