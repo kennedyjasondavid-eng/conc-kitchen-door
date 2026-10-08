@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.23';
+const DOOR_APP_VERSION = 'v31-standard.24';
 const DOOR_BUILD_DATE = '2026-10-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1728,7 +1728,6 @@ function updateCODEXBadge() {
     <div id="mc-menu-source-banner" style="display:none;background:#fee2e2;border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-overlay-diff-banner" role="status" style="display:none;background:var(--card,#fff);border:1px solid var(--border,#d1d5db);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-unmapped-allergen-banner" style="display:none;background:#fee2e2;border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
-    <div id="mc-stale-flags-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
 
     <!-- Edit Menu mode banner -->
     <div id="mc-edit-menu-banner" style="display:none;background:#eff6ff;border:1.5px solid #2563eb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
@@ -15256,19 +15255,6 @@ function saveMenuBaseOverlay(obj, opts) {
   try {
     PublishAuth.sidePublish('menu_overlay.json', JSON.stringify(normalized, null, 2), 'Menu overlay', true);
   } catch(e) {}
-  // Keep the stale-flags banner in sync with the overlay. A naive in-memory
-  // cache goes wrong any time the overlay is wiped (e.g. Apply New Menu) or
-  // mutated outside the Edit Menu save path.
-  if (typeof renderStaleFlagsBanner === 'function' && typeof sweepAltFlagPollution === 'function') {
-    try {
-      const r = sweepAltFlagPollution({ dryRun: true });
-      if (typeof _STALE_FLAG_MEALS !== 'undefined') {
-        _STALE_FLAG_MEALS.length = 0;
-        (r.stale || []).forEach(s => _STALE_FLAG_MEALS.push(s));
-      }
-      renderStaleFlagsBanner();
-    } catch(e) {}
-  }
 }
 
 function guardStandardMenuWrite(actionLabel) {
@@ -15364,61 +15350,25 @@ function sweepAltFlagPollution(opts) {
   if (!dryRun && report.flagsDropped > 0) saveMenuBaseOverlay(overlay, { noStamp: true });
   return report;
 }
-let _STALE_FLAG_MEALS = [];
+// The stale-allergen-flags banner that used to list slot-less meals here is retired
+// (v31-standard.23): re-saving such a meal keeps every saved flag (the edit grid opens
+// with them checked and save ORs them in) and this cleanup never runs again, so the
+// "click each meal and save" instruction refreshed nothing. Leftover alt flags can only
+// OVER-flag, which the standard cutover's union-of-streams policy intends. A missing
+// snapshot's real cost — no recipe link — is shown per meal by doorLegacySlotNoticeHTML.
 function runAltFlagSweepOnce() {
   try {
-    let report;
-    if (localStorage.getItem(ALT_FLAG_SWEEP_KEY) === 'done') {
-      // Sweep already ran — just collect the current stale list for the banner.
-      report = sweepAltFlagPollution({ dryRun: true });
+    if (localStorage.getItem(ALT_FLAG_SWEEP_KEY) === 'done') return;
+    const report = sweepAltFlagPollution({ dryRun: false });
+    localStorage.setItem(ALT_FLAG_SWEEP_KEY, 'done');
+    if (report.flagsDropped > 0) {
+      console.log('[alt-flag sweep] cleaned ' + report.flagsDropped + ' polluted flag(s) across ' +
+        report.mealsCleaned + ' meal(s) of ' + report.mealsScanned + ' scanned.');
+      console.log('[alt-flag sweep] details:', report.details);
     } else {
-      report = sweepAltFlagPollution({ dryRun: false });
-      localStorage.setItem(ALT_FLAG_SWEEP_KEY, 'done');
-      if (report.flagsDropped > 0) {
-        console.log('[alt-flag sweep] cleaned ' + report.flagsDropped + ' polluted flag(s) across ' +
-          report.mealsCleaned + ' meal(s) of ' + report.mealsScanned + ' scanned.');
-        console.log('[alt-flag sweep] details:', report.details);
-      } else {
-        console.log('[alt-flag sweep] scanned ' + report.mealsScanned + ' meals, nothing to clean.');
-      }
+      console.log('[alt-flag sweep] scanned ' + report.mealsScanned + ' meals, nothing to clean.');
     }
-    _STALE_FLAG_MEALS = report.stale || [];
-    if (_STALE_FLAG_MEALS.length) {
-      console.log('[alt-flag sweep] ' + _STALE_FLAG_MEALS.length + ' pre-v30 meal(s) need a manual re-save:');
-      console.table(_STALE_FLAG_MEALS);
-    }
-    renderStaleFlagsBanner();
   } catch (e) { console.warn('[alt-flag sweep] failed:', e); }
-}
-const PERIOD_ORDER = { breakfast:0, lunch:1, dinner:2 };
-const DAY_ORDER = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-function renderStaleFlagsBanner() {
-  const el = document.getElementById('mc-stale-flags-banner');
-  if (!el) return;
-  if (!_STALE_FLAG_MEALS.length) { el.style.display = 'none'; return; }
-  const items = _STALE_FLAG_MEALS.slice().sort((a, b) => {
-    const w = Number(a.week) - Number(b.week); if (w) return w;
-    const d = (DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)); if (d) return d;
-    return (PERIOD_ORDER[a.period]||0) - (PERIOD_ORDER[b.period]||0);
-  });
-  const niceDay = d => d ? d.charAt(0) + d.slice(1).toLowerCase() : '';
-  const nicePer = p => p ? p.charAt(0).toUpperCase() + p.slice(1) : '';
-  let rows = items.map(m => {
-    const nm = (m.name || '').replace(/</g,'&lt;');
-    return '<li style="padding:3px 0;font-size:12px;"><strong>Week ' + m.week + ' · ' +
-      niceDay(m.day) + ' · ' + nicePer(m.period) + '</strong>' +
-      (nm ? ' <span style="color:var(--muted);">— ' + nm + '</span>' : '') + '</li>';
-  }).join('');
-  el.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-      '<div><strong style="color:#92400e;">⚠ Stale Allergen Flags</strong> ' +
-      '<span style="color:var(--muted);margin-left:8px;">' + items.length +
-      ' meal' + (items.length === 1 ? '' : 's') +
-      ' pre-date the per-slot snapshot — open Edit Menu, click each meal and save to refresh.</span></div>' +
-      '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'mc-stale-flags-list\').style.display = (document.getElementById(\'mc-stale-flags-list\').style.display===\'none\'?\'block\':\'none\')">Toggle list</button>' +
-    '</div>' +
-    '<ul id="mc-stale-flags-list" style="display:none;margin:8px 0 0;padding-left:22px;max-height:200px;overflow:auto;">' + rows + '</ul>';
-  el.style.display = 'block';
 }
 window.sweepAltFlagPollution = sweepAltFlagPollution;
 function loadUploadedMenu() {
@@ -18416,12 +18366,6 @@ function _finishMenuSave(name, veg, flags) {
   // v30: Save individual slot values for lossless re-open
   overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
   saveMenuBaseOverlay(overlay);
-  // Drop this meal from the stale-flags banner now that it has a snapshot.
-  if (Array.isArray(_STALE_FLAG_MEALS) && _STALE_FLAG_MEALS.length) {
-    _STALE_FLAG_MEALS = _STALE_FLAG_MEALS.filter(m =>
-      !(String(m.week) === String(week) && m.day === day && m.period === period));
-    renderStaleFlagsBanner();
-  }
 
   // Clear any competing swap or legacy edit for this slot
   const swaps = loadMealSwaps();
