@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.22'`** + `DOOR_BUILD_DATE = '2026-10-08'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.23'`** + `DOOR_BUILD_DATE = '2026-10-08'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-08) — Daily Entry, registry and compliance questions ask in DOOR's own dialog (`v31-standard.23`)
+Jason, 2026-10-08: "follow your leans, go ahead with 1, 2 and 3". This is item 3: the next screens after Save move off browser `confirm()` to `doorAsk`. There are 13 questions across 12 functions:
+- **Daily Entry and registry:** revert a resident, clear the queue, remove a queued change, reset the registry, undo the last Generate, save the intake queue, and the two questions on a direct save (discharge; room already here).
+- **Compliance:** confirm, resolve, re-open.
+- **Edit Menu and home:** leave Edit Menu / go home (two questions), undo the last menu change.
+
+Each question has a title and named buttons ("Clear queue" / "Keep them", "Undo Generate" / "Go back"). Escape, a click outside or Go back mean go back and change nothing. The functions are now `async`; their callers are onclick handlers that ignore the return value. Nothing saved or published changes.
+
+11 browser `confirm()` calls remain: the publish path (`_doPublishToGitHub`, the registry preflight's two-option question, the hash-route disconnect) and the menu screens (meal swaps, special meals, make permanent, revert menu edit). They are left for their own pass.
+
+Gate `tests/daily_entry_ask_gate.mjs` (5), authored red 4/5 on `main`; the fifth checks the dialog wording and has nothing to check there. Two runtime checks drive the real Clear queue and Undo Generate bodies: Go back leaves the queue, the resident list and the saved snapshot alone. Suite 300/300.
 
 ## Recent (2026-10-08) — Edit Menu's Save asks in DOOR's own dialog (`v31-standard.22`)
 Jason, 2026-10-08: "follow your leans, go ahead with 1 and 2". Save's two questions — a slot that reads like several dishes (V7) and "no soft/plain alternative" — used browser `confirm()` boxes. They now use `doorAsk`, a small dialog in the same style as the Halal Certification Check: named buttons ("Go back and split them" / "Save as it is"; "Go back and add one" / "Save with “none required”"), Escape, a click outside or Go back all mean go back, and the text is set as text (never HTML). `saveMenuEdit` is now `async`; after an answer it stops if a different meal is open (`editKey` re-check) before building anything. Nothing saved or published changes. Gate `tests/save_dialog_styled_gate.mjs` (5), authored red 0/5 on `main`; checked in a real browser (dialog shows, Go back saves nothing, Save as it is saves). Suite 295/295. Other DOOR screens still use browser `confirm()`; this pass covers Save only.
