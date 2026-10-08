@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.23';
+const DOOR_APP_VERSION = 'v31-standard.24';
 const DOOR_BUILD_DATE = '2026-10-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -13031,6 +13031,74 @@ function doorOverlayDaysDifferingFromCloud(merged, cloud) {
   });
   return out;
 }
+// What differs inside one menu day, in plain words, for the P4 line's "Show what's different" list. One row
+// per difference: { meal, what, here, published, staffSees }. staffSees is false only for the per-dish
+// editor snapshot (<period>_slots) — plating, routing and the published allergens are built from the
+// meal-level fields, never from it. An unknown field counts as staff-visible: never guess it is harmless.
+// A tag missing on one side reads as off, so absent-vs-off is not a difference.
+const DOOR_OVERLAY_FIELD_LABELS = { '': 'Meal', _mainItem: 'Main dish', _sides: 'Sides', _veg: 'Vegan alternative',
+  _mainAlt: 'Halal alternative', _noPorkAlt: 'No-pork alternative', _softAlt: 'Soft alternative',
+  _altMeals: 'Soft/plain alternatives', _altMealsNone: 'No soft/plain alternative needed', _flags: 'Meal tag', _slots: '' };
+const DOOR_SLOT_LABELS = { main: 'Main', starch: 'Starch', vegside: 'Veg side', xtra: 'Extra', extras: 'Extras',
+  mainalt: 'Halal alternative', noporkalt: 'No-pork alternative', veganalt: 'Vegan alternative' };
+const DOOR_SLOT_FIELD_LABELS = { recipeName: 'linked recipe', displayText: 'shown as', manual: 'typed text', recipeId: 'recipe link' };
+function doorOverlayDayDifferences(localDay, cloudDay, flagLabels) {
+  const obj = v => (doorIsPlainObject(v) ? v : {});
+  const L = obj(localDay), C = obj(cloudDay), labels = obj(flagLabels);
+  const periods = ['breakfast', 'lunch', 'dinner'];
+  const fieldOrder = Object.keys(DOOR_OVERLAY_FIELD_LABELS), labelOrder = Object.keys(labels), slotOrder = Object.keys(DOOR_SLOT_LABELS);
+  const rank = (list, k) => { const i = list.indexOf(k); return i < 0 ? list.length : i; };
+  const byRank = list => (a, b) => (rank(list, a) - rank(list, b)) || (a < b ? -1 : a > b ? 1 : 0);
+  const union = (a, b) => Object.keys(Object.assign({}, a, b));
+  const flagName = k => labels[k] || String(k).replace(/^(has|is)(?=[A-Z])/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const show = v => {
+    if (v === undefined || v === null) return '(none)';
+    if (typeof v === 'boolean') return v ? 'yes' : 'no';
+    if (Array.isArray(v)) return v.length ? v.map(x => (doorIsPlainObject(x) ? (x.name || x.meal || doorStableJSON(x)) : String(x))).join(', ') : '(none)';
+    if (doorIsPlainObject(v)) return doorStableJSON(v);
+    return String(v) === '' ? '(blank)' : String(v);
+  };
+  const split = key => {
+    for (const p of periods) {
+      if (key === p || key.indexOf(p + '_') === 0) return { meal: p, suffix: key.slice(p.length) };
+      if (key.slice(-(p.length + 1)) === '_' + p) return { meal: p, suffix: key.slice(0, -(p.length + 1)) };
+    }
+    return { meal: null, suffix: key };
+  };
+  const rows = [];
+  const flagRows = (a, b, base, prefix) => {
+    a = obj(a); b = obj(b);
+    union(a, b).sort(byRank(labelOrder)).forEach(k => {
+      if (!!a[k] !== !!b[k]) rows.push(Object.assign({}, base, { what: prefix + flagName(k), here: a[k] ? 'on' : 'off', published: b[k] ? 'on' : 'off' }));
+    });
+  };
+  union(L, C).map(key => Object.assign({ key }, split(key)))
+    .sort((x, y) => (rank(periods, x.meal) - rank(periods, y.meal)) || byRank(fieldOrder)(x.suffix, y.suffix))
+    .forEach(f => {
+      if (doorStableJSON(L[f.key]) === doorStableJSON(C[f.key])) return;
+      const known = Object.prototype.hasOwnProperty.call(DOOR_OVERLAY_FIELD_LABELS, f.suffix);
+      if (f.suffix === '_flags') { flagRows(L[f.key], C[f.key], { meal: f.meal, staffSees: true }, 'Meal tag: '); return; }
+      if (f.suffix === '_slots') {
+        const a = obj(L[f.key]), b = obj(C[f.key]);
+        union(a, b).sort(byRank(slotOrder)).forEach(id => {
+          const sa = obj(a[id]), sb = obj(b[id]);
+          if (doorStableJSON(sa) === doorStableJSON(sb)) return;
+          const dish = sa.displayText || sa.recipeName || sa.manual || sb.displayText || sb.recipeName || sb.manual || '';
+          const slot = (DOOR_SLOT_LABELS[id] || id) + (dish ? ' (' + dish + ')' : '');
+          const base = { meal: f.meal, staffSees: false };
+          flagRows(sa.flags, sb.flags, base, slot + ' tag: ');
+          union(sa, sb).filter(k => k !== 'flags').sort().forEach(k => {
+            if (doorStableJSON(sa[k]) !== doorStableJSON(sb[k])) {
+              rows.push(Object.assign({}, base, { what: slot + ' — ' + (DOOR_SLOT_FIELD_LABELS[k] || k), here: show(sa[k]), published: show(sb[k]) }));
+            }
+          });
+        });
+        return;
+      }
+      rows.push({ meal: f.meal, staffSees: true, what: known ? DOOR_OVERLAY_FIELD_LABELS[f.suffix] : f.key, here: show(L[f.key]), published: show(C[f.key]) });
+    });
+  return rows;
+}
 // EXPO "Fix in DOOR" deep link (2026-10-02): "#menu-config/edit/<week>/<DAY>/<period>" names one meal of
 // the menu. Pure — returns { screen, edit } (edit null when absent or malformed) or null for an empty hash.
 function doorParseHashRoute(hash) {
@@ -13270,12 +13338,47 @@ function renderOverlayDiffBanner() {
   // Re-checked against this computer's CURRENT copy every render: a day edited since the last sync (a newer
   // stamp) is only unpublished now, and is never offered for replacement.
   const cloud = _doorOverlayCloudDiff && _doorOverlayCloudDiff.cloud;
-  const days = cloud ? doorOverlayDaysDifferingFromCloud(loadMenuBaseOverlay(), cloud) : [];
+  const local = cloud ? loadMenuBaseOverlay() : null;
+  const days = cloud ? doorOverlayDaysDifferingFromCloud(local, cloud) : [];
   if (!days.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-  const names = days.map(function(d) { return 'Wk' + d.week + ' ' + String(d.day).slice(0, 3); });
-  el.innerHTML = 'This computer’s menu differs from the published menu on ' + days.length + ' day' + (days.length === 1 ? '' : 's') +
-    ' (' + escapeHtml(names.join(', ')) + '). Sending from here would replace the other computer’s version. ' +
-    '<button type="button" class="btn btn-sm" onclick="doorUsePublishedMenuDays()">Use the published one</button>';
+  const dayName = function(d) { return 'Wk' + d.week + ' ' + String(d.day).slice(0, 3); };
+  const names = days.map(dayName);
+  const plural = days.length === 1 ? '' : 's';
+  // Say WHAT differs: the operator cannot pick a copy from a day name alone.
+  const labels = {};
+  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(function(f) { labels[f.key] = f.label; });
+  const pick = function(o, d) { return doorIsPlainObject(o) && doorIsPlainObject(o[d.week]) ? o[d.week][d.day] : undefined; };
+  const perDay = days.map(function(d) { return { d: d, rows: doorOverlayDayDifferences(pick(local, d), pick(cloud, d), labels) }; });
+  const all = [].concat.apply([], perDay.map(function(p) { return p.rows; }));
+  const editorOnly = all.every(function(r) { return !r.staffSees; });
+  const lead = editorOnly
+    ? 'This computer’s copy of the menu has different editor details from the published one on ' + days.length + ' day' + plural +
+      ' (' + escapeHtml(names.join(', ')) + '). Plates, routing and allergens are the same on both computers.'
+    : 'This computer’s menu differs from the published menu on ' + days.length + ' day' + plural +
+      ' (' + escapeHtml(names.join(', ')) + '). Sending from here would replace the other computer’s version.';
+  const cell = 'padding:3px 8px;text-align:left;vertical-align:top;border-top:1px solid var(--border,#e5e7eb);';
+  let body = '';
+  perDay.forEach(function(p) {
+    let lastMeal = {};
+    p.rows.forEach(function(r) {
+      if (r.meal !== lastMeal) {
+        lastMeal = r.meal;
+        const mealName = r.meal ? r.meal.charAt(0).toUpperCase() + r.meal.slice(1) : 'Whole day';
+        const link = r.meal ? ' <a href="#menu-config/edit/' + encodeURIComponent(p.d.week) + '/' + encodeURIComponent(p.d.day) + '/' + r.meal + '">Open in Edit Menu</a>' : '';
+        body += '<tr><th colspan="3" scope="colgroup" style="' + cell + 'padding-top:8px;">' + escapeHtml(dayName(p.d) + ' · ' + mealName) + link + '</th></tr>';
+      }
+      const note = (!editorOnly && !r.staffSees) ? ' <span style="color:var(--muted,#6b7280);">(editor only)</span>' : '';
+      body += '<tr><td style="' + cell + '">' + escapeHtml(r.what) + note + '</td><td style="' + cell + '">' + escapeHtml(r.here) +
+        '</td><td style="' + cell + '">' + escapeHtml(r.published) + '</td></tr>';
+    });
+  });
+  const table = '<div style="overflow-x:auto;margin-top:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;">' +
+    '<thead><tr><th scope="col" style="' + cell + 'border-top:none;">What</th><th scope="col" style="' + cell + 'border-top:none;">This computer</th>' +
+    '<th scope="col" style="' + cell + 'border-top:none;">Published</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  el.innerHTML = '<div>' + lead + '</div>' +
+    '<details style="margin-top:6px;"><summary style="cursor:pointer;">Show what’s different</summary>' + table + '</details>' +
+    '<div style="margin-top:8px;">To keep this computer’s version, open the meal in Edit Menu and save it. To keep the published one: ' +
+    '<button type="button" class="btn btn-sm" onclick="doorUsePublishedMenuDays()">Use the published one</button></div>';
   el.style.display = 'block';
 }
 // Take the published copy of each listed day, with its stamp. Written locally only — it already matches the published file.
