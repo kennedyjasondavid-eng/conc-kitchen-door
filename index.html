@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.21';
-const DOOR_BUILD_DATE = '2026-10-07';
+const DOOR_APP_VERSION = 'v31-standard.22';
+const DOOR_BUILD_DATE = '2026-10-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -18189,28 +18189,82 @@ function renderSectionPreviewInto(flags, el) {
   }).join('');
 }
 
-function saveMenuEdit() {
+// 2026-10-08 (Jason: "go with your leans, 1 and 2"): Save asks its questions in DOOR's own dialog, not a
+// browser confirm() — same look as the Halal Certification Check, two labelled buttons, Escape = go back.
+// Resolves true for goLabel, false for cancelLabel / Escape / a click outside. Text is set as text, never HTML.
+function doorAsk(opts) {
+  return new Promise(resolve => {
+    const o = opts || {};
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open door-ask';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    const box = document.createElement('div');
+    box.className = 'modal-box'; box.style.maxWidth = '520px';
+    const head = document.createElement('div'); head.className = 'modal-header';
+    const h = document.createElement('h2'); h.textContent = o.title || 'Check before saving'; head.appendChild(h);
+    const body = document.createElement('div'); body.className = 'modal-body'; body.style.padding = '16px 20px';
+    (o.lines || []).forEach(line => {
+      const para = document.createElement('p'); para.style.margin = '0 0 10px'; para.style.fontSize = '13px';
+      para.textContent = line; body.appendChild(para);
+    });
+    (o.items || []).length && (() => {
+      const ul = document.createElement('ul'); ul.style.margin = '0 0 12px'; ul.style.paddingLeft = '18px'; ul.style.fontSize = '13px';
+      o.items.forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+      body.insertBefore(ul, body.children[1] || null);
+    })();
+    const row = document.createElement('div'); row.style.display = 'flex'; row.style.gap = '8px'; row.style.justifyContent = 'flex-end'; row.style.marginTop = '6px';
+    const back = document.createElement('button'); back.className = 'btn btn-ghost door-ask-cancel'; back.textContent = o.cancelLabel || 'Go back';
+    const go = document.createElement('button'); go.className = 'btn btn-primary door-ask-go'; go.textContent = o.goLabel || 'Save';
+    row.appendChild(back); row.appendChild(go); body.appendChild(row);
+    box.appendChild(head); box.appendChild(body); overlay.appendChild(box);
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(v); };
+    const onKey = (ev) => { if (ev.key === 'Escape') { ev.preventDefault(); finish(false); } };
+    overlay.addEventListener('click', ev => { if (ev.target === overlay) finish(false); });
+    back.onclick = () => finish(false);
+    go.onclick = () => finish(true);
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(overlay);
+    try { back.focus(); } catch (e) {}
+  });
+}
+
+async function saveMenuEdit() {
   if (!mcMenuEditKey) return;
   if (!guardStandardMenuWrite('Edit Menu')) return;
   _commitLiveSlotInputs();   // save reads MEAL_SLOT_STATE — take whatever is in the boxes right now
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
+  const editKey = mcMenuEditKey;
   // V7: a slot that reads like several dishes is asked about here, not guessed at later by EXPO.
   const _runOn = doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS);
   if (_runOn.length) {
-    const lines = _runOn.map(r => '  • ' + r.label + ': "' + r.text + '"').join('\n');
-    const ok = confirm('These slots read like more than one dish:\n\n' + lines + '\n\nEXPO plans one dish per slot, so it may miss one of them. Put each dish in its own slot (Starch Side, Veg Side, Extras).\n\nOK = save as it is   ·   Cancel = go back and split them');
+    const ok = await doorAsk({
+      title: 'More than one dish in a slot?',
+      lines: ['These slots read like more than one dish:',
+        'EXPO plans one dish per slot, so it may miss one of them. Put each dish in its own slot (Starch Side, Veg Side, Extras).'],
+      items: _runOn.map(r => r.label + ': "' + r.text + '"'),
+      cancelLabel: 'Go back and split them', goLabel: 'Save as it is'
+    });
     if (!ok) return;
   }
   // Require an explicit decision on soft/plain alternatives: either at least one
   // is specified, or the user has affirmatively marked "none required".
   const _alts = buildAltMeals();
   if (!_alts.length && !ALT_MEALS_NONE) {
-    const ok = confirm('No soft/plain alternative meals are specified.\n\nConfirm that no resident requires a soft or plain alternative for this meal — i.e. the standard meal already covers every dietary need.\n\nOK = save with "none required"   ·   Cancel = go back and add an alternative');
+    const ok = await doorAsk({
+      title: 'No soft or plain alternative?',
+      lines: ['No soft/plain alternative meals are specified.',
+        'Confirm that no resident requires a soft or plain alternative for this meal — the standard meal already covers every dietary need.'],
+      cancelLabel: 'Go back and add one', goLabel: 'Save with “none required”'
+    });
     if (!ok) return;
     ALT_MEALS_NONE = true;
     renderAltMealsSection();
   }
+  // The questions wait for an answer, so the editor could have closed or moved to another meal meanwhile.
+  if (mcMenuEditKey !== editKey) return;
   const veg  = buildVegAlt();
   const slotFlags = buildUnionFlags();
   const flags = { ...slotFlags };
