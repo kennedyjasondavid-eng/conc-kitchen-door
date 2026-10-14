@@ -37,6 +37,40 @@ test('a new recipe is added, an edit replaces, a removal keeps the CODEX list re
   assert.equal(out.receipt.generated, '2026-10-14T12:00:00.000Z');
 });
 
+// Option C (Jason, 2026-10-14: "go with C"): an allergen comes off DOOR's list only when its removal was
+// confirmed where the recipe was saved (door.removedAllergens). A shorter list without that confirmation —
+// an old copy shared from a forgotten tablet — never strips a warning.
+test('an unconfirmed shorter allergen list keeps the warning; a confirmed removal drops it', () => {
+  const base = [{ recipeName: 'Garlic Bread', allergens: ['Gluten (Bread)', 'Milk (Butter)'], category: 'starch_side', stream: 'regular', recipeId: 'garlic-bread' }];
+  const plain = J(sb.overlay(base, { recipes: [{ recipeName: 'Garlic Bread', door: door('Garlic Bread', { allergens: ['Gluten (Bread)'], category: 'starch_side' }) }] }));
+  assert.deepEqual(plain.list[0].allergens, ['Gluten (Bread)', 'Milk (Butter)'], 'no confirmation: Milk stays');
+  assert.deepEqual(plain.receipt.keptAllergens, [{ recipe: 'Garlic Bread', allergens: ['Milk (Butter)'] }]);
+  assert.deepEqual(plain.receipt.unchanged, ['Garlic Bread'], 'keeping Milk leaves the recipe as it was');
+  const confirmed = J(sb.overlay(base, { recipes: [{ recipeName: 'Garlic Bread', door: door('Garlic Bread', { allergens: ['Gluten (Bread)'], category: 'starch_side', removedAllergens: ['milk'] }) }] }));
+  assert.deepEqual(confirmed.list[0].allergens, ['Gluten (Bread)'], 'confirmed (any case): Milk drops');
+  assert.deepEqual(confirmed.receipt.keptAllergens, []);
+  assert.deepEqual(confirmed.receipt.replaced, ['Garlic Bread']);
+});
+
+test('families compare by the name before " ("; a kept allergen replaces a shared None; a new recipe takes its list', () => {
+  const base = [
+    { recipeName: 'Couscous', allergens: ['Gluten'], category: 'veg_side', stream: 'vegan' },
+    { recipeName: 'Yams', allergens: ['Sesame (Seeds)'], category: 'veg_side', stream: 'vegan' },
+    { recipeName: 'Rice', allergens: ['None'], category: 'starch_side', stream: 'vegan' }
+  ];
+  const out = J(sb.overlay(base, { recipes: [
+    { recipeName: 'Couscous', door: door('Couscous', { allergens: ['Gluten (Wheat)'], category: 'veg_side', stream: 'vegan' }) },
+    { recipeName: 'Yams', door: door('Yams', { allergens: ['None'], category: 'veg_side', stream: 'vegan' }) },
+    { recipeName: 'Rice', door: door('Rice', { allergens: [], category: 'starch_side', stream: 'vegan' }) },
+    { recipeName: 'New Mix', door: door('New Mix', { allergens: ['Spicy (Chili)'], removedAllergens: ['Milk'] }) }
+  ] }));
+  const by = Object.fromEntries(out.list.map(r => [r.recipeName, r.allergens]));
+  assert.deepEqual(by['Couscous'], ['Gluten (Wheat)'], 'the same family named another way is not a removal');
+  assert.deepEqual(by['Yams'], ['Sesame (Seeds)'], 'a kept allergen replaces None');
+  assert.deepEqual(by['Rice'], [], 'None is not an allergen to keep');
+  assert.deepEqual(by['New Mix'], ['Spicy (Chili)']);
+});
+
 test('a shared copy identical to the list counts as unchanged, not updated', () => {
   const shared = { recipes: [{ recipeName: 'Garlic Bread', door: door('Garlic Bread', { allergens: ['Gluten (Bread)'], category: 'starch_side', stream: 'vegan' }) }] };
   const out = J(sb.overlay(BASE, shared));

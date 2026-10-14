@@ -773,15 +773,26 @@ function doorSharedDoorRecord(rec) {
   if (typeof d.recipeId === 'string' && d.recipeId.trim()) out.recipeId = d.recipeId.trim();
   return out;
 }
+// Allergen family: the text before " (" without case ("Milk (Butter)" → milk), as CODEX compares them.
+function doorAllergenFamily(a) { return String(a == null ? '' : a).split(' (')[0].trim().toLowerCase(); }
+// Option C (2026-10-14, Jason: "go with C"): the families whose removal was confirmed where the recipe was
+// saved (the record's door.removedAllergens). Only these may come off DOOR's list.
+function doorSharedRemovedFamilies(rec) {
+  const r = rec && rec.door && Array.isArray(rec.door.removedAllergens) ? rec.door.removedAllergens : [];
+  return r.filter(f => typeof f === 'string' && f.trim()).map(doorAllergenFamily);
+}
 // Pure: the CODEX list with the shared Library laid over it. Never mutates its inputs. Names match without
-// case. A recipe already on the list keeps its recipeId (menu slots link by it). A removal (tombstone) never
+// case. Allergens: the shared list, plus every allergen the CODEX list has that the shared version leaves out
+// — unless its family's removal was confirmed (Option C). A shorter list without that confirmation (an old
+// copy shared from a forgotten tablet) never strips a warning. A recipe already on the list keeps its
+// recipeId (menu slots link by it). A removal (tombstone) never
 // takes a recipe off the CODEX list — CODEX tablets keep their built-in recipes on a removal too; a recipe
 // only the shared Library added is gone because its record has become the removal. A rename therefore adds
 // the new name and leaves the old one for menu slots that still name it. Returns { list, receipt }.
 function doorOverlaySharedRecipes(base, shared) {
   const key = n => String(n == null ? '' : n).trim().toLowerCase();
   const list = Array.isArray(base) ? base.filter(r => r && typeof r === 'object').map(r => Object.assign({}, r)) : [];
-  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], generated: null };
+  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], keptAllergens: [], generated: null };
   if (shared && shared._meta && typeof shared._meta.generated === 'string') receipt.generated = shared._meta.generated;
   const recs = shared && Array.isArray(shared.recipes) ? shared.recipes : [];
   const find = n => list.findIndex(r => key(r.recipeName) === key(n));
@@ -796,6 +807,17 @@ function doorOverlaySharedRecipes(base, shared) {
     if (i < 0) i = find(d.recipeName);
     if (i >= 0 && list[i].recipeId) d.recipeId = list[i].recipeId;
     if (i >= 0) {
+      const have = {}, confirmed = {};
+      d.allergens.forEach(a => { have[doorAllergenFamily(a)] = true; });
+      doorSharedRemovedFamilies(rec).forEach(f => { confirmed[f] = true; });
+      const kept = (Array.isArray(list[i].allergens) ? list[i].allergens : []).filter(a => {
+        const f = doorAllergenFamily(a);
+        return typeof a === 'string' && f && f !== 'none' && !have[f] && !confirmed[f];
+      });
+      if (kept.length) {
+        d.allergens = d.allergens.filter(a => doorAllergenFamily(a) !== 'none').concat(kept);
+        receipt.keptAllergens.push({ recipe: d.recipeName, allergens: kept.slice() });
+      }
       const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream]);
       list[i] = d;
       (same ? receipt.unchanged : receipt.replaced).push(d.recipeName);
@@ -812,6 +834,7 @@ function _doorApplySharedRecipes() {
   _doorSharedLibraryReceipt = Object.assign({ source: _doorSharedLibrarySource }, out.receipt);
   try { window.__DOOR_SHARED_RECIPES__ = _doorSharedLibraryReceipt; } catch (e) {}
   if (out.receipt.skipped.length) console.info('[DOOR] shared Library: ' + out.receipt.skipped.length + ' record(s) without a DOOR block left out:', out.receipt.skipped);
+  if (out.receipt.keptAllergens.length) console.info('[DOOR] shared Library: allergens kept because their removal was not confirmed:', out.receipt.keptAllergens);
   updateCODEXBadge();
 }
 
