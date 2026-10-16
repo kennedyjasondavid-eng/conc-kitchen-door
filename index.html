@@ -15203,7 +15203,9 @@ function computeSections(mealFlags, registry) {
       pools['soft'] = [];
       (_mergedInto['halal'] = _mergedInto['halal'] || []).push('Soft Meals');
     }
-    if (pools['bland'] && pools['gf'] && pools['bland'].length) {
+    // Only while Gluten Free is a section on this meal (2026-10-16): on a pork meal with no gluten it isn't, and
+    // the merge moved No Spicy residents into a pool nothing printed — they had no plate. They keep Bland then.
+    if (pools['bland'] && pools['gf'] && pools['bland'].length && activeKeys.has('gf')) {
       pools['gf'].push(...pools['bland']);
       pools['bland'] = [];
       (_mergedInto['gf'] = _mergedInto['gf'] || []).push('Bland');
