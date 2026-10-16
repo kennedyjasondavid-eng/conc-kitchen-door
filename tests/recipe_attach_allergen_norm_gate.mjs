@@ -73,14 +73,21 @@ test('back-compat: existing labels + qualifiers unchanged', () => {
   const c = freshCtx();
   assert.equal(set(c, ['Gluten (Soy Sauce)']).hasGluten, true, 'paren qualifier still stripped');
   assert.equal(set(c, ['Milk']).hasDairy, true);
+  // Re-pinned 2026-10-16 (v31-standard.28, Jason: "Go ahead with both"): a Tree Nuts label whose detail names
+  // coconut now also sets Coconut, by ruling (tests/tree_nuts_coconut_gate.mjs). The over-split guard stays on a
+  // detail that names no flag: a comma inside the paren is dropped, not split into labels of its own.
   const treeNut = set(c, ['Tree Nuts (Coconut, Coconut Milk)']);
   assert.equal(treeNut.hasTreeNuts, true, 'comma inside paren is dropped, not split');
-  assert.notEqual(treeNut.hasCoconut, true, 'the "(Coconut, ...)" qualifier must NOT leak a Coconut flag (over-split guard)');
+  assert.equal(treeNut.hasCoconut, true, 'a Tree Nuts detail naming coconut sets Coconut (ruling 2026-10-16)');
+  c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__.clear();
+  assert.deepEqual(on(set(c, ['Tree Nuts (Almonds, Cashews)'])), ['hasTreeNuts'], 'the "(…, …)" detail must NOT be split into flags (over-split guard)');
+  assert.deepEqual(on(set(c, ['Gluten (Soy Sauce, Wheat)'])), ['hasGluten'], 'another family\'s detail is still dropped, not split');
+  assert.deepEqual([...c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__], [], 'the detail is never split into unmapped labels');
   assert.deepEqual(on(set(c, ['None'])), [], '"None" sets nothing');
   assert.deepEqual(on(set(c, [])), [], 'empty sets nothing');
   // a real feed record
   assert.deepEqual(on(set(c, ['Gluten (Soy Sauce)','Soy (Soy Sauce)','Sulphites (Corn Syrup)','Tree Nuts (Coconut, Coconut Milk)'])),
-    ['hasGluten','hasSoy','hasSulphites','hasTreeNuts']);
+    ['hasCoconut','hasGluten','hasSoy','hasSulphites','hasTreeNuts']);
 });
 
 test('runtime surface fires on a genuinely-new allergen, NOT on known non-allergens (no cry-wolf)', () => {
