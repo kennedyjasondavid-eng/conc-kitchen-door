@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.27';
-const DOOR_BUILD_DATE = '2026-10-14';
+const DOOR_APP_VERSION = 'v31-standard.28';
+const DOOR_BUILD_DATE = '2026-10-16';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -15203,7 +15203,9 @@ function computeSections(mealFlags, registry) {
       pools['soft'] = [];
       (_mergedInto['halal'] = _mergedInto['halal'] || []).push('Soft Meals');
     }
-    if (pools['bland'] && pools['gf'] && pools['bland'].length) {
+    // Only while Gluten Free is a section on this meal (2026-10-16): on a pork meal with no gluten it isn't, and
+    // the merge moved No Spicy residents into a pool nothing printed — they had no plate. They keep Bland then.
+    if (pools['bland'] && pools['gf'] && pools['bland'].length && activeKeys.has('gf')) {
       pools['gf'].push(...pools['bland']);
       pools['bland'] = [];
       (_mergedInto['gf'] = _mergedInto['gf'] || []).push('Bland');
@@ -17731,6 +17733,10 @@ function _hubAllergenResolve(allergens) {
   (allergens || []).forEach(a => {
     if (a == null) return;
     const base = String(a).split('(')[0];                          // drop the "(source)" qualifier
+    // Coconut (2026-10-16, Jason: "Go ahead with both"): CODEX writes coconut on some recipes only as a
+    // Tree Nuts label ("Tree Nuts (Coconut, Coconut Milk)"), so a No Coconut resident was never warned. A
+    // Tree Nuts label whose detail names coconut also sets Coconut. It only ever adds a warning.
+    const detail = String(a).slice(base.length);
     base.split(/\s+and\s+|\s*&\s*|\s*,\s*/i).forEach(part => {      // split compound "X and Y" / "X & Y" / "X, Y"
       // strip a leading conjunction: the feed carries pre-mangled junk like "and Not Vegan
       // Friendly" where "and" sits at the fragment start (no leading space for the split to
@@ -17739,7 +17745,10 @@ function _hubAllergenResolve(allergens) {
       const p = part.trim().toLowerCase().replace(/^and\s+/, '');
       if (!p || p === 'none') return;
       const key = lc[p];
-      if (key) { keys.add(key); labels.add(p); }
+      if (key) {
+        keys.add(key); labels.add(p);
+        if (key === 'hasTreeNuts' && /\bcoconuts?\b/i.test(detail)) { keys.add('hasCoconut'); labels.add('coconut'); }
+      }
       else if (!IGNORE.has(p) && surface && !surface.has(p)) {
         surface.add(p);
         try { console.warn('[DOOR] CODEX allergen label not mapped to a DOOR flag (under-flag risk): "' + p + '" — add it to HUB_ALLERGEN_MAP or the ignore set.'); } catch (e) {}
