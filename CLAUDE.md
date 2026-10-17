@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.28'`** + `DOOR_BUILD_DATE = '2026-10-16'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.29'`** + `DOOR_BUILD_DATE = '2026-10-17'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,40 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-17) — the vegan plate reads the dishes set on the vegan line; 47 vegan dishes linked or tagged (`v31-standard.29`)
+The vegan plate's allergen line (its CONTAINS on the plating sheet, and the No Egg / No Mustard check) came from a guess. `getVegAltAllergenStr` fuzzy-matches the vegan line's TEXT against vegan-stream CODEX recipes, and the main meal's ticks make the floor.
+- **The gaps.** Only 6 of the 56 lunches and dinners linked a vegan dish to a recipe, and a link was never read. About half the other names matched nothing ("Citrus Tofu", "Vegan Tenders") or the wrong recipe ("Roast Potato and Tofu Hash" → Roast Tofu). The tags supervisors set in Edit Menu were never read either, so six tofu or vegan chik'n plates didn't say Soy.
+- **Found by** the CODEX creation audit (conc-recipe-hub PR #154). Jason, 2026-10-17: "Rexdale falafel", then the vegan-dish list on the leans. His answers: the tenders are Gardein (soy and gluten), the black bean patty is Vegan Bean Patties, the chickpea drumstick is Rex's chickpea drums, the pizza is bought, and the jackfruit sandwich is just jackfruit and aromatics.
+- **Code: `getVegAltSlotAllergenStr(slots)`.** It reads each vegan-plate slot (vegan alt, starch, veg side, extras: the slots `buildVegAlt` reads).
+  - Every slot brings its own tags, which is what the editor's preview already showed: the flags captured at link time plus Edit Menu tags.
+  - A linked slot also brings its recipe's allergens from today's CODEX list, found by `recipeId`, else by name.
+  - It joins the name guess inside `mergeVegAltAllergenFloor`, so it only ever adds. A stored operator statement still wins, and `_vegAltSafe` reads the merged line. As with meal ticks, a linked dish keeps what it captured.
+- **Menu data (the confirmed list).**
+  - 37 vegan dishes link to their CODEX recipe and still show the menu's words (`displayText`); two of those are the falafel sandwiches.
+  - 10 dishes with no recipe carry tags: Soy on the tofu dishes and the vegan hotdog, Soy and Gluten on the three Gardein tenders, Mushroom on the portobello.
+  - Left alone: the two Roasted Vegetable Sandwiches, the jackfruit sandwich, the pizza and the Chickpea Rex Salad.
+  - 21 meals that were only menu text get slots the way `openMenuEdit` reads them.
+  - On all 41 meals touched, the main dish carries the meal's ticks, as the editor does on every open. Without that, a fresh tablet's one-time `sweepAltFlagPollution` would read a tick the vegan dish also carries as vegan-only and take it off the regular plate (11 meals, e.g. Gluten on Wk2 THU's burger lunch). This also closes the one meal that was already exposed: Wk4 FRI dinner's Chicken.
+  - A link keeps the dish's earlier tags (Mushroom on Vegan Mushroom Carnitas).
+  - Written through `saveMenuBaseOverlay` (days stamped) and rebuilt with the publish builders. Only `_slots` change: meal text, meal ticks, routing counts and validation (0/0/0) are unchanged. `door_state` / `registry_summary` take only the new `builtFromMenu` stamp.
+- **Plates against today's live DOOR** (published menu, CODEX feed, real browser): 20 vegan plates gain warnings, none lose one, and no meal changes `_vegAltSafe`.
+  - Soy: Wk2 WED dinner, Wk2 SAT lunch, Wk3 THU dinner, Wk4 FRI dinner, Wk4 SAT lunch.
+  - Soy and Gluten: Wk4 TUE dinner (BBQ Chik'n Tenders).
+  - Falafel: Nightshades and Spicy on Wk2 TUE lunch, Spicy on Wk4 MON lunch.
+  - Wk3 WED lunch's vegan nachos gain Soy, Gluten, Sulphites and Spicy.
+  - Vegetarian Fajitas gains Soy and Spicy; Veggie lasagna gains Soy and Sulphites; Vegan Arroz con Pollo gains Soy and Gluten.
+  - Mushroom: Wk1 TUE dinner, Wk3 MON dinner, Wk4 SAT dinner; Mushroom and Beans: Wk3 SUN dinner.
+  - Gluten from bouillon on the peanut stew and the vindaloo (CODEX still lists it; Jason ruled bouillon gluten-free on Oct 16, so those lists are a separate CODEX change that needs his OK). Also Nightshades on the black bean patty and Oats on the pot pie.
+  - Rexdale Falafel's Nightshades comes from CODEX v21 (#154); until that is on Pages, Wk2 TUE gets Spicy and Gluten from the feed.
+- **Gate:** `tests/vegan_plate_dishes_gate.mjs` (8), authored red 0/8 on `a295eca`. It covers the reader, the wiring, every link and tag, the fresh-tablet sweep over the whole overlay, the offline baked list and the CODEX-feed census.
+  - Re-pinned with dated notes: `declared_free_vegan_gate` and `door-smoke` "routes the veg-alt lookup through the floor".
+  - Suite 345 → 353.
+- **Open for Jason:**
+  - Gluten on both falafels, though the recipes use GF flour (a removal needs his OK and a stamp in CODEX).
+  - Wk4 MON's regular lunch has a Nightshades tick the chicken ranch sandwich probably doesn't have (kept).
+  - The jackfruit plate still says Soy from the name guess (over-warns only).
+  - CODEX has no Mushroom or Beans family, so a linked recipe can't carry them (lean: add both families in CODEX).
 
 ## Recent (2026-10-16) — a Tree Nuts label that names coconut ticks Coconut; menu ticks follow the recipes; a No Spicy resident always has a plate (`v31-standard.28`)
 CODEX writes coconut on 12 recipes only as a Tree Nuts label — `"Tree Nuts (Coconut, Coconut Milk)"`, `"Tree Nuts (Coconut)"` (Butter Chicken, Butter Chickpeas, Massaman and its paste, Adobo, African Peanut Chicken Stew, Caribbean Stew, the Thai green curry sauce and paste, Atakilt Wat, Coconut Drop Cookies, Vegan Pumkin Pie). `_hubAllergenResolve` reads the text before "(" as the family, so linking one of those recipes to a menu meal set `hasTreeNuts` but never `hasCoconut`, and a No Coconut resident (`RESIDENT_TO_MEAL_FLAG` → `hasCoconut`) was not warned. Only a bare "Coconut" label set it.
