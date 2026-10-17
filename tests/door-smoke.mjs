@@ -2631,7 +2631,9 @@ test('computePlatingData routes the veg-alt lookup through the floor, not the ||
     !/vegAllergenStored\s*\|\|\s*vegAllergenLookup\s*\|\|\s*vegAllergenFallback/.test(html),
     'the replace-the-fallback precedence chain must not come back (issue #63)');
 
-  assert.match(html, /vegAllergenStored\s*\|\|\s*\n?\s*mergeVegAltAllergenFloor\(vegAllergenLookup,\s*vegAllergenFallback\)/,
+  // Re-pinned 2026-10-17 (v31-standard.29): the recipes linked on the vegan line's slots
+  // (getVegAltLinkedAllergenStr) join the lookup; the fallback is still the floor under both.
+  assert.match(html, /vegAllergenStored\s*\|\|\s*\n?\s*mergeVegAltAllergenFloor\(mergeVegAltAllergenFloor\(vegAllergenLookup,\s*vegAllergenLinked\),\s*vegAllergenFallback\)/,
     'computePlatingData composes the lookup with the fallback as a floor');
 
   // A stored operator override is a deliberate statement and still wins outright.

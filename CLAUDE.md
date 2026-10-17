@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.28'`** + `DOOR_BUILD_DATE = '2026-10-16'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.29'`** + `DOOR_BUILD_DATE = '2026-10-17'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,27 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-17) — the vegan plate reads the recipes its slots are linked to; both falafel sandwiches link to Rexdale Falafel (`v31-standard.29`)
+The vegan line's "Falafel Sandwich" (Wk2 TUE lunch, Wk4 MON lunch) matched no CODEX falafel by name, so the falafel's Gluten, Spicy and Nightshades never reached the vegan plate. On Wk2 TUE lunch nothing else warned of Spicy or Nightshades. Found by the CODEX creation audit (conc-recipe-hub PR #154). Jason, 2026-10-17: "Rexdale falafel".
+- **Why linking alone was not enough.** `computePlatingData` read the vegan plate's allergens only from the vegan line's TEXT (`getVegAltAllergenStr`, a fuzzy name match on vegan-stream recipes) plus the main meal's floor. A slot linked to a recipe was never read there, though the editor's preview (`buildVegAltFlags`) already showed its flags.
+- **Code:** `getVegAltLinkedAllergenStr(slots)` reads every linked vegan-plate slot (vegan alt, starch, veg side, extras: the slots `buildVegAlt` reads). It finds the recipe in the CODEX list by `recipeId`, else by name, and adds its allergens by family. A recipe the list no longer holds adds the flags captured when it was linked; typed slots add nothing.
+  - It joins the name lookup inside `mergeVegAltAllergenFloor`, so it only ever adds. A stored operator statement still wins outright, and `_vegAltSafe` reads the merged line.
+  - The editor preview, the test meal and published flags are unchanged.
+- **Menu data:** both vegan alts link to Rexdale Falafel (`recipeId` `rexdale-falafel`) and show what the menu said ("Falafel Sandwich"; "Falafel Sandwich, Sub Bun"). The days are written through `saveMenuBaseOverlay` and stamped, and the artifacts were rebuilt with the publish builders.
+  - Wk4 MON lunch had no slots (a menu-text meal). It gets main "Chicken Ranch Salad Sandwich", the linked vegan alt and extra "Fruit and Chips".
+  - The typed sandwich slot carries the meal's own ticks. Without them, a fresh tablet's one-time `sweepAltFlagPollution` would read Gluten and Nightshades as the falafel's and take them off the regular lunch.
+  - Meal ticks, the vegan line's text, routing counts and validation (0/0/0) are unchanged. `door_state` and `registry_summary` take only the new `builtFromMenu` stamp.
+- **Plates (measured on the published menu and CODEX feed, in a real browser):**
+  - Wk2 TUE lunch: WHEAT, EGGS → GLUTEN, NIGHTSHADES, SPICY, EGGS.
+  - Wk4 MON lunch: gains SPICY (it already carried Nightshades).
+  - **Also, Wk3 WED lunch:** "Vegan Nachos Supreme" was already linked to Vegan Nacho Mix, which the name lookup missed. Its plate gains SOY, GLUTEN, SULPHITES and SPICY.
+  - Wk1 MON lunch only reorders. No meal changes `_vegAltSafe`, and no plate loses a warning.
+  - Rexdale Falafel's Nightshades reaches the Wk2 TUE plate once CODEX PR #154 (v21) is on Pages. Until then the feed lists Gluten and Spicy.
+- **Gate:** `tests/vegan_plate_linked_recipe_gate.mjs` (7), authored red 0/7 on `a295eca`. It covers the reader, the wiring, both links, the baked offline list, the CODEX feed census, and the fresh-tablet sweep (it bites with an untagged sandwich).
+  - Re-pinned with dated notes: `declared_free_vegan_gate` and `door-smoke` "routes the veg-alt lookup through the floor" (the merge now includes the linked recipes).
+  - Suite 345 → 352.
+- **Open for Jason:** Rexdale and Sophie's Falafel list Gluten while the recipes use GF flour (a removal needs his OK and a stamp in CODEX). Wk4 MON's regular lunch carries a Nightshades tick the chicken ranch sandwich probably doesn't have (likely the falafel's, from the workbook). It is kept, because removing a tick needs his call.
 
 ## Recent (2026-10-16) — a Tree Nuts label that names coconut ticks Coconut; menu ticks follow the recipes; a No Spicy resident always has a plate (`v31-standard.28`)
 CODEX writes coconut on 12 recipes only as a Tree Nuts label — `"Tree Nuts (Coconut, Coconut Milk)"`, `"Tree Nuts (Coconut)"` (Butter Chicken, Butter Chickpeas, Massaman and its paste, Adobo, African Peanut Chicken Stew, Caribbean Stew, the Thai green curry sauce and paste, Atakilt Wat, Coconut Drop Cookies, Vegan Pumkin Pie). `_hubAllergenResolve` reads the text before "(" as the family, so linking one of those recipes to a menu meal set `hasTreeNuts` but never `hasCoconut`, and a No Coconut resident (`RESIDENT_TO_MEAL_FLAG` → `hasCoconut`) was not warned. Only a bare "Coconut" label set it.
