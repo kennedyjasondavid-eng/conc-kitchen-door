@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-10-17T14:55:13.098Z",
+    "exported": "2026-10-17T16:14:05.313Z",
     "version": 32
   },
   "menu": {
@@ -283,7 +283,7 @@
               "hasFish": false,
               "hasPeanuts": false,
               "hasSoy": true,
-              "hasTreeNuts": false,
+              "hasTreeNuts": true,
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
@@ -296,11 +296,11 @@
               "isCarb": true,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
-              "hasBeans": false,
+              "hasBeans": true,
               "hasMushroom": false,
               "hasCoconut": true,
-              "hasNightshades": false,
-              "hasBrassicas": false,
+              "hasNightshades": true,
+              "hasBrassicas": true,
               "hasCorn": false
             }
           },
@@ -357,11 +357,11 @@
               "hasSulphites": false,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": false,
+              "hasChicken": true,
               "hasTurkey": false,
               "isSpicy": true,
-              "isCarb": false,
-              "halalCertifiedMeat": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
@@ -374,8 +374,36 @@
             "displayText": "Breaded Chicken Burgers"
           },
           "veganalt": {
-            "manual": "Crispy Quinoa Cake Burger",
-            "flags": {}
+            "recipeName": "Quinoa Cakes",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "quinoa-cakes",
+            "displayText": "Crispy Quinoa Cake Burger"
           },
           "starch": {
             "recipeName": "Home Fry Potatoes",
@@ -502,7 +530,7 @@
               "isCarb": true,
               "hasCoconut": false,
               "hasMushroom": false,
-              "hasBrassicas": false,
+              "hasBrassicas": true,
               "hasCorn": false,
               "hasNightshades": true,
               "hasBeans": false,
@@ -547,12 +575,36 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan Mushroom Carnitas",
+            "recipeName": "Vegan Carnitas",
             "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
               "hasMushroom": true,
+              "hasCoconut": false,
               "hasNightshades": true,
-              "hasSulphites": true
-            }
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-carnitas",
+            "displayText": "Vegan Mushroom Carnitas"
           },
           "starch": {
             "manual": "Spanish Rice and Vegetables",
@@ -752,7 +804,7 @@
           "main": {
             "manual": "Butter Chicken",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -780,11 +832,35 @@
             }
           },
           "veganalt": {
-            "manual": "Butter Chickpeas",
+            "recipeName": "Butter Chickpeas",
             "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
               "hasCoconut": true,
-              "hasNightshades": true
-            }
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "butter-chickpeas"
           },
           "starch": {
             "manual": "Naan",
@@ -868,8 +944,36 @@
             }
           },
           "veganalt": {
-            "manual": "Chickpea Drumstick Wrap, 12\" Tortilla",
-            "flags": {}
+            "recipeName": "Vegan Drumstick",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-drumstick",
+            "displayText": "Chickpea Drumstick Wrap, 12\" Tortilla"
           },
           "vegside": {
             "manual": "Bean Salad",
@@ -987,7 +1091,7 @@
             "manual": "Roast Chicken",
             "flags": {
               "hasChicken": true,
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -997,7 +1101,7 @@
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasPork": false,
               "hasBeef": false,
               "hasTurkey": false,
@@ -1005,7 +1109,7 @@
               "isCarb": true,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
-              "hasBeans": false,
+              "hasBeans": true,
               "hasMushroom": false,
               "hasCoconut": false,
               "hasNightshades": true,
@@ -1014,11 +1118,35 @@
             }
           },
           "veganalt": {
-            "manual": "Roast Tofu",
+            "recipeName": "Roast Tofu",
             "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
               "hasSoy": true,
-              "hasNightshades": true
-            }
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "roast-tofu"
           },
           "starch": {
             "manual": "Couscous",
@@ -1058,7 +1186,7 @@
               "hasMustard": false,
               "hasShellfish": false,
               "hasSulphites": false,
-              "hasPork": false,
+              "hasPork": true,
               "hasBeef": true,
               "hasChicken": false,
               "hasTurkey": false,
@@ -1075,11 +1203,36 @@
             }
           },
           "veganalt": {
-            "manual": "Fully Loaded Vegan Sausages",
+            "recipeName": "Vegan Sausage",
             "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
               "hasSoy": true,
-              "hasGluten": true
-            }
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-sausage",
+            "displayText": "Fully Loaded Vegan Sausages"
           },
           "vegside": {
             "manual": "Side Salad",
@@ -1214,7 +1367,147 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, turkey",
         "allergens_lunch": "gluten, egg",
-        "allergens_dinner": "tree nuts, soy, sulphites, pork"
+        "allergens_dinner": "tree nuts, soy, sulphites, pork",
+        "lunch_slots": {
+          "main": {
+            "manual": "Honey BBQ Halal Chicken Drumsticks",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": true,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Drumstick",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-drumstick",
+            "displayText": "Vegan Drumsticks"
+          },
+          "starch": {
+            "manual": "Potato Salad",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Potato Salad",
+            "flags": {}
+          }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "Pork Adobo & Garlic Green Bean",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": true,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": true,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "adobo-pork-chicken-tofu-adobo-marinade-and-sauce",
+            "displayText": "Vegetarian Adobo, Garlic Green Bean"
+          },
+          "starch": {
+            "manual": "Rice",
+            "flags": {}
+          }
+        }
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -1312,7 +1605,143 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_lunch": "gluten",
-        "allergens_dinner": "dairy, beef"
+        "allergens_dinner": "dairy, beef",
+        "lunch_slots": {
+          "main": {
+            "manual": "Chicken Fajitas & Tortillas",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Fajitas",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-fajitas",
+            "displayText": "Vegetarian Fajitas, Tortillas"
+          },
+          "vegside": {
+            "manual": "Peas and Corn",
+            "flags": {}
+          }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "Gomen Besiga with Vegetable",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": true,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Gomen Be Siga",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-gomen-be-siga",
+            "displayText": "Vegetarian Collard Stew"
+          },
+          "starch": {
+            "manual": "Rice",
+            "flags": {}
+          }
+        }
       }
     },
     "2": {
@@ -1490,7 +1919,75 @@
         },
         "allergens_breakfast": "gluten, dairy, egg",
         "allergens_lunch": "gluten, dairy",
-        "allergens_dinner": "gluten, pork"
+        "allergens_dinner": "gluten, pork",
+        "dinner_slots": {
+          "main": {
+            "manual": "Sausage and Vegetable Pasta",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Sausage and Greens Pasta Sauce (Pork, Halal Chicken + Vegan)",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "sausage-and-greens-pasta-sauce-pork-halal-chicken-vegan",
+            "displayText": "Vegan Sausage and Vegetable Pasta"
+          },
+          "starch": {
+            "manual": "Pasta",
+            "flags": {}
+          }
+        }
       },
       "MONDAY": {
         "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -1588,7 +2085,146 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, turkey",
         "allergens_lunch": "gluten, dairy",
-        "allergens_dinner": "peanuts, tree nuts, sulphites"
+        "allergens_dinner": "peanuts, tree nuts, sulphites",
+        "lunch_slots": {
+          "main": {
+            "manual": "Chicken Gyro",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Gyro",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-gyro"
+          },
+          "starch": {
+            "manual": "with Naan",
+            "flags": {}
+          }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "West African Peanut Stew",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": true,
+              "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": true,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "African Peanut Chicken Stew",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": true,
+              "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": true,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "african-peanut-chicken-stew",
+            "displayText": "Vegetarian Peanut Stew"
+          },
+          "starch": {
+            "manual": "Rice",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Green Beans",
+            "flags": {}
+          }
+        }
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk, fruit",
@@ -1790,6 +2426,78 @@
             "manual": "Fruit Cup",
             "flags": {}
           }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "Pork Vindaloo",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": true,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": true,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Vindaloo",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": true,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-vindaloo",
+            "displayText": "Vegetarian Vindaloo"
+          },
+          "starch": {
+            "manual": "Steamed Rice",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Steamed Broccoli",
+            "flags": {}
+          }
         }
       },
       "WEDNESDAY": {
@@ -1921,7 +2629,7 @@
               "hasMushroom": false,
               "hasCoconut": false,
               "hasNightshades": false,
-              "hasBrassicas": false,
+              "hasBrassicas": true,
               "hasCorn": false
             }
           },
@@ -1941,6 +2649,52 @@
           },
           "vegside": {
             "manual": "Broccoli",
+            "flags": {}
+          }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "Yetisse Fish & Okra and cassava stew",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": true,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": true,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Spiced Tofu, Okra and Cassava Stew",
+            "flags": {
+              "hasSoy": true
+            }
+          },
+          "starch": {
+            "manual": "Coconut Rice and peas",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Coconut Rice and peas",
             "flags": {}
           }
         }
@@ -2045,13 +2799,119 @@
         "allergens_dinner": "pork",
         "lunch_slots": {
           "main": {
-            "manual": "Halal Beef Burger"
+            "manual": "Halal Beef Burger",
+            "flags": {
+              "hasGluten": true,
+              "hasBeef": true,
+              "halalCertifiedMeat": true
+            }
           },
           "veganalt": {
-            "manual": "Veggie Burger"
+            "recipeName": "Veggie Burger (Black Bean)",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "veggie-burger-black-bean",
+            "displayText": "Veggie Burger"
           },
           "vegside": {
             "manual": "Chickpea Salad"
+          }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "Sausages & Mash & Gravy & Carrots",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Sausage",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-sausage",
+            "displayText": "Vegan Sausages & Mash, Gravy"
+          },
+          "starch": {
+            "manual": "Mashed Potato",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Peas",
+            "flags": {}
           }
         }
       },
@@ -2180,6 +3040,36 @@
               "hasChicken": true,
               "hasTurkey": false,
               "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": true,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": true
+            }
+          },
+          "veganalt": {
+            "recipeName": "Arroz Con Pollo (Regular + Vegan)",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
               "isCarb": false,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
@@ -2189,15 +3079,9 @@
               "hasNightshades": false,
               "hasBrassicas": false,
               "hasCorn": true
-            }
-          },
-          "veganalt": {
-            "manual": "Vegan Arroz con Pollo",
-            "flags": {
-              "hasSoy": true,
-              "hasGluten": true,
-              "hasCorn": true
-            }
+            },
+            "recipeId": "arroz-con-pollo-regular-vegan",
+            "displayText": "Vegan Arroz con Pollo"
           },
           "starch": {
             "manual": "Refried Beans",
@@ -2216,10 +3100,47 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "CONC Salad - Beef"
+            "manual": "CONC Salad - Beef",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasBeef": true,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasBrassicas": true
+            }
           },
           "veganalt": {
-            "manual": "CONC Salad - Vegan Beef"
+            "recipeName": "Vegan CONC Salad Mix",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-conc-salad-mix",
+            "displayText": "CONC Salad - Vegan Beef"
           }
         }
       },
@@ -2403,6 +3324,74 @@
             "manual": "Roasted Parsnip and Carrot",
             "flags": {}
           }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "Beef Meatloaf & Roasted Zucchini",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": true,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": true,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Meatloaf",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": true,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-meatloaf",
+            "displayText": "Vegan Meatloaf, Roasted Zucchini, Butternut Squash"
+          },
+          "starch": {
+            "manual": "Potatoes",
+            "flags": {}
+          }
         }
       }
     },
@@ -2544,14 +3533,36 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan Meatballs Pasta",
+            "recipeName": "Vegan Meatballs",
             "flags": {
-              "hasMushroom": true,
-              "hasBeans": true,
               "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": true,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": true,
+              "hasMushroom": true,
+              "hasCoconut": false,
               "hasNightshades": true,
-              "hasSulphites": true
-            }
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-meatballs",
+            "displayText": "Vegan Meatballs Pasta"
           },
           "starch": {
             "manual": "Pasta",
@@ -2680,7 +3691,7 @@
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasPork": false,
               "hasBeef": false,
               "hasChicken": true,
@@ -2834,11 +3845,11 @@
               "hasFish": false,
               "hasPeanuts": false,
               "hasSoy": false,
-              "hasTreeNuts": false,
+              "hasTreeNuts": true,
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasPork": false,
               "hasBeef": false,
               "hasChicken": true,
@@ -2850,17 +3861,42 @@
               "hasBeans": true,
               "hasMushroom": false,
               "hasCoconut": true,
-              "hasNightshades": false,
+              "hasNightshades": true,
               "hasBrassicas": false,
               "hasCorn": false
             }
           },
           "veganalt": {
-            "manual": "Caribbean Chickpea Curry",
+            "recipeName": "Caribbean Stew with Sweet Potato and Collard Greens",
             "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": true,
+              "hasMushroom": false,
               "hasCoconut": true,
-              "hasBeans": true
-            }
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "caribbean-stew-with-sweet-potato-and-collard-greens",
+            "displayText": "Caribbean Chickpea Curry"
           },
           "starch": {
             "manual": "Naan",
@@ -2877,7 +3913,79 @@
         "dinner_altMealsNone": false,
         "allergens_breakfast": "gluten, dairy",
         "allergens_lunch": "sulphites, pork",
-        "allergens_dinner": "gluten, tree nuts, sulphites"
+        "allergens_dinner": "gluten, tree nuts, sulphites",
+        "lunch_slots": {
+          "main": {
+            "manual": "Glazed Ham & Bean",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": true,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Tofu and Potato Hash",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "tofu-and-potato-hash",
+            "displayText": "Roast Potato and Tofu Hash"
+          },
+          "starch": {
+            "manual": "Roast Potatoes",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Garlic corn",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Ham Frittata, fruit & yoghurt, roll",
@@ -2998,12 +4106,41 @@
               "hasSoy": false,
               "hasBeef": false,
               "isSpicy": false,
-              "isCarb": false
+              "isCarb": true,
+              "hasNightshades": true,
+              "hasBrassicas": true
             }
           },
           "veganalt": {
-            "manual": "Baked Tomato Tofu",
-            "flags": {}
+            "recipeName": "Baked Tomato Tofu",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "baked-tomato-tofu"
           },
           "starch": {
             "manual": "Couscous",
@@ -3199,7 +4336,7 @@
               "isCarb": true,
               "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
-              "hasBeans": false,
+              "hasBeans": true,
               "hasMushroom": false,
               "hasCoconut": false,
               "hasNightshades": true,
@@ -3297,10 +4434,21 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "All Beef Hotdog"
+            "manual": "All Beef Hotdog",
+            "flags": {
+              "hasGluten": true,
+              "hasSoy": true,
+              "hasMustard": true,
+              "hasBeef": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": true
+            }
           },
           "veganalt": {
-            "manual": "Vegan Hotdog"
+            "manual": "Vegan Hotdog",
+            "flags": {
+              "hasSoy": true
+            }
           },
           "xtra": {
             "manual": "Toppings"
@@ -3419,7 +4567,7 @@
           "main": {
             "manual": "Chicken and Mushroom Fried Rice",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -3441,14 +4589,41 @@
               "hasBeans": false,
               "hasMushroom": true,
               "hasCoconut": false,
-              "hasNightshades": false,
-              "hasBrassicas": false,
+              "hasNightshades": true,
+              "hasBrassicas": true,
               "hasCorn": false
             }
           },
           "veganalt": {
-            "manual": "Soy-Free Mushroom Fried Rice",
-            "flags": {}
+            "recipeName": "Soy-Free Mushroom Fried Rice",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "soy-free-mushroom-fried-rice"
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork, turkey",
@@ -3475,6 +4650,36 @@
               "hasFish": true,
               "hasPeanuts": false,
               "hasSoy": false,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": true,
+              "hasMushroom": false,
+              "hasBrassicas": true,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Nigerian Pepper Stew Tofu",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
@@ -3485,23 +4690,18 @@
               "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
-              "isCarb": true,
+              "isCarb": false,
               "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasCoconut": false,
+              "hasBeans": false,
               "hasMushroom": false,
-              "hasBrassicas": false,
-              "hasCorn": false,
+              "hasCoconut": false,
               "hasNightshades": true,
-              "hasBeans": false
-            }
-          },
-          "veganalt": {
-            "manual": "Nigerian Styled Tofu",
-            "flags": {
-              "hasSoy": true,
-              "hasSulphites": true
-            }
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "nigerian-pepper-stew-tofu",
+            "displayText": "Nigerian Styled Tofu"
           },
           "starch": {
             "manual": "Lime Coconut Rice",
@@ -3667,6 +4867,74 @@
               "hasBrassicas": false,
               "hasCorn": false
             }
+          }
+        },
+        "lunch_slots": {
+          "main": {
+            "manual": "Roasted Chicken leg",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": true,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Roast Tofu",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "roast-tofu",
+            "displayText": "Roasted Tofu"
+          },
+          "starch": {
+            "manual": "Pineapple Rice",
+            "flags": {}
           }
         }
       }
@@ -3834,18 +5102,41 @@
               "hasMushroom": false,
               "hasCoconut": false,
               "hasNightshades": true,
-              "hasBrassicas": false,
+              "hasBrassicas": true,
               "hasCorn": false
             }
           },
           "veganalt": {
-            "manual": "White Chilli Pasta Casserole",
+            "recipeName": "White Chicken & Chickpea Chili",
             "flags": {
-              "hasBeans": true,
               "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": true,
+              "hasMushroom": false,
+              "hasCoconut": false,
               "hasNightshades": true,
-              "hasSulphites": true
-            }
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "white-chicken-and-chickpea-chili",
+            "displayText": "White Chilli Pasta Casserole"
           },
           "vegside": {
             "manual": "Broccoli",
@@ -3854,7 +5145,75 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, turkey",
         "allergens_lunch": "gluten, dairy, sulphites, pork",
-        "allergens_dinner": "gluten, sulphites"
+        "allergens_dinner": "gluten, sulphites",
+        "lunch_slots": {
+          "main": {
+            "manual": "Pork Souvlaki & Steamed Carrots & Tzatziki",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": true,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Bean Patties",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-bean-patties",
+            "displayText": "Black bean patty, Steamed Carrots, Tzatziki"
+          },
+          "starch": {
+            "manual": "Naan",
+            "flags": {}
+          }
+        }
       },
       "MONDAY": {
         "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -3964,12 +5323,12 @@
               "hasEgg": false,
               "hasPeanuts": false,
               "hasSesame": false,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasBeef": false,
-              "isSpicy": false,
+              "isSpicy": true,
               "isCarb": true,
               "hasCoconut": true,
-              "hasTreeNuts": false,
+              "hasTreeNuts": true,
               "hasMustard": false,
               "hasShellfish": false,
               "hasSulphites": false,
@@ -3979,16 +5338,42 @@
               "hasProcessedMeat": false,
               "hasBeans": false,
               "hasMushroom": false,
-              "hasNightshades": false,
+              "hasNightshades": true,
               "hasBrassicas": false,
               "hasCorn": false
             }
           },
           "veganalt": {
-            "manual": "Tofu Curry",
+            "recipeName": "Vegan Thai Green Curry Sauce",
             "flags": {
-              "hasCoconut": true
-            }
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": true,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-thai-green-curry-sauce",
+            "displayText": "Tofu Curry"
           },
           "starch": {
             "manual": "Steamed Rice",
@@ -4008,7 +5393,7 @@
         "allergens_dinner": "fish, tree nuts, soy",
         "lunch_slots": {
           "main": {
-            "manual": "Chicken Ranch Salad Sandwich",
+            "manual": "Chicken Ranch Salad Sandwich & Fruit and Chips",
             "flags": {
               "hasGluten": true,
               "hasDairy": true,
@@ -4067,11 +5452,7 @@
               "hasCorn": false
             },
             "recipeId": "rexdale-falafel",
-            "displayText": "Falafel Sandwich, Sub Bun"
-          },
-          "xtra": {
-            "manual": "Fruit and Chips",
-            "flags": {}
+            "displayText": "Falafel  Sandwich, Fruit and Chips, Sub Bun"
           }
         }
       },
@@ -4181,18 +5562,96 @@
         "lunch_slots": {
           "main": {
             "manual": "Pork Al Pastor Taco",
-            "flags": {}
+            "flags": {
+              "hasSulphites": true,
+              "hasPork": true,
+              "hasChicken": true,
+              "isSpicy": true,
+              "halalCertifiedMeat": true,
+              "hasNightshades": true
+            }
           },
           "mainalt": {
             "manual": "Chicken Al Pastor Taco",
             "flags": {}
           },
           "veganalt": {
-            "manual": "Vegan Tacos al Pastor",
-            "flags": {}
+            "recipeName": "Vegan Taco (al pastor)",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-taco-al-pastor",
+            "displayText": "Vegan Tacos al Pastor"
           },
           "vegside": {
             "manual": "Peas & Carrots",
+            "flags": {}
+          }
+        },
+        "dinner_slots": {
+          "main": {
+            "manual": "BBQ Chicken Leg & Roasted Yam & Carrots",
+            "flags": {
+              "hasGluten": false,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "BBQ Chik'n Tenders, Roasted Yam",
+            "flags": {
+              "hasSoy": true,
+              "hasGluten": true
+            }
+          },
+          "vegside": {
+            "manual": "Peas",
             "flags": {}
           }
         }
@@ -4290,7 +5749,7 @@
               "hasMushroom": false,
               "hasBrassicas": false,
               "hasCorn": false,
-              "hasNightshades": false,
+              "hasNightshades": true,
               "hasBeans": false,
               "hasTreeNuts": false,
               "hasShellfish": false,
@@ -4303,10 +5762,36 @@
             }
           },
           "veganalt": {
-            "manual": "Vegan Pot Pie and Vegetable Medley",
+            "recipeName": "Vegan  Pie Filling",
             "flags": {
-              "hasGluten": true
-            }
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-pie-filling",
+            "displayText": "Vegan Pot Pie and Vegetable Medley"
           },
           "starch": {
             "manual": "Potatoes",
@@ -4459,6 +5944,36 @@
             "flags": {
               "hasGluten": true,
               "hasDairy": false,
+              "hasEgg": true,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": true,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Teriyaki Tofu",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
@@ -4482,15 +5997,8 @@
               "hasNightshades": false,
               "hasBrassicas": false,
               "hasCorn": false
-            }
-          },
-          "veganalt": {
-            "manual": "Teriyaki Tofu",
-            "flags": {
-              "hasSoy": true,
-              "hasGluten": true,
-              "hasSulphites": true
-            }
+            },
+            "recipeId": "teriyaki-tofu"
           },
           "starch": {
             "manual": "Vegetable Egg Noodles",
@@ -4509,10 +6017,44 @@
         "lunch_mainAlt": "",
         "lunch_slots": {
           "main": {
-            "manual": "Beef Burger"
+            "manual": "Beef Burger",
+            "flags": {
+              "hasGluten": true,
+              "hasBeef": true,
+              "halalCertifiedMeat": true
+            }
           },
           "veganalt": {
-            "manual": "Veggie Burger"
+            "recipeName": "Veggie Burger (Black Bean)",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "veggie-burger-black-bean",
+            "displayText": "Veggie Burger"
           },
           "vegside": {
             "manual": "Side Salad"
@@ -4631,7 +6173,11 @@
             "flags": {
               "hasPork": true,
               "hasNightshades": true,
-              "hasDairy": true
+              "hasDairy": true,
+              "hasChicken": true,
+              "isSpicy": true,
+              "isCarb": true,
+              "hasCorn": true
             }
           },
           "mainalt": {
@@ -4659,7 +6205,71 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
         "allergens_lunch": "gluten, dairy, beef",
-        "allergens_dinner": "dairy, pork"
+        "allergens_dinner": "dairy, pork",
+        "lunch_slots": {
+          "main": {
+            "manual": "Beef lasagna & Cauliflower & Carrot",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": true,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": true,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "recipeName": "Vegan Lasagna Sauce",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "vegan-lasagna-sauce",
+            "displayText": "Veggie lasagna, Cauliflower & Carrot"
+          }
+        }
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -4785,7 +6395,7 @@
               "hasMushroom": false,
               "hasBrassicas": false,
               "hasCorn": false,
-              "hasNightshades": false,
+              "hasNightshades": true,
               "hasBeans": false,
               "hasTreeNuts": true,
               "hasShellfish": false,
@@ -4798,16 +6408,36 @@
             }
           },
           "veganalt": {
-            "manual": "Vegetarian Massaman Curry",
+            "recipeName": "Massaman Beef Curry with Baby Corn and Vegetables",
             "flags": {
-              "hasCoconut": true,
-              "hasTreeNuts": true,
-              "hasMushroom": true,
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
               "hasPeanuts": true,
               "hasSoy": true,
+              "hasTreeNuts": true,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
               "hasSulphites": true,
-              "hasGluten": true
-            }
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": true,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": true,
+              "hasCoconut": true,
+              "hasNightshades": true,
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "massaman-beef-curry-with-baby-corn-and-vegetables",
+            "displayText": "Vegetarian Massaman Curry"
           },
           "starch": {
             "manual": "Rice",
@@ -4816,7 +6446,53 @@
         },
         "allergens_breakfast": "gluten, dairy",
         "allergens_lunch": "gluten, dairy, sulphites",
-        "allergens_dinner": "gluten, peanuts, tree nuts, soy, sulphites, beef"
+        "allergens_dinner": "gluten, peanuts, tree nuts, soy, sulphites, beef",
+        "lunch_slots": {
+          "main": {
+            "manual": "Lime-Spiced Chicken Legs",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": true,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": true,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": true,
+              "hasCorn": false,
+              "hasNightshades": true,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Roasted Veg and Tofu Medley, Tumeric Quinoa",
+            "flags": {
+              "hasSoy": true
+            }
+          },
+          "starch": {
+            "manual": "Garlic Bread",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Steamed Broccoli",
+            "flags": {}
+          }
+        }
       }
     }
   }

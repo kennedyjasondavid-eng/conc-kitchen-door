@@ -43,8 +43,9 @@ test('Wk3 FRI dinner: the vegan plate floor no longer carries SOY, the regular m
 });
 test('computePlatingData applies it to the copied floor only, so a stored statement and the lookup still win', () => {
   assert.match(html, /vegAllergenFallback = stripDeclaredFreeAllergens\(flagsToAllergenStr\(_safeFlags\)\.toUpperCase\(\), mealVeg\);/);
-  // Re-pinned 2026-10-17 (v31-standard.29): the recipes linked on the vegan line's slots (getVegAltLinkedAllergenStr)
-  // join the name lookup before the floor; the stored statement still wins and the floor is still this stripped copy.
-  assert.match(html, /vegAllergenStored\s*\|\|\s*\n?\s*mergeVegAltAllergenFloor\(mergeVegAltAllergenFloor\(vegAllergenLookup,\s*vegAllergenLinked\),\s*vegAllergenFallback\)/);
+  // Re-pinned 2026-10-17 (v31-standard.29): the dishes set on the vegan line's slots (getVegAltSlotAllergenStr — linked
+  // recipes and typed dishes' tags) join the name lookup before the floor; the stored statement still wins and the floor
+  // is still this stripped copy.
+  assert.match(html, /vegAllergenStored\s*\|\|\s*\n?\s*mergeVegAltAllergenFloor\(mergeVegAltAllergenFloor\(vegAllergenLookup,\s*vegAllergenSlots\),\s*vegAllergenFallback\)/);
   assert.ok(html.indexOf('const DOOR_DECLARED_FREE') < html.indexOf('function computePlatingData('), 'declared before use');
 });

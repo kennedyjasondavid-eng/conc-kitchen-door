@@ -18032,27 +18032,37 @@ function mergeVegAltAllergenFloor(lookupStr, fallbackStr) {
   return out.join(', ');
 }
 
-// The vegan plate also reads the recipes the menu links on the vegan line (2026-10-17, Jason: "Rexdale falafel").
-// getVegAltAllergenStr() matches the vegan line's TEXT to a CODEX recipe by name, so a slot that shows "Falafel
-// Sandwich" and is linked to Rexdale Falafel read nothing: the falafel's Gluten, Spicy and Nightshades never reached
-// the plate. A vegan-plate slot (vegan alt, starch, veg side, extras — the slots buildVegAlt() reads) that is linked to
-// a recipe brings that recipe's allergens from the CODEX list (by recipeId, else by name); a linked recipe the list no
-// longer holds brings the flags captured when it was linked. Typed (manual) slots bring nothing here. Like the name
-// lookup this is a floor: computePlatingData merges it with mergeVegAltAllergenFloor(), so it only ever adds, and a
-// stored operator statement still wins outright.
-function getVegAltLinkedAllergenStr(slots) {
+// The vegan plate also reads the dishes the menu sets on the vegan line (2026-10-17, Jason: "Rexdale falafel", then the
+// vegan-dish list). getVegAltAllergenStr() matches the vegan line's TEXT to a CODEX recipe by name, so a slot that shows
+// "Falafel Sandwich" and is linked to Rexdale Falafel read nothing (the falafel's Gluten, Spicy and Nightshades never
+// reached the plate), and a tofu dish with no CODEX recipe ("Citrus Tofu") never said Soy. For each vegan-plate slot
+// (vegan alt, starch, veg side, extras — the slots buildVegAlt() reads):
+//   - every slot brings the tags it carries — what the editor's preview already shows: the flags captured when a recipe
+//     was linked, plus any tag set on the dish in Edit Menu ("Soy" on Citrus Tofu, "Mushroom" on a typed dish);
+//   - a slot linked to a recipe also brings that recipe's allergens from today's CODEX list (by recipeId, else by name),
+//     so a recipe's newer allergen reaches the plate. As with the meal ticks, a linked slot keeps what it captured.
+// Like the name lookup this is a floor: computePlatingData merges it with mergeVegAltAllergenFloor(), so it only ever
+// adds, and a stored operator statement still wins outright.
+function getVegAltSlotAllergenStr(slots) {
   if (!slots || typeof slots !== 'object') return '';
   const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' && DOOR_RECIPE_DATA) || (typeof DOOR_RECIPE_DATA_FALLBACK !== 'undefined' && DOOR_RECIPE_DATA_FALLBACK) || [];
   const out = [];
+  const fromFlags = (flags) => {
+    if (flags && typeof flagsToAllergenStr === 'function') {
+      flagsToAllergenStr(flags).split(',').map(t => t.trim().toUpperCase()).filter(Boolean).forEach(t => out.push(t));
+    }
+  };
   ['veganalt', 'starch', 'vegside', 'xtra'].forEach(id => {
     const s = slots[id];
-    if (!s || !s.recipeName) return;
-    const r = (s.recipeId && recipeData.find(x => x && x.recipeId && String(x.recipeId) === String(s.recipeId)))
-      || recipeData.find(x => x && x.recipeName === s.recipeName);
-    if (r && Array.isArray(r.allergens)) {
-      r.allergens.forEach(a => { if (a && a !== 'None') out.push(String(a).split('(')[0].trim().toUpperCase()); });
-    } else if (s.flags && typeof flagsToAllergenStr === 'function') {
-      flagsToAllergenStr(s.flags).split(',').map(t => t.trim().toUpperCase()).filter(Boolean).forEach(t => out.push(t));
+    if (!s) return;
+    if (!s.recipeName && !s.manual) return;
+    fromFlags(s.flags);
+    if (s.recipeName) {
+      const r = (s.recipeId && recipeData.find(x => x && x.recipeId && String(x.recipeId) === String(s.recipeId)))
+        || recipeData.find(x => x && x.recipeName === s.recipeName);
+      if (r && Array.isArray(r.allergens)) {
+        r.allergens.forEach(a => { if (a && a !== 'None') out.push(String(a).split('(')[0].trim().toUpperCase()); });
+      }
     }
   });
   return [...new Set(out)].join(', ');
@@ -21799,8 +21809,9 @@ function computePlatingData(period, weekNum, dayName) {
     : (dayData['allergens_'+period] || '').toUpperCase();
   const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
   const vegAllergenLookup = typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '';
-  // 2026-10-17: the recipes the vegan line's slots are linked to (getVegAltLinkedAllergenStr) join the name lookup.
-  const vegAllergenLinked = typeof getVegAltLinkedAllergenStr !== 'undefined' ? getVegAltLinkedAllergenStr(dayData[period + '_slots']) : '';
+  // 2026-10-17: the dishes set on the vegan line's slots — linked recipes and typed dishes' tags
+  // (getVegAltSlotAllergenStr) — join the name lookup.
+  const vegAllergenSlots = typeof getVegAltSlotAllergenStr !== 'undefined' ? getVegAltSlotAllergenStr(dayData[period + '_slots']) : '';
   // Safe floor: the main meal's flags minus protein flags. The Reno xlsx and
   // similar layouts share one Allergens row between meat and veg versions of the
   // same dish, so non-protein allergens (egg/dairy/gluten/etc.) almost always
@@ -21815,7 +21826,7 @@ function computePlatingData(period, weekNum, dayName) {
   // suppress the fallback outright and drop peanut/tree-nut/egg warnings. A
   // stored operator override is a deliberate statement and still wins outright.
   const vegAllergenStr = vegAllergenStored
-    || mergeVegAltAllergenFloor(mergeVegAltAllergenFloor(vegAllergenLookup, vegAllergenLinked), vegAllergenFallback)
+    || mergeVegAltAllergenFloor(mergeVegAltAllergenFloor(vegAllergenLookup, vegAllergenSlots), vegAllergenFallback)
     || null;
 
   // Anaphylactic conflict detection
