@@ -111,6 +111,9 @@ test('the ticks ruled on the routing audit are on their meals, and on the main d
   }
   assert.equal(menu['3'].WEDNESDAY.lunch_flags.isSpicy, false, 'no Spicy on the nachos (not ruled)');
   const swaps = JSON.parse(fs.readFileSync(new URL('../meal_swaps.json', import.meta.url), 'utf8'));
-  const nov3 = swaps['2026-11-03-lunch'];
-  if (nov3) assert.equal(nov3._flagsRaw.hasBeans, true, 'the Nov 3 chickpea salad is Beans');
+  // 2026-10-18: the Nov 3 swap was removed (Jason: "Remove it"; it is in meal_swaps_reverted.json). Its Beans tick
+  // stands in the recorded copy the staff walkthrough uses.
+  assert.equal(swaps['2026-11-03-lunch'], undefined, 'the Nov 3 swap is removed');
+  const nov3 = JSON.parse(fs.readFileSync(new URL('./fixtures/meal_swap_2026-11-03_recorded.json', import.meta.url), 'utf8'))['2026-11-03-lunch'];
+  assert.equal(nov3._flagsRaw.hasBeans, true, 'the recorded Nov 3 chickpea salad is Beans');
 });

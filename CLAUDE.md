@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.33'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.34'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-18) — a swap revert reaches every DOOR computer; a slot swap's halves land together; the Nov 3 swap is removed (`v31-standard.34`)
+Jason, 2026-10-18, on DOOR's only swap (Nov 3 lunch: Halal Beef Burger in Wk2 TUE's slot): "Remove it"; on how it happened: "Fix in DOOR". Found while scoping the EXPO swap work ("Do the EXPO swap work here").
+- **The Nov 3 swap was left over.** On Oct 7 at 11:18 someone swapped Wk2 TUE ⇄ THU lunch on a Wednesday, then set the rotation back to the workbook order (TUE tuna, THU burger). That tablet ran the Make Permanent from before PR #113 (11:27 that day), which didn't clear swaps. Kept, Wk2 that week would have served burgers Tuesday and Thursday and no tuna lunch.
+- **A revert never reached the other DOOR computers.** Each keeps its own copy of the swaps (`concMealSwaps`) and merged the kitchen's file into it, so the next computer to publish put a reverted swap back. Now:
+  - `REVERTED_SWAP_KEYS` keeps when each key was reverted (`{key: ISO time}`; an older list of keys reads as reverted now) and keeps its Set API;
+  - it is published as `meal_swaps_reverted.json`, in the full publish (`loadSwapReverts`) and quietly after each revert; it may shrink (`ALLOW_SHRINK_PATHS`);
+  - `pullSecondaryState` and the boot sync read the kitchen's list before the swaps (`doorApplyRemoteSwaps`);
+  - a swap made before its key's revert is dropped on every computer; one made again after it is kept (`doorSwapRevertedOver`, `doorMergeSwapStores`, `doorMergeSwapReverts`, testable core `swap-store`).
+- **A slot swap's halves land together.** Each half took its own slot's next date, so a half whose slot was already served this cycle landed four weeks after the other. `doorSlotSwapDates`: the two dates are as far apart as the two meals are on the menu (the shorter way round the four weeks), on the first such pair still ahead. On Oct 7 that is Nov 3 and Nov 5; a Wk4 SAT ⇄ Wk1 SUN swap takes the coming weekend. The toast and log name the dates.
+- **Data:** `meal_swaps.json` is empty and `meal_swaps_reverted.json` holds the Nov 3 key, so every DOOR computer drops its copy at its next sync. `routing_by_meal.json`'s Wk2 TUE lunch is the rotation's again (the only slot that moves); `menu_current.json` changes only its `_meta.exported`, and `door_state` / `registry_summary` take only the stamp. Validation 0/0/0.
+- **Gate:** `tests/swap_revert_reaches_gate.mjs` (7), red 0/7 on `main` `8c4c734`. Re-pinned with dated notes: `door-smoke` (the publish set gains `meal_swaps_reverted.json`; the harness stubs `loadSwapReverts`), `menu_recipe_ticks_gate` (the Nov 3 swap is removed; its Beans tick stands in the recorded copy). The staff walkthrough walks the swap path with that recorded copy (`tests/fixtures/meal_swap_2026-11-03_recorded.json`): 51/51, receipts unchanged. Suite 445 → 452. Checked in a real browser: a computer holding the Nov 3 swap drops it at boot and Wk2 TUE's sheet reads tuna; an Oct 7 slot swap lands on Nov 3 and Nov 5.
 
 ## Recent (2026-10-18) — the audit's independent review, folded (`v31-standard.33`)
 PR #126 merged (`a1849d2`, `v31-standard.32`) before the review's fixes and the A7–A8 write-up reached it, so they ship here as their own build. The audit itself is the entry below; the rules doc §10 is the status owner.
