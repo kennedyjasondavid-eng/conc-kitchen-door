@@ -26,8 +26,10 @@ const def = id => sb.DEFS.find(d => d.id === id);
 const rec = (extra) => Object.assign({ recipeName: 'Red Red Bean Stew', allergens: ['Nightshades (Paprika)'], category: 'stew_main', stream: 'regular' }, extra || {});
 
 // Re-pinned 2026-10-18: PR #128 (the swap revert) merged first as v31-standard.34, so this build is .35.
-test('the version stamp moves to v31-standard.35', () => {
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.35';/);
+// Re-pinned again 2026-10-18: PR #130 (the swap work's review fold) builds on this one as .36.
+test('the version stamp moves to v31-standard.35 or later', () => {
+  const m = html.match(/const DOOR_APP_VERSION = 'v31-standard\.(\d+)';/);
+  assert.ok(m && Number(m[1]) >= 35, 'stamp: ' + (m && m[0]));
 });
 
 test('Vegan Alt offers a vegan-friendly main from the regular line, and only a vegan-friendly one', () => {

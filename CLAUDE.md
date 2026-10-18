@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.35'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.36'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,7 +53,15 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — a vegan-friendly main is a vegan option (`v31-standard.35`)
+## Recent (2026-10-18) — the swap work's independent review, folded (`v31-standard.36`)
+PR #128 merged (`510d25f`, `v31-standard.34`) before the review's fixes reached it, so they ship here as their own build. It took `.36`: PR #129 (the entry below) took `.35` first. The swap work itself is two entries down.
+**Fixed:**
+- **P1:** a computer that published before it synced sent its own, shorter revert list (and the swap) back. The full publish now merges the kitchen's swaps, special meals and both lists first (`preMergeSwapsWithCloud`, Contents API; a missing file is empty, an unreadable one is skipped), and the quiet send after a revert reads the kitchen's list first.
+- **P2:** a removed special meal came back the same way. Removals keep the same kind of list (`doorMakeRevertList` makes both: `REMOVED_SPECIAL_KEYS`, published as `special_meals_removed.json`); saving the meal again takes the removal off; a past special meal stays until Clear expired.
+- **P2:** a slot swap's half on the slot's second date was missed by the slot's Revert, Make permanent and the Edit Menu save, which read the next date only. They clear every upcoming swap of the slot (`doorSwapKeysForSlot`, by `_rotationSlot`).
+- **Gate:** `tests/swap_revert_reaches_gate.mjs` 7 → 10 (4b publish before sync, 4c special-meal removals, 4d a slot's swaps by slot). Re-pinned: `door-smoke` (the publish merges first; + `special_meals_removed.json`), `publish_menu_ask_gate` 6 (Remove records the removal), `vegan_friendly_gate` (the stamp is `.35` or later). Suite 452 → 455; 464 with PR #129 merged in. `special_meals_removed.json` starts empty.
+
+## Recent (2026-10-18) — a vegan-friendly main is a vegan option (`v31-standard.35`, merged via PR #129, `538a4a4`)
 CODEX C8 (creation audit K4; Jason, 2026-10-17: "split the two meanings"). CODEX now works out from each recipe's ingredients whether it is **vegan-friendly** and publishes the answer beside the line, as `veganFriendly`, in `DOOR_RECIPE_DATA.json` and in each shared-Library record's `door` block. The values are `true`, `false`, or `null` while a bought item waits on its label. The line (`stream`) keeps meaning the line a recipe is made for, so EXPO's board can't move (EXPO copies CODEX fields by name and never reads this one).
 - **What DOOR reads:** Edit Menu's **Vegan Alt** slot (`recipeMatchesSlotDef`) offers the vegan line's recipes, as before, plus any main CODEX marks `veganFriendly: true`. No other slot changes. The vegan plate's allergen guess (`getVegAltAllergenStr`) still reads only the vegan line.
 - **Measured against CODEX's feed:** 127 recipes are true, 98 false and 15 null. The Vegan Alt slot gains exactly one recipe, Red Red Bean Stew; the other vegan-friendly mains are already on the vegan line, where CODEX's projection puts its vegan proteins. Since the review fold, Jamcaican Patty Dough leaves it (below).
@@ -73,7 +81,7 @@ CODEX C8 (creation audit K4; Jason, 2026-10-17: "split the two meanings"). CODEX
   Suite 445 → 454; 461 with PR #128 merged in.
 - **Cross-repo pair:** the producer is conc-recipe-hub C8 (gate `tests/vegan_friendly_c8_gate.mjs`, X2/X3 read this code). Merge this one first. Before it lands, DOOR ignores the new field, so neither order breaks anything.
 
-## Recent (2026-10-18) — a swap revert reaches every DOOR computer; a slot swap's halves land together; the Nov 3 swap is removed (`v31-standard.34`)
+## Recent (2026-10-18) — a swap revert reaches every DOOR computer; a slot swap's halves land together; the Nov 3 swap is removed (`v31-standard.34`, merged via PR #128, `510d25f`)
 Jason, 2026-10-18, on DOOR's only swap (Nov 3 lunch: Halal Beef Burger in Wk2 TUE's slot): "Remove it"; on how it happened: "Fix in DOOR". Found while scoping the EXPO swap work ("Do the EXPO swap work here").
 - **The Nov 3 swap was left over.** On Oct 7 at 11:18 someone swapped Wk2 TUE ⇄ THU lunch on a Wednesday, then set the rotation back to the workbook order (TUE tuna, THU burger). That tablet ran the Make Permanent from before PR #113 (11:27 that day), which didn't clear swaps. Kept, Wk2 that week would have served burgers Tuesday and Thursday and no tuna lunch.
 - **A revert never reached the other DOOR computers.** Each keeps its own copy of the swaps (`concMealSwaps`) and merged the kitchen's file into it, so the next computer to publish put a reverted swap back. Now:
