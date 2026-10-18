@@ -21,7 +21,10 @@ function fnOpt(name) { return html.includes('function ' + name + '(') ? fn(name)
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
 
 const smBlock = between('const SM_ALLERGENS = [', '\n];\n') + '\n];\n';
-const resolveFlags = between('  function resolveFlags(entry) {', '\n  }\n') + '\n  }\n';
+// Re-pinned 2026-10-18 (the routing audit, swap days): getMealForDate's resolveFlags moved to doorDatedMealFlags, which
+// the plating engine also reads for a slot's swap or special meal; resolveFlags now calls it.
+const resolveFlags = (html.includes('function doorDatedMealFlags(') ? fn('doorDatedMealFlags') + 'function resolveFlags(entry) { return doorDatedMealFlags(entry); }\n'
+  : between('  function resolveFlags(entry) {', '\n  }\n') + '\n  }\n');
 const ctx = { console: { warn() {} }, window: {}, DOOR_RECIPE_DATA: [] };
 vm.createContext(ctx);
 vm.runInContext([

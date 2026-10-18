@@ -8146,26 +8146,69 @@ const REVERTED_SWAP_KEYS = (() => {
 // ROUTING
 // ============================================================
 function routeResident(tags, meal, room, isAnaph) {
+  // One meal (2026-10-18, Jason: "Per meal everywhere"): the anaphylactic checks read the meal being routed. They read
+  // lunch and dinner together, so on a day with a dinner-only allergen the Daily Entry preview showed room 213's lunch
+  // as "Anaphylactic Alternative" while the lunch plating sheet seated 213 in Soft Meals.
+  const m = meal || MEAL_DATA.lunch;
   // Anaphylactic routing
   if (isAnaph) {
     const tagKeys = Object.keys(tags).filter(k => tags[k]);
     const tagLabels = tagKeys.map(k => TAG_LABELS_MAP[k]).filter(Boolean);
     for (const label of tagLabels) {
-      if (anaphTagMealFlags(label).some(f => MEAL_DATA.lunch[f] || MEAL_DATA.dinner[f])) {
+      if (anaphTagMealFlags(label).some(f => m[f])) {
         return 'Anaphylactic Alternative';
       }
     }
   }
   if (room) {
-    const conflictRooms = getAnaphConflictRooms(MEAL_DATA.lunch, MEAL_DATA.dinner);
+    const conflictRooms = getAnaphConflictRooms(m, {});
     if (conflictRooms.has(room)) return 'Anaphylactic Alternative';
   }
   // Delegate to computeSections for consistent routing — uses a synthetic resident object
   const syntheticTagLabels = Object.keys(tags).filter(k => tags[k]).map(k => TAG_LABELS_MAP[k]).filter(Boolean);
   const syntheticResident = { room: room || '000', tags: syntheticTagLabels, section: 'Regular', rawRestriction: '', isAnaph: false };
-  const sections = computeSections(meal || MEAL_DATA.lunch, [syntheticResident]);
+  const sections = computeSections({ ...m }, [syntheticResident]);
   const assigned = sections.find(s => s.rule.key !== 'regular' && s.residents.length > 0);
   return assigned ? assigned.rule.label : 'Regular';
+}
+
+// Today's lunch or dinner as the plating sheet reads it (2026-10-18, Jason: "Per meal everywhere"): the meal's flags
+// with the sheet's defaults (chicken or turkey from the name, a "Halal …" main, the vegan line's egg check, alternative
+// meals, a no-pork plate) and the day's swap or special meal. routeResident read today's raw flags, so its answer could
+// differ from the sheet's (a No Eggs resident: "No Egg / Mustard" in the preview, the vegan plate on the sheet). Read
+// once per run of code (an import routes every row), and MEAL_DATA's own flags if the engine can't read the meal.
+let _doorTodayFlagsMemo = null;
+function doorTodayMealFlags(period) {
+  if (!_doorTodayFlagsMemo) {
+    _doorTodayFlagsMemo = {};
+    Promise.resolve().then(() => { _doorTodayFlagsMemo = null; });
+  }
+  if (!(period in _doorTodayFlagsMemo)) {
+    let flags = null;
+    try {
+      const pd = computePlatingData(period, MEAL_DATA.week, MEAL_DATA.day);
+      if (pd && pd.mealFlags) flags = pd.mealFlags;
+    } catch (e) {}
+    _doorTodayFlagsMemo[period] = flags || (MEAL_DATA && MEAL_DATA[period]) || {};
+  }
+  return _doorTodayFlagsMemo[period];
+}
+
+// Where a resident on the list eats today's lunch or dinner, as the plating sheet seats them (2026-10-18). For the room
+// lookup and the change editor: "Lunch → Soft Meals · Dinner → Anaphylactic Alternative".
+function doorTodaySeatsLine(r) {
+  if (!r || !r.room || typeof MEAL_DATA === 'undefined') return '';
+  const seat = (period) => {
+    try {
+      const pd = computePlatingData(period, MEAL_DATA.week, MEAL_DATA.day);
+      if (!pd) return null;
+      if (pd.anaphSect.some(x => x.room === r.room)) return 'Anaphylactic Alternative';
+      const s = pd.sections.find(x => x.residents.some(y => y.room === r.room));
+      return s ? (s.rule.key === 'regular' ? 'Regular' : s.rule.label) : null;
+    } catch (e) { return null; }
+  };
+  const parts = [['Lunch', seat('lunch')], ['Dinner', seat('dinner')]].filter(([, v]) => v).map(([k, v]) => k + ' \u2192 ' + v);
+  return parts.length ? 'Today: ' + parts.join(' \u00B7 ') : '';
 }
 
 // ============================================================
@@ -8236,6 +8279,9 @@ function buildResidentDetailHTML(r) {
   if (isAnaph) {
     parts.push(`<div style="margin-top:5px;padding:4px 8px;border-radius:6px;background:#fef2f2;border:1px solid #fca5a5;font-size:12px;font-weight:700;color:#dc2626;">⚠ ANAPHYLACTIC — contained meal prep required</div>`);
   }
+  // Where they eat today, meal by meal, as the plating sheets seat them (2026-10-18)
+  const todaySeats = doorTodaySeatsLine(r);
+  if (todaySeats) parts.push(`<div class="door-today-seats" style="margin-top:4px;font-size:12px;color:var(--forest-mid);font-weight:600;">${escapeHtml(todaySeats)}</div>`);
   // Service notes
   if (r.serviceNote) {
     parts.push(`<div style="margin-top:4px;font-size:12px;color:#1e40af;">&#x270E; ${escapeHtml(r.serviceNote)}</div>`);
@@ -8472,7 +8518,7 @@ function addChange() {
   const moderateNote = moderateActive ? (document.getElementById('moderate-note') || {}).value || '' : '';
 
   let route = '—';
-  if (type === 'intake' || type === 'update') route = routeResident(tags, MEAL.lunch, room, anaphActive);
+  if (type === 'intake' || type === 'update') route = routeResident(tags, doorTodayMealFlags('lunch'), room, anaphActive);
   if (type === 'discharge') route = 'REMOVE';
   if (type === 'switch') {
     const dest = (document.getElementById('room-dest') || {}).value || '?';
@@ -8757,8 +8803,8 @@ function updateCERoutePreview() {
   const hasMeal = typeof MEAL !== 'undefined' && typeof MEAL_DATA !== 'undefined';
   if (!hasMeal) { el.innerHTML = '<span style="color:var(--muted);">No meal data loaded</span>'; return; }
 
-  const lunchRoute = routeResident(tags, MEAL_DATA.lunch || MEAL.lunch || {}, room, isAnaph);
-  const dinnerRoute = routeResident(tags, MEAL_DATA.dinner || MEAL.dinner || {}, room, isAnaph);
+  const lunchRoute = routeResident(tags, doorTodayMealFlags('lunch'), room, isAnaph);
+  const dinnerRoute = routeResident(tags, doorTodayMealFlags('dinner'), room, isAnaph);
 
   const lunchName = (MEAL_DATA.lunch || {}).name || MEAL.lunch?.name || 'Lunch';
   const dinnerName = (MEAL_DATA.dinner || {}).name || MEAL.dinner?.name || 'Dinner';
@@ -8788,7 +8834,7 @@ function saveChangeEdit() {
   const isAnaph = document.getElementById('ce-anaph').checked;
   if (isAnaph && !tagLabels.includes('Anaphylactic')) tagLabels.push('Anaphylactic');
   const notes = document.getElementById('ce-notes').value.trim();
-  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, c.room, isAnaph);
+  const route = routeResident(tags, doorTodayMealFlags('lunch'), c.room, isAnaph);
 
   c.tags = tags;
   c.tagLabels = tagLabels;
@@ -8809,7 +8855,7 @@ function saveRegistryEdit() {
   const tagLabels = getTagLabels(tags);
   const isAnaph = document.getElementById('ce-anaph').checked;
   const notes = document.getElementById('ce-notes').value.trim();
-  const route = routeResident(tags, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, ceRoom, isAnaph);
+  const route = routeResident(tags, doorTodayMealFlags('lunch'), ceRoom, isAnaph);
 
   // v30: Snapshot before mutation
   pushResidentHistory(r, 'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, getOperatorName());
@@ -12573,46 +12619,41 @@ function buildRoutingByMealJSON() {
       result[wk][day] = {};
 
       ['breakfast','lunch','dinner'].forEach(period => {
-        const mealFlags = dayData[period+'_flags'] || emptyFlags;
+        // The section counts come from the plating engine, as the sheets do (2026-10-18, Jason: "Follow plating"):
+        // these counts read raw meal flags, so on the three pork days with alternative meals they merged the two Soft
+        // Meals residents into Halal (Halal 56 / Soft 0) while the sheet kept their soft plate (54 / 2), and a swap or
+        // special meal never reached them. Only a meal the plating engine can't read (no meal, or an error) falls back.
+        let pd = null, pdError = null;
+        try { pd = computePlatingData(period, wk, day); } catch (e) { pdError = e; }
 
-        // Anaphylactic pre-processing: separate conflict rooms from routing pool
-        // Per-period check (same as plating sheet logic)
-        const conflictRooms = getAnaphConflictRooms(mealFlags, emptyFlags);
-        const routingRegistry = [];
-        let anaphCount = 0;
-        REGISTRY_LIST.forEach(r => {
-          if (conflictRooms.has(r.room)) {
-            anaphCount++;
-          } else {
-            routingRegistry.push(r);
-          }
-        });
-
-        // Run routing engine on non-anaphylactic pool
-        const sections = computeSections(mealFlags, routingRegistry);
         const counts = {};
-        sections.forEach(s => {
-          if (s.residents.length > 0 || s.rule.key === 'regular') {
-            counts[s.rule.label] = s.residents.length;
-          }
-        });
-        if (anaphCount > 0) {
-          counts['Anaphylactic Alternative'] = anaphCount;
+        if (pd) {
+          pd.sections.forEach(s => {
+            if (s.residents.length > 0 || s.rule.key === 'regular') counts[s.rule.label] = s.residents.length;
+          });
+          if (pd.anaphSect.length > 0) counts['Anaphylactic Alternative'] = pd.anaphSect.length;
+        } else {
+          const mealFlags = dayData[period+'_flags'] || emptyFlags;
+          // Anaphylactic pre-processing: separate conflict rooms from routing pool, per period.
+          const conflictRooms = getAnaphConflictRooms(mealFlags, emptyFlags);
+          const routingRegistry = REGISTRY_LIST.filter(r => !conflictRooms.has(r.room));
+          const anaphCount = REGISTRY_LIST.length - routingRegistry.length;
+          computeSections(mealFlags, routingRegistry).forEach(s => {
+            if (s.residents.length > 0 || s.rule.key === 'regular') counts[s.rule.label] = s.residents.length;
+          });
+          if (anaphCount > 0) counts['Anaphylactic Alternative'] = anaphCount;
         }
 
         result[wk][day][period] = counts;
 
         // v32: per-component portion counts — same engine as the plating
-        // sheets (computePlatingData applies the smart flag defaults the
-        // legacy counts above deliberately don't, so the two can differ;
-        // the plating engine is the authority for what each section eats).
-        // Each section's resolved meal string is comma-split into
+        // sheets. Each section's resolved meal string is comma-split into
         // components; a component's count is the sum of residents across
         // all sections that receive it. Consumed by HUB to deep-link
         // CODEX recipes pre-scaled (&portions=N). Additive — never blocks
-        // or alters the existing section counts.
+        // or alters the section counts.
         try {
-          const pd = computePlatingData(period, wk, day);
+          if (pdError) throw pdError;
           if (pd) {
             const comp = {};
             const compKey = {}; // lowercase -> canonical casing (menu strings
@@ -14857,6 +14898,9 @@ function initDynamic() {
 
   // Meal context panel
   renderTodayMealContext();
+
+  // Today's sections from the plating engine, now that it is ready (computeBaseSections, 2026-10-18).
+  try { BASE_SECTIONS.splice(0, BASE_SECTIONS.length, ...computeBaseSections()); } catch (e) { console.warn('[DOOR] base sections', e); }
 }
 
 // Re-renders the "Today's Meal Context" card on the Enter Changes screen.
@@ -14940,7 +14984,12 @@ function renderTodayMealContext() {
 
 // Recompute BASE_SECTIONS from real registry using routing engine
 function computeBaseSections() {
-  const conflictRooms = getAnaphConflictRooms(MEAL_DATA.lunch, MEAL_DATA.dinner);
+  // Today's lunch, seated as its plating sheet seats it (2026-10-18, Jason: "Per meal everywhere"). It contained a room
+  // for lunch when the allergen was at dinner. At first load the plating engine isn't ready, so it reads lunch's own
+  // flags; initDynamic() refreshes it from the engine.
+  let pd = null;
+  try { pd = computePlatingData('lunch', MEAL_DATA.week, MEAL_DATA.day); } catch (e) { pd = null; }
+  const conflictRooms = pd ? pd.conflictRooms : getAnaphConflictRooms(MEAL_DATA.lunch, {});
   const routingRegistry = REGISTRY_LIST.filter(r => !conflictRooms.has(r.room));
   const anaphCount = REGISTRY_LIST.length - routingRegistry.length;
 
@@ -14950,7 +14999,7 @@ function computeBaseSections() {
     no_fish:'#0ea5e9', no_beef:'#b45309', regular:'#1a1a1a'
   };
 
-  const sections = computeSections(MEAL_DATA.lunch, routingRegistry);
+  const sections = pd ? pd.sections : computeSections({ ...MEAL_DATA.lunch }, routingRegistry);
   const result = [];
 
   if (anaphCount > 0) {
@@ -14958,7 +15007,7 @@ function computeBaseSections() {
   }
 
   sections.forEach(s => {
-    const ctx = {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', noPorkAlt: MEAL_DATA.lunch.noPorkAlt || '', mainAlt: MEAL_DATA.lunch.mainAlt || '', sides: MEAL_DATA.lunch.sides || '', mealFlags: MEAL_DATA.lunch};
+    const ctx = pd ? pd.ctx : {mealName: MEAL_DATA.lunch.name, mealVeg: MEAL_DATA.lunch.veg || 'Vegan/Veg alternative', softAlt: MEAL_DATA.lunch.softAlt || '', noPorkAlt: MEAL_DATA.lunch.noPorkAlt || '', mainAlt: MEAL_DATA.lunch.mainAlt || '', sides: MEAL_DATA.lunch.sides || '', mealFlags: MEAL_DATA.lunch};
     result.push({
       name: s.rule.label,
       count: s.residents.length,
@@ -15744,43 +15793,87 @@ function nextDateForSlot(week, dayName) {
   for (let i = 0; i < 28; i++) {
     const d = new Date(today); d.setDate(today.getDate() + i);
     if (d.getDay() !== targetDayIdx) continue;
-    const md = getMealForDate(d);
-    if (md.week === week) return d;
+    if (doorRotationWeekOf(d) === Number(week)) return d;
   }
   return null; // shouldn't happen on a 4-week rotation
+}
+
+// The rotation week (1–4) a date falls in. Weeks change on Sunday; the week of Apr 2, 2026 (Sunday Mar 29) is week 3.
+// getMealForDate and nextDateForSlot share it (nextDateForSlot read the whole menu once per day it scanned).
+function doorRotationWeekOf(date) {
+  const refSunday = getSundayStart(new Date(2026, 3, 2));
+  const diffWeeks = Math.round((getSundayStart(date) - refSunday) / (1000 * 60 * 60 * 24 * 7));
+  return ((3 - 1 + diffWeeks) % 4 + 4) % 4 + 1;
+}
+
+// A date's key in the swap and special-meal stores: its calendar day where the kitchen is (2026-10-18). The stores
+// write each key from a local date, but getMealForDate read it from the UTC date, so after 8 pm in Toronto today's
+// meals took tomorrow's swap.
+function doorDateKey(date) {
+  const d = new Date(date);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// A swap's or special meal's flags: _flagsRaw when it has them, else its ticked boxes. Every box the Special Meal grid
+// offers is read (2026-10-18): the list read nine, so a special meal ticked Soy, Sesame, Tree Nuts, Mustard or Sulphites
+// carried none of them. Older records' Crustaceans / Molluscs / Wheat boxes set keys nothing reads; they count as
+// Shellfish and Gluten. Kept in step with SM_ALLERGENS by its gate. (getMealForDate's resolveFlags until 2026-10-18.)
+function doorDatedMealFlags(entry) {
+  if (entry._flagsRaw) return {...entry._flagsRaw};
+  const f = {};
+  const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasShellfish','hasEgg','hasPeanuts','hasTreeNuts',
+    'hasSoy','hasSesame','hasMustard','hasSulphites','isSpicy','isCarb'];
+  const LEGACY = { hasCrustacean: 'hasShellfish', hasMollusc: 'hasShellfish', hasWheat: 'hasGluten' };
+  const listed = (entry.allergens || []).map(k => LEGACY[k] || k);
+  keys.forEach(k => { f[k] = listed.includes(k); });
+  return f;
+}
+
+// The swap or special meal served at a rotation slot's next service (2026-10-18, Jason: "Yes, and the routing file
+// too"). Only today's views read swaps and special meals, so on Nov 3 (a Halal Beef Burger swapped for Wk2 TUE's tuna
+// sandwich) the plating sheet would have seated No Beef residents on Regular. A special meal wins over a swap, as in
+// getMealForDate; lunch and dinner only, as the stores hold. Returns null, or { kind, date, name, entry }.
+function doorDatedMealFor(week, dayName, period) {
+  if (period !== 'lunch' && period !== 'dinner') return null;
+  const d = nextDateForSlot(Number(week), dayName);
+  if (!d) return null;
+  const key = doorDateKey(d) + '-' + period;
+  const sm = (typeof loadSpecialMeals === 'function' ? loadSpecialMeals() : {})[key];
+  const sw = (typeof loadMealSwaps === 'function' ? loadMealSwaps() : {})[key];
+  const entry = sm || sw;
+  if (!entry || !entry.specialName) return null;
+  return { kind: sm ? 'special' : 'swap', date: key.slice(0, 10), name: entry.specialName, entry };
+}
+
+// A copy of a rotation day with one meal replaced by its swap or special meal: the name, the vegan line and the flags.
+// The rotation meal's halal, soft, no-pork and gluten-free alternatives, its parts and its slots belong to another
+// dish, so they don't carry over.
+function doorApplyDatedMeal(dayData, period, dated) {
+  const d = { ...(dayData || {}) };
+  ['_mainItem', '_mainAlt', '_sides', '_halal', '_softAlt', '_noPorkAlt', '_gfAlt', '_altMeals', '_altMealsNone', '_slots']
+    .forEach(k => { delete d[period + k]; });
+  delete d['allergens_' + period];
+  d[period] = dated.name;
+  d[period + '_veg'] = dated.entry.veg || '';
+  d[period + '_flags'] = doorDatedMealFlags(dated.entry);
+  return d;
 }
 
 function getMealForDate(date) {
   const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
   const dayName = DAYS[date.getDay()];
   // Snap to Sunday boundaries so week changes on Sunday not mid-week
-  const refSunday = getSundayStart(new Date(2026, 3, 2)); // Sunday of Apr 2's week = Mar 29
-  const dateSunday = getSundayStart(date);
-  const refWeek = 3;
-  const diffWeeks = Math.round((dateSunday - refSunday) / (1000 * 60 * 60 * 24 * 7));
-  let weekNum = ((refWeek - 1 + diffWeeks) % 4 + 4) % 4 + 1;
+  let weekNum = doorRotationWeekOf(date);
   const _menuData = getMenuData();
   const wkData = _menuData[String(weekNum)] || _menuData['3'];
   const dayData = wkData[dayName] || wkData['SUNDAY'] || {};
 
   // Check special meals first (date-keyed overrides — celebrations/events)
-  const dateStr = date.toISOString().slice(0,10);
+  const dateStr = doorDateKey(date);
   const smAll = typeof loadSpecialMeals !== 'undefined' ? loadSpecialMeals() : {};
-  // Build flags from allergens array or _flagsRaw. Avoids SM_ALLERGENS const
+  // Build flags from allergens array or _flagsRaw (doorDatedMealFlags). Avoids SM_ALLERGENS const
   // which may be in temporal dead zone during initial MEAL_DATA assignment.
-  // Every box the Special Meal grid offers is read (2026-10-18): this list read nine, so a special meal ticked Soy,
-  // Sesame, Tree Nuts, Mustard or Sulphites carried none of them. Older records' Crustaceans / Molluscs / Wheat boxes
-  // set keys nothing reads; they count as Shellfish and Gluten. Kept in step with SM_ALLERGENS by its gate.
-  function resolveFlags(entry) {
-    if (entry._flagsRaw) return {...entry._flagsRaw};
-    const f = {};
-    const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasShellfish','hasEgg','hasPeanuts','hasTreeNuts',
-      'hasSoy','hasSesame','hasMustard','hasSulphites','isSpicy','isCarb'];
-    const LEGACY = { hasCrustacean: 'hasShellfish', hasMollusc: 'hasShellfish', hasWheat: 'hasGluten' };
-    const listed = (entry.allergens || []).map(k => LEGACY[k] || k);
-    keys.forEach(k => { f[k] = listed.includes(k); });
-    return f;
-  }
+  function resolveFlags(entry) { return doorDatedMealFlags(entry); }
   const smLunch = smAll[dateStr+'-lunch'];
   const smDinner = smAll[dateStr+'-dinner'];
 
@@ -21047,7 +21140,7 @@ function commitImportToQueue() {
     // Skip if already in queue
     if (changesQueue.find(c => c.room.toLowerCase() === r.room.toLowerCase())) { skipped++; return; }
     const tagLabels = importTagLabels(r.newTags);
-    const route = routeResident(r.newTags, MEAL.lunch, r.room, false);
+    const route = routeResident(r.newTags, doorTodayMealFlags('lunch'), r.room, false);
     changesQueue.push({
       room: r.room, type: 'intake', tags: r.newTags, tagLabels, route, notes: 'From daily list import',
       isAnaph: false, isModerate: false, moderateNote: '', hadSection: null
@@ -21078,7 +21171,7 @@ function commitImportToQueue() {
       if (u.newTags[k]) resultTags[k] = true; else delete resultTags[k];
     });
     const tagLabels = importTagLabels(resultTags);
-    const route = routeResident(resultTags, MEAL.lunch, u.room, false);
+    const route = routeResident(resultTags, doorTodayMealFlags('lunch'), u.room, false);
     const existing = REGISTRY_MAP[u.room.toLowerCase()];
     changesQueue.push({
       room: u.room, type: 'update', tags: resultTags, tagLabels, route, notes: 'From daily list import',
@@ -21094,7 +21187,7 @@ function commitImportToQueue() {
     rx.pairs.forEach(p => {
       if (changesQueue.find(q => q.room.toLowerCase() === p.to.toLowerCase() || q.room.toLowerCase() === p.from.toLowerCase())) { skipped++; return; }
       const tagLabels = importTagLabels(p.newTags);
-      const route = routeResident(p.newTags, MEAL.lunch, p.to, false);
+      const route = routeResident(p.newTags, doorTodayMealFlags('lunch'), p.to, false);
       changesQueue.push({
         room: p.to, fromRoom: p.from, type: 'reassign',
         tags: p.newTags, tagLabels, route,
@@ -21107,7 +21200,7 @@ function commitImportToQueue() {
     rx.extraIntakes.forEach(r => {
       if (changesQueue.find(q => q.room.toLowerCase() === r.room.toLowerCase())) { skipped++; return; }
       const tagLabels = importTagLabels(r.newTags);
-      const route = routeResident(r.newTags, MEAL.lunch, r.room, false);
+      const route = routeResident(r.newTags, doorTodayMealFlags('lunch'), r.room, false);
       changesQueue.push({
         room: r.room, type: 'intake', tags: r.newTags, tagLabels, route, notes: 'From daily list import (room split)',
         isAnaph: false, isModerate: false, moderateNote: '', hadSection: null
@@ -21144,7 +21237,7 @@ function commitImportToQueue() {
     });
     const resultTags = { ...baseTags, ...u.newTags };
     changesQueue.push({ room:u.room, type:'update', tags:resultTags,
-      tagLabels:importTagLabels(resultTags), route:routeResident(resultTags,MEAL.lunch,u.room,false),
+      tagLabels:importTagLabels(resultTags), route:routeResident(resultTags, doorTodayMealFlags('lunch'),u.room,false),
       notes:'Auto-applied modifier tags from import (' + addedKeys.map(k=>TAG_LABELS_MAP[k]||k).join(', ') + ')',
       isAnaph:false, isModerate:false, moderateNote:'', hadSection:existing_r.section });
     pushed++;
@@ -21169,7 +21262,7 @@ function commitImportToQueue() {
       });
       const resultTags = { ...baseTags, ...(res.tags||{}) };
       const tagLabels = importTagLabels(resultTags);
-      const route = routeResident(resultTags, MEAL.lunch, room, false);
+      const route = routeResident(resultTags, doorTodayMealFlags('lunch'), room, false);
       changesQueue.push({ room, type:'update', tags:resultTags, tagLabels, route,
         notes:'Resolved from import review', serviceNote:(res.serviceNotes||[]).join('; '),
         isAnaph:false, isModerate:false, moderateNote:'', hadSection:existing_r?existing_r.section:null });
@@ -21601,7 +21694,7 @@ function addToIntakeQueue() {
   const tagLabels = getTagLabels(tags);
   const isAnaph = document.getElementById('anaph-toggle').classList.contains('active');
   const notes = document.getElementById('change-notes').value.trim();
-  const route = routeResident(checkedBoxes, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, room, isAnaph);
+  const route = routeResident(checkedBoxes, doorTodayMealFlags('lunch'), room, isAnaph);
 
   const existing = REGISTRY_MAP[room.toLowerCase()];
   const isOverwrite = type === 'intake' && existing;
@@ -21811,7 +21904,7 @@ async function saveDirectFromForm() {
   const tagLabels = getTagLabels(tags);
   const isAnaph = document.getElementById('anaph-toggle').classList.contains('active');
   const notes = document.getElementById('change-notes').value.trim();
-  const route = routeResident(checkedBoxes, typeof MEAL !== 'undefined' ? MEAL.lunch : {}, room, isAnaph);
+  const route = routeResident(checkedBoxes, doorTodayMealFlags('lunch'), room, isAnaph);
 
   const existing = REGISTRY_MAP[room.toLowerCase()];
 
@@ -21916,7 +22009,10 @@ const A = { // alignment presets
 function computePlatingData(period, weekNum, dayName) {
   const dayLabel = dayName.charAt(0) + dayName.slice(1).toLowerCase();
   const wkData = getMenuData()[String(weekNum)];
-  const dayData = wkData ? wkData[dayName] : null;
+  // The slot's next service may be a swap or a special meal (2026-10-18, Jason: "Yes, and the routing file too"): the
+  // sheet routes that meal, and says so (pd.dated).
+  const dated = doorDatedMealFor(weekNum, dayName, period);
+  const dayData = wkData && dated ? doorApplyDatedMeal(wkData[dayName], period, dated) : (wkData ? wkData[dayName] : null);
   if (!dayData || !dayData[period]) return null;
 
   const mealMainItem  = dayData[period+'_mainItem'] || '';
@@ -21962,7 +22058,8 @@ function computePlatingData(period, weekNum, dayName) {
   if (!mealFlags.hasTurkey && /\bturkey\b/.test(_mealLowerForDetect)) mealFlags.hasTurkey = true;
 
   // Allergen string — flags-first, fallback to hardcoded
-  const menuEdit = typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
+  // An operator's vegan-line statement belongs to the rotation meal's vegan line, not a swap's.
+  const menuEdit = !dated && typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
   const flagBasedAllergens = flagsToAllergenStr(mealFlags);
   const allergenStr = flagBasedAllergens
     ? flagBasedAllergens.toUpperCase()
@@ -22048,8 +22145,16 @@ function computePlatingData(period, weekNum, dayName) {
   return {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
     allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
-    regCount, halalCount, veganCount, diabCount, ctx, sortR, regularNotes
+    regCount, halalCount, veganCount, diabCount, ctx, sortR, regularNotes, dated
   };
+}
+
+// The line a plating sheet prints when the meal is a swap or a special meal for a date (2026-10-18).
+function doorDatedMealLine(dated) {
+  if (!dated) return '';
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const [, m, d] = String(dated.date).split('-').map(Number);
+  return (dated.kind === 'special' ? 'Special meal' : 'Swap') + ' for ' + MONTHS[m - 1] + ' ' + d + ' \u2014 replaces the rotation meal';
 }
 
 function buildDaySheet(period, weekNum, dayName, providedPd) {
@@ -22102,6 +22207,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   // Title
   addMerged(dayLabel+' '+periodLabel, F.stdB, 'FFFF00', B.thin, 16);
   addMerged(mealName, F.stdB, 'FCE4D6', B.thin, 16);
+  if (pd.dated) addMerged(doorDatedMealLine(pd.dated), F.stdB, 'FFF2CC', B.thin, 14);
   addMerged('CONTAINS: '+(allergenStr||'\u2014'), F.redB, 'FCE4D6', B.thin, 14);
 
   // Stats
@@ -22880,6 +22986,7 @@ function buildPlatingHtml(pd, isTest) {
   const titlePrefix = isTest ? 'TEST MEAL' : dayLabel + ' ' + periodLabel;
   h += `<tr><td colspan="3" class="ps-title">${escapeHtml(titlePrefix)}</td></tr>`;
   h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(mealName)}</td></tr>`;
+  if (pd.dated) h += `<tr><td colspan="3" class="ps-meal ps-dated" style="background:#FFF2CC;">${escapeHtml(doorDatedMealLine(pd.dated))}</td></tr>`;
   h += `<tr><td colspan="3" class="ps-allergen">CONTAINS: ${escapeHtml(allergenStr||'—')}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Total Meals</td><td class="ps-total-val">${REGISTRY_LIST.length}</td></tr>`;
   h += `<tr><td></td><td class="ps-total">Standard Meal</td><td class="ps-total-val">${regCount}</td></tr>`;
