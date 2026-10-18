@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-10-18T07:29:09.097Z",
+    "exported": "2026-10-18T12:00:04.426Z",
     "version": 32
   },
   "menu": {
@@ -491,7 +491,7 @@
           "hasBeef": false,
           "hasChicken": true,
           "hasTurkey": false,
-          "isSpicy": false,
+          "isSpicy": true,
           "isCarb": true,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
@@ -526,7 +526,7 @@
               "hasFish": false,
               "hasEgg": false,
               "hasPeanuts": false,
-              "isSpicy": false,
+              "isSpicy": true,
               "isCarb": true,
               "hasCoconut": false,
               "hasMushroom": false,
@@ -4021,7 +4021,7 @@
         "lunch_mainItem": "Beef Nachos Supreme",
         "lunch_sides": "Tortillas, Sour Cream",
         "lunch_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
@@ -4149,7 +4149,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "dairy, beef",
+        "allergens_lunch": "gluten, dairy, beef",
         "allergens_dinner": "gluten, fish",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -4160,7 +4160,7 @@
           "main": {
             "recipeName": "Beef Nacho Mix",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": true,
               "hasEgg": false,
               "hasFish": false,
@@ -4800,7 +4800,7 @@
           "isSpicy": false,
           "isCarb": false,
           "halalCertifiedMeat": false,
-          "hasProcessedMeat": false,
+          "hasProcessedMeat": true,
           "hasBeans": false,
           "hasMushroom": false,
           "hasCoconut": false,
@@ -4821,7 +4821,8 @@
             "flags": {
               "hasGluten": true,
               "hasDairy": true,
-              "hasPork": true
+              "hasPork": true,
+              "hasProcessedMeat": true
             }
           },
           "mainalt": {

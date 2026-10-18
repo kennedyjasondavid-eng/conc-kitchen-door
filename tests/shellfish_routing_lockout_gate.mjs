@@ -63,7 +63,9 @@ test('a shrimp-only meal opens the No Fish / Shellfish section: No Shellfish and
   assert.equal(seatOf(c, meal, ROSTER, '201'), 'vegan', 'No Shellfish (merged into the vegan section, as on a fish meal)');
   assert.equal(seatOf(c, meal, ROSTER, '202'), 'vegan', 'No Fish, as a fish meal seats No Shellfish');
   assert.equal(seatOf(c, meal, ROSTER, '204'), 'vegan', 'the first matching section wins, as before');
-  assert.equal(seatOf(c, meal, ROSTER, '203'), 'regular', 'No Molluscs is not a routing tag (warned, not routed)');
+  // Re-pinned 2026-10-18 (Jason: "No Molluscs routes like Shellfish"; the routing audit, routing_oracle_gate): it was warned
+  // and contained but kept the regular plate. It now routes as No Shellfish does.
+  assert.equal(seatOf(c, meal, ROSTER, '203'), 'vegan', 'No Molluscs routes like No Shellfish');
   assert.equal(seatOf(c, meal, ROSTER, '101'), 'regular');
   assert.equal(seatOf(c, meal, ROSTER, '206'), 'regular', 'nothing else opens');
 });

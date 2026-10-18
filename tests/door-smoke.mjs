@@ -856,6 +856,9 @@ test('change editor route preview renders synced meal names safely', () => {
     },
     MEAL: {},
     getCETags() { return []; },
+    // Re-pinned 2026-10-18 (the routing audit, "Per meal everywhere"): the preview routes today's lunch and dinner as
+    // the plating sheet reads them (doorTodayMealFlags).
+    doorTodayMealFlags() { return {}; },
     routeResident() { return payload + ' Route'; }
   };
   vm.createContext(context);
