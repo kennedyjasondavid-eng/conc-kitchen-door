@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.35'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.36'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,13 +53,33 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — the swap work's independent review, folded (`v31-standard.35`)
-PR #128 merged (`510d25f`, `v31-standard.34`) before the review's fixes reached it, so they ship here as their own build. The entry below is the swap work.
+## Recent (2026-10-18) — the swap work's independent review, folded (`v31-standard.36`)
+PR #128 merged (`510d25f`, `v31-standard.34`) before the review's fixes reached it, so they ship here as their own build. It took `.36`: PR #129 (the entry below) took `.35` first. The swap work itself is two entries down.
 **Fixed:**
 - **P1:** a computer that published before it synced sent its own, shorter revert list (and the swap) back. The full publish now merges the kitchen's swaps, special meals and both lists first (`preMergeSwapsWithCloud`, Contents API; a missing file is empty, an unreadable one is skipped), and the quiet send after a revert reads the kitchen's list first.
 - **P2:** a removed special meal came back the same way. Removals keep the same kind of list (`doorMakeRevertList` makes both: `REMOVED_SPECIAL_KEYS`, published as `special_meals_removed.json`); saving the meal again takes the removal off; a past special meal stays until Clear expired.
 - **P2:** a slot swap's half on the slot's second date was missed by the slot's Revert, Make permanent and the Edit Menu save, which read the next date only. They clear every upcoming swap of the slot (`doorSwapKeysForSlot`, by `_rotationSlot`).
-- **Gate:** `tests/swap_revert_reaches_gate.mjs` 7 → 10 (4b publish before sync, 4c special-meal removals, 4d a slot's swaps by slot). Re-pinned: `door-smoke` (the publish merges first; + `special_meals_removed.json`), `publish_menu_ask_gate` 6 (Remove records the removal). Suite 452 → 455. `special_meals_removed.json` starts empty.
+- **Gate:** `tests/swap_revert_reaches_gate.mjs` 7 → 10 (4b publish before sync, 4c special-meal removals, 4d a slot's swaps by slot). Re-pinned: `door-smoke` (the publish merges first; + `special_meals_removed.json`), `publish_menu_ask_gate` 6 (Remove records the removal), `vegan_friendly_gate` (the stamp is `.35` or later). Suite 452 → 455; 464 with PR #129 merged in. `special_meals_removed.json` starts empty.
+
+## Recent (2026-10-18) — a vegan-friendly main is a vegan option (`v31-standard.35`, merged via PR #129, `538a4a4`)
+CODEX C8 (creation audit K4; Jason, 2026-10-17: "split the two meanings"). CODEX now works out from each recipe's ingredients whether it is **vegan-friendly** and publishes the answer beside the line, as `veganFriendly`, in `DOOR_RECIPE_DATA.json` and in each shared-Library record's `door` block. The values are `true`, `false`, or `null` while a bought item waits on its label. The line (`stream`) keeps meaning the line a recipe is made for, so EXPO's board can't move (EXPO copies CODEX fields by name and never reads this one).
+- **What DOOR reads:** Edit Menu's **Vegan Alt** slot (`recipeMatchesSlotDef`) offers the vegan line's recipes, as before, plus any main CODEX marks `veganFriendly: true`. No other slot changes. The vegan plate's allergen guess (`getVegAltAllergenStr`) still reads only the vegan line.
+- **Measured against CODEX's feed:** 127 recipes are true, 98 false and 15 null. The Vegan Alt slot gains exactly one recipe, Red Red Bean Stew; the other vegan-friendly mains are already on the vegan line, where CODEX's projection puts its vegan proteins. Since the review fold, Jamcaican Patty Dough leaves it (below).
+- **The shared Library:** `doorSharedDoorRecord` carries the flag from the `door` block when it is true, false or null. A record saved before the flag carries none. It replaces the CODEX record whole, so the CODEX list's value never survives under ingredients it wasn't worked out from; the recipe falls back to its line. A different flag counts as a change in the overlay receipt. The 13 records shared on Oct 7/10 predate the flag, so they read by their line until their next save.
+- **Offline:** the baked fallback list carries no flag, so DOOR behaves as before.
+- **Vegan-plate harness** (`door_vegalt_safety_gate`, CODEX side, against this feed): 0 `_vegAltSafe` transitions, 0 vegan "contains" changes, anchor 84/84.
+- **Independent review (2026-10-18), folded.** One rule, `doorNamesAnimalFamily` (in the shared-recipes core): a list that names Milk, Dairy, Eggs, Fish, Shellfish, Crustaceans or Molluscs is never vegan-friendly ("Egg and Mustard" counts as two).
+  - **P1:** Option C kept a Milk label that a shorter, unconfirmed shared copy left out, but the record still took that copy's `veganFriendly: true`, and the Vegan Alt slot offered it. The overlay now clears the flag when a kept label names an animal family (receipt `notVeganFriendly`, logged).
+  - **P2:** the Vegan Alt slot offered vegan-line records whose own list names Milk. It now never offers a recipe whose list names an animal family, whatever its line or flag. Today that is only Jamcaican Patty Dough (lists Milk), and no menu slot links it. The regular slots are untouched.
+- **Gate:** `tests/vegan_friendly_gate.mjs` (9), authored red 1/6 on `8c4c734`; the version stamp moved to `.35` when PR #128 took `.34` first; the review fold's checks are red 4/9 on `65dd2ab`. It covers:
+  - the slot rule, and the slots that don't change;
+  - the overlay: the field is carried, a pre-flag record carries none, and a different flag is a change;
+  - where DOOR reads the field;
+  - the census against CODEX's checked-in feed: Vegan Alt gains Red Red Bean Stew and loses Jamcaican Patty Dough (skips without the sibling repo);
+  - the animal-family rule, compounds included, and Option C with the flag, both ways.
+
+  Suite 445 → 454; 461 with PR #128 merged in.
+- **Cross-repo pair:** the producer is conc-recipe-hub C8 (gate `tests/vegan_friendly_c8_gate.mjs`, X2/X3 read this code). Merge this one first. Before it lands, DOOR ignores the new field, so neither order breaks anything.
 
 ## Recent (2026-10-18) — a swap revert reaches every DOOR computer; a slot swap's halves land together; the Nov 3 swap is removed (`v31-standard.34`, merged via PR #128, `510d25f`)
 Jason, 2026-10-18, on DOOR's only swap (Nov 3 lunch: Halal Beef Burger in Wk2 TUE's slot): "Remove it"; on how it happened: "Fix in DOOR". Found while scoping the EXPO swap work ("Do the EXPO swap work here").
@@ -240,7 +260,7 @@ Their only Gluten came from that label: none had slots before the link. Each los
 - **Kept on purpose:** the falafel sandwiches (bread), White Chilli Pasta Casserole (pasta) and Vegan Arroz con Pollo (an Edit Menu tag set before it was linked) keep Gluten.
 - **Plates against the v22 CODEX feed** (real DOOR, published menu and overlay): Wk2 MON dinner and Wk2 TUE dinner lose GLUTEN/WHEAT. Wk3 TUE dinner keeps WHEAT from the regular meal's tick (naan). 0 `_vegAltSafe` changes.
 - **Order doesn't matter:** against today's v21 feed the plates keep Gluten through the recipe lookup, so this never drops a warning before CODEX v22 is on Pages.
-- **Caribbean Stew's shared copy:** the shared Library still lists "Gluten (Bouillon)" for Caribbean Stew (Bloor, Oct 7), and DOOR lays it over the feed. That dish's own Gluten stays until one shared save from CODEX.
+- **Caribbean Stew's shared copy:** ~~the shared Library still lists "Gluten (Bouillon)" for Caribbean Stew (Bloor, Oct 7), and DOOR lays it over the feed.~~ Fixed 2026-10-18 (Jason: "Write to shared library on Caribbean stew"): one shared save without it, the Gluten removal stamped (`shared-library` `129e8f7`), so DOOR's overlay drops it.
 - **Gate:** `tests/bouillon_gluten_slots_gate.mjs` (3), authored red 1/3 on `910fb7c`. The feed check skips against a CODEX feed older than v22. Suite 353 → 356.
 
 ## Recent (2026-10-17) — the vegan plate reads the dishes set on the vegan line; 47 vegan dishes linked or tagged (`v31-standard.29`)
