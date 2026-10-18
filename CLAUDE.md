@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.36'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.37'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,27 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-18) — room 813: a discharge asks before the room leaves the anaphylactic list; list and resident changes reach the other computer (`v31-standard.37`)
+Jason, 2026-10-18: "what is up with 813", then "Ask once at Generate", "Yes, in the same PR" and "After the fix, in DOOR".
+- **What happened to 813:**
+  - Apr 23 – Sep 11: the resident in 813 was lactose-free, no wheat, no shellfish. They were marked anaphylactic on Apr 30, with shellfish contained.
+  - Sep 11: the roster catch-up import discharged them. An import's discharge (`applyQueueToRegistry`) took the resident off but left the room on the anaphylactic list. Only the one-room Discharge took the room off.
+  - Sep 17: a Regular resident moved in (Joan Wandera's intake). The room was still listed, so since `.31` they read red "ANAPHYLACTIC" with nothing recorded to contain. The Oct 19 meal list still says Regular.
+  - The other three listed rooms (213, 607a, 1213) still hold their own residents.
+- **A discharge asks** (`doorAskDischargedAnaphRooms`, before the queue is applied in `generateFiles`):
+  - "Room 813 is anaphylactic … Take it off the anaphylactic list too?" The answers are **Take it off the list** or **Keep it on the list**; Escape keeps it.
+  - The answer travels on the queued change (`anaphCleared`), and `applyQueueToRegistry` takes the room off only when answered so.
+  - The Review row says "on the anaphylactic list — Generate asks" (then "comes off" or "stays on"), and the queue tags it ⚠ Anaphylactic.
+  - The one-room Discharge's question now says the room comes off the list too.
+- **List and resident changes reach the other computer.** Adding or removing a room on the anaphylactic list, Enter Changes, the direct save, the Intake Portal and Revert never marked the list as this computer's change (`setRegistryProvenance`). Only Generate, seeding and the one-room Discharge did. So:
+  - a computer whose list was just as new kept its own copy, and its next Generate sent that copy, so an anaphylactic room added on the other computer was gone everywhere, and one taken off came back;
+  - a computer whose list was older than the kitchen's had its change replaced by the kitchen's list before it was sent.
+
+  Now each of them (and Generate) first takes the kitchen's newer list if it has one (`doorTakeNewerKitchenList`: the publish preflight's read side, 6 s, never throws), then applies the change and marks it newest. A kitchen that can't be read leaves the change on this computer's list, as before.
+- **Not changed (found):** notes and the compliance actions (confirm, resolve, deadlines) don't mark the list either, so another computer's Generate can undo them; Undo Generate likewise. Not anaphylactic data, so left for their own slice.
+- **813 itself:** taken off by hand after this ships (Jason: "After the fix, in DOOR"): Anaphylactic List → ✕ on one computer, which now reaches the other.
+- **Gate:** `tests/anaph_list_reaches_gate.mjs` (7), red 7/7 on `main` `57c92b3`. It runs the real list, queue, sync and publish-preflight code for two computers sharing one kitchen file. On `main`, a room added on one computer is gone after the other's Generate, and 813 taken off comes back. Re-pinned with a dated note: `anaph_matrix_gate` (its harness answers the kitchen check). Checked in a real browser at 1280 and 390 px: the Review row, the queue tag, the question, both answers, no page errors. The staff walkthrough is 51/51. Suite 464 → 471.
 
 ## Recent (2026-10-18) — the swap work's independent review, folded (`v31-standard.36`)
 PR #128 merged (`510d25f`, `v31-standard.34`) before the review's fixes reached it, so they ship here as their own build. It took `.36`: PR #129 (the entry below) took `.35` first. The swap work itself is two entries down.
