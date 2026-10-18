@@ -8980,13 +8980,25 @@ function getTagClass(label) {
 // Each tag lists every meal flag that sets it off. Shellfish (2026-10-18, Jason: "follow your lean on routing and
 // lockout"): a CODEX shrimp or mussel recipe ticks hasShellfish, and older menus ticked seafood as Fish, so No
 // Shellfish and No Molluscs are contained on either. No Molluscs had no entry, so ticking it as anaphylactic did nothing.
+// Every other tag the anaphylactic picker offers (populateAnaphTags) contains on its own flag (2026-10-18, Jason: "every
+// tag with a flag"); before, a tick on Tree Nuts, Soy, Sesame, Mustard, Sulphites, Eggs, Coconut, Nightshades or Beef
+// did nothing. No Oats can't: DOOR has no oats flag.
 const ANAPH_TAG_TO_MEAL_FLAG = {
   'No Peanuts': ['hasPeanuts'],
   'No Fish': ['hasFish'],
   'No Shellfish': ['hasFish', 'hasShellfish'],
   'No Molluscs': ['hasFish', 'hasShellfish'],
   'No Dairy': ['hasDairy'],
-  'GF': ['hasGluten']
+  'GF': ['hasGluten'],
+  'No Tree Nuts': ['hasTreeNuts'],
+  'No Soy': ['hasSoy'],
+  'No Sesame': ['hasSesame'],
+  'No Mustard': ['hasMustard'],
+  'No Sulphites': ['hasSulphites'],
+  'No Eggs': ['hasEgg'],
+  'No Coconut': ['hasCoconut'],
+  'No Nightshades': ['hasNightshades'],
+  'No Beef': ['hasBeef']
 };
 // The meal flags that set off an anaphylactic tag ([] for a tag with none).
 function anaphTagMealFlags(tag) { return ANAPH_TAG_TO_MEAL_FLAG[tag] || []; }
@@ -9342,6 +9354,21 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
     }
   }
   return alerts;
+}
+
+// The week-ahead conflict list's red anaphylactic lines for one meal (2026-10-18): one per tag the meal sets off,
+// read the way room lockout reads them (getAnaphDisplayAllergens). Peanuts keeps its own line in the caller.
+function doorAnaphMealLines(meal, residents, rooms) {
+  const byTag = {};
+  (residents || []).filter(r => r.isAnaph || (rooms || []).includes(r.room)).forEach(r => {
+    getAnaphDisplayAllergens(r, meal).forEach(t => {
+      if (t !== 'No Peanuts') (byTag[t] = byTag[t] || []).push(r.room);
+    });
+  });
+  return Object.keys(byTag).map(t => ({
+    type: (t === 'GF' ? 'Gluten' : t.replace(/^No /, '')) + ' — ANAPHYLACTIC',
+    residents: byTag[t].length, rooms: byTag[t].join(', '), severity: 'red'
+  }));
 }
 
 // ============================================================
@@ -14442,9 +14469,6 @@ function runCustomReport() {
 
     // Check next 7 days for conflicts
     const conflicts = [];
-    const flaggedResidents = REGISTRY_LIST.filter(r =>
-      r.tags && (r.tags.includes('No Fish') || r.tags.includes('No Peanuts') || r.isAnaph || r.tags.includes('Gluten Free') || r.tags.includes('No Dairy'))
-    );
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(now4); d.setDate(d.getDate()+i);
@@ -14472,6 +14496,7 @@ function runCustomReport() {
           const anaph = REGISTRY_LIST.filter(r => r.isAnaph);
           if (anaph.length) dayConflicts.push({ type: 'Peanuts — ANAPHYLACTIC', residents: anaph.length, rooms: anaph.map(r=>r.room).join(', '), severity: 'red' });
         }
+        dayConflicts.push(...doorAnaphMealLines(meal, REGISTRY_LIST, anaphRooms));
 
         if (dayConflicts.length) conflicts.push({ date: dateStr, period, meal: meal.name, conflicts: dayConflicts });
       });
@@ -15723,11 +15748,17 @@ function getMealForDate(date) {
   const smAll = typeof loadSpecialMeals !== 'undefined' ? loadSpecialMeals() : {};
   // Build flags from allergens array or _flagsRaw. Avoids SM_ALLERGENS const
   // which may be in temporal dead zone during initial MEAL_DATA assignment.
+  // Every box the Special Meal grid offers is read (2026-10-18): this list read nine, so a special meal ticked Soy,
+  // Sesame, Tree Nuts, Mustard or Sulphites carried none of them. Older records' Crustaceans / Molluscs / Wheat boxes
+  // set keys nothing reads; they count as Shellfish and Gluten. Kept in step with SM_ALLERGENS by its gate.
   function resolveFlags(entry) {
     if (entry._flagsRaw) return {...entry._flagsRaw};
     const f = {};
-    const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasEgg','hasPeanuts','isSpicy','isCarb'];
-    keys.forEach(k => { f[k] = (entry.allergens||[]).includes(k); });
+    const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasShellfish','hasEgg','hasPeanuts','hasTreeNuts',
+      'hasSoy','hasSesame','hasMustard','hasSulphites','isSpicy','isCarb'];
+    const LEGACY = { hasCrustacean: 'hasShellfish', hasMollusc: 'hasShellfish', hasWheat: 'hasGluten' };
+    const listed = (entry.allergens || []).map(k => LEGACY[k] || k);
+    keys.forEach(k => { f[k] = listed.includes(k); });
     return f;
   }
   const smLunch = smAll[dateStr+'-lunch'];
@@ -16044,7 +16075,7 @@ const FLAG_DEFS = [
   // Secondary — behind "+ More"
   {key:'hasSesame',   label:'Sesame',     color:'#f59e0b', primary:false, tip:'Meal contains sesame seeds or sesame oil.'},
   {key:'hasMustard',  label:'Mustard',    color:'#eab308', primary:false, tip:'Meal contains mustard or mustard seeds.'},
-  {key:'hasShellfish',label:'Shellfish',  color:'#06b6d4', primary:false, tip:'Meal contains shellfish or crustaceans.'},
+  {key:'hasShellfish',label:'Shellfish',  color:'#06b6d4', primary:false, tip:'Meal contains shellfish: crustaceans (shrimp, crab, lobster) or molluscs (clams, mussels, oysters, scallops, squid). No Fish / Shellfish residents merge into Vegan section.'},
   {key:'hasSulphites',label:'Sulphites',  color:'#8b5cf6', primary:false, tip:'Meal contains sulphites (wine, vinegar, dried fruit).'},
   {key:'hasPork',     label:'Pork',       color:'#dc2626', primary:false, tip:'Meal contains pork. Activates Halal section.'},
   {key:'hasBeef',     label:'Beef',       color:'#b45309', primary:false, tip:'Meal contains beef. Activates Halal section when meat is not halal-certified.'},
@@ -16094,12 +16125,12 @@ const CONFLICT_MAP = [
   { mealFlag:'hasSulphites',   residentTag:'No Sulphites',      label:'Sulphites',     note:'no sulphites',                       severity:'amber' },
   { mealFlag:'hasBeans',       residentTag:'No Beans',          label:'Beans',         note:'no beans',                           severity:'amber' },
   { mealFlag:'hasMushroom',    residentTag:'No Mushroom',       label:'Mushroom',      note:'no mushroom',                        severity:'amber' },
-  { mealFlag:'hasCoconut',     residentTag:'No Coconut',        label:'Coconut',       note:'no coconut',                         severity:'amber' },
   { mealFlag:'hasNightshades', residentTag:'No Nightshades',    label:'Nightshades',   note:'no tomato/potato/pepper',            severity:'amber' },
   { mealFlag:'hasBrassicas',   residentTag:'No Brassicas',      label:'Brassicas',     note:'no broccoli/cauliflower/cabbage',    severity:'amber' },
   { mealFlag:'hasCorn',        residentTag:'No Corn',           label:'Corn',          note:'no corn',                            severity:'amber' },
   { mealFlag:'hasEgg',         residentTag:'No Eggs',           label:'Egg',           note:'no egg',                             severity:'amber' },
-  { mealFlag:'hasGluten',      residentTag:'Gluten Free',       label:'Gluten',        note:'gluten-free',                        severity:'amber' },
+  // GF is the resident tag ("Gluten Free" is the section's name): this row never matched anyone (2026-10-18).
+  { mealFlag:'hasGluten',      residentTag:'GF',                label:'Gluten',        note:'gluten-free',                        severity:'amber' },
   { mealFlag:'hasDairy',       residentTag:'No Dairy',          label:'Dairy',         note:'dairy-free',                         severity:'amber' },
   { mealFlag:'hasDairy',       residentTag:'Lactose Intolerant',label:'Dairy',         note:'no dairy',                           severity:'amber' },
 ];
@@ -17001,6 +17032,14 @@ const ALLERGEN_FLAG_MAP = {
   'egg':'hasEgg', 'eggs':'hasEgg',
   'fish':'hasFish', 'tuna':'hasFish', 'salmon':'hasFish',
   'shellfish':'hasShellfish', 'shrimp':'hasShellfish', 'crab':'hasShellfish',
+  // the two shellfish families and their foods, as CODEX names them (2026-10-18)
+  'crustacean':'hasShellfish', 'crustaceans':'hasShellfish', 'mollusc':'hasShellfish', 'molluscs':'hasShellfish',
+  'mollusk':'hasShellfish', 'mollusks':'hasShellfish', 'shrimps':'hasShellfish', 'prawn':'hasShellfish',
+  'prawns':'hasShellfish', 'crabs':'hasShellfish', 'lobster':'hasShellfish', 'lobsters':'hasShellfish',
+  'crayfish':'hasShellfish', 'krill':'hasShellfish', 'clam':'hasShellfish', 'clams':'hasShellfish',
+  'mussel':'hasShellfish', 'mussels':'hasShellfish', 'oyster':'hasShellfish', 'oysters':'hasShellfish',
+  'scallop':'hasShellfish', 'scallops':'hasShellfish', 'squid':'hasShellfish', 'calamari':'hasShellfish',
+  'octopus':'hasShellfish',
   'peanut':'hasPeanuts', 'peanuts':'hasPeanuts',
   'soy':'hasSoy', 'soya':'hasSoy', 'tofu':'hasSoy', 'edamame':'hasSoy',
   'sesame':'hasSesame', 'tahini':'hasSesame',
@@ -17061,7 +17100,10 @@ function nameDetectFlags(mealText, flags) {
   if (/\bbeef\b|\bmeatloaf\b|\bstrogonoff\b|\bstroganoff\b|\bmassaman\b|\bcarne\b/.test(m)) flags.hasBeef = true;
   if (/\bchicken\b|\bpollo\b/.test(m)) flags.hasChicken = true;
   if (/\bturkey\b/.test(m)) flags.hasTurkey = true;
-  if (/\bfish\b|\btuna\b|\bsalmon\b|\bbasa\b|yetisse|blackened/.test(m)) flags.hasFish = true;
+  if (/\bfish\b|\btuna\b|\bsalmon\b|\bbasa\b|yetisse|blackened|\bseafood\b/.test(m)) flags.hasFish = true;
+  // Shellfish named in the dish (2026-10-18): nothing read it, so "Shrimp Fried Rice" imported with no Shellfish tick.
+  // Not an oyster mushroom; "seafood" is read as both, the safe direction.
+  if (/\b(shrimps?|prawns?|crabs?|lobsters?|crayfish|scallops?|mussels?|clams?|squid|calamari|octopus|shellfish|seafood)\b|\boysters?\b(?!\s+mushrooms?)/.test(m)) flags.hasShellfish = true;
   if (/\btofu\b|\bsoy\b|\bedamame\b|teriyaki|\bmiso\b/.test(m)) flags.hasSoy = true;
   if (/\bsesame\b|\btahini\b/.test(m)) flags.hasSesame = true;
   if (/\bpeanut/.test(m)) flags.hasPeanuts = true;
@@ -17723,7 +17765,7 @@ try { if (typeof window !== 'undefined') window.__DOOR_UNMAPPED_ALLERGEN_LABELS_
 // Returns { keys:Set<flagKey>, labels:Set<shown label> }.
 // Self-contained (LC index + ignore-set built inline) so the door-smoke harness, which
 // extracts single function blocks, can run it without pulling separate module consts;
-// the 19-key rebuild is bind-time-only, so its cost is irrelevant.
+// rebuilding the small index is bind-time-only, so its cost is irrelevant.
 function _hubAllergenResolve(allergens) {
   const lc = {};
   for (const k in HUB_ALLERGEN_MAP) lc[k.toLowerCase()] = HUB_ALLERGEN_MAP[k];
@@ -19059,11 +19101,15 @@ function exportChangeLogCsv() {
 // ============================================================
 // SPECIAL MEALS
 // ============================================================
+// Every key is a meal flag (2026-10-18). Molluscs, Crustaceans and Wheat set hasMollusc / hasCrustacean / hasWheat,
+// which nothing reads, and a linked shrimp recipe's hasShellfish had no box: one Shellfish box replaces the first two
+// (Fish is fish only), and Gluten already covers wheat. Older records keep their meaning (resolveFlags' LEGACY).
 const SM_ALLERGENS = [
   {key:'hasDairy', label:'Dairy'},
   {key:'hasGluten', label:'Gluten'},
   {key:'hasPork', label:'Pork'},
-  {key:'hasFish', label:'Fish/Shellfish'},
+  {key:'hasFish', label:'Fish'},
+  {key:'hasShellfish', label:'Shellfish'},
   {key:'hasPeanuts', label:'Peanuts'},
   {key:'hasTreeNuts', label:'Tree Nuts'},
   {key:'hasEgg', label:'Egg'},
@@ -19071,12 +19117,30 @@ const SM_ALLERGENS = [
   {key:'hasSesame', label:'Sesame'},
   {key:'hasMustard', label:'Mustard'},
   {key:'hasSulphites', label:'Sulphites'},
-  {key:'hasMollusc', label:'Molluscs'},
-  {key:'hasCrustacean', label:'Crustaceans'},
-  {key:'hasWheat', label:'Wheat'},
   {key:'isSpicy', label:'Spicy'},
   {key:'isCarb', label:'Carb-swap'},
 ];
+
+// The flags a special meal keeps (2026-10-18). The grid shows the priority allergens only, so a linked recipe's
+// coconut, nightshades or chicken never reached the meal: every flag the main-meal slots carry (the slots
+// buildSmUnionFlags reads) travels as _flagsRaw, and the grid's own boxes decide their keys.
+function smMealFlagsRaw(slots, checkedKeys) {
+  const raw = {};
+  ['main','starch','vegside','xtra','extras'].forEach(id => {
+    const s = slots && slots[id];
+    if (s && s.flags) Object.keys(s.flags).forEach(k => { if (s.flags[k]) raw[k] = true; });
+  });
+  SM_ALLERGENS.forEach(a => { raw[a.key] = (checkedKeys || []).includes(a.key); });
+  return raw;
+}
+// Every flag a rotation meal carries (has* / is* and halalCertifiedMeat), for the copy a displaced special meal leaves.
+function doorMealFlagsOf(meal) {
+  const out = {};
+  Object.keys(meal || {}).forEach(k => {
+    if ((/^(has|is)[A-Z]/.test(k) || k === 'halalCertifiedMeat') && typeof meal[k] === 'boolean') out[k] = meal[k];
+  });
+  return out;
+}
 
 // ── SM Slot state (separate namespace from Edit Menu slots) ───
 let SM_SLOT_STATE = {};
@@ -19655,6 +19719,7 @@ function saveSpecialMeal() {
       specialName: origMeal.name || '(rotation meal)',
       veg: origMeal.veg || '',
       allergens: SM_ALLERGENS.filter(a => origMeal[a.key]).map(a => a.key),
+      _flagsRaw: doorMealFlagsOf(origMeal),
       verified: true, linkedRecipes: {},
       notes: 'Displaced from ' + date + ' ' + period + ' by "' + name + '"',
       mode: 'overwrite', createdAt: new Date().toISOString(),
@@ -19666,6 +19731,7 @@ function saveSpecialMeal() {
     specialName: name,
     veg,
     allergens,
+    _flagsRaw: smMealFlagsRaw(SM_SLOT_STATE, allergens),
     verified,
     linkedRecipes,
     notes,

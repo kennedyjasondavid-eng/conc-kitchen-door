@@ -102,7 +102,7 @@ test('on the published menu, overlay and resident list, every meal routes and co
   assert.equal(meals.filter(m => m.lunch.hasShellfish || m.dinner.hasShellfish || m.breakfast.hasShellfish).length, 0,
     'no published meal carries hasShellfish today');
   const now = ctxFor(), was = ctxFor(before);
-  for (const c of [now, was]) c.__set(residents, ['213']);
+  for (const c of [now, was]) c.__set(residents, json('door_state.json').anaphRooms.slice());
   for (const m of meals) {
     for (const p of ['breakfast', 'lunch', 'dinner']) assert.deepEqual(seats(now, m[p], residents), seats(was, m[p], residents), m.where + ' ' + p);
     assert.deepEqual(rooms(now.getAnaphConflictRooms(m.lunch, m.dinner)), rooms(was.getAnaphConflictRooms(m.lunch, m.dinner)), m.where);
@@ -154,10 +154,12 @@ test('the Anaphylactic Alternative and the anaphylactic allergen lists read the 
   assert.deepEqual(out(c.getAnaphDisplayAllergens({ tags: ['GF'], anaphTags: [] })), ['GF'], 'a map-recognized non-"No" label still listed');
 });
 
+// Re-pinned 2026-10-18 (Jason: "every tag with a flag"): No Tree Nuts, No Eggs and No Soy are now contained on their own
+// flags; tests/anaph_every_tag_gate.mjs owns them. The four tags this change leaves alone are checked here.
 test('every other anaphylactic tag is contained exactly as before', () => {
   const now = ctxFor(), was = ctxFor(before);
   const flags = ['hasPeanuts', 'hasFish', 'hasShellfish', 'hasDairy', 'hasGluten', 'hasEgg', 'hasTreeNuts', 'hasSoy'];
-  for (const tag of ['No Peanuts', 'No Fish', 'No Dairy', 'GF', 'No Tree Nuts', 'No Eggs', 'No Soy']) {
+  for (const tag of ['No Peanuts', 'No Fish', 'No Dairy', 'GF']) {
     for (const f of flags) {
       for (const c of [now, was]) c.__set([anaphResident('310b', [tag], []), ...ROOMMATES], []);
       assert.deepEqual(rooms(now.getAnaphConflictRooms({ [f]: true }, {})), rooms(was.getAnaphConflictRooms({ [f]: true }, {})), tag + ' on ' + f);
@@ -174,6 +176,15 @@ test('the plating-sheet note says "no molluscs" to a No Molluscs resident on a s
   assert.deepEqual(notes({ hasShellfish: true }, ['No Molluscs']), ['no molluscs']);
   assert.deepEqual(notes({ hasShellfish: true }, ['No Shellfish']), ['no shellfish'], 'No Shellfish as before');
   assert.deepEqual(notes({ hasFish: true }, ['No Molluscs']), [], 'not on a fish-only meal (the note says what is in the meal)');
+  // 2026-10-18: the table listed No Coconut twice, so the week-ahead list showed "Coconut" twice.
+  const rows = out(vm.runInContext('CONFLICT_MAP', c)).map(r => r.mealFlag + '|' + r.residentTag);
+  assert.deepEqual(rows.filter((r, i) => rows.indexOf(r) !== i), [], 'no row twice');
+  assert.deepEqual(notes({ hasCoconut: true }, ['No Coconut']), ['no coconut'], 'No Coconut once');
+  // …and every row names a tag a resident can carry (2026-10-18: a "Gluten Free" row matched nobody; the tag is GF).
+  const labels = Object.values(out(vm.runInContext('TAG_LABELS_MAP', c)));
+  const tags = out(vm.runInContext('CONFLICT_MAP', c)).map(r => r.residentTag);
+  assert.deepEqual(tags.filter(t => !labels.includes(t)), [], 'every residentTag is a TAG_LABELS_MAP label');
+  assert.deepEqual(notes({ hasGluten: true }, ['GF']), ['gluten-free'], 'a GF resident outside the GF section gets the note');
 });
 
 test('the changes carry the dated ruling', () => {
