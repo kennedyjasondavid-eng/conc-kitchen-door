@@ -74,6 +74,11 @@ test('an unknown short word is asked about; the expander\'s stray "No" and joini
     ['No Pork, Diabetic', []], ['No Pork, No Spicy, Soft Meals', []], ['No Pork, Low Sodium, Diabetic', []],
     ['Halal & No Pork', []], ['No Pork or Beef', []], ['w/ rice', ['rice']], ['Diabetic Diet', ['Diet']],
   ]) assert.deepEqual(parse(t).unmatched, expected, t);
+  // A joining word left alone is not a question (the routing audit, 2026-10-18): "and" was asked about.
+  for (const t of ['No Shellfish and Molluscs', 'No Pork and No Beef', 'Halal with No Spicy']) {
+    assert.deepEqual([parse(t).unmatched, parse(t).ambiguous], [[], []], t);
+  }
+  assert.deepEqual(tags('No Shellfish and Molluscs'), ['noMolluscs', 'noShellfish']);
 });
 
 test('every published restriction parses with nothing to ask, and GF residents now read as GF', () => {

@@ -8363,6 +8363,8 @@ function lookupRoom(val) {
       box.style.display = 'block';
       dcBox.style.display = 'none';
       prePopulateCheckboxes(exact.tags);
+      // The anaphylactic toggle starts as the resident is (2026-10-18): it started off, so an update took them off.
+      { const at = document.getElementById('anaph-toggle'); anaphActive = doorIsAnaphResident(exact); if (at) at.classList.toggle('on', anaphActive); }
       // Pre-fill service note from existing resident
       const notesEl = document.getElementById('change-notes');
       if (notesEl && exact.serviceNote) notesEl.value = exact.serviceNote;
@@ -8488,7 +8490,7 @@ function clearForm() {
   onTypeChange();
 }
 
-function addChange() {
+async function addChange() {
   const room = document.getElementById('room-number').value.trim();
   const type = document.getElementById('change-type').value;
   const notes = document.getElementById('change-notes').value.trim();
@@ -8526,8 +8528,13 @@ function addChange() {
   }
 
   const existingResident = REGISTRY_MAP[room.toLowerCase()];
+  let anaphCleared = false;
+  if (type === 'update' && !anaphActive && existingResident && doorIsAnaphResident(existingResident)) {
+    if (await doorAskTakeOffAnaphList(existingResident.room)) anaphCleared = true;
+    else { anaphActive = true; route = routeResident(tags, doorTodayMealFlags('lunch'), room, true); }
+  }
 
-  changesQueue.push({ room, type, tags, tagLabels, route, notes, isAnaph: anaphActive, isModerate: moderateActive, moderateNote, hadSection: existingResident ? existingResident.section : null });
+  changesQueue.push({ room, type, tags, tagLabels, route, notes, isAnaph: anaphActive, anaphCleared, isModerate: moderateActive, moderateNote, hadSection: existingResident ? existingResident.section : null });
   renderQueue();
   clearForm();
   updateBadge();
@@ -9083,7 +9090,8 @@ const RESIDENT_TO_MEAL_FLAG = {
   'Bland Diet':     'isSpicy',   // is No Spicy (2026-10-18, Jason: "Bland Diet routes as No Spicy")
   'No Beef':        'hasBeef',
   'No Pork':        'hasPork',
-  'No Turkey':      'hasTurkey'
+  'No Turkey':      'hasTurkey',
+  'No Processed Food': 'hasProcessedMeat'   // the routing audit (2026-10-18): every tag with a line note is checked here too
 };
 
 // Check a single resident's flags against a meal's flags.
@@ -9169,7 +9177,8 @@ function computeDoorComplianceDiagnostics(input) {
       level,
       code,
       message,
-      { room: room, tag: tag, anaphylactic: !!(resident && resident.isAnaph) }
+      // Anaphylactic by the flag or the list (2026-10-18; doorIsAnaphResident lives outside this testable core).
+      { room: room, tag: tag, anaphylactic: !!(resident && (resident.isAnaph || (input.anaphRooms || []).includes(resident.room))) }
     ));
   }
 
@@ -9354,6 +9363,16 @@ function findRoommates(room) {
 function doorIsAnaphResident(r) {
   if (!r) return false;
   return !!r.isAnaph || (typeof anaphRooms !== 'undefined' && Array.isArray(anaphRooms) && anaphRooms.includes(r.room));
+}
+
+// Taking a resident off DOOR's anaphylactic list is a deliberate act, asked once (2026-10-18, the routing audit;
+// Jason: "List removal clears the flag"). The Enter Changes form read its anaphylactic toggle by a class it never has
+// ("active"; it is "on"), and on an update the toggle started off, so every update made from the Intake Portal took the
+// room off the list and cleared its flag, even with the toggle switched on. Resolves true to take it off.
+async function doorAskTakeOffAnaphList(room) {
+  return !!(await doorAsk({ title: 'Room ' + room + ' is anaphylactic',
+    lines: ['Take Room ' + room + ' off the anaphylactic list? Its meals stop being contained and it stops showing red.'],
+    goLabel: 'Take it off the list', cancelLabel: 'Keep it anaphylactic' }));
 }
 
 // Returns Set of room numbers routed to Anaphylactic Alternative today
@@ -9994,7 +10013,9 @@ function applyQueueToRegistry() {
         r.avoidances = [...r.allergenFlags, ...r.accommodations];
         r._tierMigrated = true;
         r.section = c.route || 'Regular';
-        r.isAnaph = c.isAnaph || false;
+        // Kept unless the change took it off (2026-10-18): an import's update, or one made with the toggle off, reset it.
+        r.isAnaph = !!c.isAnaph || (!!r.isAnaph && !c.anaphCleared);
+        if (c.anaphCleared) { r.anaphTags = []; const ai = anaphRooms.indexOf(r.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
         r.isModerate = c.isModerate || false;
         r.moderateNote = c.moderateNote || '';
         r.rawRestriction = tagLabels.join(', ') || 'Regular';
@@ -10007,7 +10028,12 @@ function applyQueueToRegistry() {
     } else if (c.type === 'switch') {
       const dest = (c.route || '').replace('→ ', '');
       const r = REGISTRY_LIST.find(r => r.room.toLowerCase() === c.room.toLowerCase());
-      if (r && dest) r.room = dest;
+      if (r && dest) {
+        // The anaphylactic list follows the resident to their new room (2026-10-18): it stayed on the old room number.
+        const ai = anaphRooms.indexOf(r.room);
+        if (ai !== -1) { anaphRooms.splice(ai, 1); if (!anaphRooms.includes(dest)) anaphRooms.push(dest); }
+        r.room = dest;
+      }
 
     } else if (c.type === 'reassign') {
       // Move an existing resident's record from c.fromRoom to c.room (history + flags carry),
@@ -12509,8 +12535,12 @@ function addAnaphRoom() {
   publishAndSync('anaphylactic room added: ' + room);
 }
 
-function removeAnaphRoom(room) {
+async function removeAnaphRoom(room) {
+  // Asked once, and the resident's own flag goes with the room (2026-10-18, Jason: "List removal clears the flag"):
+  // the flag stayed set, so the room stayed contained after it came off the list.
+  if (!(await doorAskTakeOffAnaphList(room))) return;
   anaphRooms = anaphRooms.filter(r => r !== room);
+  REGISTRY_LIST.filter(r => r.room === room).forEach(r => { r.isAnaph = false; r.anaphTags = []; });
   renderAnaphList();
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
   saveRegistryState();
@@ -16307,6 +16337,31 @@ function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
   return [base, notes.join(', ')].filter(Boolean).join(' \u00B7 ');
 }
 
+// The CONTAINS line of a plating-sheet section: the allergens of the plate it eats (2026-10-18; both renderers had a copy).
+// A modified main or the bland plate is the main dish; No Egg / Mustard is the main without them; the vegan, halal and
+// no-pork plates read their own lines; a single alternative meal its own flags. A gluten-free or no-processed plate is
+// another dish, so it says nothing rather than the main's allergens.
+function doorSectionAllergenStr(s, pd) {
+  const { allergenStr, vegAllergenStr, ctx } = pd;
+  const at = s.rule.altType;
+  if (at === 'modified_main') {
+    if (s.rule.key === 'no_egg') {
+      return allergenStr.split(',').map(a => a.trim()).filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
+    }
+    return allergenStr;
+  }
+  if (at === 'bland_alt') return allergenStr;
+  if (at === 'vegan_alt') return vegAllergenStr;
+  if (at === 'halal_alt') return ctx.halalAllergenStr || null;
+  if (at === 'nopork_alt') return ctx.noPorkAllergenStr || null;
+  if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
+    const a0 = ctx.altMeals[0];
+    const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
+    return str || null;
+  }
+  return null;
+}
+
 // ─── COMPLIANCE TIERS ─────────────────────────────────────────────────────────
 // 'auto'  = self-declared lifestyle/religious preference — no documentation required.
 //            Confirmed immediately on intake/update.
@@ -16318,7 +16373,6 @@ const COMPLIANCE_TIERS = {
   'Halal':              'auto',
   'Vegan':              'auto',
   'Vegetarian':         'auto',
-  'Gluten Free':        'auto',  // Many residents self-declare GF sensitivity; medical celiac is doc-tier but we can't distinguish at intake
   'No Beef':            'auto',  // Religious / lifestyle
   'No Fish':            'auto',  // Preference or religious
   'No Turkey':          'auto',  // Preference
@@ -16328,6 +16382,9 @@ const COMPLIANCE_TIERS = {
   'No Beans':           'auto',  // Preference
 
   // Documentation required — stay Provisional
+  // GF is the resident tag; this table listed "Gluten Free" (the section's name), which no resident has, so GF was doc-tier
+  // by default. Jason, 2026-10-18 (the routing audit): keep GF doc-tier. Named here so the table says what it does.
+  'GF':                 'doc',
   'No Pork':            'doc',   // Could be Halal (self-declared, auto) but may also be a non-religious dietary restriction requiring confirmation; flag for review
   'No Shellfish':       'doc',   // Potential anaphylactic allergen
   'No Peanuts':         'doc',   // Potential anaphylactic allergen
@@ -20011,7 +20068,9 @@ const IMPORT_TAG_RULES = [
 ];
 
 // Tokens to ignore (summary rows, noise)
-const IMPORT_IGNORE_RE = /^(regular|meals? breakdown|single-dietary|shared -dietary|diabetics|total meals)$/i;
+// A joining word left alone once rules read both sides ("No Shellfish and Molluscs" → "and") is never a question either
+// (2026-10-18, the routing audit: it asked what "and" meant).
+const IMPORT_IGNORE_RE = /^(regular|meals? breakdown|single-dietary|shared -dietary|diabetics|total meals|and|with|plus|also|the|&)$/i;
 // P6: bare fragments left over after a rule consumed the meaningful part ("No potassium
 // foods" → "foods"; "Diabetic Diet" → "Diet"; "… for dinner / lunch" → "lunch"). Never an
 // ingredient, so never a "which did intake mean?" question.
@@ -21570,45 +21629,12 @@ initDynamic();
   }
 })();
 
-// ── Registry data patch (Apr 27 2026) ────────────────────────────────────────
-// Applies known tag corrections that weren't captured via import.
-// Runs on every load but only modifies if the patch hasn't been applied yet.
+// ── Registry data patch (Apr 27 2026) — retired 2026-10-18 ───────────────────
+// It added tags by room number to the residents of April 27 (813: "Gluten Free", 1006: "No Pork"), once per device. A
+// device that had never run it would still tag whoever lives in those rooms now, and "Gluten Free" is not a tag (GF is):
+// it routed nothing and left the resident needing documentation. The routing audit retired it; it only marks itself done.
 (function applyRegistryPatch() {
-  const PATCH_KEY = 'concRegistryPatch_20260427';
-  if (localStorage.getItem(PATCH_KEY)) return; // already applied
-
-  const PATCHES = [
-    // 813: No Wheat parses as GF — tag was missing from registry
-    { room: '813',  addTags: ['Gluten Free'], section: 'Gluten Free',
-      note: 'GF tag applied — No Wheat restriction confirmed from meal list' },
-    // 1006: No Pork confirmed in meal list — wasn't routing to Halal on pork days
-    { room: '1006', addTags: ['No Pork'],
-      note: 'No Pork tag applied — confirmed from meal list Apr 27' },
-  ];
-
-  let changed = 0;
-  PATCHES.forEach(patch => {
-    const r = REGISTRY_MAP[patch.room.toLowerCase()];
-    if (!r) return;
-    patch.addTags.forEach(label => {
-      if (!(r.tags||[]).includes(label)) {
-        r.tags = r.tags || [];
-        r.tags.push(label);
-        changed++;
-      }
-    });
-    if (patch.section && !r.section) r.section = patch.section;
-    // Log to recent changes
-    const dateStr = new Date().toLocaleDateString('en-CA', { month:'short', day:'numeric' });
-    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room: patch.room, type: 'update',
-      desc: patch.note, color: '#6b7280' });
-  });
-
-  if (changed > 0) {
-    saveRegistryState();
-    console.log('[DOOR patch] Applied registry corrections for Apr 27:', changed, 'tag(s) added');
-  }
-  localStorage.setItem(PATCH_KEY, '1');
+  try { localStorage.setItem('concRegistryPatch_20260427', '1'); } catch (e) {}
 })();
 
 // Auto-promote Provisional residents who only have auto-tier tags to Confirmed.
@@ -21685,18 +21711,23 @@ function saveIntakeQueue() {
   try { localStorage.setItem('concIntakeQueue', JSON.stringify(INTAKE_QUEUE)); } catch(e) {}
 }
 
-function addToIntakeQueue() {
+async function addToIntakeQueue() {
   const type = document.getElementById('change-type').value;
   const room = (document.getElementById('room-number').value || '').trim();
   if (!room) { showToast('Enter a room number first.'); return; }
 
   const tags = { ...checkedBoxes };
   const tagLabels = getTagLabels(tags);
-  const isAnaph = document.getElementById('anaph-toggle').classList.contains('active');
+  // The toggle is "on" when switched on (it read "active", which it never is, 2026-10-18).
+  let isAnaph = document.getElementById('anaph-toggle').classList.contains('on');
   const notes = document.getElementById('change-notes').value.trim();
-  const route = routeResident(checkedBoxes, doorTodayMealFlags('lunch'), room, isAnaph);
 
   const existing = REGISTRY_MAP[room.toLowerCase()];
+  let anaphCleared = false;
+  if (type === 'update' && !isAnaph && existing && doorIsAnaphResident(existing)) {
+    if (await doorAskTakeOffAnaphList(existing.room)) anaphCleared = true; else isAnaph = true;
+  }
+  const route = routeResident(checkedBoxes, doorTodayMealFlags('lunch'), room, isAnaph);
   const isOverwrite = type === 'intake' && existing;
 
   // Remove prior queue entry for same room
@@ -21706,7 +21737,7 @@ function addToIntakeQueue() {
   INTAKE_QUEUE.push({
     id: 'iq_' + Date.now(), type, room,
     tags: tagLabels, rawTags: { ...tags },
-    isAnaph, notes, route, isOverwrite,
+    isAnaph, anaphCleared, notes, route, isOverwrite,
     existingRoute: existing ? existing.section : null,
     ts: new Date().toISOString(), by: getOperatorName(),
   });
@@ -21740,7 +21771,7 @@ function editQueueItem(id) {
       if (val) { const cb = document.querySelector('[data-tag="' + key + '"]'); if (cb && !cb.classList.contains('active')) cb.click(); }
     });
   }
-  if (item.isAnaph) { const at = document.getElementById('anaph-toggle'); if (at && !at.classList.contains('active')) at.click(); }
+  if (item.isAnaph) { const at = document.getElementById('anaph-toggle'); if (at && !at.classList.contains('on')) at.click(); }
   if (item.notes) document.getElementById('change-notes').value = item.notes;
   removeFromQueue(id);
 }
@@ -21783,7 +21814,11 @@ async function commitIntakeQueue() {
       r.avoidances = [...r.allergenFlags, ...r.accommodations];
       r._tierMigrated = true;
       r.section = q.route || 'Regular';
-      r.isAnaph = q.isAnaph;
+      // An update keeps the resident anaphylactic unless it was taken off, asked (2026-10-18): this list took the room
+      // off on every Intake Portal update. Older queued entries carry no answer, so they keep it too.
+      const keepAnaph = !!existing && q.type !== 'intake' && !q.anaphCleared && (doorIsAnaphResident(existing));
+      r.isAnaph = !!q.isAnaph || keepAnaph;
+      if (q.anaphCleared) r.anaphTags = [];
       if (q.notes) r.serviceNote = dedupeServiceNote(r.serviceNote, q.notes);
       r.rawRestriction = q.tags.join(', ') || 'Regular';
       r.confirm = requiresDocumentation(q.tags) ? 'Provisional' : (q.tags.length && !q.tags.every(t => t === 'Regular') ? 'Confirmed' : 'N/A');
@@ -21791,8 +21826,8 @@ async function commitIntakeQueue() {
       r.isModerate = r.isModerate || false;
       r.moderateNote = r.moderateNote || '';
       r.complianceDeadline = r.complianceDeadline || '';
-      if (q.isAnaph && !anaphRooms.includes(q.room)) anaphRooms.push(q.room);
-      if (!q.isAnaph) { const ai = anaphRooms.indexOf(q.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+      if (r.isAnaph && !anaphRooms.includes(q.room)) anaphRooms.push(q.room);
+      if (!r.isAnaph) { const ai = anaphRooms.indexOf(q.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
       if (!existing) { REGISTRY_LIST.push(r); REGISTRY_MAP[q.room.toLowerCase()] = r; }
       const logDesc = existing ? 'Updated \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route : 'New intake \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route;
       logQueueCommit(q, logDesc, existing ? '#2563eb' : '#16a34a');
@@ -21902,11 +21937,12 @@ async function saveDirectFromForm() {
   // Intake or Update — read from global checkedBoxes (maintained by toggleCb)
   const tags = { ...checkedBoxes };
   const tagLabels = getTagLabels(tags);
-  const isAnaph = document.getElementById('anaph-toggle').classList.contains('active');
+  let isAnaph = document.getElementById('anaph-toggle').classList.contains('on');   // "on", not "active" (2026-10-18)
   const notes = document.getElementById('change-notes').value.trim();
-  const route = routeResident(checkedBoxes, doorTodayMealFlags('lunch'), room, isAnaph);
 
   const existing = REGISTRY_MAP[room.toLowerCase()];
+  if (type === 'update' && !isAnaph && existing && doorIsAnaphResident(existing) && !(await doorAskTakeOffAnaphList(existing.room))) isAnaph = true;
+  const route = routeResident(checkedBoxes, doorTodayMealFlags('lunch'), room, isAnaph);
 
   if (type === 'intake' && existing) {
     if (!(await doorAsk({ title: 'Room ' + room + ' is already here', lines: ['Room ' + room + ' is already in the registry. Replace it with what you entered?'], goLabel: 'Replace', cancelLabel: 'Go back' }))) return;
@@ -22247,29 +22283,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     // halal_alt / nopork_alt: from slot-computed halalAllergenStr / noPorkAllergenStr
     // soft: per-alt-meal flags from supervisor (only when a single alt covers everyone)
     // gf/noproc: different meal — don't inherit main allergens
-    let sectionAllergenStr;
-    if (s.rule.altType === 'modified_main') {
-      if (s.rule.key === 'no_egg') {
-        sectionAllergenStr = allergenStr.split(',').map(a=>a.trim())
-          .filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
-      } else {
-        sectionAllergenStr = allergenStr;
-      }
-    } else if (s.rule.altType === 'bland_alt') {
-      sectionAllergenStr = allergenStr;
-    } else if (s.rule.altType === 'vegan_alt') {
-      sectionAllergenStr = vegAllergenStr;
-    } else if (s.rule.altType === 'halal_alt') {
-      sectionAllergenStr = ctx.halalAllergenStr || null;
-    } else if (s.rule.altType === 'nopork_alt') {
-      sectionAllergenStr = ctx.noPorkAllergenStr || null;
-    } else if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
-      const a0 = ctx.altMeals[0];
-      const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
-      sectionAllergenStr = str || null;
-    } else {
-      sectionAllergenStr = null;
-    }
+    const sectionAllergenStr = doorSectionAllergenStr(s, pd);
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
       : altMeal;
@@ -23017,29 +23031,7 @@ function buildPlatingHtml(pd, isTest) {
     restCount += res.length;
     sectNum++;
     const altMeal = getAltMeal(s.rule.altType, ctx);
-    let sectionAllergenStr;
-    if (s.rule.altType === 'modified_main') {
-      if (s.rule.key === 'no_egg') {
-        sectionAllergenStr = allergenStr.split(',').map(a=>a.trim())
-          .filter(a => a && !/egg/i.test(a) && !/mustard/i.test(a)).join(', ') || null;
-      } else {
-        sectionAllergenStr = allergenStr;
-      }
-    } else if (s.rule.altType === 'bland_alt') {
-      sectionAllergenStr = allergenStr;
-    } else if (s.rule.altType === 'vegan_alt') {
-      sectionAllergenStr = vegAllergenStr;
-    } else if (s.rule.altType === 'halal_alt') {
-      sectionAllergenStr = ctx.halalAllergenStr || null;
-    } else if (s.rule.altType === 'nopork_alt') {
-      sectionAllergenStr = ctx.noPorkAllergenStr || null;
-    } else if (s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length === 1) {
-      const a0 = ctx.altMeals[0];
-      const str = a0 && a0.flags ? flagsToAllergenStr(a0.flags).toUpperCase() : '';
-      sectionAllergenStr = str || null;
-    } else {
-      sectionAllergenStr = null;
-    }
+    const sectionAllergenStr = doorSectionAllergenStr(s, pd);
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr
       : altMeal;
