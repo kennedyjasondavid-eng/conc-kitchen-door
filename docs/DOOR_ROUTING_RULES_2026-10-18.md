@@ -284,7 +284,8 @@ Each fix is pinned: `anaph_matrix_gate` (behaviour where a vm can run it, the so
 ### Open (for Jason)
 - **Room 813** is on the anaphylactic list with no allergen recorded, so DOOR can't contain anything for it.
 - **213's flag** is off while its room is on the list. Harmless, since every reader uses both; the next edit sets the flag.
-- **EXPO and swaps:** EXPO plans the rotation meal on a swap day. Teaching EXPO to read DOOR's swaps would be its own EXPO line.
+- ~~**EXPO and swaps:** EXPO plans the rotation meal on a swap day. Teaching EXPO to read DOOR's swaps would be its own EXPO line.~~ Being built (Jason, 2026-10-18: "Do the EXPO swap work here"): EXPO plans a slot's next service as DOOR's swap or special meal, by the same rule as the plating sheet, and HUB shows it.
+- **The Nov 3 swap was left over, and is removed** (Jason, 2026-10-18: "Remove it"; `v31-standard.34`). On Oct 7 someone swapped Wk2 TUE ⇄ THU lunch on a Wednesday, then set the rotation back to the workbook order. The slot swap gave each half its own next date (Thursday's on Oct 8, Tuesday's on Nov 3), and that tablet's Make Permanent was the old one, which didn't clear swaps. A revert never reached the other DOOR computers either. Both are fixed: a revert is published (`meal_swaps_reverted.json`), and a slot swap's halves land as far apart as the meals are on the menu. Gate `tests/swap_revert_reaches_gate.mjs`. The routing file's Wk2 TUE lunch is the rotation's again.
 - **No Oats, Lupin, Buckwheat** have no flag. CODEX has no Mushroom or Beans family (L11).
 - **Butter Chicken:** DOOR's dish-name reader says dairy; CODEX's recipe has none. Left; CODEX owns allergens.
 

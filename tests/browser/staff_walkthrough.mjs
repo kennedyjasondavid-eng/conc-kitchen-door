@@ -9,7 +9,10 @@ const { chromium } = await import(process.env.DOOR_PW || '../../../conc-recipe-h
 const ROOT = new URL('../../', import.meta.url);
 const OUT = new URL('docs/receipts/walkthrough_2026-10-18/', ROOT);
 const J = (f) => JSON.parse(fs.readFileSync(new URL(f, ROOT), 'utf8'));
-const state = J('door_state.json'), menu = J('menu_current.json').menu, overlay = J('menu_overlay.json'), swaps = J('meal_swaps.json');
+// The swap checks use the Nov 3 swap as DOOR recorded it on Oct 7 (tests/fixtures): the live one was removed on
+// 2026-10-18 (Jason: "Remove it"), and the swap path still needs walking.
+const state = J('door_state.json'), menu = J('menu_current.json').menu, overlay = J('menu_overlay.json'),
+  swaps = { ...J('meal_swaps.json'), ...J('tests/fixtures/meal_swap_2026-11-03_recorded.json') };
 const results = [];
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); };
 

@@ -1,4 +1,4 @@
-// tests/vegan_friendly_gate.mjs — CODEX C8 (K4): a vegan-friendly main is a vegan option (v31-standard.34).
+// tests/vegan_friendly_gate.mjs — CODEX C8 (K4): a vegan-friendly main is a vegan option (v31-standard.35).
 // Jason, 2026-10-17, on the vegan line: "split the two meanings". CODEX now works out `veganFriendly` from each recipe's
 // ingredients (true; false; null while a bought item waits on its label) and publishes it beside `stream` in
 // DOOR_RECIPE_DATA.json and in each shared-Library record's `door` block. The line (`stream`) keeps meaning the line a
@@ -25,8 +25,9 @@ const J = v => JSON.parse(JSON.stringify(v));
 const def = id => sb.DEFS.find(d => d.id === id);
 const rec = (extra) => Object.assign({ recipeName: 'Red Red Bean Stew', allergens: ['Nightshades (Paprika)'], category: 'stew_main', stream: 'regular' }, extra || {});
 
-test('the version stamp moves to v31-standard.34', () => {
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.34';/);
+// Re-pinned 2026-10-18: PR #128 (the swap revert) merged first as v31-standard.34, so this build is .35.
+test('the version stamp moves to v31-standard.35', () => {
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.35';/);
 });
 
 test('Vegan Alt offers a vegan-friendly main from the regular line, and only a vegan-friendly one', () => {
