@@ -178,7 +178,17 @@ Each is a resident × meal where a restriction the meal sets off is neither serv
 
 **For A5, not routing:** Wk3 FRI breakfast "Turkey, Cheese and Eggs…" ticks pork. The menu text names none.
 
-## 9. Forks for Jason (leans in brackets)
+## 9. Forks — ruled 2026-10-18
+
+**Jason ruled every lean** (2026-10-18, two rounds of questions):
+- line notes: "Yes, both";
+- Soft Meals: "Keep order, note soft";
+- lockout: "Per meal everywhere";
+- routing file: "Follow plating";
+- the four small gaps: all four;
+- the three keep-as-is leans: "Yes, keep all three".
+
+So each fork's lean below is now the Rule, and the oracle is written from it. Each fork was:
 
 From the plan (§6):
 - **F1 — Lockout scope** (L6): per meal everywhere, or per day everywhere? [per meal everywhere; the plating sheet is the authority, and the lookup and preview say "Lunch: … · Dinner: …"]

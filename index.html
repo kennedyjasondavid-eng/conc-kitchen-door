@@ -9034,6 +9034,7 @@ const RESIDENT_TO_MEAL_FLAG = {
   'Lactose Intolerant': 'hasDairy',   // is No Dairy too (Jason, 2026-10-18); it had no conflict check
   'GF':             'hasGluten',
   'No Spicy':       'isSpicy',
+  'Bland Diet':     'isSpicy',   // is No Spicy (2026-10-18, Jason: "Bland Diet routes as No Spicy")
   'No Beef':        'hasBeef',
   'No Pork':        'hasPork',
   'No Turkey':      'hasTurkey'
@@ -14978,20 +14979,27 @@ function computeBaseSections() {
 // triggers = meal flags (OR — any true activates this rule)
 // always = rule active regardless of meal flags
 // mergeInto = if set, residents added to that section's pool instead of own section
+// tagTriggers = optional {tag: [flags]}: that tag sits here only when one of its own flags is on
 const ROUTING_RULES = [
   {p:1,  key:'vegan',   label:'Vegan / Vegetarian', tags:['Vegan','Vegetarian'],   always:true,                    altType:'vegan_alt'},
   {p:2,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef','hasChicken','hasTurkey'], altType:'halal_alt'},
   {p:2.5, key:'no_processed', label:'No Processed Food', tags:['No Processed Food'], triggers:['hasProcessedMeat'], altType:'noproc_alt'},
   // A shellfish meal opens No Fish / Shellfish too (2026-10-18, Jason: "follow your lean on routing and lockout"): a CODEX
   // shrimp or mussel recipe ticks hasShellfish without hasFish, and the section's No Shellfish residents stayed on Regular.
-  {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish'], triggers:['hasFish','hasShellfish'], altType:'vegan_alt', mergeInto:'vegan'},
+  // No Molluscs routes like No Shellfish (2026-10-18, Jason: "No Molluscs routes like Shellfish"): it was warned and
+  // contained but kept the regular plate. On a fish meal too, as No Shellfish does: older menus tick seafood as Fish.
+  {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish','No Molluscs'], triggers:['hasFish','hasShellfish'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
   {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy','Lactose Intolerant'], triggers:['hasDairy'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:6,  key:'no_beef', label:'No Beef',            tags:['No Beef'],              triggers:['hasBeef'],           altType:'vegan_alt', mergeInto:'vegan'},
   {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic','Low Carb'],             triggers:['isCarb'],            altType:'modified_main'},
-  {p:8,  key:'bland',   label:'Bland',              tags:['No Spicy'],             triggers:['isSpicy'],           altType:'bland_alt'},
+  // Bland Diet is No Spicy (2026-10-18, Jason: "Bland Diet routes as No Spicy"): a routing tag no section listed.
+  {p:8,  key:'bland',   label:'Bland',              tags:['No Spicy','Bland Diet'], triggers:['isSpicy'],          altType:'bland_alt'},
   {p:9,  key:'soft',    label:'Soft Meals',         tags:['Soft Meals'],           always:true,                    altType:'soft'},
-  {p:10, key:'no_egg',  label:'No Egg / Mustard',   tags:['No Eggs'],              triggers:['hasEgg'],            altType:'modified_main'},
+  // No Mustard joins No Egg / Mustard on a mustard meal (2026-10-18, Jason: "No Mustard joins No Egg/Mustard"); the
+  // section opened on egg only. tagTriggers: each tag sits here only when its own flag is on, so a No Eggs resident
+  // keeps the regular plate on a mustard meal with no egg, as before.
+  {p:10, key:'no_egg',  label:'No Egg / Mustard',   tags:['No Eggs','No Mustard'], triggers:['hasEgg','hasMustard'], tagTriggers:{'No Eggs':['hasEgg'],'No Mustard':['hasMustard']}, altType:'modified_main'},
   {p:99, key:'regular', label:'Regular',            tags:[],                       always:true,                    altType:'main'},
 ];
 
@@ -15212,7 +15220,8 @@ function computeSections(mealFlags, registry) {
     for (const rule of ROUTING_RULES) { // already in priority order
       if (!activeKeys.has(rule.key)) continue;
       if (rule.key === 'regular') { assigned = rule; break; }
-      if (rule.tags.some(t => residentTags.includes(t))) { assigned = rule; break; }
+      if (rule.tags.some(t => residentTags.includes(t) &&
+          (!rule.tagTriggers || !rule.tagTriggers[t] || rule.tagTriggers[t].some(f => mealFlags[f])))) { assigned = rule; break; }
     }
     pools[(assigned || ROUTING_RULES[ROUTING_RULES.length-1]).key].push(resident);
   });
@@ -16146,6 +16155,14 @@ const CONFLICT_MAP = [
   // Lactose Intolerant is No Dairy too (Jason, 2026-10-18: "Lactose intolerant should be no dairy too"): the same note,
   // so a resident with both tags reads "dairy-free" once.
   { mealFlag:'hasDairy',       residentTag:'Lactose Intolerant',label:'Dairy',         note:'dairy-free',                         severity:'amber' },
+  // The line rule (2026-10-18, Jason: "Yes, both"): a resident eats one plate, so a restriction the winning section
+  // doesn't serve must reach the cook as a note. These five were read by routing alone, so a Halal + No Spicy
+  // resident ate Chicken Vindaloo on the halal plate, and a No Beef resident the halal beef sausage, with nothing said.
+  { mealFlag:'isSpicy',        residentTag:'No Spicy',          label:'Spicy',         note:'not spicy',                          severity:'amber' },
+  { mealFlag:'isSpicy',        residentTag:'Bland Diet',        label:'Spicy',         note:'not spicy',                          severity:'amber' },
+  { mealFlag:'hasBeef',        residentTag:'No Beef',           label:'Beef',          note:'no beef',                            severity:'amber' },
+  { mealFlag:'hasTurkey',      residentTag:'No Turkey',         label:'Turkey',        note:'no turkey',                          severity:'amber' },
+  { mealFlag:'hasProcessedMeat', residentTag:'No Processed Food', label:'Processed Meat', note:'no processed meat',               severity:'amber' },
 ];
 
 function getIngredientConflicts(mealFlags, residents) {
@@ -16156,6 +16173,45 @@ function getIngredientConflicts(mealFlags, residents) {
     if (affected.length) results.push({ ...rule, residents: affected });
   });
   return results;
+}
+
+// An allergen line as the plating sheet prints it ("SOY, WHEAT, BEANS, SPICY") read back into meal flags (2026-10-18).
+// It reads DOOR's own words (flagsToAllergenStr) and CODEX's families (HUB_ALLERGEN_MAP: GLUTEN, MILK, CRUSTACEANS…).
+// A word it doesn't know (OATS) is skipped.
+function doorAllergenStrFlags(allergenStr) {
+  const words = {};
+  Object.keys(emptyMealFlags()).forEach(k => {
+    const w = flagsToAllergenStr({ [k]: true });
+    if (w) words[w.toLowerCase()] = k;
+  });
+  Object.keys(HUB_ALLERGEN_MAP).forEach(w => { words[w.toLowerCase()] = HUB_ALLERGEN_MAP[w]; });
+  const flags = {};
+  String(allergenStr || '').split(',').map(t => t.trim().toLowerCase()).forEach(t => { if (words[t]) flags[words[t]] = true; });
+  return flags;
+}
+
+// The note on a resident's row in a plating-sheet section (2026-10-18, the audit's line rule; Jason: "Yes, both" and
+// "Keep order, note soft"). A resident eats one plate; when a higher section wins, their other restriction has to reach
+// the cook here:
+//   - the CONFLICT_MAP notes, read against the main meal's flags and, when DOOR knows the allergens of the plate they
+//     eat (the vegan line; a halal, no-pork or single alternative plate), those too. Only ever adds: 301a (GF,
+//     Vegetarian) was given the vegan sausages' wheat with no "gluten-free", because the main meal ticks no gluten;
+//   - "soft" for a Soft Meals resident on any other plate, except a pork-day Halal plate with no alternative meals,
+//     which the kitchen serves them soft;
+//   - "extra veg less starch" for Diabetic / Low Carb, as before.
+// Both plating renderers (the sheet and the preview / print) read this one function.
+function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
+  const tags = (r && r.tags) || [];
+  const f = mealFlags || {};
+  const plate = plateAllergenStr ? doorAllergenStrFlags(plateAllergenStr) : {};
+  const key = section && section.rule ? section.rule.key : '';
+  const notes = [];
+  if (tags.includes('Soft Meals') && key !== 'soft' && !(key === 'halal' && f.hasPork && !(f._altMeals && f._altMeals.length))) notes.push('soft');
+  CONFLICT_MAP.forEach(rule => {
+    if ((f[rule.mealFlag] || plate[rule.mealFlag]) && tags.includes(rule.residentTag) && !notes.includes(rule.note)) notes.push(rule.note);
+  });
+  const base = hasCarbAccommodation(r) ? 'extra veg less starch' : '';
+  return [base, notes.join(', ')].filter(Boolean).join(' \u00B7 ');
 }
 
 // ─── COMPLIANCE TIERS ─────────────────────────────────────────────────────────
@@ -22117,12 +22173,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     s.residents.forEach(r => {
       const isDiab = hasCarbAccommodation(r);
       const bg = isDiab ? '92D050' : null;
-      const baseNote = isDiab ? 'extra veg less starch' : '';
-      const ingredientNote = CONFLICT_MAP
-        .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
-        .map(rule => rule.note)
-        .filter((n,i,a) => a.indexOf(n)===i) // dedupe
-        .join(', ');
+      const lineNote = doorSectionLineNotes(r, s, mealFlags, sectionAllergenStr);
       let altNote = '';
       if (hasMultiAlts) {
         const isSoft = (r.tags||[]).includes('Soft Meals');
@@ -22130,7 +22181,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
         const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
-      const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
+      const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
       addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
     });
     addRow(xCell(sectionLabel+' Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
@@ -22894,12 +22945,7 @@ function buildPlatingHtml(pd, isTest) {
     const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
     res.forEach(r => {
       const isDiab  = hasCarbAccommodation(r);
-      const baseNote = isDiab ? 'extra veg less starch' : '';
-      const ingredientNote = CONFLICT_MAP
-        .filter(rule => mealFlags[rule.mealFlag] && (r.tags||[]).includes(rule.residentTag))
-        .map(rule => rule.note)
-        .filter((n,i,a) => a.indexOf(n)===i)
-        .join(', ');
+      const lineNote = doorSectionLineNotes(r, s, mealFlags, sectionAllergenStr);
       let altNote = '';
       if (hasMultiAlts) {
         const isSoft = (r.tags||[]).includes('Soft Meals');
@@ -22907,7 +22953,7 @@ function buildPlatingHtml(pd, isTest) {
         const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
-      const allNotes = [altNote, baseNote, ingredientNote, r.serviceNote].filter(Boolean).join(' · ');
+      const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
       const cls = isDiab ? ' class="ps-diabetic"' : '';
       h += `<tr${cls}><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(allNotes)}</td></tr>`;
     });
