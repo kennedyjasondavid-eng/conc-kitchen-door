@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.36';
+const DOOR_APP_VERSION = 'v31-standard.37';
 const DOOR_BUILD_DATE = '2026-10-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -8073,10 +8073,16 @@ function clearResidentHistory(r) {
   if (r) r._history = [];
 }
 
-function revertResident(room, historyIndex) {
+async function revertResident(room, historyIndex) {
+  const r0 = REGISTRY_MAP[room.toLowerCase()];
+  if (!r0 || !r0._history || !r0._history[historyIndex]) { showToast('No history to revert.'); return false; }
+  // The earlier state is read from this computer's history; then the kitchen's newer list, and the revert lands on its
+  // record for the room and is marked as this computer's change (2026-10-18).
+  const target = JSON.parse(JSON.stringify(r0._history[historyIndex].snapshot));
+  const prevDesc = r0._history[1] ? r0._history[1].desc : 'previous';
+  await doorTakeNewerKitchenList();
   const r = REGISTRY_MAP[room.toLowerCase()];
-  if (!r || !r._history || !r._history[historyIndex]) { showToast('No history to revert.'); return false; }
-  const target = r._history[historyIndex].snapshot;
+  if (!r) { showToast('Room ' + room + ' is no longer on the kitchen’s list — nothing reverted.'); return false; }
   // Snapshot current state before revert (so user can undo)
   pushResidentHistory(r, 'Before revert', getOperatorName());
   // Apply snapshot — overwrite all snapshotted fields
@@ -8090,8 +8096,9 @@ function revertResident(room, historyIndex) {
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
-  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room, type:'revert', desc:'Reverted to prior state (' + (r._history[1] ? r._history[1].desc : 'previous') + ')', color:'#7c3aed', _real:true, by:getOperatorName() });
+  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room, type:'revert', desc:'Reverted to prior state (' + prevDesc + ')', color:'#7c3aed', _real:true, by:getOperatorName() });
   saveRecentLog();
+  setRegistryProvenance();
   saveRegistryState();
   publishAndSync('revert: Room ' + room);
   return true;
@@ -8099,7 +8106,7 @@ function revertResident(room, historyIndex) {
 
 async function confirmRevertResidentFromEditor(room, historyIndex) {
   if (!(await doorAsk({ title: 'Revert Room ' + room, lines: ['Put Room ' + room + ' back to this earlier state?'], goLabel: 'Revert', cancelLabel: 'Go back' }))) return;
-  revertResident(room, historyIndex);
+  if (!(await revertResident(room, historyIndex))) return;
   closeChangeEditor();
   renderRegistry(REGISTRY_LIST);
   showToast('Room ' + room + ' reverted ✓');
@@ -8641,7 +8648,7 @@ function renderQueue() {
       <span class="change-room">${escapeHtml(roomLabel)}</span>
       <span class="change-type-badge badge-${_escAttr(badgeClass)}">${escapeHtml(badge)}</span>
       <div class="change-tags">
-        ${c.type === 'discharge' ? '<span class="tag" style="background:var(--red-pale);color:var(--red);border-color:#fca5a5">Removed</span>' :
+        ${c.type === 'discharge' ? '<span class="tag" style="background:var(--red-pale);color:var(--red);border-color:#fca5a5">Removed</span>' + (doorDischargeAnaphRoom(c) ? ' <span class="tag" style="background:var(--red-pale);color:var(--red);border-color:#fca5a5;font-weight:700">⚠ Anaphylactic</span>' : '') :
           (c.tagLabels.length ? c.tagLabels.map(t => `<span class="tag ${_escAttr(getTagClass(t))}">${escapeHtml(t)}</span>`).join('') : '<span class="tag">Regular</span>')}
       </div>
       <span class="change-route" style="font-size:11px;font-weight:600;color:var(--forest-mid)">→ ${escapeHtml(c.route)}</span>
@@ -8898,7 +8905,7 @@ function updateCERoutePreview() {
 
 async function saveChangeEdit() {
   if (ceMode === 'registry') {
-    saveRegistryEdit();
+    await saveRegistryEdit();
     return;
   }
   // Queue mode
@@ -8932,14 +8939,20 @@ async function saveChangeEdit() {
   showToast('Room ' + c.room + ' updated ✓');
 }
 
-function saveRegistryEdit() {
-  const r = REGISTRY_MAP[ceRoom.toLowerCase()];
-  if (!r) return;
+async function saveRegistryEdit() {
+  if (!REGISTRY_MAP[ceRoom.toLowerCase()]) return;
+  // What the form says is read first; then the kitchen's newer list, and the edit lands on its record for the room
+  // and is marked as this computer's change (2026-10-18).
+  const room = ceRoom;
   const tags = getCETags();
   const tagLabels = getTagLabels(tags);
   const isAnaph = document.getElementById('ce-anaph').checked;
   const notes = document.getElementById('ce-notes').value.trim();
-  const route = routeResident(tags, doorTodayMealFlags('lunch'), ceRoom, isAnaph);
+  const pickedAnaphTags = isAnaph ? getAnaphTagsFromEditor() : [];
+  await doorTakeNewerKitchenList();
+  const r = REGISTRY_MAP[room.toLowerCase()];
+  if (!r) { showToast('Room ' + room + ' is no longer on the kitchen’s list — nothing saved.'); closeChangeEditor(); renderRegistry(REGISTRY_LIST); return; }
+  const route = routeResident(tags, doorTodayMealFlags('lunch'), room, isAnaph);
 
   // v30: Snapshot before mutation
   pushResidentHistory(r, 'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, getOperatorName());
@@ -8955,28 +8968,29 @@ function saveRegistryEdit() {
   r._tierMigrated = true;
   r.section = route || 'Regular';
   r.isAnaph = isAnaph;
-  r.anaphTags = isAnaph ? getAnaphTagsFromEditor() : [];
+  r.anaphTags = pickedAnaphTags;
   r.serviceNote = notes;
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
   r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
 
   // Anaph rooms list
-  if (isAnaph && !anaphRooms.includes(ceRoom)) anaphRooms.push(ceRoom);
-  if (!isAnaph) { const ai = anaphRooms.indexOf(ceRoom); if (ai !== -1) anaphRooms.splice(ai, 1); }
+  if (isAnaph && !anaphRooms.includes(room)) anaphRooms.push(room);
+  if (!isAnaph) { const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1); }
 
   // Persist + publish
+  setRegistryProvenance();
   saveRegistryState();
-  publishAndSync('registry edit: Room ' + ceRoom);
+  publishAndSync('registry edit: Room ' + room);
 
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
-  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room:ceRoom, type:'update', desc:'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, color:'#2563eb', _real:true, by:getOperatorName() });
+  RECENT_LOG.unshift({ ts:new Date().toISOString(), date:_dl, room:room, type:'update', desc:'Direct edit — ' + (tagLabels.join(', ')||'Regular') + ' → ' + route, color:'#2563eb', _real:true, by:getOperatorName() });
   saveRecentLog();
 
   closeChangeEditor();
   renderRegistry(REGISTRY_LIST);
-  showToast('Room ' + ceRoom + ' saved directly ✓');
+  showToast('Room ' + room + ' saved directly ✓');
 }
 
 async function removeFromEditor() {
@@ -9945,7 +9959,7 @@ function buildReview() {
         <td><strong style="font-family:'DM Mono',monospace">${escapeHtml(_roomLabel)}</strong>${_hist ? '<div style="font-size:10px;color:#7c3aed;margin-top:2px;">▾ history</div>' : ''}</td>
         <td><span class="change-type-badge badge-${_escAttr(_typeClass)}">${escapeHtml((c.type || '').toUpperCase())}</span></td>
         <td>${c.type === 'discharge' ? '—' : (c.tagLabels.length ? c.tagLabels.map(t=>'<span class="tag '+_escAttr(getTagClass(t))+'">'+escapeHtml(t)+'</span>').join(' ') : '<span class="tag">Regular</span>')}</td>
-        <td>${c.type === 'discharge' ? '<span style="color:var(--red)">Removed from all sheets</span>' : '<strong style="color:var(--forest-mid)">→ '+escapeHtml(c.route)+'</strong>'}</td>
+        <td>${c.type === 'discharge' ? '<span style="color:var(--red)">Removed from all sheets</span>' + (doorDischargeAnaphRoom(c) ? (c.anaphCleared === true ? ' <span style="color:var(--red);font-weight:700">· comes off the anaphylactic list</span>' : c.anaphCleared === false ? ' <span style="color:var(--red);font-weight:700">· stays on the anaphylactic list</span>' : ' <span style="color:var(--red);font-weight:700">· ⚠ on the anaphylactic list — Generate asks</span>') : '') : '<strong style="color:var(--forest-mid)">→ '+escapeHtml(c.route)+'</strong>'}</td>
         <td>${c.isAnaph ? '<span class="flag" title="Anaphylactic">⚠ Flag</span>' : '<span style="color:var(--mint);font-size:12px;font-weight:700" title="Auto-routed">✓ Auto</span>'}</td>
       </tr>`;
         const histRow = _hist ? '<tr style="cursor:default;"><td colspan="5" style="padding:4px 12px 10px;background:var(--warm);border-bottom:1px solid var(--border);">' +
@@ -10025,6 +10039,27 @@ function dedupeServiceNote(existing, newNote) {
   return parts.join('; ');
 }
 
+// A discharged room comes off the anaphylactic list only when someone says so, asked once at Generate (2026-10-18,
+// Jason: "Ask once at Generate"). Room 813: its shellfish-anaphylactic resident was discharged by the Sep 11 import,
+// the room stayed on the list, and the Regular resident who moved in on Sep 17 read as anaphylactic. The queue's
+// discharges kept the list entry and nobody was asked; the one-room Discharge takes it off and says so. The answer
+// travels on the queued change (anaphCleared), and Escape keeps the room on the list.
+function doorDischargeAnaphRoom(c) {
+  if (!c || c.type !== 'discharge') return false;
+  const key = String(c.room || '').toLowerCase();
+  return anaphRooms.some(x => String(x).toLowerCase() === key)
+    || REGISTRY_LIST.some(r => String(r.room).toLowerCase() === key && r.isAnaph);
+}
+async function doorAskDischargedAnaphRooms(queue) {
+  for (const c of (queue || [])) {
+    if (c.anaphCleared !== undefined || !doorDischargeAnaphRoom(c)) continue;
+    c.anaphCleared = !!(await doorAsk({ title: 'Room ' + c.room + ' is anaphylactic',
+      lines: ['Room ' + c.room + ' leaves today’s list. Take it off the anaphylactic list too?',
+        'Taking it off means whoever moves into Room ' + c.room + ' next isn’t treated as anaphylactic. If this resident is only moving to another room, add the new room to the list as well.'],
+      goLabel: 'Take it off the list', cancelLabel: 'Keep it on the list' }));
+  }
+}
+
 function applyQueueToRegistry() {
   changesQueue.forEach(c => {
     if (c.type === 'discharge') {
@@ -10035,6 +10070,11 @@ function applyQueueToRegistry() {
         if (REGISTRY_LIST[i].room.toLowerCase() === c.room.toLowerCase()) {
           clearResidentHistory(REGISTRY_LIST[i]); // v30: clear history — room numbers recycle
           REGISTRY_LIST.splice(i, 1);
+        }
+      }
+      if (c.anaphCleared) {
+        for (let i = anaphRooms.length - 1; i >= 0; i--) {
+          if (String(anaphRooms[i]).toLowerCase() === c.room.toLowerCase()) anaphRooms.splice(i, 1);
         }
       }
 
@@ -10650,6 +10690,23 @@ function doorRegistryPublishGate(remoteMeta, localProvTs) {
   return { adopt: false, reason: 'local-current', remoteTs, localTs };
 }
 
+// Before a change to the resident list or the anaphylactic list (2026-10-18, Jason: "Yes, in the same PR"): take the
+// kitchen's newer list if it has one, so the change lands on it; the caller then marks this computer's list as changed
+// (setRegistryProvenance), as Generate and the one-room Discharge already do. Without the mark, another computer whose
+// list was just as new kept its own copy, and its next Generate sent that copy: an anaphylactic room added here was gone
+// everywhere, and one taken off came back. Without the first step, a computer whose list was older than the kitchen's had
+// the change replaced by the kitchen's list before it was sent. A kitchen that can't be read in 6 s: the change is made
+// on this computer's list, as before. Never throws. → 'adopted' | 'current' | 'unchecked'
+async function doorTakeNewerKitchenList() {
+  try {
+    const meta = await Promise.race([doorFetchRemoteRegistryMeta(), new Promise(res => setTimeout(() => res(undefined), 6000))]);
+    if (meta === undefined) return 'unchecked';
+    if (!doorRegistryPublishGate(meta, getRegistryProvenanceTs()).adopt) return 'current';
+    await pullStateFromGitHub(false);
+    return 'adopted';
+  } catch (e) { return 'unchecked'; }
+}
+
 // → { adopted, forced, cancelled, gate }. Never throws (a failed remote read = publish as today).
 // 2026-10-08: the manual question has three answers (doorAsk). Use the kitchen's list, send this
 // computer's older list on purpose, or go back — Escape and a click outside send nothing.
@@ -11231,9 +11288,19 @@ function ensureRegistrySynced() {
   return _registrySyncPromise;
 }
 
-function generateFiles() {
+let _doorGenerateBusy = false;   // a second click while Generate waits on the kitchen or its question does nothing
+async function generateFiles() {
   // v25: Ensure operator is identified for change attribution
   if (!ensureOperatorName()) return;
+  if (_doorGenerateBusy) return;
+  // The kitchen's newer list first (2026-10-18): Generate marks the list as this computer's change, so a tab open since
+  // the morning sent its own copy over a room another computer had just put on the anaphylactic list. Then the
+  // anaphylactic rooms the queue discharges are asked about, on that list. The rest of Generate runs without a wait.
+  _doorGenerateBusy = true;
+  try {
+    await doorTakeNewerKitchenList();
+    await doorAskDischargedAnaphRooms(changesQueue);
+  } finally { _doorGenerateBusy = false; }
 
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
   const discharges = changesQueue.filter(c => c.type === 'discharge').length;
@@ -12608,14 +12675,17 @@ function renderAnaphList() {
   ).join('');
 }
 
-function addAnaphRoom() {
+async function addAnaphRoom() {
   const input = document.getElementById('anaph-input');
   const room = (input.value || '').trim();
   if (!room || anaphRooms.includes(room)) { input.value = ''; return; }
-  anaphRooms.push(room);
-  renderAnaphList();
   input.value = '';
+  // The kitchen's newer list first, then the room is marked as this computer's change (2026-10-18).
+  await doorTakeNewerKitchenList();
+  if (!anaphRooms.includes(room)) anaphRooms.push(room);
+  renderAnaphList();
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
+  setRegistryProvenance();
   saveRegistryState();
   publishAndSync('anaphylactic room added: ' + room);
 }
@@ -12624,10 +12694,12 @@ async function removeAnaphRoom(room) {
   // Asked once, and the resident's own flag goes with the room (2026-10-18, Jason: "List removal clears the flag"):
   // the flag stayed set, so the room stayed contained after it came off the list.
   if (!(await doorAskTakeOffAnaphList(room))) return;
+  await doorTakeNewerKitchenList();
   anaphRooms = anaphRooms.filter(r => r !== room);
   REGISTRY_LIST.filter(r => r.room === room).forEach(r => { r.isAnaph = false; r.anaphTags = []; });
   renderAnaphList();
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
+  setRegistryProvenance();
   saveRegistryState();
   publishAndSync('anaphylactic room removed: ' + room);
 }
@@ -22011,6 +22083,8 @@ async function commitIntakeQueue() {
   if (dc) parts.push(dc + ' discharge' + (dc > 1 ? 's' : ''));
   if (!(await doorAsk({ title: 'Save to the registry', lines: ['Save ' + INTAKE_QUEUE.length + ' change' + (INTAKE_QUEUE.length !== 1 ? 's' : '') + ' to the registry: ' + parts.join(', ') + '.', 'This updates the live registry and plating sheets.'], goLabel: 'Save changes', cancelLabel: 'Go back' }))) return;
 
+  // The kitchen's newer list first; the queue lands on it and is marked as this computer's change (2026-10-18).
+  await doorTakeNewerKitchenList();
   let applied = 0; const errors = [];
   INTAKE_QUEUE.forEach(q => {
     try {
@@ -22060,6 +22134,7 @@ async function commitIntakeQueue() {
       applied++;
     } catch(e) { errors.push(q.room + ': ' + e.message); }
   });
+  if (applied) setRegistryProvenance();
   saveRegistryState();
   publishAndSync('intake batch commit: ' + applied + ' changes');
   INTAKE_QUEUE.length = 0;
@@ -22134,11 +22209,15 @@ async function saveDirectFromForm() {
   const type = document.getElementById('change-type').value;
   const room = (document.getElementById('room-number').value || '').trim();
   if (!room) { showToast('Enter a room number first.'); return; }
+  // The kitchen's newer list first; the save is then marked as this computer's change (2026-10-18).
+  await doorTakeNewerKitchenList();
 
   if (type === 'discharge') {
     const r = REGISTRY_MAP[room.toLowerCase()];
     if (!r) { showToast('Room ' + room + ' not found in registry.'); return; }
-    if (!(await doorAsk({ title: 'Discharge Room ' + room, lines: ['Discharge Room ' + room + '? They come off every plating sheet.'], goLabel: 'Discharge', cancelLabel: 'Go back' }))) return;
+    const _onAnaphList = doorIsAnaphResident(r);
+    if (!(await doorAsk({ title: 'Discharge Room ' + room, lines: ['Discharge Room ' + room + '? They come off every plating sheet.']
+      .concat(_onAnaphList ? ['Room ' + room + ' also comes off the anaphylactic list. If this resident is moving to another room, add the new room to the list.'] : []), goLabel: 'Discharge', cancelLabel: 'Go back' }))) return;
     // v31: remove EVERY matching record (duplicate-safe — see applyQueueToRegistry).
     for (let i = REGISTRY_LIST.length - 1; i >= 0; i--) {
       if (REGISTRY_LIST[i].room.toLowerCase() === room.toLowerCase()) {
@@ -22209,6 +22288,7 @@ async function saveDirectFromForm() {
     REGISTRY_MAP[room.toLowerCase()] = r;
   }
 
+  setRegistryProvenance();
   saveRegistryState();
   publishAndSync('intake save: Room ' + room);
 

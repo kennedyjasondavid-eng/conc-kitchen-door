@@ -47,6 +47,9 @@ function box(answer = true) {
     saveIntakeQueue() {}, renderIntakeQueue() {}, renderRecentLog() {}, logQueueCommit() {}, pushResidentHistory() {}, clearResidentHistory() {},
     dedupeServiceNote: (a, b) => b || a, filterServiceNote: (a, b) => b || a, getOperatorName: () => 'test', setRegistryProvenance() {},
     doorApplyPendingImportStamp() {}, requiresDocumentation: () => false,
+    // Re-pinned 2026-10-18 (room 813): the list's Remove and the Intake Portal take the kitchen's newer list first;
+    // here the kitchen's list is never newer. tests/anaph_list_reaches_gate.mjs runs the real check.
+    doorTakeNewerKitchenList: async () => 'current',
   };
   vm.createContext(c);
   vm.runInContext(SRC, c, { filename: 'index.html#anaph-matrix', timeout: 20000 });
