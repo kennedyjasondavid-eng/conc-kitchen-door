@@ -80,6 +80,7 @@ CODEX C8 (creation audit K4; Jason, 2026-10-17: "split the two meanings"). CODEX
 
   Suite 445 → 454; 461 with PR #128 merged in.
 - **Cross-repo pair:** the producer is conc-recipe-hub C8 (gate `tests/vegan_friendly_c8_gate.mjs`, X2/X3 read this code). Merge this one first. Before it lands, DOOR ignores the new field, so neither order breaks anything.
+- **Follow-up (2026-10-18, test-only):** the census test reads which vegan-line records name an animal family from CODEX's feed instead of pinning Jamcaican Patty Dough by name. CODEX v23 (Jason: "Follow your leans on all five") takes its stale Milk off, stamped, so it returns to the Vegan Alt slot; the test passes against the C8 feed and the v23 feed alike. Suite 461/461.
 
 ## Recent (2026-10-18) — a swap revert reaches every DOOR computer; a slot swap's halves land together; the Nov 3 swap is removed (`v31-standard.34`, merged via PR #128, `510d25f`)
 Jason, 2026-10-18, on DOOR's only swap (Nov 3 lunch: Halal Beef Burger in Wk2 TUE's slot): "Remove it"; on how it happened: "Fix in DOOR". Found while scoping the EXPO swap work ("Do the EXPO swap work here").

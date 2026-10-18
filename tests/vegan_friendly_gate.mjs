@@ -90,9 +90,12 @@ test('with the CODEX feed, Vegan Alt gains Red Red Bean Stew and nothing else', 
   const before = feed.filter(r => def('veganalt').cats.includes(r.category) && def('veganalt').streams.includes(r.stream)).map(r => r.recipeName);
   const after = feed.filter(r => sb.match(def('veganalt'), r)).map(r => r.recipeName);
   assert.deepEqual(after.filter(n => !before.includes(n)), ['Red Red Bean Stew']);
-  // Re-pinned 2026-10-18 (review fold, P2): the one vegan-line recipe whose list names an animal family leaves the
-  // slot. No menu slot links it (checked on the published menu and overlay).
-  assert.deepEqual(before.filter(n => !after.includes(n)), ['Jamcaican Patty Dough'], 'only the record that lists Milk leaves the slot');
+  // Re-pinned 2026-10-18 (review fold, P2): a vegan-line recipe whose list names an animal family leaves the slot, and
+  // nothing else does. Read from the feed, not pinned by name: CODEX v23 (Jason, 2026-10-18: "Follow your leans on all
+  // five") takes the stale Milk off Jamcaican Patty Dough, the one such record, so it returns to the slot. Either feed passes.
+  const animalListed = before.filter(n => sb.animal((feed.find(r => r.recipeName === n) || {}).allergens));
+  assert.deepEqual(before.filter(n => !after.includes(n)), animalListed, 'only records whose list names an animal family leave the slot');
+  assert.ok(animalListed.every(n => ['Jamcaican Patty Dough'].includes(n)), 'no vegan-line record other than Jamcaican Patty Dough has ever listed an animal family');
 });
 
 test('an animal family on the list: one rule, compounds included', () => {
