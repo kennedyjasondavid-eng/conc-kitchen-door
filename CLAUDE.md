@@ -53,6 +53,20 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-10-18) — bouillon carries no Gluten: three linked vegan dishes drop the Gluten they captured (menu data, no code)
+Jason, 2026-10-17: "no gluten in boullion we use currently". CODEX v22 (conc-recipe-hub PR #155) takes "Gluten (Bouillon)" off its recipes, stamped. A linked dish keeps the flags it captured at link time, so three vegan dishes linked in `v31-standard.29` would have gone on saying GLUTEN:
+- Vegetarian Peanut Stew (Wk2 MON dinner, linked to African Peanut Chicken Stew);
+- Vegetarian Vindaloo (Wk2 TUE dinner, Vegan Vindaloo);
+- Caribbean Chickpea Curry (Wk3 TUE dinner, Caribbean Stew).
+
+Their only Gluten came from that label: none had slots before the link. Each loses its `hasGluten` flag and keeps every other flag.
+- **How:** written through `saveMenuBaseOverlay`, so the three days are stamped, then rebuilt with the publish builders. Only those three slots and the menu's `builtFromMenu` stamp change; `door_state` and `registry_summary` take only the stamp. Meal text, meal ticks, routing counts and validation (0/0/0) are unchanged.
+- **Kept on purpose:** the falafel sandwiches (bread), White Chilli Pasta Casserole (pasta) and Vegan Arroz con Pollo (an Edit Menu tag set before it was linked) keep Gluten.
+- **Plates against the v22 CODEX feed** (real DOOR, published menu and overlay): Wk2 MON dinner and Wk2 TUE dinner lose GLUTEN/WHEAT. Wk3 TUE dinner keeps WHEAT from the regular meal's tick (naan). 0 `_vegAltSafe` changes.
+- **Order doesn't matter:** against today's v21 feed the plates keep Gluten through the recipe lookup, so this never drops a warning before CODEX v22 is on Pages.
+- **Caribbean Stew's shared copy:** the shared Library still lists "Gluten (Bouillon)" for Caribbean Stew (Bloor, Oct 7), and DOOR lays it over the feed. That dish's own Gluten stays until one shared save from CODEX.
+- **Gate:** `tests/bouillon_gluten_slots_gate.mjs` (3), authored red 1/3 on `910fb7c`. The feed check skips against a CODEX feed older than v22. Suite 353 → 356.
+
 ## Recent (2026-10-17) — the vegan plate reads the dishes set on the vegan line; 47 vegan dishes linked or tagged (`v31-standard.29`)
 The vegan plate's allergen line (its CONTAINS on the plating sheet, and the No Egg / No Mustard check) came from a guess. `getVegAltAllergenStr` fuzzy-matches the vegan line's TEXT against vegan-stream CODEX recipes, and the main meal's ticks make the floor.
 - **The gaps.** Only 6 of the 56 lunches and dinners linked a vegan dish to a recipe, and a link was never read. About half the other names matched nothing ("Citrus Tofu", "Vegan Tenders") or the wrong recipe ("Roast Potato and Tofu Hash" → Roast Tofu). The tags supervisors set in Edit Menu were never read either, so six tofu or vegan chik'n plates didn't say Soy.
@@ -76,14 +90,14 @@ The vegan plate's allergen line (its CONTAINS on the plating sheet, and the No E
   - Wk3 WED lunch's vegan nachos gain Soy, Gluten, Sulphites and Spicy.
   - Vegetarian Fajitas gains Soy and Spicy; Veggie lasagna gains Soy and Sulphites; Vegan Arroz con Pollo gains Soy and Gluten.
   - Mushroom: Wk1 TUE dinner, Wk3 MON dinner, Wk4 SAT dinner; Mushroom and Beans: Wk3 SUN dinner.
-  - Gluten from bouillon on the peanut stew and the vindaloo (CODEX still lists it; Jason ruled bouillon gluten-free on Oct 16, so those lists are a separate CODEX change that needs his OK). Also Nightshades on the black bean patty and Oats on the pot pie.
+  - Gluten from bouillon on the peanut stew and the vindaloo (CODEX still listed it then). Ruled 2026-10-17; it comes off with CODEX v22 and the 2026-10-18 entry above. Also Nightshades on the black bean patty and Oats on the pot pie.
   - Rexdale Falafel's Nightshades comes from CODEX v21 (#154); until that is on Pages, Wk2 TUE gets Spicy and Gluten from the feed.
 - **Gate:** `tests/vegan_plate_dishes_gate.mjs` (8), authored red 0/8 on `a295eca`. It covers the reader, the wiring, every link and tag, the fresh-tablet sweep over the whole overlay, the offline baked list and the CODEX-feed census.
   - Re-pinned with dated notes: `declared_free_vegan_gate` and `door-smoke` "routes the veg-alt lookup through the floor".
   - Suite 345 → 353.
 - **Open for Jason:**
-  - Gluten on both falafels, though the recipes use GF flour (a removal needs his OK and a stamp in CODEX).
-  - Wk4 MON's regular lunch has a Nightshades tick the chicken ranch sandwich probably doesn't have (kept).
+  - ~~Gluten on both falafels, though the recipes use GF flour.~~ Jason, 2026-10-17: "no gluten on wheat-free falafel". CODEX v22 takes it off, stamped (conc-recipe-hub PR #155). The falafel sandwich plates keep Gluten from the bread.
+  - ~~Wk4 MON's regular lunch has a Nightshades tick the chicken ranch sandwich probably doesn't have.~~ Jason, 2026-10-17: "nightshades should be ticked on wk4 mon lunch (peppers in chicken salad)". The tick stays.
   - The jackfruit plate still says Soy from the name guess (over-warns only).
   - CODEX has no Mushroom or Beans family, so a linked recipe can't carry them (lean: add both families in CODEX).
 
