@@ -9031,6 +9031,7 @@ const RESIDENT_TO_MEAL_FLAG = {
   'No Shellfish':   'hasShellfish',
   'No Eggs':        'hasEgg',
   'No Dairy':       'hasDairy',
+  'Lactose Intolerant': 'hasDairy',   // is No Dairy too (Jason, 2026-10-18); it had no conflict check
   'GF':             'hasGluten',
   'No Spicy':       'isSpicy',
   'No Beef':        'hasBeef',
@@ -16142,7 +16143,9 @@ const CONFLICT_MAP = [
   // GF is the resident tag ("Gluten Free" is the section's name): this row never matched anyone (2026-10-18).
   { mealFlag:'hasGluten',      residentTag:'GF',                label:'Gluten',        note:'gluten-free',                        severity:'amber' },
   { mealFlag:'hasDairy',       residentTag:'No Dairy',          label:'Dairy',         note:'dairy-free',                         severity:'amber' },
-  { mealFlag:'hasDairy',       residentTag:'Lactose Intolerant',label:'Dairy',         note:'no dairy',                           severity:'amber' },
+  // Lactose Intolerant is No Dairy too (Jason, 2026-10-18: "Lactose intolerant should be no dairy too"): the same note,
+  // so a resident with both tags reads "dairy-free" once.
+  { mealFlag:'hasDairy',       residentTag:'Lactose Intolerant',label:'Dairy',         note:'dairy-free',                         severity:'amber' },
 ];
 
 function getIngredientConflicts(mealFlags, residents) {

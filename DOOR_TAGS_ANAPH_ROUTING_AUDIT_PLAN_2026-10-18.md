@@ -115,7 +115,7 @@ There are 25 flags (`FLAG_DEFS`). For each source, the audit asks: **does it set
   - Today's five GF residents keep their stored tag.
   - Compare "No Gluten", which is at least flagged as unmatched for review.
   - **Lean: fix first,** as its own PR: "GF" → `glutenFree`, plus "No Gluten" and "Celiac" asked about as today.
-- **L2 — "Lactose Intolerant" re-parses to also add No Dairy**, but two stored records (1207, 301a) lack No Dairy. The data and the parser disagree. Routing is the same either way (both route to no_dairy), but the conflict check differs: Lactose Intolerant has no `RESIDENT_TO_MEAL_FLAG` entry.
+- **L2 — RULED and DONE in `v31-standard.31`** (Jason, 2026-10-18: "Lactose intolerant should be no dairy too"; gate `lactose_no_dairy_gate`). **"Lactose Intolerant" re-parses to also add No Dairy**, but two stored records (1207, 301a) lack No Dairy. The data and the parser disagree. Routing is the same either way (both route to no_dairy), but the conflict check differs: Lactose Intolerant has no `RESIDENT_TO_MEAL_FLAG` entry.
 
 **To verify (from the census table):**
 - **L3 — Bland Diet is a routing tag that no section lists.** The Bland section reads No Spicy only. A Bland Diet resident would eat the regular plate. Nobody has the tag today.
@@ -244,7 +244,7 @@ The total is about 6–8 working days. No published artifact changes until a fix
 2. **Bland Diet** (L3): route to Bland with No Spicy, or retire the tag into No Spicy? [route with No Spicy]
 3. **No Mustard** (L4): join "No Egg / Mustard" on a mustard meal? [yes, the section's own name says so]
 4. **No Molluscs routing:** route to No Fish / Shellfish like No Shellfish? [yes on a shellfish meal; it is a note-and-lockout tag today]
-5. **Lactose Intolerant** (L2): a conflict check on dairy, and should stored records gain No Dairy as the parser gives? [conflict check yes; data via A6 list]
+5. ~~**Lactose Intolerant** (L2)~~ ruled 2026-10-18: it is No Dairy too. Done: the conflict check and one note; the import proposes No Dairy for 1207 and 301a.
 6. **GF tier** (L10): auto, as its note says, or doc, as it does today? [keep doc until Jason says]
 7. **Accommodations no rule reads** (L5: Low Sodium, Low Fat, Low Potassium, No Fried Food, Other): text only, or a flag and a note? [text only; A4 confirms they print]
 8. **Taking a room off the anaphylactic list** (L7): should it also clear the resident's flag? [yes, with the one confirm DOOR already asks]

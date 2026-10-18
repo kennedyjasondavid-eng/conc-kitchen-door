@@ -87,7 +87,8 @@ test('every published restriction parses with nothing to ask, and GF residents n
   assert.ok(gf.length >= 4, 'GF residents: ' + gf.length);
   for (const r of gf) assert.ok(tags(r.rawRestriction).includes('glutenFree'), r.room + ' ' + r.rawRestriction);
   // Re-parsing every resident now differs from their stored tags in one known way only: "Lactose Intolerant" also reads
-  // as No Dairy, which two stored records lack (the audit plan's L2, for a ruling) — and no longer in GF.
+  // as No Dairy, which two stored records lack — and no longer in GF. Ruled 2026-10-18 (Jason: "Lactose intolerant should
+  // be no dairy too"; lactose_no_dairy_gate): the parser is right, and the import's proposal adds it to those two.
   const labels = (t) => tags(t).map(k => vm.runInContext('TAG_LABELS_MAP', sb)[k] || k).sort();
   const diffs = [];
   for (const r of residents) {
