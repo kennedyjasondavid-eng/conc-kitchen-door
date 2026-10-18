@@ -779,6 +779,14 @@ function doorSharedDoorRecord(rec) {
 }
 // Allergen family: the text before " (" without case ("Milk (Butter)" → milk), as CODEX compares them.
 function doorAllergenFamily(a) { return String(a == null ? '' : a).split(' (')[0].trim().toLowerCase(); }
+// CODEX C8 review fold (2026-10-18): a list that names an animal family is never vegan-friendly, whatever a record's
+// veganFriendly says ("Egg and Mustard" counts as two families). The overlay clears the flag when Option C keeps such
+// a label, and the Vegan Alt slot never offers such a recipe.
+const DOOR_ANIMAL_FAMILIES = { milk: 1, dairy: 1, egg: 1, eggs: 1, fish: 1, shellfish: 1, crustaceans: 1, molluscs: 1 };
+function doorNamesAnimalFamily(list) {
+  return (Array.isArray(list) ? list : []).some(a => doorAllergenFamily(a).split(/\s*(?:,|&|\band\b)\s*/)
+    .some(f => DOOR_ANIMAL_FAMILIES[f.trim()] === 1));
+}
 // Option C (2026-10-14, Jason: "go with C"): the families whose removal was confirmed where the recipe was
 // saved (the record's door.removedAllergens). Only these may come off DOOR's list.
 function doorSharedRemovedFamilies(rec) {
@@ -796,7 +804,7 @@ function doorSharedRemovedFamilies(rec) {
 function doorOverlaySharedRecipes(base, shared) {
   const key = n => String(n == null ? '' : n).trim().toLowerCase();
   const list = Array.isArray(base) ? base.filter(r => r && typeof r === 'object').map(r => Object.assign({}, r)) : [];
-  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], keptAllergens: [], generated: null };
+  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], keptAllergens: [], notVeganFriendly: [], generated: null };
   if (shared && shared._meta && typeof shared._meta.generated === 'string') receipt.generated = shared._meta.generated;
   const recs = shared && Array.isArray(shared.recipes) ? shared.recipes : [];
   const find = n => list.findIndex(r => key(r.recipeName) === key(n));
@@ -822,6 +830,14 @@ function doorOverlaySharedRecipes(base, shared) {
         d.allergens = d.allergens.filter(a => doorAllergenFamily(a) !== 'none').concat(kept);
         receipt.keptAllergens.push({ recipe: d.recipeName, allergens: kept.slice() });
       }
+    }
+    // A kept Milk, Eggs, Fish or shellfish label means the shared version's "vegan-friendly" was worked out from
+    // ingredients that leave it out (an unconfirmed shorter copy): it can't stand.
+    if (d.veganFriendly === true && doorNamesAnimalFamily(d.allergens)) {
+      d.veganFriendly = false;
+      receipt.notVeganFriendly.push(d.recipeName);
+    }
+    if (i >= 0) {
       const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream, list[i].veganFriendly === undefined ? null : list[i].veganFriendly]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream, d.veganFriendly === undefined ? null : d.veganFriendly]);
       list[i] = d;
       (same ? receipt.unchanged : receipt.replaced).push(d.recipeName);
@@ -839,6 +855,7 @@ function _doorApplySharedRecipes() {
   try { window.__DOOR_SHARED_RECIPES__ = _doorSharedLibraryReceipt; } catch (e) {}
   if (out.receipt.skipped.length) console.info('[DOOR] shared Library: ' + out.receipt.skipped.length + ' record(s) without a DOOR block left out:', out.receipt.skipped);
   if (out.receipt.keptAllergens.length) console.info('[DOOR] shared Library: allergens kept because their removal was not confirmed:', out.receipt.keptAllergens);
+  if (out.receipt.notVeganFriendly.length) console.info('[DOOR] shared Library: not vegan-friendly, since a kept allergen names an animal family:', out.receipt.notVeganFriendly);
   updateCODEXBadge();
 }
 
@@ -19526,6 +19543,10 @@ function recipeMatchesSlotDef(def, recipe) {
   // The line itself (`stream`) is untouched; the vegan plate's name guess still reads only the vegan line.
   if (def && def.streams && !def.streams.includes(recipe.stream)
       && !(def.streams.includes('vegan') && recipe.veganFriendly === true)) return false;
+  // C8 review fold: a recipe whose list names Milk, Eggs, Fish or shellfish is never offered as a vegan alternative,
+  // whatever its line or flag says (Jamcaican Patty Dough lists Milk today; no menu slot links it).
+  if (def && def.streams && def.streams.includes('vegan') && !def.streams.includes('regular')
+      && typeof doorNamesAnimalFamily === 'function' && doorNamesAnimalFamily(recipe.allergens)) return false;
   return true;
 }
 
