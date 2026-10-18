@@ -111,7 +111,7 @@ There are 25 flags (`FLAG_DEFS`). For each source, the audit asks: **does it set
 ## 3. Leads found while scoping (verify first; none changed here)
 
 **Confirmed (seen in the real page):**
-- **L1 — "GF" in a raw restriction parses to nothing, silently.** `normalizeRestriction('GF')` returns no tag, with nothing unmatched and nothing ambiguous. "GF, No Pork" gives only No Pork. GF is DOOR's own label for gluten-free. A re-import of a resident list that writes "GF" would drop the tag with no question asked.
+- **L1 — "GF" in a raw restriction parses to nothing, silently. FIXED in `v31-standard.31`** (PR #125, with DF as No Dairy, Jason 2026-10-18; gate `restriction_short_codes_gate`). `normalizeRestriction('GF')` returns no tag, with nothing unmatched and nothing ambiguous. "GF, No Pork" gives only No Pork. GF is DOOR's own label for gluten-free. A re-import of a resident list that writes "GF" would drop the tag with no question asked.
   - Today's five GF residents keep their stored tag.
   - Compare "No Gluten", which is at least flagged as unmatched for review.
   - **Lean: fix first,** as its own PR: "GF" → `glutenFree`, plus "No Gluten" and "Celiac" asked about as today.
@@ -227,7 +227,7 @@ Screenshots go in the receipt.
 
 ## 5. Order, effort, cut
 
-1. **L1 fix first** (GF parsing): small, and it silently drops a food-safety tag.
+1. ~~**L1 fix first** (GF parsing)~~ done in `v31-standard.31`.
 2. **A0** plus Jason's rulings.
 3. **A1–A3 gates**, as one tests-only PR. Expect red rows: they *are* the findings list.
 4. **A4 replay receipt**, then **A5 / A6 censuses**, as a tests-and-receipts PR.

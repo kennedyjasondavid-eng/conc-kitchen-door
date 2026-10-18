@@ -72,6 +72,14 @@ Jason, 2026-10-18: "follow your lean on routing and lockout", on the `v31-standa
   - `doorIsAnaphResident(r)` (the flag or the list) is now the only rule, read by every one of those readers.
   - A **revert never takes a room off the list** (`revertResident`); only the editor's checkbox or the list's Remove does.
   - Live: 213 is red with "⚠ ANAPHYLACTIC" on the restriction sheet and its label. The published anaphylactic count goes 2 → 4, matching the Anaphylactic List: 213, 813, 607a, 1213. 813 has no restriction, so it shows only in the count. Stored resident data is unchanged.
+- **GF and DF are read on the resident-list import** (found scoping the audit, plan L1; Jason, 2026-10-18: "yes DF is dairy free"). `normalizeRestriction` had no rule for "GF", DOOR's own gluten-free label, and its leftover-word pass returned early for any word under 3 letters, before recording it as unmatched.
+  - So "GF" was read as nothing and nobody was asked: a new resident written "GF" arrived as Regular, and "GF, No Pork" as No Pork only.
+  - Re-importing today's list (real page, on `main`) proposed taking GF off all four residents whose rows say GF: 912, 1207, 613a and 301a.
+  - Now:
+    - GF, "G/F" and "No Gluten" read as gluten-free.
+    - DF, "D/F" and "dairy-free" read as No Dairy ("Dairy Free" was read only by the fuzzy pass).
+    - An unknown short word is asked about. Joining words and the stray "No" the comma expander leaves (`IMPORT_SHORT_NOISE_RE`) are not.
+  - The same re-import proposes no GF removal. Its only proposals are No Dairy for 1207 and 301a from "Lactose Intolerant" (plan L2, for a ruling). Of the 45 published restrictions, the only ones that parse differently are the four with GF, which gain it, and none asks a question. Stored resident data is unchanged.
 - **Live effect** (published menu, overlay and resident list):
   - **Room 213** is on DOOR's anaphylactic list (H&W, April 22) with **Tree Nuts and Coconut** as its anaphylactic tags, which were never contained. It now gets the Anaphylactic Alternative, the anaphylactic alert and red week-ahead lines on the 9 published meals with tree nuts or coconut: Wk1 MON / WED / FRI dinner, Wk2 MON / WED dinner, Wk3 TUE dinner, Wk3 FRI lunch, Wk4 MON / SAT dinner. Plating sheets, labels and `routing_by_meal.json` count it per meal, so at the next publish 213 moves from its section to "Anaphylactic Alternative" on those meals. The room lookup and the home screen's headcount read the whole day, as they do for peanuts. Nothing else moves for anyone else.
   - The gluten note, as above. Shellfish routing changes nothing today (0 meals carry `hasShellfish`).
@@ -81,14 +89,15 @@ Jason, 2026-10-18: "follow your lean on routing and lockout", on the `v31-standa
   - `special_meal_flags_gate` (6, red 0/6);
   - `workbook_shellfish_words_gate` (5, red 3/5).
   - `anaph_flag_everywhere_gate` (5, red 4/5; the fifth pins the published data).
+  - `restriction_short_codes_gate` (6, red 5/6; the sixth is the whole-word lock): GF / DF however written, no over-reading, short words asked, every published restriction, and the import's diff.
 
-  Suite 365 → 397. Checked in a real browser (offline boot) with the published residents: room 213 contained and alerted on a coconut meal and no one on a plain one; its printed label red with "⚠ ANAPHYLACTIC"; a shrimp-curry special meal keeps Shellfish, Tree Nuts and Coconut and routes No Shellfish to the vegan plate; no page errors.
+  Suite 365 → 403. Checked in a real browser (offline boot) with the published residents: room 213 contained and alerted on a coconut meal and no one on a plain one; its printed label red with "⚠ ANAPHYLACTIC"; a shrimp-curry special meal keeps Shellfish, Tree Nuts and Coconut and routes No Shellfish to the vegan plate; no page errors.
 - **Open for Jason:**
   - **Room 813** is on the anaphylactic list with no allergen recorded (tags: Regular), so DOOR can't contain anything for it.
   - The GF tag isn't in `COMPLIANCE_TIERS` (it lists "Gluten Free"), so GF counts as doc-tier, not the auto-tier its note says. Left as is: doc-tier is the safer default.
   - No Oats has no meal flag, and CODEX's Oats label is ignored; DOOR has no flag for Lupin or Buckwheat.
   - The Special Meal grid still shows the priority allergens only (the other flags travel unseen).
-  - **Full audit planned:** `DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md` (Jason, 2026-10-18: "Plan a full audit to test all tags and anaphs"). Found while scoping: a raw restriction of "GF" parses to no tag, silently (lean: fix first).
+  - **Full audit planned:** `DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md` (Jason, 2026-10-18: "Plan a full audit to test all tags and anaphs"). Its first finding, "GF" parsed to no tag, is fixed above.
 
 ## Recent (2026-10-18) — CODEX's Crustaceans and Molluscs labels tick Shellfish (`v31-standard.30`)
 Food-safety gap found in review (2026-10-18). CODEX's reader files shrimp, prawn, crab, lobster and krill under **Crustaceans**, and clams, mussels, oysters, scallops and squid under **Molluscs**. So Check & save writes "Crustaceans (Shellfish)" or "Molluscs (Molluscs)", and two CODEX templates (Thai Basil Chicken, Bò Lúc Lắc) already carry "Molluscs (Oyster Sauce)". A Save on a connected tablet is canon, and its `door` block brings those labels here. `HUB_ALLERGEN_MAP` had only 'Shellfish'. Linking such a recipe set no `hasShellfish`, only an unmapped-label warning, so a No Shellfish or No Molluscs resident was not warned. No published recipe carries either label today, so no live meal changes.

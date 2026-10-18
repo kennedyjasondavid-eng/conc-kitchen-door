@@ -19793,9 +19793,16 @@ const IMPORT_TAG_RULES = [
   { re: /\bdiabet(ic|es)\b/i,                        tag: 'diabetic' },
   { re: /\bgluten\s*[- ]?\s*free\b/i,                tag: 'glutenFree' },
   { re: /\bno\s+wheat\b/i,                           tag: 'glutenFree' },
+  // GF is DOOR's own label, and "No Gluten" says the same (2026-10-18): neither was read, and "GF" vanished silently.
+  { re: /\bgf\b/i,                                   tag: 'glutenFree' },
+  { re: /\bno\s+gluten\b/i,                          tag: 'glutenFree' },
   { re: /\bsoft\s+meals?\b/i,                        tag: 'softMeals' },
 
   // Dairy
+  // DF is dairy-free (Jason, 2026-10-18: "yes DF is dairy free"); "dairy-free" was only asked about, "Dairy Free" read
+  // by the fuzzy pass alone.
+  { re: /\bdf\b/i,                                   tag: 'noDairy' },
+  { re: /\bdairy\s*[- ]?\s*free\b/i,                 tag: 'noDairy' },
   { re: /\bno\s+dairy\b/i,                           tag: 'noDairy' },
   { re: /\bno\s+diary\b/i,                           tag: 'noDairy' },   // common typo
   { re: /\blactose\s+(intolerant|free)\b/i,          tag: 'noDairy' },
@@ -19853,6 +19860,9 @@ const IMPORT_IGNORE_RE = /^(regular|meals? breakdown|single-dietary|shared -diet
 // foods" → "foods"; "Diabetic Diet" → "Diet"; "… for dinner / lunch" → "lunch"). Never an
 // ingredient, so never a "which did intake mean?" question.
 const IMPORT_BARE_NOISE_RE = /^(foods?|meals?|diet|dietary|lunch|dinner|breakfast|only|snacks?|drinks?|options?|items?)$/i;
+// Short leftovers that are never a restriction (2026-10-18): the "No" the comma expander leaves once a rule has read the
+// rest ("No Pork, Diabetic" → "No Pork, No Diabetic"), and joining words. Every other short word is asked about.
+const IMPORT_SHORT_NOISE_RE = /^(no|or|w|a|an|of|to|in|on|at|as|by|is|it)$/i;
 
 // Levenshtein distance for fuzzy fallback
 function importLevenshtein(a, b) {
@@ -20005,7 +20015,9 @@ function normalizeRestriction(raw) {
   // matches nothing it is AMBIGUOUS — "no X" or "prefers X" is a human judgment (Jason
   // ruling 2026-09-11) — and is carried as `ambiguous` so Review & Generate can ask.
   const _implied = [];
-  const commaExpanded = expandCommaNegations(rawText, _implied);
+  // "G/F" and "D/F" are GF and DF (2026-10-18): the slash expander would split them into "G, F" first.
+  const shortCodes = rawText.replace(/\b([gd])\s*\/\s*f\b/gi, '$1F');
+  const commaExpanded = expandCommaNegations(shortCodes, _implied);
   const expanded = expandSlashNegations(commaExpanded, _implied);
   const tags = {};
   const matched = new Set();
@@ -20040,7 +20052,9 @@ function normalizeRestriction(raw) {
   // 3. Fuzzy pass on leftover tokens
   tokens.forEach(tok => {
     const low = tok.toLowerCase();
-    if (low.length < 3) return;  // too short for fuzzy
+    // Too short to fuzzy-match, but never dropped (2026-10-18): this returned before the word was recorded, so "GF"
+    // was read as nothing and nobody was asked. An unknown short code is a question like any other unmatched word.
+    if (low.length < 3) { if (/[a-z]/.test(low) && !IMPORT_SHORT_NOISE_RE.test(low)) unmatched.push(tok); return; }
     let best = null, bestDist = 99;
     IMPORT_FUZZY_VOCAB.forEach(([vocab, tag]) => {
       // Only fuzzy-match if lengths are similar
