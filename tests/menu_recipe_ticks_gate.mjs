@@ -91,3 +91,26 @@ test('every confirmed tick is on its meal while the dish is still there', () => 
 test('the gluten Jason ruled out (bouillon, soy sauce) was not ticked by this change', () => {
   assert.equal(TICKS.filter(([, , , flag]) => flag === 'hasGluten').length, 1); // only the meatloaf's panko
 });
+
+// The routing audit's flag-source census (2026-10-18, docs/DOOR_FLAG_RESIDENT_CENSUS_2026-10-18.md). Jason ruled:
+// Spicy on Wk1 TUE's Pork Carnitas (CODEX: both carnitas are spicy), Processed Meat on Wk3 SAT's Pepperoni Pizza (614b is
+// No Processed Food), Gluten on Wk3 WED's nachos ("Flour" tortillas), and Beans on the Nov 3 swap's chickpea salad. He
+// did not tick Spicy on the Beef Nachos. Added through Edit Menu's own overlay write; the main dish carries each tick.
+const AUDIT_TICKS = [
+  ['1', 'TUESDAY', 'dinner', 'isSpicy', 'Pork Carnitas'],
+  ['3', 'SATURDAY', 'dinner', 'hasProcessedMeat', 'Pepperoni Pizza'],
+  ['3', 'WEDNESDAY', 'lunch', 'hasGluten', 'Tortillas'],
+];
+test('the ticks ruled on the routing audit are on their meals, and on the main dish (a fresh tablet keeps them)', () => {
+  for (const [wk, day, period, flag, dish] of AUDIT_TICKS) {
+    const d = menu[wk][day];
+    assert.ok(norm(d[period]).includes(norm(dish)), wk + ' ' + day + ' still serves ' + dish);
+    assert.equal((d[period + '_flags'] || {})[flag], true, wk + ' ' + day + ' ' + period + ' ' + flag);
+    const main = (d[period + '_slots'] || {}).main;
+    if (main) assert.equal((main.flags || {})[flag], true, 'the main dish carries ' + flag);
+  }
+  assert.equal(menu['3'].WEDNESDAY.lunch_flags.isSpicy, false, 'no Spicy on the nachos (not ruled)');
+  const swaps = JSON.parse(fs.readFileSync(new URL('../meal_swaps.json', import.meta.url), 'utf8'));
+  const nov3 = swaps['2026-11-03-lunch'];
+  if (nov3) assert.equal(nov3._flagsRaw.hasBeans, true, 'the Nov 3 chickpea salad is Beans');
+});

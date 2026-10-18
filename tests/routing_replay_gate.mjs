@@ -91,7 +91,8 @@ test('every published line names every restriction its meal and its plate set of
     for (const r of state.residents) {
       const line = lineFor(m, r.room);
       if (!line) continue;
-      const plate = line.key === 'vegan' ? c.doorAllergenStrFlags(m.pd.vegAllergenStr || '') : {};
+      const plate = line.key === 'vegan' ? c.doorAllergenStrFlags(m.pd.vegAllergenStr || '')
+        : line.key === 'halal' ? c.doorAllergenStrFlags(m.pd.ctx.halalAllergenStr || '') : {};
       const missing = [...requiredNotes(r.tags || [], m.pd.mealFlags, line.key, plate)].filter((n) => !line.notes.has(n));
       if (missing.length) bad.push(tag(m) + ' ' + r.room + ' in ' + line.key + ': missing ' + missing.join(', '));
     }
@@ -122,6 +123,11 @@ test('the receipt: each restriction the audit found unserved and unnamed is name
   // #8, #9 301a (GF, No Beans, Vegetarian) on vegan plates whose own line has wheat or beans.
   assert.ok(named(at('2', 'THU', 'dinner'), '301a', 'gluten-free'), 'Wk2 THU dinner: vegan sausages');
   assert.ok(named(at('3', 'SUN', 'dinner'), '301a', 'no beans'), 'Wk3 SUN dinner');
+  // Found by the flag-source census (A5): the halal plate's own dish. Wk2 SAT lunch's halal plate is Halal Breaded Chicken
+  // Burgers (egg, spicy, nightshades); the main meal (chicken tenders) ticks no egg. 304 is Halal + No Eggs.
+  const w2sat = at('2', 'SAT', 'lunch');
+  assert.match(w2sat.pd.ctx.halalAllergenStr || '', /\bEGGS?\b/, 'the halal plate says egg');
+  assert.ok(named(w2sat, '304', 'no egg'), '304 at Wk2 SAT lunch');
 });
 
 test('room 213 is contained meal by meal on the 9 published meals with tree nuts or coconut, and only there', () => {

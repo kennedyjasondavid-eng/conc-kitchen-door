@@ -156,3 +156,29 @@ test('the Enter Changes form reads its anaphylactic toggle as it is, and an upda
     assert.match(fn(name), /doorAskTakeOffAnaphList\(/, name + ' asks before taking an anaphylactic resident off');
   }
 });
+
+test('an anaphylactic resident with no restriction recorded still gets a red label and a place on the restriction sheet (813)', () => {
+  // Found by the browser replay (tests/browser/routing_replay.mjs): every label and sheet chose residents by a non-Regular
+  // tag, so 813 (on the list, tags Regular) had no label at all.
+  for (const name of ['printLabels', 'buildLabelsXlsx', 'buildRestrictionListXlsx']) {
+    const body = fn(name);
+    assert.match(body, /every\(t => t === 'Regular'\)\)[^\n]*doorIsAnaphResident\(r\)/, name + ' includes an anaphylactic Regular resident');
+  }
+});
+
+test('the load-time tidy: a Regular resident left Provisional reads N/A; an anaphylactic one stays Provisional (Jason: "Tidy to N/A")', () => {
+  const body = between('(function autoPromoteAutoTier() {', '\n})();') + '\n})();';
+  const run = (reg, rooms) => {
+    const c = { REGISTRY_LIST: reg, anaphRooms: rooms, saveRegistryState() {}, console: { log() {} },
+      requiresDocumentation: (tags) => tags.some((t) => ['No Peanuts', 'GF'].includes(t)) };
+    vm.createContext(c);
+    vm.runInContext(fn('doorIsAnaphResident') + body, c);
+    return reg.map((r) => r.room + ':' + r.confirm);
+  };
+  assert.deepEqual(run([
+    { room: '312', tags: ['Regular'], confirm: 'Provisional', confirmBy: '—' },
+    { room: '813', tags: ['Regular'], confirm: 'Provisional', confirmBy: '—' },
+    { room: '405', tags: ['Vegetarian'], confirm: 'Provisional' },
+    { room: '607a', tags: ['No Peanuts'], confirm: 'Provisional' },
+  ], ['813']), ['312:N/A', '813:Provisional', '405:Confirmed', '607a:Provisional']);
+});

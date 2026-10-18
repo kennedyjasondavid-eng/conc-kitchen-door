@@ -377,7 +377,7 @@
             "hasFish": false,
             "hasEgg": false,
             "hasPeanuts": false,
-            "isSpicy": false,
+            "isSpicy": true,
             "isCarb": true,
             "hasCoconut": false,
             "hasMushroom": false,
@@ -465,7 +465,49 @@
           "manual": "Broccoli",
           "flags": {}
         }
-      }
+      },
+      "dinner": "Pork Carnitas, Spanish Rice and Vegetables, Broccoli",
+      "dinner_veg": "Vegan Mushroom Carnitas, Spanish Rice and Vegetables, Broccoli",
+      "dinner_flags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": true,
+        "hasCorn": false
+      },
+      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
+      "dinner_noPorkAlt": "",
+      "dinner_mainItem": "Pork Carnitas",
+      "dinner_mainAlt": "Chicken Carnitas",
+      "dinner_sides": "Spanish Rice and Vegetables, Broccoli"
     },
     "SUNDAY": {
       "breakfast": "Pork Breakfast sandwich, fruit & yoghurt",
@@ -3086,7 +3128,7 @@
         "isSpicy": false,
         "isCarb": false,
         "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
+        "hasProcessedMeat": true,
         "hasBeans": false,
         "hasMushroom": false,
         "hasCoconut": false,
@@ -3107,7 +3149,8 @@
           "flags": {
             "hasGluten": true,
             "hasDairy": true,
-            "hasPork": true
+            "hasPork": true,
+            "hasProcessedMeat": true
           }
         },
         "mainalt": {
@@ -3483,7 +3526,7 @@
       "lunch": "Beef Nachos Supreme, Tortillas, Sour Cream",
       "lunch_veg": "Vegan Nachos Supreme, Tortillas, Sour Cream",
       "lunch_flags": {
-        "hasGluten": false,
+        "hasGluten": true,
         "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
@@ -3520,7 +3563,7 @@
         "main": {
           "recipeName": "Beef Nacho Mix",
           "flags": {
-            "hasGluten": false,
+            "hasGluten": true,
             "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
@@ -6002,9 +6045,9 @@
     "plainVegStirfryComponents": "Carrot, Onion, Peppers, Zucchini, Green Beans",
     "standardCutover": 1783971058450,
     "dayEditedAt": {
-      "1|TUESDAY": 1792253645169,
+      "1|TUESDAY": 1792324804415,
       "2|SATURDAY": 1792253645169,
-      "3|WEDNESDAY": 1792253645169,
+      "3|WEDNESDAY": 1792324804415,
       "1|WEDNESDAY": 1792253645169,
       "1|SUNDAY": 1791118602095,
       "2|THURSDAY": 1792253645169,
@@ -6022,7 +6065,7 @@
       "4|SUNDAY": 1792253645169,
       "4|WEDNESDAY": 1792253645169,
       "2|FRIDAY": 1792253645169,
-      "3|SATURDAY": 1792253645169,
+      "3|SATURDAY": 1792324804415,
       "3|THURSDAY": 1792253645169,
       "3|MONDAY": 1792253645169,
       "4|MONDAY": 1792253645169,

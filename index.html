@@ -18310,7 +18310,9 @@ function mergeVegAltAllergenFloor(lookupStr, fallbackStr) {
 //     so a recipe's newer allergen reaches the plate. As with the meal ticks, a linked slot keeps what it captured.
 // Like the name lookup this is a floor: computePlatingData merges it with mergeVegAltAllergenFloor(), so it only ever
 // adds, and a stored operator statement still wins outright.
-function getVegAltSlotAllergenStr(slots) {
+// ids: the slots of the plate being read — the vegan plate's by default; the halal plate reads its own dish and the
+// shared sides (2026-10-18).
+function getVegAltSlotAllergenStr(slots, ids) {
   if (!slots || typeof slots !== 'object') return '';
   const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' && DOOR_RECIPE_DATA) || (typeof DOOR_RECIPE_DATA_FALLBACK !== 'undefined' && DOOR_RECIPE_DATA_FALLBACK) || [];
   const out = [];
@@ -18319,7 +18321,7 @@ function getVegAltSlotAllergenStr(slots) {
       flagsToAllergenStr(flags).split(',').map(t => t.trim().toUpperCase()).filter(Boolean).forEach(t => out.push(t));
     }
   };
-  ['veganalt', 'starch', 'vegside', 'xtra'].forEach(id => {
+  (ids || ['veganalt', 'starch', 'vegside', 'xtra']).forEach(id => {
     const s = slots[id];
     if (!s) return;
     if (!s.recipeName && !s.manual) return;
@@ -21644,7 +21646,12 @@ initDynamic();
   let promoted = 0;
   REGISTRY_LIST.forEach(r => {
     if (r.confirm !== 'Provisional') return;
-    if (!r.tags || r.tags.every(t => t === 'Regular')) return;
+    // A resident with no restriction needs no documentation: N/A, as a Regular intake is (2026-10-18, Jason: "Tidy to
+    // N/A"; 56 stayed Provisional for nothing). An anaphylactic one (813) stays Provisional: the list is a medical fact.
+    if (!r.tags || r.tags.every(t => t === 'Regular')) {
+      if (!doorIsAnaphResident(r)) { r.confirm = 'N/A'; r.confirmBy = 'Auto'; promoted++; }
+      return;
+    }
     if (!requiresDocumentation(r.tags)) {
       r.confirm = 'Confirmed';
       r.confirmBy = 'Auto';
@@ -21653,7 +21660,7 @@ initDynamic();
   });
   if (promoted > 0) {
     saveRegistryState();
-    console.log('[DOOR] Auto-promoted', promoted, 'residents from Provisional to Confirmed (auto-tier tags only)');
+    console.log('[DOOR] Auto-promoted', promoted, 'residents from Provisional (auto-tier tags only → Confirmed; no restriction → N/A)');
   }
 })();
 
@@ -22162,7 +22169,16 @@ function computePlatingData(period, weekNum, dayName) {
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const mealGfAlt = dayData[period+'_gfAlt'] || '';
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr: null, noPorkAllergenStr: null, mealHalal: mealHalal};
+  // The halal plate's own allergens (2026-10-18, the routing audit; the line reads the plate eaten): the dish set on its
+  // slot (a linked recipe, or a typed dish's tags) and the shared sides, over the main meal's allergens without its pork
+  // as a floor, as the vegan line does. Its section printed no CONTAINS, and its rows read the main meal only, so a
+  // Halal + No Eggs resident was given Wk2 SAT's halal breaded chicken burger (egg) with nothing said.
+  const halalSlots = dayData[period + '_slots'];
+  const halalAllergenStr = (halalSlots && halalSlots.mainalt && (halalSlots.mainalt.recipeName || halalSlots.mainalt.manual))
+    ? mergeVegAltAllergenFloor(getVegAltSlotAllergenStr(halalSlots, ['mainalt', 'starch', 'vegside', 'xtra']),
+        flagsToAllergenStr({ ...mealFlags, hasPork: false }).toUpperCase()) || null
+    : null;
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr, noPorkAllergenStr: null, mealHalal: mealHalal};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
@@ -22415,7 +22431,8 @@ function buildRestrictionListXlsx(ds) {
 
   rows[R] = [xCell('Room',F.stdB,'FFFF00',B.thin), xCell('Restrictions',F.stdB,'FFFF00',B.thin), xCell('Section',F.stdB,'FFFF00',B.thin), xCell('Status',F.stdB,'FFFF00',B.thin)]; R++;
 
-  const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t => t === 'Regular')) || r.serviceNote).sort((a,b) => {
+  // An anaphylactic resident is listed even with no restriction recorded (2026-10-18, the routing audit: room 813).
+  const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t => t === 'Regular')) || r.serviceNote || doorIsAnaphResident(r)).sort((a,b) => {
     const na = parseInt(a.room), nb = parseInt(b.room);
     return na !== nb ? na - nb : a.room.localeCompare(b.room);
   });
@@ -22542,7 +22559,8 @@ function buildLabelsXlsx(ds) {
   const merges = [];
   let R = 0;
 
-  const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t => t === 'Regular')).sort((a,b) => {
+  // An anaphylactic resident gets a red label even with no restriction recorded (2026-10-18, the routing audit: 813).
+  const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t => t === 'Regular')) || doorIsAnaphResident(r)).sort((a,b) => {
     const na = parseInt(a.room), nb = parseInt(b.room);
     return na !== nb ? na - nb : a.room.localeCompare(b.room);
   });
@@ -23417,7 +23435,7 @@ function printPlatingPreview() {
 function printLabels() {
   closeLabelModal();
   const restricted = REGISTRY_LIST
-    .filter(r => r.tags && !r.tags.every(t => t === 'Regular'))
+    .filter(r => (r.tags && !r.tags.every(t => t === 'Regular')) || doorIsAnaphResident(r))   // 813: anaphylactic, Regular (2026-10-18)
     .sort((a, b) => {
       const n = (r) => parseInt(r.room) || 0;
       return n(a) - n(b) || String(a.room).localeCompare(String(b.room));
