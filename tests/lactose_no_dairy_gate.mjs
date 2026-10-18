@@ -1,4 +1,4 @@
-// tests/lactose_no_dairy_gate.mjs — Lactose Intolerant is No Dairy too (2026-10-18, v31-standard.31).
+// tests/lactose_no_dairy_gate.mjs — Lactose Intolerant is No Dairy too (2026-10-18, v31-standard.32).
 // Jason, 2026-10-18: "Lactose intolerant should be no dairy too" (the audit plan's L2). Lactose Intolerant already opened
 // the No Dairy section like No Dairy, and the import's parser already gives both tags. Two rules still read it apart:
 // the conflict check (RESIDENT_TO_MEAL_FLAG had No Dairy only) and the plating-sheet note ("no dairy" vs "dairy-free", so a

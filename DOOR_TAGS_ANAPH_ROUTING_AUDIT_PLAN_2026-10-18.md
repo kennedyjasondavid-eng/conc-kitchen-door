@@ -111,11 +111,11 @@ There are 25 flags (`FLAG_DEFS`). For each source, the audit asks: **does it set
 ## 3. Leads found while scoping (verify first; none changed here)
 
 **Confirmed (seen in the real page):**
-- **L1 — "GF" in a raw restriction parses to nothing, silently. FIXED in `v31-standard.31`** (PR #125, with DF as No Dairy, Jason 2026-10-18; gate `restriction_short_codes_gate`). `normalizeRestriction('GF')` returns no tag, with nothing unmatched and nothing ambiguous. "GF, No Pork" gives only No Pork. GF is DOOR's own label for gluten-free. A re-import of a resident list that writes "GF" would drop the tag with no question asked.
+- **L1 — "GF" in a raw restriction parses to nothing, silently. FIXED in `v31-standard.32`** (with DF as No Dairy, Jason 2026-10-18; gate `restriction_short_codes_gate`). `normalizeRestriction('GF')` returns no tag, with nothing unmatched and nothing ambiguous. "GF, No Pork" gives only No Pork. GF is DOOR's own label for gluten-free. A re-import of a resident list that writes "GF" would drop the tag with no question asked.
   - Today's five GF residents keep their stored tag.
   - Compare "No Gluten", which is at least flagged as unmatched for review.
   - **Lean: fix first,** as its own PR: "GF" → `glutenFree`, plus "No Gluten" and "Celiac" asked about as today.
-- **L2 — RULED and DONE in `v31-standard.31`** (Jason, 2026-10-18: "Lactose intolerant should be no dairy too"; gate `lactose_no_dairy_gate`). **"Lactose Intolerant" re-parses to also add No Dairy**, but two stored records (1207, 301a) lack No Dairy. The data and the parser disagree. Routing is the same either way (both route to no_dairy), but the conflict check differs: Lactose Intolerant has no `RESIDENT_TO_MEAL_FLAG` entry.
+- **L2 — RULED and DONE in `v31-standard.32`** (Jason, 2026-10-18: "Lactose intolerant should be no dairy too"; gate `lactose_no_dairy_gate`). **"Lactose Intolerant" re-parses to also add No Dairy**, but two stored records (1207, 301a) lack No Dairy. The data and the parser disagree. Routing is the same either way (both route to no_dairy), but the conflict check differs: Lactose Intolerant has no `RESIDENT_TO_MEAL_FLAG` entry.
 
 **To verify (from the census table):**
 - **L3 — Bland Diet is a routing tag that no section lists.** The Bland section reads No Spicy only. A Bland Diet resident would eat the regular plate. Nobody has the tag today.
@@ -227,7 +227,7 @@ Screenshots go in the receipt.
 
 ## 5. Order, effort, cut
 
-1. ~~**L1 fix first** (GF parsing)~~ done in `v31-standard.31`.
+1. ~~**L1 fix first** (GF parsing)~~ done in `v31-standard.32`.
 2. **A0** plus Jason's rulings.
 3. **A1–A3 gates**, as one tests-only PR. Expect red rows: they *are* the findings list.
 4. **A4 replay receipt**, then **A5 / A6 censuses**, as a tests-and-receipts PR.

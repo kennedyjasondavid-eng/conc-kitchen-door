@@ -1,4 +1,4 @@
-// tests/restriction_short_codes_gate.mjs — GF and DF are read on import, and no short word vanishes (2026-10-18, v31-standard.31).
+// tests/restriction_short_codes_gate.mjs — GF and DF are read on import, and no short word vanishes (2026-10-18, v31-standard.32).
 // The resident-list import (parseImportWorkbook → normalizeRestriction) reads each resident's restriction text. It had
 // no rule for "GF" (DOOR's own label for gluten-free) or "DF", and its leftover-word pass returned early for any word
 // under 3 letters — before the word was recorded as unmatched. So "GF" was read as nothing and nobody was asked: a new
