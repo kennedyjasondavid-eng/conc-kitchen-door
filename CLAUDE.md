@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.37'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.38'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,7 +53,22 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — room 813: a discharge asks before the room leaves the anaphylactic list; list and resident changes reach the other computer (`v31-standard.37`)
+## Recent (2026-10-18) — a note, a compliance action or an Undo reaches the other computer (`v31-standard.38`)
+Jason, 2026-10-18: "please sweep up those housekeeping notes", the gap #132 found and left (the entry below). These changes never marked the resident list as this computer's change, so another computer kept its own copy and its next Generate sent it back:
+- a service note (`saveInlineNote`);
+- Confirm, Set Deadline and Resolve on a batch;
+- a typed compliance field (`updateComplianceField`, saved 1.5 s later);
+- Re-open, and the Resolve form (`submitResolve`);
+- Undo Generate (`revertLastGenerate`).
+
+**Now** each takes the kitchen's newer list first, then makes its change and marks it newest (`setRegistryProvenance`), as #132 does for the anaphylactic list and Enter Changes.
+- **The typed field** is applied at once and saved 1.5 s later. The save remembers what was typed (`_compliancePendingFields`) and puts it back on the kitchen's list when it takes one.
+- **Undo Generate** never takes the kitchen's list: that would undo the Undo. Before, it kept the Generate's mark, so the other computer, which had already taken the Generate, sent it back. When the kitchen's list had changed since, the Undo's own send took that list and the Undo did nothing.
+  - Now the Undo marks itself newest.
+  - Its question adds a line when the kitchen's list has changed since this Generate: "The kitchen's resident list has changed since this Generate (Joan Wandera, Oct 18, 09:40). Undoing replaces those changes too."
+- **Gate:** `tests/resident_changes_reach_gate.mjs` (7), red 7/7 on `main` `3bd1fad`: on `main` the note, the confirmation, the re-open and the field are gone after the other computer's Generate, and the Undo comes back. The two-computer harness moved to `tests/helpers/door_two_computers.mjs`, shared with `anaph_list_reaches_gate` (unchanged checks, 7/7; 0/7 on the code before #132). Re-pinned with a dated note: `daily_entry_ask_gate` 5 (its sandbox answers the kitchen check). Suite 471 → 478.
+
+## Recent (2026-10-18) — room 813: a discharge asks before the room leaves the anaphylactic list; list and resident changes reach the other computer (`v31-standard.37`, merged via PR #132, `3bd1fad`)
 Jason, 2026-10-18: "what is up with 813", then "Ask once at Generate", "Yes, in the same PR" and "After the fix, in DOOR".
 - **What happened to 813:**
   - Apr 23 – Sep 11: the resident in 813 was lactose-free, no wheat, no shellfish. They were marked anaphylactic on Apr 30, with shellfish contained.
@@ -70,11 +85,11 @@ Jason, 2026-10-18: "what is up with 813", then "Ask once at Generate", "Yes, in 
   - a computer whose list was older than the kitchen's had its change replaced by the kitchen's list before it was sent.
 
   Now each of them (and Generate) first takes the kitchen's newer list if it has one (`doorTakeNewerKitchenList`: the publish preflight's read side, 6 s, never throws), then applies the change and marks it newest. A kitchen that can't be read leaves the change on this computer's list, as before.
-- **Not changed (found):** notes and the compliance actions (confirm, resolve, deadlines) don't mark the list either, so another computer's Generate can undo them; Undo Generate likewise. Not anaphylactic data, so left for their own slice.
+- ~~**Not changed (found):** notes and the compliance actions (confirm, resolve, deadlines) don't mark the list either, so another computer's Generate can undo them; Undo Generate likewise. Not anaphylactic data, so left for their own slice.~~ Done in `v31-standard.38` (the entry above).
 - **813 itself:** taken off by hand after this ships (Jason: "After the fix, in DOOR"): Anaphylactic List → ✕ on one computer, which now reaches the other.
 - **Gate:** `tests/anaph_list_reaches_gate.mjs` (7), red 7/7 on `main` `57c92b3`. It runs the real list, queue, sync and publish-preflight code for two computers sharing one kitchen file. On `main`, a room added on one computer is gone after the other's Generate, and 813 taken off comes back. Re-pinned with a dated note: `anaph_matrix_gate` (its harness answers the kitchen check). Checked in a real browser at 1280 and 390 px: the Review row, the queue tag, the question, both answers, no page errors. The staff walkthrough is 51/51. Suite 464 → 471.
 
-## Recent (2026-10-18) — the swap work's independent review, folded (`v31-standard.36`)
+## Recent (2026-10-18) — the swap work's independent review, folded (`v31-standard.36`, merged via PR #130, `57c92b3`)
 PR #128 merged (`510d25f`, `v31-standard.34`) before the review's fixes reached it, so they ship here as their own build. It took `.36`: PR #129 (the entry below) took `.35` first. The swap work itself is two entries down.
 **Fixed:**
 - **P1:** a computer that published before it synced sent its own, shorter revert list (and the swap) back. The full publish now merges the kitchen's swaps, special meals and both lists first (`preMergeSwapsWithCloud`, Contents API; a missing file is empty, an unreadable one is skipped), and the quiet send after a revert reads the kitchen's list first.
