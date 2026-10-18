@@ -19808,7 +19808,9 @@ const IMPORT_TAG_RULES = [
   { re: /\bdairy\s*[- ]?\s*free\b/i,                 tag: 'noDairy' },
   { re: /\bno\s+dairy\b/i,                           tag: 'noDairy' },
   { re: /\bno\s+diary\b/i,                           tag: 'noDairy' },   // common typo
-  { re: /\blactose\s+(intolerant|free)\b/i,          tag: 'noDairy' },
+  // "Lactose intolerant" no longer adds No Dairy (2026-10-18, Jason: "yes, follow your lean"): every rule reads Lactose
+  // Intolerant as No Dairy, and the added tag was doc-tier, so a lactose-intolerant row needed documentation that
+  // Lactose Intolerant alone (auto) does not. A row that writes "No Dairy" still gets it.
   { re: /\bno\s+milk\b/i,                            tag: 'noDairy' },
 
   // Proteins
@@ -19843,7 +19845,9 @@ const IMPORT_TAG_RULES = [
   { re: /\bno\s+fried(\s+foods?)?\b/i,              tag: 'noFriedFood' },
   { re: /\bno\s+turkey\b/i,                          tag: 'noTurkey' },
   { re: /\bno\s+processed\s*(foods?|meats?)?\b/i,   tag: 'noProcessedFood' },
-  { re: /\b(lactose[- ]?(intolerant|free)|no\s+lactose)\b/i, tag: 'lactoIntolerant' },
+  // The whole phrase, with or without the "No" the comma expander adds (2026-10-18): matching "No Lactose" alone left
+  // "Intolerant" as a question once "lactose intolerant" stopped also adding No Dairy.
+  { re: /\b(?:no\s+)?lactose(?:[- ]?(?:intoleran(?:t|ce)|free))?\b/i, tag: 'lactoIntolerant' },
   { re: /\blow[- ]fat\b/i,                                        tag: 'lowFat' },
   { re: /\b(low[- ]potassium|no\s+potassium)\b/i,                  tag: 'lowPotassium' },
   { re: /\bno[- ]nightshades?\b|\bnightshade[- ]free\b/i,            tag: 'noNightshades' },
@@ -19888,7 +19892,7 @@ const IMPORT_FUZZY_VOCAB = [
   ['low carb','lowCarb'], ['low carbohydrate','lowCarb'],
   ['halal','halal'], ['vegan','vegan'], ['vegetarian','vegetarian'], ['diabetic','diabetic'],
   ['gluten free','glutenFree'], ['no wheat','glutenFree'],
-  ['no dairy','noDairy'], ['no diary','noDairy'], ['lactose','noDairy'],
+  ['no dairy','noDairy'], ['no diary','noDairy'], ['lactose','lactoIntolerant'],
   ['no pork','noPork'], ['no beef','noBeef'], ['no red meat','noBeef'], ['no fish','noFish'],
   ['no eggs','noEggs'], ['no peanuts','noPeanuts'], ['no coconut','noCoconut'],
   ['no nuts','noTreeNuts'], ['no popcorn','noCorn'],
@@ -20125,7 +20129,7 @@ function importSectionForTags(tags) {
   if (tags.halal) return 'Halal';
   if (tags.vegan || tags.vegetarian) return 'Vegan';
   if (tags.glutenFree) return 'Gluten Free';
-  if (tags.noDairy) return 'No Dairy';
+  if (tags.noDairy || tags.lactoIntolerant) return 'No Dairy';
   if (tags.diabetic || tags.lowCarb) return 'Diabetic';
   if (tags.noPork) return 'Regular';  // folds into Halal on pork days via routing, not section
   return 'Regular';
@@ -21064,9 +21068,10 @@ function commitImportToQueue() {
     });
   });
 
-  // Auto-apply modifier-only tag additions (lowSodium, lowFat, lactoIntolerant, etc.)
+  // Auto-apply modifier-only tag additions (lowSodium, lowFat, etc.)
   // These don't change routing sections — apply without requiring manual field acceptance.
-  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','noPork','noBeef','noFish','noShellfish','diabetic','lowCarb','softMeals','noSpicy','blandDiet','noProcessedFood']);
+  // lactoIntolerant routes too (the No Dairy section), so adding it waits for review like No Dairy (2026-10-18).
+  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','lactoIntolerant','noPork','noBeef','noFish','noShellfish','diabetic','lowCarb','softMeals','noSpicy','blandDiet','noProcessedFood']);
   diff.updates.forEach(u => {
     const fieldSel = selections.updates.get(u.room);
     if (fieldSel && Object.values(fieldSel).some(v => v)) return; // operator already made selections

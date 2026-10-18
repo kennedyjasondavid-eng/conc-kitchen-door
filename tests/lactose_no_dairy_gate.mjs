@@ -66,26 +66,68 @@ test('routing is unchanged: the No Dairy section, merged into the vegan plate; a
   assert.equal(seat(['Halal', 'Lactose Intolerant'], { hasPork: true, hasDairy: true }), 'halal');
 });
 
-test('the import: "Lactose intolerant" brings both tags, and its only proposals on today\'s list add No Dairy to 1207 and 301a', () => {
-  const state = json('door_state.json');
+// Re-pinned 2026-10-18 (Jason, on the documentation tier: "yes, follow your lean"): "Lactose intolerant" no longer adds
+// No Dairy on import. Every rule already reads it as No Dairy, and the added tag was doc-tier, so a lactose-intolerant row
+// needed documentation that Lactose Intolerant alone does not. So today's list makes no proposals (1207 and 301a were the
+// two that would have gained No Dairy), and a row that writes "No Dairy" still gets it.
+function importBox(residents) {
   const store = { concLearnedNR: '{}', concDismissedDiffs: '{}', concCustomTagRules: '[]' };
-  const REGISTRY_LIST = state.residents.map(r => ({ ...r })), REGISTRY_MAP = {};
+  const REGISTRY_LIST = residents.map(r => ({ ...r })), REGISTRY_MAP = {};
   REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
   const box = { console, REGISTRY_LIST, REGISTRY_MAP, anaphRooms: [], changesQueue: [], IMPORT_STATE: null, MEAL: { lunch: 'lunch' },
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem() {}, removeItem() {} },
     document: { getElementById: () => null, querySelectorAll: () => [] }, showToast() {}, escapeHtml: s => String(s), _escAttr: s => String(s) };
   vm.createContext(box);
   vm.runInContext([bracedConst('TAG_LABELS_MAP'), fn('getRoomBase'), between('const IMPORT_TAG_RULES = [', '\nfunction handleImportFile(')].join('\n'), box);
-  const parsed = out(vm.runInContext("normalizeRestriction('Lactose Intolerant')", box));
-  assert.deepEqual(Object.keys(parsed.tags).filter(k => parsed.tags[k]).sort(), ['lactoIntolerant', 'noDairy']);
+  vm.runInContext(bracedConst('COMPLIANCE_TIERS') + '\n' + fn('requiresDocumentation'), box);
+  return box;
+}
+const parsedLabels = (box, text) => {
+  const p = out(vm.runInContext('normalizeRestriction(' + JSON.stringify(text) + ')', box));
+  const labels = out(vm.runInContext('TAG_LABELS_MAP', box));
+  return Object.keys(p.tags).filter(k => p.tags[k]).map(k => labels[k]).sort();
+};
+
+test('the import: "Lactose intolerant" brings Lactose Intolerant only; a written "No Dairy" still brings No Dairy', () => {
+  const box = importBox([]);
+  assert.deepEqual(parsedLabels(box, 'Lactose Intolerant'), ['Lactose Intolerant']);
+  assert.deepEqual(parsedLabels(box, 'lactose free'), ['Lactose Intolerant']);
+  assert.deepEqual(parsedLabels(box, 'No Dairy, Lactose Intolerant'), ['Lactose Intolerant', 'No Dairy']);
+  assert.deepEqual(parsedLabels(box, 'DF'), ['No Dairy']);
+  assert.deepEqual(parsedLabels(box, 'Lactose Intolerance'), ['Lactose Intolerant']);
+  // after a comma the expander writes "No Lactose Intolerant": the whole phrase is read, with nothing left to ask
+  for (const t of ['GF, Lactose Intolerant', 'No Dairy, No Eggs, Lactose Intolerant', 'Halal / Lactose Intolerant']) {
+    const p = out(vm.runInContext('normalizeRestriction(' + JSON.stringify(t) + ')', box));
+    assert.deepEqual([p.unmatched, p.ambiguous], [[], []], t);
+    assert.ok(parsedLabels(box, t).includes('Lactose Intolerant'), t);
+  }
+  assert.equal(vm.runInContext('importSectionForTags({ lactoIntolerant: true })', box), 'No Dairy', 'the import\'s section guess');
+});
+
+test('documentation: Lactose Intolerant alone needs none, a written No Dairy still does', () => {
+  const box = importBox([]);
+  const docs = (labels) => vm.runInContext('requiresDocumentation(' + JSON.stringify(labels) + ')', box);
+  assert.equal(docs(parsedLabels(box, 'Lactose intolerant')), false, 'a "Lactose intolerant" row is auto-confirmed');
+  assert.equal(docs(['Lactose Intolerant']), false);
+  assert.equal(docs(parsedLabels(box, 'No Dairy, Lactose Intolerant')), true, 'a written No Dairy keeps its documentation');
+  assert.equal(docs(['No Dairy']), true);
+});
+
+test('adding Lactose Intolerant on import waits for review, like No Dairy (it changes routing)', () => {
+  const set = between('const MODIFIER_AUTO_ROUTING = new Set([', ']);');
+  assert.match(set, /'noDairy'/);
+  assert.match(set, /'lactoIntolerant'/, 'a routing tag is never auto-applied');
+});
+
+test('today\'s list: the import proposes nothing, and every lactose-intolerant resident still eats as No Dairy', () => {
+  const state = json('door_state.json');
+  const box = importBox(state.residents);
   const entries = vm.runInContext('REGISTRY_LIST.filter(r => r.rawRestriction).map(r => ({ room: r.room, parsed: normalizeRestriction(r.rawRestriction) }))', box);
   const d = out(vm.runInContext('diffImportAgainstRegistry(' + JSON.stringify(entries) + ')', box));
-  const labels = out(vm.runInContext('TAG_LABELS_MAP', box));
-  const proposals = d.updates.map(u => {
-    const added = Object.keys(u.newTags).filter(k => u.newTags[k] && !u.oldTags[k]).map(k => labels[k]);
-    const removed = Object.keys(u.oldTags).filter(k => u.oldTags[k] && !u.newTags[k]).map(k => labels[k]);
-    return u.room + ' +' + added.join(',') + (removed.length ? ' -' + removed.join(',') : '');
-  }).sort();
-  assert.deepEqual(proposals, ['1207 +No Dairy', '301a +No Dairy']);
-  for (const room of ['1207', '301a']) assert.ok(state.residents.find(r => r.room === room).tags.includes('Lactose Intolerant'), room);
+  assert.deepEqual(d.updates.map(u => u.room), [], 'no proposals');
+  const li = state.residents.filter(r => (r.tags || []).includes('Lactose Intolerant'));
+  assert.deepEqual(li.map(r => r.room).sort(), ['1115a', '1207', '301a', '412']);
+  for (const r of li) {
+    assert.ok(out(c.checkResidentMealConflicts({ hasDairy: true }, { tags: r.tags })).some(x => x.mealFlag === 'hasDairy'), r.room + ' warned on dairy');
+  }
 });

@@ -86,9 +86,9 @@ test('every published restriction parses with nothing to ask, and GF residents n
   const gf = residents.filter(r => (r.tags || []).includes('GF'));
   assert.ok(gf.length >= 4, 'GF residents: ' + gf.length);
   for (const r of gf) assert.ok(tags(r.rawRestriction).includes('glutenFree'), r.room + ' ' + r.rawRestriction);
-  // Re-parsing every resident now differs from their stored tags in one known way only: "Lactose Intolerant" also reads
-  // as No Dairy, which two stored records lack — and no longer in GF. Ruled 2026-10-18 (Jason: "Lactose intolerant should
-  // be no dairy too"; lactose_no_dairy_gate): the parser is right, and the import's proposal adds it to those two.
+  // Re-parsing every resident now agrees with their stored tags. Re-pinned 2026-10-18: it differed on 1207 and 301a, where
+  // "Lactose Intolerant" also read as No Dairy; that implied tag is gone (Jason: "yes, follow your lean";
+  // lactose_no_dairy_gate), since every rule reads Lactose Intolerant as No Dairy.
   const labels = (t) => tags(t).map(k => vm.runInContext('TAG_LABELS_MAP', sb)[k] || k).sort();
   const diffs = [];
   for (const r of residents) {
@@ -97,7 +97,7 @@ test('every published restriction parses with nothing to ask, and GF residents n
     const missing = parsed.filter(t => !stored.includes(t)), extra = stored.filter(t => !parsed.includes(t));
     if (missing.length || extra.length) diffs.push(r.room + ': ' + JSON.stringify({ missing, extra }));
   }
-  assert.deepEqual(diffs.sort(), ['1207: {"missing":["No Dairy"],"extra":[]}', '301a: {"missing":["No Dairy"],"extra":[]}']);
+  assert.deepEqual(diffs.sort(), []);
 });
 
 test('the import\'s diff: a GF resident re-imported as "GF" keeps GF, and a new "GF, DF" resident arrives with both', () => {

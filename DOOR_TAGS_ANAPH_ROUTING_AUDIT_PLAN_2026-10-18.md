@@ -244,7 +244,7 @@ The total is about 6–8 working days. No published artifact changes until a fix
 2. **Bland Diet** (L3): route to Bland with No Spicy, or retire the tag into No Spicy? [route with No Spicy]
 3. **No Mustard** (L4): join "No Egg / Mustard" on a mustard meal? [yes, the section's own name says so]
 4. **No Molluscs routing:** route to No Fish / Shellfish like No Shellfish? [yes on a shellfish meal; it is a note-and-lockout tag today]
-5. ~~**Lactose Intolerant** (L2)~~ ruled 2026-10-18: it is No Dairy too. Done: the conflict check and one note; the import proposes No Dairy for 1207 and 301a.
+5. ~~**Lactose Intolerant** (L2)~~ ruled 2026-10-18: it is No Dairy too, and it needs no documentation of its own. Done: the conflict check, one note, and the import no longer adds a doc-tier No Dairy for it; today's re-import proposes nothing.
 6. **GF tier** (L10): auto, as its note says, or doc, as it does today? [keep doc until Jason says]
 7. **Accommodations no rule reads** (L5: Low Sodium, Low Fat, Low Potassium, No Fried Food, Other): text only, or a flag and a note? [text only; A4 confirms they print]
 8. **Taking a room off the anaphylactic list** (L7): should it also clear the resident's flag? [yes, with the one confirm DOOR already asks]
