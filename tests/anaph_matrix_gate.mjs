@@ -147,7 +147,7 @@ test('the Intake Portal: an update keeps the resident anaphylactic unless it was
 
 test('the Enter Changes form reads its anaphylactic toggle as it is, and an update starts it from the resident', () => {
   const toggleReads = html.match(/getElementById\('anaph-toggle'\)[^\n]*?classList\.contains\('(\w+)'\)/g) || [];
-  assert.ok(toggleReads.length >= 3, 'the readers were found: ' + toggleReads.length);
+  assert.ok(toggleReads.length >= 2, 'the readers were found: ' + toggleReads.length);   // addToIntakeQueue, saveDirectFromForm
   assert.deepEqual(toggleReads.filter((x) => !x.includes("contains('on')")), [], 'every reader asks for "on", the class toggleAnaph sets');
   assert.match(html, /classList\.toggle\('on', anaphActive\)/, 'toggleAnaph sets "on"');
   const lookup = fn('lookupRoom');
@@ -181,4 +181,43 @@ test('the load-time tidy: a Regular resident left Provisional reads N/A; an anap
     { room: '405', tags: ['Vegetarian'], confirm: 'Provisional' },
     { room: '607a', tags: ['No Peanuts'], confirm: 'Provisional' },
   ], ['813']), ['312:N/A', '813:Provisional', '405:Confirmed', '607a:Provisional']);
+});
+
+// The routing audit's independent review (2026-10-18, FIX-BEFORE-SHIP, folded):
+test('review P1: a new intake over an occupied room starts the new resident\'s anaphylactic state fresh', async () => {
+  const c = box(true);
+  c.__set([{ room: '213', tags: ['Soft Meals', 'No Tree Nuts', 'No Coconut'], isAnaph: false, anaphTags: ['noCoconut', 'noTreeNuts'], isModerate: true, serviceNote: 'No Popcorn' }], ['213']);
+  c.INTAKE_QUEUE.push({ id: 'q1', type: 'intake', room: '213', tags: ['No Peanuts'], isAnaph: true, route: 'Regular', isOverwrite: true });
+  await c.commitIntakeQueue();
+  const r = out(c.__state()).reg[0];
+  assert.deepEqual([r.isAnaph, r.anaphTags, r.isModerate, r.serviceNote], [true, [], false, ''], 'nothing carried from the last resident');
+  assert.deepEqual(out([...c.getAnaphConflictRooms({ hasPeanuts: true }, {})]), ['213'], 'contained on the new resident\'s peanuts');
+  assert.match(fn('saveDirectFromForm'), /type === 'intake' && existing\) \{ r\.anaphTags = \[\]/, 'the direct save does the same');
+});
+
+test('review P1/P2/P3: the Enter Changes and queue editors keep what they were told', () => {
+  const edit = fn('editQueueItem');
+  assert.match(edit, /clearTimeout\(lookupDebounce\);\s*lookupRoom\(item\.room\);\s*prePopulateCheckboxes\(item\.tags[^)]*\);\s*anaphActive = !!item\.isAnaph/,
+    'editing a queued item looks the room up first, then puts back the item\'s own tags and toggle');
+  assert.doesNotMatch(edit, /data-tag=/, 'no reader of markup the form does not have');
+  const save = fn('saveChangeEdit');
+  assert.match(save, /doorAskTakeOffAnaphList\(resident\.room\)/, 'the queue editor asks before taking a resident off');
+  assert.match(save, /c\.anaphCleared = false/, 'ticked again, the change no longer takes the room off');
+  assert.match(fn('lookupRoom'), /if \(_doorAnaphPrefilled\) \{[\s\S]{0,200}anaphActive = false/, 'a pre-filled toggle does not ride to the next room');
+  assert.match(fn('toggleAnaph'), /_doorAnaphPrefilled = null/, 'a toggle someone touched stays as they set it');
+});
+
+test('review P2: every swap and special-meal "today" is the kitchen\'s local day', () => {
+  for (const name of ['renderTodayMealContext', 'clearAllSwaps', 'renderSwapsBanner', 'getSpecialsForRotationSlot', 'getPersistedSwapForSlot',
+    'renderSpecialsBanner', 'clearPastSpecials', 'clearPastSwaps', 'applyMealSwap', 'makePermanent', 'revertMealSwap', 'executeSlotSwap', 'openMealEdit', '_finishMenuSave', 'getMealForDate']) {
+    assert.doesNotMatch(fn(name), /toISOString\(\)\.slice\(0, ?10\)/, name + ' reads a UTC date');
+  }
+  assert.doesNotMatch(between("fetch(base+'meal_swaps.json'+bust)", '\n'), /toISOString/, 'the boot swap sync');
+});
+
+test('review P2: today\'s sections follow the resident list; the previews list 813', () => {
+  assert.match(fn('saveRegistryState'), /doorRefreshBaseSections\(\);\s*\}\s*$/, 'after every save');
+  assert.match(fn('loadRegistryState'), /doorRefreshBaseSections\(\)/, 'after the saved list is read');
+  const demo = fn('openDemoFile');
+  assert.equal((demo.match(/\|\| doorIsAnaphResident\(r\)\)\.sort/g) || []).length, 2, 'both previews include an anaphylactic Regular resident');
 });
