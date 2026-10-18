@@ -135,10 +135,12 @@ test('5. doorAsk can offer a third button that answers "alt"', () => {
 
 function runRemoveSpecial(answer) {
   const store = { meals: { '2026-10-10-dinner': { specialName: 'BBQ' } } };
-  const ctx = vm.createContext({ answer, store, rendered: 0 });
+  const ctx = vm.createContext({ answer, store, rendered: 0, REMOVED: [] });
   vm.runInContext(
     'function loadSpecialMeals() { return store.meals; } function saveSpecialMeals(m) { store.meals = m; }' +
     'function renderMenuConfig() { rendered++; }' +
+    // 2026-10-18: a removal is recorded so it reaches every DOOR computer (REMOVED_SPECIAL_KEYS)
+    'const REMOVED_SPECIAL_KEYS = { add: k => REMOVED.push(k) };' +
     'async function doorAsk() { return answer; }' +
     fnBlock('removeSpecialMeal') + ';globalThis.run = removeSpecialMeal;', ctx);
   return ctx;
@@ -148,9 +150,11 @@ test('6. remove a special meal: Go back keeps it, Remove removes it', async () =
   const keep = runRemoveSpecial(false);
   await keep.run('2026-10-10-dinner');
   assert.ok('2026-10-10-dinner' in keep.store.meals, 'Go back keeps the special meal');
+  assert.equal(keep.REMOVED.length, 0, 'Go back records no removal');
   const remove = runRemoveSpecial(true);
   await remove.run('2026-10-10-dinner');
   assert.ok(!('2026-10-10-dinner' in remove.store.meals), 'Remove removes it');
+  assert.deepEqual([...remove.REMOVED], ['2026-10-10-dinner'], 'and records the removal for the other computers');
 });
 
 function runClearSwaps(answer) {

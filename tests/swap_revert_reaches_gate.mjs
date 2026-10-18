@@ -82,19 +82,26 @@ test('3. two revert lists merge: a key both hold keeps its later time; past date
   assert.deepEqual(plain(m), { [NOV3]: '2026-10-19T08:00:00.000Z', '2026-11-05-lunch': '2026-10-18T16:00:00.000Z' });
 });
 
-test('4. the revert list keeps when each key was reverted, reads the older list of keys, and is sent quietly', () => {
-  const store = { concRevertedSwapKeys: JSON.stringify([NOV3, '2026-01-01-lunch']) };
+// The revert-list factory in a vm: localStorage, the timer, fetch (the kitchen's list) and the publish are stubbed.
+function revertList(stored, remote) {
+  const store = { concRevertedSwapKeys: JSON.stringify(stored) };
   const sent = [], timers = [];
   const ctx = {
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
     setTimeout: (fn) => { timers.push(fn); return timers.length; },
-    PublishAuth: { sidePublish: (p, content, label, visible) => { sent.push({ p, content: JSON.parse(content), visible }); } },
-    Date, JSON, Object, Set, String, Array,
+    fetch: async () => ({ ok: !!remote, json: async () => remote }),
+    PublishAuth: { getRepo: () => 'kennedyjasondavid-eng/conc-kitchen-door', sidePublish: (p, content, label, visible) => { sent.push({ p, content: JSON.parse(content), visible }); } },
+    Date, JSON, Object, Set, String, Array, Promise,
   };
   vm.createContext(ctx);
   vm.runInContext(between('/* DOOR_TESTABLE_CORE_START swap-store */', '/* DOOR_TESTABLE_CORE_END swap-store */') + '\n' +
-    'var R = ' + between('const REVERTED_SWAP_KEYS = (() => {', '\n})();').replace('const REVERTED_SWAP_KEYS = ', '') + '\n})();', ctx);
-  const R = ctx.R;
+    fnBlock('doorMakeRevertList') + '\nvar R = doorMakeRevertList("concRevertedSwapKeys", "meal_swaps_reverted.json", "Swap reverts");', ctx);
+  const flush = async () => { for (const f of timers.splice(0)) await f(); };
+  return { R: ctx.R, store, sent, flush };
+}
+
+test('4. the revert list keeps when each key was reverted, reads the older list of keys, and is sent quietly', async () => {
+  const { R, store, sent, flush } = revertList([NOV3, '2026-01-01-lunch'], null);
   // the older list: the future key reads as reverted now; the past one leaves
   const pub = R.toPublished();
   assert.deepEqual(plain(Object.keys(pub)), [NOV3]);
@@ -104,11 +111,11 @@ test('4. the revert list keeps when each key was reverted, reads the older list 
   R.mergeRemote({ [NOV3]: '2999-01-01T00:00:00.000Z', '2999-02-02-dinner': '2026-10-18T16:00:00.000Z' });
   assert.equal(R.toPublished()[NOV3], '2999-01-01T00:00:00.000Z');
   assert.equal(R.has('2999-02-02-dinner'), true);
-  timers.splice(0).forEach(f => f());
+  await flush();
   assert.equal(sent.length, 0, 'a merge sends nothing');
   // a revert here: stored with its time, and the list sent once, quietly
   R.add('2999-03-03-lunch'); R.add('2999-03-04-lunch');
-  timers.splice(0).forEach(f => f());
+  await flush();
   assert.equal(sent.length, 1, 'one send for the two reverts');
   assert.equal(sent[0].p, 'meal_swaps_reverted.json');
   assert.equal(sent[0].visible, false);
@@ -118,6 +125,59 @@ test('4. the revert list keeps when each key was reverted, reads the older list 
   R.delete('2999-03-03-lunch');
   assert.equal(R.has('2999-03-03-lunch'), false);
   assert.equal('2999-03-03-lunch' in R.toPublished(), false);
+});
+
+test('4b. review P1: a computer that has not synced never sends a shorter revert list', async () => {
+  // computer B holds no revert; the kitchen's list has A's Nov 3 revert. B reverts another swap: what B sends holds both.
+  const { R, sent, flush } = revertList([], { [NOV3]: '2026-10-18T15:00:04.730Z' });
+  R.add('2999-05-05-dinner');
+  await flush();
+  assert.equal(sent.length, 1);
+  assert.deepEqual(Object.keys(sent[0].content).sort(), [NOV3, '2999-05-05-dinner'].sort(), 'the kitchen\'s revert survives B\'s send');
+  // the full publish merges the kitchen's files before staging the swaps and both lists
+  const pub = fnBlock('_doPublishToGitHub');
+  const iMerge = pub.indexOf('await preMergeSwapsWithCloud(creds);'), iSwaps = pub.indexOf("_push('meal_swaps.json'");
+  assert.ok(iMerge > 0 && iSwaps > iMerge, 'preMergeSwapsWithCloud runs before the swaps are staged');
+  const pre = fnBlock('preMergeSwapsWithCloud');
+  assert.match(pre, /doorApplyRemoteSwaps\(swaps, rev\)/);
+  assert.match(pre, /doorApplyRemoteSpecials\(specials, rem\)/);
+  assert.match(pre, /res\.status === 404\) return \{\}/, 'a missing file is empty');
+  // and B's own copy of the reverted swap is dropped by that merge (doorApplyRemoteSwaps's rule)
+  const c = core();
+  assert.deepEqual(Object.keys(c.doorMergeSwapStores({ [NOV3]: RECORDED }, { [NOV3]: RECORDED }, { [NOV3]: '2026-10-18T15:00:04.730Z' }, '2026-10-18')), []);
+});
+
+test('4c. review P2: a special meal removed on one computer is removed on every computer', () => {
+  const c = core();
+  const sm = { specialName: 'Holiday Dinner', createdAt: '2026-10-01T10:00:00.000Z' };
+  const removed = { '2026-12-25-dinner': '2026-10-18T15:00:00.000Z' };
+  assert.deepEqual(Object.keys(c.doorMergeSwapStores({ '2026-12-25-dinner': sm }, { '2026-12-25-dinner': sm }, removed, '')), [], 'removed after it was made: gone');
+  assert.deepEqual(Object.keys(c.doorMergeSwapStores({}, { '2026-12-25-dinner': { ...sm, createdAt: '2026-10-19T10:00:00.000Z' } }, removed, '')), ['2026-12-25-dinner'], 'saved again since: kept');
+  assert.deepEqual(Object.keys(c.doorMergeSwapStores({ '2026-01-01-dinner': sm }, {}, {}, '')), ['2026-01-01-dinner'], 'a past special meal stays until Clear expired');
+  assert.match(html, /const REMOVED_SPECIAL_KEYS = doorMakeRevertList\('concRemovedSpecialKeys', 'special_meals_removed\.json'/);
+  assert.match(fnBlock('removeSpecialMeal'), /REMOVED_SPECIAL_KEYS\.add\(key\)/, 'Remove records it');
+  assert.match(fnBlock('saveSpecialMeal'), /REMOVED_SPECIAL_KEYS\.delete\(key\)/, 'saving it again takes the removal off');
+  const pull = fnBlock('pullSecondaryState');
+  const iRem = pull.indexOf("['special_meals_removed.json'"), iSm = pull.indexOf("['special_meals.json'");
+  assert.ok(iRem > 0 && iSm > iRem && /doorApplyRemoteSpecials\(d, null\)/.test(pull), 'the sync reads the removal list first');
+  assert.match(between("fetch(base+'special_meals_removed.json'+bust)", '.catch(()=>{});'), /doorApplyRemoteSpecials\(d, rem\)/, 'and so does the boot sync');
+  assert.match(fnBlock('_doPublishToGitHub'), /_push\('special_meals_removed\.json', JSON\.stringify\(loadSpecialRemovals\(\)/);
+  assert.match(between('const ALLOW_SHRINK_PATHS', '\n'), /'special_meals_removed\.json'/);
+});
+
+test('4d. review P2: a slot\'s Revert, Make permanent and Edit Menu save find every upcoming swap of the slot', () => {
+  const ctx = { Date, Object, String, Number };
+  vm.createContext(ctx);
+  vm.runInContext(fnBlock('doorDateKey') + fnBlock('doorSwapKeysForSlot') +
+    'function nextDateForSlot() { return new Date(2026, 9, 8); } function loadMealSwaps() { return {}; }', ctx);
+  // Oct 7: Wk2 TUE ⇄ THU landed on Nov 3 and Nov 5; THU's next date is Oct 8, which the old lookup read
+  const swaps = { '2026-11-03-lunch': { _rotationSlot: '2-TUESDAY-lunch' }, '2026-11-05-lunch': { _rotationSlot: '2-THURSDAY-lunch' } };
+  const RealDate = Date;
+  ctx.Date = class extends RealDate { constructor(...a) { if (!a.length) super(2026, 9, 7, 12); else super(...a); } };
+  const keys = vm.runInContext('doorSwapKeysForSlot', ctx)(2, 'THURSDAY', 'lunch', swaps);
+  assert.deepEqual(plain(keys), ['2026-11-05-lunch'], 'THU\'s half, on its second date');
+  for (const fn of ['revertMealSwap', 'makePermanent']) assert.match(fnBlock(fn), /doorSwapKeysForSlot\(week, day, period/, fn + ' uses it');
+  assert.match(fnBlock('_finishMenuSave'), /doorSwapKeysForSlot\(week, day, period, swaps\)/, 'the Edit Menu save uses it');
 });
 
 test('5. the publish sends the revert list; every sync reads it before the swaps', () => {
