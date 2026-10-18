@@ -8062,9 +8062,10 @@ function revertResident(room, historyIndex) {
   _HISTORY_SNAPSHOT_KEYS.forEach(k => {
     if (target[k] !== undefined) r[k] = JSON.parse(JSON.stringify(target[k]));
   });
-  // Sync anaph rooms
+  // Sync anaph rooms. A revert only ever adds (2026-10-18): a snapshot's isAnaph can be false for a room on the
+  // anaphylactic list (room 213: an import reset the flag), and taking the room off silently ended its lockout.
+  // Taking a room off stays a deliberate act: the resident editor's checkbox or the anaphylactic list's Remove.
   if (r.isAnaph && !anaphRooms.includes(r.room)) anaphRooms.push(r.room);
-  if (!r.isAnaph) { const ai = anaphRooms.indexOf(r.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
@@ -8231,7 +8232,7 @@ function buildResidentDetailHTML(r) {
     parts.push(`<div style="margin-top:3px;"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:#d97706;">Accom:</span> ${accommodations.map(t=>`<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;margin:1px 2px;">${escapeHtml(t)}</span>`).join('')}</div>`);
   }
   // Anaph status
-  const isAnaph = r.isAnaph || (typeof anaphRooms !== 'undefined' && anaphRooms.includes(r.room));
+  const isAnaph = doorIsAnaphResident(r);
   if (isAnaph) {
     parts.push(`<div style="margin-top:5px;padding:4px 8px;border-radius:6px;background:#fef2f2;border:1px solid #fca5a5;font-size:12px;font-weight:700;color:#dc2626;">⚠ ANAPHYLACTIC — contained meal prep required</div>`);
   }
@@ -8607,7 +8608,7 @@ function openRegistryEditor(room) {
   buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
-  document.getElementById('ce-anaph').checked = r.isAnaph || anaphRooms.includes(r.room);
+  document.getElementById('ce-anaph').checked = doorIsAnaphResident(r);
   populateAnaphTags(r);
   toggleAnaphDetail();
   document.getElementById('ce-notes').value = r.serviceNote || '';
@@ -9298,10 +9299,19 @@ function findRoommates(room) {
   );
 }
 
+// Is this resident anaphylactic? Their own flag, or a room on DOOR's anaphylactic list (2026-10-18, Jason: "213 should
+// have the flag act accordingly"). Lockout and the Anaphylactic List always read both; the sheets, labels, week-ahead
+// list and published count read only the flag, so room 213 (on the list, flag reset by an import) was contained but
+// never red. Every reader uses this one rule.
+function doorIsAnaphResident(r) {
+  if (!r) return false;
+  return !!r.isAnaph || (typeof anaphRooms !== 'undefined' && Array.isArray(anaphRooms) && anaphRooms.includes(r.room));
+}
+
 // Returns Set of room numbers routed to Anaphylactic Alternative today
 function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
   const conflictRooms = new Set();
-  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
+  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
 
   for (const resident of anaphResidents) {
     // v29: If anaphTags is set, only check those specific allergens against the meal.
@@ -9325,7 +9335,7 @@ function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
 // Build info alerts for the review screen (informational — routing is automatic)
 function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
   const alerts = [];
-  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
+  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
 
   for (const resident of anaphResidents) {
     // v29: Only check anaphylactic-specific allergens if set
@@ -12529,7 +12539,7 @@ function buildRegistrySummaryJSON() {
   REGISTRY_LIST.forEach(r => {
     const s=r.section||'Regular'; sc[s]=(sc[s]||0)+1;
     (r.tags||[]).forEach(t => { tc[t]=(tc[t]||0)+1; });
-    if(r.isAnaph) ac++;
+    if(doorIsAnaphResident(r)) ac++;
     if(r.isModerate) mc++;
   });
   return {
@@ -14493,7 +14503,7 @@ function runCustomReport() {
         });
         // Anaphylactic check as override
         if (meal.hasPeanuts) {
-          const anaph = REGISTRY_LIST.filter(r => r.isAnaph);
+          const anaph = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
           if (anaph.length) dayConflicts.push({ type: 'Peanuts — ANAPHYLACTIC', residents: anaph.length, rooms: anaph.map(r=>r.room).join(', '), severity: 'red' });
         }
         dayConflicts.push(...doorAnaphMealLines(meal, REGISTRY_LIST, anaphRooms));
@@ -21914,9 +21924,9 @@ function computePlatingData(period, weekNum, dayName) {
   const sortR = (a,b) => { const na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
   REGISTRY_LIST.forEach(r => {
     if (conflictRooms.has(r.room)) {
-      const isA = r.isAnaph || anaphRooms.includes(r.room);
+      const isA = doorIsAnaphResident(r);
       const mateOf = isA ? null : REGISTRY_LIST.find(ar =>
-        (ar.isAnaph||anaphRooms.includes(ar.room)) &&
+        (doorIsAnaphResident(ar)) &&
         getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room);
       anaphSect.push({...r, _role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''});
     } else {
@@ -22005,8 +22015,8 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
 
   // Anaphylactic banner
   if (conflictRooms.size > 0) {
-    const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const allergens = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
+    const anaphNames = REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).map(r=>r.room).join(', ');
+    const allergens = [...new Set(REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
     addMerged('\u26A0  ANAPHYLACTIC ALERT \u2014 Rooms '+anaphNames+' ('+allergens+')', F.whB, '993333', B.thick, 18);
     addMerged('Today\u2019s meal contains allergen \u2014 Do not deliver to these rooms or roommates', F.whSm, '993333', B.thick, 14);
   }
@@ -22218,9 +22228,9 @@ function buildRestrictionListXlsx(ds) {
   });
 
   restricted.forEach(r => {
-    const bg = r.isAnaph ? 'F2DCDC' : r.isModerate ? 'FFF3E0' : null;
-    const font = r.isAnaph ? F.anaph : r.isModerate ? F.amber : F.std;
-    const flag = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : '';
+    const bg = doorIsAnaphResident(r) ? 'F2DCDC' : r.isModerate ? 'FFF3E0' : null;
+    const font = doorIsAnaphResident(r) ? F.anaph : r.isModerate ? F.amber : F.std;
+    const flag = doorIsAnaphResident(r) ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : '';
     rows[R] = [
       xCell(r.room, font, bg, B.thin),
       xCell((r.rawRestriction || (r.tags||[]).join(', ')) + (r.serviceNote ? '  [Note: '+r.serviceNote+']' : ''), font, bg, B.thin),
@@ -22288,7 +22298,7 @@ function buildAnaphListXlsx(ds) {
 
   rows[R] = [xCell('Room',F.stdB,'FFFF00',B.thin), xCell('Allergen / Restriction',F.stdB,'FFFF00',B.thin), xCell('Section',F.stdB,'FFFF00',B.thin), xCell('Emergency Note',F.stdB,'FFFF00',B.thin)]; R++;
 
-  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room)).sort((a,b) => parseInt(a.room) - parseInt(b.room));
+  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r)).sort((a,b) => parseInt(a.room) - parseInt(b.room));
   const anaphRoomSet = new Set(anaphResidents.map(r => getRoomBase(r.room)));
 
   // Anaphylactic residents
@@ -22303,7 +22313,7 @@ function buildAnaphListXlsx(ds) {
 
   // Roommates of anaphylactic residents
   const roommates = REGISTRY_LIST.filter(r => {
-    if (r.isAnaph || anaphRooms.includes(r.room)) return false;
+    if (doorIsAnaphResident(r)) return false;
     return anaphRoomSet.has(getRoomBase(r.room)) && getRoomBase(r.room) !== r.room || 
            anaphResidents.some(a => getRoomBase(a.room) === getRoomBase(r.room) && a.room !== r.room);
   });
@@ -22365,8 +22375,8 @@ function buildLabelsXlsx(ds) {
         lblRow3[col+1] = xCell('', F.std, null, null);
         return;
       }
-      const bg = r.isAnaph ? 'FFC7CE' : hasCarbAccommodation(r) ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
-      const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
+      const bg = doorIsAnaphResident(r) ? 'FFC7CE' : hasCarbAccommodation(r) ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
+      const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: doorIsAnaphResident(r) ? '8B0000' : '000000'}};
       // Manual shrink-to-fit: xlsx-js-style 1.2.0 ignores the alignment.shrinkToFit
       // attribute on write, so step the font size down based on text length to make
       // long sections/flags fit the 1.75" cell without truncating mid-word.
@@ -22379,9 +22389,9 @@ function buildLabelsXlsx(ds) {
       lblRow1[col+1] = {v: sectionText, t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
-      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : hasCarbAccommodation(r) ? '○ Less starch / more veg' : '';
+      const flagTxt = doorIsAnaphResident(r) ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : hasCarbAccommodation(r) ? '○ Less starch / more veg' : '';
       const flagSz = flagTxt.length > 22 ? 7 : flagTxt.length > 17 ? 8 : 9;
-      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:flagSz,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:flagSz,bold:true,color:{rgb:doorIsAnaphResident(r)?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
       // Merge restriction row (R+1) and flag row (R+2) across both sub-columns of the label
@@ -22788,8 +22798,8 @@ function buildPlatingHtml(pd, isTest) {
   let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
 
   if (conflictRooms.size > 0) {
-    const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const algs = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
+    const anaphNames = REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).map(r=>r.room).join(', ');
+    const algs = [...new Set(REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
     h += `<tr><td colspan="3" class="ps-banner">⚠  ANAPHYLACTIC ALERT — Rooms ${escapeHtml(anaphNames)} (${escapeHtml(algs)})</td></tr>`;
     h += `<tr><td colspan="3" class="ps-banner-sub">Today’s meal contains allergen — Do not deliver to these rooms or roommates</td></tr>`;
   }
@@ -23063,9 +23073,9 @@ function computeTestPlatingData(flags) {
   var sortR = function(a,b) { var na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
   REGISTRY_LIST.forEach(function(r) {
     if (conflictRooms.has(r.room)) {
-      var isA = r.isAnaph || anaphRooms.includes(r.room);
+      var isA = doorIsAnaphResident(r);
       var mateOf = isA ? null : REGISTRY_LIST.find(function(ar) {
-        return (ar.isAnaph||anaphRooms.includes(ar.room)) &&
+        return (doorIsAnaphResident(ar)) &&
           getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room;
       });
       anaphSect.push(Object.assign({}, r, {_role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''}));
@@ -23259,7 +23269,7 @@ function printLabels() {
     site + ' · Dietary Labels · ' + dateStr + (mealInfo ? ' · ' + mealInfo : '') + ' · ' + restricted.length + ' residents';
 
   function getLabelBg(r) {
-    if (r.isAnaph) return '#FFC7CE';
+    if (doorIsAnaphResident(r)) return '#FFC7CE';
     if (hasCarbAccommodation(r)) return '#92D050';
     const s = r.section || '';
     if (s === 'Halal' || (r.tags||[]).includes('Halal')) return '#C6EFCE';
@@ -23268,7 +23278,7 @@ function printLabels() {
   }
 
   function getLabelFlag(r) {
-    if (r.isAnaph) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
+    if (doorIsAnaphResident(r)) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
     if (r.isModerate) return {text:'⚡ Moderate allergy', color:'#994400'};
     if (hasCarbAccommodation(r)) return {text:'○ Less starch / more veg', color:'#444'};
     return null;
@@ -23350,7 +23360,7 @@ function openDemoFile(filename, idx) {
     </tbody></table>`;
 
   } else if (fn.includes('anaphylactic')) {
-    const anaph = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
+    const anaph = REGISTRY_LIST.filter(r => doorIsAnaphResident(r)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<table><thead><tr><th>Room</th><th>Allergen / Restriction</th><th>Section</th><th>Note</th></tr></thead><tbody>
       ${anaph.map(r=>`<tr class="red"><td>${escapeHtml(r.room)}</td><td>${escapeHtml(r.rawRestriction||r.tags.join(', '))}</td><td>${escapeHtml(r.section)}</td><td>⚠ ANAPHYLACTIC — Do not substitute</td></tr>`).join('')}
       <tr><td colspan="3" style="font-weight:700;">Total Anaphylactic</td><td style="font-weight:700;">${anaph.length}</td></tr>
@@ -23360,7 +23370,7 @@ function openDemoFile(filename, idx) {
     const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;">
       ${restricted.map(r => {
-        const bg = r.isAnaph ? '#ffcccc' : hasCarbAccommodation(r) ? '#d6f0dd' : '#fff';
+        const bg = doorIsAnaphResident(r) ? '#ffcccc' : hasCarbAccommodation(r) ? '#d6f0dd' : '#fff';
         return `<div style="border:1.5px solid #999;padding:6px 8px;background:${bg};min-height:52px;">
           <div style="font-size:16px;font-weight:700;">${escapeHtml(r.room)}</div>
           <div style="font-size:10px;font-weight:700;">${escapeHtml(r.rawRestriction||r.tags.filter(t=>t!=='Regular').join(', '))}</div>
@@ -23372,7 +23382,7 @@ function openDemoFile(filename, idx) {
     const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<table><thead><tr><th>Room</th><th>Restrictions</th><th>Section</th><th>Status</th></tr></thead><tbody>
       ${restricted.map(r=>{
-        const cls = r.isAnaph ? 'red' : r.isModerate ? 'amber' : '';
+        const cls = doorIsAnaphResident(r) ? 'red' : r.isModerate ? 'amber' : '';
         return `<tr class="${cls}"><td>${escapeHtml(r.room)}</td><td>${escapeHtml(r.rawRestriction||r.tags.join(', '))}</td><td>${escapeHtml(r.section)}</td><td>${escapeHtml(r.confirm||'—')}</td></tr>`;
       }).join('')}
       <tr><td colspan="3" style="font-weight:700;">Total Restrictions</td><td style="font-weight:700;">${restricted.length}</td></tr>

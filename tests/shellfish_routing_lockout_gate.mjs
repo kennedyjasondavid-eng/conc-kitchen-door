@@ -25,7 +25,8 @@ const routing = between('const ROUTING_RULES = [', '// =========================
 const core = between('/* DOOR_TESTABLE_CORE_START compliance-conflicts */', '/* DOOR_TESTABLE_CORE_END compliance-conflicts */');
 const tagLabels = html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0];
 const routingTags = between('const ROUTING_TAGS = new Set([', ']);') + ']);\n';
-const anaph = fn('getRoomBase') + fn('findRoommates') + fn('getAnaphConflictRooms') + fn('getAnaphAlertInfo') + fn('routeResident');
+const fnOpt = (name) => html.includes('function ' + name + '(') ? fn(name) : '';
+const anaph = fn('getRoomBase') + fn('findRoommates') + fnOpt('doorIsAnaphResident') + fn('getAnaphConflictRooms') + fn('getAnaphAlertInfo') + fn('routeResident');
 const conflictMap = between('const CONFLICT_MAP = [', '\n];\n') + '\n];\n' + fn('getIngredientConflicts');
 
 // The same code as it was before this change. On main the replacements find nothing, so "before" is main itself.

@@ -32,7 +32,7 @@ const src = [
   between('const ROUTING_TAGS = new Set([', ']);') + ']);',
   between('const ROUTING_RULES = [', '// ============================================================') + between('function computeSections(', 'let mcWeek ='),
   between('/* DOOR_TESTABLE_CORE_START compliance-conflicts */', '/* DOOR_TESTABLE_CORE_END compliance-conflicts */'),
-  fn('getRoomBase') + fn('findRoommates') + fn('getAnaphConflictRooms') + fn('getAnaphAlertInfo') + fn('routeResident') + fnOpt('doorAnaphMealLines'),
+  fn('getRoomBase') + fn('findRoommates') + fnOpt('doorIsAnaphResident') + fn('getAnaphConflictRooms') + fn('getAnaphAlertInfo') + fn('routeResident') + fnOpt('doorAnaphMealLines'),
 ].join('\n');
 // The map as it was before this change: without the nine tags. On main the replacement finds nothing.
 const before = (s) => s.replace(/\n[ \t]*'No (Tree Nuts|Soy|Sesame|Mustard|Sulphites|Eggs|Coconut|Nightshades|Beef)': \[[^\]]*\],?/g, '');
