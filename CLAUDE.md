@@ -56,11 +56,21 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 ## Recent (2026-10-18) — a vegan-friendly main is a vegan option (`v31-standard.34`)
 CODEX C8 (creation audit K4; Jason, 2026-10-17: "split the two meanings"). CODEX now works out from each recipe's ingredients whether it is **vegan-friendly** and publishes the answer beside the line, as `veganFriendly`, in `DOOR_RECIPE_DATA.json` and in each shared-Library record's `door` block. The values are `true`, `false`, or `null` while a bought item waits on its label. The line (`stream`) keeps meaning the line a recipe is made for, so EXPO's board can't move (EXPO copies CODEX fields by name and never reads this one).
 - **What DOOR reads:** Edit Menu's **Vegan Alt** slot (`recipeMatchesSlotDef`) offers the vegan line's recipes, as before, plus any main CODEX marks `veganFriendly: true`. No other slot changes. The vegan plate's allergen guess (`getVegAltAllergenStr`) still reads only the vegan line.
-- **Measured against CODEX's feed:** 127 recipes are true, 98 false and 15 null. The Vegan Alt slot gains exactly one recipe, Red Red Bean Stew; the other vegan-friendly mains are already on the vegan line, where CODEX's projection puts its vegan proteins. Nothing leaves the slot.
+- **Measured against CODEX's feed:** 127 recipes are true, 98 false and 15 null. The Vegan Alt slot gains exactly one recipe, Red Red Bean Stew; the other vegan-friendly mains are already on the vegan line, where CODEX's projection puts its vegan proteins. Since the review fold, Jamcaican Patty Dough leaves it (below).
 - **The shared Library:** `doorSharedDoorRecord` carries the flag from the `door` block when it is true, false or null. A record saved before the flag carries none. It replaces the CODEX record whole, so the CODEX list's value never survives under ingredients it wasn't worked out from; the recipe falls back to its line. A different flag counts as a change in the overlay receipt. The 13 records shared on Oct 7/10 predate the flag, so they read by their line until their next save.
 - **Offline:** the baked fallback list carries no flag, so DOOR behaves as before.
 - **Vegan-plate harness** (`door_vegalt_safety_gate`, CODEX side, against this feed): 0 `_vegAltSafe` transitions, 0 vegan "contains" changes, anchor 84/84.
-- **Gate:** `tests/vegan_friendly_gate.mjs` (6), authored red 1/6 on `8c4c734`. It covers the slot rule and the slots that don't change, the overlay (carried; a pre-flag record carries none; a different flag is a change), that DOOR reads the field in three places only, and the census against CODEX's checked-in feed (skips without the sibling repo). Suite 445 → 451.
+- **Independent review (2026-10-18), folded.** One rule, `doorNamesAnimalFamily` (in the shared-recipes core): a list that names Milk, Dairy, Eggs, Fish, Shellfish, Crustaceans or Molluscs is never vegan-friendly ("Egg and Mustard" counts as two).
+  - **P1:** Option C kept a Milk label that a shorter, unconfirmed shared copy left out, but the record still took that copy's `veganFriendly: true`, and the Vegan Alt slot offered it. The overlay now clears the flag when a kept label names an animal family (receipt `notVeganFriendly`, logged).
+  - **P2:** the Vegan Alt slot offered vegan-line records whose own list names Milk. It now never offers a recipe whose list names an animal family, whatever its line or flag. Today that is only Jamcaican Patty Dough (lists Milk), and no menu slot links it. The regular slots are untouched.
+- **Gate:** `tests/vegan_friendly_gate.mjs` (9), authored red 1/6 on `8c4c734`; the review fold's checks are red 4/9 on `65dd2ab`. It covers:
+  - the slot rule, and the slots that don't change;
+  - the overlay: the field is carried, a pre-flag record carries none, and a different flag is a change;
+  - where DOOR reads the field;
+  - the census against CODEX's checked-in feed: Vegan Alt gains Red Red Bean Stew and loses Jamcaican Patty Dough (skips without the sibling repo);
+  - the animal-family rule, compounds included, and Option C with the flag, both ways.
+
+  Suite 445 → 454.
 - **Cross-repo pair:** the producer is conc-recipe-hub C8 (gate `tests/vegan_friendly_c8_gate.mjs`, X2/X3 read this code). Merge this one first. Before it lands, DOOR ignores the new field, so neither order breaks anything.
 
 ## Recent (2026-10-18) — the audit's independent review, folded (`v31-standard.33`)
