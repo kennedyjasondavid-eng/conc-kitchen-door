@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.29';
-const DOOR_BUILD_DATE = '2026-10-17';
+const DOOR_APP_VERSION = 'v31-standard.30';
+const DOOR_BUILD_DATE = '2026-10-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -17698,6 +17698,9 @@ const HUB_ALLERGEN_MAP = {
   'Eggs':'hasEgg','Egg':'hasEgg','Fish Sauce':'hasFish','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
   'Tree Nuts':'hasTreeNuts','Coconut':'hasCoconut','Corn':'hasCorn','Sulphites':'hasSulphites','Spicy':'isSpicy',
   'Nightshades':'hasNightshades','Tomato':'hasNightshades','Shellfish':'hasShellfish',
+  // CODEX writes shellfish as its two families, "Crustaceans (Shrimp)" and "Molluscs (Oyster Sauce)" (2026-10-18). DOOR
+  // has one flag for both, as No Shellfish and No Molluscs residents already share it (RESIDENT_TO_MEAL_FLAG).
+  'Crustaceans':'hasShellfish','Molluscs':'hasShellfish',
 };
 // Recipe-attach S1 (2026-08-18): the live CODEX feed labels don't all exact-match
 // the map above — it uses inconsistent casing ("egg"/"Egg"/"Eggs", "dairy"/"Dairy"),
