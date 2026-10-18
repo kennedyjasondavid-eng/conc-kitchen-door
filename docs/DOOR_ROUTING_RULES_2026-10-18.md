@@ -2,7 +2,7 @@
 
 Audit phase **A0** of `DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md`. Jason, 2026-10-18: "start the rules table for the audit; complete audit as autonomously as possible".
 
-**Status (2026-10-18, end of the audit):** every fork is ruled and built on this branch; the code now matches the Rule column. §2–§7 describe the code as it is now (each row that changed says "was"). §8 lists what the audit found on the published data, and §10 is the audit's result: the gates, the receipts, what else was found and fixed, and what is still open.
+**Status (2026-10-18, end of the audit):** every fork is ruled and built (merged via PR #126, `a1849d2`, `v31-standard.32`; the independent review's fixes below follow in `v31-standard.33`); the code now matches the Rule column. §2–§7 describe the code as it is now (each row that changed says "was"). §8 lists what the audit found on the published data, and §10 is the audit's result: the gates, the receipts, what else was found and fixed, and what is still open.
 
 **How to read it.**
 - **Code** was what `index.html` did at `a9d65f8` (`v31-standard.32`, before the audit's fixes).
@@ -250,7 +250,9 @@ New in A0:
   - No Processed Food is conflict-checked;
   - the two copies of each plating renderer's chains are one function each (`doorSectionLineNotes`, `doorSectionAllergenStr`).
 
-### Independent review: FIX-BEFORE-SHIP, folded
+### Independent review: FIX-BEFORE-SHIP, folded (`v31-standard.33`)
+PR #126 merged before these fixes reached it, so they ship as their own build.
+
 A second reader checked the whole `index.html` diff in the real page, in Toronto time, against `main`. Confirmed sound:
 - the week arithmetic, the date keys and breakfast;
 - every field a swap drops;

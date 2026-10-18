@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.32'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.33'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,7 +53,21 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — the tags / anaphylaxis / routing audit; the import reads GF and DF; Lactose Intolerant is No Dairy (`v31-standard.32`)
+## Recent (2026-10-18) — the audit's independent review, folded (`v31-standard.33`)
+PR #126 merged (`a1849d2`, `v31-standard.32`) before the review's fixes and the A7–A8 write-up reached it, so they ship here as their own build. The audit itself is the entry below; the rules doc §10 is the status owner.
+
+**The review's findings, fixed** (rules doc §10, "Independent review"):
+- **P1:** editing a queued Intake Portal item lost its anaphylactic toggle and tags (the room lookup, 250 ms later, put the resident's toggle back over the item's), so a queued anaphylactic update was re-added as not anaphylactic. `editQueueItem` now looks the room up first, then puts back the item's own tags and toggle.
+- **P1:** a new intake over an occupied room kept the last resident's picked anaphylactic tags, so a new peanut-anaphylactic resident was contained on coconut. The direct save and the Intake Portal now start the new resident's anaphylactic state, moderate allergy and notes fresh.
+- **P2:** the Daily Entry queue editor ignored an unchecked anaphylactic toggle; it now asks once and the answer travels with the change.
+- **P2:** Wk4 FRI's halal plate said PORK (a copied pork tick on the Tandoori Chicken slot); a halal plate never lists pork.
+- **P2:** after 8 pm, today's swap was pruned by the UTC date and the prune published; every swap and special-meal key is the local day (`doorDateKey`), the boot sync included.
+- **P2:** today's sections were worked out from the built-in resident list before the saved one loaded; they follow every load and save (`doorRefreshBaseSections`).
+- **P3s:** a pre-filled toggle no longer rides to the next room; "Keep it anaphylactic" keeps the label; the file previews list 813; the diagnostics core reads the flag or the list; the import waits for review before adding No Eggs, No Mustard or No Molluscs.
+
+**Gates:** `anaph_matrix_gate` (12) and `routing_replay_gate` (6) pin each fix (behaviour where a vm can run it, the source where it is DOM-bound); `publish_menu_ask_gate` re-pinned for `doorDateKey`. The staff walkthrough (`tests/browser/staff_walkthrough.mjs`, not in CI) is 51/51 at 1280 and 390 px, in Toronto time. Suite 445/445.
+
+## Recent (2026-10-18) — the tags / anaphylaxis / routing audit; the import reads GF and DF; Lactose Intolerant is No Dairy (`v31-standard.32`, merged via PR #126, `a1849d2`)
 Jason, 2026-10-18: "start the rules table for the audit; complete audit as autonomously as possible, ask me if you need clarification or rulings". Three owners:
 - **The rules table and the audit's result:** `docs/DOOR_ROUTING_RULES_2026-10-18.md` (§10 is the status owner).
 - **The plan:** `DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md`, all phases A0–A8 done.
@@ -110,15 +124,6 @@ Every fork was ruled on its lean, in three rounds of questions. The import fixes
 - `routing_replay_gate` (6, red 3): the published data through the real plating engine.
 - Re-pinned with dated notes: `shellfish_routing_lockout_gate` (No Molluscs routes), `special_meal_flags_gate` (`doorDatedMealFlags`), `door-smoke` (the preview stub), `menu_recipe_ticks_gate` (the ruled ticks), `publish_menu_ask_gate` (`doorDateKey`).
 - Browser receipts (`tests/browser/`, not in CI): the replay found 0 disagreements over 14,028 resident × meal rows; the walkthrough is 51/51 at 1280 and 390 px, in Toronto time.
-
-**Independent review: FIX-BEFORE-SHIP, folded** (rules doc §10):
-- editing a queued Intake Portal item lost its anaphylactic toggle and tags;
-- a new intake over an occupied room kept the last resident's picked anaphylactic tags;
-- the queue editor's uncheck was ignored;
-- Wk4 FRI's halal plate said PORK;
-- after 8 pm, today's swap was pruned by the UTC date and the prune published;
-- today's sections read the built-in list;
-- the P3s.
 
 **Downstream (A7).** EXPO and HUB read only the Regular, Halal and Vegan counts and `_components`, so the new labels are ignored safely, and neither reads the anaphylactic flag. **Neither reads swaps:** EXPO's board still plans the rotation meal on a swap day.
 

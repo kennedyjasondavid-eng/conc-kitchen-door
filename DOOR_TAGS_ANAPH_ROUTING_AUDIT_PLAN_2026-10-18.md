@@ -2,7 +2,7 @@
 
 **Ask.** Jason, 2026-10-18: "Plan a full audit to test all tags and anaphs especially to ensure routing behaviour is accurate with no bugs." **Plan only.** The one code change in this branch is the `v31-standard.31` work already in PR #125.
 
-**Status (2026-10-18, end of day): every phase A0–A8 is done, and every ruling is built** on `claude/brave-clarke-mxvhel` (`v31-standard.32`, PR #126). Jason asked for it: "start the rules table for the audit; complete audit as autonomously as possible", and ruled every fork the rules table raised. Where things stand:
+**Status (2026-10-18, end of day): every phase A0–A8 is done, and every ruling is built.** The rulings merged via PR #126 (`a1849d2`, `v31-standard.32`); the independent review's fixes and the A7–A8 write-up follow in `v31-standard.33`. Jason asked for it: "start the rules table for the audit; complete audit as autonomously as possible", and ruled every fork the rules table raised. Where things stand:
 - **The status owner** is `docs/DOOR_ROUTING_RULES_2026-10-18.md` §10: gates, receipts, what was found beyond the leads below, and what is still open.
 - **The leads (§3)** each say how they ended.
 - **§2.1's census** is the pre-audit snapshot; the current table is the rules doc §4 and `tests/tag_table_consistency_gate.mjs`.
