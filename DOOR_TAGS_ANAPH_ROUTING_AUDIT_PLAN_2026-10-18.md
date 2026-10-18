@@ -2,6 +2,11 @@
 
 **Ask.** Jason, 2026-10-18: "Plan a full audit to test all tags and anaphs especially to ensure routing behaviour is accurate with no bugs." **Plan only.** The one code change in this branch is the `v31-standard.31` work already in PR #125.
 
+**Status (2026-10-18, end of day): every phase A0–A8 is done, and every ruling is built** on `claude/brave-clarke-mxvhel` (`v31-standard.32`, PR #126). Jason asked for it: "start the rules table for the audit; complete audit as autonomously as possible", and ruled every fork the rules table raised. Where things stand:
+- **The status owner** is `docs/DOOR_ROUTING_RULES_2026-10-18.md` §10: gates, receipts, what was found beyond the leads below, and what is still open.
+- **The leads (§3)** each say how they ended.
+- **§2.1's census** is the pre-audit snapshot; the current table is the rules doc §4 and `tests/tag_table_consistency_gate.mjs`.
+
 **Why now.** The shellfish thread (`v31-standard.30` / `.31`) found several bugs of one shape in a single afternoon: a rule existed, and another table quietly didn't read it.
 - CODEX's Crustaceans and Molluscs labels set no flag.
 - A shrimp meal opened no section and contained no anaphylactic resident.
@@ -118,18 +123,18 @@ There are 25 flags (`FLAG_DEFS`). For each source, the audit asks: **does it set
 - **L2 — RULED and DONE in `v31-standard.32`** (Jason, 2026-10-18: "Lactose intolerant should be no dairy too"; gate `lactose_no_dairy_gate`). **"Lactose Intolerant" re-parses to also add No Dairy**, but two stored records (1207, 301a) lack No Dairy. The data and the parser disagree. Routing is the same either way (both route to no_dairy), but the conflict check differs: Lactose Intolerant has no `RESIDENT_TO_MEAL_FLAG` entry.
 
 **To verify (from the census table):**
-- **L3 — Bland Diet is a routing tag that no section lists.** The Bland section reads No Spicy only. A Bland Diet resident would eat the regular plate. Nobody has the tag today.
-- **L4 — No Mustard isn't in the "No Egg / Mustard" section,** which opens on hasEgg only. A mustard meal with no egg seats No Mustard residents on Regular, with a note. `_vegAltSafe` does read mustard.
-- **L5 — No Turkey has a conflict check but no plating-sheet note.** Low Sodium (6 residents), Low Fat, Low Potassium, No Fried Food and Other are read by no rule; check they at least print as text.
-- **L6 — Lockout is per meal on plating sheets, labels and the routing file, but per day in the room lookup, the Daily Entry preview and the home headcount** (`getAnaphConflictRooms(lunch, dinner)`). A dinner-only allergen moves a resident's lunch in some views and not others. This needs a ruling.
-- **L7 — The isAnaph drift sources.**
+- **L3 — FIXED** (F2, "Bland Diet routes as No Spicy"). **Bland Diet is a routing tag that no section lists.** The Bland section reads No Spicy only. A Bland Diet resident would eat the regular plate. Nobody has the tag today.
+- **L4 — FIXED** (F3: it opens on mustard for No Mustard, on egg for No Eggs). **No Mustard isn't in the "No Egg / Mustard" section,** which opens on hasEgg only. A mustard meal with no egg seats No Mustard residents on Regular, with a note. `_vegAltSafe` does read mustard.
+- **L5 — FIXED** (F8 notes; F6 accommodations stay text only, and the replay checks they print on labels). **No Turkey has a conflict check but no plating-sheet note.** Low Sodium (6 residents), Low Fat, Low Potassium, No Fried Food and Other are read by no rule; check they at least print as text.
+- **L6 — FIXED** (F1, per meal everywhere). **Lockout is per meal on plating sheets, labels and the routing file, but per day in the room lookup, the Daily Entry preview and the home headcount** (`getAnaphConflictRooms(lunch, dinner)`). A dinner-only allergen moves a resident's lunch in some views and not others. This needs a ruling.
+- **L7 — FIXED, and worse than it looked** (rules doc §10: the Intake Portal took rooms off the list). **The isAnaph drift sources.**
   - The queue apply (`r.isAnaph = c.isAnaph || false`) and the import queue entries (`isAnaph: false`) reset the flag. Since `.31` that is harmless to display, but it is still data drift.
   - `removeAnaphRoom` leaves `r.isAnaph` set, so a room taken off the list stays contained.
-- **L8 — The "& Mollusks" slash form.** Room 504's raw "Halal/No Fish/No Shellfish & Mollusks)" re-parses without No Molluscs, while "No Shellfish & Mollusks" alone gives both.
-- **L9 — `checkResidentMealConflicts`' comment says routed residents aren't re-flagged; the code re-flags them.** Check for duplicate notes.
-- **L10 — The compliance tiers name "Gluten Free", not GF,** so GF is doc-tier. That is the safe default; it needs a ruling.
-- **L11 — No Oats has no flag,** and CODEX's Oats label is ignored. CODEX has no Mushroom or Beans family. DOOR has no flag for Lupin or Buckwheat.
-- **L12 — The unwired diagnostics core** (`computeDoorComplianceDiagnostics`) still reads `resident.isAnaph` alone.
+- **L8 — already fixed** by the GF/DF short-code work (504 parses No Molluscs). **The "& Mollusks" slash form.** Room 504's raw "Halal/No Fish/No Shellfish & Mollusks)" re-parses without No Molluscs, while "No Shellfish & Mollusks" alone gives both.
+- **L9 — no bug:** a routed resident's Generate conflict is informational, and the plating notes come from one function (`doorSectionLineNotes`), deduplicated. **`checkResidentMealConflicts`' comment says routed residents aren't re-flagged; the code re-flags them.** Check for duplicate notes.
+- **L10 — FIXED** (F5 keep doc: GF is listed as doc). **The compliance tiers name "Gluten Free", not GF,** so GF is doc-tier. That is the safe default; it needs a ruling.
+- **L11 — open** (needs flags or CODEX families). **No Oats has no flag,** and CODEX's Oats label is ignored. CODEX has no Mushroom or Beans family. DOOR has no flag for Lupin or Buckwheat.
+- **L12 — FIXED:** it reads the list too. **The unwired diagnostics core** (`computeDoorComplianceDiagnostics`) still reads `resident.isAnaph` alone.
 
 ## 4. Phases
 
@@ -239,6 +244,8 @@ The total is about 6–8 working days. No published artifact changes until a fix
 **Not in scope:** CODEX's own allergen reading (the CODEX audit line owns it), the menu content itself, EXPO's scheduling logic, and anything reno-menu (`menu_reno.json` is generated in EXPO).
 
 ## 6. Rulings this plan already needs (forks; leans in brackets)
+
+**All ruled 2026-10-18 on the leans** (rules doc §9), plus F8–F13 raised by the rules table. Every one is built.
 
 1. **Lockout scope** (L6): per meal everywhere, or per day everywhere? [per meal everywhere, since the plating sheet is the authority; the room lookup says "lunch: …, dinner: …"]
 2. **Bland Diet** (L3): route to Bland with No Spicy, or retire the tag into No Spicy? [route with No Spicy]

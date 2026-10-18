@@ -53,8 +53,69 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — the resident-list import reads GF and DF; Lactose Intolerant is No Dairy (`v31-standard.32`)
-Found scoping the tags/anaph/routing audit (`DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md` L1, L2). Built on PR #125, which merged before these commits, so they ship here.
+## Recent (2026-10-18) — the tags / anaphylaxis / routing audit; the import reads GF and DF; Lactose Intolerant is No Dairy (`v31-standard.32`)
+Jason, 2026-10-18: "start the rules table for the audit; complete audit as autonomously as possible, ask me if you need clarification or rulings". Three owners:
+- **The rules table and the audit's result:** `docs/DOOR_ROUTING_RULES_2026-10-18.md` (§10 is the status owner).
+- **The plan:** `DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md`, all phases A0–A8 done.
+- **The receipts:** `docs/DOOR_ROUTING_REPLAY_RECEIPT_2026-10-18.md`, `docs/DOOR_FLAG_RESIDENT_CENSUS_2026-10-18.md` and `docs/receipts/walkthrough_2026-10-18/`.
+
+Every fork was ruled on its lean, in three rounds of questions. The import fixes (plan L1, L2) were built on PR #125, which merged before they reached it, so they ship here.
+
+**The line rule.** A resident eats one plate. Every restriction the meal sets off is either served by that plate or named on its line.
+- `CONFLICT_MAP` names No Spicy and Bland Diet ("not spicy"), No Beef, No Turkey and No Processed Food ("no processed meat").
+- `doorSectionLineNotes` is the one note both plating renderers print. It also reads the allergens of the plate eaten (the vegan line, and now the halal line), and says "soft" for a Soft Meals resident on another plate ("Keep order, note soft"). `doorSectionAllergenStr` is the one CONTAINS chain.
+- Live examples: 709 and 910 (No Spicy) get Chicken Vindaloo on the halal plate with "not spicy"; 801's spicy vegan plates say so on 19 meals; 301a (GF, Vegetarian) gets "gluten-free" on vegan sausages; 304 (Halal + No Eggs) gets "no egg" on Wk2 SAT's halal burger.
+
+**Routing.**
+- Bland Diet routes as No Spicy.
+- No Mustard joins No Egg / Mustard on a mustard meal. `tagTriggers` keep No Eggs on egg only.
+- No Molluscs routes like No Shellfish.
+
+**Swap and special-meal days** (Jason: "Yes, and the routing file too"). A slot's next service routes its swap or special meal on the plating sheet and in `routing_by_meal.json` (`doorDatedMealFor` / `doorApplyDatedMeal`), and the sheet says "Swap for Nov 3 — replaces the rotation meal". On Nov 3 the sheet would otherwise have seated No Beef residents 704 and 901 on Regular for a beef burger. Swaps are keyed by the local date (`doorDateKey`); after 8 pm, today's meals read tomorrow's.
+
+**One meal at a time** ("Per meal everywhere", "Follow plating").
+- `routeResident` reads only the meal it routes.
+- The Daily Entry preview, stored routes and the home count read today's meal as the sheet does (`doorTodayMealFlags`).
+- The lookup card says "Today: Lunch → Soft Meals · Dinner → Anaphylactic Alternative".
+- The routing file's section counts come from the plating engine. The 3 pork days with alternative meals now read Halal 54 / Soft 2, as the sheets do.
+
+**The anaphylactic list.**
+- The Enter Changes toggle read a class it never has, and on an update it started off, so every Intake Portal update took the room off the list and cleared its flag, even with the toggle on.
+- Now:
+  - the toggle starts from the resident;
+  - switching it off asks once (`doorAskTakeOffAnaphList`), and queued changes carry the answer;
+  - a Daily Entry update keeps the flag;
+  - a room switch takes the list entry along;
+  - the list's Remove asks and clears the flag ("List removal clears the flag").
+- 813 (anaphylactic, no restriction recorded) gets a red label and a restriction-sheet row.
+
+**Data and smaller fixes.**
+- Menu ticks, as Edit Menu's save writes them:
+  - Spicy on Wk1 TUE dinner;
+  - Processed Meat on Wk3 SAT dinner;
+  - Gluten on Wk3 WED lunch ("Flour");
+  - Beans on the Nov 3 swap.
+- Artifacts rebuilt: `menu_current`, `menu_overlay`, `routing_by_meal` (which now also carries 213's 9 meals, the soft days and the swap), and `meal_swaps`. `door_state` and `registry_summary` take only the stamp. Validation 0/0/0.
+- Regular residents left Provisional read N/A at load (813 stays Provisional).
+- `COMPLIANCE_TIERS` names GF (doc, as ruled).
+- The April 27 registry patch is retired.
+- A bare "and" on import isn't a question.
+- The diagnostics core reads the list.
+
+**Gates** (each red on `main` `66e0bec`):
+- `tests/helpers/routing_oracle.mjs`: the reference model, written from the table.
+- `tag_table_consistency_gate` (7, red 5).
+- `routing_oracle_gate` (8, red 5): about 240 residents × 792 meals, with a mutation check.
+- `anaph_matrix_gate` (8, red 7).
+- `routing_replay_gate` (5, red 2): the published data through the real plating engine.
+- Re-pinned with dated notes: `shellfish_routing_lockout_gate` (No Molluscs routes), `special_meal_flags_gate` (`doorDatedMealFlags`), `door-smoke` (the preview stub), `menu_recipe_ticks_gate` (the ruled ticks).
+- Browser receipts (`tests/browser/`, not in CI): the replay found 0 disagreements over 14,028 resident × meal rows; the walkthrough is 42/42 at 1280 and 390 px.
+
+**Downstream (A7).** EXPO and HUB read only the Regular, Halal and Vegan counts and `_components`, so the new labels are ignored safely, and neither reads the anaphylactic flag. **Neither reads swaps:** EXPO's board still plans the rotation meal on a swap day.
+
+**Open for Jason:** 813 has no allergen recorded; EXPO and swaps; No Oats, Lupin and Buckwheat have no flag.
+
+### The import fixes (plan L1, L2)
 - **GF and DF are read on the resident-list import** (plan L1; Jason, 2026-10-18: "yes DF is dairy free"). `normalizeRestriction` had no rule for "GF", DOOR's own gluten-free label, and its leftover-word pass returned early for any word under 3 letters, before recording it as unmatched.
   - So "GF" was read as nothing and nobody was asked: a new resident written "GF" arrived as Regular, and "GF, No Pork" as No Pork only.
   - Re-importing today's list (real page, on `main`) proposed taking GF off all four residents whose rows say GF: 912, 1207, 613a and 301a.
@@ -71,11 +132,11 @@ Found scoping the tags/anaph/routing audit (`DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_
   - The import's section guess reads Lactose Intolerant as No Dairy. Adding it on import waits for review like No Dairy (`MODIFIER_AUTO_ROUTING`), since it changes routing.
   - No stored record is rewritten. Re-importing today's list (real page) now proposes nothing at all. On `main` it proposed taking GF off four residents and adding No Dairy to two.
   - Lactose intolerance stays out of the anaphylactic picker.
-- **Gates** (authored red on `9cf22d9`, still red 12/14 on `main` `66e0bec`):
+- **Import gates** (authored red on `9cf22d9`, still red 12/14 on `main` `66e0bec`):
   - `restriction_short_codes_gate` (6, red 5/6; the sixth is the whole-word lock): GF / DF however written, no over-reading, short words asked, every published restriction, and the import's diff.
   - `lactose_no_dairy_gate` (8, red 7/8; the routing lock passes on `main`): every No Dairy rule reads Lactose Intolerant alike, the conflict, the one note, the import's tags and section guess, the documentation tier, review on import, and no proposals on today's list.
 
-  Suite 397 → 411.
+  Suite 397 → 411; with the audit, 397 → 440.
 
 ## Recent (2026-10-18) — a shellfish meal routes and contains like a fish meal; every anaphylactic tag DOOR can flag is contained (`v31-standard.31`)
 Jason, 2026-10-18: "follow your lean on routing and lockout", on the `v31-standard.30` finding (the entry below), then "clean up anything else you see here before merging this pr" and, on anaphylactic tags, "every tag with a flag". Since .30 a CODEX shrimp or mussel recipe sets `hasShellfish` on its meal, but routing, lockout, special meals and the workbook import still keyed seafood on `hasFish` or dropped it.
