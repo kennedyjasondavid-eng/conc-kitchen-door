@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.30';
+const DOOR_APP_VERSION = 'v31-standard.31';
 const DOOR_BUILD_DATE = '2026-10-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -8062,9 +8062,10 @@ function revertResident(room, historyIndex) {
   _HISTORY_SNAPSHOT_KEYS.forEach(k => {
     if (target[k] !== undefined) r[k] = JSON.parse(JSON.stringify(target[k]));
   });
-  // Sync anaph rooms
+  // Sync anaph rooms. A revert only ever adds (2026-10-18): a snapshot's isAnaph can be false for a room on the
+  // anaphylactic list (room 213: an import reset the flag), and taking the room off silently ended its lockout.
+  // Taking a room off stays a deliberate act: the resident editor's checkbox or the anaphylactic list's Remove.
   if (r.isAnaph && !anaphRooms.includes(r.room)) anaphRooms.push(r.room);
-  if (!r.isAnaph) { const ai = anaphRooms.indexOf(r.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
@@ -8150,8 +8151,7 @@ function routeResident(tags, meal, room, isAnaph) {
     const tagKeys = Object.keys(tags).filter(k => tags[k]);
     const tagLabels = tagKeys.map(k => TAG_LABELS_MAP[k]).filter(Boolean);
     for (const label of tagLabels) {
-      const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[label];
-      if (mealFlag && (MEAL_DATA.lunch[mealFlag] || MEAL_DATA.dinner[mealFlag])) {
+      if (anaphTagMealFlags(label).some(f => MEAL_DATA.lunch[f] || MEAL_DATA.dinner[f])) {
         return 'Anaphylactic Alternative';
       }
     }
@@ -8232,7 +8232,7 @@ function buildResidentDetailHTML(r) {
     parts.push(`<div style="margin-top:3px;"><span style="font-size:10px;font-weight:700;text-transform:uppercase;color:#d97706;">Accom:</span> ${accommodations.map(t=>`<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;margin:1px 2px;">${escapeHtml(t)}</span>`).join('')}</div>`);
   }
   // Anaph status
-  const isAnaph = r.isAnaph || (typeof anaphRooms !== 'undefined' && anaphRooms.includes(r.room));
+  const isAnaph = doorIsAnaphResident(r);
   if (isAnaph) {
     parts.push(`<div style="margin-top:5px;padding:4px 8px;border-radius:6px;background:#fef2f2;border:1px solid #fca5a5;font-size:12px;font-weight:700;color:#dc2626;">⚠ ANAPHYLACTIC — contained meal prep required</div>`);
   }
@@ -8608,7 +8608,7 @@ function openRegistryEditor(room) {
   buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
-  document.getElementById('ce-anaph').checked = r.isAnaph || anaphRooms.includes(r.room);
+  document.getElementById('ce-anaph').checked = doorIsAnaphResident(r);
   populateAnaphTags(r);
   toggleAnaphDetail();
   document.getElementById('ce-notes').value = r.serviceNote || '';
@@ -8978,13 +8978,31 @@ function getTagClass(label) {
 // ============================================================
 // ROOM-LEVEL ANAPHYLACTIC CONTAINMENT
 // ============================================================
+// Each tag lists every meal flag that sets it off. Shellfish (2026-10-18, Jason: "follow your lean on routing and
+// lockout"): a CODEX shrimp or mussel recipe ticks hasShellfish, and older menus ticked seafood as Fish, so No
+// Shellfish and No Molluscs are contained on either. No Molluscs had no entry, so ticking it as anaphylactic did nothing.
+// Every other tag the anaphylactic picker offers (populateAnaphTags) contains on its own flag (2026-10-18, Jason: "every
+// tag with a flag"); before, a tick on Tree Nuts, Soy, Sesame, Mustard, Sulphites, Eggs, Coconut, Nightshades or Beef
+// did nothing. No Oats can't: DOOR has no oats flag.
 const ANAPH_TAG_TO_MEAL_FLAG = {
-  'No Peanuts': 'hasPeanuts',
-  'No Fish': 'hasFish',
-  'No Shellfish': 'hasFish',
-  'No Dairy': 'hasDairy',
-  'GF': 'hasGluten'
+  'No Peanuts': ['hasPeanuts'],
+  'No Fish': ['hasFish'],
+  'No Shellfish': ['hasFish', 'hasShellfish'],
+  'No Molluscs': ['hasFish', 'hasShellfish'],
+  'No Dairy': ['hasDairy'],
+  'GF': ['hasGluten'],
+  'No Tree Nuts': ['hasTreeNuts'],
+  'No Soy': ['hasSoy'],
+  'No Sesame': ['hasSesame'],
+  'No Mustard': ['hasMustard'],
+  'No Sulphites': ['hasSulphites'],
+  'No Eggs': ['hasEgg'],
+  'No Coconut': ['hasCoconut'],
+  'No Nightshades': ['hasNightshades'],
+  'No Beef': ['hasBeef']
 };
+// The meal flags that set off an anaphylactic tag ([] for a tag with none).
+function anaphTagMealFlags(tag) { return ANAPH_TAG_TO_MEAL_FLAG[tag] || []; }
 
 // ============================================================
 // RESIDENT FLAG → MEAL FLAG MAPPING (v25)
@@ -9238,13 +9256,10 @@ function getAnaphDisplayAllergens(resident, mealFlags) {
     // non-'No' labels like GF. Routing tags (Halal, Diabetic, ...) never
     // belong in an allergen list.
     labels = [...(resident.tags || []), ...(resident.avoidances || [])]
-      .filter(t => /^No /.test(t) || ANAPH_TAG_TO_MEAL_FLAG[t]);
+      .filter(t => /^No /.test(t) || anaphTagMealFlags(t).length);
   }
   if (!mealFlags) return labels;
-  return labels.filter(t => {
-    const f = ANAPH_TAG_TO_MEAL_FLAG[t];
-    return !!(f && mealFlags[f]);
-  });
+  return labels.filter(t => anaphTagMealFlags(t).some(f => mealFlags[f]));
 }
 
 /* DOOR_TESTABLE_CORE_END compliance-conflicts */
@@ -9284,10 +9299,19 @@ function findRoommates(room) {
   );
 }
 
+// Is this resident anaphylactic? Their own flag, or a room on DOOR's anaphylactic list (2026-10-18, Jason: "213 should
+// have the flag act accordingly"). Lockout and the Anaphylactic List always read both; the sheets, labels, week-ahead
+// list and published count read only the flag, so room 213 (on the list, flag reset by an import) was contained but
+// never red. Every reader uses this one rule.
+function doorIsAnaphResident(r) {
+  if (!r) return false;
+  return !!r.isAnaph || (typeof anaphRooms !== 'undefined' && Array.isArray(anaphRooms) && anaphRooms.includes(r.room));
+}
+
 // Returns Set of room numbers routed to Anaphylactic Alternative today
 function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
   const conflictRooms = new Set();
-  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
+  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
 
   for (const resident of anaphResidents) {
     // v29: If anaphTags is set, only check those specific allergens against the meal.
@@ -9299,9 +9323,7 @@ function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
       tagsToCheck = [...(resident.tags || []), ...(resident.avoidances || [])];
     }
     for (const tag of tagsToCheck) {
-      const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[tag];
-      if (!mealFlag) continue;
-      if (lunchMeal[mealFlag] || dinnerMeal[mealFlag]) {
+      if (anaphTagMealFlags(tag).some(f => lunchMeal[f] || dinnerMeal[f])) {
         conflictRooms.add(resident.room);
         findRoommates(resident.room).forEach(mate => conflictRooms.add(mate.room));
       }
@@ -9313,7 +9335,7 @@ function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
 // Build info alerts for the review screen (informational — routing is automatic)
 function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
   const alerts = [];
-  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room));
+  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
 
   for (const resident of anaphResidents) {
     // v29: Only check anaphylactic-specific allergens if set
@@ -9324,12 +9346,12 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
       tagsToCheck = [...(resident.tags || []), ...(resident.avoidances || [])];
     }
     for (const tag of tagsToCheck) {
-      const mealFlag = ANAPH_TAG_TO_MEAL_FLAG[tag];
-      if (!mealFlag) continue;
+      const mealFlags = anaphTagMealFlags(tag);
+      if (!mealFlags.length) continue;
 
       const meals = [];
-      if (lunchMeal[mealFlag]) meals.push('Lunch');
-      if (dinnerMeal[mealFlag]) meals.push('Dinner');
+      if (mealFlags.some(f => lunchMeal[f])) meals.push('Lunch');
+      if (mealFlags.some(f => dinnerMeal[f])) meals.push('Dinner');
       if (!meals.length) continue;
 
       const roommates = findRoommates(resident.room);
@@ -9342,6 +9364,21 @@ function getAnaphAlertInfo(lunchMeal, dinnerMeal) {
     }
   }
   return alerts;
+}
+
+// The week-ahead conflict list's red anaphylactic lines for one meal (2026-10-18): one per tag the meal sets off,
+// read the way room lockout reads them (getAnaphDisplayAllergens). Peanuts keeps its own line in the caller.
+function doorAnaphMealLines(meal, residents, rooms) {
+  const byTag = {};
+  (residents || []).filter(r => r.isAnaph || (rooms || []).includes(r.room)).forEach(r => {
+    getAnaphDisplayAllergens(r, meal).forEach(t => {
+      if (t !== 'No Peanuts') (byTag[t] = byTag[t] || []).push(r.room);
+    });
+  });
+  return Object.keys(byTag).map(t => ({
+    type: (t === 'GF' ? 'Gluten' : t.replace(/^No /, '')) + ' — ANAPHYLACTIC',
+    residents: byTag[t].length, rooms: byTag[t].join(', '), severity: 'red'
+  }));
 }
 
 // ============================================================
@@ -12502,7 +12539,7 @@ function buildRegistrySummaryJSON() {
   REGISTRY_LIST.forEach(r => {
     const s=r.section||'Regular'; sc[s]=(sc[s]||0)+1;
     (r.tags||[]).forEach(t => { tc[t]=(tc[t]||0)+1; });
-    if(r.isAnaph) ac++;
+    if(doorIsAnaphResident(r)) ac++;
     if(r.isModerate) mc++;
   });
   return {
@@ -14442,9 +14479,6 @@ function runCustomReport() {
 
     // Check next 7 days for conflicts
     const conflicts = [];
-    const flaggedResidents = REGISTRY_LIST.filter(r =>
-      r.tags && (r.tags.includes('No Fish') || r.tags.includes('No Peanuts') || r.isAnaph || r.tags.includes('Gluten Free') || r.tags.includes('No Dairy'))
-    );
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(now4); d.setDate(d.getDate()+i);
@@ -14469,9 +14503,10 @@ function runCustomReport() {
         });
         // Anaphylactic check as override
         if (meal.hasPeanuts) {
-          const anaph = REGISTRY_LIST.filter(r => r.isAnaph);
+          const anaph = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
           if (anaph.length) dayConflicts.push({ type: 'Peanuts — ANAPHYLACTIC', residents: anaph.length, rooms: anaph.map(r=>r.room).join(', '), severity: 'red' });
         }
+        dayConflicts.push(...doorAnaphMealLines(meal, REGISTRY_LIST, anaphRooms));
 
         if (dayConflicts.length) conflicts.push({ date: dateStr, period, meal: meal.name, conflicts: dayConflicts });
       });
@@ -14946,7 +14981,9 @@ const ROUTING_RULES = [
   {p:1,  key:'vegan',   label:'Vegan / Vegetarian', tags:['Vegan','Vegetarian'],   always:true,                    altType:'vegan_alt'},
   {p:2,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef','hasChicken','hasTurkey'], altType:'halal_alt'},
   {p:2.5, key:'no_processed', label:'No Processed Food', tags:['No Processed Food'], triggers:['hasProcessedMeat'], altType:'noproc_alt'},
-  {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish'], triggers:['hasFish'],         altType:'vegan_alt', mergeInto:'vegan'},
+  // A shellfish meal opens No Fish / Shellfish too (2026-10-18, Jason: "follow your lean on routing and lockout"): a CODEX
+  // shrimp or mussel recipe ticks hasShellfish without hasFish, and the section's No Shellfish residents stayed on Regular.
+  {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish'], triggers:['hasFish','hasShellfish'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
   {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy','Lactose Intolerant'], triggers:['hasDairy'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:6,  key:'no_beef', label:'No Beef',            tags:['No Beef'],              triggers:['hasBeef'],           altType:'vegan_alt', mergeInto:'vegan'},
@@ -15721,11 +15758,17 @@ function getMealForDate(date) {
   const smAll = typeof loadSpecialMeals !== 'undefined' ? loadSpecialMeals() : {};
   // Build flags from allergens array or _flagsRaw. Avoids SM_ALLERGENS const
   // which may be in temporal dead zone during initial MEAL_DATA assignment.
+  // Every box the Special Meal grid offers is read (2026-10-18): this list read nine, so a special meal ticked Soy,
+  // Sesame, Tree Nuts, Mustard or Sulphites carried none of them. Older records' Crustaceans / Molluscs / Wheat boxes
+  // set keys nothing reads; they count as Shellfish and Gluten. Kept in step with SM_ALLERGENS by its gate.
   function resolveFlags(entry) {
     if (entry._flagsRaw) return {...entry._flagsRaw};
     const f = {};
-    const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasEgg','hasPeanuts','isSpicy','isCarb'];
-    keys.forEach(k => { f[k] = (entry.allergens||[]).includes(k); });
+    const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasShellfish','hasEgg','hasPeanuts','hasTreeNuts',
+      'hasSoy','hasSesame','hasMustard','hasSulphites','isSpicy','isCarb'];
+    const LEGACY = { hasCrustacean: 'hasShellfish', hasMollusc: 'hasShellfish', hasWheat: 'hasGluten' };
+    const listed = (entry.allergens || []).map(k => LEGACY[k] || k);
+    keys.forEach(k => { f[k] = listed.includes(k); });
     return f;
   }
   const smLunch = smAll[dateStr+'-lunch'];
@@ -16042,7 +16085,7 @@ const FLAG_DEFS = [
   // Secondary — behind "+ More"
   {key:'hasSesame',   label:'Sesame',     color:'#f59e0b', primary:false, tip:'Meal contains sesame seeds or sesame oil.'},
   {key:'hasMustard',  label:'Mustard',    color:'#eab308', primary:false, tip:'Meal contains mustard or mustard seeds.'},
-  {key:'hasShellfish',label:'Shellfish',  color:'#06b6d4', primary:false, tip:'Meal contains shellfish or crustaceans.'},
+  {key:'hasShellfish',label:'Shellfish',  color:'#06b6d4', primary:false, tip:'Meal contains shellfish: crustaceans (shrimp, crab, lobster) or molluscs (clams, mussels, oysters, scallops, squid). No Fish / Shellfish residents merge into Vegan section.'},
   {key:'hasSulphites',label:'Sulphites',  color:'#8b5cf6', primary:false, tip:'Meal contains sulphites (wine, vinegar, dried fruit).'},
   {key:'hasPork',     label:'Pork',       color:'#dc2626', primary:false, tip:'Meal contains pork. Activates Halal section.'},
   {key:'hasBeef',     label:'Beef',       color:'#b45309', primary:false, tip:'Meal contains beef. Activates Halal section when meat is not halal-certified.'},
@@ -16088,15 +16131,16 @@ const CONFLICT_MAP = [
   { mealFlag:'hasSesame',      residentTag:'No Sesame',         label:'Sesame',        note:'no sesame',                          severity:'amber' },
   { mealFlag:'hasMustard',     residentTag:'No Mustard',        label:'Mustard',       note:'no mustard',                         severity:'amber' },
   { mealFlag:'hasShellfish',   residentTag:'No Shellfish',      label:'Shellfish',     note:'no shellfish',                       severity:'amber' },
+  { mealFlag:'hasShellfish',   residentTag:'No Molluscs',       label:'Molluscs',      note:'no molluscs',                        severity:'amber' },
   { mealFlag:'hasSulphites',   residentTag:'No Sulphites',      label:'Sulphites',     note:'no sulphites',                       severity:'amber' },
   { mealFlag:'hasBeans',       residentTag:'No Beans',          label:'Beans',         note:'no beans',                           severity:'amber' },
   { mealFlag:'hasMushroom',    residentTag:'No Mushroom',       label:'Mushroom',      note:'no mushroom',                        severity:'amber' },
-  { mealFlag:'hasCoconut',     residentTag:'No Coconut',        label:'Coconut',       note:'no coconut',                         severity:'amber' },
   { mealFlag:'hasNightshades', residentTag:'No Nightshades',    label:'Nightshades',   note:'no tomato/potato/pepper',            severity:'amber' },
   { mealFlag:'hasBrassicas',   residentTag:'No Brassicas',      label:'Brassicas',     note:'no broccoli/cauliflower/cabbage',    severity:'amber' },
   { mealFlag:'hasCorn',        residentTag:'No Corn',           label:'Corn',          note:'no corn',                            severity:'amber' },
   { mealFlag:'hasEgg',         residentTag:'No Eggs',           label:'Egg',           note:'no egg',                             severity:'amber' },
-  { mealFlag:'hasGluten',      residentTag:'Gluten Free',       label:'Gluten',        note:'gluten-free',                        severity:'amber' },
+  // GF is the resident tag ("Gluten Free" is the section's name): this row never matched anyone (2026-10-18).
+  { mealFlag:'hasGluten',      residentTag:'GF',                label:'Gluten',        note:'gluten-free',                        severity:'amber' },
   { mealFlag:'hasDairy',       residentTag:'No Dairy',          label:'Dairy',         note:'dairy-free',                         severity:'amber' },
   { mealFlag:'hasDairy',       residentTag:'Lactose Intolerant',label:'Dairy',         note:'no dairy',                           severity:'amber' },
 ];
@@ -16998,6 +17042,14 @@ const ALLERGEN_FLAG_MAP = {
   'egg':'hasEgg', 'eggs':'hasEgg',
   'fish':'hasFish', 'tuna':'hasFish', 'salmon':'hasFish',
   'shellfish':'hasShellfish', 'shrimp':'hasShellfish', 'crab':'hasShellfish',
+  // the two shellfish families and their foods, as CODEX names them (2026-10-18)
+  'crustacean':'hasShellfish', 'crustaceans':'hasShellfish', 'mollusc':'hasShellfish', 'molluscs':'hasShellfish',
+  'mollusk':'hasShellfish', 'mollusks':'hasShellfish', 'shrimps':'hasShellfish', 'prawn':'hasShellfish',
+  'prawns':'hasShellfish', 'crabs':'hasShellfish', 'lobster':'hasShellfish', 'lobsters':'hasShellfish',
+  'crayfish':'hasShellfish', 'krill':'hasShellfish', 'clam':'hasShellfish', 'clams':'hasShellfish',
+  'mussel':'hasShellfish', 'mussels':'hasShellfish', 'oyster':'hasShellfish', 'oysters':'hasShellfish',
+  'scallop':'hasShellfish', 'scallops':'hasShellfish', 'squid':'hasShellfish', 'calamari':'hasShellfish',
+  'octopus':'hasShellfish',
   'peanut':'hasPeanuts', 'peanuts':'hasPeanuts',
   'soy':'hasSoy', 'soya':'hasSoy', 'tofu':'hasSoy', 'edamame':'hasSoy',
   'sesame':'hasSesame', 'tahini':'hasSesame',
@@ -17058,7 +17110,10 @@ function nameDetectFlags(mealText, flags) {
   if (/\bbeef\b|\bmeatloaf\b|\bstrogonoff\b|\bstroganoff\b|\bmassaman\b|\bcarne\b/.test(m)) flags.hasBeef = true;
   if (/\bchicken\b|\bpollo\b/.test(m)) flags.hasChicken = true;
   if (/\bturkey\b/.test(m)) flags.hasTurkey = true;
-  if (/\bfish\b|\btuna\b|\bsalmon\b|\bbasa\b|yetisse|blackened/.test(m)) flags.hasFish = true;
+  if (/\bfish\b|\btuna\b|\bsalmon\b|\bbasa\b|yetisse|blackened|\bseafood\b/.test(m)) flags.hasFish = true;
+  // Shellfish named in the dish (2026-10-18): nothing read it, so "Shrimp Fried Rice" imported with no Shellfish tick.
+  // Not an oyster mushroom; "seafood" is read as both, the safe direction.
+  if (/\b(shrimps?|prawns?|crabs?|lobsters?|crayfish|scallops?|mussels?|clams?|squid|calamari|octopus|shellfish|seafood)\b|\boysters?\b(?!\s+mushrooms?)/.test(m)) flags.hasShellfish = true;
   if (/\btofu\b|\bsoy\b|\bedamame\b|teriyaki|\bmiso\b/.test(m)) flags.hasSoy = true;
   if (/\bsesame\b|\btahini\b/.test(m)) flags.hasSesame = true;
   if (/\bpeanut/.test(m)) flags.hasPeanuts = true;
@@ -17720,7 +17775,7 @@ try { if (typeof window !== 'undefined') window.__DOOR_UNMAPPED_ALLERGEN_LABELS_
 // Returns { keys:Set<flagKey>, labels:Set<shown label> }.
 // Self-contained (LC index + ignore-set built inline) so the door-smoke harness, which
 // extracts single function blocks, can run it without pulling separate module consts;
-// the 19-key rebuild is bind-time-only, so its cost is irrelevant.
+// rebuilding the small index is bind-time-only, so its cost is irrelevant.
 function _hubAllergenResolve(allergens) {
   const lc = {};
   for (const k in HUB_ALLERGEN_MAP) lc[k.toLowerCase()] = HUB_ALLERGEN_MAP[k];
@@ -19056,11 +19111,15 @@ function exportChangeLogCsv() {
 // ============================================================
 // SPECIAL MEALS
 // ============================================================
+// Every key is a meal flag (2026-10-18). Molluscs, Crustaceans and Wheat set hasMollusc / hasCrustacean / hasWheat,
+// which nothing reads, and a linked shrimp recipe's hasShellfish had no box: one Shellfish box replaces the first two
+// (Fish is fish only), and Gluten already covers wheat. Older records keep their meaning (resolveFlags' LEGACY).
 const SM_ALLERGENS = [
   {key:'hasDairy', label:'Dairy'},
   {key:'hasGluten', label:'Gluten'},
   {key:'hasPork', label:'Pork'},
-  {key:'hasFish', label:'Fish/Shellfish'},
+  {key:'hasFish', label:'Fish'},
+  {key:'hasShellfish', label:'Shellfish'},
   {key:'hasPeanuts', label:'Peanuts'},
   {key:'hasTreeNuts', label:'Tree Nuts'},
   {key:'hasEgg', label:'Egg'},
@@ -19068,12 +19127,30 @@ const SM_ALLERGENS = [
   {key:'hasSesame', label:'Sesame'},
   {key:'hasMustard', label:'Mustard'},
   {key:'hasSulphites', label:'Sulphites'},
-  {key:'hasMollusc', label:'Molluscs'},
-  {key:'hasCrustacean', label:'Crustaceans'},
-  {key:'hasWheat', label:'Wheat'},
   {key:'isSpicy', label:'Spicy'},
   {key:'isCarb', label:'Carb-swap'},
 ];
+
+// The flags a special meal keeps (2026-10-18). The grid shows the priority allergens only, so a linked recipe's
+// coconut, nightshades or chicken never reached the meal: every flag the main-meal slots carry (the slots
+// buildSmUnionFlags reads) travels as _flagsRaw, and the grid's own boxes decide their keys.
+function smMealFlagsRaw(slots, checkedKeys) {
+  const raw = {};
+  ['main','starch','vegside','xtra','extras'].forEach(id => {
+    const s = slots && slots[id];
+    if (s && s.flags) Object.keys(s.flags).forEach(k => { if (s.flags[k]) raw[k] = true; });
+  });
+  SM_ALLERGENS.forEach(a => { raw[a.key] = (checkedKeys || []).includes(a.key); });
+  return raw;
+}
+// Every flag a rotation meal carries (has* / is* and halalCertifiedMeat), for the copy a displaced special meal leaves.
+function doorMealFlagsOf(meal) {
+  const out = {};
+  Object.keys(meal || {}).forEach(k => {
+    if ((/^(has|is)[A-Z]/.test(k) || k === 'halalCertifiedMeat') && typeof meal[k] === 'boolean') out[k] = meal[k];
+  });
+  return out;
+}
 
 // ── SM Slot state (separate namespace from Edit Menu slots) ───
 let SM_SLOT_STATE = {};
@@ -19652,6 +19729,7 @@ function saveSpecialMeal() {
       specialName: origMeal.name || '(rotation meal)',
       veg: origMeal.veg || '',
       allergens: SM_ALLERGENS.filter(a => origMeal[a.key]).map(a => a.key),
+      _flagsRaw: doorMealFlagsOf(origMeal),
       verified: true, linkedRecipes: {},
       notes: 'Displaced from ' + date + ' ' + period + ' by "' + name + '"',
       mode: 'overwrite', createdAt: new Date().toISOString(),
@@ -19663,6 +19741,7 @@ function saveSpecialMeal() {
     specialName: name,
     veg,
     allergens,
+    _flagsRaw: smMealFlagsRaw(SM_SLOT_STATE, allergens),
     verified,
     linkedRecipes,
     notes,
@@ -21845,9 +21924,9 @@ function computePlatingData(period, weekNum, dayName) {
   const sortR = (a,b) => { const na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
   REGISTRY_LIST.forEach(r => {
     if (conflictRooms.has(r.room)) {
-      const isA = r.isAnaph || anaphRooms.includes(r.room);
+      const isA = doorIsAnaphResident(r);
       const mateOf = isA ? null : REGISTRY_LIST.find(ar =>
-        (ar.isAnaph||anaphRooms.includes(ar.room)) &&
+        (doorIsAnaphResident(ar)) &&
         getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room);
       anaphSect.push({...r, _role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''});
     } else {
@@ -21936,8 +22015,8 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
 
   // Anaphylactic banner
   if (conflictRooms.size > 0) {
-    const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const allergens = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
+    const anaphNames = REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).map(r=>r.room).join(', ');
+    const allergens = [...new Set(REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
     addMerged('\u26A0  ANAPHYLACTIC ALERT \u2014 Rooms '+anaphNames+' ('+allergens+')', F.whB, '993333', B.thick, 18);
     addMerged('Today\u2019s meal contains allergen \u2014 Do not deliver to these rooms or roommates', F.whSm, '993333', B.thick, 14);
   }
@@ -22149,9 +22228,9 @@ function buildRestrictionListXlsx(ds) {
   });
 
   restricted.forEach(r => {
-    const bg = r.isAnaph ? 'F2DCDC' : r.isModerate ? 'FFF3E0' : null;
-    const font = r.isAnaph ? F.anaph : r.isModerate ? F.amber : F.std;
-    const flag = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : '';
+    const bg = doorIsAnaphResident(r) ? 'F2DCDC' : r.isModerate ? 'FFF3E0' : null;
+    const font = doorIsAnaphResident(r) ? F.anaph : r.isModerate ? F.amber : F.std;
+    const flag = doorIsAnaphResident(r) ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : '';
     rows[R] = [
       xCell(r.room, font, bg, B.thin),
       xCell((r.rawRestriction || (r.tags||[]).join(', ')) + (r.serviceNote ? '  [Note: '+r.serviceNote+']' : ''), font, bg, B.thin),
@@ -22219,7 +22298,7 @@ function buildAnaphListXlsx(ds) {
 
   rows[R] = [xCell('Room',F.stdB,'FFFF00',B.thin), xCell('Allergen / Restriction',F.stdB,'FFFF00',B.thin), xCell('Section',F.stdB,'FFFF00',B.thin), xCell('Emergency Note',F.stdB,'FFFF00',B.thin)]; R++;
 
-  const anaphResidents = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room)).sort((a,b) => parseInt(a.room) - parseInt(b.room));
+  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r)).sort((a,b) => parseInt(a.room) - parseInt(b.room));
   const anaphRoomSet = new Set(anaphResidents.map(r => getRoomBase(r.room)));
 
   // Anaphylactic residents
@@ -22234,7 +22313,7 @@ function buildAnaphListXlsx(ds) {
 
   // Roommates of anaphylactic residents
   const roommates = REGISTRY_LIST.filter(r => {
-    if (r.isAnaph || anaphRooms.includes(r.room)) return false;
+    if (doorIsAnaphResident(r)) return false;
     return anaphRoomSet.has(getRoomBase(r.room)) && getRoomBase(r.room) !== r.room || 
            anaphResidents.some(a => getRoomBase(a.room) === getRoomBase(r.room) && a.room !== r.room);
   });
@@ -22296,8 +22375,8 @@ function buildLabelsXlsx(ds) {
         lblRow3[col+1] = xCell('', F.std, null, null);
         return;
       }
-      const bg = r.isAnaph ? 'FFC7CE' : hasCarbAccommodation(r) ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
-      const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: r.isAnaph ? '8B0000' : '000000'}};
+      const bg = doorIsAnaphResident(r) ? 'FFC7CE' : hasCarbAccommodation(r) ? '92D050' : (r.section === 'Halal' || (r.tags||[]).includes('Halal')) ? 'C6EFCE' : (/vegan|vegetarian/i.test(r.section||'') || (r.tags||[]).some(t => /vegan|vegetarian/i.test(t))) ? 'BDD7EE' : 'FFFFCC';
+      const roomFont = {name:'Calibri', sz:16, bold:true, color:{rgb: doorIsAnaphResident(r) ? '8B0000' : '000000'}};
       // Manual shrink-to-fit: xlsx-js-style 1.2.0 ignores the alignment.shrinkToFit
       // attribute on write, so step the font size down based on text length to make
       // long sections/flags fit the 1.75" cell without truncating mid-word.
@@ -22310,9 +22389,9 @@ function buildLabelsXlsx(ds) {
       lblRow1[col+1] = {v: sectionText, t:'s', s:{font:sectionFont, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center',horizontal:'right'}}};
       lblRow2[col] = {v: (r.rawRestriction || (r.tags||[]).filter(t=>t!=='Regular').join(', ')).substring(0,60), t:'s', s:{font:restFont, fill:{fgColor:{rgb:bg}}, alignment:{wrapText:true,vertical:'top'}}};
       lblRow2[col+1] = xCell('', restFont, bg, null);
-      const flagTxt = r.isAnaph ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : hasCarbAccommodation(r) ? '○ Less starch / more veg' : '';
+      const flagTxt = doorIsAnaphResident(r) ? '⚠ ANAPHYLACTIC' : r.isModerate ? '⚡ Moderate allergy' : hasCarbAccommodation(r) ? '○ Less starch / more veg' : '';
       const flagSz = flagTxt.length > 22 ? 7 : flagTxt.length > 17 ? 8 : 9;
-      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:flagSz,bold:true,color:{rgb:r.isAnaph?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
+      lblRow3[col] = {v: flagTxt, t:'s', s:{font:{name:'Calibri',sz:flagSz,bold:true,color:{rgb:doorIsAnaphResident(r)?'8B0000':'444444'}}, fill:{fgColor:{rgb:bg}}, alignment:{vertical:'center'}}};
       lblRow3[col+1] = xCell('', F.std, bg, null);
 
       // Merge restriction row (R+1) and flag row (R+2) across both sub-columns of the label
@@ -22719,8 +22798,8 @@ function buildPlatingHtml(pd, isTest) {
   let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
 
   if (conflictRooms.size > 0) {
-    const anaphNames = REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).map(r=>r.room).join(', ');
-    const algs = [...new Set(REGISTRY_LIST.filter(r=>r.isAnaph||anaphRooms.includes(r.room)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
+    const anaphNames = REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).map(r=>r.room).join(', ');
+    const algs = [...new Set(REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).flatMap(r=>getAnaphDisplayAllergens(r, mealFlags)))].join(', ');
     h += `<tr><td colspan="3" class="ps-banner">⚠  ANAPHYLACTIC ALERT — Rooms ${escapeHtml(anaphNames)} (${escapeHtml(algs)})</td></tr>`;
     h += `<tr><td colspan="3" class="ps-banner-sub">Today’s meal contains allergen — Do not deliver to these rooms or roommates</td></tr>`;
   }
@@ -22994,9 +23073,9 @@ function computeTestPlatingData(flags) {
   var sortR = function(a,b) { var na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
   REGISTRY_LIST.forEach(function(r) {
     if (conflictRooms.has(r.room)) {
-      var isA = r.isAnaph || anaphRooms.includes(r.room);
+      var isA = doorIsAnaphResident(r);
       var mateOf = isA ? null : REGISTRY_LIST.find(function(ar) {
-        return (ar.isAnaph||anaphRooms.includes(ar.room)) &&
+        return (doorIsAnaphResident(ar)) &&
           getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room;
       });
       anaphSect.push(Object.assign({}, r, {_role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''}));
@@ -23190,7 +23269,7 @@ function printLabels() {
     site + ' · Dietary Labels · ' + dateStr + (mealInfo ? ' · ' + mealInfo : '') + ' · ' + restricted.length + ' residents';
 
   function getLabelBg(r) {
-    if (r.isAnaph) return '#FFC7CE';
+    if (doorIsAnaphResident(r)) return '#FFC7CE';
     if (hasCarbAccommodation(r)) return '#92D050';
     const s = r.section || '';
     if (s === 'Halal' || (r.tags||[]).includes('Halal')) return '#C6EFCE';
@@ -23199,7 +23278,7 @@ function printLabels() {
   }
 
   function getLabelFlag(r) {
-    if (r.isAnaph) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
+    if (doorIsAnaphResident(r)) return {text:'⚠ ANAPHYLACTIC', color:'#8B0000'};
     if (r.isModerate) return {text:'⚡ Moderate allergy', color:'#994400'};
     if (hasCarbAccommodation(r)) return {text:'○ Less starch / more veg', color:'#444'};
     return null;
@@ -23281,7 +23360,7 @@ function openDemoFile(filename, idx) {
     </tbody></table>`;
 
   } else if (fn.includes('anaphylactic')) {
-    const anaph = REGISTRY_LIST.filter(r => r.isAnaph || anaphRooms.includes(r.room)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
+    const anaph = REGISTRY_LIST.filter(r => doorIsAnaphResident(r)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<table><thead><tr><th>Room</th><th>Allergen / Restriction</th><th>Section</th><th>Note</th></tr></thead><tbody>
       ${anaph.map(r=>`<tr class="red"><td>${escapeHtml(r.room)}</td><td>${escapeHtml(r.rawRestriction||r.tags.join(', '))}</td><td>${escapeHtml(r.section)}</td><td>⚠ ANAPHYLACTIC — Do not substitute</td></tr>`).join('')}
       <tr><td colspan="3" style="font-weight:700;">Total Anaphylactic</td><td style="font-weight:700;">${anaph.length}</td></tr>
@@ -23291,7 +23370,7 @@ function openDemoFile(filename, idx) {
     const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;">
       ${restricted.map(r => {
-        const bg = r.isAnaph ? '#ffcccc' : hasCarbAccommodation(r) ? '#d6f0dd' : '#fff';
+        const bg = doorIsAnaphResident(r) ? '#ffcccc' : hasCarbAccommodation(r) ? '#d6f0dd' : '#fff';
         return `<div style="border:1.5px solid #999;padding:6px 8px;background:${bg};min-height:52px;">
           <div style="font-size:16px;font-weight:700;">${escapeHtml(r.room)}</div>
           <div style="font-size:10px;font-weight:700;">${escapeHtml(r.rawRestriction||r.tags.filter(t=>t!=='Regular').join(', '))}</div>
@@ -23303,7 +23382,7 @@ function openDemoFile(filename, idx) {
     const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
     tableHtml = `<table><thead><tr><th>Room</th><th>Restrictions</th><th>Section</th><th>Status</th></tr></thead><tbody>
       ${restricted.map(r=>{
-        const cls = r.isAnaph ? 'red' : r.isModerate ? 'amber' : '';
+        const cls = doorIsAnaphResident(r) ? 'red' : r.isModerate ? 'amber' : '';
         return `<tr class="${cls}"><td>${escapeHtml(r.room)}</td><td>${escapeHtml(r.rawRestriction||r.tags.join(', '))}</td><td>${escapeHtml(r.section)}</td><td>${escapeHtml(r.confirm||'—')}</td></tr>`;
       }).join('')}
       <tr><td colspan="3" style="font-weight:700;">Total Restrictions</td><td style="font-weight:700;">${restricted.length}</td></tr>

@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.30'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.31'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,6 +53,43 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-10-18) — a shellfish meal routes and contains like a fish meal; every anaphylactic tag DOOR can flag is contained (`v31-standard.31`)
+Jason, 2026-10-18: "follow your lean on routing and lockout", on the `v31-standard.30` finding (the entry below), then "clean up anything else you see here before merging this pr" and, on anaphylactic tags, "every tag with a flag". Since .30 a CODEX shrimp or mussel recipe sets `hasShellfish` on its meal, but routing, lockout, special meals and the workbook import still keyed seafood on `hasFish` or dropped it.
+- **Routing:** `ROUTING_RULES` `no_fish` ("No Fish / Shellfish") triggers on `hasFish` or `hasShellfish`. As on a fish meal, No Fish and No Shellfish residents move to the vegan plate. No Molluscs is still not a routing tag (warned and contained, not routed).
+- **Anaphylactic containment:** `ANAPH_TAG_TO_MEAL_FLAG` lists every flag per tag, read through `anaphTagMealFlags(tag)` by all five readers: `routeResident` (the Anaphylactic Alternative), `getAnaphConflictRooms` (lockout and roommates), `getAnaphAlertInfo`, and both filters in `getAnaphDisplayAllergens` (the plating sheet's and anaphylactic list's allergens).
+  - No Shellfish and **No Molluscs (new)** are contained on `hasFish` or `hasShellfish`; older menus ticked seafood as Fish.
+  - **Every other tag the anaphylactic picker offers** (`populateAnaphTags`) now contains on its own flag: Tree Nuts, Soy, Sesame, Mustard, Sulphites, Eggs, Coconut, Nightshades, Beef. Before, ticking one did nothing, though the tier note says allergen flags "also trigger room-level containment". No Oats can't: DOOR has no oats flag.
+  - Peanuts, Fish, Dairy and GF are unchanged.
+- **Week-ahead conflict list:** its red "Peanuts — ANAPHYLACTIC" line (every anaphylactic resident, peanut meals) stays as it was. `doorAnaphMealLines` adds a red line per other anaphylactic tag a meal sets off ("Tree Nuts — ANAPHYLACTIC · 213"). The unused `flaggedResidents` there is gone.
+- **Special meals** (`special_meals.json` is empty today):
+  - the Crustaceans / Molluscs / Wheat boxes set keys nothing read; one **Shellfish** box replaces the first two, Fish is fish, and Gluten covers wheat (`SM_ALLERGENS`);
+  - `getMealForDate`'s `resolveFlags` read nine keys back; it now reads every box, and older records' retired boxes count as Shellfish / Gluten;
+  - a saved special meal carries every flag its main-meal slots carry as `_flagsRaw` (`smMealFlagsRaw`; the boxes still decide their own keys), so a linked recipe's coconut, nightshades or chicken arrive; a displaced rotation meal keeps all its flags (`doorMealFlagsOf`).
+- **Workbook import:** the Intake allergen row (`ALLERGEN_FLAG_MAP`) reads crustaceans, molluscs and their foods as Shellfish; the dish name (`nameDetectFlags`) reads shrimp, prawns, mussels, crab, lobster, calamari, oyster sauce… (not an oyster mushroom), and "seafood" as fish and shellfish. No published dish names shellfish.
+- **Plating-sheet notes (`CONFLICT_MAP`):** "no molluscs" for No Molluscs on a shellfish meal; the duplicate No Coconut row is gone; and **the gluten row read the tag "Gluten Free", which no resident has (the tag is GF), so it never fired**. It now does: GF residents outside the GF section get "gluten-free", and the Today and week-ahead lists gain a Gluten line, as No Dairy's and No Fish's already do.
+- **Tidy:** the Shellfish tick's tip names crustaceans and molluscs; a stale "19-key" comment.
+- **One anaphylactic rule everywhere** (Jason, 2026-10-18: "213 should have the flag act accordingly"). DOOR holds "anaphylactic" twice: `r.isAnaph` and the anaphylactic room list (`anaphRooms`). Lockout, the alert, plating and the Anaphylactic List read both. But the restriction sheet, both label outputs (xlsx and print), the file previews, the week-ahead peanut line and `registry_summary`'s count read only `isAnaph`. Room 213 is on the list, but an import reset its flag, so it was contained yet never red, though the toggle promises "Flags red on all sheets".
+  - `doorIsAnaphResident(r)` (the flag or the list) is now the only rule, read by every one of those readers.
+  - A **revert never takes a room off the list** (`revertResident`); only the editor's checkbox or the list's Remove does.
+  - Live: 213 is red with "⚠ ANAPHYLACTIC" on the restriction sheet and its label. The published anaphylactic count goes 2 → 4, matching the Anaphylactic List: 213, 813, 607a, 1213. 813 has no restriction, so it shows only in the count. Stored resident data is unchanged.
+- **Live effect** (published menu, overlay and resident list):
+  - **Room 213** is on DOOR's anaphylactic list (H&W, April 22) with **Tree Nuts and Coconut** as its anaphylactic tags, which were never contained. It now gets the Anaphylactic Alternative, the anaphylactic alert and red week-ahead lines on the 9 published meals with tree nuts or coconut: Wk1 MON / WED / FRI dinner, Wk2 MON / WED dinner, Wk3 TUE dinner, Wk3 FRI lunch, Wk4 MON / SAT dinner. Plating sheets, labels and `routing_by_meal.json` count it per meal, so at the next publish 213 moves from its section to "Anaphylactic Alternative" on those meals. The room lookup and the home screen's headcount read the whole day, as they do for peanuts. Nothing else moves for anyone else.
+  - The gluten note, as above. Shellfish routing changes nothing today (0 meals carry `hasShellfish`).
+- **Gates** (all authored red on `main` `9cf22d9`):
+  - `shellfish_routing_lockout_gate` (9, red 5/9): routing, shellfish/mollusc containment, the molluscs note; re-pinned the same day for the nine tags; also no duplicate row, and every row names a real tag;
+  - `anaph_every_tag_gate` (7, red 0/7): each of the nine contained and alerted on its own flag only; the picker's every flaggable tag is in the map (No Oats the one exception); the week-ahead lines; and the exact live receipt above (only room 213 moves, on its 9 meals);
+  - `special_meal_flags_gate` (6, red 0/6);
+  - `workbook_shellfish_words_gate` (5, red 3/5).
+  - `anaph_flag_everywhere_gate` (5, red 4/5; the fifth pins the published data).
+
+  Suite 365 → 397. Checked in a real browser (offline boot) with the published residents: room 213 contained and alerted on a coconut meal and no one on a plain one; its printed label red with "⚠ ANAPHYLACTIC"; a shrimp-curry special meal keeps Shellfish, Tree Nuts and Coconut and routes No Shellfish to the vegan plate; no page errors.
+- **Open for Jason:**
+  - **Room 813** is on the anaphylactic list with no allergen recorded (tags: Regular), so DOOR can't contain anything for it.
+  - The GF tag isn't in `COMPLIANCE_TIERS` (it lists "Gluten Free"), so GF counts as doc-tier, not the auto-tier its note says. Left as is: doc-tier is the safer default.
+  - No Oats has no meal flag, and CODEX's Oats label is ignored; DOOR has no flag for Lupin or Buckwheat.
+  - The Special Meal grid still shows the priority allergens only (the other flags travel unseen).
+  - **Full audit planned:** `DOOR_TAGS_ANAPH_ROUTING_AUDIT_PLAN_2026-10-18.md` (Jason, 2026-10-18: "Plan a full audit to test all tags and anaphs"). Found while scoping: a raw restriction of "GF" parses to no tag, silently (lean: fix first).
+
 ## Recent (2026-10-18) — CODEX's Crustaceans and Molluscs labels tick Shellfish (`v31-standard.30`)
 Food-safety gap found in review (2026-10-18). CODEX's reader files shrimp, prawn, crab, lobster and krill under **Crustaceans**, and clams, mussels, oysters, scallops and squid under **Molluscs**. So Check & save writes "Crustaceans (Shellfish)" or "Molluscs (Molluscs)", and two CODEX templates (Thai Basil Chicken, Bò Lúc Lắc) already carry "Molluscs (Oyster Sauce)". A Save on a connected tablet is canon, and its `door` block brings those labels here. `HUB_ALLERGEN_MAP` had only 'Shellfish'. Linking such a recipe set no `hasShellfish`, only an unmapped-label warning, so a No Shellfish or No Molluscs resident was not warned. No published recipe carries either label today, so no live meal changes.
 - **What changed:** 'Crustaceans' and 'Molluscs' map to `hasShellfish`, the flag No Shellfish and No Molluscs residents already share (`RESIDENT_TO_MEAL_FLAG`). The editor preview shows a "crustaceans" or "molluscs" chip, because it reads the same resolver. It only ever adds a warning.
@@ -70,8 +107,8 @@ Food-safety gap found in review (2026-10-18). CODEX's reader files shrimp, prawn
   - A meal with `hasShellfish` but no `hasFish` (a shrimp dish) doesn't open the "No Fish / Shellfish" section (`ROUTING_RULES` `no_fish` triggers on `hasFish` only).
   - Anaphylactic room containment reads No Shellfish as `hasFish` (`ANAPH_TAG_TO_MEAL_FLAG`), and No Molluscs has no containment entry and no plating-sheet note (`CONFLICT_MAP`).
 
-  So on a shrimp-only meal a No Shellfish resident is warned (the Generate conflict and the Regular plating-sheet note), but gets no alternative plate, and an anaphylactic one gets no room lockout or anaphylactic alert (`getAnaphConflictRooms` and `getAnaphAlertInfo` read the same map). Lean: `hasShellfish` also triggers `no_fish`, and containment checks `hasFish` or `hasShellfish` for both No Shellfish and No Molluscs.
-  - Minor: the menu-workbook reader (`allergenStrToFlags`) knows only shellfish, shrimp and crab, and DOOR has no flag for Lupin or Buckwheat (both stay on the unmapped banner).
+  So on a shrimp-only meal a No Shellfish resident is warned (the Generate conflict and the Regular plating-sheet note), but gets no alternative plate, and an anaphylactic one gets no room lockout or anaphylactic alert (`getAnaphConflictRooms` and `getAnaphAlertInfo` read the same map). Lean: `hasShellfish` also triggers `no_fish`, and containment checks `hasFish` or `hasShellfish` for both No Shellfish and No Molluscs. **Done in `v31-standard.31`** (the entry above).
+  - Minor: the menu-workbook reader (`allergenStrToFlags`) knows only shellfish, shrimp and crab, and DOOR has no flag for Lupin or Buckwheat (both stay on the unmapped banner). (Workbook: done in `v31-standard.31`.)
 
 ## Recent (2026-10-18) — bouillon carries no Gluten: three linked vegan dishes drop the Gluten they captured (menu data, no code)
 Jason, 2026-10-17: "no gluten in boullion we use currently". CODEX v22 (conc-recipe-hub PR #155) takes "Gluten (Bouillon)" off its recipes, stamped. A linked dish keeps the flags it captured at link time, so three vegan dishes linked in `v31-standard.29` would have gone on saying GLUTEN:
