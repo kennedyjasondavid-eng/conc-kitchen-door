@@ -90,8 +90,11 @@ test('a tag is contained on exactly its own flags, for every tag in the map', ()
 
 test('every tag the anaphylactic picker offers that DOOR can flag is contained on that flag; No Oats is the one it can\'t', () => {
   const allergenTags = [...between('const ALLERGEN_TAGS = new Set([', ']);').matchAll(/'([^']+)'/g)].map(m => m[1]);
-  const extra = (fn('populateAnaphTags').match(/\[('No Dairy'[^\]]*)\]\.includes\(label\)/) || [])[1];
-  assert.ok(extra, 'populateAnaphTags still adds its own list');
+  // Re-pinned 2026-10-18 (v31-standard.39): the picker's own list is ANAPH_ROUTING_ALLERGEN_TAGS, read through
+  // doorIsAnaphAllergenTag (Generate's check on the anaphylactic list reads the same rule).
+  assert.match(fn('populateAnaphTags'), /doorIsAnaphAllergenTag\(label\)/, 'populateAnaphTags reads the one rule');
+  const extra = between('const ANAPH_ROUTING_ALLERGEN_TAGS = [', '];');
+  assert.ok(extra, 'the picker still adds the routing allergens');
   const offered = [...new Set(allergenTags.concat([...extra.matchAll(/'([^']+)'/g)].map(m => m[1])))];
   const c = ctxFor();
   const r2m = out(vm.runInContext('RESIDENT_TO_MEAL_FLAG', c));

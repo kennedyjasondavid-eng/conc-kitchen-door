@@ -2,7 +2,8 @@
 // index.html's real resident-list, sync and publish-preflight code in its own vm sandbox (2026-10-18). Used by
 // anaph_list_reaches_gate (room 813) and resident_changes_reach_gate (notes, compliance, Undo Generate).
 // A publish runs the real preflight (it takes the kitchen's list when that one is newer), then writes this computer's
-// list to the kitchen. Generate is modelled in generateFiles' own order, which anaph_list_reaches_gate test 2 pins.
+// list to the kitchen. Generate is modelled in generateFiles' own order, which anaph_list_reaches_gate test 2 and
+// anaph_names_no_allergen_gate test 7 pin.
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 
@@ -33,11 +34,13 @@ export function twoComputers(html, { fns = [], optFns = [], extraSrc = '', ctx =
     fn('doorFetchRemoteRegistryMeta'), fn('doorRegistryPublishGate'), fnOpt('doorTakeNewerKitchenList'), fn('doorRegistryPublishPreflight'),
     fn('pullStateFromGitHub'), fn('saveRegistryState'), fn('dedupeRegistryList'), fn('buildStateJSON'),
     fn('doorIsAnaphResident'), fn('applyQueueToRegistry'), fnOpt('doorDischargeAnaphRoom'), fnOpt('doorAskDischargedAnaphRooms'),
+    fnOpt('doorAnaphRoomsNamingNoAllergen'), fnOpt('doorAskAnaphRoomsNamingNoAllergen'), fnOpt('doorApplyAnaphListAnswers'),
     ...fns.map(fn), ...optFns.map(fnOpt), extraSrc,
     `this.__generate = async () => {
        if (typeof doorTakeNewerKitchenList === 'function') await doorTakeNewerKitchenList();
        if (typeof doorAskDischargedAnaphRooms === 'function') await doorAskDischargedAnaphRooms(changesQueue);
-       applyQueueToRegistry(); changesQueue = []; publishAndSync('generate'); await this.__pending; };`,
+       const answers = typeof doorAskAnaphRoomsNamingNoAllergen === 'function' ? await doorAskAnaphRoomsNamingNoAllergen(changesQueue) : [];
+       applyQueueToRegistry(answers); changesQueue = []; publishAndSync('generate'); await this.__pending; };`,
     'this.__set = (reg, rooms) => { REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...reg); REGISTRY_MAP = {}; reg.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; }); anaphRooms = rooms; };',
     'this.__state = () => ({ rooms: anaphRooms, reg: REGISTRY_LIST });',
     'this.__queue = (q) => { changesQueue.push(...q); };',

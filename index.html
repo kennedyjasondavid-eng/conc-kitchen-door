@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.38';
+const DOOR_APP_VERSION = 'v31-standard.39';
 const DOOR_BUILD_DATE = '2026-10-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -8802,7 +8802,7 @@ function populateAnaphTags(record) {
   if (Array.isArray(allTags)) {
     allTags.forEach(label => {
       const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
-      if (key && (ALLERGEN_TAGS.has(label) || ['No Dairy','No Fish','No Shellfish','No Eggs','No Beef','GF'].includes(label))) {
+      if (key && doorIsAnaphAllergenTag(label)) {
         allergenKeys.push({ key, label });
       }
     });
@@ -8810,7 +8810,7 @@ function populateAnaphTags(record) {
     Object.entries(allTags).forEach(([key, val]) => {
       if (!val) return;
       const label = TAG_LABELS_MAP[key];
-      if (label && (ALLERGEN_TAGS.has(label) || ['No Dairy','No Fish','No Shellfish','No Eggs','No Beef','GF'].includes(label))) {
+      if (label && doorIsAnaphAllergenTag(label)) {
         allergenKeys.push({ key, label });
       }
     });
@@ -9765,7 +9765,9 @@ function buildReview() {
 
   // Room-level anaphylactic containment — informational (routing is automatic)
   const anaphAlerts = getAnaphAlertInfo(MEAL_DATA.lunch, MEAL_DATA.dinner);
-  const totalFlags = flags + anaphAlerts.length;
+  // Rooms the list keeps naming none of their allergens (2026-10-18, room 813): Generate asks about each.
+  const anaphNamingNone = doorAnaphRoomsNamingNoAllergen(REGISTRY_LIST, anaphRooms, changesQueue);
+  const totalFlags = flags + anaphAlerts.length + anaphNamingNone.length;
 
   document.getElementById('stat-total').textContent = net;
   document.getElementById('stat-intakes').textContent = intakes;
@@ -9777,6 +9779,10 @@ function buildReview() {
   // Flags — queue-based anaphylactic + standing room-level info
   let flagsHtml = changesQueue.filter(c => c.isAnaph).map(c => `
     <div class="alert alert-warn"><span class="alert-icon">&#x26A0;</span><div class="alert-body"><strong>Room ${escapeHtml(c.room)} — Anaphylactic.</strong> Red flag on all sheets. Confirm with Health & Wellness before generation.</div></div>
+  `).join('');
+
+  flagsHtml += anaphNamingNone.map(x => `
+    <div class="alert alert-warn"><span class="alert-icon">&#x26A0;</span><div class="alert-body"><strong>Room ${escapeHtml(x.room)} is on the anaphylactic list, but its restriction names ${x.anaphFor.length ? 'none of its allergens (' + escapeHtml(x.anaphFor.join(', ')) + ')' : 'no allergen'}.</strong> Now: ${escapeHtml(x.restriction)}. Generate asks whether to take it off the list.</div></div>
   `).join('');
 
   flagsHtml += anaphAlerts.map(a => `
@@ -10060,7 +10066,89 @@ async function doorAskDischargedAnaphRooms(queue) {
   }
 }
 
-function applyQueueToRegistry() {
+// A room on the anaphylactic list whose restriction names none of the allergens it is anaphylactic to (2026-10-18,
+// room 813; Jason: "yes let's build that"). The meal list never says who is anaphylactic, so its "Regular" can't take a
+// room off the list by itself. But 813 read as anaphylactic for a month with nothing to contain, and a resident who
+// leaves and is replaced between two imports reaches DOOR as a changed restriction, not a discharge, so the discharge
+// question never comes. Generate asks once. It reads the list as the queue will leave it, and the allergens the way
+// containment reads them (getAnaphConflictRooms): the room's anaphylactic tags when set, else every allergen on its
+// restriction. A room the queue discharges is the discharge question's; one it moves waits for the next Generate; a
+// room with no resident has nothing to contain. An answer of keep is stamped on the resident (anaphListKept) with what
+// it was given for, so it travels with the list and isn't asked again until the restriction or the tags change.
+function doorAnaphRoomsNamingNoAllergen(registry, rooms, queue) {
+  const lc = (x) => String(x || '').toLowerCase();
+  const labelsOf = (tags) => Object.entries(tags || {}).filter(([, v]) => v).map(([k]) => TAG_LABELS_MAP[k]).filter(Boolean);
+  const listed = new Set((rooms || []).map(lc));
+  const last = new Map(), moving = new Set();
+  (queue || []).forEach((c) => {
+    if (c.type === 'switch' || c.type === 'reassign') [c.room, c.fromRoom, String(c.route || '').replace('→ ', '')].forEach((x) => { if (x) moving.add(lc(x)); });
+    else last.set(lc(c.room), c);
+  });
+  const keys = new Set([...listed]);
+  (registry || []).forEach((r) => { if (r.isAnaph) keys.add(lc(r.room)); });
+  last.forEach((c, k) => { if (c.isAnaph) keys.add(k); });
+  const found = [];
+  keys.forEach((key) => {
+    if (moving.has(key)) return;
+    const c = last.get(key);
+    const r = (registry || []).find((x) => lc(x.room) === key);
+    let names, anaphTags, onList, kept, room;
+    if (c && c.type === 'discharge') return;
+    if (c && (c.type === 'intake' || (c.type === 'update' && r))) {
+      if (c.anaphCleared) return;
+      names = labelsOf(c.tags);
+      anaphTags = c.type === 'intake' ? [] : (r.anaphTags || []);
+      onList = listed.has(key) || !!c.isAnaph || (c.type === 'update' && !!r.isAnaph);
+      kept = c.type === 'intake' ? null : r.anaphListKept;
+      room = r ? r.room : c.room;
+    } else if (r) {
+      names = [...new Set([...(r.tags || []), ...(r.avoidances || [])])];
+      anaphTags = r.anaphTags || [];
+      onList = listed.has(key) || !!r.isAnaph;
+      kept = r.anaphListKept;
+      room = r.room;
+    } else return;
+    names = names.filter((t) => t !== 'Regular');
+    const anaphFor = anaphTags.map((k) => TAG_LABELS_MAP[k]).filter(Boolean);
+    const contained = anaphFor.length ? anaphFor : names.filter(doorIsAnaphAllergenTag);
+    if (!onList || contained.some((t) => names.includes(t))) return;
+    const sig = [...names].sort().join(', ') + ' | ' + [...anaphFor].sort().join(', ');
+    if (kept && kept.sig === sig) return;
+    found.push({ room, anaphFor, restriction: names.length ? names.join(', ') : 'Regular', sig });
+  });
+  return found;
+}
+async function doorAskAnaphRoomsNamingNoAllergen(queue) {
+  const answers = [];
+  const word = (t) => (t === 'GF' ? 'gluten' : t.replace(/^No /, '').toLowerCase());
+  for (const x of doorAnaphRoomsNamingNoAllergen(REGISTRY_LIST, anaphRooms, queue)) {
+    const off = !!(await doorAsk({ title: 'Room ' + x.room + ' is anaphylactic',
+      lines: [x.anaphFor.length
+          ? 'Room ' + x.room + ' is on the anaphylactic list for ' + x.anaphFor.map(word).join(', ') + ', but its restriction doesn’t say ' + x.anaphFor.join(' or ') + ' any more (now: ' + x.restriction + ').'
+          : 'Room ' + x.room + ' is on the anaphylactic list, but its restriction names no allergen (now: ' + x.restriction + '), so DOOR has nothing to keep out of its meals.',
+        'Take it off the anaphylactic list? Its meals stop being contained and it stops showing red. Keep it if Health & Wellness still has this resident as anaphylactic; DOOR won’t ask again until the restriction changes.'],
+      goLabel: 'Take it off the list', cancelLabel: 'Keep it on the list' }));
+    answers.push({ room: x.room, off, sig: x.sig });
+  }
+  return answers;
+}
+// Applied to the list once the queue is: taken off, as the list's Remove does; kept, stamped on the resident.
+function doorApplyAnaphListAnswers(answers) {
+  let removed = false;
+  (answers || []).forEach((a) => {
+    const key = String(a.room).toLowerCase();
+    const recs = REGISTRY_LIST.filter((r) => String(r.room).toLowerCase() === key);
+    if (a.off) {
+      for (let i = anaphRooms.length - 1; i >= 0; i--) if (String(anaphRooms[i]).toLowerCase() === key) { anaphRooms.splice(i, 1); removed = true; }
+      recs.forEach((r) => { r.isAnaph = false; r.anaphTags = []; delete r.anaphListKept; });
+    } else {
+      recs.forEach((r) => { r.anaphListKept = { sig: a.sig, at: new Date().toISOString(), by: getOperatorName() }; });
+    }
+  });
+  if (removed) { try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch (e) {} }
+}
+
+function applyQueueToRegistry(anaphListAnswers) {
   changesQueue.forEach(c => {
     if (c.type === 'discharge') {
       // v31: remove EVERY matching record, not just the first. A duplicated room
@@ -10185,6 +10273,9 @@ function applyQueueToRegistry() {
       }
     }
   });
+
+  // The rooms Generate asked about that the queue leaves on the list naming none of their allergens (2026-10-18).
+  if (anaphListAnswers && anaphListAnswers.length) doorApplyAnaphListAnswers(anaphListAnswers);
 
   // Rebuild REGISTRY_MAP
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
@@ -11308,11 +11399,14 @@ async function generateFiles() {
   if (_doorGenerateBusy) return;
   // The kitchen's newer list first (2026-10-18): Generate marks the list as this computer's change, so a tab open since
   // the morning sent its own copy over a room another computer had just put on the anaphylactic list. Then the
-  // anaphylactic rooms the queue discharges are asked about, on that list. The rest of Generate runs without a wait.
+  // anaphylactic rooms the queue discharges are asked about, on that list, then the rooms it leaves on the list naming
+  // none of their allergens (room 813). The rest of Generate runs without a wait.
+  let anaphListAnswers = [];
   _doorGenerateBusy = true;
   try {
     await doorTakeNewerKitchenList();
     await doorAskDischargedAnaphRooms(changesQueue);
+    anaphListAnswers = await doorAskAnaphRoomsNamingNoAllergen(changesQueue);
   } finally { _doorGenerateBusy = false; }
 
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
@@ -11372,8 +11466,12 @@ async function generateFiles() {
   } catch(e) { console.warn('Registry snapshot failed:', e); }
   updateRevertButton();
 
-  // Apply queue changes to REGISTRY_LIST before rendering
-  applyQueueToRegistry();
+  // Apply queue changes to REGISTRY_LIST before rendering, then the answers about the anaphylactic list
+  anaphListAnswers.filter(a => a.off).forEach(a => {
+    const _logDate = new Date();
+    RECENT_LOG.unshift({ ts:_logDate.toISOString(), date:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate(), room:a.room, type:'update', desc:'Taken off the anaphylactic list — its restriction names none of its allergens', color:'#dc2626', _real:true, by:getOperatorName() });
+  });
+  applyQueueToRegistry(anaphListAnswers);
 
   // Clear the queue — changes are now committed to the registry
   changesQueue = []; renderQueue(); updateBadge(); saveRecentLog();
@@ -15354,6 +15452,9 @@ const ACCOMMODATION_TAGS = new Set([
 // Legacy compat — union of non-routing tags
 const AVOIDANCE_TAGS = new Set([...ALLERGEN_TAGS, ...ACCOMMODATION_TAGS]);
 const PREFERENCE_TAGS = ACCOMMODATION_TAGS; // alias for backward compat
+// The allergens a resident can be anaphylactic to: the ones the anaphylactic picker offers (populateAnaphTags).
+const ANAPH_ROUTING_ALLERGEN_TAGS = ['No Dairy', 'No Fish', 'No Shellfish', 'No Eggs', 'No Beef', 'GF'];
+function doorIsAnaphAllergenTag(label) { return ALLERGEN_TAGS.has(label) || ANAPH_ROUTING_ALLERGEN_TAGS.includes(label); }
 
 // Migrate a resident record from flat tags[] to three-bucket model
 function migrateResidentTiers(r) {

@@ -34,8 +34,11 @@ vm.runInContext([
 const T = JSON.parse(JSON.stringify(c.T));
 const LABELS = new Set(T.L), FLAGS = new Set(T.F);
 // The anaphylactic picker (populateAnaphTags) offers the allergen tags and these routing tags.
+// Re-pinned 2026-10-18 (v31-standard.39): the picker's own list moved to ANAPH_ROUTING_ALLERGEN_TAGS, read through
+// doorIsAnaphAllergenTag, which Generate's check on the anaphylactic list also reads.
 const pickerSrc = between('function populateAnaphTags(', '\n}\n');
-const PICKER_EXTRA = JSON.parse(pickerSrc.match(/\[('No Dairy'[^\]]*)\]/)[0].replace(/'/g, '"'));
+assert.equal((pickerSrc.match(/doorIsAnaphAllergenTag\(label\)/g) || []).length, 2, 'the picker reads doorIsAnaphAllergenTag');
+const PICKER_EXTRA = JSON.parse(between('const ANAPH_ROUTING_ALLERGEN_TAGS = ', ';').slice('const ANAPH_ROUTING_ALLERGEN_TAGS = '.length).replace(/'/g, '"'));
 const PICKER = [...T.AT, ...PICKER_EXTRA];
 
 test('every tag a table names is a real tag, and every flag a real meal flag', () => {
