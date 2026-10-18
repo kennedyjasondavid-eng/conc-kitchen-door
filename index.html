@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.33';
+const DOOR_APP_VERSION = 'v31-standard.34';
 const DOOR_BUILD_DATE = '2026-10-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -770,6 +770,10 @@ function doorSharedDoorRecord(rec) {
   if (!Array.isArray(d.allergens) || !d.allergens.every(a => typeof a === 'string')) return null;
   if (typeof d.category !== 'string' || !d.category.trim()) return null;
   const out = { recipeName: name, allergens: d.allergens.slice(), category: d.category.trim(), stream: d.stream === 'vegan' ? 'vegan' : 'regular' };
+  // CODEX C8 (K4): vegan-friendly is worked out from the ingredients where the recipe was saved: true, false, or null
+  // while it waits on a label. A record written before the flag carries none, and since it replaces the whole CODEX
+  // record, the CODEX list's value never survives under a shared version that may hold different ingredients.
+  if (d.veganFriendly === true || d.veganFriendly === false || d.veganFriendly === null) out.veganFriendly = d.veganFriendly;
   if (typeof d.recipeId === 'string' && d.recipeId.trim()) out.recipeId = d.recipeId.trim();
   return out;
 }
@@ -818,7 +822,7 @@ function doorOverlaySharedRecipes(base, shared) {
         d.allergens = d.allergens.filter(a => doorAllergenFamily(a) !== 'none').concat(kept);
         receipt.keptAllergens.push({ recipe: d.recipeName, allergens: kept.slice() });
       }
-      const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream]);
+      const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream, list[i].veganFriendly === undefined ? null : list[i].veganFriendly]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream, d.veganFriendly === undefined ? null : d.veganFriendly]);
       list[i] = d;
       (same ? receipt.unchanged : receipt.replaced).push(d.recipeName);
     }
@@ -19517,7 +19521,11 @@ function _allergenPreview(allergens) {
 function recipeMatchesSlotDef(def, recipe) {
   if (!recipe) return false;
   if (def && def.cats && !def.cats.includes(recipe.category)) return false;
-  if (def && def.streams && !def.streams.includes(recipe.stream)) return false;
+  // CODEX C8 (K4, Jason 2026-10-17: "split the two meanings"): a vegan-friendly main is a vegan option. The Vegan Alt
+  // slot offers recipes made for the vegan line AND any main CODEX found no animal ingredient in (veganFriendly true).
+  // The line itself (`stream`) is untouched; the vegan plate's name guess still reads only the vegan line.
+  if (def && def.streams && !def.streams.includes(recipe.stream)
+      && !(def.streams.includes('vegan') && recipe.veganFriendly === true)) return false;
   return true;
 }
 
