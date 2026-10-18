@@ -152,8 +152,7 @@ ${mainDiffs ? `
 Each row is one of these:
 - room 213 moves to "Anaphylactic Alternative" on its 9 tree-nut / coconut meals (\`.31\`, until now unpublished);
 - the 3 pork days with alternative meals read Soft 2 (F12);
-- the Nov 3 swap stands in for Wk2 TUE lunch (F13);
-- the ruled ticks: Spicy on Wk1 TUE dinner, Processed Meat on Wk3 SAT dinner, Gluten on Wk3 WED lunch.
+${Object.keys(swaps).length ? '- the Nov 3 swap stands in for Wk2 TUE lunch (F13);\n' : ''}- the ruled ticks: Spicy on Wk1 TUE dinner, Processed Meat on Wk3 SAT dinner, Gluten on Wk3 WED lunch.
 ` : ''}
 ## Labels
 ${labelProblems.length ? labelProblems.map((p) => '- ' + p).join('\n') : '- every resident with a restriction or the anaphylactic flag has a label (' + state.residents.filter(needsLabel).length + '); every anaphylactic one is red; every restriction prints'}

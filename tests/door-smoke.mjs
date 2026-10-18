@@ -349,6 +349,8 @@ function loadPublishFlowHarness(options = {}) {
     }),
     preMergeOverlayWithCloud: options.preMergeOverlayWithCloud || (async (creds, localOverlay) => localOverlay),
     loadMealSwaps: () => [],
+    // 2026-10-18: the publish also sends the swap revert list (meal_swaps_reverted.json).
+    loadSwapReverts: () => ({}),
     loadSpecialMeals: () => [],
     RECENT_LOG: [],
     REGISTRY_LIST: [{ room: '101' }, { room: '102' }],
@@ -1830,6 +1832,8 @@ test('publish flow shim ends green on a clean publish', async () => {
     'custom_tag_rules.json',
     'learned_nr.json',
     'meal_swaps.json',
+    // 2026-10-18: the swap revert list, so a revert reaches every DOOR computer
+    'meal_swaps_reverted.json',
     'special_meals.json',
     'recent_log.json'
   ]);
@@ -2850,8 +2854,8 @@ test('D1: the publish path stages the whole artifact set into ONE atomic call', 
   assert.deepEqual(harness.atomicCalls[0].paths, [
     'menu_current.json', 'registry_summary.json', 'routing_by_meal.json', 'door_state.json',
     'menu_overlay.json', 'custom_tag_rules.json', 'learned_nr.json', 'meal_swaps.json',
-    'special_meals.json', 'recent_log.json'
-  ], 'all ten artifacts go in the single commit');
+    'meal_swaps_reverted.json', 'special_meals.json', 'recent_log.json'
+  ], 'all eleven artifacts go in the single commit (2026-10-18: + the swap revert list)');
 
   // The per-file loop is what produced 10 commits; it must not come back.
   const html = readText('index.html');

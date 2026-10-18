@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.33';
+const DOOR_APP_VERSION = 'v31-standard.34';
 const DOOR_BUILD_DATE = '2026-10-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -8120,25 +8120,49 @@ let moderateActive = false;
 // the file on GitHub had been cleared. Auto-expires keys whose target date
 // has passed (the swap couldn't be triggered anymore anyway). Wraps .add()
 // and .delete() so every call site auto-persists without touching callers.
+// 2026-10-18: each key keeps when it was reverted ({key: ISO time}; an older list of keys reads as reverted now), the
+// list is published as meal_swaps_reverted.json, and the kitchen's list is merged in at every sync (mergeRemote), so
+// a revert reaches every DOOR computer. A swap made after its key's revert is kept (doorSwapRevertedOver).
 const REVERTED_SWAP_KEYS = (() => {
-  const today = new Date().toISOString().slice(0,10);
-  let initial = [];
+  const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const today = localDay();
+  const times = {};
   try {
     const stored = JSON.parse(localStorage.getItem('concRevertedSwapKeys') || '[]');
-    initial = stored.filter(k => typeof k === 'string' && k.slice(0,10) >= today);
+    const now = new Date().toISOString();
+    if (Array.isArray(stored)) stored.forEach(k => { if (typeof k === 'string' && k.slice(0,10) >= today) times[k] = now; });
+    else if (stored && typeof stored === 'object') Object.keys(stored).forEach(k => {
+      if (k.slice(0,10) >= today && typeof stored[k] === 'string') times[k] = stored[k];
+    });
   } catch(e) {}
-  const s = new Set(initial);
-  const _persist = () => {
-    try {
-      const t = new Date().toISOString().slice(0,10);
-      const arr = [...s].filter(x => typeof x === 'string' && x.slice(0,10) >= t);
-      localStorage.setItem('concRevertedSwapKeys', JSON.stringify(arr));
-    } catch(e) {}
-  };
+  const s = new Set(Object.keys(times));
   const _add = s.add.bind(s);
-  s.add = function(k) { _add(k); _persist(); return s; };
   const _delete = s.delete.bind(s);
-  s.delete = function(k) { const r = _delete(k); _persist(); return r; };
+  let _publishTimer = null;
+  const _publish = () => {
+    if (_publishTimer) return;
+    _publishTimer = setTimeout(() => {
+      _publishTimer = null;
+      try { PublishAuth.sidePublish('meal_swaps_reverted.json', JSON.stringify(s.toPublished(), null, 2), 'Swap reverts', false); } catch(e) {}
+    }, 0);
+  };
+  const _persist = (publish) => {
+    try {
+      const t = localDay();
+      [...s].forEach(x => { if (typeof x !== 'string' || x.slice(0,10) < t) { _delete(x); delete times[x]; } });
+      localStorage.setItem('concRevertedSwapKeys', JSON.stringify(s.toPublished()));
+    } catch(e) {}
+    if (publish) _publish();
+  };
+  s.add = function(k, at) { _add(k); times[k] = (typeof at === 'string' && at) || new Date().toISOString(); _persist(true); return s; };
+  s.delete = function(k) { const r = _delete(k); delete times[k]; _persist(true); return r; };
+  s.toPublished = function() { const o = {}; [...s].sort().forEach(k => { if (times[k]) o[k] = times[k]; }); return o; };
+  // The kitchen's list merged in (a key both hold keeps its later time). Not sent back: the kitchen already has it.
+  s.mergeRemote = function(remote) {
+    const merged = doorMergeSwapReverts(s.toPublished(), remote, localDay());
+    Object.keys(merged).forEach(k => { if (!s.has(k)) _add(k); times[k] = merged[k]; });
+    _persist(false);
+  };
   return s;
 })();
 
@@ -10996,17 +11020,11 @@ async function pullSecondaryState(repo) {
   const base = 'https://raw.githubusercontent.com/' + repo + '/main/';
   const bust = '?_=' + Date.now();
   const files = [
-    ['meal_swaps.json',      d => {
-      const today = doorDateKey(new Date());
-      Object.keys(d).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete d[k]; }); // don't re-introduce expired or reverted swaps from file
-      // Also strip expired/reverted from local so a stale swap that survived
-      // in localStorage gets removed on next sync. Previously only file data
-      // was filtered, so a reverted swap sitting in concMealSwaps could
-      // resurface after a hard refresh once REVERTED_SWAP_KEYS reset to empty.
-      const local = loadMealSwaps();
-      Object.keys(local).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete local[k]; });
-      saveMealSwaps(Object.assign({}, local, d), true);
-    }],
+    // The kitchen's revert list first, so a swap reverted on another computer leaves this one too (2026-10-18).
+    ['meal_swaps_reverted.json', d => REVERTED_SWAP_KEYS.mergeRemote(d)],
+    // Past and reverted swaps leave the file's copy and this computer's (a reverted swap sitting in concMealSwaps
+    // used to come back after a hard refresh); the file wins a key both hold.
+    ['meal_swaps.json',      d => doorApplyRemoteSwaps(d, null)],
     ['special_meals.json',   d => saveSpecialMeals(Object.assign({}, loadSpecialMeals(), d), true)],
     ['menu_overlay.json',    d => {
       const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
@@ -13425,7 +13443,7 @@ function reportDoorOverlayMergeAdvisory(advisory, manual) {
 // protect, so a shrink here is noise, not a stale-device signal.
 let _ghHydrated = false;
 let _ghForceOverwrite = false;
-const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'recent_log.json']);
+const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'meal_swaps_reverted.json', 'recent_log.json']);
 let _ghWriteQueue = Promise.resolve();
 
 async function ghPushFile(creds, path, content) {
@@ -13877,6 +13895,7 @@ async function _doPublishToGitHub(manual) {
     const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
     _push('learned_nr.json', JSON.stringify(learnedNR,null,2));
     _push('meal_swaps.json', JSON.stringify(loadMealSwaps(),null,2));
+    _push('meal_swaps_reverted.json', JSON.stringify(loadSwapReverts(),null,2));
     _push('special_meals.json', JSON.stringify(loadSpecialMeals(),null,2));
     const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
     _push('recent_log.json', JSON.stringify(_logToSync,null,2));
@@ -17222,13 +17241,19 @@ function executeSlotSwap(a, b) {
   if (isOriginal(a, mealSwaps[slotA.key])) delete mealSwaps[slotA.key];
   if (isOriginal(b, mealSwaps[slotB.key])) delete mealSwaps[slotB.key];
 
-  // Persist non-original swaps to loadMealSwaps (date-keyed, auto-expire)
+  // Persist non-original swaps to loadMealSwaps (date-keyed, auto-expire). The two halves land as far apart as the two
+  // meals are on the menu, on the first such pair still ahead (doorSlotSwapDates, 2026-10-18); each used to take its
+  // own slot's next date, so a half whose slot was already served this cycle landed four weeks after the other.
   const swaps = loadMealSwaps();
+  const _today = new Date(); _today.setHours(0, 0, 0, 0);
+  const _cycleStart = getSundayStart(_today); _cycleStart.setDate(_cycleStart.getDate() - (doorRotationWeekOf(_today) - 1) * 7);
+  const _dates = doorSlotSwapDates([a, b], _today, _cycleStart) || [nextDateForSlot(Number(a.week), a.day), nextDateForSlot(Number(b.week), b.day)];
+  const _dateFor = { [slotA.key]: _dates[0], [slotB.key]: _dates[1] };
   function persistSlot(slot, swapData) {
     if (!mealSwaps[swapData.key]) return; // was restored to original
     const [wkStr, dayName, period] = swapData.key.split('-');
     const week = parseInt(wkStr, 10);
-    const targetDate = nextDateForSlot(week, dayName);
+    const targetDate = _dateFor[swapData.key];
     if (!targetDate) return;
     const dateStr = doorDateKey(targetDate);
     const smKey = dateStr + '-' + period;
@@ -17251,9 +17276,10 @@ function executeSlotSwap(a, b) {
   persistSlot(b, {key: slotB.key});
   saveMealSwaps(swaps);
 
-  // Log and toast
-  const labelA = `Wk${a.week} ${dayLabel(a.day)} ${a.period}`;
-  const labelB = `Wk${b.week} ${dayLabel(b.day)} ${b.period}`;
+  // Log and toast, with the dates each half lands on
+  const _on = d => (d ? ` (${formatShortDate(d)})` : '');
+  const labelA = `Wk${a.week} ${dayLabel(a.day)} ${a.period}${_on(_dates[0])}`;
+  const labelB = `Wk${b.week} ${dayLabel(b.day)} ${b.period}${_on(_dates[1])}`;
   logMenuEvent('menu_swap', `Slot swap: ${labelA} ⇄ ${labelB}`);
   showToast(`Swapped ${labelA} ⇄ ${labelB}`);
 
@@ -19857,6 +19883,63 @@ function saveSpecialMeals(obj, skipPush) {
   }
 }
 
+/* DOOR_TESTABLE_CORE_START swap-store */
+// One-time swaps across DOOR computers (2026-10-18, Jason: "Remove it", on the Nov 3 swap left over from Oct 7). Each
+// computer keeps its own copy of the swaps and merges the kitchen's file into it, so a revert on one computer never
+// reached another: the next one to publish put the swap back. A revert is published now too
+// (meal_swaps_reverted.json, key → when it was reverted), and a swap made before its key's revert is dropped on every
+// computer. A swap made again after the revert is kept.
+function doorSwapRevertedOver(key, entry, reverted) {
+  const at = reverted && reverted[key];
+  if (!at) return false;
+  const made = entry && entry.createdAt;
+  return !made || String(made) <= String(at);
+}
+// The kitchen's file merged into this computer's copy: past dates and reverted swaps leave both, and the file wins a
+// key both hold, as before.
+function doorMergeSwapStores(local, remote, reverted, today) {
+  const keep = src => {
+    const out = {};
+    Object.keys(src || {}).forEach(k => {
+      if (k.slice(0, 10) < today || doorSwapRevertedOver(k, src[k], reverted)) return;
+      out[k] = src[k];
+    });
+    return out;
+  };
+  return Object.assign({}, keep(local), keep(remote));
+}
+// Two revert lists as one: a key both hold keeps its later time; past dates leave.
+function doorMergeSwapReverts(a, b, today) {
+  const out = {};
+  [a || {}, b || {}].forEach(src => Object.keys(src).forEach(k => {
+    const at = src[k];
+    if (typeof at !== 'string' || !at || k.slice(0, 10) < today) return;
+    if (!out[k] || at > out[k]) out[k] = at;
+  }));
+  return out;
+}
+// The dates a slot swap's two halves land on (2026-10-18, Jason: "Fix in DOOR"). Each half took its own slot's next
+// date, so swapping Wk2 TUE ⇄ THU on a Wednesday put Tuesday's half four weeks out (Nov 3) and Thursday's on the next
+// day (Oct 8). Now the two dates are as far apart as the two meals are on the menu (the shorter way round the four
+// weeks), and the first such pair with both still ahead is used: Tuesday Nov 3 and Thursday Nov 5; a Wk4 Saturday ⇄
+// Wk1 Sunday swap takes the coming weekend. cycleStart is the Sunday that starts the current cycle's Week 1; slots
+// are {week, day}. Returns [dateA, dateB] (local midnight).
+function doorSlotSwapDates(slots, today, cycleStart) {
+  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const c0 = new Date(cycleStart.getFullYear(), cycleStart.getMonth(), cycleStart.getDate());
+  const pos = s => (Number(s.week) - 1) * 7 + DAYS.indexOf(s.day);
+  const [a, b] = slots.map(pos);
+  if (!(a >= 0) || !(b >= 0)) return null;
+  const p0 = ((Math.round((t0 - c0) / 86400000) % 28) + 28) % 28;
+  const delta = ((b - a + 14) % 28 + 28) % 28 - 14;
+  const day = n => new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + n);
+  let first = ((a - p0) % 28 + 28) % 28;
+  if (first + delta < 0) first += 28;
+  return [day(first), day(first + delta)];
+}
+/* DOOR_TESTABLE_CORE_END swap-store */
+
 // Meal swaps — date-keyed, auto-expire. Separate from special meals.
 // Swaps = "plan changed, serve X instead of Y." Specials = "celebration/event override."
 function loadMealSwaps() {
@@ -19867,6 +19950,16 @@ function saveMealSwaps(obj, skipPush) {
   if (!skipPush) {
     try { PublishAuth.sidePublish('meal_swaps.json',JSON.stringify(obj,null,2),'Meal swaps',true); } catch(e) {}
   }
+}
+// This computer's revert list, as it is published (meal_swaps_reverted.json).
+function loadSwapReverts() { return REVERTED_SWAP_KEYS.toPublished(); }
+// The kitchen's swap file and revert list merged into this computer's (pullSecondaryState and the boot sync).
+// Without the file (it couldn't be read), this computer's copy still drops past and reverted swaps.
+function doorApplyRemoteSwaps(remoteSwaps, remoteReverted) {
+  const today = doorDateKey(new Date());
+  if (remoteReverted && typeof remoteReverted === 'object') REVERTED_SWAP_KEYS.mergeRemote(remoteReverted);
+  const remote = (remoteSwaps && typeof remoteSwaps === 'object') ? remoteSwaps : {};
+  saveMealSwaps(doorMergeSwapStores(loadMealSwaps(), remote, REVERTED_SWAP_KEYS.toPublished(), today), true);
 }
 function clearPastSwaps() {
   const swaps = loadMealSwaps();
@@ -21561,7 +21654,10 @@ initDynamic();
       fetch(base+'door_state.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),
     ]).then(()=>{ _ghHydrated = true; }).catch(()=>{ _ghHydrated = true; });
     setTimeout(()=>{ _ghHydrated = true; }, 5000);
-    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=doorDateKey(new Date());Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});const _local=loadMealSwaps();Object.keys(_local).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete _local[k];});saveMealSwaps(Object.assign({},_local,d),true);}}).catch(()=>{});
+    // The revert list, then the swaps (2026-10-18): a swap reverted on another computer leaves this one too.
+    fetch(base+'meal_swaps_reverted.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null)
+      .then(rev=>fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>doorApplyRemoteSwaps(d, rev)))
+      .catch(()=>{});
     fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
