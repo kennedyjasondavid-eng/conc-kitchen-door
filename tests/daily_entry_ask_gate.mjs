@@ -105,6 +105,9 @@ function runRevertGenerate(answer) {
     'function saveRegistryState() {} function renderRegistry() {} function updateRevertButton() {}' +
     'function publishAndSync(r) { published.push(r); } function showToast() {}' +
     'async function doorAsk() { return answer; }' +
+    // Re-pinned 2026-10-18: Undo marks the list as this computer's change and reads the kitchen's list first
+    // (tests/resident_changes_reach_gate.mjs runs both for real); here the kitchen has nothing newer.
+    'function setRegistryProvenance() {} async function doorFetchRemoteRegistryMeta() { return null; }' +
     fnBlock('revertLastGenerate') +
     ';globalThis.list = () => REGISTRY_LIST; globalThis.run = revertLastGenerate;', ctx);
   return ctx;

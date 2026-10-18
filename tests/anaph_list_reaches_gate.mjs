@@ -17,81 +17,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import { twoComputers, out, R, discharge, intake } from './helpers/door_two_computers.mjs';
 
 const html = fs.readFileSync(process.env.ANAPH_REACH_HTML || new URL('../index.html', import.meta.url), 'utf8');
-function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
-function fn(name) {
-  const m = html.match(new RegExp('\\n(async )?function ' + name + '\\('));
-  assert.ok(m, 'missing ' + name);
-  const s = m.index + 1; const e = html.indexOf('\n}\n', s); return html.slice(s, e) + '\n}\n';
-}
-const has = (name) => new RegExp('\\n(async )?function ' + name + '\\(').test(html);
-const fnOpt = (name) => (has(name) ? fn(name) : '');
-const out = (v) => JSON.parse(JSON.stringify(v));
+// The harness (2026-10-18) moved to tests/helpers/door_two_computers.mjs, shared with resident_changes_reach_gate.
+const { computer, kitchen, morning, fn, has } = twoComputers(html, {
+  fns: ['doorAskTakeOffAnaphList', 'addAnaphRoom', 'removeAnaphRoom'],
+});
 
-const SRC = [
-  html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0], between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('),
-  fn('getRegistryProvenanceTs'), fn('setRegistryProvenance'), fn('doorRegistryDataTs'), fn('doorRegistrySyncShouldSkip'),
-  fn('doorFetchRemoteRegistryMeta'), fn('doorRegistryPublishGate'), fnOpt('doorTakeNewerKitchenList'), fn('doorRegistryPublishPreflight'),
-  fn('pullStateFromGitHub'), fn('saveRegistryState'), fn('dedupeRegistryList'), fn('buildStateJSON'),
-  fn('doorIsAnaphResident'), fn('doorAskTakeOffAnaphList'), fn('addAnaphRoom'), fn('removeAnaphRoom'),
-  fnOpt('doorDischargeAnaphRoom'), fnOpt('doorAskDischargedAnaphRooms'), fn('applyQueueToRegistry'),
-  // Generate's own order (test 2 pins it in generateFiles): the kitchen's newer list, the question, the queue.
-  `this.__generate = async () => {
-     if (typeof doorTakeNewerKitchenList === 'function') await doorTakeNewerKitchenList();
-     if (typeof doorAskDischargedAnaphRooms === 'function') await doorAskDischargedAnaphRooms(changesQueue);
-     applyQueueToRegistry(); changesQueue = []; publishAndSync('generate'); await this.__pending; };`,
-  'this.__set = (reg, rooms) => { REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...reg); REGISTRY_MAP = {}; reg.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; }); anaphRooms = rooms; };',
-  'this.__state = () => ({ rooms: anaphRooms, reg: REGISTRY_LIST });',
-  'this.__queue = (q) => { changesQueue.push(...q); };',
-].join('\n');
-
-// One clock for every computer: each "now" is a second later, so the order of saves is the order they happened.
-let NOW = Date.parse('2026-10-18T12:00:00Z');
-class FakeDate extends Date {
-  constructor(...a) { if (a.length) super(...a); else { NOW += 1000; super(NOW); } }
-  static now() { NOW += 1000; return NOW; }
-}
-// The kitchen: door_state.json as the last publish left it.
-const kitchen = { state: null, down: false };
-const fetchStub = async (url) => {
-  if (kitchen.down) throw new Error('offline');
-  if (!/door_state\.json/.test(String(url)) || !kitchen.state) return { ok: false, status: 404, json: async () => ({}) };
-  return { ok: true, status: 200, json: async () => out(kitchen.state) };
-};
-
-function computer(name, answer = true) {
-  const store = {};
-  const asked = [];
-  const c = {
-    console: { log() {}, warn() {}, info() {}, error: console.error }, Date: FakeDate, fetch: fetchStub, setTimeout, Promise,
-    REGISTRY_LIST: [], REGISTRY_MAP: {}, anaphRooms: [], changesQueue: [],
-    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
-    document: { getElementById: (id) => (id === 'anaph-input' ? c.__input : null) },
-    PublishAuth: { getRepo: () => 'kennedyjasondavid-eng/conc-kitchen-door' },
-    doorAsk: async (o) => { asked.push(o.title); return answer; },
-    showToast() {}, updateSyncBar() {}, renderRegistry() {}, renderAnaphList() {}, updateDailyImportPrompt() {}, doorRefreshBaseSections() {},
-    pullSecondaryState: async () => {}, getOperatorName: () => name, pushResidentHistory() {}, clearResidentHistory() {},
-    dedupeServiceNote: (a, b) => b || a, filterServiceNote: (a, b) => b || a, requiresDocumentation: () => false, doorApplyPendingImportStamp() {},
-    // A publish runs the real preflight (it takes the kitchen's list when that one is newer), then sends this list.
-    publishAndSync() {
-      c.__pending = (async () => {
-        const pre = await c.doorRegistryPublishPreflight(false);
-        if (pre && pre.cancelled) return;
-        kitchen.state = out(c.buildStateJSON());
-      })();
-    },
-  };
-  c.__input = { value: '' };
-  vm.createContext(c);
-  vm.runInContext(SRC, c, { filename: 'index.html#anaph-reach', timeout: 20000 });
-  c.__asked = asked;
-  c.__store = store;
-  return c;
-}
-
-const R = (room, tags, extra) => Object.assign({ room, tags, section: 'Regular' }, extra || {});
 // The published list on Sep 11, before the import that morning (the four anaphylactic rooms, a few others).
 const SEP11 = () => [
   R('213', ['Soft Meals', 'No Tree Nuts', 'No Coconut'], { isAnaph: true, anaphTags: ['noCoconut', 'noTreeNuts'] }),
@@ -101,16 +34,6 @@ const SEP11 = () => [
   R('305', ['Regular']), R('500', ['No Peanuts']),
 ];
 const LIST = () => ['213', '813', '607a', '1213'];
-const discharge = (room) => ({ room, type: 'discharge', tags: {}, tagLabels: [], route: 'REMOVE', notes: 'Not on daily list', isAnaph: false, isModerate: false, moderateNote: '', hadSection: 'Regular' });
-const intake = (room, tags) => ({ room, type: 'intake', tags, route: 'Regular', notes: 'From daily list import', isAnaph: false, isModerate: false, moderateNote: '', hadSection: null });
-// Two computers that both took the kitchen's list this morning.
-async function morning(reg, rooms) {
-  kitchen.down = false; kitchen.state = null;      // a fresh kitchen: the seed would otherwise take the last test's list
-  const seed = computer('seed'); seed.__set(reg, rooms); seed.publishAndSync(); await seed.__pending;
-  const a = computer('JK'), b = computer('Joan Wandera');
-  await a.pullStateFromGitHub(false); await b.pullStateFromGitHub(false);
-  return { a, b };
-}
 
 test('1. a queued discharge of an anaphylactic room asks once at Generate; taken off, the next resident in 813 is not anaphylactic', async () => {
   assert.ok(has('doorAskDischargedAnaphRooms'), 'the question exists');
@@ -119,7 +42,7 @@ test('1. a queued discharge of an anaphylactic room asks once at Generate; taken
   keep.__set(SEP11(), LIST());
   keep.__queue([discharge('813'), discharge('305')]);
   await keep.doorAskDischargedAnaphRooms(keep.changesQueue);
-  assert.deepEqual(keep.__asked, ['Room 813 is anaphylactic'], 'asked once, about 813 only');
+  assert.deepEqual(keep.__asked.map((q) => q.title), ['Room 813 is anaphylactic'], 'asked once, about 813 only');
   assert.equal(keep.changesQueue[0].anaphCleared, false, 'the answer travels on the change');
   keep.applyQueueToRegistry();
   assert.deepEqual(out(keep.__state().rooms), LIST(), 'kept on the list');
@@ -139,7 +62,7 @@ test('1. a queued discharge of an anaphylactic room asks once at Generate; taken
   again.__set(SEP11(), ['213']);
   again.__queue([{ ...discharge('813'), anaphCleared: false }, discharge('305'), discharge('607a')]);
   await again.doorAskDischargedAnaphRooms(again.changesQueue);
-  assert.deepEqual(again.__asked, ['Room 607a is anaphylactic'], '813 already answered; 305 not anaphylactic; 607a by its flag');
+  assert.deepEqual(again.__asked.map((q) => q.title), ['Room 607a is anaphylactic'], '813 already answered; 305 not anaphylactic; 607a by its flag');
 });
 
 test('2. Generate takes the kitchen\'s newer list, then asks, then applies; the review and the queue say so; Discharge names the list', () => {
