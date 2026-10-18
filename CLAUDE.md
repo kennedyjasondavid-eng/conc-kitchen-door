@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.30'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.31'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,6 +53,28 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-10-18) — a shellfish meal routes and contains like a fish meal (`v31-standard.31`)
+Jason, 2026-10-18: "follow your lean on routing and lockout", on the `v31-standard.30` finding (the entry below). Since .30 a CODEX shrimp or mussel recipe sets `hasShellfish` on its meal, but routing and anaphylactic containment still keyed shellfish on `hasFish`. So on a shrimp-only meal a No Shellfish resident stayed on the regular plate, and an anaphylactic No Shellfish or No Molluscs resident was never contained.
+- **Routing:** `ROUTING_RULES` `no_fish` ("No Fish / Shellfish") triggers on `hasFish` or `hasShellfish`. The section works as on a fish meal: No Fish and No Shellfish residents move to the vegan plate, as a fish meal already moves No Shellfish residents. No Molluscs is still not a routing tag; that resident is warned and contained, not routed.
+- **Anaphylactic containment:** each `ANAPH_TAG_TO_MEAL_FLAG` tag now lists every flag that sets it off, read through `anaphTagMealFlags(tag)`.
+  - No Shellfish is `hasFish` or `hasShellfish`.
+  - **No Molluscs is new**, on the same two flags. Ticking it as an anaphylactic tag did nothing before.
+  - `hasFish` stays on both because older menus ticked seafood as Fish.
+  - The other tags keep their one flag, so they behave exactly as before.
+  - The five readers all use the helper: `routeResident` (the Anaphylactic Alternative), `getAnaphConflictRooms` (room lockout and roommates), `getAnaphAlertInfo`, and both filters in `getAnaphDisplayAllergens` (the plating-sheet and anaphylactic-list allergens).
+- **Plating-sheet note:** `CONFLICT_MAP` gains "no molluscs" for a No Molluscs resident on a `hasShellfish` meal. It is not added on fish-only meals, because the note says what is in the meal.
+- **Live effect: none today.** No meal on the published menu or overlay carries `hasShellfish`, and the published resident list's anaphylactic residents (2, both peanuts) have neither tag. Routing, containment and alerts at every published meal are identical to `.30`, checked by the gate.
+- **Gate:** `tests/shellfish_routing_lockout_gate.mjs` (9), authored red 5/9 on `main` `9cf22d9`; the 4 that pass are the locks. It covers:
+  - a shrimp-only meal opens the section;
+  - routing is unchanged over 256 flag combinations without shellfish (and with fish);
+  - every published meal routes and contains as before;
+  - No Shellfish and No Molluscs are contained with their roommates, with or without `anaphTags`, and alerted;
+  - an anaphylactic No Fish resident is not contained on shellfish;
+  - `routeResident` and `getAnaphDisplayAllergens`, the other tags unchanged, and the molluscs note.
+
+  Suite 365 → 374. Checked in a real browser (offline boot): from "Crustaceans (Shrimp)" the live page seats No Shellfish on the vegan plate, contains an anaphylactic No Molluscs room and its roommate, alerts, lists the allergen and prints "no molluscs"; no page errors.
+- **Still open (minor):** the menu-workbook reader (`allergenStrToFlags`) knows only shellfish, shrimp and crab, and DOOR has no flag for Lupin or Buckwheat.
+
 ## Recent (2026-10-18) — CODEX's Crustaceans and Molluscs labels tick Shellfish (`v31-standard.30`)
 Food-safety gap found in review (2026-10-18). CODEX's reader files shrimp, prawn, crab, lobster and krill under **Crustaceans**, and clams, mussels, oysters, scallops and squid under **Molluscs**. So Check & save writes "Crustaceans (Shellfish)" or "Molluscs (Molluscs)", and two CODEX templates (Thai Basil Chicken, Bò Lúc Lắc) already carry "Molluscs (Oyster Sauce)". A Save on a connected tablet is canon, and its `door` block brings those labels here. `HUB_ALLERGEN_MAP` had only 'Shellfish'. Linking such a recipe set no `hasShellfish`, only an unmapped-label warning, so a No Shellfish or No Molluscs resident was not warned. No published recipe carries either label today, so no live meal changes.
 - **What changed:** 'Crustaceans' and 'Molluscs' map to `hasShellfish`, the flag No Shellfish and No Molluscs residents already share (`RESIDENT_TO_MEAL_FLAG`). The editor preview shows a "crustaceans" or "molluscs" chip, because it reads the same resolver. It only ever adds a warning.
@@ -70,7 +92,7 @@ Food-safety gap found in review (2026-10-18). CODEX's reader files shrimp, prawn
   - A meal with `hasShellfish` but no `hasFish` (a shrimp dish) doesn't open the "No Fish / Shellfish" section (`ROUTING_RULES` `no_fish` triggers on `hasFish` only).
   - Anaphylactic room containment reads No Shellfish as `hasFish` (`ANAPH_TAG_TO_MEAL_FLAG`), and No Molluscs has no containment entry and no plating-sheet note (`CONFLICT_MAP`).
 
-  So on a shrimp-only meal a No Shellfish resident is warned (the Generate conflict and the Regular plating-sheet note), but gets no alternative plate, and an anaphylactic one gets no room lockout or anaphylactic alert (`getAnaphConflictRooms` and `getAnaphAlertInfo` read the same map). Lean: `hasShellfish` also triggers `no_fish`, and containment checks `hasFish` or `hasShellfish` for both No Shellfish and No Molluscs.
+  So on a shrimp-only meal a No Shellfish resident is warned (the Generate conflict and the Regular plating-sheet note), but gets no alternative plate, and an anaphylactic one gets no room lockout or anaphylactic alert (`getAnaphConflictRooms` and `getAnaphAlertInfo` read the same map). Lean: `hasShellfish` also triggers `no_fish`, and containment checks `hasFish` or `hasShellfish` for both No Shellfish and No Molluscs. **Done in `v31-standard.31`** (the entry above).
   - Minor: the menu-workbook reader (`allergenStrToFlags`) knows only shellfish, shrimp and crab, and DOOR has no flag for Lupin or Buckwheat (both stay on the unmapped banner).
 
 ## Recent (2026-10-18) — bouillon carries no Gluten: three linked vegan dishes drop the Gluten they captured (menu data, no code)
