@@ -162,6 +162,8 @@ function runClearSwaps(answer) {
     'function saveMealSwaps(s) { saved = s; } function logMenuEvent() {} function renderMenuConfig() {}' +
     'function alert() {}' +
     'async function doorAsk() { return answer; }' +
+    // Re-pinned 2026-10-18 (the routing audit): "today" is the kitchen's local day (doorDateKey), not the UTC date.
+    (html.includes('function doorDateKey(') ? fnBlock('doorDateKey') : '') +
     fnBlock('clearAllSwaps') + ';globalThis.run = clearAllSwaps; globalThis.swaps = () => mealSwaps;', ctx);
   return ctx;
 }

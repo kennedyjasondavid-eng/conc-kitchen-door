@@ -221,13 +221,13 @@ New in A0:
 - **`tests/helpers/routing_oracle.mjs`** — the rules above as a small reference model (plate, required notes, lockout). It is written from this table, not from `computeSections`.
 - **A1 `tag_table_consistency_gate`** (7, red 5): every name a table uses is a real tag and every flag a real flag; one tier set per tag; every routing tag sits in a section; no doubled rows; every tag the anaphylactic picker offers is contained (No Oats the one exception); every line-noted tag is conflict-checked; and the per-tag census.
 - **A2 `routing_oracle_gate`** (8, red 5): every single tag, every pair of the 19 tags that route and the published tag sets (about 240 residents) × 792 meals, through the real `computeSections` and line notes against the oracle, plus a mutation check (a dropped trigger, Soft moved up, the 2026-10-16 Bland → GF guard removed: each is caught).
-- **A3 `anaph_matrix_gate`** (8, red 7): every lockout tag × every flag × 4 ways of being anaphylactic, with roommates, for lockout, the alert, the display and `routeResident`; per-meal scope; the list's Remove; the Daily Entry queue, the Intake Portal and a room switch; the toggle; 813's label; the Regular tidy.
-- **A4 `routing_replay_gate`** (5, red 2): the published residents through the published menu with the real `computePlatingData`, seat and line against the oracle, and the §8 receipt.
+- **A3 `anaph_matrix_gate`** (12, red 11): every lockout tag × every flag × 4 ways of being anaphylactic, with roommates, for lockout, the alert, the display and `routeResident`; per-meal scope; the list's Remove; the Daily Entry queue, the Intake Portal and a room switch; the toggle; 813's label; the Regular tidy.
+- **A4 `routing_replay_gate`** (6, red 3): the published residents through the published menu with the real `computePlatingData`, seat and line against the oracle, and the §8 receipt.
 
 ### Receipts (`tests/browser/`, real Chromium, not in CI)
 - **A4** `routing_replay.mjs` → `DOOR_ROUTING_REPLAY_RECEIPT_2026-10-18.md` and a CSV of all 14,028 resident × meal rows: **0 disagreements with the oracle**. The routing file it regenerates equals the checked-in one, and it lists what the rebuild moves against `main`'s copy.
 - **A5 + A6** `flag_resident_census.mjs` → `DOOR_FLAG_RESIDENT_CENSUS_2026-10-18.md`: where meal flags come from, and the resident data.
-- **A8** `staff_walkthrough.mjs` → `docs/receipts/walkthrough_2026-10-18/` (42 checks at 1280 and 390 px, with screenshots): room 213's lookup, the sheets the audit changed, the swap day, the halal plate, the labels.
+- **A8** `staff_walkthrough.mjs` → `docs/receipts/walkthrough_2026-10-18/` (51 checks at 1280 and 390 px in Toronto time, with screenshots): room 213's lookup, the sheets the audit changed, the swap day (also at 8:30 pm), the halal plate, the labels, and the review's fixes.
 
 ### Found during the audit, beyond §8, and fixed (each ruled or inside a ruling)
 - **Swap and special-meal days** (F13, Jason: "Yes, and the routing file too"). Plating sheets and `routing_by_meal.json` routed the rotation meal. The Nov 3 swap (Halal Beef Burger for Wk2 TUE's tuna sandwich) would have seated No Beef residents 704 and 901 on Regular. The sheet now routes the swap and says "Swap for Nov 3 — replaces the rotation meal". `getMealForDate` read swaps by the UTC date, so after 8 pm in Toronto today took tomorrow's; it reads the local date now.
@@ -249,6 +249,30 @@ New in A0:
   - the diagnostics core reads the list;
   - No Processed Food is conflict-checked;
   - the two copies of each plating renderer's chains are one function each (`doorSectionLineNotes`, `doorSectionAllergenStr`).
+
+### Independent review: FIX-BEFORE-SHIP, folded
+A second reader checked the whole `index.html` diff in the real page, in Toronto time, against `main`. Confirmed sound:
+- the week arithmetic, the date keys and breakfast;
+- every field a swap drops;
+- the routing counts (only the expected meals move);
+- no plating note dropped across all 84 meals; the only additions are the ruled ones;
+- the memo can't keep a load-time fallback.
+
+Found and fixed:
+- **P1, editing a queued Intake Portal item.** The room lookup, 250 ms later, put the resident's toggle back over the item's, so a queued anaphylactic update was re-added as not anaphylactic. Its tags were never put back either: the reader looked for markup the form doesn't have. Now `editQueueItem` looks the room up first, then puts back the item's own tags and toggle.
+- **P1, a new intake over an occupied room.** The record kept the last resident's picked anaphylactic tags, so a new resident switched on for peanuts was contained on coconut instead. Both the direct save and the Intake Portal now start the new resident's anaphylactic state, moderate allergy and note fresh, as the Daily Entry queue already did.
+- **P2, the Daily Entry queue editor.** Unchecking anaphylactic was ignored when the queue was applied. It now asks once, the answer travels with the change, and ticking it again undoes it.
+- **P2, the halal plate.** Wk4 FRI's said PORK: the "Tandoori Chicken" slot carries a copied pork tick. A halal plate never lists pork now.
+- **P2, the evening date.** After 8 pm, today's swap was pruned by the UTC date, and the prune was published. Every swap and special-meal "today" and key is now the local day (`doorDateKey`), including the boot sync.
+- **P2, today's sections** were worked out from the built-in list before the saved one was read. They now follow every load and save of the resident list (`doorRefreshBaseSections`).
+- **P3s:**
+  - a pre-filled toggle no longer rides to the next room;
+  - "Keep it anaphylactic" in Add Change keeps the Anaphylactic label;
+  - the file previews list 813;
+  - the diagnostics core decides Stop / Review from the flag or the list;
+  - the import waits for review before adding No Eggs, No Mustard or No Molluscs, which route.
+
+Each fix is pinned: `anaph_matrix_gate` (behaviour where a vm can run it, the source where it is DOM-bound), `routing_replay_gate` (no halal PORK), and the walkthrough (the editor, the toggle, the evening swap and today's sections in the real page).
 
 ### Downstream (A7)
 - **EXPO and HUB** read only the Regular, Halal and Vegan counts (frozen-stock pulls) and `_components` (portion links). The new section labels (Bland, Soft, No Pork, Anaphylactic Alternative) are ignored safely.

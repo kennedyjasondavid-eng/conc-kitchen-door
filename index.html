@@ -8289,7 +8289,15 @@ function buildResidentDetailHTML(r) {
   return parts.join('');
 }
 
+// The room whose anaphylactic state the toggle was last filled from, until someone touches it (2026-10-18). A toggle the
+// lookup turned on for one resident must not ride along to the next room typed.
+let _doorAnaphPrefilled = null;
 function lookupRoom(val) {
+  if (_doorAnaphPrefilled) {
+    const at = document.getElementById('anaph-toggle');
+    anaphActive = false; if (at) at.classList.remove('on');
+    _doorAnaphPrefilled = null;
+  }
   const box = document.getElementById('room-lookup');
   const dcBox = document.getElementById('discharge-confirm');
   const type = document.getElementById('change-type').value;
@@ -8364,7 +8372,7 @@ function lookupRoom(val) {
       dcBox.style.display = 'none';
       prePopulateCheckboxes(exact.tags);
       // The anaphylactic toggle starts as the resident is (2026-10-18): it started off, so an update took them off.
-      { const at = document.getElementById('anaph-toggle'); anaphActive = doorIsAnaphResident(exact); if (at) at.classList.toggle('on', anaphActive); }
+      { const at = document.getElementById('anaph-toggle'); anaphActive = doorIsAnaphResident(exact); if (at) at.classList.toggle('on', anaphActive); _doorAnaphPrefilled = exact.room; }
       // Pre-fill service note from existing resident
       const notesEl = document.getElementById('change-notes');
       if (notesEl && exact.serviceNote) notesEl.value = exact.serviceNote;
@@ -8424,6 +8432,7 @@ function toggleCb(el, key) {
 }
 
 function toggleAnaph(btn) {
+  _doorAnaphPrefilled = null;   // someone chose it: it is the form's own now
   anaphActive = !anaphActive;
   btn.classList.toggle('on', anaphActive);
   // Mutually exclusive with moderate
@@ -8476,6 +8485,7 @@ function clearForm() {
   document.querySelectorAll('.cb-item').forEach(el => el.classList.remove('checked'));
   checkedBoxes = {};
   anaphActive = false;
+  _doorAnaphPrefilled = null;
   moderateActive = false;
   document.getElementById('anaph-toggle')?.classList.remove('on');
   const modToggle = document.getElementById('moderate-toggle');
@@ -8531,7 +8541,10 @@ async function addChange() {
   let anaphCleared = false;
   if (type === 'update' && !anaphActive && existingResident && doorIsAnaphResident(existingResident)) {
     if (await doorAskTakeOffAnaphList(existingResident.room)) anaphCleared = true;
-    else { anaphActive = true; route = routeResident(tags, doorTodayMealFlags('lunch'), room, true); }
+    else {
+      anaphActive = true; route = routeResident(tags, doorTodayMealFlags('lunch'), room, true);
+      if (!tagLabels.includes('Anaphylactic')) tagLabels.push('Anaphylactic');
+    }
   }
 
   changesQueue.push({ room, type, tags, tagLabels, route, notes, isAnaph: anaphActive, anaphCleared, isModerate: moderateActive, moderateNote, hadSection: existingResident ? existingResident.section : null });
@@ -8828,7 +8841,7 @@ function updateCERoutePreview() {
     <div style="display:flex;gap:8px;align-items:baseline;"><span style="color:var(--muted);min-width:52px;">Dinner:</span> ${pill(dinnerRoute)} <span style="color:var(--muted);font-size:11px;margin-left:4px;">${escapeHtml(dinnerName)}</span></div>`;
 }
 
-function saveChangeEdit() {
+async function saveChangeEdit() {
   if (ceMode === 'registry') {
     saveRegistryEdit();
     return;
@@ -8838,7 +8851,16 @@ function saveChangeEdit() {
   const c = changesQueue[ceEditIndex];
   const tags = getCETags();
   const tagLabels = getTagLabels(tags);
-  const isAnaph = document.getElementById('ce-anaph').checked;
+  let isAnaph = document.getElementById('ce-anaph').checked;
+  // An update that switches an anaphylactic resident off asks once and says so on the change (2026-10-18): unchecked
+  // here, it was ignored when the queue was applied, and ticked again it still took the room off.
+  const resident = REGISTRY_MAP[String(c.room).toLowerCase()];
+  if (c.type === 'update' && !isAnaph && resident && doorIsAnaphResident(resident)) {
+    if (c.anaphCleared || await doorAskTakeOffAnaphList(resident.room)) c.anaphCleared = true; else isAnaph = true;
+  } else {
+    c.anaphCleared = false;
+  }
+  if (changesQueue[ceEditIndex] !== c) return;   // the queue changed while the question was open
   if (isAnaph && !tagLabels.includes('Anaphylactic')) tagLabels.push('Anaphylactic');
   const notes = document.getElementById('ce-notes').value.trim();
   const route = routeResident(tags, doorTodayMealFlags('lunch'), c.room, isAnaph);
@@ -9158,6 +9180,8 @@ function computeDoorComplianceDiagnostics(input) {
   const knownRoutingTags = input.knownRoutingTags || [];
   const knownAccommodationTags = input.knownAccommodationTags || [];
   const routingSections = input.routingSections || null;
+  // Anaphylactic by the flag or the list (2026-10-18; doorIsAnaphResident lives outside this testable core).
+  const anaphOf = (resident) => !!resident.isAnaph || (input.anaphRooms || []).includes(resident.room);
   const issues = [];
   const seenTokenIssues = {};
   let certainty = 'complete';
@@ -9177,8 +9201,7 @@ function computeDoorComplianceDiagnostics(input) {
       level,
       code,
       message,
-      // Anaphylactic by the flag or the list (2026-10-18; doorIsAnaphResident lives outside this testable core).
-      { room: room, tag: tag, anaphylactic: !!(resident && (resident.isAnaph || (input.anaphRooms || []).includes(resident.room))) }
+      { room: room, tag: tag, anaphylactic: !!(resident && anaphOf(resident)) }
     ));
   }
 
@@ -9198,7 +9221,7 @@ function computeDoorComplianceDiagnostics(input) {
     const room = resident.room || '';
     const conflicts = checkResidentMealConflicts(mealFlags, resident);
 
-    if (resident.isAnaph && conflicts.length) {
+    if (anaphOf(resident) && conflicts.length) {
       addIssue(doorDiagnosticIssue(
         'Stop',
         'anaphylactic-meal-conflict',
@@ -9211,7 +9234,7 @@ function computeDoorComplianceDiagnostics(input) {
       if (!tag) return;
       if (!doorSetHas(knownAllergenTags, tag)) {
         addTokenIssue(
-          resident.isAnaph ? 'Stop' : 'Review',
+          anaphOf(resident) ? 'Stop' : 'Review',
           'unknown-allergen-token',
           'Resident has an allergen token DOOR does not recognize.',
           resident,
@@ -9219,7 +9242,7 @@ function computeDoorComplianceDiagnostics(input) {
         );
       } else if (!RESIDENT_TO_MEAL_FLAG[tag]) {
         addTokenIssue(
-          resident.isAnaph ? 'Stop' : 'Review',
+          anaphOf(resident) ? 'Stop' : 'Review',
           'unmapped-allergen-token',
           'Resident has an allergen token that is not mapped to meal flags.',
           resident,
@@ -9232,7 +9255,7 @@ function computeDoorComplianceDiagnostics(input) {
       if (!tag) return;
       if (!doorSetHas(knownAccommodationTags, tag)) {
         addTokenIssue(
-          resident.isAnaph ? 'Stop' : 'Review',
+          anaphOf(resident) ? 'Stop' : 'Review',
           'unknown-accommodation-token',
           'Resident has an accommodation token DOOR does not recognize.',
           resident,
@@ -9245,7 +9268,7 @@ function computeDoorComplianceDiagnostics(input) {
       if (!tag || tag === 'Regular' || RESIDENT_TO_MEAL_FLAG[tag]) return;
       if (!doorSetHas(knownRoutingTags, tag) && !doorSetHas(knownAccommodationTags, tag)) {
         addTokenIssue(
-          resident.isAnaph ? 'Stop' : 'Review',
+          anaphOf(resident) ? 'Stop' : 'Review',
           'unknown-resident-token',
           'Resident has a restriction token DOOR does not recognize.',
           resident,
@@ -9260,10 +9283,10 @@ function computeDoorComplianceDiagnostics(input) {
       });
       if (!routed) {
         addIssue(doorDiagnosticIssue(
-          resident.isAnaph ? 'Stop' : 'Review',
+          anaphOf(resident) ? 'Stop' : 'Review',
           'resident-routing-missing',
           'Resident is not present in the supplied routing sections.',
-          { room: room, anaphylactic: !!resident.isAnaph }
+          { room: room, anaphylactic: anaphOf(resident) }
         ));
       }
     }
@@ -10632,6 +10655,15 @@ function saveRegistryState() {
     console.warn('saveRegistryState failed:', e);
     try { showToast('⚠ Resident changes could NOT be saved on this device — they may revert after a reload. Free up storage and retry.'); } catch(_) {}
   }
+  doorRefreshBaseSections();
+}
+
+// Today's sections (BASE_SECTIONS: the Review screen's counts, reports) follow the resident list (2026-10-18, the
+// routing audit's review): they were worked out once at load from the built-in list, before the saved one was read.
+// Before BASE_SECTIONS exists (early in load) this does nothing; computeBaseSections reads the plating engine once it
+// is ready.
+function doorRefreshBaseSections() {
+  try { BASE_SECTIONS.splice(0, BASE_SECTIONS.length, ...computeBaseSections()); } catch (e) {}
 }
 
 function loadRegistryState() {
@@ -10645,6 +10677,7 @@ function loadRegistryState() {
     dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
+    doorRefreshBaseSections();
     // v26: Clean up legacy junk in service notes
     REGISTRY_LIST.forEach(r => {
       if (!r.serviceNote) return;
@@ -10964,7 +10997,7 @@ async function pullSecondaryState(repo) {
   const bust = '?_=' + Date.now();
   const files = [
     ['meal_swaps.json',      d => {
-      const today = new Date().toISOString().slice(0,10);
+      const today = doorDateKey(new Date());
       Object.keys(d).forEach(k => { if (k.slice(0,10) < today || REVERTED_SWAP_KEYS.has(k)) delete d[k]; }); // don't re-introduce expired or reverted swaps from file
       // Also strip expired/reverted from local so a stale swap that survived
       // in localStorage gets removed on next sync. Previously only file data
@@ -11104,6 +11137,7 @@ async function pullStateFromGitHub(manual) {
     dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
+    doorRefreshBaseSections();
     saveRegistryState();
     // Hardening 2026-09: local now mirrors the pulled snapshot — provenance is the
     // snapshot's REGISTRY-data time (registryModifiedAt), not its file publish time,
@@ -14930,7 +14964,7 @@ function initDynamic() {
   renderTodayMealContext();
 
   // Today's sections from the plating engine, now that it is ready (computeBaseSections, 2026-10-18).
-  try { BASE_SECTIONS.splice(0, BASE_SECTIONS.length, ...computeBaseSections()); } catch (e) { console.warn('[DOOR] base sections', e); }
+  doorRefreshBaseSections();
 }
 
 // Re-renders the "Today's Meal Context" card on the Enter Changes screen.
@@ -14938,7 +14972,7 @@ function initDynamic() {
 // so the card reflects the current state of MENU_DATA + menuEdits + specialMeals.
 function renderTodayMealContext() {
   const today = getMealForDate(new Date());
-  const dateStr = new Date().toISOString().slice(0,10);
+  const dateStr = doorDateKey(new Date());
   const swaps = typeof loadMealSwaps !== 'undefined' ? loadMealSwaps() : {};
   const lunchSwapped = !!swaps[dateStr + '-lunch'];
   const dinnerSwapped = !!swaps[dateStr + '-dinner'];
@@ -15536,7 +15570,7 @@ function openMealEdit(week, day, period) {
   // Look up any upcoming date-keyed swap for this slot
   const targetDate = nextDateForSlot(week, day);
   const swapStore = loadMealSwaps();
-  const skey = targetDate ? targetDate.toISOString().slice(0,10) + '-' + period : null;
+  const skey = targetDate ? doorDateKey(targetDate) + '-' + period : null;
   const persistedSwap = skey ? swapStore[skey] : null;
   // Check for permanent override on this slot
   const overlay = loadMenuBaseOverlay();
@@ -16467,7 +16501,7 @@ function applyMealSwap() {
   // Find the next calendar date that maps to this rotation slot
   const targetDate = nextDateForSlot(week, day);
   if (!targetDate) { alert('Could not resolve a target date for this slot.'); return; }
-  const dateStr = targetDate.toISOString().slice(0, 10);
+  const dateStr = doorDateKey(targetDate);
 
   // Write to loadMealSwaps — date-keyed, auto-expires after the date passes
   const swaps = loadMealSwaps();
@@ -16555,7 +16589,7 @@ async function makePermanent() {
   const targetDate = nextDateForSlot(week, day);
   if (targetDate) {
     const swaps = loadMealSwaps();
-    const skey = targetDate.toISOString().slice(0,10) + '-' + period;
+    const skey = doorDateKey(targetDate) + '-' + period;
     if (swaps[skey]) { delete swaps[skey]; saveMealSwaps(swaps); REVERTED_SWAP_KEYS.add(skey); }
   }
   // Clear any lingering menuEdit for this slot (Edit Menu and Make Permanent both
@@ -16584,7 +16618,7 @@ async function revertMealSwap() {
   // What layers are currently active for this slot?
   const targetDate = nextDateForSlot(week, day);
   let swaps = loadMealSwaps();
-  const skey = targetDate ? targetDate.toISOString().slice(0,10) + '-' + period : null;
+  const skey = targetDate ? doorDateKey(targetDate) + '-' + period : null;
   let hasSwap = skey && swaps[skey];
 
   let overlay = loadMenuBaseOverlay();
@@ -16632,7 +16666,7 @@ async function revertMealSwap() {
 
 async function clearAllSwaps() {
   const swaps = loadMealSwaps();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   const activeSwaps = Object.keys(swaps).filter(k => k.slice(0,10) >= today);
   const sessionSwaps = Object.keys(mealSwaps);
   const total = activeSwaps.length + sessionSwaps.length;
@@ -16899,7 +16933,7 @@ function _isNoopSwap(swapKey, sw) {
 function renderSwapsBanner() {
   // Source of truth is loadMealSwaps (date-keyed, auto-expires).
   const swaps = loadMealSwaps();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   const upcomingSwaps = Object.entries(swaps)
     .filter(([k]) => k.slice(0,10) >= today)
     .filter(([k, sw]) => !_isNoopSwap(k, sw))
@@ -17020,7 +17054,7 @@ function revertSwapFromBanner(swapKey) {
 
 function getSpecialsForRotationSlot(weekNum, dayName, period) {
   const meals = loadSpecialMeals();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   return Object.entries(meals)
     .filter(([k]) => {
       const date = k.slice(0,10);
@@ -17038,7 +17072,7 @@ function getSpecialsForRotationSlot(weekNum, dayName, period) {
 // to the same shape as an in-memory mealSwaps entry {name, veg, flags}.
 function getPersistedSwapForSlot(weekNum, dayName, period) {
   const swaps = loadMealSwaps();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   for (const [k, sw] of Object.entries(swaps)) {
     const date = k.slice(0,10);
     const p = k.slice(11);
@@ -17064,7 +17098,7 @@ function getPersistedSwapForSlot(weekNum, dayName, period) {
 function renderSpecialsBanner() {
   const meals = loadSpecialMeals();
   const keys = Object.keys(meals).sort();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   const upcoming = keys.filter(k => k.slice(0,10) >= today);
   const banner = document.getElementById('mc-specials-banner');
   const list = document.getElementById('mc-specials-list');
@@ -17106,7 +17140,7 @@ async function removeSpecialMeal(key) {
 
 function clearPastSpecials() {
   const meals = loadSpecialMeals();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   let removed = 0;
   Object.keys(meals).forEach(k => { if (k.slice(0,10) < today) { delete meals[k]; removed++; } });
   if (removed === 0) { alert('No expired special meals to clear.'); return; }
@@ -17196,7 +17230,7 @@ function executeSlotSwap(a, b) {
     const week = parseInt(wkStr, 10);
     const targetDate = nextDateForSlot(week, dayName);
     if (!targetDate) return;
-    const dateStr = targetDate.toISOString().slice(0, 10);
+    const dateStr = doorDateKey(targetDate);
     const smKey = dateStr + '-' + period;
     const allergens = typeof SM_ALLERGENS !== 'undefined'
       ? SM_ALLERGENS.filter(al => mealSwaps[swapData.key].flags[al.key]).map(al => al.key)
@@ -18960,7 +18994,7 @@ function _finishMenuSave(name, veg, flags) {
   const swaps = loadMealSwaps();
   const targetDate = nextDateForSlot(Number(week), day);
   if (targetDate) {
-    const k = targetDate.toISOString().slice(0,10) + '-' + period;
+    const k = doorDateKey(targetDate) + '-' + period;
     if (swaps[k]) { delete swaps[k]; saveMealSwaps(swaps); REVERTED_SWAP_KEYS.add(k); }
   }
   const edits = loadMenuEdits();
@@ -19836,7 +19870,7 @@ function saveMealSwaps(obj, skipPush) {
 }
 function clearPastSwaps() {
   const swaps = loadMealSwaps();
-  const today = new Date().toISOString().slice(0,10);
+  const today = doorDateKey(new Date());
   let removed = 0;
   Object.keys(swaps).forEach(k => { if (k.slice(0,10) < today) { delete swaps[k]; removed++; } });
   if (removed) saveMealSwaps(swaps);
@@ -21281,7 +21315,8 @@ function commitImportToQueue() {
   // Auto-apply modifier-only tag additions (lowSodium, lowFat, etc.)
   // These don't change routing sections — apply without requiring manual field acceptance.
   // lactoIntolerant routes too (the No Dairy section), so adding it waits for review like No Dairy (2026-10-18).
-  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','lactoIntolerant','noPork','noBeef','noFish','noShellfish','diabetic','lowCarb','softMeals','noSpicy','blandDiet','noProcessedFood']);
+  // No Eggs routes (No Egg / Mustard), and so do No Mustard and No Molluscs since the routing audit (2026-10-18).
+  const MODIFIER_AUTO_ROUTING = new Set(['halal','vegan','vegetarian','glutenFree','noDairy','lactoIntolerant','noPork','noBeef','noFish','noShellfish','noMolluscs','noEggs','noMustard','diabetic','lowCarb','softMeals','noSpicy','blandDiet','noProcessedFood']);
   diff.updates.forEach(u => {
     const fieldSel = selections.updates.get(u.room);
     if (fieldSel && Object.values(fieldSel).some(v => v)) return; // operator already made selections
@@ -21526,7 +21561,7 @@ initDynamic();
       fetch(base+'door_state.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),
     ]).then(()=>{ _ghHydrated = true; }).catch(()=>{ _ghHydrated = true; });
     setTimeout(()=>{ _ghHydrated = true; }, 5000);
-    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=new Date().toISOString().slice(0,10);Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});const _local=loadMealSwaps();Object.keys(_local).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete _local[k];});saveMealSwaps(Object.assign({},_local,d),true);}}).catch(()=>{});
+    fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d){const _t=doorDateKey(new Date());Object.keys(d).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete d[k];});const _local=loadMealSwaps();Object.keys(_local).forEach(k=>{if(k.slice(0,10)<_t||REVERTED_SWAP_KEYS.has(k))delete _local[k];});saveMealSwaps(Object.assign({},_local,d),true);}}).catch(()=>{});
     fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).then(d=>{if(d)saveSpecialMeals(Object.assign({},loadSpecialMeals(),d),true);}).catch(()=>{});
     fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{
       if(!remote||!Array.isArray(remote))return;
@@ -21771,14 +21806,16 @@ function editQueueItem(id) {
   document.getElementById('change-type').value = item.type;
   document.getElementById('change-type').dispatchEvent(new Event('change'));
   document.getElementById('room-number').value = item.room;
-  document.getElementById('room-number').dispatchEvent(new Event('input'));
-  if (item.rawTags && typeof resetAllCheckboxes === 'function') {
-    resetAllCheckboxes();
-    Object.entries(item.rawTags).forEach(([key, val]) => {
-      if (val) { const cb = document.querySelector('[data-tag="' + key + '"]'); if (cb && !cb.classList.contains('active')) cb.click(); }
-    });
-  }
-  if (item.isAnaph) { const at = document.getElementById('anaph-toggle'); if (at && !at.classList.contains('on')) at.click(); }
+  // The room lookup runs now, not 250 ms later (2026-10-18, the routing audit's review): it pre-fills the form from the
+  // registry, and running after the item was put back it replaced the item's tags and anaphylactic toggle with the
+  // resident's. The item's own tags and toggle go back last. (The tags were also never put back: the boxes are .cb-item
+  // with class "checked", not [data-tag] with "active".)
+  clearTimeout(lookupDebounce);
+  lookupRoom(item.room);
+  prePopulateCheckboxes(item.tags || []);
+  anaphActive = !!item.isAnaph;
+  { const at = document.getElementById('anaph-toggle'); if (at) at.classList.toggle('on', anaphActive); }
+  _doorAnaphPrefilled = null;
   if (item.notes) document.getElementById('change-notes').value = item.notes;
   removeFromQueue(id);
 }
@@ -21826,6 +21863,8 @@ async function commitIntakeQueue() {
       const keepAnaph = !!existing && q.type !== 'intake' && !q.anaphCleared && (doorIsAnaphResident(existing));
       r.isAnaph = !!q.isAnaph || keepAnaph;
       if (q.anaphCleared) r.anaphTags = [];
+      // A new intake over an occupied room is a new person: nothing anaphylactic carries from the last resident (2026-10-18).
+      if (q.type === 'intake' && existing) { r.anaphTags = []; r.isModerate = false; r.moderateNote = ''; r.serviceNote = ''; }
       if (q.notes) r.serviceNote = dedupeServiceNote(r.serviceNote, q.notes);
       r.rawRestriction = q.tags.join(', ') || 'Regular';
       r.confirm = requiresDocumentation(q.tags) ? 'Provisional' : (q.tags.length && !q.tags.every(t => t === 'Regular') ? 'Confirmed' : 'N/A');
@@ -21970,6 +22009,10 @@ async function saveDirectFromForm() {
   r._tierMigrated = true;
   r.section = route || 'Regular';
   r.isAnaph = isAnaph;
+  // A new intake over an occupied room is a new person (2026-10-18): the last resident's picked anaphylactic tags,
+  // moderate allergy and service note stayed on the record, so a new resident switched on for peanuts was contained on
+  // the last one's coconut instead. Applying the Daily Entry queue already starts a fresh record.
+  if (type === 'intake' && existing) { r.anaphTags = []; r.isModerate = false; r.moderateNote = ''; r.serviceNote = ''; }
   if (notes) r.serviceNote = dedupeServiceNote(r.serviceNote, notes);
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
   r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
@@ -22176,7 +22219,9 @@ function computePlatingData(period, weekNum, dayName) {
   const halalSlots = dayData[period + '_slots'];
   const halalAllergenStr = (halalSlots && halalSlots.mainalt && (halalSlots.mainalt.recipeName || halalSlots.mainalt.manual))
     ? mergeVegAltAllergenFloor(getVegAltSlotAllergenStr(halalSlots, ['mainalt', 'starch', 'vegside', 'xtra']),
-        flagsToAllergenStr({ ...mealFlags, hasPork: false }).toUpperCase()) || null
+        flagsToAllergenStr({ ...mealFlags, hasPork: false }).toUpperCase())
+        // the halal plate has no pork, whatever a slot's copied ticks say (Wk4 FRI's "Tandoori Chicken" carries hasPork)
+        .split(',').map(t => t.trim()).filter(t => t && t.toUpperCase() !== 'PORK').join(', ') || null
     : null;
   const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr, noPorkAllergenStr: null, mealHalal: mealHalal};
 
@@ -23552,7 +23597,7 @@ function openDemoFile(filename, idx) {
     </tbody></table>`;
 
   } else if (fn.includes('label')) {
-    const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
+    const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t=>t==='Regular')) || doorIsAnaphResident(r)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));   // 813, as the real files (2026-10-18)
     tableHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;">
       ${restricted.map(r => {
         const bg = doorIsAnaphResident(r) ? '#ffcccc' : hasCarbAccommodation(r) ? '#d6f0dd' : '#fff';
@@ -23564,7 +23609,7 @@ function openDemoFile(filename, idx) {
     </div>`;
 
   } else if (fn.includes('restriction')) {
-    const restricted = REGISTRY_LIST.filter(r => r.tags && !r.tags.every(t=>t==='Regular')).sort((a,b)=>parseInt(a.room)-parseInt(b.room));
+    const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t=>t==='Regular')) || doorIsAnaphResident(r)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));   // 813, as the real files (2026-10-18)
     tableHtml = `<table><thead><tr><th>Room</th><th>Restrictions</th><th>Section</th><th>Status</th></tr></thead><tbody>
       ${restricted.map(r=>{
         const cls = doorIsAnaphResident(r) ? 'red' : r.isModerate ? 'amber' : '';

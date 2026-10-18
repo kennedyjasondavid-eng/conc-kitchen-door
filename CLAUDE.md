@@ -106,10 +106,19 @@ Every fork was ruled on its lean, in three rounds of questions. The import fixes
 - `tests/helpers/routing_oracle.mjs`: the reference model, written from the table.
 - `tag_table_consistency_gate` (7, red 5).
 - `routing_oracle_gate` (8, red 5): about 240 residents × 792 meals, with a mutation check.
-- `anaph_matrix_gate` (8, red 7).
-- `routing_replay_gate` (5, red 2): the published data through the real plating engine.
-- Re-pinned with dated notes: `shellfish_routing_lockout_gate` (No Molluscs routes), `special_meal_flags_gate` (`doorDatedMealFlags`), `door-smoke` (the preview stub), `menu_recipe_ticks_gate` (the ruled ticks).
-- Browser receipts (`tests/browser/`, not in CI): the replay found 0 disagreements over 14,028 resident × meal rows; the walkthrough is 42/42 at 1280 and 390 px.
+- `anaph_matrix_gate` (12, red 11).
+- `routing_replay_gate` (6, red 3): the published data through the real plating engine.
+- Re-pinned with dated notes: `shellfish_routing_lockout_gate` (No Molluscs routes), `special_meal_flags_gate` (`doorDatedMealFlags`), `door-smoke` (the preview stub), `menu_recipe_ticks_gate` (the ruled ticks), `publish_menu_ask_gate` (`doorDateKey`).
+- Browser receipts (`tests/browser/`, not in CI): the replay found 0 disagreements over 14,028 resident × meal rows; the walkthrough is 51/51 at 1280 and 390 px, in Toronto time.
+
+**Independent review: FIX-BEFORE-SHIP, folded** (rules doc §10):
+- editing a queued Intake Portal item lost its anaphylactic toggle and tags;
+- a new intake over an occupied room kept the last resident's picked anaphylactic tags;
+- the queue editor's uncheck was ignored;
+- Wk4 FRI's halal plate said PORK;
+- after 8 pm, today's swap was pruned by the UTC date and the prune published;
+- today's sections read the built-in list;
+- the P3s.
 
 **Downstream (A7).** EXPO and HUB read only the Regular, Halal and Vegan counts and `_components`, so the new labels are ignored safely, and neither reads the anaphylactic flag. **Neither reads swaps:** EXPO's board still plans the rotation meal on a swap day.
 
@@ -136,7 +145,7 @@ Every fork was ruled on its lean, in three rounds of questions. The import fixes
   - `restriction_short_codes_gate` (6, red 5/6; the sixth is the whole-word lock): GF / DF however written, no over-reading, short words asked, every published restriction, and the import's diff.
   - `lactose_no_dairy_gate` (8, red 7/8; the routing lock passes on `main`): every No Dairy rule reads Lactose Intolerant alike, the conflict, the one note, the import's tags and section guess, the documentation tier, review on import, and no proposals on today's list.
 
-  Suite 397 → 411; with the audit, 397 → 440.
+  Suite 397 → 411; with the audit, 397 → 445.
 
 ## Recent (2026-10-18) — a shellfish meal routes and contains like a fish meal; every anaphylactic tag DOOR can flag is contained (`v31-standard.31`)
 Jason, 2026-10-18: "follow your lean on routing and lockout", on the `v31-standard.30` finding (the entry below), then "clean up anything else you see here before merging this pr" and, on anaphylactic tags, "every tag with a flag". Since .30 a CODEX shrimp or mussel recipe sets `hasShellfish` on its meal, but routing, lockout, special meals and the workbook import still keyed seafood on `hasFish` or dropped it.

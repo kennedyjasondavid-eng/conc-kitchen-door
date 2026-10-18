@@ -135,3 +135,10 @@ test('room 213 is contained meal by meal on the 9 published meals with tree nuts
   assert.deepEqual(contained, ['W1 FRI dinner', 'W1 MON dinner', 'W1 WED dinner', 'W2 MON dinner', 'W2 WED dinner', 'W3 FRI lunch',
     'W3 TUE dinner', 'W4 MON dinner', 'W4 SAT dinner']);
 });
+
+test('review P2: a halal plate never says PORK, whatever a slot\'s copied ticks say', () => {
+  const pork = MEALS.filter((m) => /\bPORK\b/.test(m.pd.ctx.halalAllergenStr || '')).map(tag);
+  assert.deepEqual(pork, []);
+  const w4fri = MEALS.find((m) => m.wk === '4' && m.day === 'FRIDAY' && m.period === 'dinner');
+  assert.ok(w4fri.pd.ctx.halalAllergenStr, 'Wk4 FRI dinner\'s halal plate (Tandoori Chicken) has a CONTAINS line');
+});
