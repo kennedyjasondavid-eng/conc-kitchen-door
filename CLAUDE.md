@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.39'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.42'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,7 +53,101 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — a room on the anaphylactic list whose restriction names none of its allergens is asked about at Generate (`v31-standard.39`)
+## Recent (2026-10-19) — a permanent menu change brings the new dish whole; an older allergen line no longer stops every publish (`v31-standard.42`)
+Found while copying the kitchen's alternatives (`.41`); Jason, 2026-10-19: "Do this task here". Root cause: every DOOR computer pulls the published `menu_current.json` in as its base menu (`concUploadedMenu`, whenever the cloud copy is newer), and the overlay is laid over it field by field (`mergeDoorMenuDataWithOverlay`). So a field deleted from the overlay comes back from the last publish.
+- **Make Permanent kept the old dish.** Both paths (the meal panel's swap tab, `makePermanent`, and the Active Swaps banner, `makeSwapPermanentFromBanner`) deleted the old dish's parts from the overlay. Measured on the published menu, making Wk3 TUE dinner "Beef Burger, Side Salad":
+  - the plating sheet still printed "Caribbean Chicken Curry, Naan": the old main item and sides came back and outrank the new name;
+  - the halal plate read "Halal Caribbean Chicken Curry, Naan";
+  - the old slots stayed, with their recipe links (EXPO and HUB read them) and the old vegan dish's allergens on the vegan plate.
+- **An older allergen line stopped every publish.** 26 of the 28 overlay days carry a copy of their meals' allergen line, which no screen kept up to date. After a Make Permanent, or a tick changed in Edit Menu or the meal panel's Edit Flags tab, that copy disagreed with the line the menu export rebuilds from the ticks. The publish check's `overlay-menu-conflict` is never overridable, so nothing was sent, resident list included ("Not sent — a data check found a problem…"). The overlay syncs to every computer, so one tick change could stop them all. **This is live on `main` today** (tested on `fdb907d`).
+- **Fixed:**
+  - One list of a dish's parts, `DOOR_DISH_PART_EMPTY`: its parts, slots, halal line and alternatives. A swap drops them (`doorApplyDatedMeal`, the same 15 fields as before).
+  - Both Make Permanent paths write the parts empty (`doorEmptyDishParts`: `''`, `[]`, `false`, and `null` for the slots, which DOOR and EXPO read as no slots). The meal then reads from its text, and Edit Menu shows "⟳ from menu text — save to link". A soft alternative typed on the panel is kept.
+  - Every overlay writer of a meal's ticks writes its allergen line with them (`doorSetMealFlags`): Edit Menu's save, Edit Flags and both Make Permanent paths.
+  - The publish check skips a meal's allergen line, which is derived from the ticks and rebuilt by the export. A contradictory dish still stops the send.
+  - "Restore the original" and "Reset this meal" clear every part of the meal (`doorClearOverlayMeal`). Before, they left `.41`'s emptied alternatives behind, so a restored meal lost its kitchen alternatives and soft plate.
+- **Gate:** `tests/make_permanent_whole_dish_gate.mjs` (6), red 6/6 on `4bedd9d`, run on the published menu and overlay:
+  - both paths: the merged day is the new dish, the plating sheet prints it, and nothing of the old dish reaches its plates;
+  - Restore brings back every part;
+  - the four tick writers;
+  - the publish check;
+  - the shared list, and the empty values read as none.
+
+  Re-pinned with dated notes: `kitchen_alternatives_gate` 9 (both paths through the shared list) and `routing_replay_gate` (the list in its harness). Suite 502 → 508.
+- **Checked in a real browser** at 1280 and 390 px:
+  - Make Permanent from the panel and from the banner: the sheet prints the new dish, Edit Menu shows the meal as read from its text, and the publish check passes;
+  - an Edit Menu and an Edit Flags tick change update the line, and the check passes;
+  - Restore before the next sync brings the whole original meal back;
+  - on `4bedd9d`, each of these stops the publish and the sheet keeps the old dish;
+  - no page errors.
+- **Found, for Jason (not changed):** "Restore the original" (meal panel) and "Reset this meal" (Edit Menu) only work until this computer's next sync after the change is published. Then the base menu holds the change, so restoring changes nothing. Edit Menu's question also names the current meal as the one it goes back to. Lean: the first change to a meal keeps the meal as it was, and restoring writes that back. It needs a ruling on what "the original" is.
+
+## Recent (2026-10-19) — the plating sheets follow the kitchen's alternatives (`v31-standard.41`)
+Jason, 2026-10-19, on the plating review's third question: "Copy the kitchen's". Each meal's alternatives are copied from the eight Oct 17 workbooks into DOOR's menu, and DOOR follows the kitchen on the five groupings it decided differently. Rules table: `docs/DOOR_ROUTING_RULES_2026-10-18.md` §2–§4 (dated 2026-10-19).
+- **The five groupings** (`computeSections`, `ROUTING_RULES`):
+  - **Diabetic / Low Carb:** a diabetic plate only on a meal with the kitchen's one (`<period>_diabeticAlt`, its whole-wheat wrap, bun, pita or pasta: 10 meals). Before, every starchy meal had one. Otherwise diabetics eat the regular plate; the Regular notes say "extra veg less starch" on a starchy meal (`doorRegularServiceNote`).
+  - **No Spicy / Bland Diet:** a bland plate only on a spicy meal with the kitchen's (`_blandAlt`: Wk1 MON and Wk3 TUE dinner, where the kitchen seats 310b on a plate it titles bland / no spicy). Otherwise the regular plate, and the Regular notes name "No Spicy": `formatConflictNote` now prints a routing restriction the meal sets off, where it printed nothing.
+  - **Soft Meals:** no soft plate on a meal the kitchen marks "no soft alternative needed" (`_altMealsNone`). Soft residents eat the regular plate, "soft" in the Regular notes; before, the soft plate read "<main> (suitable as-is)". On a pork meal with no soft plate they still join the halal plate: the kitchen seats its soft-only resident there on 6 of the 7 such meals.
+  - **No Dairy / Lactose Intolerant:** the kitchen's dairy-free version of the main (`_noDairyAlt`, 6 meals) as their own plate, else the vegan plate.
+  - **No Pork:** on the halal plate on pork only (`tagTriggers`). On meat that isn't halal-certified they eat the regular plate, as the kitchen serves the 19 rooms on Wk2 SAT's tenders; Halal residents keep the halal plate.
+- **The kitchen's dishes** (data; where most of a group sits on one manual alternative that isn't the vegan or halal plate):
+  - `gfAlt` 25 meals, `diabeticAlt` 10, `noDairyAlt` 6, `noEggAlt` 4, `anaphAlt` 4 (the anaphylactic plate's line), `blandAlt` 2;
+  - a soft plate on 21 meals (`_altMeals`, type soft) and "no soft alternative needed" on 25 non-pork meals (24 copied; Wk4 THU lunch already said so);
+  - 4 pork meals lose a plain alternative or a stale "none needed", so their soft residents join the halal plate as the kitchen seats them.
+
+  Wk4 WED dinner's sheet says FISH under a roast chicken plate (copied from another day): not copied. Halal and vegan lines are unchanged (EXPO and HUB read them).
+
+  Written through `saveMenuBaseOverlay` (days stamped) and rebuilt with the publish builders. Validation 0/0/0. `door_state` / `registry_summary` take only the stamp.
+- **Edit Menu:** an "Alternatives the kitchen makes" block (GF, diabetic, no dairy, no egg / mustard, bland, anaphylactic), filled when a meal opens (`doorFillKitchenAltInputs`). The preview opens the plates the sheet will (`doorEditorPlateFlags`), and so do the meal panel's Routing and Edit Flags previews (`doorAddKitchenPlateFlags`, the one reading the sheet and the routing file use). An emptied box is saved empty, not deleted: every DOOR computer pulls the published `menu_current.json` in as its base menu, so a deleted overlay field comes back from it. For the same reason a swap (`doorApplyDatedMeal`) and both Make Permanent paths clear the old dish's alternatives by writing them empty, with its "none needed" off.
+- **The routing file:** a plate's dishes split at commas outside brackets (`doorSplitDishes`), so `_components` no longer carries "Roasted Chicken and Vegetable strify (No Corn" or "Pasta (suitable as-is)". Over the cycle's lunches and dinners: Regular 6,991 → 7,518 portions, Halal 808 → 787 (Wk2 SAT tenders 56 → 38), Vegan 755 → 731 (No Dairy's own plate). EXPO reads these counts only for frozen-stock quantities (no EXPO change). The new menu fields are additive; EXPO never reads them.
+- **Against the manual sheets:**
+  - rooms seated on an alternative on one side and the regular plate on the other: 877 → 324 across the 56 meals (935 at the review);
+  - generic plate texts ("— modified", "— lightly seasoned", the default GF plate, "(suitable as-is)", the supervisor prompt): 143 → 33, 10 of them the anaphylactic "prepared separately" line.
+  - What remains: one-off plates (1007 "No Rice", 905 low potassium, 709 "No Sauce", 1215b until its tags are re-added), DOOR protecting where the kitchen doesn't (912 GF, 1115a lactose, 213 anaphylactic), the Wk3 THU hotdog's halal plate (23 rooms), and residents not on the manual sheets yet (1108, 1211, 516b).
+- **Gate:** `tests/kitchen_alternatives_gate.mjs` (9), red 9/9 on `2e37447` (#135's head): the five groupings, the plates' text, the published menu and overlay, every published meal opening the kitchen's plates, Edit Menu, swaps and Make Permanent, the dish split.
+  - Re-pinned with dated notes:
+    - `routing_oracle_gate`: the oracle's kitchen switches in the matrix (2,952 meals), the Regular line read as the sheet prints it, five new mutation checks;
+    - `routing_replay_gate`: a Regular-line check; 709's soft receipt reads the Regular notes too;
+    - `pork_day_bland_gate`, `low_carb_gate`;
+    - `door-smoke` (the slot summary harness), `legacy_slot_marker_gate` (a stub).
+  - Suite 492 → 502.
+- **Checked in a real browser** at 1280 and 390 px: Wk2 SUN lunch opens with its GF, diabetic and dairy-free boxes filled; an edit saves and an emptied box takes its plate off the sheet; Wk1 MON dinner's sheet shows the kitchen's bland plate and the Regular notes; no page errors.
+- **Found, not changed:** both Make Permanent paths also delete the old dish's `_slots`, `_mainItem`, `_sides`, `_mainAlt` and `_noPorkAlt`. These come back from the base menu the same way, so a meal made permanent keeps the old dish's slots and recipe links.
+- **Open for Jason:**
+  - the Wk3 THU hotdog: the kitchen makes a Halal Chicken Hotdog for 23 Halal residents, while DOOR reads the all-beef hotdog as halal-certified (ruled in July);
+  - 213 on the regular plate on coconut dinners in the manual sheets (DOOR contains it);
+  - 912's GF and 1115a's lactose plates, which the manual sheets don't make;
+  - Wk2 THU lunch, where the soft residents are split three ways and the sheet still asks for a soft alternative.
+
+## Recent (2026-10-19) — the plating review: the import keeps restrictions it can't read; 14 menu ticks (`v31-standard.40`)
+Jason, 2026-10-19: "review DOOR-created plating sheets vs our current working manual plating sheets". All 56 lunches and dinners were compared with the eight Oct 17 workbooks (the real DOOR page on the 11:59 publish, the CODEX feed and the shared Library). Then, on the leans: "Fix import; re-add 4 by hand", menu ticks "Add them all", alternatives "Copy the kitchen's" (its own PR).
+- **The import dropped four residents' restrictions on Sep 11.** 613a ("Gluten Free / No Sea Food") and 613b ("Halal / No Sea Foods") lost No Fish and No Shellfish, so DOOR has served them every fish meal since. 1207 ("… No Almond …") lost No Tree Nuts; 1215b ("No Caulilower/ Tomatoes / Cucumber / Broccoli") lost No Brassicas and No Nightshades. This was the roster catch-up import that also discharged 813 (git `86f2f0c` → `f812ad9`). Three causes:
+  - the parser couldn't read "Sea Food" or "Almond";
+  - a Needs Review answer was learned only as "map", without its tags, so the next import stayed quiet, read the row without them and proposed taking them off;
+  - every change started ticked, so one Add to queue took them off.
+- **Fixed:**
+  - "No Sea Food(s)" / "No Seafood" read as No Fish and No Shellfish, and a tree nut named by its kind (almond, cashew, walnut, pecan, pistachio, hazelnut, macadamia, Brazil nut) as No Tree Nuts;
+  - an answer keeps its tags (`learned_nr` `_tags`), and the next import reads that room's row with them (`doorApplyLearnedTags`);
+  - a removal starts unticked when the tag is an allergen or the row has words DOOR can't read (`doorImportRemovalHeld`, `doorImportDefaultSelections`), and the row says why ("Stays unless you tick it: …"). A row read in full still starts ticked (808, "Regular", loses No Pork);
+  - a reassignment keeps the moved resident's allergens.
+- **By hand, after this ships:** re-add No Fish + No Shellfish on 613a and 613b, No Tree Nuts on 1207, No Brassicas + No Nightshades on 1215b (Enter Changes, which reaches the other computer).
+- **Menu ticks (data):** 14 ticks the manual sheets' CONTAINS lines named and DOOR's menu didn't:
+  - Dairy: both burger lunches (Wk2 THU, Wk4 THU), Wk2 SAT tenders, Wk3 TUE Caribbean curry (naan);
+  - Egg: Wk2 SAT tenders, Wk2 WED oven-fried chicken, Wk4 WED Tuna Rex Salad;
+  - Beef: Wk2 SUN Philly; Gluten: Wk4 TUE al pastor tortillas; Coconut: Wk3 THU Pork Griot (coconut rice); Mustard: Wk1 MON and Wk2 TUE lunch;
+  - halal-certified: Wk2 FRI Arroz con Pollo and the Wk2 SUN Philly (the manual sheets make no halal plate for either; the Philly's beef tick would otherwise open one).
+
+  Written through `saveMenuBaseOverlay` (days stamped) with the main dish carrying each tick and the overlay's allergen line rewritten, then rebuilt with the publish builders. Validation 0/0/0. `door_state` / `registry_summary` take only the stamp.
+  - Routing moves only on the ticked meals: No Beef 704 and 901 to the vegan plate on the Philly; the No Dairy residents to the vegan plate on the dairy meals; No Eggs 304 and 412 to the no-egg plate; GF residents get the GF plate on the tacos; 213 is contained on the Pork Griot; Arroz loses its 56-room halal plate.
+  - Against the manual sheets: 935 → 877 rooms placed differently across the 56 meals. Two meals now differ more, both where DOOR protects and the manual sheet doesn't (its own CONTAINS names the allergen): No Eggs on Wk2 WED, No Dairy on Wk3 TUE dinner.
+- **Gates:** `tests/import_keeps_restrictions_gate.mjs` (5, red 5/5 on `main` `fdb907d`): the words, the Sep 11 replay, allergen removals held, learned tags, reassignment and the screen's wording. `tests/plating_review_ticks_gate.mjs` (2, red 2/2 on `main`'s data). Re-pinned with dated notes: `anaph_flag_everywhere_gate` (813 off the list since the Oct 19 Generate; it was red on `main`), `anaph_every_tag_gate` and `routing_replay_gate` (213 contained on 10 meals, the Griot added). Suite 485 → 492. Checked in a real browser at 1280 and 390 px: today's meal list over the four as DOOR held them on Sep 11 proposes only 1215b, both removals unticked; after Add to queue and Generate all four keep their tags; no page errors.
+- **Found, for Jason (the review's other findings):**
+  - the manual sheets leave 213 (anaphylactic: tree nuts, coconut) on the regular plate on four coconut dinners (Wk1 MON Jerk, Wk1 WED Butter Chicken, Wk2 WED Yetisse, Wk4 MON Fish Curry);
+  - 143 of DOOR's 232 alternatives print a placeholder, and DOOR's groupings differ from the kitchen's in five ways (diabetic, No Dairy, soft, No Spicy, No Pork on chicken that isn't halal-certified): the next PR copies the kitchen's;
+  - 27 vegan plates' CONTAINS name dairy, eggs or processed meat copied from the main dish;
+  - the Wk3 THU hotdog's manual sheet still makes a halal chicken hotdog (DOOR: all-beef, halal-certified, ruled in July).
+
+## Recent (2026-10-18) — a room on the anaphylactic list whose restriction names none of its allergens is asked about at Generate (`v31-standard.39`, merged via PR #134, `c6427fa`)
 Jason, 2026-10-18, on 813 (Regular on the Oct 19 meal list, still on the anaphylactic list): "shouldn't importing a list with 813 as a regular remove it from anaph list?", then "yes let's build that", leaving 813 on the list to try it.
 - **Why the import can't do it alone.** The meal list never says who is anaphylactic: none of the four listed rooms is marked so there (213 reads "No … Nuts … Coconut", 1213 "Allergic to Peanut"), and the list came from Health & Wellness. A "Regular" that took a room off would also let a line dropped by mistake end a resident's protection. And 813 drew no proposal at all: DOOR already had it as Regular, so the import had no change to show.
 - **Generate asks once** (`doorAskAnaphRoomsNamingNoAllergen`, after the discharge question): a room on the list whose restriction, as the queue will leave it, names none of the allergens it is anaphylactic to (`doorAnaphRoomsNamingNoAllergen`).

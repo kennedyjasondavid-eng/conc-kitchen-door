@@ -7,14 +7,18 @@ function between(a,b) { const start=html.indexOf(a); assert.ok(start>=0); const 
 const sb=vm.createContext({});
 vm.runInContext(between('const ROUTING_RULES = [','// ============================================================') + between('function computeSections(', 'let mcWeek =') + between('function hasCarbAccommodation(', 'function getTagLabels('), sb);
 const route=(tags,flags)=>vm.runInContext(`computeSections(${JSON.stringify(flags)}, [{room:'101',tags:${JSON.stringify(tags)}}]).find(s=>s.residents.length).rule.key`,sb);
+// Re-pinned 2026-10-19 (the plating review, Jason: "Copy the kitchen's"): the diabetic plate opens on a meal with the
+// kitchen's diabetic alternative (`_diabeticAlt`), not on every starchy meal; otherwise diabetics eat the regular plate.
+const DIAB = { _diabeticAlt: 'Whole Wheat Tortilla, Philly Cheese Melt' };
 test('low carb follows diabetic routing and retains higher-priority diets',()=>{
  for(const tags of [['Low Carb'],['Diabetic'],['Low Carb','Diabetic']]) {
-  assert.equal(route(tags,{isCarb:true}),'diabetic');
+  assert.equal(route(tags,{isCarb:true,...DIAB}),'diabetic');
+  assert.equal(route(tags,{isCarb:true}),'regular');
   assert.equal(route(tags,{isCarb:false}),'regular');
  }
- assert.equal(route(['Low Carb','Halal'],{isCarb:true,hasPork:true}),'halal');
- assert.equal(route(['Low Carb','Vegan'],{isCarb:true}),'vegan');
- assert.equal(route(['Low Carb','GF'],{isCarb:true,hasGluten:true}),'gf');
+ assert.equal(route(['Low Carb','Halal'],{isCarb:true,hasPork:true,...DIAB}),'halal');
+ assert.equal(route(['Low Carb','Vegan'],{isCarb:true,...DIAB}),'vegan');
+ assert.equal(route(['Low Carb','GF'],{isCarb:true,hasGluten:true,...DIAB}),'gf');
 });
 test('imports recognize low-carb variants without a diabetic diagnosis',()=>{
  const parser=vm.createContext({console,localStorage:{getItem:()=>null,setItem(){}},document:{getElementById:()=>null}});

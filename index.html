@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.39';
-const DOOR_BUILD_DATE = '2026-10-18';
+const DOOR_APP_VERSION = 'v31-standard.42';
+const DOOR_BUILD_DATE = '2026-10-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -2018,6 +2018,12 @@ function updateCODEXBadge() {
         <div>
           <div id="mc-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
           <div id="mc-alt-meals" style="margin-top:10px;"></div>
+          <!-- The kitchen's alternatives (2026-10-19, the plating review): the dish each plate gets. -->
+          <div id="mc-kitchen-alts" style="margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--forest-mid);margin-bottom:4px;">Alternatives the kitchen makes</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">The dish each plate gets. Leave a box empty when the kitchen makes no such plate: diabetics then eat the regular plate ("extra veg less starch"), No Dairy residents the vegan plate, and No Spicy residents the regular plate, noted "No Spicy".</div>
+            <div id="mc-kitchen-alt-fields" style="display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 8px;align-items:center;font-size:12px;"></div>
+          </div>
           <div class="amber-panel" style="margin-top:14px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;">
             <div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px;">Meal Allergens &amp; Flags</div>
             <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
@@ -9430,10 +9436,26 @@ function formatConflictNote(conflicts) {
   if (!conflicts || !conflicts.length) return '';
   const allergens = conflicts.filter(c => c.tier === 'allergen').map(c => c.tag);
   const accoms = conflicts.filter(c => c.tier === 'accommodation').map(c => c.tag);
+  // A routing restriction the meal sets off on a Regular resident: No Spicy or Bland Diet on a spicy meal with no bland
+  // plate (2026-10-19, the plating review: the kitchen serves them the regular plate). It printed nothing, so the row
+  // read as an unmodified regular plate.
+  const restrictions = conflicts.filter(c => c.tier === 'restriction').map(c => c.tag);
   const parts = [];
   if (allergens.length) parts.push('⚠ ' + allergens.join(', '));
+  if (restrictions.length) parts.push(restrictions.join(', '));
   if (accoms.length) parts.push(accoms.join(', '));
   return parts.join(' · ');
+}
+
+// A Regular resident's service note (2026-10-19, the plating review): "extra veg less starch" for Low Carb, and for a
+// diabetic on a starchy meal (the kitchen makes a diabetic plate on few meals; diabetics otherwise eat the regular
+// plate), "soft" for a soft resident on a meal the kitchen marks "no soft alternative needed", then the resident's own
+// service note. Both plating sheets and the editor's test sheet read it.
+function doorRegularServiceNote(r, mealFlags) {
+  const t = (r && r.tags) || [], f = mealFlags || {};
+  const carb = t.includes('Low Carb') || (t.includes('Diabetic') && !!f.isCarb);
+  const soft = t.includes('Soft Meals') && !!f._altMealsNone;
+  return [carb ? 'extra veg less starch' : '', soft ? 'soft' : '', r && r.serviceNote].filter(Boolean).join(' · ');
 }
 
 function getRoomBase(room) {
@@ -9644,6 +9666,8 @@ function nrDoneReview(room) {
     // Store the full raw text as the primary resolution key — if the same text
     // appears on next import, the room is skipped entirely (no token matching needed)
     learned[roomKey]['_resolved_text'] = nrItem2.text.toLowerCase().trim();
+    // The tags this answer gave (2026-10-19): the next import reads the row with them (doorApplyLearnedTags).
+    learned[roomKey]['_tags'] = pending.filter(d => d.action === 'map' && d.value && TAG_LABELS_MAP[d.value]).map(d => d.value);
     // Also store individual tokens (both raw text splits and unmatched fragments)
     // as fallback for partial matching
     nrItem2.text.split(/[\/,()]/).map(t => t.trim()).filter(Boolean).forEach(tok => {
@@ -12925,6 +12949,21 @@ function buildRegistrySummaryJSON() {
   };
 }
 
+// A plate's dishes, split at the commas between them, not inside brackets: the kitchen's "Roasted Chicken and Vegetable
+// stirfry (No Corn, No Sauce or Beans), Rice" is two dishes, not three (2026-10-19, the kitchen's alternatives).
+function doorSplitDishes(text) {
+  const out = [];
+  let depth = 0, cur = '';
+  for (const ch of String(text || '')) {
+    if (ch === '(') depth++;
+    else if (ch === ')' && depth > 0) depth--;
+    if (ch === ',' && depth === 0) { out.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map(x => x.trim()).filter(Boolean);
+}
+
 function buildRoutingByMealJSON() {
   const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
@@ -12960,7 +12999,7 @@ function buildRoutingByMealJSON() {
           });
           if (pd.anaphSect.length > 0) counts['Anaphylactic Alternative'] = pd.anaphSect.length;
         } else {
-          const mealFlags = dayData[period+'_flags'] || emptyFlags;
+          const mealFlags = doorAddKitchenPlateFlags({ ...(dayData[period+'_flags'] || emptyFlags) }, dayData, period);
           // Anaphylactic pre-processing: separate conflict rooms from routing pool, per period.
           const conflictRooms = getAnaphConflictRooms(mealFlags, emptyFlags);
           const routingRegistry = REGISTRY_LIST.filter(r => !conflictRooms.has(r.room));
@@ -12992,10 +13031,10 @@ function buildRoutingByMealJSON() {
               // modified_main / bland_alt sections eat the main meal's
               // components; getAltMeal appends a display suffix that
               // would corrupt the last component name.
-              const mealStr = (at === 'modified_main' || at === 'bland_alt')
+              const mealStr = (at === 'modified_main' || at === 'diabetic_alt' || (at === 'bland_alt' && !pd.ctx.blandAlt))
                 ? pd.ctx.mealName
                 : getAltMeal(at, pd.ctx);
-              String(mealStr || '').split(/,\s*/).forEach(c => {
+              doorSplitDishes(mealStr).forEach(c => {
                 const name = c.trim();
                 if (!name || name.includes('[')) return; // skip supervisor placeholders
                 const canon = compKey[name.toLowerCase()] || (compKey[name.toLowerCase()] = name);
@@ -13358,6 +13397,10 @@ function validateDoorMenuOverlayArtifact(artifactName, overlay, menuArtifact, is
         return;
       }
       Object.keys(node).forEach(function(field) {
+        // A meal's allergen line is derived from its ticks and the menu export rebuilds it, so an older copy in the
+        // overlay contradicts nothing (2026-10-19: one stopped every publish, resident list included, after a tick change
+        // in Edit Menu or a Make Permanent; the overlay writers now write it with the ticks).
+        if (field.indexOf('allergens_') === 0) return;
         const value = node[field];
         const canonical = menu[weekKey] && menu[weekKey][dayKey] ? menu[weekKey][dayKey][field] : undefined;
         if (typeof value === 'string' && value && typeof canonical === 'string' && canonical !== value) {
@@ -15381,7 +15424,10 @@ function computeBaseSections() {
 // tagTriggers = optional {tag: [flags]}: that tag sits here only when one of its own flags is on
 const ROUTING_RULES = [
   {p:1,  key:'vegan',   label:'Vegan / Vegetarian', tags:['Vegan','Vegetarian'],   always:true,                    altType:'vegan_alt'},
-  {p:2,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef','hasChicken','hasTurkey'], altType:'halal_alt'},
+  // No Pork sits on the halal plate only on a pork meal (2026-10-19, the plating review; Jason: "Copy the kitchen's"): on
+  // chicken, beef or turkey that isn't halal-certified the kitchen serves No Pork residents the regular plate (19 rooms
+  // on Wk2 SAT's tenders).
+  {p:2,  key:'halal',   label:'Halal',              tags:['Halal','No Pork'],      triggers:['hasPork','hasBeef','hasChicken','hasTurkey'], tagTriggers:{'No Pork':['hasPork']}, altType:'halal_alt'},
   {p:2.5, key:'no_processed', label:'No Processed Food', tags:['No Processed Food'], triggers:['hasProcessedMeat'], altType:'noproc_alt'},
   // A shellfish meal opens No Fish / Shellfish too (2026-10-18, Jason: "follow your lean on routing and lockout"): a CODEX
   // shrimp or mussel recipe ticks hasShellfish without hasFish, and the section's No Shellfish residents stayed on Regular.
@@ -15389,11 +15435,20 @@ const ROUTING_RULES = [
   // contained but kept the regular plate. On a fish meal too, as No Shellfish does: older menus tick seafood as Fish.
   {p:3,  key:'no_fish', label:'No Fish / Shellfish', tags:['No Fish','No Shellfish','No Molluscs'], triggers:['hasFish','hasShellfish'], altType:'vegan_alt', mergeInto:'vegan'},
   {p:4,  key:'gf',      label:'Gluten Free',        tags:['GF'],                   triggers:['hasGluten'],         altType:'gf_alt'},
-  {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy','Lactose Intolerant'], triggers:['hasDairy'], altType:'vegan_alt', mergeInto:'vegan'},
+  // A meal with a dairy-free version of the main (`<period>_noDairyAlt`, the kitchen's) gives No Dairy its own plate;
+  // otherwise No Dairy eats the vegan plate (2026-10-19, the plating review).
+  {p:5,  key:'no_dairy',label:'No Dairy',           tags:['No Dairy','Lactose Intolerant'], triggers:['hasDairy'], altType:'nodairy_alt', mergeInto:'vegan'},
   {p:6,  key:'no_beef', label:'No Beef',            tags:['No Beef'],              triggers:['hasBeef'],           altType:'vegan_alt', mergeInto:'vegan'},
-  {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic','Low Carb'],             triggers:['isCarb'],            altType:'modified_main'},
+  // A diabetic plate only on a meal that has one (`<period>_diabeticAlt`: the kitchen's whole-wheat wrap, bread or
+  // pasta) (2026-10-19, the plating review). Otherwise diabetics eat the regular plate, "extra veg less starch" on a
+  // starchy meal, as the manual sheets do ("Diabetics - more veg, less starch").
+  {p:7,  key:'diabetic',label:'Diabetic',           tags:['Diabetic','Low Carb'],             triggers:['isCarb'],            altType:'diabetic_alt'},
   // Bland Diet is No Spicy (2026-10-18, Jason: "Bland Diet routes as No Spicy"): a routing tag no section listed.
+  // A bland plate only on a spicy meal that has one (`<period>_blandAlt`); otherwise No Spicy residents eat the regular
+  // plate, "not spicy" on their line (2026-10-19, the plating review).
   {p:8,  key:'bland',   label:'Bland',              tags:['No Spicy','Bland Diet'], triggers:['isSpicy'],          altType:'bland_alt'},
+  // Not on a meal the kitchen marks "no soft alternative needed" (`<period>_altMealsNone`): soft residents eat the
+  // regular plate, "soft" on their line (2026-10-19, the plating review).
   {p:9,  key:'soft',    label:'Soft Meals',         tags:['Soft Meals'],           always:true,                    altType:'soft'},
   // No Mustard joins No Egg / Mustard on a mustard meal (2026-10-18, Jason: "No Mustard joins No Egg/Mustard"); the
   // section opened on egg only. tagTriggers: each tag sits here only when its own flag is on, so a No Eggs resident
@@ -15539,8 +15594,12 @@ function getAltMeal(altType, ctx) {
       // Default GF alternative — same plain-protein dish whether or not pork
       // is involved. Replaces the older "Gluten free alternative" placeholder.
       return 'Plain Roasted Chicken, Plain Rice \u0026 Stir-fried Veg';
-    case 'bland_alt':     return ctx.mealName + ' — lightly seasoned';
+    // The kitchen's alternatives for the meal (2026-10-19, the plating review), else as before.
+    case 'bland_alt':     return (ctx && ctx.blandAlt) || (ctx.mealName + ' — lightly seasoned');
+    case 'diabetic_alt':  return (ctx && ctx.diabeticAlt) || getAltMeal('modified_main', { ...ctx, noEggAlt: '' });
+    case 'nodairy_alt':   return (ctx && ctx.noDairyAlt) || ctx.mealVeg || 'Vegan / vegetarian alternative';
     case 'modified_main': {
+      if (ctx && ctx.noEggAlt) return ctx.noEggAlt;
       // 2026-05-19: only emit the "(no egg/mustard)" suffix when the meal
       // actually contains those allergens. Previously hard-coded — produced
       // "Pork Vindaloo … — modified (no egg/mustard)" in the Diabetic block
@@ -15580,6 +15639,76 @@ function getAltMeal(altType, ctx) {
   }
 }
 
+// The kitchen's alternatives for one meal (2026-10-19, the plating review; Jason: "Copy the kitchen's"): copied from the
+// manual plating sheets into the menu as `<period>_diabeticAlt`, `_noDairyAlt`, `_blandAlt`, `_noEggAlt` and
+// `_anaphAlt`, beside the existing `_gfAlt` and `_softAlt`. Each is the dish that plate gets; empty when the kitchen
+// makes none.
+const DOOR_KITCHEN_ALT_FIELDS = ['diabeticAlt', 'noDairyAlt', 'blandAlt', 'noEggAlt', 'anaphAlt'];
+// The parts of a meal that belong to its dish: its parts and slots, its halal line and its alternatives (2026-10-19).
+// A swap's dish brings none of them (doorApplyDatedMeal), and a permanent change writes them empty, with these values:
+// every DOOR computer's base menu is the last published one, so a part deleted from the overlay came back from it, and
+// the plating sheet went on printing the old dish (its main item and sides), its slots kept their recipe links and the
+// vegan plate the old vegan dish's allergens.
+const DOOR_DISH_PART_EMPTY = Object.assign({
+  _mainItem: '', _mainAlt: '', _sides: '', _halal: '', _softAlt: '', _noPorkAlt: '', _gfAlt: '', _altMeals: [], _altMealsNone: false, _slots: null,
+}, Object.fromEntries(DOOR_KITCHEN_ALT_FIELDS.map(k => ['_' + k, ''])));
+function doorEmptyDishParts(day, period) {
+  Object.keys(DOOR_DISH_PART_EMPTY).forEach(k => { const v = DOOR_DISH_PART_EMPTY[k]; day[period + k] = Array.isArray(v) ? [] : v; });
+}
+// A meal's allergen line is derived from its ticks: the menu export rebuilds it from them (buildMenuJSON). Every overlay
+// writer of a meal's ticks writes the line with them, so the overlay never keeps an older copy (2026-10-19: one older
+// copy stopped every publish, resident list included, at the publish check's overlay-menu-conflict).
+function doorSetMealFlags(day, period, flags) {
+  day[period + '_flags'] = flags;
+  day['allergens_' + period] = flagsToMenuAllergens(flags);
+}
+// Taking a meal back to the base menu's: its name, ticks, allergen line and every part of its dish (2026-10-19).
+function doorClearOverlayMeal(day, period) {
+  ['', '_veg', '_flags'].concat(Object.keys(DOOR_DISH_PART_EMPTY)).forEach(k => { delete day[period + k]; });
+  delete day['allergens_' + period];
+}
+function doorKitchenAlternatives(dayData, period) {
+  const out = {};
+  DOOR_KITCHEN_ALT_FIELDS.forEach(k => { const v = dayData && dayData[period + '_' + k]; out[k] = typeof v === 'string' ? v.trim() : ''; });
+  return out;
+}
+// The plates the kitchen makes for one meal, as routing reads them: its diabetic, dairy-free and bland alternatives,
+// and "no soft alternative needed". The plating sheet, the routing file and the menu screens' previews all add them.
+function doorAddKitchenPlateFlags(mealFlags, dayData, period) {
+  const ka = doorKitchenAlternatives(dayData, period);
+  if (ka.diabeticAlt) mealFlags._diabeticAlt = ka.diabeticAlt;
+  if (ka.noDairyAlt) mealFlags._noDairyAlt = ka.noDairyAlt;
+  if (ka.blandAlt) mealFlags._blandAlt = ka.blandAlt;
+  if (dayData && dayData[period + '_altMealsNone'] === true) mealFlags._altMealsNone = true;
+  return mealFlags;
+}
+
+// Edit Menu's "Alternatives the kitchen makes" (2026-10-19): filled when a meal opens, read by the preview and saved.
+const DOOR_KITCHEN_ALT_LABELS = { gfAlt: 'Gluten free', diabeticAlt: 'Diabetic', noDairyAlt: 'No dairy', noEggAlt: 'No egg / mustard', blandAlt: 'Bland (no spicy)', anaphAlt: 'Anaphylactic' };
+function doorFillKitchenAltInputs(dayData, period) {
+  const box = document.getElementById('mc-kitchen-alt-fields');
+  if (!box) return;
+  box.innerHTML = Object.keys(DOOR_KITCHEN_ALT_LABELS).map(k =>
+    '<label for="mc-kalt-' + k + '">' + escapeHtml(DOOR_KITCHEN_ALT_LABELS[k]) + '</label>' +
+    '<input id="mc-kalt-' + k + '" class="form-input" style="font-size:12px;padding:5px 8px;" oninput="updateSlotSummary()" value="' + _escAttr((dayData && dayData[period + '_' + k]) || '') + '">').join('');
+}
+// The editor's preview opens the plates the sheet will (2026-10-19): the kitchen's alternatives and "none needed".
+function doorEditorPlateFlags(flags) {
+  if (typeof testMealActive === 'undefined' || !testMealActive) {
+    const ka = doorKitchenAltInputValues();
+    if (ka.diabeticAlt) flags._diabeticAlt = ka.diabeticAlt;
+    if (ka.noDairyAlt) flags._noDairyAlt = ka.noDairyAlt;
+    if (ka.blandAlt) flags._blandAlt = ka.blandAlt;
+  }
+  if (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE) flags._altMealsNone = true;
+  return flags;
+}
+function doorKitchenAltInputValues() {
+  const out = {};
+  Object.keys(DOOR_KITCHEN_ALT_LABELS).forEach(k => { const el = document.getElementById('mc-kalt-' + k); if (el) out[k] = el.value.trim(); });
+  return out;
+}
+
 function computeSections(mealFlags, registry) {
   const sortR = (a,b) => {
     const na = parseInt(a.room), nb = parseInt(b.room);
@@ -15600,6 +15729,10 @@ function computeSections(mealFlags, registry) {
   const activeKeys = new Set(
     ROUTING_RULES
       .filter(r => {
+        // The plating review (2026-10-19): the soft, diabetic and bland plates follow the kitchen's alternatives.
+        if (r.key === 'soft') return !mealFlags._altMealsNone;
+        if (r.key === 'diabetic') return !!mealFlags._diabeticAlt;
+        if (r.key === 'bland') return !!mealFlags.isSpicy && !!mealFlags._blandAlt;
         if (r.always) return true;
         if (!r.triggers) return false;
         // Halal section: any meat triggers if NOT halal-certified; pork always triggers
@@ -15629,8 +15762,10 @@ function computeSections(mealFlags, registry) {
   });
 
   // Handle mergeInto — move residents from merged section into target pool
+  // No Dairy keeps its own plate when the meal has a dairy-free version of the main (2026-10-19).
+  const keepsOwnPlate = (rule) => rule.key === 'no_dairy' && !!(mealFlags && mealFlags._noDairyAlt);
   ROUTING_RULES.forEach(rule => {
-    if (rule.mergeInto && activeKeys.has(rule.key) && pools[rule.key].length > 0) {
+    if (rule.mergeInto && !keepsOwnPlate(rule) && activeKeys.has(rule.key) && pools[rule.key].length > 0) {
       pools[rule.mergeInto].push(...pools[rule.key]);
       pools[rule.key] = [];
     }
@@ -15690,7 +15825,7 @@ function computeSections(mealFlags, registry) {
   const result = [];
   ROUTING_RULES.forEach(rule => {
     if (!activeKeys.has(rule.key)) return;
-    if (rule.mergeInto) return; // these residents now in target pool
+    if (rule.mergeInto && !keepsOwnPlate(rule)) return; // these residents now in target pool
     if (rule.key !== 'regular' && pools[rule.key].length === 0) return;
     const entry = { rule, residents: pools[rule.key] };
     if (_mergedInto[rule.key]) entry._mergedLabels = _mergedInto[rule.key];
@@ -15876,9 +16011,9 @@ function openMealEdit(week, day, period) {
   document.getElementById('mc-edit-context').textContent = `Week ${week} — ${day.charAt(0)+day.slice(1).toLowerCase()} ${period.charAt(0).toUpperCase()+period.slice(1)}`;
   document.getElementById('mc-edit-title').textContent = (dayData[period] || '—') + titleSuffix;
 
-  // --- Routing tab: current meal's flags (read-only) ---
+  // --- Routing tab: current meal's flags (read-only), with the plates the kitchen makes for it (2026-10-19) ---
   const currentVeg = dayData[period+'_veg'] || '';
-  renderRoutingTab(flags, currentVeg);
+  renderRoutingTab(doorAddKitchenPlateFlags({ ...flags }, dayData, period), currentVeg);
 
   // --- Swap tab: populate form ---
   let nameVal = '', vegVal = '', swapFlags = flags;
@@ -16203,8 +16338,7 @@ function doorDatedMealFor(week, dayName, period) {
 // dish, so they don't carry over.
 function doorApplyDatedMeal(dayData, period, dated) {
   const d = { ...(dayData || {}) };
-  ['_mainItem', '_mainAlt', '_sides', '_halal', '_softAlt', '_noPorkAlt', '_gfAlt', '_altMeals', '_altMealsNone', '_slots']
-    .forEach(k => { delete d[period + k]; });
+  Object.keys(DOOR_DISH_PART_EMPTY).forEach(k => { delete d[period + k]; });
   delete d['allergens_' + period];
   d[period] = dated.name;
   d[period + '_veg'] = dated.entry.veg || '';
@@ -16673,7 +16807,10 @@ function doorSectionAllergenStr(s, pd) {
     }
     return allergenStr;
   }
-  if (at === 'bland_alt') return allergenStr;
+  if (at === 'bland_alt') return ctx && ctx.blandAlt ? null : allergenStr;
+  // A diabetic plate is the main dish in its whole-wheat version; a dairy-free one is the main without its dairy.
+  if (at === 'diabetic_alt') return allergenStr;
+  if (at === 'nodairy_alt') return allergenStr.split(',').map(a => a.trim()).filter(a => a && !/dairy|milk|lactose/i.test(a)).join(', ') || null;
   if (at === 'vegan_alt') return vegAllergenStr;
   if (at === 'halal_alt') return ctx.halalAllergenStr || null;
   if (at === 'nopork_alt') return ctx.noPorkAllergenStr || null;
@@ -16860,18 +16997,12 @@ async function makePermanent() {
   if (!overlay[String(week)][day]) overlay[String(week)][day] = {};
   overlay[String(week)][day][period] = name;
   overlay[String(week)][day][period + '_veg'] = veg;
-  overlay[String(week)][day][period + '_flags'] = flags;
-  overlay[String(week)][day][period + '_softAlt'] = softAlt;
-  // Make Permanent doesn't know the slot breakdown, so clear any stale granular
-  // fields from a prior Edit Menu save. computePlatingData falls back to the
-  // top-level meal string when these are absent.
-  delete overlay[String(week)][day][period + '_mainItem'];
-  delete overlay[String(week)][day][period + '_mainAlt'];
-  delete overlay[String(week)][day][period + '_sides'];
-  delete overlay[String(week)][day][period + '_slots'];
-  delete overlay[String(week)][day][period + '_noPorkAlt'];
-  delete overlay[String(week)][day][period + '_altMeals'];
-  delete overlay[String(week)][day][period + '_altMealsNone'];
+  // The new dish comes whole (2026-10-19): Make Permanent doesn't know its slot breakdown, so the old dish's parts, slots,
+  // halal line and alternatives are written empty (not deleted: they came back from the base menu) and the allergen line
+  // follows the new ticks. The meal reads from its text until it is saved in Edit Menu.
+  doorEmptyDishParts(overlay[String(week)][day], period);
+  doorSetMealFlags(overlay[String(week)][day], period, flags);
+  overlay[String(week)][day][period + '_softAlt'] = softAlt;   // the panel's soft alternative
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing one-time swap for this slot (every upcoming one: 2026-10-18)
@@ -16926,15 +17057,8 @@ async function revertMealSwap() {
     hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
   }
   if (hasPermanent) {
-    delete overlay[String(week)][day][period];
-    delete overlay[String(week)][day][period + '_veg'];
-    delete overlay[String(week)][day][period + '_flags'];
-    delete overlay[String(week)][day][period + '_softAlt'];
-    delete overlay[String(week)][day][period + '_noPorkAlt']; // v30
-    delete overlay[String(week)][day][period + '_mainItem']; // v30
-    delete overlay[String(week)][day][period + '_mainAlt']; // v30
-    delete overlay[String(week)][day][period + '_sides']; // v30
-    delete overlay[String(week)][day][period + '_slots']; // v30
+    // Every part of the meal goes, so none of what a permanent change wrote empty stays behind (2026-10-19).
+    doorClearOverlayMeal(overlay[String(week)][day], period);
     // Clean up empty day/week objects
     if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
     if (!Object.keys(overlay[String(week)]).length) delete overlay[String(week)];
@@ -17108,6 +17232,11 @@ function updateEditFlagsPreview() {
   FLAG_DEFS.forEach(f => { flags[f.key] = document.getElementById('mc-ef-' + f.key)?.checked || false; });
   const el = document.getElementById('mc-editflags-section-preview');
   if (!el) return;
+  // The rotation meal's own plates come with it (2026-10-19, the kitchen's alternatives).
+  if (mcEditKey) {
+    const [wkStr, day, period] = mcEditKey.split('-');
+    doorAddKitchenPlateFlags(flags, (getMenuData()[wkStr] || {})[day] || {}, period);
+  }
   const sections = computeSections(flags, REGISTRY_LIST);
   const dk = document.documentElement.getAttribute('data-theme')==='dark';
   el.innerHTML = sections.map(s => {
@@ -17139,7 +17268,7 @@ function saveEditFlags() {
   const overlay = loadMenuBaseOverlay();
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
-  overlay[week][day][period + '_flags'] = flags;
+  doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
 
   // Save soft alt if present
   const softVal = (document.getElementById('mc-editflags-softalt')?.value || '').trim();
@@ -17161,7 +17290,7 @@ function saveEditFlags() {
   // Refresh routing tab and grid
   const wkData = getMenuData()[week];
   const dayData = wkData[day] || {};
-  renderRoutingTab(flags, dayData[period + '_veg'] || '');
+  renderRoutingTab(doorAddKitchenPlateFlags({ ...flags }, dayData, period), dayData[period + '_veg'] || '');
   renderMenuConfig();
 
   // Publish if sync is configured
@@ -17290,18 +17419,10 @@ async function makeSwapPermanentFromBanner(swapKey) {
   if (!overlay[String(week)][dayName]) overlay[String(week)][dayName] = {};
   overlay[String(week)][dayName][period] = sw.specialName;
   overlay[String(week)][dayName][period + '_veg'] = sw.veg || '';
-  overlay[String(week)][dayName][period + '_flags'] = sw._flagsRaw || {};
-  // Make Permanent doesn't know the slot breakdown, so clear any stale granular
-  // fields from a prior Edit Menu save. computePlatingData falls back to the
-  // top-level meal string when these are absent.
-  delete overlay[String(week)][dayName][period + '_mainItem'];
-  delete overlay[String(week)][dayName][period + '_mainAlt'];
-  delete overlay[String(week)][dayName][period + '_sides'];
-  delete overlay[String(week)][dayName][period + '_slots'];
-  delete overlay[String(week)][dayName][period + '_noPorkAlt'];
-  delete overlay[String(week)][dayName][period + '_softAlt'];
-  delete overlay[String(week)][dayName][period + '_altMeals'];
-  delete overlay[String(week)][dayName][period + '_altMealsNone'];
+  // The swap's dish comes whole (2026-10-19), as in makePermanent: the old dish's parts written empty, the allergen
+  // line from the swap's ticks.
+  doorEmptyDishParts(overlay[String(week)][dayName], period);
+  doorSetMealFlags(overlay[String(week)][dayName], period, sw._flagsRaw || {});
   saveMenuBaseOverlay(overlay);
 
   // Remove the swap (permanent supersedes)
@@ -18721,6 +18842,7 @@ function updateSlotSummary() {
   const vegFlags = buildVegAltFlags();
   flags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard;
   flags._altMeals = buildAltMeals();
+  doorEditorPlateFlags(flags);
   const prevId = testMealActive ? 'tm-section-preview' : 'mc-menu-edit-preview';
   const prev = document.getElementById(prevId);
   if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
@@ -19287,10 +19409,13 @@ function _finishMenuSave(name, veg, flags) {
   if (!overlay[week][day]) overlay[week][day] = {};
   overlay[week][day][period]              = name;
   overlay[week][day][period + '_veg']     = veg;
-  overlay[week][day][period + '_flags']   = flags;
+  doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
   overlay[week][day][period + '_altMeals'] = buildAltMeals();
   overlay[week][day][period + '_altMealsNone'] = !!ALT_MEALS_NONE;
+  // The kitchen's alternatives (2026-10-19): an emptied box takes that plate off the meal. It is saved empty, not
+  // deleted: every DOOR computer's base menu is the last published one, so a deleted field would come back from it.
+  Object.entries(doorKitchenAltInputValues()).forEach(([k, v]) => { overlay[week][day][period + '_' + k] = v; });
   overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
   overlay[week][day][period + '_mainItem'] = buildMainItem(); // v30
   overlay[week][day][period + '_mainAlt'] = buildMainAltItem(); // v30
@@ -19337,15 +19462,7 @@ async function revertMenuEdit() {
   const fresh = loadMenuBaseOverlay();
   if (fresh[week] && fresh[week][day] && (period in fresh[week][day])) {
     const overlay = fresh;
-    delete overlay[week][day][period];
-    delete overlay[week][day][period + '_veg'];
-    delete overlay[week][day][period + '_flags'];
-    delete overlay[week][day][period + '_softAlt'];
-    delete overlay[week][day][period + '_noPorkAlt']; // v30
-    delete overlay[week][day][period + '_mainItem']; // v30
-    delete overlay[week][day][period + '_mainAlt']; // v30
-    delete overlay[week][day][period + '_sides']; // v30
-    delete overlay[week][day][period + '_slots']; // v30
+    doorClearOverlayMeal(overlay[week][day], period);   // every part of the meal (2026-10-19)
     if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
     if (!Object.keys(overlay[week]).length) delete overlay[week];
     saveMenuBaseOverlay(overlay);
@@ -19473,6 +19590,7 @@ function openMenuEdit(week, day, period) {
   }
   // Restore the "none required" affirmation so the prompt doesn't re-fire on every re-open.
   ALT_MEALS_NONE = !!((existing && existing.altMealsNone) || dayData[period + '_altMealsNone']);
+  doorFillKitchenAltInputs(dayData, period);
   ALT_FLAGS_EXPANDED.clear();
 
   // Pre-populate no-pork alt slot (v30)
@@ -20450,6 +20568,10 @@ const IMPORT_TAG_RULES = [
   { re: /\bno\s+(beef|red\s+meat)\b/i,             tag: 'noBeef' },
   { re: /\bno\s+fish\b/i,                            tag: 'noFish' },
   { re: /\bno\s+shell\s*fish\b/i,                    tag: 'noShellfish' },
+  // "No Sea Food" is fish and shellfish (2026-10-19, the plating review): it was never read, so 613a and 613b ("Gluten
+  // Free / No Sea Food", "Halal / No Sea Foods") lost both on the Sep 11 import and DOOR served them every fish meal.
+  { re: /\bno\s+sea[\s-]*foods?\b/i,                     tag: 'noFish' },
+  { re: /\bno\s+sea[\s-]*foods?\b/i,                     tag: 'noShellfish' },
   { re: /\bshellfish\s*(&|and)\s*mollusks?\b/i,      tag: 'noShellfish' },
   { re: /\bmollus(c|k)s?\b/i,                        tag: 'noMolluscs' },
 
@@ -20459,6 +20581,8 @@ const IMPORT_TAG_RULES = [
   { re: /\ballergic\s+to\s+peanut/i,                 tag: 'noPeanuts' },   // flag for anaph review
   { re: /\bno\s+tree\s*nuts?\b/i,                    tag: 'noTreeNuts' },
   { re: /\bno\s+nuts?\b/i,                            tag: 'noTreeNuts' },
+  // A tree nut named by its kind is a tree nut (2026-10-19): 1207's "No Almond" was never read, so it lost No Tree Nuts.
+  { re: /\bno\s+(almonds?|cashews?|walnuts?|pecans?|pistachios?|hazelnuts?|macadamias?|brazil\s+nuts?)\b/i, tag: 'noTreeNuts' },
   { re: /\bno\s+coconuts?\b/i,                       tag: 'noCoconut' },
   { re: /\bno\s+popcorn\b/i,                         tag: 'noCorn' },
   { re: /\bno\s+soy\b/i,                             tag: 'noSoy' },
@@ -20821,7 +20945,27 @@ function dismissImportUpdate(room, rawText) {
   showToast('Room ' + room + ' dismissed — won\'t reappear unless source text changes');
 }
 
+// A learned answer gives its tags back (2026-10-19, the plating review). A Needs Review answer mapped "No Sea Food" to
+// No Fish and No Shellfish on the resident, but the learned store kept only that the words had an answer. So the next
+// import stayed quiet about them, read the row without those tags and proposed taking them off (the Sep 11 import did,
+// for 613a, 613b, 1207 and 1215b). Now the answer keeps the tags it gave (_tags), and a row whose words it answered
+// (the same text, or every unread word one it answered) reads with them.
+function doorApplyLearnedTags(entries) {
+  let learned = {};
+  try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch (err) {}
+  (entries || []).forEach((e) => {
+    const L = learned[String(e.room || '').toLowerCase()];
+    if (!L || !Array.isArray(L._tags) || !L._tags.length || !e.parsed) return;
+    const rawNorm = (e.parsed.rawText || '').toLowerCase().trim();
+    const unread = e.parsed.unmatched || [];
+    const answered = unread.length > 0 && unread.every((t) => L[String(t).toLowerCase().trim()]);
+    if (L._resolved_text !== rawNorm && !answered) return;
+    L._tags.forEach((k) => { if (TAG_LABELS_MAP[k]) e.parsed.tags[k] = true; });
+  });
+}
+
 function diffImportAgainstRegistry(entries) {
+  doorApplyLearnedTags(entries);
   const intakes = [];
   const discharges = [];
   const updates = [];
@@ -21112,11 +21256,24 @@ function importCollapseEntries() {
   return out;
 }
 
+// Taking a tag off on import waits for a tick (2026-10-19, the plating review): every change used to start ticked, so
+// one "Add to queue" took No Fish and No Shellfish off 613a and 613b, No Tree Nuts off 1207 and No Brassicas and No
+// Nightshades off 1215b on Sep 11, because the list's words for them ("No Sea Food", "No Almond", "No Caulilower …")
+// were ones DOOR couldn't read. An allergen, or any tag on a row with words DOOR can't read, now stays unless ticked.
+// A row DOOR reads in full (808: "Regular") still starts ticked. Returns a reason when held, else ''.
+function doorImportRemovalHeld(u, k) {
+  if (!u || !u.oldTags || !u.oldTags[k] || (u.newTags && u.newTags[k])) return '';
+  const label = TAG_LABELS_MAP[k] || k;
+  if (typeof doorIsAnaphAllergenTag === 'function' && doorIsAnaphAllergenTag(label)) return 'an allergen';
+  if ((u.unmatched || []).length) return 'the list has words DOOR can’t read (' + u.unmatched.join(', ') + ')';
+  return '';
+}
+
 // v31: (re)compute the diff from the current duplicate choices, rebuild the default
 // selections, and render. Runs on first parse and whenever a duplicate pick changes.
-function recomputeImportDiff(keepTab) {
-  const entries = importCollapseEntries();
-  const diff = diffImportAgainstRegistry(entries);
+// The import's starting ticks: every intake, discharge and unambiguous reassignment; every tag change except a removal
+// doorImportRemovalHeld keeps.
+function doorImportDefaultSelections(diff) {
   const selections = {
     intakes: new Set(diff.intakes.map(x => x.room)),
     discharges: new Set(diff.discharges.map(x => x.room)),
@@ -21126,10 +21283,17 @@ function recomputeImportDiff(keepTab) {
   diff.updates.forEach(u => {
     const union = new Set([...Object.keys(u.oldTags), ...Object.keys(u.newTags)]);
     const fieldSelections = {};
-    union.forEach(k => { if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = true; });
+    union.forEach(k => { if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = !doorImportRemovalHeld(u, k); });
     selections.updates.set(u.room, fieldSelections);
   });
   diff.reassignments.forEach(rx => { if (!rx.ambiguous) selections.reassignments.add(rx.id); });
+  return selections;
+}
+
+function recomputeImportDiff(keepTab) {
+  const entries = importCollapseEntries();
+  const diff = diffImportAgainstRegistry(entries);
+  const selections = doorImportDefaultSelections(diff);
   IMPORT_STATE.entries = entries;
   IMPORT_STATE.diff = diff;
   IMPORT_STATE.selections = selections;
@@ -21313,8 +21477,10 @@ function renderUpdatesPane() {
             const action = u.newTags[k] ? 'added' : 'removed';
             const label = TAG_LABELS_MAP[k] || k;
             const checked = fieldSel[k] ? 'checked' : '';
+            const held = doorImportRemovalHeld(u, k);
             const desc = u.newTags[k]
               ? 'Not in registry — found in import'
+              : held ? 'In registry — not in import. Stays unless you tick it: ' + held
               : 'In registry — not in import';
             return `<div class="import-field-row">
               <input type="checkbox" id="imp-upd-${_escAttr(u.room)}-${_escAttr(k)}" ${checked} onchange="${_escAttr('toggleUpdateField(' + _jsStringLiteral(u.room) + ',' + _jsStringLiteral(k) + ',this.checked)')}">
@@ -21671,11 +21837,19 @@ function commitImportToQueue() {
     if (!selections.reassignments || !selections.reassignments.has(rx.id)) return;
     rx.pairs.forEach(p => {
       if (changesQueue.find(q => q.room.toLowerCase() === p.to.toLowerCase() || q.room.toLowerCase() === p.from.toLowerCase())) { skipped++; return; }
-      const tagLabels = importTagLabels(p.newTags);
-      const route = routeResident(p.newTags, doorTodayMealFlags('lunch'), p.to, false);
+      // A resident who moves keeps their allergens the import doesn't name (2026-10-19): a reassignment replaces the
+      // tags whole, so words DOOR can't read would take them off, as on Sep 11.
+      const movedTags = { ...p.newTags };
+      const fromRec = REGISTRY_MAP[String(p.from).toLowerCase()];
+      ((fromRec && fromRec.tags) || []).forEach(label => {
+        const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
+        if (key && typeof doorIsAnaphAllergenTag === 'function' && doorIsAnaphAllergenTag(label)) movedTags[key] = true;
+      });
+      const tagLabels = importTagLabels(movedTags);
+      const route = routeResident(movedTags, doorTodayMealFlags('lunch'), p.to, false);
       changesQueue.push({
         room: p.to, fromRoom: p.from, type: 'reassign',
-        tags: p.newTags, tagLabels, route,
+        tags: movedTags, tagLabels, route,
         notes: 'Room reassignment from import (' + p.from + ' → ' + p.to + ')',
         isAnaph: false, isModerate: false, moderateNote: '',
         hadSection: p.existingSection
@@ -22601,6 +22775,9 @@ function computePlatingData(period, weekNum, dayName) {
 
   // v30: Attach noPorkAlt to mealFlags so computeSections can use it for No Pork split
   if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
+  // The kitchen's alternatives (2026-10-19, the plating review): which plates the meal has.
+  const mealKitchenAlts = doorKitchenAlternatives(dayData, period);
+  doorAddKitchenPlateFlags(mealFlags, dayData, period);
   // Smart no-egg: check if veg alt is egg/mustard-free from allergen string
   const vegAllergenCheck = (vegAllergenStr || '').toUpperCase();
   mealFlags._vegAltSafe = !vegAllergenCheck || (!/EGG/i.test(vegAllergenCheck) && !/MUSTARD/i.test(vegAllergenCheck));
@@ -22626,7 +22803,7 @@ function computePlatingData(period, weekNum, dayName) {
         // the halal plate has no pork, whatever a slot's copied ticks say (Wk4 FRI's "Tandoori Chicken" carries hasPork)
         .split(',').map(t => t.trim()).filter(t => t && t.toUpperCase() !== 'PORK').join(', ') || null
     : null;
-  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr, noPorkAllergenStr: null, mealHalal: mealHalal};
+  const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr, noPorkAllergenStr: null, mealHalal: mealHalal, ...mealKitchenAlts};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes
   const regularNotes = [];
@@ -22634,7 +22811,7 @@ function computePlatingData(period, weekNum, dayName) {
     regularSection.residents.forEach(r => {
       const conflicts = checkResidentMealConflicts(mealFlags, r);
       const conflictNote = formatConflictNote(conflicts);
-      const svcNote = [(r.tags || []).includes('Low Carb') ? 'extra veg less starch' : '', r.serviceNote].filter(Boolean).join(' · ');
+      const svcNote = doorRegularServiceNote(r, mealFlags);
       if (conflicts.length || svcNote) {
         regularNotes.push({ room: r.room, rawRestriction: r.rawRestriction || '', tags: r.tags || [], conflictNote, serviceNote: svcNote });
       }
@@ -22721,7 +22898,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   if (anaphSect.length) {
     const allergens = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>getAnaphDisplayAllergens(r)))].join(', ');
     addMerged('\u26A0  Anaphylactic Alternative ('+allergens+')', F.whB, '993333', B.thick, 16);
-    addMerged(mealName.replace(/peanut/i,'(no peanut oil)')+' \u2014 prepared separately  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
+    addMerged((ctx && ctx.anaphAlt ? ctx.anaphAlt : mealName.replace(/peanut/i,'(no peanut oil)'))+' \u2014 prepared separately  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
         addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell('\u26A0 ANAPHYLACTIC',F.noteRed,'F2DCDC',B.anaph,A.center), 14);
@@ -23477,7 +23654,7 @@ function buildPlatingHtml(pd, isTest) {
   if (anaphSect.length) {
     const alg = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>getAnaphDisplayAllergens(r)))].join(', ');
     h += `<tr><td colspan="3" class="ps-anaph-hdr">⚠  Anaphylactic Alternative (${escapeHtml(alg)})</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(mealName.replace(/peanut/i,'(no peanut oil)'))} — prepared separately  |  ${escapeHtml(alg.toUpperCase())}</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(ctx && ctx.anaphAlt ? ctx.anaphAlt : mealName.replace(/peanut/i,'(no peanut oil)'))} — prepared separately  |  ${escapeHtml(alg.toUpperCase())}</td></tr>`;
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
         h += `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>⚠ ANAPHYLACTIC</td></tr>`;
@@ -23719,6 +23896,7 @@ function computeTestPlatingData(flags) {
   anaphSect.sort(sortR);
 
   if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
+  if (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE) mealFlags._altMealsNone = true;
   var sections = computeSections(mealFlags, routingRegistry);
   var regularSection = sections.find(function(s) { return s.rule.key === 'regular'; });
   var regCount = regularSection ? regularSection.residents.length : 0;
@@ -23733,7 +23911,7 @@ function computeTestPlatingData(flags) {
     regularSection.residents.forEach(function(r) {
       var conflicts = checkResidentMealConflicts(mealFlags, r);
       var conflictNote = formatConflictNote(conflicts);
-      var svcNote = [(r.tags || []).includes('Low Carb') ? 'extra veg less starch' : '', r.serviceNote].filter(Boolean).join(' · ');
+      var svcNote = doorRegularServiceNote(r, mealFlags);
       if (conflicts.length || svcNote) {
         regularNotes.push({ room:r.room, rawRestriction:r.rawRestriction||'', tags:r.tags||[], conflictNote:conflictNote, serviceNote:svcNote });
       }

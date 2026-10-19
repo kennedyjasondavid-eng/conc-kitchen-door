@@ -14,9 +14,12 @@ export const SECTIONS = [
   { key: 'gf', seats: { 'GF': ['hasGluten'] } },
   { key: 'no_dairy', into: 'vegan', seats: { 'No Dairy': ['hasDairy'], 'Lactose Intolerant': ['hasDairy'] } },
   { key: 'no_beef', into: 'vegan', seats: { 'No Beef': ['hasBeef'] } },
-  { key: 'diabetic', seats: { 'Diabetic': ['isCarb'], 'Low Carb': ['isCarb'] } },
-  { key: 'bland', seats: { 'No Spicy': ['isSpicy'], 'Bland Diet': ['isSpicy'] } },
-  { key: 'soft', always: true, seats: { 'Soft Meals': null } },
+  // The plating review (2026-10-19, Jason: "Copy the kitchen's"): a diabetic plate only on a meal with the kitchen's
+  // diabetic alternative; a bland plate only on a spicy meal with the kitchen's bland one; no soft plate on a meal the
+  // kitchen marks "no soft alternative needed". The meal carries them as _diabeticAlt, _blandAlt and _altMealsNone.
+  { key: 'diabetic', seats: { 'Diabetic': ['_diabeticAlt'], 'Low Carb': ['_diabeticAlt'] } },
+  { key: 'bland', both: ['isSpicy', '_blandAlt'], seats: { 'No Spicy': ['isSpicy'], 'Bland Diet': ['isSpicy'] } },
+  { key: 'soft', always: true, unless: '_altMealsNone', seats: { 'Soft Meals': null } },
   { key: 'no_egg', seats: { 'No Eggs': ['hasEgg'], 'No Mustard': ['hasMustard'] } },
 ];
 
@@ -29,14 +32,19 @@ export function certified(f) {
 function halalOpen(f) { return !!f.hasPork || (MEAT.some((k) => f[k]) && !certified(f)); }
 function seatsTag(sec, tag, f) {
   if (!(tag in sec.seats)) return false;
+  if (sec.unless && f[sec.unless]) return false;
   if (sec.always) return true;
-  if (sec.halal) return halalOpen(f);
+  // No Pork sits on the halal plate only on a pork meal (2026-10-19, the plating review).
+  if (sec.halal) return halalOpen(f) && (tag !== 'No Pork' || !!f.hasPork);
+  if (sec.both && !sec.both.every((k) => f[k])) return false;
   return sec.seats[tag].some((k) => f[k]);
 }
 function sectionOpen(key, f) {
   const sec = SECTIONS.find((s) => s.key === key);
+  if (sec.unless && f[sec.unless]) return false;
   if (sec.always) return true;
   if (sec.halal) return halalOpen(f);
+  if (sec.both && !sec.both.every((k) => f[k])) return false;
   return Object.values(sec.seats).some((flags) => flags.some((k) => f[k]));
 }
 const hasAlts = (f) => !!(f._altMeals && f._altMeals.length);
@@ -45,7 +53,8 @@ const hasAlts = (f) => !!(f._altMeals && f._altMeals.length);
 export function plateFor(tags, f) {
   const sec = SECTIONS.find((s) => Object.keys(s.seats).some((t) => tags.includes(t) && seatsTag(s, t, f)));
   let key = sec ? sec.key : 'regular';
-  if (sec && sec.into) key = sec.into;
+  // No Dairy keeps its own plate on a meal with the kitchen's dairy-free version (_noDairyAlt), 2026-10-19.
+  if (sec && sec.into && !(sec.key === 'no_dairy' && f._noDairyAlt)) key = sec.into;
   if (f.hasPork) {
     if (key === 'no_processed') key = 'halal';
     if (key === 'soft' && !hasAlts(f)) key = 'halal';
@@ -78,6 +87,16 @@ export function requiredNotes(tags, f, plate, plateFlags = {}) {
   const out = new Set(NOTES.filter(([k, tag]) => tags.includes(tag) && on(k)).map(([, , note]) => note));
   if (tags.includes('Soft Meals') && plate !== 'soft' && !(plate === 'halal' && f.hasPork && !hasAlts(f)) && plate !== 'anaph') out.add('soft');
   if (tags.includes('Diabetic') || tags.includes('Low Carb')) out.add('extra veg less starch');
+  return out;
+}
+
+// The notes a Regular-plate resident's line carries beside the conflict tags (2026-10-19, the plating review): "extra
+// veg less starch" for Low Carb, and for a diabetic on a starchy meal (diabetics eat the regular plate where the kitchen
+// makes no diabetic one); "soft" for a soft resident on a meal the kitchen marks "no soft alternative needed".
+export function regularServiceNotes(tags, f) {
+  const out = new Set();
+  if (tags.includes('Low Carb') || (tags.includes('Diabetic') && f.isCarb)) out.add('extra veg less starch');
+  if (tags.includes('Soft Meals') && f._altMealsNone) out.add('soft');
   return out;
 }
 

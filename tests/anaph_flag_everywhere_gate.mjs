@@ -54,7 +54,8 @@ test('every reader that shows, routes or counts a resident reads the one rule, n
 test('the published anaphylactic count is the Anaphylactic List\'s count', () => {
   const c = ctxFor(state.residents, state.anaphRooms.slice());
   const onList = state.residents.filter(r => r.isAnaph || state.anaphRooms.includes(r.room)).map(r => r.room).sort();
-  assert.deepEqual(onList, ['1213', '213', '607a', '813'], 'the published Anaphylactic List');
+  // Re-pinned 2026-10-19: 813 came off the list at the Oct 19 Generate (v31-standard.39 asked; published 11:59, JK).
+  assert.deepEqual(onList, ['1213', '213', '607a'], 'the published Anaphylactic List');
   assert.equal(c.buildRegistrySummaryJSON().flags.anaphylactic, onList.length);
 });
 
@@ -64,11 +65,12 @@ test('a revert never takes a room off the anaphylactic list', () => {
   assert.match(body, /if \(r\.isAnaph && !anaphRooms\.includes\(r\.room\)\) anaphRooms\.push\(r\.room\);/, 'it still adds');
 });
 
-test('on the published resident list, only the rooms on the list with their flag reset change: 213 and 813', () => {
+test('on the published resident list, only the rooms on the list with their flag reset change: 213', () => {
+  // Re-pinned 2026-10-19: 813 came off the list at the Oct 19 Generate, so only 213 is listed with its flag reset.
   const changed = state.residents.filter(r => !r.isAnaph && state.anaphRooms.includes(r.room)).map(r => r.room).sort();
-  assert.deepEqual(changed, ['213', '813']);
+  assert.deepEqual(changed, ['213']);
   const r213 = state.residents.find(r => r.room === '213');
   assert.ok(r213.tags.some(t => t !== 'Regular'), '213 is on the restriction sheet and the labels, now red');
   const r813 = state.residents.find(r => r.room === '813');
-  assert.deepEqual(r813.tags, ['Regular'], '813 has no restriction, so no sheet or label line: only the count');
+  assert.ok(r813 && !r813.isAnaph && !state.anaphRooms.includes('813'), '813 (Regular) is off the list and not anaphylactic');
 });
