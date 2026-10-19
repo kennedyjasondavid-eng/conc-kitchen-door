@@ -42,6 +42,8 @@ vm.runInContext([
   'if (typeof doorDatedMealFor !== "function") this.doorDatedMealFor = () => null;',
   // 2026-10-19 (the plating review): the kitchen's alternatives and the Regular line's service note.
   html.includes('const DOOR_KITCHEN_ALT_FIELDS = ') ? lineOf('const DOOR_KITCHEN_ALT_FIELDS = ') : '',
+  // 2026-10-19 (v31-standard.42): the parts of a dish a swap drops (doorApplyDatedMeal reads the list).
+  html.includes('const DOOR_DISH_PART_EMPTY = ') ? between('const DOOR_DISH_PART_EMPTY = ', '\nfunction doorEmptyDishParts(') + '\n' : '',
   fnOpt('doorKitchenAlternatives'), fnOpt('doorAddKitchenPlateFlags'), fnOpt('doorRegularServiceNote'),
   fn('computePlatingData'),
 ].join('\n'), c, { filename: 'index.html#routing-replay', timeout: 30000 });

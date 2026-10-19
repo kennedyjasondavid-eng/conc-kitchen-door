@@ -212,17 +212,21 @@ test('8. Edit Menu edits the alternatives: filled when a meal opens, read by the
 
 test('9. a swap or a permanent change drops the old dish’s alternatives; a plate’s dishes split outside brackets', () => {
   const sw = vm.createContext({});
-  vm.runInContext('function doorDatedMealFlags() { return {}; }\n' + fn('doorApplyDatedMeal'), sw);
+  const PART_LIST = html.match(/const DOOR_KITCHEN_ALT_FIELDS = [^\n]*\n/)[0]
+    + (html.includes('const DOOR_DISH_PART_EMPTY = ') ? between('const DOOR_DISH_PART_EMPTY = ', '\nfunction doorEmptyDishParts(') + '\n' : '');
+  vm.runInContext(PART_LIST + 'function doorDatedMealFlags() { return {}; }\n' + fn('doorApplyDatedMeal'), sw);
   const day = { lunch: 'Philly Cheese Melt', lunch_gfAlt: 'GF', lunch_diabeticAlt: 'WW', lunch_noDairyAlt: 'DF', lunch_blandAlt: 'B', lunch_noEggAlt: 'NE', lunch_anaphAlt: 'A', dinner_diabeticAlt: 'keep' };
   const d = out(sw.doorApplyDatedMeal(day, 'lunch', { name: 'Halal Beef Burger', entry: { veg: 'Veggie Burger' } }));
   assert.deepEqual(Object.keys(d).filter((k) => /^lunch_.*Alt$/.test(k)), [], 'the swap’s dish brings none of them');
   assert.equal(d.dinner_diabeticAlt, 'keep', 'the other meal keeps its own');
-  for (const name of ['makePermanent', 'makeSwapPermanentFromBanner']) {
-    const body = fn(name);
-    assert.match(body, /\['_gfAlt'\]\.concat\(DOOR_KITCHEN_ALT_FIELDS\.map\(k => '_' \+ k\)\)\.forEach\(k => \{ overlay\[String\(week\)\]\[(day|dayName)\]\[period \+ k\] = ''; \}\);/, name + ' writes them empty');
-    assert.match(body, /\[period \+ '_altMealsNone'\] = false;/, name + ': the new dish starts with its soft plate open');
-    assert.match(body, /\[period \+ '_altMeals'\] = \[\];/, name + ': and without the old dish’s soft plate');
-  }
+  // Re-pinned 2026-10-19 (v31-standard.42): both Make Permanent paths write every part of the old dish empty through one
+  // list (tests/make_permanent_whole_dish_gate.mjs drives them); here, that the alternatives are on it, empty.
+  for (const name of ['makePermanent', 'makeSwapPermanentFromBanner'])
+    assert.match(fn(name), /doorEmptyDishParts\(overlay\[String\(week\)\]\[(day|dayName)\], period\);/, name + ' writes them empty');
+  const parts = vm.runInNewContext(PART_LIST + ';DOOR_DISH_PART_EMPTY');
+  for (const k of ['_gfAlt', '_diabeticAlt', '_noDairyAlt', '_blandAlt', '_noEggAlt', '_anaphAlt']) assert.equal(parts[k], '', k);
+  assert.equal(parts._altMealsNone, false, 'the new dish starts with its soft plate open');
+  assert.deepEqual(out(parts._altMeals), [], 'and without the old dish’s soft plate');
   assert.equal(typeof c.doorSplitDishes, 'function', 'doorSplitDishes');
   assert.deepEqual(out(c.doorSplitDishes('Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice')),
     ['Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans)', 'Rice']);

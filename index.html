@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.41';
+const DOOR_APP_VERSION = 'v31-standard.42';
 const DOOR_BUILD_DATE = '2026-10-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -13397,6 +13397,10 @@ function validateDoorMenuOverlayArtifact(artifactName, overlay, menuArtifact, is
         return;
       }
       Object.keys(node).forEach(function(field) {
+        // A meal's allergen line is derived from its ticks and the menu export rebuilds it, so an older copy in the
+        // overlay contradicts nothing (2026-10-19: one stopped every publish, resident list included, after a tick change
+        // in Edit Menu or a Make Permanent; the overlay writers now write it with the ticks).
+        if (field.indexOf('allergens_') === 0) return;
         const value = node[field];
         const canonical = menu[weekKey] && menu[weekKey][dayKey] ? menu[weekKey][dayKey][field] : undefined;
         if (typeof value === 'string' && value && typeof canonical === 'string' && canonical !== value) {
@@ -15640,6 +15644,29 @@ function getAltMeal(altType, ctx) {
 // `_anaphAlt`, beside the existing `_gfAlt` and `_softAlt`. Each is the dish that plate gets; empty when the kitchen
 // makes none.
 const DOOR_KITCHEN_ALT_FIELDS = ['diabeticAlt', 'noDairyAlt', 'blandAlt', 'noEggAlt', 'anaphAlt'];
+// The parts of a meal that belong to its dish: its parts and slots, its halal line and its alternatives (2026-10-19).
+// A swap's dish brings none of them (doorApplyDatedMeal), and a permanent change writes them empty, with these values:
+// every DOOR computer's base menu is the last published one, so a part deleted from the overlay came back from it, and
+// the plating sheet went on printing the old dish (its main item and sides), its slots kept their recipe links and the
+// vegan plate the old vegan dish's allergens.
+const DOOR_DISH_PART_EMPTY = Object.assign({
+  _mainItem: '', _mainAlt: '', _sides: '', _halal: '', _softAlt: '', _noPorkAlt: '', _gfAlt: '', _altMeals: [], _altMealsNone: false, _slots: null,
+}, Object.fromEntries(DOOR_KITCHEN_ALT_FIELDS.map(k => ['_' + k, ''])));
+function doorEmptyDishParts(day, period) {
+  Object.keys(DOOR_DISH_PART_EMPTY).forEach(k => { const v = DOOR_DISH_PART_EMPTY[k]; day[period + k] = Array.isArray(v) ? [] : v; });
+}
+// A meal's allergen line is derived from its ticks: the menu export rebuilds it from them (buildMenuJSON). Every overlay
+// writer of a meal's ticks writes the line with them, so the overlay never keeps an older copy (2026-10-19: one older
+// copy stopped every publish, resident list included, at the publish check's overlay-menu-conflict).
+function doorSetMealFlags(day, period, flags) {
+  day[period + '_flags'] = flags;
+  day['allergens_' + period] = flagsToMenuAllergens(flags);
+}
+// Taking a meal back to the base menu's: its name, ticks, allergen line and every part of its dish (2026-10-19).
+function doorClearOverlayMeal(day, period) {
+  ['', '_veg', '_flags'].concat(Object.keys(DOOR_DISH_PART_EMPTY)).forEach(k => { delete day[period + k]; });
+  delete day['allergens_' + period];
+}
 function doorKitchenAlternatives(dayData, period) {
   const out = {};
   DOOR_KITCHEN_ALT_FIELDS.forEach(k => { const v = dayData && dayData[period + '_' + k]; out[k] = typeof v === 'string' ? v.trim() : ''; });
@@ -16311,9 +16338,7 @@ function doorDatedMealFor(week, dayName, period) {
 // dish, so they don't carry over.
 function doorApplyDatedMeal(dayData, period, dated) {
   const d = { ...(dayData || {}) };
-  ['_mainItem', '_mainAlt', '_sides', '_halal', '_softAlt', '_noPorkAlt', '_gfAlt', '_altMeals', '_altMealsNone', '_slots',
-   '_diabeticAlt', '_noDairyAlt', '_blandAlt', '_noEggAlt', '_anaphAlt']   // the kitchen's alternatives (2026-10-19)
-    .forEach(k => { delete d[period + k]; });
+  Object.keys(DOOR_DISH_PART_EMPTY).forEach(k => { delete d[period + k]; });
   delete d['allergens_' + period];
   d[period] = dated.name;
   d[period + '_veg'] = dated.entry.veg || '';
@@ -16972,22 +16997,12 @@ async function makePermanent() {
   if (!overlay[String(week)][day]) overlay[String(week)][day] = {};
   overlay[String(week)][day][period] = name;
   overlay[String(week)][day][period + '_veg'] = veg;
-  overlay[String(week)][day][period + '_flags'] = flags;
-  overlay[String(week)][day][period + '_softAlt'] = softAlt;
-  // Make Permanent doesn't know the slot breakdown, so clear any stale granular
-  // fields from a prior Edit Menu save. computePlatingData falls back to the
-  // top-level meal string when these are absent.
-  delete overlay[String(week)][day][period + '_mainItem'];
-  delete overlay[String(week)][day][period + '_mainAlt'];
-  delete overlay[String(week)][day][period + '_sides'];
-  delete overlay[String(week)][day][period + '_slots'];
-  delete overlay[String(week)][day][period + '_noPorkAlt'];
-  // The old dish's alternatives don't carry over (2026-10-19, the plating review): written empty, since every DOOR
-  // computer's base menu is the last published one and a deleted field would come back from it. "No soft alternative
-  // needed" now closes the soft plate, so the new dish starts without it.
-  overlay[String(week)][day][period + '_altMeals'] = [];
-  overlay[String(week)][day][period + '_altMealsNone'] = false;
-  ['_gfAlt'].concat(DOOR_KITCHEN_ALT_FIELDS.map(k => '_' + k)).forEach(k => { overlay[String(week)][day][period + k] = ''; });
+  // The new dish comes whole (2026-10-19): Make Permanent doesn't know its slot breakdown, so the old dish's parts, slots,
+  // halal line and alternatives are written empty (not deleted: they came back from the base menu) and the allergen line
+  // follows the new ticks. The meal reads from its text until it is saved in Edit Menu.
+  doorEmptyDishParts(overlay[String(week)][day], period);
+  doorSetMealFlags(overlay[String(week)][day], period, flags);
+  overlay[String(week)][day][period + '_softAlt'] = softAlt;   // the panel's soft alternative
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing one-time swap for this slot (every upcoming one: 2026-10-18)
@@ -17042,15 +17057,8 @@ async function revertMealSwap() {
     hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
   }
   if (hasPermanent) {
-    delete overlay[String(week)][day][period];
-    delete overlay[String(week)][day][period + '_veg'];
-    delete overlay[String(week)][day][period + '_flags'];
-    delete overlay[String(week)][day][period + '_softAlt'];
-    delete overlay[String(week)][day][period + '_noPorkAlt']; // v30
-    delete overlay[String(week)][day][period + '_mainItem']; // v30
-    delete overlay[String(week)][day][period + '_mainAlt']; // v30
-    delete overlay[String(week)][day][period + '_sides']; // v30
-    delete overlay[String(week)][day][period + '_slots']; // v30
+    // Every part of the meal goes, so none of what a permanent change wrote empty stays behind (2026-10-19).
+    doorClearOverlayMeal(overlay[String(week)][day], period);
     // Clean up empty day/week objects
     if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
     if (!Object.keys(overlay[String(week)]).length) delete overlay[String(week)];
@@ -17260,7 +17268,7 @@ function saveEditFlags() {
   const overlay = loadMenuBaseOverlay();
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
-  overlay[week][day][period + '_flags'] = flags;
+  doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
 
   // Save soft alt if present
   const softVal = (document.getElementById('mc-editflags-softalt')?.value || '').trim();
@@ -17411,22 +17419,10 @@ async function makeSwapPermanentFromBanner(swapKey) {
   if (!overlay[String(week)][dayName]) overlay[String(week)][dayName] = {};
   overlay[String(week)][dayName][period] = sw.specialName;
   overlay[String(week)][dayName][period + '_veg'] = sw.veg || '';
-  overlay[String(week)][dayName][period + '_flags'] = sw._flagsRaw || {};
-  // Make Permanent doesn't know the slot breakdown, so clear any stale granular
-  // fields from a prior Edit Menu save. computePlatingData falls back to the
-  // top-level meal string when these are absent.
-  delete overlay[String(week)][dayName][period + '_mainItem'];
-  delete overlay[String(week)][dayName][period + '_mainAlt'];
-  delete overlay[String(week)][dayName][period + '_sides'];
-  delete overlay[String(week)][dayName][period + '_slots'];
-  delete overlay[String(week)][dayName][period + '_noPorkAlt'];
-  // The old dish's alternatives don't carry over (2026-10-19, the plating review): written empty, since every DOOR
-  // computer's base menu is the last published one and a deleted field would come back from it. "No soft alternative
-  // needed" now closes the soft plate, so the new dish starts without it.
-  overlay[String(week)][dayName][period + '_softAlt'] = '';
-  overlay[String(week)][dayName][period + '_altMeals'] = [];
-  overlay[String(week)][dayName][period + '_altMealsNone'] = false;
-  ['_gfAlt'].concat(DOOR_KITCHEN_ALT_FIELDS.map(k => '_' + k)).forEach(k => { overlay[String(week)][dayName][period + k] = ''; });
+  // The swap's dish comes whole (2026-10-19), as in makePermanent: the old dish's parts written empty, the allergen
+  // line from the swap's ticks.
+  doorEmptyDishParts(overlay[String(week)][dayName], period);
+  doorSetMealFlags(overlay[String(week)][dayName], period, sw._flagsRaw || {});
   saveMenuBaseOverlay(overlay);
 
   // Remove the swap (permanent supersedes)
@@ -19413,7 +19409,7 @@ function _finishMenuSave(name, veg, flags) {
   if (!overlay[week][day]) overlay[week][day] = {};
   overlay[week][day][period]              = name;
   overlay[week][day][period + '_veg']     = veg;
-  overlay[week][day][period + '_flags']   = flags;
+  doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
   overlay[week][day][period + '_altMeals'] = buildAltMeals();
   overlay[week][day][period + '_altMealsNone'] = !!ALT_MEALS_NONE;
@@ -19466,15 +19462,7 @@ async function revertMenuEdit() {
   const fresh = loadMenuBaseOverlay();
   if (fresh[week] && fresh[week][day] && (period in fresh[week][day])) {
     const overlay = fresh;
-    delete overlay[week][day][period];
-    delete overlay[week][day][period + '_veg'];
-    delete overlay[week][day][period + '_flags'];
-    delete overlay[week][day][period + '_softAlt'];
-    delete overlay[week][day][period + '_noPorkAlt']; // v30
-    delete overlay[week][day][period + '_mainItem']; // v30
-    delete overlay[week][day][period + '_mainAlt']; // v30
-    delete overlay[week][day][period + '_sides']; // v30
-    delete overlay[week][day][period + '_slots']; // v30
+    doorClearOverlayMeal(overlay[week][day], period);   // every part of the meal (2026-10-19)
     if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
     if (!Object.keys(overlay[week]).length) delete overlay[week];
     saveMenuBaseOverlay(overlay);

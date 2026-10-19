@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.41'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.42'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,35 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-19) — a permanent menu change brings the new dish whole; an older allergen line no longer stops every publish (`v31-standard.42`)
+Found while copying the kitchen's alternatives (`.41`); Jason, 2026-10-19: "Do this task here". Root cause: every DOOR computer pulls the published `menu_current.json` in as its base menu (`concUploadedMenu`, whenever the cloud copy is newer), and the overlay is laid over it field by field (`mergeDoorMenuDataWithOverlay`). So a field deleted from the overlay comes back from the last publish.
+- **Make Permanent kept the old dish.** Both paths (the meal panel's swap tab, `makePermanent`, and the Active Swaps banner, `makeSwapPermanentFromBanner`) deleted the old dish's parts from the overlay. Measured on the published menu, making Wk3 TUE dinner "Beef Burger, Side Salad":
+  - the plating sheet still printed "Caribbean Chicken Curry, Naan": the old main item and sides came back and outrank the new name;
+  - the halal plate read "Halal Caribbean Chicken Curry, Naan";
+  - the old slots stayed, with their recipe links (EXPO and HUB read them) and the old vegan dish's allergens on the vegan plate.
+- **An older allergen line stopped every publish.** 26 of the 28 overlay days carry a copy of their meals' allergen line, which no screen kept up to date. After a Make Permanent, or a tick changed in Edit Menu or the meal panel's Edit Flags tab, that copy disagreed with the line the menu export rebuilds from the ticks. The publish check's `overlay-menu-conflict` is never overridable, so nothing was sent, resident list included ("Not sent — a data check found a problem…"). The overlay syncs to every computer, so one tick change could stop them all. **This is live on `main` today** (tested on `fdb907d`).
+- **Fixed:**
+  - One list of a dish's parts, `DOOR_DISH_PART_EMPTY`: its parts, slots, halal line and alternatives. A swap drops them (`doorApplyDatedMeal`, the same 15 fields as before).
+  - Both Make Permanent paths write the parts empty (`doorEmptyDishParts`: `''`, `[]`, `false`, and `null` for the slots, which DOOR and EXPO read as no slots). The meal then reads from its text, and Edit Menu shows "⟳ from menu text — save to link". A soft alternative typed on the panel is kept.
+  - Every overlay writer of a meal's ticks writes its allergen line with them (`doorSetMealFlags`): Edit Menu's save, Edit Flags and both Make Permanent paths.
+  - The publish check skips a meal's allergen line, which is derived from the ticks and rebuilt by the export. A contradictory dish still stops the send.
+  - "Restore the original" and "Reset this meal" clear every part of the meal (`doorClearOverlayMeal`). Before, they left `.41`'s emptied alternatives behind, so a restored meal lost its kitchen alternatives and soft plate.
+- **Gate:** `tests/make_permanent_whole_dish_gate.mjs` (6), red 6/6 on `4bedd9d`, run on the published menu and overlay:
+  - both paths: the merged day is the new dish, the plating sheet prints it, and nothing of the old dish reaches its plates;
+  - Restore brings back every part;
+  - the four tick writers;
+  - the publish check;
+  - the shared list, and the empty values read as none.
+
+  Re-pinned with dated notes: `kitchen_alternatives_gate` 9 (both paths through the shared list) and `routing_replay_gate` (the list in its harness). Suite 502 → 508.
+- **Checked in a real browser** at 1280 and 390 px:
+  - Make Permanent from the panel and from the banner: the sheet prints the new dish, Edit Menu shows the meal as read from its text, and the publish check passes;
+  - an Edit Menu and an Edit Flags tick change update the line, and the check passes;
+  - Restore before the next sync brings the whole original meal back;
+  - on `4bedd9d`, each of these stops the publish and the sheet keeps the old dish;
+  - no page errors.
+- **Found, for Jason (not changed):** "Restore the original" (meal panel) and "Reset this meal" (Edit Menu) only work until this computer's next sync after the change is published. Then the base menu holds the change, so restoring changes nothing. Edit Menu's question also names the current meal as the one it goes back to. Lean: the first change to a meal keeps the meal as it was, and restoring writes that back. It needs a ruling on what "the original" is.
 
 ## Recent (2026-10-19) — the plating sheets follow the kitchen's alternatives (`v31-standard.41`)
 Jason, 2026-10-19, on the plating review's third question: "Copy the kitchen's". Each meal's alternatives are copied from the eight Oct 17 workbooks into DOOR's menu, and DOOR follows the kitchen on the five groupings it decided differently. Rules table: `docs/DOOR_ROUTING_RULES_2026-10-18.md` §2–§4 (dated 2026-10-19).
