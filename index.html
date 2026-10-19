@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.39';
-const DOOR_BUILD_DATE = '2026-10-18';
+const DOOR_APP_VERSION = 'v31-standard.40';
+const DOOR_BUILD_DATE = '2026-10-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -9644,6 +9644,8 @@ function nrDoneReview(room) {
     // Store the full raw text as the primary resolution key — if the same text
     // appears on next import, the room is skipped entirely (no token matching needed)
     learned[roomKey]['_resolved_text'] = nrItem2.text.toLowerCase().trim();
+    // The tags this answer gave (2026-10-19): the next import reads the row with them (doorApplyLearnedTags).
+    learned[roomKey]['_tags'] = pending.filter(d => d.action === 'map' && d.value && TAG_LABELS_MAP[d.value]).map(d => d.value);
     // Also store individual tokens (both raw text splits and unmatched fragments)
     // as fallback for partial matching
     nrItem2.text.split(/[\/,()]/).map(t => t.trim()).filter(Boolean).forEach(tok => {
@@ -20450,6 +20452,10 @@ const IMPORT_TAG_RULES = [
   { re: /\bno\s+(beef|red\s+meat)\b/i,             tag: 'noBeef' },
   { re: /\bno\s+fish\b/i,                            tag: 'noFish' },
   { re: /\bno\s+shell\s*fish\b/i,                    tag: 'noShellfish' },
+  // "No Sea Food" is fish and shellfish (2026-10-19, the plating review): it was never read, so 613a and 613b ("Gluten
+  // Free / No Sea Food", "Halal / No Sea Foods") lost both on the Sep 11 import and DOOR served them every fish meal.
+  { re: /\bno\s+sea[\s-]*foods?\b/i,                     tag: 'noFish' },
+  { re: /\bno\s+sea[\s-]*foods?\b/i,                     tag: 'noShellfish' },
   { re: /\bshellfish\s*(&|and)\s*mollusks?\b/i,      tag: 'noShellfish' },
   { re: /\bmollus(c|k)s?\b/i,                        tag: 'noMolluscs' },
 
@@ -20459,6 +20465,8 @@ const IMPORT_TAG_RULES = [
   { re: /\ballergic\s+to\s+peanut/i,                 tag: 'noPeanuts' },   // flag for anaph review
   { re: /\bno\s+tree\s*nuts?\b/i,                    tag: 'noTreeNuts' },
   { re: /\bno\s+nuts?\b/i,                            tag: 'noTreeNuts' },
+  // A tree nut named by its kind is a tree nut (2026-10-19): 1207's "No Almond" was never read, so it lost No Tree Nuts.
+  { re: /\bno\s+(almonds?|cashews?|walnuts?|pecans?|pistachios?|hazelnuts?|macadamias?|brazil\s+nuts?)\b/i, tag: 'noTreeNuts' },
   { re: /\bno\s+coconuts?\b/i,                       tag: 'noCoconut' },
   { re: /\bno\s+popcorn\b/i,                         tag: 'noCorn' },
   { re: /\bno\s+soy\b/i,                             tag: 'noSoy' },
@@ -20821,7 +20829,27 @@ function dismissImportUpdate(room, rawText) {
   showToast('Room ' + room + ' dismissed — won\'t reappear unless source text changes');
 }
 
+// A learned answer gives its tags back (2026-10-19, the plating review). A Needs Review answer mapped "No Sea Food" to
+// No Fish and No Shellfish on the resident, but the learned store kept only that the words had an answer. So the next
+// import stayed quiet about them, read the row without those tags and proposed taking them off (the Sep 11 import did,
+// for 613a, 613b, 1207 and 1215b). Now the answer keeps the tags it gave (_tags), and a row whose words it answered
+// (the same text, or every unread word one it answered) reads with them.
+function doorApplyLearnedTags(entries) {
+  let learned = {};
+  try { learned = JSON.parse(localStorage.getItem('concLearnedNR') || '{}'); } catch (err) {}
+  (entries || []).forEach((e) => {
+    const L = learned[String(e.room || '').toLowerCase()];
+    if (!L || !Array.isArray(L._tags) || !L._tags.length || !e.parsed) return;
+    const rawNorm = (e.parsed.rawText || '').toLowerCase().trim();
+    const unread = e.parsed.unmatched || [];
+    const answered = unread.length > 0 && unread.every((t) => L[String(t).toLowerCase().trim()]);
+    if (L._resolved_text !== rawNorm && !answered) return;
+    L._tags.forEach((k) => { if (TAG_LABELS_MAP[k]) e.parsed.tags[k] = true; });
+  });
+}
+
 function diffImportAgainstRegistry(entries) {
+  doorApplyLearnedTags(entries);
   const intakes = [];
   const discharges = [];
   const updates = [];
@@ -21112,11 +21140,24 @@ function importCollapseEntries() {
   return out;
 }
 
+// Taking a tag off on import waits for a tick (2026-10-19, the plating review): every change used to start ticked, so
+// one "Add to queue" took No Fish and No Shellfish off 613a and 613b, No Tree Nuts off 1207 and No Brassicas and No
+// Nightshades off 1215b on Sep 11, because the list's words for them ("No Sea Food", "No Almond", "No Caulilower …")
+// were ones DOOR couldn't read. An allergen, or any tag on a row with words DOOR can't read, now stays unless ticked.
+// A row DOOR reads in full (808: "Regular") still starts ticked. Returns a reason when held, else ''.
+function doorImportRemovalHeld(u, k) {
+  if (!u || !u.oldTags || !u.oldTags[k] || (u.newTags && u.newTags[k])) return '';
+  const label = TAG_LABELS_MAP[k] || k;
+  if (typeof doorIsAnaphAllergenTag === 'function' && doorIsAnaphAllergenTag(label)) return 'an allergen';
+  if ((u.unmatched || []).length) return 'the list has words DOOR can’t read (' + u.unmatched.join(', ') + ')';
+  return '';
+}
+
 // v31: (re)compute the diff from the current duplicate choices, rebuild the default
 // selections, and render. Runs on first parse and whenever a duplicate pick changes.
-function recomputeImportDiff(keepTab) {
-  const entries = importCollapseEntries();
-  const diff = diffImportAgainstRegistry(entries);
+// The import's starting ticks: every intake, discharge and unambiguous reassignment; every tag change except a removal
+// doorImportRemovalHeld keeps.
+function doorImportDefaultSelections(diff) {
   const selections = {
     intakes: new Set(diff.intakes.map(x => x.room)),
     discharges: new Set(diff.discharges.map(x => x.room)),
@@ -21126,10 +21167,17 @@ function recomputeImportDiff(keepTab) {
   diff.updates.forEach(u => {
     const union = new Set([...Object.keys(u.oldTags), ...Object.keys(u.newTags)]);
     const fieldSelections = {};
-    union.forEach(k => { if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = true; });
+    union.forEach(k => { if (u.oldTags[k] !== u.newTags[k]) fieldSelections[k] = !doorImportRemovalHeld(u, k); });
     selections.updates.set(u.room, fieldSelections);
   });
   diff.reassignments.forEach(rx => { if (!rx.ambiguous) selections.reassignments.add(rx.id); });
+  return selections;
+}
+
+function recomputeImportDiff(keepTab) {
+  const entries = importCollapseEntries();
+  const diff = diffImportAgainstRegistry(entries);
+  const selections = doorImportDefaultSelections(diff);
   IMPORT_STATE.entries = entries;
   IMPORT_STATE.diff = diff;
   IMPORT_STATE.selections = selections;
@@ -21313,8 +21361,10 @@ function renderUpdatesPane() {
             const action = u.newTags[k] ? 'added' : 'removed';
             const label = TAG_LABELS_MAP[k] || k;
             const checked = fieldSel[k] ? 'checked' : '';
+            const held = doorImportRemovalHeld(u, k);
             const desc = u.newTags[k]
               ? 'Not in registry — found in import'
+              : held ? 'In registry — not in import. Stays unless you tick it: ' + held
               : 'In registry — not in import';
             return `<div class="import-field-row">
               <input type="checkbox" id="imp-upd-${_escAttr(u.room)}-${_escAttr(k)}" ${checked} onchange="${_escAttr('toggleUpdateField(' + _jsStringLiteral(u.room) + ',' + _jsStringLiteral(k) + ',this.checked)')}">
@@ -21671,11 +21721,19 @@ function commitImportToQueue() {
     if (!selections.reassignments || !selections.reassignments.has(rx.id)) return;
     rx.pairs.forEach(p => {
       if (changesQueue.find(q => q.room.toLowerCase() === p.to.toLowerCase() || q.room.toLowerCase() === p.from.toLowerCase())) { skipped++; return; }
-      const tagLabels = importTagLabels(p.newTags);
-      const route = routeResident(p.newTags, doorTodayMealFlags('lunch'), p.to, false);
+      // A resident who moves keeps their allergens the import doesn't name (2026-10-19): a reassignment replaces the
+      // tags whole, so words DOOR can't read would take them off, as on Sep 11.
+      const movedTags = { ...p.newTags };
+      const fromRec = REGISTRY_MAP[String(p.from).toLowerCase()];
+      ((fromRec && fromRec.tags) || []).forEach(label => {
+        const key = Object.keys(TAG_LABELS_MAP).find(k => TAG_LABELS_MAP[k] === label);
+        if (key && typeof doorIsAnaphAllergenTag === 'function' && doorIsAnaphAllergenTag(label)) movedTags[key] = true;
+      });
+      const tagLabels = importTagLabels(movedTags);
+      const route = routeResident(movedTags, doorTodayMealFlags('lunch'), p.to, false);
       changesQueue.push({
         room: p.to, fromRoom: p.from, type: 'reassign',
-        tags: p.newTags, tagLabels, route,
+        tags: movedTags, tagLabels, route,
         notes: 'Room reassignment from import (' + p.from + ' → ' + p.to + ')',
         isAnaph: false, isModerate: false, moderateNote: '',
         hadSection: p.existingSection

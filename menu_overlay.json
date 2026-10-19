@@ -690,7 +690,7 @@
         "hasSoy": false,
         "hasTreeNuts": false,
         "hasSesame": false,
-        "hasMustard": false,
+        "hasMustard": true,
         "hasShellfish": false,
         "hasSulphites": false,
         "hasPork": false,
@@ -727,7 +727,7 @@
             "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
-            "hasMustard": false,
+            "hasMustard": true,
             "hasShellfish": false,
             "hasSulphites": false,
             "hasPork": false,
@@ -1619,8 +1619,8 @@
       "lunch_sides": "Sweet Potato, Roasted Parsnip and Carrot",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": false,
+        "hasDairy": true,
+        "hasEgg": true,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -1676,7 +1676,7 @@
         "hasBeans": false
       },
       "allergens_breakfast": "gluten, dairy",
-      "allergens_lunch": "gluten",
+      "allergens_lunch": "gluten, dairy, egg",
       "allergens_dinner": "gluten, egg, mustard, sulphites, beef",
       "lunch_softAlt": "",
       "lunch_altMeals": [],
@@ -1688,8 +1688,8 @@
           "recipeName": "Chicken Tenders",
           "flags": {
             "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": false,
+            "hasDairy": true,
+            "hasEgg": true,
             "hasFish": false,
             "hasPeanuts": false,
             "hasSoy": false,
@@ -1884,7 +1884,7 @@
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": true,
         "hasMushroom": false,
@@ -1925,7 +1925,7 @@
             "hasTurkey": false,
             "isSpicy": false,
             "isCarb": true,
-            "halalCertifiedMeat": false,
+            "halalCertifiedMeat": true,
             "hasProcessedMeat": false,
             "hasBeans": true,
             "hasMushroom": false,
@@ -2126,7 +2126,7 @@
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
-        "hasEgg": false,
+        "hasEgg": true,
         "hasFish": false,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -2150,7 +2150,7 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "allergens_lunch": "gluten",
+      "allergens_lunch": "gluten, egg",
       "lunch_softAlt": "",
       "lunch_altMeals": [],
       "lunch_altMealsNone": true,
@@ -2162,7 +2162,7 @@
           "flags": {
             "hasGluten": true,
             "hasDairy": false,
-            "hasEgg": false,
+            "hasEgg": true,
             "hasFish": false,
             "hasPeanuts": false,
             "hasSoy": false,
@@ -2323,7 +2323,7 @@
       "lunch_veg": "Veggie Burger, Chickpea Salad, Burger Buns",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": false,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -2348,14 +2348,15 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "allergens_lunch": "gluten, beef",
+      "allergens_lunch": "gluten, dairy, beef",
       "lunch_slots": {
         "main": {
           "manual": "Halal Beef Burger",
           "flags": {
             "hasGluten": true,
             "hasBeef": true,
-            "halalCertifiedMeat": true
+            "halalCertifiedMeat": true,
+            "hasDairy": true
           }
         },
         "veganalt": {
@@ -2780,7 +2781,7 @@
         "hasSoy": false,
         "hasTreeNuts": false,
         "hasSesame": false,
-        "hasMustard": false,
+        "hasMustard": true,
         "hasShellfish": false,
         "hasSulphites": false,
         "hasPork": false,
@@ -2798,7 +2799,7 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "allergens_lunch": "gluten, egg, fish",
+      "allergens_lunch": "gluten, egg, fish, mustard",
       "lunch_slots": {
         "main": {
           "recipeName": "Tuna Salad Sandwich Mix",
@@ -2811,7 +2812,7 @@
             "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
-            "hasMustard": false,
+            "hasMustard": true,
             "hasShellfish": false,
             "hasSulphites": false,
             "hasPork": false,
@@ -3035,6 +3036,100 @@
         },
         "starch": {
           "manual": "Pasta",
+          "flags": {}
+        }
+      },
+      "lunch_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": true,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "lunch_slots": {
+        "main": {
+          "manual": "Philly Cheese Melt",
+          "flags": {
+            "hasDairy": true,
+            "hasGluten": true,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "hasFish": false,
+            "hasEgg": false,
+            "hasPeanuts": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false,
+            "hasTreeNuts": false,
+            "hasShellfish": false,
+            "hasMustard": false,
+            "hasSulphites": false,
+            "halalCertifiedMeat": true
+          }
+        },
+        "veganalt": {
+          "recipeName": "Vegan Mushroom Sandwich",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          }
+        },
+        "starch": {
+          "manual": "Chips",
+          "flags": {}
+        },
+        "xtra": {
+          "manual": " Fruit",
           "flags": {}
         }
       }
@@ -3784,7 +3879,7 @@
         "hasProcessedMeat": false,
         "hasBeans": true,
         "hasMushroom": false,
-        "hasCoconut": false,
+        "hasCoconut": true,
         "hasNightshades": true,
         "hasBrassicas": true,
         "hasCorn": false
@@ -3825,7 +3920,7 @@
             "hasProcessedMeat": false,
             "hasBeans": true,
             "hasMushroom": false,
-            "hasCoconut": false,
+            "hasCoconut": true,
             "hasNightshades": true,
             "hasBrassicas": true,
             "hasCorn": false
@@ -4290,7 +4385,7 @@
     "TUESDAY": {
       "dinner_flags": {
         "hasGluten": true,
-        "hasDairy": false,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -4315,7 +4410,7 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "allergens_dinner": "gluten, tree nuts, sulphites",
+      "allergens_dinner": "gluten, dairy, tree nuts, sulphites",
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -4421,7 +4516,7 @@
           "manual": "Caribbean Chicken Curry",
           "flags": {
             "hasGluten": true,
-            "hasDairy": false,
+            "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
@@ -4525,7 +4620,7 @@
       "lunch_mainItem": "Pork Al Pastor Taco",
       "lunch_sides": "Peas & Carrots",
       "lunch_flags": {
-        "hasGluten": false,
+        "hasGluten": true,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
@@ -4582,7 +4677,7 @@
         "hasNightshades": true,
         "hasBeans": false
       },
-      "allergens_lunch": "sulphites, pork",
+      "allergens_lunch": "gluten, sulphites, pork",
       "allergens_dinner": "",
       "lunch_softAlt": "",
       "lunch_altMeals": [],
@@ -4598,7 +4693,8 @@
             "hasChicken": true,
             "isSpicy": true,
             "halalCertifiedMeat": true,
-            "hasNightshades": true
+            "hasNightshades": true,
+            "hasGluten": true
           }
         },
         "mainalt": {
@@ -4837,7 +4933,7 @@
       "lunch_sides": "Side Salad",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": false,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -4873,7 +4969,8 @@
           "flags": {
             "hasGluten": true,
             "hasBeef": true,
-            "halalCertifiedMeat": true
+            "halalCertifiedMeat": true,
+            "hasDairy": true
           }
         },
         "veganalt": {
@@ -4912,7 +5009,7 @@
           "manual": "Side Salad"
         }
       },
-      "allergens_lunch": "gluten, beef"
+      "allergens_lunch": "gluten, dairy, beef"
     },
     "SATURDAY": {
       "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -5773,7 +5870,7 @@
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
-        "hasEgg": false,
+        "hasEgg": true,
         "hasFish": true,
         "hasPeanuts": false,
         "hasSoy": false,
@@ -5797,7 +5894,7 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "allergens_lunch": "fish"
+      "allergens_lunch": "egg, fish"
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -6046,33 +6143,33 @@
     "standardCutover": 1783971058450,
     "dayEditedAt": {
       "1|TUESDAY": 1792324804415,
-      "2|SATURDAY": 1792253645169,
+      "2|SATURDAY": 1792412970709,
       "3|WEDNESDAY": 1792324804415,
       "1|WEDNESDAY": 1792253645169,
       "1|SUNDAY": 1791118602095,
-      "2|THURSDAY": 1792253645169,
+      "2|THURSDAY": 1792412970709,
       "3|FRIDAY": 1792253645169,
       "3|SUNDAY": 1792253645169,
-      "4|TUESDAY": 1792253645169,
-      "4|THURSDAY": 1792253645169,
+      "4|TUESDAY": 1792412970709,
+      "4|THURSDAY": 1792412970709,
       "4|SATURDAY": 1792253645169,
       "1|SATURDAY": 1792253645169,
       "1|FRIDAY": 1792253645169,
-      "2|WEDNESDAY": 1792253645169,
+      "2|WEDNESDAY": 1792412970709,
       "2|MONDAY": 1792308548962,
-      "2|TUESDAY": 1792308548962,
+      "2|TUESDAY": 1792412970709,
       "4|FRIDAY": 1792253645169,
       "4|SUNDAY": 1792253645169,
-      "4|WEDNESDAY": 1792253645169,
-      "2|FRIDAY": 1792253645169,
+      "4|WEDNESDAY": 1792412970709,
+      "2|FRIDAY": 1792412970709,
       "3|SATURDAY": 1792324804415,
-      "3|THURSDAY": 1792253645169,
+      "3|THURSDAY": 1792412970709,
       "3|MONDAY": 1792253645169,
       "4|MONDAY": 1792253645169,
-      "1|MONDAY": 1792253645169,
-      "3|TUESDAY": 1792308548962,
+      "1|MONDAY": 1792412970709,
+      "3|TUESDAY": 1792412970709,
       "1|THURSDAY": 1792253645169,
-      "2|SUNDAY": 1792253645169
+      "2|SUNDAY": 1792412970709
     }
   }
 }

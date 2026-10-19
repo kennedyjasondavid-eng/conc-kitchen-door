@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-10-19T11:59:27.168Z",
+    "exported": "2026-10-19T12:29:30.725Z",
     "version": 32
   },
   "menu": {
@@ -221,7 +221,7 @@
           "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
-          "hasMustard": false,
+          "hasMustard": true,
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
@@ -333,7 +333,7 @@
         ],
         "dinner_altMealsNone": false,
         "allergens_breakfast": "gluten, dairy, egg, turkey",
-        "allergens_lunch": "gluten, egg",
+        "allergens_lunch": "gluten, egg, mustard",
         "allergens_dinner": "tree nuts, soy, sulphites",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -352,7 +352,7 @@
               "hasSoy": false,
               "hasTreeNuts": false,
               "hasSesame": false,
-              "hasMustard": false,
+              "hasMustard": true,
               "hasShellfish": false,
               "hasSulphites": false,
               "hasPork": false,
@@ -1794,12 +1794,12 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": false,
+          "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": false,
-          "halalCertifiedMeat": false,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
@@ -1858,7 +1858,7 @@
               "hasDairy": true,
               "hasGluten": true,
               "hasPork": false,
-              "hasBeef": false,
+              "hasBeef": true,
               "hasChicken": false,
               "hasTurkey": false,
               "hasFish": false,
@@ -1875,7 +1875,8 @@
               "hasTreeNuts": false,
               "hasShellfish": false,
               "hasMustard": false,
-              "hasSulphites": false
+              "hasSulphites": false,
+              "halalCertifiedMeat": true
             }
           },
           "veganalt": {
@@ -1918,7 +1919,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg",
-        "allergens_lunch": "gluten, dairy",
+        "allergens_lunch": "gluten, dairy, beef",
         "allergens_dinner": "gluten, pork",
         "dinner_slots": {
           "main": {
@@ -2304,7 +2305,7 @@
           "hasSoy": false,
           "hasTreeNuts": false,
           "hasSesame": false,
-          "hasMustard": false,
+          "hasMustard": true,
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
@@ -2322,7 +2323,7 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "allergens_lunch": "gluten, egg, fish",
+        "allergens_lunch": "gluten, egg, fish, mustard",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
         "lunch_altMealsNone": true,
@@ -2340,7 +2341,7 @@
               "hasSoy": false,
               "hasTreeNuts": false,
               "hasSesame": false,
-              "hasMustard": false,
+              "hasMustard": true,
               "hasShellfish": false,
               "hasSulphites": false,
               "hasPork": false,
@@ -2570,7 +2571,7 @@
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -2594,7 +2595,7 @@
           "hasBrassicas": true,
           "hasCorn": false
         },
-        "allergens_lunch": "gluten",
+        "allergens_lunch": "gluten, egg",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
         "lunch_altMealsNone": true,
@@ -2606,7 +2607,7 @@
             "flags": {
               "hasGluten": true,
               "hasDairy": false,
-              "hasEgg": false,
+              "hasEgg": true,
               "hasFish": false,
               "hasPeanuts": false,
               "hasSoy": false,
@@ -2735,7 +2736,7 @@
         "lunch_sides": "Chickpea Salad",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
+          "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -2793,7 +2794,7 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, beef",
+        "allergens_lunch": "gluten, dairy, beef",
         "allergens_dinner": "pork",
         "lunch_slots": {
           "main": {
@@ -2801,7 +2802,8 @@
             "flags": {
               "hasGluten": true,
               "hasBeef": true,
-              "halalCertifiedMeat": true
+              "halalCertifiedMeat": true,
+              "hasDairy": true
             }
           },
           "veganalt": {
@@ -2998,7 +3000,7 @@
           "hasTurkey": false,
           "isSpicy": false,
           "isCarb": true,
-          "halalCertifiedMeat": false,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": true,
           "hasMushroom": false,
@@ -3039,7 +3041,7 @@
               "hasTurkey": false,
               "isSpicy": false,
               "isCarb": true,
-              "halalCertifiedMeat": false,
+              "halalCertifiedMeat": true,
               "hasProcessedMeat": false,
               "hasBeans": true,
               "hasMushroom": false,
@@ -3181,8 +3183,8 @@
         "lunch_sides": "Sweet Potato, Roasted Parsnip and Carrot",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
-          "hasEgg": false,
+          "hasDairy": true,
+          "hasEgg": true,
           "hasFish": false,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -3238,7 +3240,7 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy",
-        "allergens_lunch": "gluten",
+        "allergens_lunch": "gluten, dairy, egg",
         "allergens_dinner": "gluten, egg, mustard, sulphites, beef",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -3250,8 +3252,8 @@
             "recipeName": "Chicken Tenders",
             "flags": {
               "hasGluten": true,
-              "hasDairy": false,
-              "hasEgg": false,
+              "hasDairy": true,
+              "hasEgg": true,
               "hasFish": false,
               "hasPeanuts": false,
               "hasSoy": false,
@@ -3805,7 +3807,7 @@
         "dinner_sides": "Naan",
         "dinner_flags": {
           "hasGluten": true,
-          "hasDairy": false,
+          "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -3838,7 +3840,7 @@
             "manual": "Caribbean Chicken Curry",
             "flags": {
               "hasGluten": true,
-              "hasDairy": false,
+              "hasDairy": true,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
@@ -3910,7 +3912,7 @@
         "dinner_altMealsNone": false,
         "allergens_breakfast": "gluten, dairy",
         "allergens_lunch": "sulphites, pork",
-        "allergens_dinner": "gluten, tree nuts, sulphites",
+        "allergens_dinner": "gluten, dairy, tree nuts, sulphites",
         "lunch_slots": {
           "main": {
             "manual": "Glazed Ham & Bean",
@@ -4294,7 +4296,7 @@
           "hasProcessedMeat": false,
           "hasBeans": true,
           "hasMushroom": false,
-          "hasCoconut": false,
+          "hasCoconut": true,
           "hasNightshades": true,
           "hasBrassicas": true,
           "hasCorn": false
@@ -4335,7 +4337,7 @@
               "hasProcessedMeat": false,
               "hasBeans": true,
               "hasMushroom": false,
-              "hasCoconut": false,
+              "hasCoconut": true,
               "hasNightshades": true,
               "hasBrassicas": true,
               "hasCorn": false
@@ -5493,7 +5495,7 @@
         "lunch_mainItem": "Pork Al Pastor Taco",
         "lunch_sides": "Peas & Carrots",
         "lunch_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -5550,7 +5552,7 @@
           "hasNightshades": true,
           "hasBeans": false
         },
-        "allergens_lunch": "sulphites, pork",
+        "allergens_lunch": "gluten, sulphites, pork",
         "allergens_dinner": "",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -5566,7 +5568,8 @@
               "hasChicken": true,
               "isSpicy": true,
               "halalCertifiedMeat": true,
-              "hasNightshades": true
+              "hasNightshades": true,
+              "hasGluten": true
             }
           },
           "mainalt": {
@@ -5805,7 +5808,7 @@
         "lunch_flags": {
           "hasGluten": false,
           "hasDairy": false,
-          "hasEgg": false,
+          "hasEgg": true,
           "hasFish": true,
           "hasPeanuts": false,
           "hasSoy": false,
@@ -5829,7 +5832,7 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "allergens_lunch": "fish"
+        "allergens_lunch": "egg, fish"
       },
       "THURSDAY": {
         "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, roll",
@@ -5869,7 +5872,7 @@
         "lunch_sides": "Side Salad",
         "lunch_flags": {
           "hasGluten": true,
-          "hasDairy": false,
+          "hasDairy": true,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -6006,7 +6009,7 @@
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
-        "allergens_lunch": "gluten, beef",
+        "allergens_lunch": "gluten, dairy, beef",
         "allergens_dinner": "gluten, egg, sesame, soy, sulphites",
         "lunch_softAlt": "",
         "lunch_altMeals": [],
@@ -6019,7 +6022,8 @@
             "flags": {
               "hasGluten": true,
               "hasBeef": true,
-              "halalCertifiedMeat": true
+              "halalCertifiedMeat": true,
+              "hasDairy": true
             }
           },
           "veganalt": {

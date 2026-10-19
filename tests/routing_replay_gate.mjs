@@ -130,10 +130,12 @@ test('the receipt: each restriction the audit found unserved and unnamed is name
   assert.ok(named(w2sat, '304', 'no egg'), '304 at Wk2 SAT lunch');
 });
 
-test('room 213 is contained meal by meal on the 9 published meals with tree nuts or coconut, and only there', () => {
+test('room 213 is contained meal by meal on the 10 published meals with tree nuts or coconut, and only there', () => {
+  // Re-pinned 2026-10-19 (the plating review): W3 THU dinner's Pork Griot comes with coconut rice and takes the Coconut
+  // tick (tests/plating_review_ticks_gate.mjs).
   const contained = MEALS.filter((m) => m.pd.anaphSect.some((r) => r.room === '213')).map(tag).sort();
   assert.deepEqual(contained, ['W1 FRI dinner', 'W1 MON dinner', 'W1 WED dinner', 'W2 MON dinner', 'W2 WED dinner', 'W3 FRI lunch',
-    'W3 TUE dinner', 'W4 MON dinner', 'W4 SAT dinner']);
+    'W3 THU dinner', 'W3 TUE dinner', 'W4 MON dinner', 'W4 SAT dinner']);
 });
 
 test('review P2: a halal plate never says PORK, whatever a slot\'s copied ticks say', () => {

@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.39'`** + `DOOR_BUILD_DATE = '2026-10-18'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.40'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,7 +53,35 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-18) — a room on the anaphylactic list whose restriction names none of its allergens is asked about at Generate (`v31-standard.39`)
+## Recent (2026-10-19) — the plating review: the import keeps restrictions it can't read; 14 menu ticks (`v31-standard.40`)
+Jason, 2026-10-19: "review DOOR-created plating sheets vs our current working manual plating sheets". All 56 lunches and dinners were compared with the eight Oct 17 workbooks (the real DOOR page on the 11:59 publish, the CODEX feed and the shared Library). Then, on the leans: "Fix import; re-add 4 by hand", menu ticks "Add them all", alternatives "Copy the kitchen's" (its own PR).
+- **The import dropped four residents' restrictions on Sep 11.** 613a ("Gluten Free / No Sea Food") and 613b ("Halal / No Sea Foods") lost No Fish and No Shellfish, so DOOR has served them every fish meal since. 1207 ("… No Almond …") lost No Tree Nuts; 1215b ("No Caulilower/ Tomatoes / Cucumber / Broccoli") lost No Brassicas and No Nightshades. This was the roster catch-up import that also discharged 813 (git `86f2f0c` → `f812ad9`). Three causes:
+  - the parser couldn't read "Sea Food" or "Almond";
+  - a Needs Review answer was learned only as "map", without its tags, so the next import stayed quiet, read the row without them and proposed taking them off;
+  - every change started ticked, so one Add to queue took them off.
+- **Fixed:**
+  - "No Sea Food(s)" / "No Seafood" read as No Fish and No Shellfish, and a tree nut named by its kind (almond, cashew, walnut, pecan, pistachio, hazelnut, macadamia, Brazil nut) as No Tree Nuts;
+  - an answer keeps its tags (`learned_nr` `_tags`), and the next import reads that room's row with them (`doorApplyLearnedTags`);
+  - a removal starts unticked when the tag is an allergen or the row has words DOOR can't read (`doorImportRemovalHeld`, `doorImportDefaultSelections`), and the row says why ("Stays unless you tick it: …"). A row read in full still starts ticked (808, "Regular", loses No Pork);
+  - a reassignment keeps the moved resident's allergens.
+- **By hand, after this ships:** re-add No Fish + No Shellfish on 613a and 613b, No Tree Nuts on 1207, No Brassicas + No Nightshades on 1215b (Enter Changes, which reaches the other computer).
+- **Menu ticks (data):** 14 ticks the manual sheets' CONTAINS lines named and DOOR's menu didn't:
+  - Dairy: both burger lunches (Wk2 THU, Wk4 THU), Wk2 SAT tenders, Wk3 TUE Caribbean curry (naan);
+  - Egg: Wk2 SAT tenders, Wk2 WED oven-fried chicken, Wk4 WED Tuna Rex Salad;
+  - Beef: Wk2 SUN Philly; Gluten: Wk4 TUE al pastor tortillas; Coconut: Wk3 THU Pork Griot (coconut rice); Mustard: Wk1 MON and Wk2 TUE lunch;
+  - halal-certified: Wk2 FRI Arroz con Pollo and the Wk2 SUN Philly (the manual sheets make no halal plate for either; the Philly's beef tick would otherwise open one).
+
+  Written through `saveMenuBaseOverlay` (days stamped) with the main dish carrying each tick and the overlay's allergen line rewritten, then rebuilt with the publish builders. Validation 0/0/0. `door_state` / `registry_summary` take only the stamp.
+  - Routing moves only on the ticked meals: No Beef 704 and 901 to the vegan plate on the Philly; the No Dairy residents to the vegan plate on the dairy meals; No Eggs 304 and 412 to the no-egg plate; GF residents get the GF plate on the tacos; 213 is contained on the Pork Griot; Arroz loses its 56-room halal plate.
+  - Against the manual sheets: 935 → 877 rooms placed differently across the 56 meals. Two meals now differ more, both where DOOR protects and the manual sheet doesn't (its own CONTAINS names the allergen): No Eggs on Wk2 WED, No Dairy on Wk3 TUE dinner.
+- **Gates:** `tests/import_keeps_restrictions_gate.mjs` (5, red 5/5 on `main` `fdb907d`): the words, the Sep 11 replay, allergen removals held, learned tags, reassignment and the screen's wording. `tests/plating_review_ticks_gate.mjs` (2, red 2/2 on `main`'s data). Re-pinned with dated notes: `anaph_flag_everywhere_gate` (813 off the list since the Oct 19 Generate; it was red on `main`), `anaph_every_tag_gate` and `routing_replay_gate` (213 contained on 10 meals, the Griot added). Suite 485 → 492. Checked in a real browser at 1280 and 390 px: today's meal list over the four as DOOR held them on Sep 11 proposes only 1215b, both removals unticked; after Add to queue and Generate all four keep their tags; no page errors.
+- **Found, for Jason (the review's other findings):**
+  - the manual sheets leave 213 (anaphylactic: tree nuts, coconut) on the regular plate on four coconut dinners (Wk1 MON Jerk, Wk1 WED Butter Chicken, Wk2 WED Yetisse, Wk4 MON Fish Curry);
+  - 143 of DOOR's 232 alternatives print a placeholder, and DOOR's groupings differ from the kitchen's in five ways (diabetic, No Dairy, soft, No Spicy, No Pork on chicken that isn't halal-certified): the next PR copies the kitchen's;
+  - 27 vegan plates' CONTAINS name dairy, eggs or processed meat copied from the main dish;
+  - the Wk3 THU hotdog's manual sheet still makes a halal chicken hotdog (DOOR: all-beef, halal-certified, ruled in July).
+
+## Recent (2026-10-18) — a room on the anaphylactic list whose restriction names none of its allergens is asked about at Generate (`v31-standard.39`, merged via PR #134, `c6427fa`)
 Jason, 2026-10-18, on 813 (Regular on the Oct 19 meal list, still on the anaphylactic list): "shouldn't importing a list with 813 as a regular remove it from anaph list?", then "yes let's build that", leaving 813 on the list to try it.
 - **Why the import can't do it alone.** The meal list never says who is anaphylactic: none of the four listed rooms is marked so there (213 reads "No … Nuts … Coconut", 1213 "Allergic to Peanut"), and the list came from Health & Wellness. A "Regular" that took a room off would also let a line dropped by mistake end a resident's protection. And 813 drew no proposal at all: DOOR already had it as Regular, so the import had no change to show.
 - **Generate asks once** (`doorAskAnaphRoomsNamingNoAllergen`, after the discharge question): a room on the list whose restriction, as the queue will leave it, names none of the allergens it is anaphylactic to (`doorAnaphRoomsNamingNoAllergen`).

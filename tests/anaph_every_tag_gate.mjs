@@ -168,7 +168,9 @@ test('on the published menu, overlay and resident list, only room 213 moves: con
       if (m.where.startsWith('menu') && hits213(m[p])) contained++;
     }
   }
-  assert.equal(contained, 9, 'the published menu\'s tree-nut and coconut meals');
+  // Re-pinned 2026-10-19 (the plating review): Wk3 THU dinner's Pork Griot is served with coconut rice and takes the
+  // Coconut tick (tests/plating_review_ticks_gate.mjs), so 213 is contained there too.
+  assert.equal(contained, 10, 'the published menu\'s tree-nut and coconut meals');
 });
 
 test('the map carries the dated ruling', () => {
