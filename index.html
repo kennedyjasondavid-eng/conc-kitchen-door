@@ -634,13 +634,16 @@
     .registry-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .reg-table { min-width: 480px; }
 
-    /* Inline grid overrides for screens with hardcoded grid layouts */
-    #screen-reports .content > div[style],
-    #screen-custom-reports .content > div[style],
-    #screen-settings .content > div[style],
-    #screen-review .content > div[style],
-    #screen-leftover .content > div[style],
-    #screen-menu-config .content > div[style]:not(.mc-special-noauto) {
+    /* Inline grid overrides for screens with hardcoded grid layouts. A panel or banner hidden by its inline style
+       stays hidden (2026-10-19): this rule showed Menu Config's meal panel (even after its Close), Edit Menu panel,
+       test-meal panel, day preview and seven banners, and Review's recent-files card, on every phone. The second
+       form is how a browser writes the style after a script sets style.display = 'none'. */
+    #screen-reports .content > div[style]:not([style*="display:none"]):not([style*="display: none"]),
+    #screen-custom-reports .content > div[style]:not([style*="display:none"]):not([style*="display: none"]),
+    #screen-settings .content > div[style]:not([style*="display:none"]):not([style*="display: none"]),
+    #screen-review .content > div[style]:not([style*="display:none"]):not([style*="display: none"]),
+    #screen-leftover .content > div[style]:not([style*="display:none"]):not([style*="display: none"]),
+    #screen-menu-config .content > div[style]:not(.mc-special-noauto):not([style*="display:none"]):not([style*="display: none"]) {
       display: block !important;
     }
     #screen-custom-reports .content > div > div[style],
@@ -670,9 +673,6 @@
     /* Checkbox grid: 3-col → 2-col */
     .cb-grid { grid-template-columns: repeat(2, 1fr) !important; }
 
-    /* Menu config grid if present */
-    #screen-menu-config .content > div[style]:not(.mc-special-noauto) { display: block !important; }
-
     /* Smaller section rows */
     .section-meal { display: none; }
   }
@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.43';
+const DOOR_APP_VERSION = 'v31-standard.44';
 const DOOR_BUILD_DATE = '2026-10-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
