@@ -36,7 +36,10 @@ const lineOf = (prefix) => { const s = html.indexOf(prefix); assert.ok(s >= 0, '
 const out = (v) => JSON.parse(JSON.stringify(v));
 const PARTS_SRC = lineOf('const DOOR_KITCHEN_ALT_FIELDS = ')
   + (html.includes('const DOOR_DISH_PART_EMPTY = ') ? between('const DOOR_DISH_PART_EMPTY = ', '\nfunction doorEmptyDishParts(') + '\n' : '');
-const MENU_HELPERS = [PARTS_SRC, fnOpt('doorEmptyDishParts'), fnOpt('doorSetMealFlags'), fnOpt('doorClearOverlayMeal'),
+// Re-pinned 2026-10-19 (v31-standard.43, Jason: "A"): Make Permanent keeps the meal as it was before its first change
+// and Restore puts that copy back (tests/restore_original_gate.mjs), so the box carries the copy helpers.
+const COPY_SRC = html.includes('const DOOR_MEAL_FIELDS = ') ? between('const DOOR_MEAL_FIELDS = ', '\nfunction doorKitchenAlternatives(') + '\n' : '';
+const MENU_HELPERS = [PARTS_SRC, fnOpt('doorEmptyDishParts'), fnOpt('doorSetMealFlags'), fnOpt('doorClearOverlayMeal'), COPY_SRC, fnOpt('doorStableJSON'),
   fn('flagsToMenuAllergens'), fn('mergeDoorMenuDataWithOverlay'), fn('dayLabel'), between('const FLAG_DEFS = [', '\n];\n') + '\n];\n'].join('\n');
 
 // The parts of a meal's dish, as a swap dropped them before this change (doorApplyDatedMeal, v31-standard.41).
@@ -63,6 +66,8 @@ function menuBox(store) {
     doorSwapKeysForSlot: () => [], loadMenuEdits: () => ({}), saveMenuEdits() {},
     logMenuEvent() {}, showToast() {}, renderMenuConfig() {}, publishAndSync() {},
     nextDateForSlot: () => null, formatShortDate: () => '', getMealForDate: () => ({ week: Number(W), day: D }),
+    // 2026-10-19 (v31-standard.43): the copy reads the stored meal (the base under the overlay) and goes in the change log.
+    MENU_DATA: {}, loadUploadedMenu: () => out(BASE), getOperatorName: () => 'Jason', appendChangeLog() {}, location: { hash: '' },
   };
   vm.createContext(box);
   vm.runInContext([MENU_HELPERS, fn('makePermanent'), fn('makeSwapPermanentFromBanner'), fn('revertMealSwap')].join('\n'), box,
@@ -146,9 +151,12 @@ test('3. Restore the original, before the next sync, brings back every part of t
   const box = await makePermanentOnPanel(store);
   await box.revertMealSwap();
   const day = merged(store)[W][D], base = BASE[W][D];
-  for (const k of ['', '_veg', '_flags', ...DISH_PARTS]) assert.deepEqual(day[P + k], base[P + k], `${P}${k} is the original's`);
+  // Re-pinned 2026-10-19 (v31-standard.43): Restore writes the meal's saved copy back, every part written so it holds after
+  // the next sync too, so a part the meal never had reads as its empty value: as DOOR reads it, none (test 6).
+  const none = (v) => (v === undefined || v === null || v === '' || v === false || (typeof v === 'object' && !Object.keys(v).length) ? undefined : v);
+  for (const k of ['', '_veg', '_flags', ...DISH_PARTS]) assert.deepEqual(none(day[P + k]), none(base[P + k]), `${P}${k} is the original's`);
   assert.equal(day['allergens_' + P], base['allergens_' + P]);
-  assert.match(fn('revertMenuEdit'), /doorClearOverlayMeal\(overlay\[week\]\[day\], period\);/, 'Reset this meal clears the same parts');
+  assert.match(fn('revertMenuEdit'), /doorRestoreMealOriginal\(overlay, week, day, period\)/, 'Reset this meal puts back the same copy');
 });
 
 test('4. every overlay writer of a meal\'s ticks writes its allergen line with them', () => {
