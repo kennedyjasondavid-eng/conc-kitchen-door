@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.43'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.44'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -53,7 +53,23 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-19) — putting a meal back means the meal as it was before its first change (`v31-standard.43`)
+## Recent (2026-10-19) — a panel hidden by its inline style stays hidden on a phone (`v31-standard.44`)
+Jason, 2026-10-19: "Fix the phone width bug" (found in `.43`, the entry below). The phone layout (`@media (max-width: 768px)`) stacks the hand-written grid layouts of six screens (Reports, Custom Reports, Settings, Review, Leftover, Menu Config) with `#screen-X .content > div[style] { display: block !important; }`. The rule also matched every panel and banner hidden by an inline `display:none`, so on a phone they all showed.
+- **Found by a real-browser scan** of the six screens at 390 and 1280 px (every direct child `div[style]` of `.content`, hidden on the desktop and shown on a phone), on `main` `1fc6509`:
+  - **Menu Config, 11:** the meal panel (shown at load and after its Close), the Edit Menu panel (never hid once opened), the test-meal panel, the day preview (an empty "Section Activation —" heading; no code ever shows it) and seven banners (swaps, menu source, published-menu differences, unmapped allergens, Edit Menu, special meals, slot swaps).
+  - **Review, 1:** the recent-files card, before anything was generated.
+  - The Special Meal panel was the one already fixed, by its own exception class (`.mc-special-noauto`). The other four screens had none.
+- **Fixed:** each selector leaves out an element hidden by its inline style, as written (`display:none`) and as a browser writes it back after a script sets `style.display = 'none'` (`display: none`). The duplicate Menu Config rule ("Menu config grid if present") is gone. The grids still stack exactly as before: the scan's stacked layouts are the same on `main` and on this build.
+- **Checked in a real browser** at 390 and 1280 px: every one of those panels opens and closes the same on a phone as on the desktop (the meal panel's Close, Edit Menu on and off and its panel, the test meal, the Special Meal panel); the banners are hidden until something shows them; Review's card appears once files are generated; no page errors. On `1fc6509` at 390 px all of them stayed shown.
+- **Gate:** `tests/phone_hidden_panels_gate.mjs` (3), red on `1fc6509` (1 and 3; 2 is the lock). It reads the phone rules as written and checks their selectors against the twelve elements' own inline styles:
+  1. each of the 12, hidden as written and hidden again by a script, is matched by no rule that forces a display;
+  2. the grid layouts still stack on all six screens, and the Special Meal panel keeps its exception;
+  3. one rule per screen, and every phone rule of this kind is one the check can read.
+
+  A copy of the fix without the script-written form fails check 1. Suite 514 → 517.
+- **Found, not changed:** `#report-stats { grid-template-columns: repeat(2, 1fr) !important; }` ("Stats rows: 4-col → 2-col") never applies on a phone: the same rule makes Reports' stats block `display: block`, so they stack one to a row.
+
+## Recent (2026-10-19) — putting a meal back means the meal as it was before its first change (`v31-standard.43`, merged via PR #136, `1fc6509`)
 Jason, 2026-10-19, on what "the original" should mean (found in `.42`, the entry below): "A, go ahead and build it". The three buttons that put a meal back (**Revert to Original** in the meal panel, **Reset to Original** in Edit Menu, **↩ Undo Last** in the change log) deleted the change and fell back to the base menu. But every computer's base is the last published `menu_current.json`, and Make Permanent and Edit Menu's save publish straight away, so from that computer's next load (and on every other computer) the base held the change. Measured on `main` `ce6a9fa` in the real page, Wk3 TUE dinner made "Beef Burger, Side Salad", then a reload:
 - Revert to Original asked "goes back to the original rotation meal" and left the burger;
 - Reset to Original wasn't offered: it showed only for a legacy `concMenuEdits` record, which no save writes now, and its question named the current meal on both sides;
@@ -86,7 +102,7 @@ Re-pinned with a dated note: `make_permanent_whole_dish_gate` (its box carries t
 
 **Checked in a real browser** at 1280 and 390 px. Make Permanent, then the change "published" and the page reloaded on that menu; Revert to Original, Reset to Original and ↩ Undo Last each put back the whole meal (the sheet prints "Caribbean Chicken Curry, Naan"; the publish check passes). The no-copy notice opens Edit Menu on the meal. No page errors.
 
-**Found, not changed:** at phone width, `#screen-menu-config .content > div[style]:not(.mc-special-noauto) { display: block !important; }` (in `@media (max-width: 768px)`) forces 11 hidden Menu Config elements visible: the meal panel (even after its Close), the Edit Menu and test-meal panels, the day preview and seven banners. The same on `main`.
+~~**Found, not changed:** at phone width, `#screen-menu-config .content > div[style]:not(.mc-special-noauto) { display: block !important; }` (in `@media (max-width: 768px)`) forces 11 hidden Menu Config elements visible: the meal panel (even after its Close), the Edit Menu and test-meal panels, the day preview and seven banners. The same on `main`.~~ Fixed in `v31-standard.44` (the entry above).
 
 ## Recent (2026-10-19) — a permanent menu change brings the new dish whole; an older allergen line no longer stops every publish (`v31-standard.42`, merged via PR #135, `ce6a9fa`)
 Found while copying the kitchen's alternatives (`.41`); Jason, 2026-10-19: "Do this task here". Root cause: every DOOR computer pulls the published `menu_current.json` in as its base menu (`concUploadedMenu`, whenever the cloud copy is newer), and the overlay is laid over it field by field (`mergeDoorMenuDataWithOverlay`). So a field deleted from the overlay comes back from the last publish.
