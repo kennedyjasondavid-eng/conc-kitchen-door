@@ -911,6 +911,11 @@ test('regular menu slot summary renders staff-entered slot text safely', () => {
   vm.runInContext([
     extractOutputEncodingBlock(html),
     extractFunctionBlock(html, '_mealNoAllergenSource'),
+    // Re-pinned 2026-10-19 (the plating review): the preview opens the plates the sheet will, from Edit Menu's
+    // "Alternatives the kitchen makes" (doorEditorPlateFlags).
+    html.match(/const DOOR_KITCHEN_ALT_LABELS = \{[^\n]*\};/)[0],
+    extractFunctionBlock(html, 'doorKitchenAltInputValues'),
+    extractFunctionBlock(html, 'doorEditorPlateFlags'),
     extractFunctionBlock(html, 'updateSlotSummary')
   ].join('\n\n'), context, { filename: 'index.html#xss-slot-summary', timeout: 1000 });
 

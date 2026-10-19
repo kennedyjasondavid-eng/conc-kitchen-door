@@ -63,15 +63,9 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -253,7 +247,9 @@
           "manual": "Bean Salad",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Egg Salad Wrap (lettuce, mayo, gluten free bread), Bean Salad",
+      "lunch_diabeticAlt": "Egg Salad Wrap (lettuce, mayo, 12\" WW tortilla), Bean Salad"
     },
     "TUESDAY": {
       "lunch": "Blackened Fish, Sweet potatoes, Parsnip and Carrot",
@@ -495,14 +491,8 @@
         "hasBrassicas": true,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
       "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
       "dinner_mainItem": "Pork Carnitas",
@@ -606,9 +596,15 @@
         "hasCorn": false
       },
       "allergens_dinner": "gluten, dairy, beef",
-      "dinner_softAlt": "",
-      "dinner_altMeals": [],
-      "dinner_altMealsNone": true,
+      "dinner_softAlt": "Roast Chicken Leg, Rice and vegetable stirfry",
+      "dinner_altMeals": [
+        {
+          "text": "Roast Chicken Leg, Rice and vegetable stirfry",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -676,7 +672,12 @@
           "manual": "Pasta",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Gluten Free Bread, Dairy Free Cheese, Halal Chicken Deli, Tomato, Lettuce and Broccoli Salad",
+      "lunch_noDairyAlt": "Halal Chicken Deli, Vegan Cheese, Lettuce, Tomato and Broccoli Salad",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true
     },
     "MONDAY": {
       "lunch": "Breaded Chicken Burgers, Home Fry Potatoes",
@@ -708,9 +709,15 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_softAlt": "Roasted chicken, Roasted Yams, Cauliflower and Home Fries",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted chicken, Roasted Yams, Cauliflower and Home Fries",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Breaded Chicken Burgers",
       "lunch_mainAlt": "",
@@ -890,7 +897,13 @@
           "manual": "Cabbage Stirfry",
           "flags": {}
         }
-      }
+      },
+      "lunch_diabeticAlt": "Halal Chicken Burger, Burger Bun, Lettuce, tomato, pickled onions, mayo, mustard and Home Fries",
+      "lunch_noEggAlt": "Halal Chicken Burger, Burger Bun, Lettuce, pickled onions, NO mayo /No Mustard/ No Tomato), Home Fries",
+      "dinner_blandAlt": "Roast Chicken Leg, Cabbage & Carrot Stirfry, Plain Rice and Green Peas",
+      "dinner_altMeals": [],
+      "dinner_softAlt": "",
+      "dinner_altMealsNone": true
     },
     "THURSDAY": {
       "lunch": "Fully Loaded Sausage, Side Salad",
@@ -922,9 +935,15 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Fully Loaded Sausage",
       "lunch_mainAlt": "",
@@ -1073,7 +1092,10 @@
             "hasNightshades": true
           }
         }
-      }
+      },
+      "dinner_altMeals": [],
+      "dinner_softAlt": "",
+      "dinner_altMealsNone": true
     },
     "SATURDAY": {
       "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -1307,7 +1329,26 @@
           "manual": "Rice",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_softAlt": "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice",
+      "lunch_altMealsNone": false,
+      "dinner_altMeals": [
+        {
+          "text": "Roasted Chicken Leg, Vegetable Stirfry, Plain Rice",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_softAlt": "Roasted Chicken Leg, Vegetable Stirfry, Plain Rice",
+      "dinner_altMealsNone": false
     },
     "FRIDAY": {
       "breakfast": "Turkey & Cheese and Eggs, Yogurt",
@@ -1576,7 +1617,10 @@
           "manual": "Rice",
           "flags": {}
         }
-      }
+      },
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true
     }
   },
   "2": {
@@ -1678,9 +1722,15 @@
       "allergens_breakfast": "gluten, dairy",
       "allergens_lunch": "gluten, dairy, egg",
       "allergens_dinner": "gluten, egg, mustard, sulphites, beef",
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_softAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+      "lunch_altMeals": [
+        {
+          "text": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainAlt": "Halal Breaded Chicken Burgers",
       "lunch_slots": {
@@ -1828,7 +1878,19 @@
           "manual": "Potatoes",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+      "lunch_noEggAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+      "dinner_gfAlt": "Plain Chicken leg, Rice, Squash",
+      "dinner_altMeals": [
+        {
+          "text": "Plain Chicken leg, Rice, Squash",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_softAlt": "Plain Chicken leg, Rice, Squash",
+      "dinner_altMealsNone": false
     },
     "FRIDAY": {
       "breakfast": "Ham, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
@@ -1893,15 +1955,9 @@
         "hasBrassicas": false,
         "hasCorn": true
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -2052,7 +2108,18 @@
           "recipeId": "vegan-conc-salad-mix",
           "displayText": "CONC Salad - Vegan Beef"
         }
-      }
+      },
+      "lunch_gfAlt": "CONC Salad (Halal spiced beef, corn, beans, lettuce, red cabbage, carrots, pickled onion, (DF Cheese/No Naan)",
+      "lunch_diabeticAlt": "CONC Salad (Halal spiced beef, corn, beans, lettuce, red cabbage, carrots, pickled onion), Cheese, No Naan",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_softAlt": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
+      "lunch_altMealsNone": false
     },
     "WEDNESDAY": {
       "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -2251,7 +2318,11 @@
           "manual": "Coconut Rice and peas",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Halal crispy drumsticks, Roasted Yams, Veg Stirfry",
+      "dinner_altMeals": [],
+      "dinner_softAlt": "",
+      "dinner_altMealsNone": true
     },
     "THURSDAY": {
       "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, roll",
@@ -2466,7 +2537,19 @@
           "manual": "Peas",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Rice, Chicken Leg and Vegetable stirfry",
+      "lunch_diabeticAlt": "Halal Beef Burger, Lettuce, Tomato, Cheese and Chickpea Salad",
+      "lunch_noDairyAlt": "Halal Beef Burger, Lettuce, Tomato, DF Cheese and Chickpea Salad",
+      "dinner_altMeals": [
+        {
+          "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+      "dinner_altMealsNone": false
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -2702,7 +2785,21 @@
           "manual": "Green Beans",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_softAlt": "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice",
+      "lunch_altMealsNone": false,
+      "dinner_anaphAlt": "Plain chicken, Veg Stirfry, plain rice. NO PEANUTS PLEASE",
+      "dinner_altMeals": [],
+      "dinner_softAlt": "",
+      "dinner_altMealsNone": true
     },
     "TUESDAY": {
       "breakfast": "Cereal and milk, fruit",
@@ -2968,7 +3065,11 @@
           "manual": "Steamed Broccoli",
           "flags": {}
         }
-      }
+      },
+      "lunch_diabeticAlt": "Whole Wheat Pita, Tuna Salad Sandwich, Seasonal Soup or Salad",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true
     },
     "SUNDAY": {
       "dinner_slots": {
@@ -3132,7 +3233,20 @@
           "manual": " Fruit",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Rice, Chicken Leg and Vegetable stirfry",
+      "lunch_diabeticAlt": "Whole Wheat Tortilla, Philly Cheese Melt (Onions and Green Peppers)",
+      "lunch_noDairyAlt": "Philly Cheese Melt (DF Cheese, Onions and Green Peppers)",
+      "lunch_altMeals": [
+        {
+          "text": "Rice, Chicken Leg and Vegetable stirfry",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_softAlt": "Rice, Chicken Leg and Vegetable stirfry",
+      "lunch_altMealsNone": false,
+      "dinner_gfAlt": "Sausage and Greens Sauce, Steamed Rice"
     }
   },
   "3": {
@@ -3233,9 +3347,15 @@
       },
       "allergens_lunch": "sesame, soy",
       "allergens_dinner": "gluten, dairy, pork",
-      "dinner_softAlt": "",
-      "dinner_altMeals": [],
-      "dinner_altMealsNone": true,
+      "dinner_softAlt": "Chicken Leg, Herbed rice, Stir fry veg",
+      "dinner_altMeals": [
+        {
+          "text": "Chicken Leg, Herbed rice, Stir fry veg",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "Halal Pizza",
       "dinner_slots": {
@@ -3357,7 +3477,12 @@
           "manual": "Pineapple Rice",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Plain Roasted Chicken & Veg Stirfry (no soy sauce/broccoli/cauliflower), Steamed rice",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true,
+      "dinner_gfAlt": "Chicken Leg, Herbed rice, Stir fry veg"
     },
     "FRIDAY": {
       "breakfast": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, Vienna Roll",
@@ -3453,15 +3578,9 @@
         "hasBrassicas": true,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Steamed Rice & Seasonal Veg (no mushroom)",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -3530,15 +3649,9 @@
       "allergens_breakfast": "gluten, dairy, egg, pork, turkey",
       "allergens_lunch": "gluten, fish, tree nuts, sulphites",
       "allergens_dinner": "gluten, sesame, soy",
-      "lunch_softAlt": "Baked Basa, Plain Rice & Stir-fried Veg",
-      "lunch_altMeals": [
-        {
-          "text": "Baked Basa, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "lunch_altMealsNone": false,
+      "lunch_softAlt": "",
+      "lunch_altMeals": [],
+      "lunch_altMealsNone": true,
       "lunch_noPorkAlt": "",
       "lunch_mainAlt": "",
       "lunch_slots": {
@@ -3615,7 +3728,8 @@
           "manual": "Cauliflower & Green Bean",
           "flags": {}
         }
-      }
+      },
+      "lunch_anaphAlt": "Plain Fish, Cauliflower&Green Bean"
     },
     "WEDNESDAY": {
       "lunch": "Beef Nachos Supreme, Tortillas, Sour Cream",
@@ -3647,9 +3761,17 @@
         "hasBrassicas": false,
         "hasCorn": true
       },
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_softAlt": "Baked plain fish, rice, Stirfry Veg",
+      "lunch_altMeals": [
+        {
+          "text": "Baked plain fish, rice, Stirfry Veg",
+          "type": "soft",
+          "flags": {
+            "hasFish": true
+          }
+        }
+      ],
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Beef Nachos Supreme",
       "lunch_mainAlt": "",
@@ -3818,7 +3940,11 @@
           "manual": "Broccoli",
           "flags": {}
         }
-      }
+      },
+      "dinner_gfAlt": "Baked Tomato fish, Rice, Veg Stirfry (no broccoli/cauliflower)",
+      "dinner_altMeals": [],
+      "dinner_softAlt": "",
+      "dinner_altMealsNone": true
     },
     "THURSDAY": {
       "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, Vienna roll",
@@ -3884,14 +4010,8 @@
         "hasBrassicas": true,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Roasted Potatoes & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
       "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "Chicken Griot",
@@ -4008,9 +4128,15 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "lunch_softAlt": "",
-      "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+      "lunch_altMeals": [
+        {
+          "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainAlt": "",
       "lunch_slots": {
@@ -4134,11 +4260,11 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_softAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
       "dinner_altMeals": [
         {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
+          "text": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
+          "type": "soft",
           "flags": {}
         }
       ],
@@ -4221,7 +4347,20 @@
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_lunch": "gluten, egg, mustard",
-      "allergens_dinner": "gluten, egg, mustard, sulphites, beef"
+      "allergens_dinner": "gluten, egg, mustard, sulphites, beef",
+      "lunch_gfAlt": "NO MAYO Coronation chicken salad, GF BREAD, Seasonal soup or salad",
+      "lunch_noEggAlt": "NO MAYO Coronation chicken salad sandwich, Salad or Seasonal Soup",
+      "lunch_altMeals": [
+        {
+          "text": "Coronation chicken salad, WW sliced BREAD, Seasonal soup or salad",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_softAlt": "Coronation chicken salad, WW sliced BREAD, Seasonal soup or salad",
+      "lunch_altMealsNone": false,
+      "dinner_gfAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
+      "dinner_diabeticAlt": "WHOLE WHEAT PASTA, Halal Beef Meatball, Pea&Carrot"
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -4318,7 +4457,7 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
+      "dinner_softAlt": "",
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -4370,17 +4509,12 @@
           "flags": {}
         }
       },
-      "dinner_altMeals": [
-        {
-          "text": "Plain Roasted Chicken, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": true,
       "allergens_breakfast": "gluten, dairy, egg, turkey",
       "allergens_lunch": "gluten, dairy, egg, sulphites, pork",
-      "allergens_dinner": "sulphites"
+      "allergens_dinner": "sulphites",
+      "lunch_gfAlt": "Roasted Chicken Leg, Roasted Potato, Veg Medley"
     },
     "TUESDAY": {
       "dinner_flags": {
@@ -4577,7 +4711,18 @@
           "manual": "Naan",
           "flags": {}
         }
-      }
+      },
+      "dinner_anaphAlt": "Halal Chicken Leg, Stirfry Vegetables, Roasted Potato",
+      "dinner_blandAlt": "Halal Chicken Leg, Stirfry Vegetables, Roasted Potato",
+      "dinner_altMeals": [
+        {
+          "text": "Halal Chicken Leg, Stirfry Vegetables, Roasted Potato",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_softAlt": "Halal Chicken Leg, Stirfry Vegetables, Roasted Potato",
+      "dinner_altMealsNone": false
     }
   },
   "4": {
@@ -4681,7 +4826,7 @@
       "allergens_dinner": "",
       "lunch_softAlt": "",
       "lunch_altMeals": [],
-      "lunch_altMealsNone": true,
+      "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainAlt": "Chicken Al Pastor Taco",
       "lunch_slots": {
@@ -4780,7 +4925,11 @@
           "manual": "Peas",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Halal Chicken Al Pastor, Pea & Carrot, Rice/Starch NO Tortilla",
+      "dinner_altMeals": [],
+      "dinner_softAlt": "",
+      "dinner_altMealsNone": true
     },
     "THURSDAY": {
       "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, roll",
@@ -4845,15 +4994,9 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Roasted Chicken, Steamed Rice & Vegetables",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Roasted Chicken, Steamed Rice & Vegetables",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -5009,7 +5152,11 @@
           "manual": "Side Salad"
         }
       },
-      "allergens_lunch": "gluten, dairy, beef"
+      "allergens_lunch": "gluten, dairy, beef",
+      "lunch_gfAlt": "Rice, Chicken Leg and Vegetable stirfry",
+      "lunch_diabeticAlt": "Halal Beef Burger, Lettuce, Tomato, Cheese and Side Salad",
+      "lunch_noDairyAlt": "Halal Beef Burger, Lettuce, Tomato, DF Cheese and Side Salad",
+      "dinner_gfAlt": "Plain roasted chicken, Steam rice, Vegetables"
     },
     "SATURDAY": {
       "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -5105,11 +5252,11 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_softAlt": "Roasted Chicken leg, Plain rice, Vegetable Stirfry",
       "dinner_altMeals": [
         {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
+          "text": "Roasted Chicken leg, Plain rice, Vegetable Stirfry",
+          "type": "soft",
           "flags": {}
         }
       ],
@@ -5232,7 +5379,12 @@
           "manual": "Steamed Broccoli",
           "flags": {}
         }
-      }
+      },
+      "lunch_diabeticAlt": "Lime-Spiced Chicken Legs, Tumeric Quinoa, Broccoli",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true,
+      "dinner_anaphAlt": "Roasted Chicken leg, Plain rice, Vegetable Stirfry"
     },
     "FRIDAY": {
       "breakfast": "Ham, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
@@ -5329,14 +5481,8 @@
         "hasBrassicas": false,
         "hasCorn": true
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
       "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "Tandoori Chicken",
@@ -5442,7 +5588,11 @@
           "recipeId": "vegan-lasagna-sauce",
           "displayText": "Veggie lasagna, Cauliflower & Carrot"
         }
-      }
+      },
+      "lunch_gfAlt": "Roasted Chicken Leg, Rice, Zucchini&Carrot",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true
     },
     "SUNDAY": {
       "breakfast": "Turkey Breakfast Sandwich",
@@ -5540,7 +5690,7 @@
         "hasCorn": false
       },
       "breakfast_softAlt": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
-      "dinner_softAlt": "Plain Chicken Leg, Rice & Broccoli",
+      "dinner_softAlt": "",
       "breakfast_altMeals": [
         {
           "text": "Plain English Muffin, Scrambled Eggs x2, DF Yoghurt & Fruit",
@@ -5569,14 +5719,8 @@
           }
         }
       },
-      "dinner_altMeals": [
-        {
-          "text": "Plain Chicken Leg, Rice & Broccoli",
-          "type": "plain",
-          "flags": {}
-        }
-      ],
-      "dinner_altMealsNone": false,
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -5717,7 +5861,20 @@
           "manual": "Naan",
           "flags": {}
         }
-      }
+      },
+      "lunch_gfAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+      "lunch_noDairyAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+      "lunch_altMeals": [
+        {
+          "text": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "lunch_softAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+      "lunch_altMealsNone": false,
+      "dinner_gfAlt": "Plain Chicken Leg, Rice, Broccoli",
+      "dinner_diabeticAlt": "White Chili Chicken Pasta, Broccoli, Pasta, Whole wheat"
     },
     "WEDNESDAY": {
       "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -5782,11 +5939,11 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
+      "dinner_softAlt": "Roasted Chicken Leg, Rice and Stirfry veg",
       "dinner_altMeals": [
         {
-          "text": "Plain Chicken Leg, Plain Rice & Stir-fried Veg",
-          "type": "plain",
+          "text": "Roasted Chicken Leg, Rice and Stirfry veg",
+          "type": "soft",
           "flags": {}
         }
       ],
@@ -5894,7 +6051,11 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "allergens_lunch": "egg, fish"
+      "allergens_lunch": "egg, fish",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true,
+      "dinner_gfAlt": "Roasted Chicken Leg, Rice and Stirfry veg"
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -5990,7 +6151,7 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner_softAlt": "Plain Fish, Plain Rice & Stir-fried Veg",
+      "dinner_softAlt": "Marinated Fish,Plain Rice, Stirfry Veg (No Beans)",
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
       "dinner_slots": {
@@ -6135,41 +6296,57 @@
           "recipeId": "rexdale-falafel",
           "displayText": "Falafel  Sandwich, Fruit and Chips, Sub Bun"
         }
-      }
+      },
+      "lunch_gfAlt": "Roasted Chicken Leg, Roasted Yams, Stirfry Vegetables",
+      "lunch_noDairyAlt": "DF Chicken (Chicken Salad, No Mayo, DF cheese), 6\" sub bun, Seasonal Soup or salad",
+      "lunch_noEggAlt": "DF Chicken (Chicken Salad, No Mayo, DF cheese), 6\" sub bun, Seasonal Soup or salad",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true,
+      "dinner_altMeals": [
+        {
+          "text": "Marinated Fish,Plain Rice, Stirfry Veg (No Beans)",
+          "type": "soft",
+          "flags": {
+            "hasFish": true
+          }
+        }
+      ],
+      "dinner_altMealsNone": false
     }
   },
   "_meta": {
     "plainVegStirfryComponents": "Carrot, Onion, Peppers, Zucchini, Green Beans",
     "standardCutover": 1783971058450,
     "dayEditedAt": {
-      "1|TUESDAY": 1792324804415,
-      "2|SATURDAY": 1792412970709,
-      "3|WEDNESDAY": 1792324804415,
-      "1|WEDNESDAY": 1792253645169,
-      "1|SUNDAY": 1791118602095,
-      "2|THURSDAY": 1792412970709,
-      "3|FRIDAY": 1792253645169,
-      "3|SUNDAY": 1792253645169,
-      "4|TUESDAY": 1792412970709,
-      "4|THURSDAY": 1792412970709,
-      "4|SATURDAY": 1792253645169,
-      "1|SATURDAY": 1792253645169,
-      "1|FRIDAY": 1792253645169,
-      "2|WEDNESDAY": 1792412970709,
-      "2|MONDAY": 1792308548962,
-      "2|TUESDAY": 1792412970709,
-      "4|FRIDAY": 1792253645169,
-      "4|SUNDAY": 1792253645169,
-      "4|WEDNESDAY": 1792412970709,
-      "2|FRIDAY": 1792412970709,
-      "3|SATURDAY": 1792324804415,
-      "3|THURSDAY": 1792412970709,
-      "3|MONDAY": 1792253645169,
-      "4|MONDAY": 1792253645169,
-      "1|MONDAY": 1792412970709,
-      "3|TUESDAY": 1792412970709,
-      "1|THURSDAY": 1792253645169,
-      "2|SUNDAY": 1792412970709
+      "1|TUESDAY": 1792415770014,
+      "2|SATURDAY": 1792415770014,
+      "3|WEDNESDAY": 1792415770014,
+      "1|WEDNESDAY": 1792415770014,
+      "1|SUNDAY": 1792415770014,
+      "2|THURSDAY": 1792415770014,
+      "3|FRIDAY": 1792415770014,
+      "3|SUNDAY": 1792415770014,
+      "4|TUESDAY": 1792415770014,
+      "4|THURSDAY": 1792415770014,
+      "4|SATURDAY": 1792415770014,
+      "1|SATURDAY": 1792415770014,
+      "1|FRIDAY": 1792415770014,
+      "2|WEDNESDAY": 1792415770014,
+      "2|MONDAY": 1792415770014,
+      "2|TUESDAY": 1792415770014,
+      "4|FRIDAY": 1792415770014,
+      "4|SUNDAY": 1792415770014,
+      "4|WEDNESDAY": 1792415770014,
+      "2|FRIDAY": 1792415770014,
+      "3|SATURDAY": 1792415770014,
+      "3|THURSDAY": 1792415770014,
+      "3|MONDAY": 1792415770014,
+      "4|MONDAY": 1792415770014,
+      "1|MONDAY": 1792415770014,
+      "3|TUESDAY": 1792415770014,
+      "1|THURSDAY": 1792415770014,
+      "2|SUNDAY": 1792415770014
     }
   }
 }

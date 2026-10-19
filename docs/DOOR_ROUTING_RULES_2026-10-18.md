@@ -33,28 +33,37 @@ A resident sits in the first open section whose tags they hold. Regular is last 
 | p | Section | Tags | Opens on | Plate (`altType`) | The plate is free of |
 |---|---|---|---|---|---|
 | 1 | Vegan / Vegetarian | Vegan, Vegetarian | always | the vegan line | meat, fish, shellfish, dairy; egg and mustard only when `_vegAltSafe` |
-| 2 | Halal | Halal, No Pork | pork; or beef / chicken / turkey that isn't halal-certified | the halal line, `mainAlt`, else "Halal alternative — …" | pork, non-halal meat |
+| 2 | Halal | Halal; No Pork on a pork meal only (2026-10-19) | pork; or beef / chicken / turkey that isn't halal-certified | the halal line, `mainAlt`, else "Halal alternative — …" | pork, non-halal meat |
 | 2.1 | No Pork | No Pork without Halal | when the meal sets `noPorkAlt` (split out of Halal) | `noPorkAlt` | pork |
 | 2.5 | No Processed Food | No Processed Food | `hasProcessedMeat` | `noproc_alt` | processed meat |
 | 3 | No Fish / Shellfish → Vegan | No Fish, No Shellfish, No Molluscs (was not routed; F4) | `hasFish`, `hasShellfish` | the vegan line | as Vegan |
 | 4 | Gluten Free | GF | `hasGluten` | `gfAlt` | gluten |
-| 5 | No Dairy → Vegan | No Dairy, Lactose Intolerant | `hasDairy` | the vegan line | as Vegan |
+| 5 | No Dairy → Vegan, or its own plate | No Dairy, Lactose Intolerant | `hasDairy` | the meal's `noDairyAlt` (its own plate, 2026-10-19), else the vegan line | dairy |
 | 6 | No Beef → Vegan | No Beef | `hasBeef` | the vegan line | as Vegan |
-| 7 | Diabetic / Low Carb | Diabetic, Low Carb | `isCarb` | the main, less starch | nothing more |
-| 8 | Bland | No Spicy, Bland Diet (was in no section; F2) | `isSpicy` | the main, plain | spice |
-| 9 | Soft Meals ("Alternative Meals") | Soft Meals | always | `softAlt` / `altMeals` | — (texture) |
+| 7 | Diabetic / Low Carb | Diabetic, Low Carb | a meal with `diabeticAlt` (2026-10-19; was `isCarb`) | `diabeticAlt` (the whole-wheat version) | nothing more |
+| 8 | Bland | No Spicy, Bland Diet (was in no section; F2) | `isSpicy` with `blandAlt` (2026-10-19) | `blandAlt` | spice |
+| 9 | Soft Meals ("Alternative Meals") | Soft Meals | always, except a meal with `altMealsNone` (2026-10-19) | `softAlt` / `altMeals` | — (texture) |
 | 10 | No Egg / Mustard | No Eggs on `hasEgg`; No Mustard on `hasMustard` (was egg only; F3, `tagTriggers`) | `hasEgg`, `hasMustard` | the main without egg or mustard | egg, mustard |
 | 99 | Regular | — | always | the main | — |
+
+**The plating review (2026-10-19, Jason: "Copy the kitchen's").** The kitchen's manual sheets decide five groupings differently, and DOOR now follows them:
+- **Diabetic:** a diabetic plate only where the kitchen makes one (the whole-wheat wrap, bun, pita or pasta of 10 meals). Otherwise diabetics eat the regular plate, and the Regular notes say "extra veg less starch" on a starchy meal.
+- **No Spicy / Bland Diet:** a bland plate only where the kitchen makes one (Wk1 MON and Wk3 TUE dinner). Otherwise they eat the regular plate, and the Regular notes name "No Spicy" (`formatConflictNote` now prints a routing restriction the meal sets off).
+- **Soft Meals:** no soft plate on a meal the kitchen marks "no soft alternative needed" (`altMealsNone`); soft residents eat the regular plate, "soft" in the Regular notes (`doorRegularServiceNote`). On a pork meal with no soft plate they still join the halal plate (§3), as the kitchen seats them.
+- **No Dairy:** the kitchen's dairy-free version of the main where there is one (`noDairyAlt`, 6 meals), else the vegan plate.
+- **No Pork:** on the halal plate on pork only. On chicken, beef or turkey that isn't halal-certified they eat the regular plate (19 rooms on Wk2 SAT's tenders); Halal residents keep the halal plate.
+
+The alternatives' dishes are the meal's `diabeticAlt`, `noDairyAlt`, `blandAlt`, `noEggAlt`, `anaphAlt`, `gfAlt` and soft `altMeals`, copied from the eight manual workbooks of Oct 17: a field is filled where most of its group sits on one manual alternative that isn't the vegan or halal plate. Edit Menu's "Alternatives the kitchen makes" edits them. The halal and vegan lines are not changed (EXPO and HUB read them).
 
 `halalCertifiedMeat` defaults to true on a meal with beef, chicken or turkey and no pork (CONC buys halal). An explicit false opens Halal. The plating engine also sets chicken / turkey from the meal's name and reads a "Halal …" main as certified (`computePlatingData`); the routing file's counts do not (§6).
 
 ## 3. Merges, in the order the code applies them
 
-1. **Into Vegan:** No Fish / Shellfish, No Dairy and No Beef residents join Vegan whenever their section opens. (No "incl." label is printed for these.)
+1. **Into Vegan:** No Fish / Shellfish, No Dairy and No Beef residents join Vegan whenever their section opens, except No Dairy on a meal with the kitchen's dairy-free version (`noDairyAlt`, 2026-10-19). (No "incl." label is printed for these.)
 2. **Pork day** (`hasPork`):
    - No Processed Food → Halal (label "incl. No Processed");
-   - Soft Meals → Halal, unless the meal has alternative meals (`_altMeals`);
-   - Bland → Gluten Free, only while Gluten Free is open (2026-10-16).
+   - Soft Meals → Halal, unless the meal has alternative meals (`_altMeals`); on the manual sheets the kitchen seats its soft-only resident on the halal plate on 6 of the 7 pork meals with no soft plate (2026-10-19);
+   - Bland → Gluten Free, only while Gluten Free is open (2026-10-16); since 2026-10-19 only on a meal with a bland plate, and no pork meal has one.
 3. **No Pork split:** with `noPorkAlt`, No Pork residents without Halal leave Halal for their own section. No published meal sets it.
 4. **No Egg → Vegan** when the vegan line names no egg or mustard (`_vegAltSafe`).
 5. A section with no residents doesn't print; Regular always does.
@@ -74,23 +83,23 @@ Column meanings:
 | Tag | Residents | Set | Section (opens on) | Conflict | Line note | Lockout | Compliance | Gap |
 |---|---|---|---|---|---|---|---|---|
 | Halal | 37 | routing | halal (pork; non-halal meat) | – | – | not offered | auto | |
-| No Pork | 18 | routing | halal | hasPork | – | not offered | doc | |
-| Diabetic | 16 | routing | diabetic (isCarb) | – | "extra veg less starch" on every row | not offered | doc | |
+| No Pork | 18 | routing | halal (pork only, 2026-10-19) | hasPork | – | not offered | doc | |
+| Diabetic | 16 | routing | diabetic (diabeticAlt; was isCarb) | – | "extra veg less starch" on every row; on the Regular notes, on a starchy meal | not offered | doc | |
 | Vegetarian | 7 | routing | vegan (always) | – | – | not offered | auto | |
 | Low Sodium | 6 | accom | – | – | – | not offered | doc | F6 |
 | GF | 5 | routing | gf (hasGluten) | hasGluten | "gluten-free" | hasGluten | doc (listed now; F5) | F9 fixed |
-| Lactose Intolerant | 4 | routing | no_dairy → vegan (hasDairy) | hasDairy | "dairy-free" | not offered | auto | |
-| No Dairy | 4 | routing | no_dairy → vegan (hasDairy) | hasDairy | "dairy-free" | hasDairy | doc | |
+| Lactose Intolerant | 4 | routing | no_dairy → vegan, or its own plate with noDairyAlt (hasDairy) | hasDairy | "dairy-free" | not offered | auto | |
+| No Dairy | 4 | routing | no_dairy → vegan, or its own plate with noDairyAlt (hasDairy) | hasDairy | "dairy-free" | hasDairy | doc | |
 | No Fish | 4 | routing | no_fish → vegan (fish, shellfish) | hasFish | "no fish" | hasFish | auto | |
-| No Spicy | 4 | routing | bland (isSpicy) | isSpicy | "not spicy" (was –) | not offered | doc | F8 fixed |
+| No Spicy | 4 | routing | bland (isSpicy with blandAlt; 2026-10-19) | isSpicy (named in the Regular notes) | "not spicy" (was –) | not offered | doc | F8 fixed |
 | Vegan | 4 | routing | vegan (always) | – | – | not offered | auto | |
-| Soft Meals | 3 | routing | soft (always) | – | "soft" off the soft plate (was –) | not offered | doc | F8, F10 fixed |
+| Soft Meals | 3 | routing | soft (always, except altMealsNone) | – | "soft" off the soft plate (was –), and in the Regular notes | not offered | doc | F8, F10 fixed |
 | No Beans | 2 | accom | – | hasBeans | "no beans" | not offered | auto | F9 |
 | No Beef | 2 | routing | no_beef → vegan (hasBeef) | hasBeef | "no beef" (was –) | hasBeef | auto | F8 fixed |
 | No Eggs | 2 | routing | no_egg (hasEgg) | hasEgg | "no egg" | hasEgg | doc | |
 | No Peanuts | 2 | allergen | – | hasPeanuts | "NO PEANUTS" | hasPeanuts | doc | |
 | No Shellfish | 2 | routing | no_fish → vegan | hasShellfish | "no shellfish" (fish or shellfish) | hasFish, hasShellfish | doc | |
-| Low Carb | 1 | accom | diabetic (isCarb) | – | "extra veg less starch" | not offered | doc | |
+| Low Carb | 1 | accom | diabetic (diabeticAlt; was isCarb) | – | "extra veg less starch" | not offered | doc | |
 | Low Fat, Low Potassium | 1 each | accom | – | – | – | not offered | doc | F6 |
 | No Coconut | 1 | allergen | – | hasCoconut | "no coconut" | hasCoconut | doc | |
 | No Corn | 1 | accom | – | hasCorn | "no corn" | not offered | doc | |
@@ -100,7 +109,7 @@ Column meanings:
 | No Soy | 1 | allergen | – | hasSoy | "no soy" | hasSoy | doc | |
 | No Tree Nuts | 1 | allergen | – | hasTreeNuts | "no tree nuts" | hasTreeNuts | doc | |
 | No Turkey | 1 | accom | – | hasTurkey | "no turkey" (was –) | not offered | auto | F8 fixed |
-| Bland Diet | 0 | routing | bland (was in no section) | isSpicy (was –) | "not spicy" (was –) | not offered | doc* | F2 fixed |
+| Bland Diet | 0 | routing | bland (isSpicy with blandAlt; was in no section) | isSpicy (was –) | "not spicy" (was –) | not offered | doc* | F2 fixed |
 | No Brassicas | 0 | accom | – | hasBrassicas | "no broccoli/cauliflower/cabbage" | not offered | auto | |
 | No Fried Food | 0 | accom | – | – | – | not offered | doc | F6 |
 | No Mustard | 0 | allergen | no_egg on a mustard meal (was –) | hasMustard | "no mustard" | hasMustard | doc | F3 fixed |

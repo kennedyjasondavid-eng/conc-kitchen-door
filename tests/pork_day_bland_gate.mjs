@@ -7,6 +7,9 @@
 // (2026-10-16): the Spicy tick on W2 TUE's Pork Vindaloo would have dropped 310b there too.
 // The fix: they join Gluten Free only when that section is active; otherwise they keep their own Bland section.
 // Authored to fail on b380cc5.
+// Re-pinned 2026-10-19 (the plating review, Jason: "Copy the kitchen's"): DOOR makes a bland plate only on a spicy meal
+// with the kitchen's bland alternative (`_blandAlt`); otherwise No Spicy residents eat the regular plate, as the
+// kitchen's sheets seat 310b and 910, with "No Spicy" on their line.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,20 +27,25 @@ const ROSTER = [
   { room: '808', tags: ['No Dairy'] }, { room: '909', tags: ['Diabetic'] }, { room: '111', tags: ['No Eggs'] }, { room: '222', tags: ['Bland Diet'] },
 ];
 
+const BLAND = { _blandAlt: 'Roast Chicken Leg, Plain Rice and Green Peas' };
 test('a No Spicy resident on a spicy pork meal with no gluten has a plate (their own Bland section)', () => {
-  const out = run({ hasPork: true, isSpicy: true, isCarb: true }, ROSTER);
+  const out = run({ hasPork: true, isSpicy: true, isCarb: true, ...BLAND }, ROSTER);
   assert.equal(seatOf(out, '310b'), 'bland');
+  // No bland plate on the meal: the regular plate (2026-10-19).
+  assert.equal(seatOf(run({ hasPork: true, isSpicy: true, isCarb: true }, ROSTER), '310b'), 'regular');
 });
 
 test('…and on a spicy pork meal with gluten they still join Gluten Free, as the plating practice says', () => {
-  const out = run({ hasPork: true, isSpicy: true, hasGluten: true }, ROSTER);
+  const out = run({ hasPork: true, isSpicy: true, hasGluten: true, ...BLAND }, ROSTER);
   assert.equal(seatOf(out, '310b'), 'gf');
   const gf = out.find((x) => x.rule.key === 'gf');
   assert.ok(gf && (gf._mergedLabels || []).includes('Bland'));
 });
 
 test('every resident is seated on every combination of meal flags', () => {
-  const keys = ['hasPork', 'isSpicy', 'hasGluten', 'hasDairy', 'hasEgg', 'isCarb', 'hasBeef', 'halalCertifiedMeat'];
+  // 2026-10-19: with the kitchen's alternatives too (a bland, diabetic and dairy-free plate; "no soft alternative needed").
+  const keys = ['hasPork', 'isSpicy', 'hasGluten', 'hasDairy', 'hasEgg', 'isCarb', 'hasBeef', 'halalCertifiedMeat',
+    '_blandAlt', '_diabeticAlt', '_noDairyAlt', '_altMealsNone'];
   const lost = [];
   for (let m = 0; m < (1 << keys.length); m++) {
     const flags = {};
@@ -53,8 +61,9 @@ test('the other pork-day seatings are unchanged: Soft Meals with Halal, a non-sp
   const pork = run({ hasPork: true }, ROSTER);
   assert.equal(seatOf(pork, '213'), 'halal');
   assert.equal(seatOf(pork, '310b'), 'regular');
-  const notPork = run({ isSpicy: true }, ROSTER);
+  const notPork = run({ isSpicy: true, ...BLAND }, ROSTER);
   assert.equal(seatOf(notPork, '310b'), 'bland');
+  assert.equal(seatOf(run({ isSpicy: true }, ROSTER), '310b'), 'regular', '2026-10-19: no bland plate on the meal');
 });
 
 test('on the published menu and resident list, every resident is seated at every meal', () => {
@@ -62,8 +71,14 @@ test('on the published menu and resident list, every resident is seated at every
   const residents = JSON.parse(fs.readFileSync(new URL('../door_state.json', import.meta.url), 'utf8')).residents;
   const lost = [];
   Object.keys(menu).forEach((wk) => Object.keys(menu[wk]).forEach((day) => ['breakfast', 'lunch', 'dinner'].forEach((p) => {
-    const flags = menu[wk][day] && menu[wk][day][p + '_flags'];
-    if (!flags) return;
+    const d = menu[wk][day];
+    if (!d || !d[p + '_flags']) return;
+    // As the plating sheet reads the meal (2026-10-19): the kitchen's alternatives and "no soft alternative needed".
+    const flags = { ...d[p + '_flags'] };
+    if (d[p + '_diabeticAlt']) flags._diabeticAlt = d[p + '_diabeticAlt'];
+    if (d[p + '_noDairyAlt']) flags._noDairyAlt = d[p + '_noDairyAlt'];
+    if (d[p + '_blandAlt']) flags._blandAlt = d[p + '_blandAlt'];
+    if (d[p + '_altMealsNone'] === true) flags._altMealsNone = true;
     const out = run(flags, residents);
     const seated = new Set(out.flatMap((x) => x.residents.map((r) => r.room)));
     residents.forEach((r) => { if (!seated.has(r.room)) lost.push(`W${wk} ${day} ${p}: ${r.room}`); });

@@ -68,6 +68,8 @@ function ctx(dayData) {
     renderEditFlagGrid() {},
     renderSlots() {},
     updateSlotSummary() {},
+    // Re-pinned 2026-10-19 (the plating review): openMenuEdit fills Edit Menu's "Alternatives the kitchen makes".
+    doorFillKitchenAltInputs() {},
   };
   vm.createContext(c);
   vm.runInContext([

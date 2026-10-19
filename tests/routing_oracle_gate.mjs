@@ -4,8 +4,9 @@
 // (docs/DOOR_ROUTING_RULES_2026-10-18.md §9). The oracle (tests/helpers/routing_oracle.mjs) is written from that table,
 // not from computeSections. This gate runs the REAL computeSections and plating line notes from index.html in a vm over
 // every single tag, every pair of the tags that route, the published residents' tag sets, and meals of every single
-// flag, every pair of the flags that open a section, each opener with each allergen flag, and the four meal switches
-// (halal-certified unset/false, the vegan line egg-free, alternative meals, a no-pork alternative). Every resident must
+// flag, every pair of the flags that open a section, each opener with each allergen flag, and the meal switches
+// (halal-certified unset/false, the vegan line egg-free, alternative meals, a no-pork alternative, and since the plating
+// review of 2026-10-19 the kitchen's diabetic, bland and dairy-free plates and "no soft alternative needed"). Every resident must
 // sit exactly once, in a section that prints, the section the oracle names, and carry every note the oracle requires.
 // Authored to fail on main 66e0bec: Bland Diet ate the regular plate, No Mustard and No Molluscs never routed, and the
 // line named no No Spicy, Soft Meals, No Beef, No Turkey or No Processed Food, nor the vegan line's own allergens.
@@ -13,7 +14,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { plateFor, requiredNotes, NOTES } from './helpers/routing_oracle.mjs';
+import { plateFor, requiredNotes, regularServiceNotes, NOTES } from './helpers/routing_oracle.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
@@ -27,6 +28,7 @@ const LINE = [
   between('const CONFLICT_MAP = [', '\n];\n') + '\n];\n', fnOpt('doorAllergenStrFlags'), fnOpt('doorSectionLineNotes'),
   between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers(') + fn('migrateResidentTiers'),
   between('const RESIDENT_TO_MEAL_FLAG = {', '\n};\n') + '\n};\n', fn('checkResidentMealConflicts'), fn('formatConflictNote'),
+  fnOpt('doorRegularServiceNote'),
 ].join('\n');
 function box(routing = ROUTING) {
   const c = {}; vm.createContext(c);
@@ -58,12 +60,17 @@ OPENERS.forEach((a, i) => OPENERS.slice(i + 1).forEach((b) => bases.push({ [a]: 
 OPENERS.forEach((a) => NOTE_FLAGS.forEach((b) => bases.push({ [a]: true, [b]: true })));
 const MEALS = [];
 bases.forEach((b) => {
-  for (const cert of [undefined, false]) for (const safe of [false, true]) for (const alts of [false, true]) for (const np of [false, true]) {
+  for (const cert of [undefined, false]) for (const safe of [false, true]) for (const alts of [false, true]) for (const np of [false, true])
+  for (const kalt of [false, true]) for (const none of [false, true]) {
     const m = { ...b };
     if (cert === false) { if (!['hasBeef', 'hasChicken', 'hasTurkey'].some((k) => m[k])) continue; m.halalCertifiedMeat = false; }
     if (safe) m._vegAltSafe = true;
     if (alts) { if (!m.hasPork) continue; m._altMeals = [{ type: 'soft', text: 'Soft plate', flags: {} }]; }
     if (np) { if (!m.hasPork) continue; m.noPorkAlt = 'No-pork plate'; }
+    // The kitchen's alternatives (2026-10-19): a diabetic, bland and dairy-free plate on any meal (each opens only where
+    // its rule says), and "no soft alternative needed" (never beside alternative meals: the editor writes one or the other).
+    if (kalt) Object.assign(m, { _diabeticAlt: 'Diabetic plate', _blandAlt: 'Bland plate', _noDairyAlt: 'Dairy-free plate' });
+    if (none) { if (alts) continue; m._altMealsNone = true; }
     MEALS.push(m);
   }
 });
@@ -90,7 +97,7 @@ const splitNotes = (s) => new Set(String(s || '').split(/ · |, /).map((x) => x.
 
 test('the matrix is the size the audit plan asks for', () => {
   assert.ok(RESIDENTS.length >= 200, RESIDENTS.length + ' residents');
-  assert.ok(MEALS.length >= 750, MEALS.length + ' meals');
+  assert.ok(MEALS.length >= 2900, MEALS.length + ' meals');
 });
 
 test('every resident sits exactly once, in a section that prints, on every meal', () => {
@@ -112,8 +119,11 @@ test('every resident sits where the rules table says, on every meal', () => {
 test('the rules Jason ruled: Bland Diet is No Spicy, No Mustard joins No Egg / Mustard, No Molluscs routes like No Shellfish', () => {
   const c = box();
   const seat = (tags, meal) => out(c.computeSections({ ...meal }, [{ room: '1', tags }])).find((s) => s.residents.length).rule.key;
-  assert.equal(seat(['Bland Diet'], { isSpicy: true }), 'bland', 'F2');
-  assert.equal(seat(['Bland Diet'], { isSpicy: true, hasPork: true, hasGluten: true }), 'gf', 'F2: the pork-day Bland → GF merge');
+  // Re-pinned 2026-10-19 (the plating review, Jason: "Copy the kitchen's"): the bland plate opens only on a spicy meal
+  // with the kitchen's bland alternative; without one, No Spicy and Bland Diet residents eat the regular plate.
+  assert.equal(seat(['Bland Diet'], { isSpicy: true, _blandAlt: 'Plain chicken, rice' }), 'bland', 'F2');
+  assert.equal(seat(['Bland Diet'], { isSpicy: true }), 'regular', 'F2, 2026-10-19: no bland plate on this meal');
+  assert.equal(seat(['Bland Diet'], { isSpicy: true, hasPork: true, hasGluten: true, _blandAlt: 'Plain chicken, rice' }), 'gf', 'F2: the pork-day Bland → GF merge');
   assert.equal(seat(['No Mustard'], { hasMustard: true }), 'no_egg', 'F3');
   assert.equal(seat(['No Mustard'], { hasEgg: true }), 'regular', 'F3: an egg meal is not a mustard meal');
   assert.equal(seat(['No Eggs'], { hasMustard: true }), 'regular', 'F3: No Eggs still opens on egg only');
@@ -149,9 +159,13 @@ test('a Regular resident\'s line names every allergen and accommodation the meal
       const s = (seat[r.room] || [])[0];
       if (!s || s.rule.key !== 'regular') continue;
       const res = { ...r }; c.migrateResidentTiers(res);
-      const note = c.formatConflictNote(c.checkResidentMealConflicts(meal, res));
+      // The line the sheet prints: the conflict tags, then the service note (2026-10-19).
+      assert.equal(typeof c.doorRegularServiceNote, 'function', 'doorRegularServiceNote is missing');
+      const note = [c.formatConflictNote(c.checkResidentMealConflicts(meal, res)), c.doorRegularServiceNote(res, meal)].filter(Boolean).join(' · ');
       const want = NOTES.filter(([k, tag]) => r.tags.includes(tag) && meal[k]).map(([, tag]) => tag);
       const missing = want.filter((t) => !note.includes(t));
+      const got = splitNotes(note);
+      regularServiceNotes(r.tags, meal).forEach((n) => { if (!got.has(n)) missing.push(n); });
       if (missing.length) bad.push(r.tags.join('+') + ' @ ' + JSON.stringify(meal) + ': missing ' + missing.join(', '));
     }
   }
@@ -185,4 +199,12 @@ test('mutation check: the gate goes red when a rule is broken', () => {
   const noGuard = ROUTING.replace("&& activeKeys.has('gf')", '');
   assert.notEqual(noGuard, ROUTING, 'the Bland → GF guard was found');
   assert.ok(diffSeats(box(noGuard)).length > 0, 'the 2026-10-16 "No Spicy had no plate" bug is caught');
+  // The plating review's rules (2026-10-19): each one, undone, is caught.
+  const kitchenRule = (needle) => { const out = ROUTING.replace(needle, ''); assert.notEqual(out, ROUTING, 'found: ' + needle); return out; };
+  assert.ok(diffSeats(box(kitchenRule("if (r.key === 'diabetic') return !!mealFlags._diabeticAlt;"))).length > 0, 'a diabetic plate on every starchy meal again is caught');
+  assert.ok(diffSeats(box(kitchenRule("if (r.key === 'bland') return !!mealFlags.isSpicy && !!mealFlags._blandAlt;"))).length > 0, 'a bland plate on every spicy meal again is caught');
+  assert.ok(diffSeats(box(kitchenRule("if (r.key === 'soft') return !mealFlags._altMealsNone;"))).length > 0, 'a soft plate on a "none needed" meal again is caught');
+  assert.ok(diffSeats(box(kitchenRule(" tagTriggers:{'No Pork':['hasPork']},"))).length > 0, 'No Pork on the halal plate for non-certified chicken again is caught');
+  assert.ok(diffSeats(box(ROUTING.replace("const keepsOwnPlate = (rule) => rule.key === 'no_dairy' && !!(mealFlags && mealFlags._noDairyAlt);", 'const keepsOwnPlate = () => false;'))).length > 0,
+    'No Dairy on the vegan plate beside the kitchen\'s dairy-free version is caught');
 });

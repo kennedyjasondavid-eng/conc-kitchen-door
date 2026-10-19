@@ -10,7 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { plateFor, requiredNotes, anaphContained } from './helpers/routing_oracle.mjs';
+import { plateFor, requiredNotes, regularServiceNotes, anaphContained, NOTES } from './helpers/routing_oracle.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
@@ -40,6 +40,9 @@ vm.runInContext([
   between('const CONFLICT_MAP = [', '\n];\n') + '\n];\n', fnOpt('doorAllergenStrFlags'), fnOpt('doorSectionLineNotes'), fnOpt('doorSectionAllergenStr'),
   // main had no doorDatedMealFor (and nextDateForSlot read the menu per day): a stand-in that finds nothing.
   'if (typeof doorDatedMealFor !== "function") this.doorDatedMealFor = () => null;',
+  // 2026-10-19 (the plating review): the kitchen's alternatives and the Regular line's service note.
+  html.includes('const DOOR_KITCHEN_ALT_FIELDS = ') ? lineOf('const DOOR_KITCHEN_ALT_FIELDS = ') : '',
+  fnOpt('doorKitchenAlternatives'), fnOpt('doorAddKitchenPlateFlags'), fnOpt('doorRegularServiceNote'),
   fn('computePlatingData'),
 ].join('\n'), c, { filename: 'index.html#routing-replay', timeout: 30000 });
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -100,6 +103,27 @@ test('every published line names every restriction its meal and its plate set of
   assert.deepEqual(bad.slice(0, 12), [], bad.length + ' lines miss a note');
 });
 
+// The plating review (2026-10-19): diabetics, No Spicy and soft residents eat the regular plate on many meals now, so
+// the Regular notes must name what the meal sets off for them, as each section's line does.
+test('every published Regular line names the restrictions and service notes its meal sets off', () => {
+  const bad = [];
+  for (const m of MEALS) {
+    const reg = m.pd.sections.find((s) => s.rule.key === 'regular');
+    if (!reg) continue;
+    const noteOf = Object.fromEntries((m.pd.regularNotes || []).map((n) => [n.room, [n.conflictNote, n.serviceNote].filter(Boolean).join(' · ')]));
+    for (const r of reg.residents) {
+      const tags = r.tags || [];
+      const note = noteOf[r.room] || '';
+      const want = NOTES.filter(([k, t]) => tags.includes(t) && m.pd.mealFlags[k]).map(([, t]) => t);
+      const missing = want.filter((t) => !note.includes(t));
+      const got = splitNotes(note);
+      regularServiceNotes(tags, m.pd.mealFlags).forEach((n) => { if (!got.has(n)) missing.push(n); });
+      if (missing.length) bad.push(tag(m) + ' ' + r.room + ': missing ' + missing.join(', '));
+    }
+  }
+  assert.deepEqual(bad.slice(0, 12), [], bad.length + ' Regular lines miss a note');
+});
+
 test('the receipt: each restriction the audit found unserved and unnamed is named now (rules table §8)', () => {
   const at = (wk, day, period) => MEALS.find((m) => m.wk === wk && m.day.startsWith(day) && m.period === period);
   const named = (m, room, note) => { const l = lineFor(m, room); return !!(l && l.notes.has(note)); };
@@ -111,8 +135,14 @@ test('the receipt: each restriction the audit found unserved and unnamed is name
   assert.deepEqual(spicyVegan.filter((m) => !named(m, '801', 'not spicy')).map(tag), []);
   // #3, #4 Soft Meals on another plate: 709, never served the soft alternative there.
   const softOut = MEALS.filter((m) => { const l = lineFor(m, '709'); return l && l.key !== 'soft' && !(l.key === 'halal' && m.pd.mealFlags.hasPork && !(m.pd.mealFlags._altMeals || []).length); });
-  assert.ok(softOut.length >= 15, softOut.length + ' meals');
   assert.deepEqual(softOut.filter((m) => !named(m, '709', 'soft')).map(tag), []);
+  // Re-pinned 2026-10-19 (the plating review): with no bland plate on every spicy meal, 709 eats the soft plate there,
+  // or the regular plate where the kitchen marks "no soft alternative needed", with "soft" in the Regular notes.
+  const onRegular = (m, room) => (m.pd.sections.find((x) => x.rule.key === 'regular') || { residents: [] }).residents.some((r) => r.room === room);
+  const regularNote = (m, room) => { const n = (m.pd.regularNotes || []).find((x) => x.room === room); return n ? splitNotes([n.conflictNote, n.serviceNote].filter(Boolean).join(' · ')) : new Set(); };
+  const softRegular = MEALS.filter((m) => m.pd.mealFlags._altMealsNone && onRegular(m, '709'));
+  assert.deepEqual(softRegular.filter((m) => !regularNote(m, '709').has('soft')).map(tag), []);
+  assert.ok(softOut.length + softRegular.length >= 10, softOut.length + ' + ' + softRegular.length + ' meals');
   // #5 No Processed Food folded into Halal on a processed-pork day: 614b.
   const proc = MEALS.filter((m) => m.pd.mealFlags.hasProcessedMeat && (lineFor(m, '614b') || {}).key === 'halal');
   assert.ok(proc.length >= 10, proc.length + ' meals');

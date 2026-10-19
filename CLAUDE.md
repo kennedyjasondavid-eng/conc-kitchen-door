@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.40'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION = 'v31-standard.41'`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,43 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-19) — the plating sheets follow the kitchen's alternatives (`v31-standard.41`)
+Jason, 2026-10-19, on the plating review's third question: "Copy the kitchen's". Each meal's alternatives are copied from the eight Oct 17 workbooks into DOOR's menu, and DOOR follows the kitchen on the five groupings it decided differently. Rules table: `docs/DOOR_ROUTING_RULES_2026-10-18.md` §2–§4 (dated 2026-10-19).
+- **The five groupings** (`computeSections`, `ROUTING_RULES`):
+  - **Diabetic / Low Carb:** a diabetic plate only on a meal with the kitchen's one (`<period>_diabeticAlt`, its whole-wheat wrap, bun, pita or pasta: 10 meals). Before, every starchy meal had one. Otherwise diabetics eat the regular plate; the Regular notes say "extra veg less starch" on a starchy meal (`doorRegularServiceNote`).
+  - **No Spicy / Bland Diet:** a bland plate only on a spicy meal with the kitchen's (`_blandAlt`: Wk1 MON and Wk3 TUE dinner, where the kitchen seats 310b on a plate it titles bland / no spicy). Otherwise the regular plate, and the Regular notes name "No Spicy": `formatConflictNote` now prints a routing restriction the meal sets off, where it printed nothing.
+  - **Soft Meals:** no soft plate on a meal the kitchen marks "no soft alternative needed" (`_altMealsNone`). Soft residents eat the regular plate, "soft" in the Regular notes; before, the soft plate read "<main> (suitable as-is)". On a pork meal with no soft plate they still join the halal plate: the kitchen seats its soft-only resident there on 6 of the 7 such meals.
+  - **No Dairy / Lactose Intolerant:** the kitchen's dairy-free version of the main (`_noDairyAlt`, 6 meals) as their own plate, else the vegan plate.
+  - **No Pork:** on the halal plate on pork only (`tagTriggers`). On meat that isn't halal-certified they eat the regular plate, as the kitchen serves the 19 rooms on Wk2 SAT's tenders; Halal residents keep the halal plate.
+- **The kitchen's dishes** (data; where most of a group sits on one manual alternative that isn't the vegan or halal plate):
+  - `gfAlt` 25 meals, `diabeticAlt` 10, `noDairyAlt` 6, `noEggAlt` 4, `anaphAlt` 4 (the anaphylactic plate's line), `blandAlt` 2;
+  - a soft plate on 21 meals (`_altMeals`, type soft) and "no soft alternative needed" on 25 non-pork meals (24 copied; Wk4 THU lunch already said so);
+  - 4 pork meals lose a plain alternative or a stale "none needed", so their soft residents join the halal plate as the kitchen seats them.
+
+  Wk4 WED dinner's sheet says FISH under a roast chicken plate (copied from another day): not copied. Halal and vegan lines are unchanged (EXPO and HUB read them).
+
+  Written through `saveMenuBaseOverlay` (days stamped) and rebuilt with the publish builders. Validation 0/0/0. `door_state` / `registry_summary` take only the stamp.
+- **Edit Menu:** an "Alternatives the kitchen makes" block (GF, diabetic, no dairy, no egg / mustard, bland, anaphylactic), filled when a meal opens (`doorFillKitchenAltInputs`). The preview opens the plates the sheet will (`doorEditorPlateFlags`), and so do the meal panel's Routing and Edit Flags previews (`doorAddKitchenPlateFlags`, the one reading the sheet and the routing file use). An emptied box is saved empty, not deleted: every DOOR computer pulls the published `menu_current.json` in as its base menu, so a deleted overlay field comes back from it. For the same reason a swap (`doorApplyDatedMeal`) and both Make Permanent paths clear the old dish's alternatives by writing them empty, with its "none needed" off.
+- **The routing file:** a plate's dishes split at commas outside brackets (`doorSplitDishes`), so `_components` no longer carries "Roasted Chicken and Vegetable strify (No Corn" or "Pasta (suitable as-is)". Over the cycle's lunches and dinners: Regular 6,991 → 7,518 portions, Halal 808 → 787 (Wk2 SAT tenders 56 → 38), Vegan 755 → 731 (No Dairy's own plate). EXPO reads these counts only for frozen-stock quantities (no EXPO change). The new menu fields are additive; EXPO never reads them.
+- **Against the manual sheets:**
+  - rooms seated on an alternative on one side and the regular plate on the other: 877 → 324 across the 56 meals (935 at the review);
+  - generic plate texts ("— modified", "— lightly seasoned", the default GF plate, "(suitable as-is)", the supervisor prompt): 143 → 33, 10 of them the anaphylactic "prepared separately" line.
+  - What remains: one-off plates (1007 "No Rice", 905 low potassium, 709 "No Sauce", 1215b until its tags are re-added), DOOR protecting where the kitchen doesn't (912 GF, 1115a lactose, 213 anaphylactic), the Wk3 THU hotdog's halal plate (23 rooms), and residents not on the manual sheets yet (1108, 1211, 516b).
+- **Gate:** `tests/kitchen_alternatives_gate.mjs` (9), red 9/9 on `2e37447` (#135's head): the five groupings, the plates' text, the published menu and overlay, every published meal opening the kitchen's plates, Edit Menu, swaps and Make Permanent, the dish split.
+  - Re-pinned with dated notes:
+    - `routing_oracle_gate`: the oracle's kitchen switches in the matrix (2,952 meals), the Regular line read as the sheet prints it, five new mutation checks;
+    - `routing_replay_gate`: a Regular-line check; 709's soft receipt reads the Regular notes too;
+    - `pork_day_bland_gate`, `low_carb_gate`;
+    - `door-smoke` (the slot summary harness), `legacy_slot_marker_gate` (a stub).
+  - Suite 492 → 502.
+- **Checked in a real browser** at 1280 and 390 px: Wk2 SUN lunch opens with its GF, diabetic and dairy-free boxes filled; an edit saves and an emptied box takes its plate off the sheet; Wk1 MON dinner's sheet shows the kitchen's bland plate and the Regular notes; no page errors.
+- **Found, not changed:** both Make Permanent paths also delete the old dish's `_slots`, `_mainItem`, `_sides`, `_mainAlt` and `_noPorkAlt`. These come back from the base menu the same way, so a meal made permanent keeps the old dish's slots and recipe links.
+- **Open for Jason:**
+  - the Wk3 THU hotdog: the kitchen makes a Halal Chicken Hotdog for 23 Halal residents, while DOOR reads the all-beef hotdog as halal-certified (ruled in July);
+  - 213 on the regular plate on coconut dinners in the manual sheets (DOOR contains it);
+  - 912's GF and 1115a's lactose plates, which the manual sheets don't make;
+  - Wk2 THU lunch, where the soft residents are split three ways and the sheet still asks for a soft alternative.
 
 ## Recent (2026-10-19) — the plating review: the import keeps restrictions it can't read; 14 menu ticks (`v31-standard.40`)
 Jason, 2026-10-19: "review DOOR-created plating sheets vs our current working manual plating sheets". All 56 lunches and dinners were compared with the eight Oct 17 workbooks (the real DOOR page on the 11:59 publish, the CODEX feed and the shared Library). Then, on the leans: "Fix import; re-add 4 by hand", menu ticks "Add them all", alternatives "Copy the kitchen's" (its own PR).
