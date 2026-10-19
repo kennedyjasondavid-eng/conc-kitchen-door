@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.42';
+const DOOR_APP_VERSION = 'v31-standard.43';
 const DOOR_BUILD_DATE = '2026-10-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -12885,6 +12885,7 @@ function buildMenuJSON() {
     Object.keys(src[wk]).forEach(dayName => {
       const d = { ...src[wk][dayName] };
       ['breakfast','lunch','dinner'].forEach(meal => {
+        delete d[meal + '_original'];   // a meal's saved original stays in the overlay, DOOR's own (2026-10-19)
         let flags = d[meal + '_flags'];
         if (flags) {
           // Pork is never halal-certified. A stored/imported flag that says otherwise
@@ -13614,8 +13615,9 @@ function doorOverlayDaysDifferingFromCloud(merged, cloud) {
 }
 // What differs inside one menu day, in plain words, for the P4 line's "Show what's different" list. One row
 // per difference: { meal, what, here, published, staffSees }. staffSees is false only for the per-dish
-// editor snapshot (<period>_slots) — plating, routing and the published allergens are built from the
-// meal-level fields, never from it. An unknown field counts as staff-visible: never guess it is harmless.
+// editor snapshot (<period>_slots) and the meal's saved original (<period>_original, 2026-10-19) — plating,
+// routing and the published allergens are built from the meal-level fields, never from them. An unknown
+// field counts as staff-visible: never guess it is harmless.
 // A tag missing on one side reads as off, so absent-vs-off is not a difference.
 const DOOR_OVERLAY_FIELD_LABELS = { '': 'Meal', _mainItem: 'Main dish', _sides: 'Sides', _veg: 'Vegan alternative',
   _mainAlt: 'Halal alternative', _noPorkAlt: 'No-pork alternative', _softAlt: 'Soft alternative',
@@ -13659,6 +13661,11 @@ function doorOverlayDayDifferences(localDay, cloudDay, flagLabels) {
       if (doorStableJSON(L[f.key]) === doorStableJSON(C[f.key])) return;
       const known = Object.prototype.hasOwnProperty.call(DOOR_OVERLAY_FIELD_LABELS, f.suffix);
       if (f.suffix === '_flags') { flagRows(L[f.key], C[f.key], { meal: f.meal, staffSees: true }, 'Meal tag: '); return; }
+      if (f.suffix === '_original') {
+        const named = v => (doorIsPlainObject(v) && doorIsPlainObject(v.meal) ? show(v.meal['']) : '(none)');
+        rows.push({ meal: f.meal, staffSees: false, what: 'Saved original (Revert to Original)', here: named(L[f.key]), published: named(C[f.key]) });
+        return;
+      }
       if (f.suffix === '_slots') {
         const a = obj(L[f.key]), b = obj(C[f.key]);
         union(a, b).sort(byRank(slotOrder)).forEach(id => {
@@ -15662,10 +15669,105 @@ function doorSetMealFlags(day, period, flags) {
   day[period + '_flags'] = flags;
   day['allergens_' + period] = flagsToMenuAllergens(flags);
 }
-// Taking a meal back to the base menu's: its name, ticks, allergen line and every part of its dish (2026-10-19).
-function doorClearOverlayMeal(day, period) {
-  ['', '_veg', '_flags'].concat(Object.keys(DOOR_DISH_PART_EMPTY)).forEach(k => { delete day[period + k]; });
-  delete day['allergens_' + period];
+// The meal as it was before its first change (2026-10-19, Jason: "A"). Revert to Original, Reset to Original and
+// ↩ Undo Last deleted the change and fell back to the base menu. But the base is the last published menu, and a change
+// is published the moment it is saved, so from this computer's next load (and on every other computer) the base held
+// the change and putting the meal back did nothing. Now the first change to a meal keeps a copy of it in the overlay,
+// `<period>_original: { meal, at, by, how }` (the meal's own fields, by suffix), and putting it back writes that copy.
+// The overlay reaches every DOOR computer (menu_overlay.json). The menu export leaves the copy out (buildMenuJSON), so
+// menu_current.json, EXPO and HUB never see it and no base menu holds it.
+const DOOR_MEAL_FIELDS = ['', '_veg', '_flags'].concat(Object.keys(DOOR_DISH_PART_EMPTY));
+const DOOR_CHANGE_LOG_COPIES = 10;   // the change-log entries that keep their meal copies for ↩ Undo Last
+function doorCopyValue(v) { return v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v; }
+function doorMealCopy(day, period) {
+  const out = {};
+  DOOR_MEAL_FIELDS.forEach(s => { const v = day ? day[period + s] : undefined; if (v !== undefined) out[s] = doorCopyValue(v); });
+  return out;
+}
+// Two copies are the same meal when every field reads the same: an empty value and a missing one are both none, and
+// only the ticks that are on count.
+function doorMealSig(meal) {
+  const m = meal || {}, out = {};
+  DOOR_MEAL_FIELDS.forEach(s => {
+    const v = m[s];
+    if (s === '_flags') { const on = Object.keys(v || {}).filter(k => v[k]).sort(); if (on.length) out[s] = on; return; }
+    if (v === undefined || v === null || v === '' || v === false) return;
+    if (typeof v === 'object' && !Object.keys(v).length) return;
+    out[s] = v;
+  });
+  return doorStableJSON(out);
+}
+// One day as stored: the base menu with the given overlay laid over it (no ticks read from the dish text).
+function doorStoredMenuDay(overlay, week, day) {
+  const base = loadUploadedMenu() || MENU_DATA;
+  return Object.assign({}, (base[String(week)] || {})[day], ((overlay || {})[String(week)] || {})[day]);
+}
+// Called by every writer of a permanent change (Edit Menu's save, Edit Flags, both Make Permanent paths) once the change
+// is in the overlay, with the meal as it was before. The first change keeps that copy, later changes keep the first,
+// and a meal changed back to its copy by hand drops it. Returns what the change log keeps for ↩ Undo Last.
+function doorNoteMealChange(overlay, week, day, period, before, how) {
+  const node = overlay[String(week)][day];
+  const key = period + '_original';
+  const afterSig = doorMealSig(doorMealCopy(doorStoredMenuDay(overlay, week, day), period));
+  const kept = doorSavedOriginal(overlay, week, day, period);
+  const changed = afterSig !== doorMealSig(before);
+  if (kept && afterSig === doorMealSig(kept.meal)) delete node[key];
+  else if (!kept && changed) node[key] = { meal: before, at: new Date().toISOString(), by: getOperatorName() || '', how: how };
+  return { before: before, afterSig: afterSig, first: !kept && changed };
+}
+// The overlay holds a change to the meal: any of its fields, so a change to its ticks or alternatives alone counts.
+function doorOverlayChangesMeal(overlay, week, day, period) {
+  const node = ((overlay || {})[String(week)] || {})[day];
+  return !!node && DOOR_MEAL_FIELDS.concat(['_original']).some(s => Object.prototype.hasOwnProperty.call(node, period + s));
+}
+// The meal's saved copy, or null: never changed, or changed before DOOR kept one.
+function doorSavedOriginal(overlay, week, day, period) {
+  const node = ((overlay || {})[String(week)] || {})[day];
+  const kept = node && node[period + '_original'];
+  return kept && typeof kept === 'object' && kept.meal && typeof kept.meal === 'object' ? kept : null;
+}
+// "as it was before it was changed on Oct 19 by Jason"
+function doorSavedOriginalWhen(kept) {
+  const d = kept && kept.at ? new Date(kept.at) : null;
+  const on = d && !isNaN(d) ? formatShortDate(d) : '';
+  return 'as it was before it was changed' + (on ? ' on ' + on : '') + (kept && kept.by ? ' by ' + kept.by : '');
+}
+// Puts a saved meal back. Every field is written, never deleted: once the change is published the base menu holds it,
+// so a deleted field would come back from it. The ticks go back with their allergen line.
+function doorWriteMealCopy(node, period, meal) {
+  const m = meal || {};
+  DOOR_MEAL_FIELDS.forEach(s => {
+    if (s === '_flags') return;
+    const v = Object.prototype.hasOwnProperty.call(m, s) ? m[s] : (s in DOOR_DISH_PART_EMPTY ? DOOR_DISH_PART_EMPTY[s] : '');
+    node[period + s] = doorCopyValue(v);
+  });
+  doorSetMealFlags(node, period, doorCopyValue(m._flags) || {});
+}
+// Writes the meal's saved copy back and drops the copy. Returns { kept, before } (before: the meal as it was until now),
+// or null when there is no copy.
+function doorRestoreMealOriginal(overlay, week, day, period) {
+  const kept = doorSavedOriginal(overlay, week, day, period);
+  if (!kept) return null;
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);
+  const node = overlay[String(week)][day];
+  doorWriteMealCopy(node, period, kept.meal);
+  delete node[period + '_original'];
+  return { kept: kept, before: before };
+}
+// Nothing to put back: say so, and offer Edit Menu, instead of quietly changing nothing.
+async function doorTellNoSavedOriginal(week, day, period, opts) {
+  const o = opts || {};
+  const meal = 'Wk' + week + ' ' + dayLabel(day) + ' ' + period;
+  const go = await doorAsk({
+    title: o.title || 'No saved original',
+    lines: [o.reason || ('DOOR has no copy of ' + meal + ' from before it was changed, so it can’t put it back. It was changed before DOOR kept one.'),
+      o.inEditMenu ? 'To change the meal, edit it here.' : 'To change the meal, open it in Edit Menu.'],
+    cancelLabel: 'Close', goLabel: o.inEditMenu ? 'OK' : 'Open in Edit Menu'
+  });
+  if (go && !o.inEditMenu) {
+    if (typeof closeMealEdit === 'function') closeMealEdit();
+    location.hash = '#menu-config/edit/' + week + '/' + day + '/' + period;
+  }
 }
 function doorKitchenAlternatives(dayData, period) {
   const out = {};
@@ -16993,6 +17095,7 @@ async function makePermanent() {
 
   // Write to the overlay
   const overlay = loadMenuBaseOverlay();
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);   // the meal as it was (2026-10-19)
   if (!overlay[String(week)]) overlay[String(week)] = {};
   if (!overlay[String(week)][day]) overlay[String(week)][day] = {};
   overlay[String(week)][day][period] = name;
@@ -17003,6 +17106,7 @@ async function makePermanent() {
   doorEmptyDishParts(overlay[String(week)][day], period);
   doorSetMealFlags(overlay[String(week)][day], period, flags);
   overlay[String(week)][day][period + '_softAlt'] = softAlt;   // the panel's soft alternative
+  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Make Permanent');   // its first change keeps the original
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing one-time swap for this slot (every upcoming one: 2026-10-18)
@@ -17021,6 +17125,8 @@ async function makePermanent() {
   delete mealSwaps[mcEditKey];
 
   logMenuEvent('menu_permanent', `Permanent menu change: Wk${week} ${dayLabel(day)} ${period} → ${name}`);
+  appendChangeLog({ type: 'permanent_edit', via: 'make_permanent', week: String(week), day, period, oldName: before[''] || '—', newName: name,
+    flags, before: noted.before, afterSig: noted.afterSig, first: noted.first }, { mirror: false });
   showToast(`Permanent change saved. Rotation updated.`);
 
   renderMenuConfig();
@@ -17042,28 +17148,35 @@ async function revertMealSwap() {
   let hasSwap = skeys.length > 0;
 
   let overlay = loadMenuBaseOverlay();
-  let hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
+  // A permanent change puts back the meal's saved copy, as it was before its first change (2026-10-19, Jason: "A").
+  // Deleting the change fell back to the base menu, which holds the change once it is published. A meal changed before
+  // DOOR kept a copy says so instead of quietly changing nothing.
+  const kept = doorSavedOriginal(overlay, week, day, period);
+  const isPermanent = !!kept || doorOverlayChangesMeal(overlay, week, day, period);
 
-  if (hasPermanent) {
+  if (kept) {
     const ok = await doorAsk({
-      title: 'Remove the permanent change?',
-      lines: [`Wk${week} ${dayLabel(day)} ${period} goes back to the original rotation meal.`],
+      title: 'Put the original meal back?',
+      lines: [`Wk${week} ${dayLabel(day)} ${period} goes back to “${kept.meal[''] || '—'}”, ${doorSavedOriginalWhen(kept)}.`]
+        .concat(hasSwap ? ['Its one-time swap is removed too.'] : []),
       cancelLabel: 'Keep it', goLabel: 'Restore the original'
     });
     if (!ok || mcEditKey !== editKey) return;
     // Read again: the question waited for an answer and a menu sync may have written meanwhile.
     swaps = loadMealSwaps(); skeys = doorSwapKeysForSlot(week, day, period, swaps); hasSwap = skeys.length > 0;
     overlay = loadMenuBaseOverlay();
-    hasPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
-  }
-  if (hasPermanent) {
-    // Every part of the meal goes, so none of what a permanent change wrote empty stays behind (2026-10-19).
-    doorClearOverlayMeal(overlay[String(week)][day], period);
-    // Clean up empty day/week objects
-    if (!Object.keys(overlay[String(week)][day]).length) delete overlay[String(week)][day];
-    if (!Object.keys(overlay[String(week)]).length) delete overlay[String(week)];
-    saveMenuBaseOverlay(overlay);
-    logMenuEvent('menu_permanent', `Reverted: Wk${week} ${dayLabel(day)} ${period} — restored to original rotation meal`);
+    const done = doorRestoreMealOriginal(overlay, week, day, period);
+    if (done) {
+      saveMenuBaseOverlay(overlay);
+      const backTo = done.kept.meal[''] || '—';
+      appendChangeLog({ type: 'revert', week: String(week), day, period, oldName: done.before[''] || '—', newName: backTo,
+        before: done.before, original: done.kept, afterSig: doorMealSig(done.kept.meal) }, { mirror: false });
+      logMenuEvent('menu_permanent', `Reverted: Wk${week} ${dayLabel(day)} ${period} back to “${backTo}”`);
+      publishAndSync('menu meal restored');
+    }
+  } else if (isPermanent && !hasSwap) {
+    await doorTellNoSavedOriginal(week, day, period);
+    return;
   }
   if (hasSwap) {
     skeys.forEach(k => { delete swaps[k]; });
@@ -17071,6 +17184,7 @@ async function revertMealSwap() {
     skeys.forEach(k => REVERTED_SWAP_KEYS.add(k)); // v28: block sync from re-introducing
     const _d = skeys.map(k => formatShortDate(new Date(k.slice(0, 10) + 'T12:00:00'))).join(', ');
     logMenuEvent('menu_swap', `Swap reverted: Wk${week} ${dayLabel(day)} ${period} (was effective ${_d})`);
+    if (isPermanent && !kept) showToast('One-time swap removed. The permanent change stays: DOOR has no copy of the meal from before it was changed.');
   }
   delete mealSwaps[mcEditKey];
 
@@ -17266,6 +17380,7 @@ function saveEditFlags() {
 
   // Save to overlay
   const overlay = loadMenuBaseOverlay();
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);   // the meal as it was (2026-10-19)
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
   doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
@@ -17274,10 +17389,13 @@ function saveEditFlags() {
   const softVal = (document.getElementById('mc-editflags-softalt')?.value || '').trim();
   if (softVal) overlay[week][day][period + '_softAlt'] = softVal;
 
+  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Flags');   // its first change keeps the original
   saveMenuBaseOverlay(overlay);
 
   // Log the change
   logMenuEvent('flag_edit', `Flags updated: Wk${week} ${dayLabel(day)} ${period}`);
+  appendChangeLog({ type: 'permanent_edit', via: 'edit_flags', week, day, period, oldName: before[''] || '—', newName: before[''] || '—',
+    flags, before: noted.before, afterSig: noted.afterSig, first: noted.first }, { mirror: false });
 
   // Show confirmation
   const statusEl = document.getElementById('mc-editflags-status');
@@ -17415,6 +17533,7 @@ async function makeSwapPermanentFromBanner(swapKey) {
 
   // Write to base overlay
   const overlay = loadMenuBaseOverlay();
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, dayName), period);   // the rotation meal as it was (2026-10-19)
   if (!overlay[String(week)]) overlay[String(week)] = {};
   if (!overlay[String(week)][dayName]) overlay[String(week)][dayName] = {};
   overlay[String(week)][dayName][period] = sw.specialName;
@@ -17423,6 +17542,7 @@ async function makeSwapPermanentFromBanner(swapKey) {
   // line from the swap's ticks.
   doorEmptyDishParts(overlay[String(week)][dayName], period);
   doorSetMealFlags(overlay[String(week)][dayName], period, sw._flagsRaw || {});
+  const noted = doorNoteMealChange(overlay, week, dayName, period, before, 'Make Permanent');   // its first change keeps the original
   saveMenuBaseOverlay(overlay);
 
   // Remove the swap (permanent supersedes)
@@ -17438,6 +17558,8 @@ async function makeSwapPermanentFromBanner(swapKey) {
   delete mealSwaps[slotKey];
 
   logMenuEvent('menu_permanent', `Permanent menu change: Wk${week} ${dayLabel(dayName)} ${period} → ${sw.specialName}`);
+  appendChangeLog({ type: 'permanent_edit', via: 'make_permanent', week: String(week), day: dayName, period, oldName: before[''] || '—',
+    newName: sw.specialName, flags: sw._flagsRaw || {}, before: noted.before, afterSig: noted.afterSig, first: noted.first }, { mirror: false });
   showToast(`Permanent change saved. Rotation updated.`);
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
@@ -19405,6 +19527,7 @@ function _finishMenuSave(name, veg, flags) {
 
   // Write directly to base overlay - Edit Menu mode is permanent by design
   const overlay = loadMenuBaseOverlay();
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);   // the meal as it was (2026-10-19)
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
   overlay[week][day][period]              = name;
@@ -19422,6 +19545,7 @@ function _finishMenuSave(name, veg, flags) {
   overlay[week][day][period + '_sides']   = buildSides(); // v30
   // v30: Save individual slot values for lossless re-open
   overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
+  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Menu');   // its first change keeps the original
   saveMenuBaseOverlay(overlay);
 
   // Clear any competing swap or legacy edit for this slot (every upcoming swap of it: 2026-10-18)
@@ -19431,7 +19555,8 @@ function _finishMenuSave(name, veg, flags) {
   const edits = loadMenuEdits();
   if (edits[mcMenuEditKey]) { delete edits[mcMenuEditKey]; saveMenuEdits(edits); }
 
-  appendChangeLog({ type: 'permanent_edit', week, day, period, oldName: origName, newName: name, flags });
+  appendChangeLog({ type: 'permanent_edit', week, day, period, oldName: origName, newName: name, flags,
+    before: noted.before, afterSig: noted.afterSig, first: noted.first });
   closeMenuEdit();
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
@@ -19444,37 +19569,37 @@ async function revertMenuEdit() {
   const editKey = mcMenuEditKey;
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
-  const overlay = loadMenuBaseOverlay();
-  const hasOverlay = overlay[week] && overlay[week][day] && (period in overlay[week][day]);
+  // The meal goes back to its saved copy, as it was before its first change (2026-10-19, Jason: "A"); the question names
+  // it (it named the current meal on both sides). A legacy edit (concMenuEdits) still just goes.
+  const kept = doorSavedOriginal(loadMenuBaseOverlay(), week, day, period);
   const existing = getMenuEdit(week, day, period);
-  if (!hasOverlay && !existing) return;
-  const currentName = (hasOverlay ? overlay[week][day][period] : (existing && existing.name)) || '\u2014';
+  if (!kept && !existing) { await doorTellNoSavedOriginal(week, day, period, { inEditMenu: true }); return; }
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
-  const origName = dayData[period] || '\u2014';
+  const currentName = (existing && existing.name) || dayData[period] || '—';
+  const origName = kept ? (kept.meal[''] || '—') : (dayData[period] || '—');
   const ok = await doorAsk({
     title: 'Reset this meal?',
-    lines: ['“' + currentName + '” goes back to “' + origName + '”.'],
+    lines: ['“' + currentName + '” goes back to “' + origName + '”' + (kept ? ', ' + doorSavedOriginalWhen(kept) : '') + '.'],
     cancelLabel: 'Keep it', goLabel: 'Reset'
   });
   if (!ok || mcMenuEditKey !== editKey) return;
   // Read again: the question waited for an answer and a menu sync may have written meanwhile.
-  const fresh = loadMenuBaseOverlay();
-  if (fresh[week] && fresh[week][day] && (period in fresh[week][day])) {
-    const overlay = fresh;
-    doorClearOverlayMeal(overlay[week][day], period);   // every part of the meal (2026-10-19)
-    if (!Object.keys(overlay[week][day]).length) delete overlay[week][day];
-    if (!Object.keys(overlay[week]).length) delete overlay[week];
-    saveMenuBaseOverlay(overlay);
-  }
+  const overlay = loadMenuBaseOverlay();
+  const done = doorRestoreMealOriginal(overlay, week, day, period);
+  if (done) saveMenuBaseOverlay(overlay);
   if (existing) {
     const edits = loadMenuEdits();
     delete edits[mcMenuEditKey];
     saveMenuEdits(edits);
   }
-  appendChangeLog({ type: 'revert', week, day, period, oldName: currentName, newName: origName });
+  appendChangeLog(done
+    ? { type: 'revert', week, day, period, oldName: done.before[''] || currentName, newName: done.kept.meal[''] || origName,
+        before: done.before, original: done.kept, afterSig: doorMealSig(done.kept.meal) }
+    : { type: 'revert', week, day, period, oldName: currentName, newName: origName });
   closeMenuEdit();
   renderMenuConfig();
+  if (done) publishAndSync('menu meal reset');
 }
 function closeMenuEdit() {
   const panel = document.getElementById('mc-menu-edit-panel');
@@ -19546,8 +19671,10 @@ function openMenuEdit(week, day, period) {
   const legacyEl = document.getElementById('mc-menu-edit-legacy');
   if (legacyEl) legacyEl.innerHTML = '';
 
+  // Reset to Original is offered when there is something to put back: the meal's saved copy (2026-10-19) or a legacy edit.
+  const savedOriginal = dayData[period + '_original'];
   const revertBtn = document.getElementById('mc-menu-revert-btn');
-  if (revertBtn) revertBtn.style.display = existing ? 'inline-flex' : 'none';
+  if (revertBtn) revertBtn.style.display = (existing || (savedOriginal && typeof savedOriginal === 'object')) ? 'inline-flex' : 'none';
 
   // Initialise slots
   initSlotState();
@@ -19629,7 +19756,7 @@ function saveChangeLog(arr) {
     PublishAuth.sidePublish('change_log.json', JSON.stringify(arr, null, 2), 'Change log', true);
   } catch(e) {}
 }
-function appendChangeLog(entry) {
+function appendChangeLog(entry, opts) {
   const log = loadChangeLog();
   log.unshift({
     id: Date.now(),
@@ -19637,7 +19764,11 @@ function appendChangeLog(entry) {
     site: getSelectedSite() || 'unknown',
     ...entry
   });
+  // ↩ Undo Last only undoes the newest entry, so only the newest few keep their meal copies (2026-10-19).
+  log.forEach((e, i) => { if (i >= DOOR_CHANGE_LOG_COPIES && e && typeof e === 'object') { delete e.before; delete e.original; } });
   saveChangeLog(log);
+  // A caller that already writes its own Recent Activity line (Make Permanent, Edit Flags, the panel's revert) skips the mirror.
+  if (opts && opts.mirror === false) return;
     // Mirror menu changes into RECENT_LOG so they appear in Recent Activity and sync to recent_log.json
   if (typeof RECENT_LOG !== 'undefined') {
     const now = new Date();
@@ -19680,29 +19811,56 @@ async function revertLastChange() {
   let description = '';
 
   if (last.type === 'permanent_edit') {
-    description = `meal edit "${last.newName}" (Week ${last.week} · ${last.day} · ${last.period})`;
+    description = (last.via === 'edit_flags' ? 'tick change on' : 'meal edit') + ` "${last.newName}" (Week ${last.week} · ${last.day} · ${last.period})`;
   } else if (last.type === 'revert') {
-    description = `revert of "${last.oldName}" back to rotation (Week ${last.week} · ${last.day} · ${last.period})`;
+    description = `revert of "${last.oldName}" back to "${last.newName}" (Week ${last.week} · ${last.day} · ${last.period})`;
   } else if (last.type === 'special_meal') {
     description = `special meal "${last.specialName}" on ${last.date} ${last.period}`;
   } else {
     alert('Cannot undo this type of entry.'); return;
   }
 
-  if (!(await doorAsk({ title: 'Undo last change', lines: ['Undo the ' + description + '?'], goLabel: 'Undo', cancelLabel: 'Go back' }))) return;
+  // A meal change goes back to the meal as it was before that change, from the copy the change log keeps with it
+  // (2026-10-19, Jason: "A"). It used to delete a legacy edit (concMenuEdits) that the Edit Menu save no longer writes,
+  // so nothing changed, and undoing a revert wrote a legacy edit with the old name only.
+  const isMeal = last.type === 'permanent_edit' || last.type === 'revert';
+  const slotKey = last.week + '-' + last.day + '-' + last.period;
+  const legacy = isMeal && !last.before && last.type === 'permanent_edit' && !!loadMenuEdits()[slotKey];
+  if (isMeal && !last.before && !legacy) {
+    await doorTellNoSavedOriginal(last.week, last.day, last.period, { title: 'Can’t undo this change',
+      reason: 'This change was saved before DOOR kept a copy of the meal, so ↩ Undo Last can’t undo it.' });
+    return;
+  }
+  const mealLabel = 'Wk' + last.week + ' ' + dayLabel(last.day) + ' ' + last.period;
+  if (isMeal && last.before && last.afterSig &&
+      doorMealSig(doorMealCopy(doorStoredMenuDay(loadMenuBaseOverlay(), last.week, last.day), last.period)) !== last.afterSig) {
+    await doorTellNoSavedOriginal(last.week, last.day, last.period, { title: 'Can’t undo this change',
+      reason: mealLabel + ' has changed since this change, so ↩ Undo Last won’t undo it. Revert to Original in the meal’s panel ' +
+        'puts back the meal as it was before its first change.' });
+    return;
+  }
 
-  if (last.type === 'permanent_edit') {
+  if (!(await doorAsk({ title: 'Undo last change', lines: ['Undo the ' + description + '?']
+      .concat(isMeal && last.before ? [mealLabel + ' goes back to “' + (last.before[''] || '—') + '”.'] : []),
+      goLabel: 'Undo', cancelLabel: 'Go back' }))) return;
+
+  if (isMeal && last.before) {
+    const overlay = loadMenuBaseOverlay();
+    const wk = String(last.week);
+    if (!overlay[wk]) overlay[wk] = {};
+    if (!overlay[wk][last.day]) overlay[wk][last.day] = {};
+    const node = overlay[wk][last.day];
+    doorWriteMealCopy(node, last.period, last.before);
+    if (last.type === 'revert' && last.original) node[last.period + '_original'] = last.original;   // a put-back undone keeps its copy again
+    else {
+      const kept = doorSavedOriginal(overlay, wk, last.day, last.period);
+      if (kept && doorMealSig(kept.meal) === doorMealSig(last.before)) delete node[last.period + '_original'];   // back to the original
+    }
+    saveMenuBaseOverlay(overlay);
+    publishAndSync('menu change undone');
+  } else if (legacy) {
     const edits = loadMenuEdits();
-    delete edits[last.week + '-' + last.day + '-' + last.period];
-    saveMenuEdits(edits);
-  } else if (last.type === 'revert') {
-    // Reverting a revert re-applies the edit — but we only stored newName/flags in the log,
-    // not the full edit record. Re-apply what we have as a best-effort edit.
-    const edits = loadMenuEdits();
-    edits[last.week + '-' + last.day + '-' + last.period] = {
-      name: last.oldName, veg: '', flags: last.flags || {},
-      linkedRecipes: {}, editedAt: new Date().toISOString(), editedBySite: getSelectedSite()
-    };
+    delete edits[slotKey];
     saveMenuEdits(edits);
   } else if (last.type === 'special_meal') {
     const meals = loadSpecialMeals();
@@ -19750,7 +19908,9 @@ function renderChangeLog() {
     let detail = '';
     if (e.type === 'permanent_edit' || e.type === 'revert') {
       const day = e.day ? e.day.charAt(0)+e.day.slice(1).toLowerCase() : '';
-      detail = 'Wk ' + e.week + ' ' + day + ' ' + (e.period||'') + ' \u2014 "' + (e.oldName||'') + '" \u2192 "' + (e.newName||'') + '"';
+      detail = 'Wk ' + e.week + ' ' + day + ' ' + (e.period||'') + ' \u2014 ' + (e.via === 'edit_flags'
+        ? 'ticks changed on "' + (e.newName||'') + '"'
+        : '"' + (e.oldName||'') + '" \u2192 "' + (e.newName||'') + '"');
     } else if (e.type === 'special_meal') {
       detail = (e.date||'') + ' ' + (e.period||'') + ' \u2014 "' + (e.specialName||'') + '"' + (e.verified ? '' : ' \u26a0 allergens unverified');
     }
