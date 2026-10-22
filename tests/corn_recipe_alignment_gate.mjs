@@ -9,8 +9,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
+import { withBaggedNightshadesReview } from './helpers/bagged_curry_nightshades_review.mjs';
 const read = f => JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'));
-const F=read('tests/fixtures/corn_recipe_alignment_2026-10-22.json');
+// Separate safety-review correction; the original Corn fixture is unchanged.
+const F=withBaggedNightshadesReview(read('tests/fixtures/corn_recipe_alignment_2026-10-22.json'));
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'), R=liftCornDoor(html);
 const menuArtifact=read('menu_current.json'), menu=menuArtifact.menu, overlay=read('menu_overlay.json');
 const J=x=>JSON.parse(JSON.stringify(x));

@@ -132,6 +132,8 @@ const CODEX_FAMILY_FLAG = {
   'peanuts':'hasPeanuts', 'tree nuts':'hasTreeNuts', 'milk':'hasDairy', 'eggs':'hasEgg', 'fish':'hasFish',
   'crustaceans':'hasShellfish', 'molluscs':'hasShellfish', 'soy':'hasSoy', 'gluten':'hasGluten', 'sulphites':'hasSulphites',
   'mustard':'hasMustard', 'sesame':'hasSesame', 'nightshades':'hasNightshades', 'spicy':'isSpicy',
+  // 2026-10-22 (Jason): CODEX now reads Corn; DOOR's existing No Corn flag must receive it.
+  'corn':'hasCorn',
 };
 const CODEX_FAMILY_IGNORED = ['oats'];                 // a separate CODEX flag; DOOR ignores it on purpose
 const CODEX_FAMILY_NO_DOOR_FLAG = ['lupin', 'buckwheat']; // DOOR has no flag: they stay on the unmapped banner
