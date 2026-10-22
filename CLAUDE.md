@@ -101,7 +101,7 @@ CODEX v29 (W1, conc-recipe-hub #179) gave Library recipes Sulphites on the safe 
   Suite 517 → 525. Test 4 pins the W1b save's stamp (review P3-2). (`lactose_no_dairy_gate` 8 went red on `main` when the Oct 20 resident list changed 1207's restriction; #138 fixed the test.)
 - **Independent review: SHIP**, no P1 or P2. P3-1 and P3-2 are folded; P3-3 and P3-4 are CODEX's:
   - Chicken Gyro lists the tzatziki's Milk but not its Sulphites;
-  - CODEX lists no Sulphites for pickled onions (the CONC Salad), the ranch's pickle juice or vinegar, or the Vindaloo Marinade's white vinegar;
+  - CODEX lists no Sulphites for pickled onions (the CONC Salad) or the ranch's pickle juice; both are label questions (HOUSE #42, O2). White vinegar, as in the Vindaloo Marinade, is ruled clean (2026-10-21, CODEX call 3);
   - the vegan "Lime Coconut Rice" record has none while "Lime and Coconut Rice" does.
 - **Found, for Jason:**
   - **Vegan breakfast plates that don't reach their recipe.** Breakfasts carry no recipe links: 26 of 28 have no dish slots, and the two that do (Wk1 FRI, Wk4 SUN) are typed by hand.
