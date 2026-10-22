@@ -86,7 +86,7 @@ CODEX v29 (W1, conc-recipe-hub #179) gave Library recipes Sulphites on the safe 
     - Wk4 FRI dinner (the tandoori marinade on the tofu too);
     - Wk2 MON, Wk2 TUE and Wk4 WED lunch, where it comes only from the regular meal's ticks copied onto the vegan plate (#63's floor). That over-warns only.
 
-    Wk2 FRI dinner and Wk4 MON dinner already read it from CODEX (Refried Beans, the green curry sauce). Offline, with the baked list, all 11 gain it.
+    Wk2 FRI dinner and Wk4 MON dinner already read it from CODEX (Refried Beans, the green curry sauce). Offline, with the baked list, all 11 gain it. The baked list predates CODEX v29, so offline the vegan-line dishes that reach the plate only through CODEX show no SULPHITES: the Crispy Quinoa Cake Burger (Wk1 MON lunch), the Vegan Pot Pie (Wk4 WED dinner), and the Sunday and Monday vegan breakfasts. That was so before W1b too. Refreshing the baked list is a later code change (review P3-1).
   - **The halal plate gains it on Wk4 FRI dinner** (Tandoori Chicken, the same marinade).
 - **Gate:** `tests/w1b_safe_side_ticks_gate.mjs` (8), red 2/8 on `1c2756c` (checks 1 and 2). It checks:
   - every tick, its main dish and its allergen line;
@@ -98,7 +98,11 @@ CODEX v29 (W1, conc-recipe-hub #179) gave Library recipes Sulphites on the safe 
   - with CODEX's feed beside the repo, each tick's recipe and the vegan-line dishes;
   - one valid publish.
 
-  Suite 517 → 525. (`lactose_no_dairy_gate` 8 went red on `main` when the Oct 20 resident list changed 1207's restriction; #138 fixed the test.)
+  Suite 517 → 525. Test 4 pins the W1b save's stamp (review P3-2). (`lactose_no_dairy_gate` 8 went red on `main` when the Oct 20 resident list changed 1207's restriction; #138 fixed the test.)
+- **Independent review: SHIP**, no P1 or P2. P3-1 and P3-2 are folded; P3-3 and P3-4 are CODEX's:
+  - Chicken Gyro lists the tzatziki's Milk but not its Sulphites;
+  - CODEX lists no Sulphites for pickled onions (the CONC Salad), the ranch's pickle juice or vinegar, or the Vindaloo Marinade's white vinegar;
+  - the vegan "Lime Coconut Rice" record has none while "Lime and Coconut Rice" does.
 - **Found, for Jason:**
   - **Vegan breakfast plates that don't reach their recipe.** Breakfasts carry no recipe links: 26 of 28 have no dish slots, and the two that do (Wk1 FRI, Wk4 SUN) are typed by hand.
     - Wk1–3 THU "veg sausage" matches no CODEX recipe. The plate shows only what it copies from the regular meal (WHEAT, DAIRY, EGGS, PROCESSED MEAT), so it misses Vegan Sausage's Oats, Soy and Nightshades; its Gluten shows only as the copied WHEAT.

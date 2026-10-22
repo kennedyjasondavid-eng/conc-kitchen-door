@@ -188,12 +188,11 @@ test('the meals that already tick these dishes\' families keep them while the di
 test('nothing else moves: with the W1b ticks put back, every day of the menu and the overlay is 1c2756c\'s', () => {
   // A day edited in DOOR after the W1b save carries a newer stamp and is not checked. The W1b save is the one stamp the
   // ticked days share (saveMenuBaseOverlay stamps every day it changes with one time).
+  // Pinned 2026-10-22 (PR #139 review P3-2): it was guessed as the most common stamp among the ticked days, so a later
+  // save that re-stamped six or more of them would have checked the wrong days. The W1b save is 2026-10-22T11:09:35.478Z.
   const stamps = (overlay._meta && overlay._meta.dayEditedAt) || {};
-  const tickDays = [...new Set(TICKS.map((t) => t.wk + '|' + t.day))];
-  const counts = {};
-  tickDays.forEach((k) => { const s = Number(stamps[k]); if (s > BASE_STAMP) counts[s] = (counts[s] || 0) + 1; });
-  const w1b = Number(Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]) || BASE_STAMP;
-  const unedited = (k) => { const s = Number(stamps[k]); return s === BASE_STAMP || s === w1b; };
+  const W1B_STAMP = 1792667375478;
+  const unedited = (k) => { const s = Number(stamps[k]); return s === BASE_STAMP || s === W1B_STAMP; };
   const moved = [], skipped = [];
   for (const [what, weeks, base] of [['menu_current.json', menu, BASE_MENU], ['menu_overlay.json', overlay, BASE_OVERLAY]]) {
     const now = dayDigests(weeks);
