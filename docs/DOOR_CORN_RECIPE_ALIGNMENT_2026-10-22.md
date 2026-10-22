@@ -30,7 +30,7 @@ The frozen fixture `tests/fixtures/corn_recipe_alignment_2026-10-22.json` enumer
 
 Two extra offline family lines are measured and pinned: W2 Sunday vegan dinner gains Nightshades, and W4 Wednesday vegan dinner gains Oats/Sulphites. No other non-Corn plate family changes. The two shared records are Peas and Corn and Thai Green Curry Sauce – Bagged (Fish & Tofu); the latter adds Corn and lime's safe-side Sulphites. CODEX's separate shared-library candidate remains local pending review.
 
-Every byte of DOOR `index.html` outside the fallback literal and release version is unchanged. `flagsToMenuAllergens` currently omits Corn intentionally, so the generated free-text allergen lines are unchanged. DOOR's existing boolean flag and plate recipe lookup carry the warnings.
+The original Corn change preserved every byte of DOOR `index.html` outside the fallback literal and release version. The authorized delivery continuation below additionally changes one reader URL and two comments; its gate preserves the original digest by undoing only those exact three lines. `flagsToMenuAllergens` currently omits Corn intentionally, so the generated free-text allergen lines are unchanged. DOOR's existing boolean flag and plate recipe lookup carry the warnings.
 
 ## Save, publish and operational preservation
 
@@ -58,3 +58,8 @@ The food-safety reviewer found the bagged curry sauce's source card and retained
 The original Corn manifest remains byte-identical. `tests/helpers/bagged_curry_nightshades_review.mjs` is a separately enumerated extension to exactly three expected lists; `tests/bagged_curry_nightshades_gate.mjs` pins the original manifest, source evidence, exact fallback/overlay and all 84 current meal outputs. The combined checks failed 19/22 before the fold and pass **22/22** afterward. No current meal ticks, seating, serving notes or online/offline meal-family lines change in this fold.
 
 Both independent reviewers rechecked the correction, each passing 22/22 with no remaining findings. The final full suite passes **547/547, zero skips**, recorded in `corn-pair/door-corn-full-suite-review-fold.log`. Release order remains CODEX source deployment, shared-library correction, then DOOR deployment; refresh owning branches before each write and retain newer staff saves.
+## Public-reader delivery continuation
+
+Jason authorized the existing CODEX Pages site to deliver recipe-only shared data. The reader now uses `library_public.json`; its cache fallback and conservative allergen overlay are unchanged. Contract ownership remains in CODEX `docs/CODEX_PUBLIC_LIBRARY_CONTRACT.md`; the shared JSON stays private and this release remains held until anonymous delivery is verified.
+
+The gate author, independently of the builder, narrowed the original Corn byte gate to the exact reader URL and two explanatory comments, retaining its original digest and every other assertion. Corn 16/16, anonymous reader 3/3, existing overlay 10/10; full suite **550/550, zero skips**. Independent safety/data and release/feed reviews both passed. Operational JSON is unchanged by this continuation.
