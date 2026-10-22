@@ -131,8 +131,8 @@ test('the inputs are never mutated and junk inputs give the base back', () => {
   assert.deepEqual(J(sb.overlay(null, null)).list, []);
 });
 
-test('the loader reads the shared-library branch, rebuilds from both inputs, and keeps an offline copy', () => {
-  assert.match(html, /const DOOR_SHARED_LIBRARY_URL = 'https:\/\/raw\.githubusercontent\.com\/kennedyjasondavid-eng\/conc-recipe-hub\/shared-library\/library_shared\.json';/);
+test('the loader reads the public projection, rebuilds from both inputs, and keeps an offline copy', () => {
+  assert.match(html, /const DOOR_SHARED_LIBRARY_URL = 'https:\/\/kennedyjasondavid-eng\.github\.io\/conc-recipe-hub\/library_public\.json';/);
   const loader = between('(async function loadSharedLibrary() {', '\n})();');
   assert.match(loader, /\?_=' \+ Date\.now\(\)/, 'cache-busted');
   assert.match(loader, /cache: 'no-store'/, 'no-store');

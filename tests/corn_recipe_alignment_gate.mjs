@@ -88,8 +88,25 @@ test('normal overlay save and publish carry the nine flags and day stamps with u
   assert.equal(built.side.length,1);assert.equal(built.side[0][0],'menu_overlay.json');
   assert.deepEqual(JSON.parse(built.side[0][1]),built.saved,'side publish is the exact stamped overlay');
 });
-test('all DOOR app bytes outside the scoped fallback and release version stay unchanged',()=>{
-  const normal=html.replace(/\r\n/g,'\n').replace(/const DOOR_RECIPE_DATA_FALLBACK = [^\n]+/,'const DOOR_RECIPE_DATA_FALLBACK = <scoped fixture>;').replace(/const DOOR_APP_VERSION = '[^']+';/,"const DOOR_APP_VERSION = '<release>';");
+test('all DOOR app bytes outside scoped fallback, release version and exact public-reader transport stay unchanged',()=>{
+  // 2026-10-22: Jason authorized the recipe-only Pages projection because private
+  // raw reads return 404. Reviewed index.html diff: one URL and two explanatory
+  // comments only. Undo those EXACT lines for the original Corn digest; do not
+  // refresh that digest or exempt the loader/overlay implementation from review.
+  const transport=[
+    ["const DOOR_SHARED_LIBRARY_URL = 'https://kennedyjasondavid-eng.github.io/conc-recipe-hub/library_public.json';",
+      "const DOOR_SHARED_LIBRARY_URL = 'https://raw.githubusercontent.com/kennedyjasondavid-eng/conc-recipe-hub/shared-library/library_shared.json';"],
+    ["// CODEX's private shared Library. Pages delivers its recipe-only library_public.json projection. DOOR reads that",
+      "// CODEX's shared Library (library_shared.json on the conc-recipe-hub `shared-library` branch). DOOR reads that"],
+    ['  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); public delivery follows the private save asynchronously.',
+      '  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); the raw CDN can still hold a copy for ~5 min.']
+  ];
+  let normal=html.replace(/\r\n/g,'\n');
+  for(const [current,prior] of transport){
+    assert.equal(normal.split(current).length-1,1,'expected exactly one authorized transport line: '+current);
+    normal=normal.replace(current,prior);
+  }
+  normal=normal.replace(/const DOOR_RECIPE_DATA_FALLBACK = [^\n]+/,'const DOOR_RECIPE_DATA_FALLBACK = <scoped fixture>;').replace(/const DOOR_APP_VERSION = '[^']+';/,"const DOOR_APP_VERSION = '<release>';");
   assert.equal(crypto.createHash('sha256').update(normal).digest('hex'),F.digests.htmlOutsideFallback);
 });
 test('offline fallback has the 42 Corn sources and corrected Teriyaki; source labels and all other fields are exact',()=>{

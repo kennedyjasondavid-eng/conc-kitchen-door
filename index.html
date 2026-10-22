@@ -746,7 +746,7 @@ let _recipeDataSource = 'fallback';
 
 // Save is publish (2026-10-14, Jason: "I want a new recipe I make or an edit to an existing one to change what
 // anyone that visits DOOR sees as the canon recipe"). A recipe saved in CODEX on a connected tablet lands in
-// CODEX's shared Library (library_shared.json on the conc-recipe-hub `shared-library` branch). DOOR reads that
+// CODEX's private shared Library. Pages delivers its recipe-only library_public.json projection. DOOR reads that
 // file too and lays it over the CODEX recipe list: a new recipe is added, an edit replaces the old version, a
 // recipe only the shared Library added drops out when it is removed there. DOOR reads only each record's `door` block (name, allergens, category, stream,
 // recipeId), which CODEX derives with the same projection it uses for DOOR_RECIPE_DATA.json — DOOR never
@@ -756,7 +756,7 @@ let _doorRecipeBase = DOOR_RECIPE_DATA_FALLBACK;
 let _doorSharedLibrary = null;
 let _doorSharedLibrarySource = 'none';
 let _doorSharedLibraryReceipt = null;
-const DOOR_SHARED_LIBRARY_URL = 'https://raw.githubusercontent.com/kennedyjasondavid-eng/conc-recipe-hub/shared-library/library_shared.json';
+const DOOR_SHARED_LIBRARY_URL = 'https://kennedyjasondavid-eng.github.io/conc-recipe-hub/library_public.json';
 
 /* DOOR_TESTABLE_CORE_START shared-recipes */
 // One shared record → the DOOR recipe it stands for, or null when it carries no usable `door` block. A stream
@@ -895,7 +895,7 @@ function _doorApplySharedRecipes() {
 })();
 
 (async function loadSharedLibrary() {
-  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); the raw CDN can still hold a copy for ~5 min.
+  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); public delivery follows the private save asynchronously.
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
