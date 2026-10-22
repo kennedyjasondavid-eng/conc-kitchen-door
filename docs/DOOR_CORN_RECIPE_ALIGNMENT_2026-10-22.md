@@ -1,6 +1,6 @@
 # Corn recipe alignment — 2026-10-22
 
-**Status:** implementation and both independent reviews complete on `codex/corn-recipe-alignment`, based on main `81d7980`; PR/merge and deployment remain release steps. App version is `v31-standard.45`. Original OneDrive checkouts are untouched.
+**Release receipt:** PR #140 merged as `912f45d` and deployed 2026-10-22. The cross-app status owner is `~/.claude/CLAUDE.md`. Historical implementation measurements below remain the pre-release audit trail.
 
 Jason authorized CODEX to include Corn and audit both apps, and to remove Teriyaki Chicken Legs' unsupported Sulphites after verifying the source. CODEX owns the recipe labels. Paired receipt: conc-recipe-hub `docs/CODEX_CORN_TERIYAKI_2026-10-22.md`.
 
@@ -28,7 +28,7 @@ Existing Corn stays on W2 Friday dinner, W3 Wednesday lunch and W4 Friday dinner
 
 The frozen fixture `tests/fixtures/corn_recipe_alignment_2026-10-22.json` enumerates **43 exact fallback changes**: 42 Corn sources plus Teriyaki, comprising 29 existing records and 14 additions. The fallback grows from **131 to 145**, retaining prior order and every unrelated field/warning. Existing Vegan Baked Pasta's stream changes from `regular` to canonical `vegan`, so name-based lookup reaches it.
 
-Two extra offline family lines are measured and pinned: W2 Sunday vegan dinner gains Nightshades, and W4 Wednesday vegan dinner gains Oats/Sulphites. No other non-Corn plate family changes. The two shared records are Peas and Corn and Thai Green Curry Sauce – Bagged (Fish & Tofu); the latter adds Corn and lime's safe-side Sulphites. CODEX's separate shared-library candidate remains local pending review.
+Two extra offline family lines are measured and pinned: W2 Sunday vegan dinner gains Nightshades, and W4 Wednesday vegan dinner gains Oats/Sulphites. No other non-Corn plate family changes. The two shared records are Peas and Corn and Thai Green Curry Sauce – Bagged (Fish & Tofu); the latter adds Corn and lime's safe-side Sulphites. The shared-library candidate described here was subsequently delivered; see the verification below.
 
 The original Corn change preserved every byte of DOOR `index.html` outside the fallback literal and release version. The authorized delivery continuation below additionally changes one reader URL and two comments; its gate preserves the original digest by undoing only those exact three lines. `flagsToMenuAllergens` currently omits Corn intentionally, so the generated free-text allergen lines are unchanged. DOOR's existing boolean flag and plate recipe lookup carry the warnings.
 
@@ -58,8 +58,11 @@ The food-safety reviewer found the bagged curry sauce's source card and retained
 The original Corn manifest remains byte-identical. `tests/helpers/bagged_curry_nightshades_review.mjs` is a separately enumerated extension to exactly three expected lists; `tests/bagged_curry_nightshades_gate.mjs` pins the original manifest, source evidence, exact fallback/overlay and all 84 current meal outputs. The combined checks failed 19/22 before the fold and pass **22/22** afterward. No current meal ticks, seating, serving notes or online/offline meal-family lines change in this fold.
 
 Both independent reviewers rechecked the correction, each passing 22/22 with no remaining findings. The final full suite passes **547/547, zero skips**, recorded in `corn-pair/door-corn-full-suite-review-fold.log`. Release order remains CODEX source deployment, shared-library correction, then DOOR deployment; refresh owning branches before each write and retain newer staff saves.
+
 ## Public-reader delivery continuation
 
-Jason authorized the existing CODEX Pages site to deliver recipe-only shared data. The reader now uses `library_public.json`; its cache fallback and conservative allergen overlay are unchanged. Contract ownership remains in CODEX `docs/CODEX_PUBLIC_LIBRARY_CONTRACT.md`; the shared JSON stays private and this release remains held until anonymous delivery is verified.
+Jason authorized the existing CODEX Pages site to deliver recipe-only shared data. The reader now uses `library_public.json`; its cache fallback and conservative allergen overlay are unchanged. Contract ownership remains in CODEX `docs/CODEX_PUBLIC_LIBRARY_CONTRACT.md`; the shared source stays private. Anonymous delivery was verified before release.
 
 The gate author, independently of the builder, narrowed the original Corn byte gate to the exact reader URL and two explanatory comments, retaining its original digest and every other assertion. Corn 16/16, anonymous reader 3/3, existing overlay 10/10; full suite **550/550, zero skips**. Independent safety/data and release/feed reviews both passed. Operational JSON is unchanged by this continuation.
+
+Live verification at `2026-10-22T17:22:34Z`: the deployed app and five operational JSON files match `912f45d` byte-for-byte. A fresh anonymous Chromium session reads all 15 shared records from the public projection, applies the corrected Corn/Nightshades/Sulphites warnings, and makes no private raw request. Both the release CI and Pages deployment succeeded.
