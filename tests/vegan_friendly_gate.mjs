@@ -69,7 +69,10 @@ test('a shared-Library save carries the flag from its door block; a record from 
 
 test('DOOR reads the flag in these places only (the vegan plate\'s allergen guess still reads the vegan line)', () => {
   // Re-pinned 2026-10-18 (review fold, P1-3): the overlay also clears the flag when a kept allergen names an animal family.
-  const code = html.split('\n').filter(l => /veganFriendly/.test(l) && !/^\s*\/\//.test(l));
+  // 2026-10-22 (Corn source alignment): the scoped fallback additions carry CODEX's inert veganFriendly data.
+  // Exclude only that literal data declaration; the same five executable reader sites remain mandatory below.
+  const code = html.split('\n').filter(l => /veganFriendly/.test(l) && !/^\s*\/\//.test(l)
+    && !/^const DOOR_RECIPE_DATA_FALLBACK = /.test(l));
   assert.equal(code.length, 5, code.join('\n'));
   assert.ok(/out\.veganFriendly = d\.veganFriendly/.test(code[0]));
   assert.ok(/d\.veganFriendly === true && doorNamesAnimalFamily\(d\.allergens\)/.test(code[1]));
