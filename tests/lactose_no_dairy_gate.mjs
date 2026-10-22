@@ -126,7 +126,10 @@ test('today\'s list: the import proposes nothing, and every lactose-intolerant r
   const d = out(vm.runInContext('diffImportAgainstRegistry(' + JSON.stringify(entries) + ')', box));
   assert.deepEqual(d.updates.map(u => u.room), [], 'no proposals');
   const li = state.residents.filter(r => (r.tags || []).includes('Lactose Intolerant'));
-  assert.deepEqual(li.map(r => r.room).sort(), ['1115a', '1207', '301a', '412']);
+  // 2026-10-22: the published list follows the kitchen's meal list, so which rooms are lactose intolerant changes with
+  // the residents (the Oct 21 list gives 1207 "GF, No Shellfish, No Pork"; it pinned ['1115a', '1207', '301a', '412']).
+  // The check is the rule, for whoever is lactose intolerant today; it only needs one.
+  assert.ok(li.length >= 1, 'the published list has a lactose-intolerant resident to check');
   for (const r of li) {
     assert.ok(out(c.checkResidentMealConflicts({ hasDairy: true }, { tags: r.tags })).some(x => x.mealFlag === 'hasDairy'), r.room + ' warned on dairy');
   }
