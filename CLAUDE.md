@@ -53,6 +53,65 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-10-22) — W1b: the meals that serve CODEX's safe-side Sulphites tick them (menu data, no code)
+CODEX v29 (W1, conc-recipe-hub #179) gave Library recipes Sulphites on the safe side. Jason, 2026-10-21, on the CODEX walkthrough's calls: "add Sulphites to all 29 now (safe side), naming the juice" (call 2), "the Library's words" (call 3), "safe side now" (call 4). Then, 2026-10-22, on the W1 follow-up's call 1: "safe side now" (raisins and dried cranberries list Sulphites, naming the fruit; CODEX v30). DOOR checks residents against each meal's own ticks, not the CODEX feed, so the meals that serve those dishes need the tick. It only ever adds a warning.
+- **The rule** (the #121 and #135 precedent): a meal's ticks cover its regular plate, meaning the regular line, the sides it shares with the other lines, and the halal dish.
+  - A dish only the vegan line serves gets no meal tick. The vegan plate reads it from CODEX: a linked slot by its recipe, else the vegan line by name (`getVegAltSlotAllergenStr`, `getVegAltAllergenStr`).
+  - A fresh tablet's `sweepAltFlagPollution` would take such a tick off a regular plate no regular dish carries it on.
+  - The vegan-line dishes the vegan plate reads this way: the Crispy Quinoa Cake Burger (Wk1 MON lunch, Quinoa Cakes), the Vegan Pot Pie (Wk4 WED dinner), the Tofu Curry (Wk4 MON dinner, the green curry sauce), and the vegan breakfast patty and sausage on the Sunday and Monday breakfasts (Breakfast Vegan Patty, by name).
+- **The 11 ticks**, each `hasSulphites` (meal → dish → CODEX recipe):
+  - Wk1 FRI lunch → Potato Salad, the side both lines share beside the Honey BBQ drumsticks → Potato Salad (for Honey BBQ Drums);
+  - Wk2 MON lunch → Chicken Gyro → Tzatziki Sauce (CODEX lists "Milk (Tzatziki)" on the gyro, and the meal already ticks its Dairy);
+  - Wk2 TUE lunch → Tuna Salad Sandwich Mix → Tuna Salad Sandwich Mix;
+  - Wk2 FRI dinner → Refried Beans, the shared side → Refried Beans;
+  - Wk4 MON dinner → Fish Curry → Vegan Thai Green Curry Sauce (ruled 2026-10-16: the fish curry is fish with the green curry sauce);
+  - Wk4 WED lunch → Tuna Rex Salad → Rex Tuna Salad Mix;
+  - Wk4 FRI dinner → Tandoori Pork → CONC Tandoori Marinade (the one marinade, for the pork, the halal chicken and the tofu);
+  - Wk1–4 SAT breakfast → Granola, on both lines → Granola (v30: its cranberries are dried). This is ahead of CODEX: until v30 is on Pages, the feed lists no Sulphites on Granola.
+- **Already ticked, no new tick:**
+  - Honey BBQ Sauce's Nightshades (Wk1 FRI lunch);
+  - Pork Griot's Sulphites, Nightshades and Spicy (Wk3 THU dinner);
+  - Sulphites on Lime and Coconut Rice (Wk3 FRI lunch), the tzatziki and souvlaki (Wk4 SUN lunch), White Chilli Chicken (Wk4 SUN dinner) and Beef Massaman Curry (Wk4 SAT dinner);
+  - Gluten on Wk2 FRI lunch: the naan's. CODEX v30 takes v29's Gluten off Beef CONC Salad Mix, and the meal keeps it.
+- **How:** one `saveMenuBaseOverlay` save, so the 11 days share one stamp (2026-10-22T11:09:35Z).
+  - Each tick goes on the meal's ticks and on its main dish, and the meal's allergen line is rewritten from the ticks. Tuna Rex Salad and the four breakfasts have no dish slots.
+  - The artifacts were then rebuilt with the publish builders. `door_state` / `registry_summary` take only the new `builtFromMenu` stamp.
+  - Validation 0/0/0, and the sweep's dry run takes none of the ticks off.
+- **What moves:**
+  - **No resident.** Nobody is No Sulphites on the registry published 2026-10-21, so no seat or plating-sheet note changes, and `routing_by_meal.json`'s counts are byte-identical (only its `_meta` changes).
+  - `menu_current.json` changes in 28 fields: 11 ticks, 11 allergen lines that gain "sulphites" (Wk2 FRI dinner's was empty), and 6 main dishes. Meal text doesn't change.
+  - **The vegan plate gains SULPHITES on 9 meals** (DOOR's plating engine, with today's CODEX feed):
+    - the four Saturday breakfasts (granola on both lines);
+    - Wk1 FRI lunch (the shared potato salad);
+    - Wk4 FRI dinner (the tandoori marinade on the tofu too);
+    - Wk2 MON, Wk2 TUE and Wk4 WED lunch, where it comes only from the regular meal's ticks copied onto the vegan plate (#63's floor). That over-warns only.
+
+    Wk2 FRI dinner and Wk4 MON dinner already read it from CODEX (Refried Beans, the green curry sauce). Offline, with the baked list, all 11 gain it. The baked list predates CODEX v29, so offline the vegan-line dishes that reach the plate only through CODEX show no SULPHITES: the Crispy Quinoa Cake Burger (Wk1 MON lunch), the Vegan Pot Pie (Wk4 WED dinner), and the Sunday and Monday vegan breakfasts. That was so before W1b too. Refreshing the baked list is a later code change (review P3-1).
+  - **The halal plate gains it on Wk4 FRI dinner** (Tandoori Chicken, the same marinade).
+- **Gate:** `tests/w1b_safe_side_ticks_gate.mjs` (8), red 2/8 on `1c2756c` (checks 1 and 2). It checks:
+  - every tick, its main dish and its allergen line;
+  - the overlay and the day stamps;
+  - the families already ticked;
+  - that nothing else moves (each day's digest with the ticks put back);
+  - the sweep;
+  - no resident moves, through the real plating engine;
+  - with CODEX's feed beside the repo, each tick's recipe and the vegan-line dishes;
+  - one valid publish.
+
+  Suite 517 → 525. Test 4 pins the W1b save's stamp (review P3-2). (`lactose_no_dairy_gate` 8 went red on `main` when the Oct 20 resident list changed 1207's restriction; #138 fixed the test.)
+- **Independent review: SHIP**, no P1 or P2. P3-1 and P3-2 are folded; P3-3 and P3-4 are CODEX's:
+  - Chicken Gyro lists the tzatziki's Milk but not its Sulphites;
+  - CODEX lists no Sulphites for pickled onions (the CONC Salad) or the ranch's pickle juice; both are label questions (HOUSE #42, O2). White vinegar, as in the Vindaloo Marinade, is ruled clean (2026-10-21, CODEX call 3);
+  - the vegan "Lime Coconut Rice" record has none while "Lime and Coconut Rice" does.
+- **Found, for Jason:**
+  - **Vegan breakfast plates that don't reach their recipe.** Breakfasts carry no recipe links: 26 of 28 have no dish slots, and the two that do (Wk1 FRI, Wk4 SUN) are typed by hand.
+    - Wk1–3 THU "veg sausage" matches no CODEX recipe. The plate shows only what it copies from the regular meal (WHEAT, DAIRY, EGGS, PROCESSED MEAT), so it misses Vegan Sausage's Oats, Soy and Nightshades; its Gluten shows only as the copied WHEAT.
+    - Wk4 THU "Vegan BF patties" matches Vegan Bean Patties, so it misses Breakfast Vegan Patty's Soy, Oats and Sulphites.
+    - Wk1–4 FRI "Oatmeal" matches nothing (CODEX has no oatmeal recipe; Overnight Oats is on the regular line), so it never says OATS. DOOR has no Oats flag to tag it with.
+
+    The fix needs a ruling: which recipe each breakfast dish is, and whether breakfasts get recipe slots as the lunches and dinners did in `.29`.
+  - **Resident records:** #135's hand re-adds are missing on two rooms. 1207's record has no No Tree Nuts (its Oct 21 restriction reads "GF, No Shellfish, No Pork"), and 1215b reads "Regular", with no No Brassicas or No Nightshades. 613a and 613b have theirs.
+
 ## Recent (2026-10-19) — a panel hidden by its inline style stays hidden on a phone (`v31-standard.44`)
 Jason, 2026-10-19: "Fix the phone width bug" (found in `.43`, the entry below). The phone layout (`@media (max-width: 768px)`) stacks the hand-written grid layouts of six screens (Reports, Custom Reports, Settings, Review, Leftover, Menu Config) with `#screen-X .content > div[style] { display: block !important; }`. The rule also matched every panel and banner hidden by an inline `display:none`, so on a phone they all showed.
 - **Found by a real-browser scan** of the six screens at 390 and 1280 px (every direct child `div[style]` of `.content`, hidden on the desktop and shown on a phone), on `main` `1fc6509`:
