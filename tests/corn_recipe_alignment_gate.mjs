@@ -106,6 +106,12 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
     assert.equal(normal.split(current).length-1,1,'expected exactly one authorized transport line: '+current);
     normal=normal.replace(current,prior);
   }
+  // 2026-10-24: Jason replaced the CONC logo with the Food Services logo in every
+  // HOUSE app. Put back the header's previous logo, byte for byte, from its fixture.
+  const logoRe=/(<div class="brand-icon" style="background:none;padding:0;"><img src=")(data:image\/[a-z]+;base64,[A-Za-z0-9+\/=]+)/g;
+  assert.equal((normal.match(logoRe)||[]).length,1,'expected exactly one header logo');
+  const priorLogo=fs.readFileSync(new URL('./fixtures/door_brand_logo_before_2026-10-24.txt',import.meta.url),'utf8').trim();
+  normal=normal.replace(logoRe,(m,pre)=>pre+priorLogo);
   normal=normal.replace(/const DOOR_RECIPE_DATA_FALLBACK = [^\n]+/,'const DOOR_RECIPE_DATA_FALLBACK = <scoped fixture>;').replace(/const DOOR_APP_VERSION = '[^']+';/,"const DOOR_APP_VERSION = '<release>';");
   assert.equal(crypto.createHash('sha256').update(normal).digest('hex'),F.digests.htmlOutsideFallback);
 });
