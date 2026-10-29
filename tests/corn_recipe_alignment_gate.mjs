@@ -112,6 +112,17 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
   assert.equal((normal.match(logoRe)||[]).length,1,'expected exactly one header logo');
   const priorLogo=fs.readFileSync(new URL('./fixtures/door_brand_logo_before_2026-10-24.txt',import.meta.url),'utf8').trim();
   normal=normal.replace(logoRe,(m,pre)=>pre+priorLogo);
+  // 2026-10-29 (v31-standard.46): Jason, "yes, go ahead and build it": Rex's week sheet import. Take out its one
+  // block (the rex-week core and its Menu Config shell, between their markers), its button and the build date, byte
+  // for byte; tests/rex_week_import_gate.mjs reviews them.
+  const rexA=normal.indexOf('\n/* DOOR_TESTABLE_CORE_START rex-week */'),rexEnd='// ── Rex’s week sheet: end ──\n',rexB=normal.indexOf(rexEnd);
+  if(rexA>=0){
+    assert.ok(rexB>rexA,'the Rex week block has its end marker');
+    normal=normal.slice(0,rexA)+normal.slice(rexB+rexEnd.length);
+    const rexBtn='      <button class="btn btn-ghost btn-sm" id="mc-rex-week-btn" onclick="triggerRexWeekUpload()" title="Upload the week\'s menu sheet Rex sends. DOOR shows what changed and asks about what it can\'t tell.">&#x2191; Rex&rsquo;s week sheet</button>\n';
+    assert.equal(normal.split(rexBtn).length-1,1,'expected exactly one Rex week button');
+    normal=normal.replace(rexBtn,'').replace("const DOOR_BUILD_DATE = '2026-10-29';","const DOOR_BUILD_DATE = '2026-10-19';");
+  }
   normal=normal.replace(/const DOOR_RECIPE_DATA_FALLBACK = [^\n]+/,'const DOOR_RECIPE_DATA_FALLBACK = <scoped fixture>;').replace(/const DOOR_APP_VERSION = '[^']+';/,"const DOOR_APP_VERSION = '<release>';");
   assert.equal(crypto.createHash('sha256').update(normal).digest('hex'),F.digests.htmlOutsideFallback);
 });

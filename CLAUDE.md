@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-10-19'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-10-29'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
 
@@ -52,6 +52,21 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-29) — Rex's week sheet updates the menu (`v31-standard.46`)
+Jason, 2026-10-29: "a way for Rex (or me) to update DOOR with new menus without parsing the changes ourselves, and using docs that are already being generated"; Rex's menu is canon; Rex's allergen rows are not; breakfast goes in DOOR's menu, not EXPO's schedule. Plan, rulings and receipt: **`DOOR_REX_WEEK_IMPORT_PLAN_2026-10-29.md`**.
+- **Menu Config → ↑ Rex's week sheet** reads the weekly .xlsx Rex sends ("WEEK N" over SUNDAY…SATURDAY; BREAKFAST / LUNCH / DINNER with Vegetarian, Halal option, Allergens; Veg lunch / Veg dinner). The dates come from the file name, checked against DOOR's cycle. Pure core: `DOOR_TESTABLE_CORE rex-week` (`doorReadRexWeekRows`, `doorPlanRexWeek`, `doorRexBuildMeal`).
+- **The review** compares every meal with the rotation week and lists only what differs:
+  - the same dish written differently keeps DOOR's words and recipe link (`doorRexSameDish`);
+  - "Seasonal Vegetables" reads the Veg row;
+  - steamed veg drift is applied without a question;
+  - every other change is a question: **Every cycle** (default), **This week only** (a dated swap; the default when two meals trade places), **Keep DOOR's** (remembered in `concRexWeekAnswers` until the sheet changes that meal).
+
+  It also says when the sheet disagrees with itself (the meal row wins), asks what Halal residents get on a pork meal with none, shows the kitchen's alternatives when the main changes, and offers a recipe (or allergen ticks) for a dish that isn't in CODEX.
+- **Allergens:** Rex's allergen rows are never used. A new dish's CODEX recipe and name add allergens; a warning comes off only when ticked. Non-pork meat is treated as halal.
+- **Save** goes through Edit Menu's writers (the meal's original kept, the allergen line with the ticks, upcoming swaps of the slot cleared), then `publishAndSync`.
+- **Gates:** `tests/rex_week_import_gate.mjs` 11/11, on both of Rex's sheets (`tests/fixtures/rex_week/`); browser `tests/browser/rex_week_review.mjs` 56/56 at 1280/390 px (not in CI). `corn_recipe_alignment_gate`'s whole-file digest takes the new block out, byte for byte. Suite 561/561.
+- **Open:** "Keep DOOR's" answers stay on the computer that gave them; ↩ Undo Last undoes the import's last meal only.
 
 ## Recent (2026-10-22) — Corn alignment and shared reader
 
