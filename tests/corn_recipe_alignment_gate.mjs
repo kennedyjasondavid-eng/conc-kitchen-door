@@ -122,6 +122,15 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
     const rexBtn='      <button class="btn btn-ghost btn-sm" id="mc-rex-week-btn" onclick="triggerRexWeekUpload()" title="Upload the week\'s menu sheet Rex sends. DOOR shows what changed and asks about what it can\'t tell.">&#x2191; Rex&rsquo;s week sheet</button>\n';
     assert.equal(normal.split(rexBtn).length-1,1,'expected exactly one Rex week button');
     normal=normal.replace(rexBtn,'').replace("const DOOR_BUILD_DATE = '2026-10-29';","const DOOR_BUILD_DATE = '2026-10-19';");
+    // 2026-10-29 (v31-standard.47, Jason: "make the Keep DOOR's answers sync across computers"): the sync, pull and
+    // publish lines for rex_week_answers.json.
+    for(const rexLine of [
+      "    ['rex_week_answers.json', d => doorApplyRemoteRexAnswers(d)],   // \"Keep DOOR's\" answers (2026-10-29)\n",
+      "    fetch(base+'rex_week_answers.json'+bust).then(r=>r.ok?r.json():null).then(d=>{ if(d) doorApplyRemoteRexAnswers(d); }).catch(()=>{});\n",
+      "    // \"Keep DOOR's\" answers on Rex's week sheet (2026-10-29), merged with the kitchen's first. Never empty: a\n    // computer that never answered sends nothing.\n    { const _rexA = await doorPullRexAnswers(); if (Object.keys(_rexA).length) _push('rex_week_answers.json', JSON.stringify(_rexA,null,2)); }\n",
+    ]){
+      if(normal.includes(rexLine)){assert.equal(normal.split(rexLine).length-1,1,'one '+rexLine.slice(0,40));normal=normal.replace(rexLine,'');}
+    }
   }
   normal=normal.replace(/const DOOR_RECIPE_DATA_FALLBACK = [^\n]+/,'const DOOR_RECIPE_DATA_FALLBACK = <scoped fixture>;').replace(/const DOOR_APP_VERSION = '[^']+';/,"const DOOR_APP_VERSION = '<release>';");
   assert.equal(crypto.createHash('sha256').update(normal).digest('hex'),F.digests.htmlOutsideFallback);

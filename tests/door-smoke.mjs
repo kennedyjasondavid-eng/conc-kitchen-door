@@ -354,6 +354,9 @@ function loadPublishFlowHarness(options = {}) {
     preMergeSwapsWithCloud: options.preMergeSwapsWithCloud || (async () => {}),
     loadSwapReverts: () => ({}),
     loadSpecialRemovals: () => ({}),
+    // 2026-10-29: the publish also sends Rex's week sheet "Keep DOOR's" answers (rex_week_answers.json), merged with
+    // the kitchen's first; a computer with none sends nothing, so the publish set here is unchanged.
+    doorPullRexAnswers: options.doorPullRexAnswers || (async () => ({})),
     loadSpecialMeals: () => [],
     RECENT_LOG: [],
     REGISTRY_LIST: [{ room: '101' }, { room: '102' }],

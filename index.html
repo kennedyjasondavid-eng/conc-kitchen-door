@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.46';
+const DOOR_APP_VERSION = 'v31-standard.47';
 const DOOR_BUILD_DATE = '2026-10-29';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11245,6 +11245,7 @@ async function pullSecondaryState(repo) {
     // used to come back after a hard refresh); the file wins a key both hold.
     ['meal_swaps.json',      d => doorApplyRemoteSwaps(d, null)],
     ['special_meals.json',   d => doorApplyRemoteSpecials(d, null)],
+    ['rex_week_answers.json', d => doorApplyRemoteRexAnswers(d)],   // "Keep DOOR's" answers (2026-10-29)
     ['menu_overlay.json',    d => {
       const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
       const mergeResult = doorMergeMenuOverlayWithCloud(local, d);
@@ -14215,6 +14216,9 @@ async function _doPublishToGitHub(manual) {
     _push('meal_swaps_reverted.json', JSON.stringify(loadSwapReverts(),null,2));
     _push('special_meals.json', JSON.stringify(loadSpecialMeals(),null,2));
     _push('special_meals_removed.json', JSON.stringify(loadSpecialRemovals(),null,2));
+    // "Keep DOOR's" answers on Rex's week sheet (2026-10-29), merged with the kitchen's first. Never empty: a
+    // computer that never answered sends nothing.
+    { const _rexA = await doorPullRexAnswers(); if (Object.keys(_rexA).length) _push('rex_week_answers.json', JSON.stringify(_rexA,null,2)); }
     const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
     _push('recent_log.json', JSON.stringify(_logToSync,null,2));
     // One commit for the whole artifact set. Anti-clobber guards run per path
@@ -18602,6 +18606,20 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
   }
   return { fields, flags, slots, text, veg: vegText, halal: halalText };
 }
+// "Keep DOOR's" answers across DOOR computers (2026-10-29, Jason: "make the Keep DOOR's answers sync across
+// computers"): rex_week_answers.json in the repo, merged into each computer's copy. Per meal the newer answer wins.
+// An answer taken back (the meal saved from the sheet after all) stays as { answer: 'cleared', at }, so an older
+// "keep" on another computer can't come back.
+function doorMergeRexAnswers(a, b) {
+  const out = {};
+  [a || {}, b || {}].forEach(src => Object.keys(src).forEach(k => {
+    const v = src[k];
+    if (!/^[1-4]-(SUN|MON|TUES|WEDNES|THURS|FRI|SATUR)DAY-(breakfast|lunch|dinner)$/.test(k)) return;
+    if (!v || typeof v !== 'object' || typeof v.at !== 'string' || (v.answer !== 'keep' && v.answer !== 'cleared')) return;
+    if (!out[k] || v.at > out[k].at) out[k] = v;
+  }));
+  return out;
+}
 /* DOOR_TESTABLE_CORE_END rex-week */
 
 // ── Rex's week sheet: the Menu Config upload, review and save (2026-10-29) ─────────────────────────────────────────
@@ -18609,9 +18627,37 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
 // review, and on Save writes what was answered: rotation changes through the overlay (as Edit Menu's save does, the
 // meal's original kept), "this week only" as dated swaps, "Keep DOOR's" remembered, then the normal publish.
 const REX_WEEK_ANSWERS_KEY = 'concRexWeekAnswers';
+const REX_WEEK_ANSWERS_FILE = 'rex_week_answers.json';
 let _rexReview = null;
 function loadRexWeekAnswers() { try { return JSON.parse(localStorage.getItem(REX_WEEK_ANSWERS_KEY) || '{}') || {}; } catch (e) { return {}; } }
-function saveRexWeekAnswers(obj) { try { localStorage.setItem(REX_WEEK_ANSWERS_KEY, JSON.stringify(obj || {})); } catch (e) {} }
+// Saved here, then sent to the kitchen (merged with its copy first), unless skipPush (a merge from the kitchen).
+function saveRexWeekAnswers(obj, skipPush) {
+  try { localStorage.setItem(REX_WEEK_ANSWERS_KEY, JSON.stringify(obj || {})); } catch (e) {}
+  if (!skipPush) doorPushRexAnswers();
+}
+// The kitchen's answers merged into this computer's: at boot, at each sync, before the review opens, before a send.
+function doorApplyRemoteRexAnswers(remote) {
+  if (!remote || typeof remote !== 'object') return loadRexWeekAnswers();
+  const merged = doorMergeRexAnswers(loadRexWeekAnswers(), remote);
+  saveRexWeekAnswers(merged, true);
+  return merged;
+}
+async function doorPullRexAnswers() {
+  try {
+    const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const t = ctl ? setTimeout(() => ctl.abort(), 6000) : null;
+    const res = await fetch('https://raw.githubusercontent.com/' + repo + '/main/' + REX_WEEK_ANSWERS_FILE + '?_=' + Date.now(), ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' });
+    if (t) clearTimeout(t);
+    if (res.ok) return doorApplyRemoteRexAnswers(await res.json());
+  } catch (e) {}
+  return loadRexWeekAnswers();
+}
+async function doorPushRexAnswers() {
+  const merged = await doorPullRexAnswers();
+  if (!Object.keys(merged).length) return;
+  try { PublishAuth.sidePublish(REX_WEEK_ANSWERS_FILE, JSON.stringify(merged, null, 2), 'Rex week answers', true); } catch (e) {}
+}
 // The recipes a dish can link: a main, the vegan dish, a side (any side slot's recipes, or a salad, soup, dessert).
 function doorRexAccept(role, r) {
   const def = id => MEAL_SLOT_DEFS.find(d => d.id === id);
@@ -18652,7 +18698,8 @@ function triggerRexWeekUpload() {
           if (r && r.week) { rex = r; break; }
         }
         if (!rex) { alert('DOOR couldn’t read this as Rex’s week sheet. It looks for "WEEK 1"–"WEEK 4" over SUNDAY…SATURDAY, then BREAKFAST, LUNCH and DINNER rows.'); return; }
-        doorOpenRexWeekReview(rex, file.name);
+        // Another computer's "Keep DOOR's" answers first, so this one doesn't ask them again.
+        doorPullRexAnswers().then(() => doorOpenRexWeekReview(rex, file.name));
       } catch (err) { alert('Could not read the file: ' + (err && err.message ? err.message : err)); }
     };
     reader.readAsArrayBuffer(file);
@@ -18870,7 +18917,7 @@ async function doorSaveRexWeek() {
       done.keep.push(m);
       return;
     }
-    delete remembered[m.key];
+    if (remembered[m.key] && remembered[m.key].answer === 'keep') remembered[m.key] = { answer: 'cleared', at: new Date().toISOString(), by: getOperatorName() || '' };
     const w = String(m.week), day = m.day, p = m.period;
     const built = doorRexBuildMeal(m, (menu[w] || {})[day] || {}, a, ctx);
     if (choice === 'week' && m.date && p !== 'breakfast') {
@@ -23070,6 +23117,7 @@ initDynamic();
     fetch(base+'meal_swaps_reverted.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null)
       .then(rev=>fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>doorApplyRemoteSwaps(d, rev)))
       .catch(()=>{});
+    fetch(base+'rex_week_answers.json'+bust).then(r=>r.ok?r.json():null).then(d=>{ if(d) doorApplyRemoteRexAnswers(d); }).catch(()=>{});
     fetch(base+'special_meals_removed.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null)
       .then(rem=>fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>doorApplyRemoteSpecials(d, rem)))
       .catch(()=>{});

@@ -227,3 +227,30 @@ test('11. with CODEX’s feed: new names find their recipes', { skip: !fs.exists
   assert.equal(tue.slots.veganalt.recipeName, 'Roast Tofu');
   assert.equal(tue.slots.veganalt.displayText, 'Roasted Tofu', 'Rex’s words on the menu, the recipe’s allergens');
 });
+
+test('12. "Keep DOOR’s" answers reach every DOOR computer (2026-10-29, Jason: "make the Keep DOOR\'s answers sync across computers")', () => {
+  const sig = byKey(plan(W1, '2026-10-25'))['1-MONDAY-dinner'].rexSig;
+  const keepA = { '1-MONDAY-dinner': { rexSig: sig, answer: 'keep', at: '2026-10-29T13:00:00.000Z', by: 'Jason' } };
+  // computer B has never answered: after a merge with the kitchen's file it doesn't ask again
+  const onB = out(api.doorMergeRexAnswers({}, keepA));
+  assert.equal(byKey(plan(W1, '2026-10-25', { remembered: onB }))['1-MONDAY-dinner'].status, 'kept');
+  // B later saves Rex's Jerk Cauliflower after all: the answer is taken back with a newer time, and A follows
+  const takenBack = { '1-MONDAY-dinner': { answer: 'cleared', at: '2026-10-30T09:00:00.000Z', by: 'Rex' } };
+  const onA = out(api.doorMergeRexAnswers(keepA, takenBack));
+  assert.equal(onA['1-MONDAY-dinner'].answer, 'cleared');
+  assert.equal(byKey(plan(W1, '2026-10-25', { remembered: onA }))['1-MONDAY-dinner'].status, 'ask');
+  // an older "keep" from a computer that hadn't synced never brings it back, whichever side it is on
+  assert.deepEqual(out(api.doorMergeRexAnswers(takenBack, keepA)), out(api.doorMergeRexAnswers(keepA, takenBack)));
+  // malformed entries are dropped
+  assert.deepEqual(out(api.doorMergeRexAnswers({ 'x': { answer: 'keep', at: '2026' }, '1-MONDAY-dinner': { answer: 'keep' }, '5-MONDAY-lunch': { answer: 'keep', at: 'z' } }, null)), {});
+  // the app: pulled at boot, at each sync and before the review; sent after an answer and with every publish;
+  // a "keep" taken back is a dated record, never a delete
+  const fnText = (n) => { const i = html.indexOf('function ' + n + '('); return html.slice(i, html.indexOf('\n}\n', i)); };
+  assert.ok(html.includes("['rex_week_answers.json', d => doorApplyRemoteRexAnswers(d)]"), 'pullSecondaryState reads it');
+  assert.ok(html.includes("fetch(base+'rex_week_answers.json'+bust)"), 'boot reads it');
+  assert.ok(/await doorPullRexAnswers\(\); if \(Object\.keys\(_rexA\)\.length\) _push\('rex_week_answers\.json'/.test(fnText('_doPublishToGitHub')), 'every publish sends it, merged first');
+  assert.ok(/doorPullRexAnswers\(\)\.then\(\(\) => doorOpenRexWeekReview/.test(fnText('triggerRexWeekUpload')), 'the review pulls it first');
+  assert.ok(/sidePublish\(REX_WEEK_ANSWERS_FILE/.test(fnText('doorPushRexAnswers')) && /doorPullRexAnswers\(\)/.test(fnText('doorPushRexAnswers')), 'an answer is sent, merged first');
+  const save = fnText('doorSaveRexWeek');
+  assert.ok(!/delete remembered\[/.test(save) && /answer: 'cleared'/.test(save));
+});
