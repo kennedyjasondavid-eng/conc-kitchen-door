@@ -20,6 +20,7 @@ const XLSX_URL = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bun
 const results = [];
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); };
 
+let KITCHEN_ANSWERS = null;   // rex_week_answers.json as "the kitchen" holds it, for the two-computer check
 async function session(width) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width, height: width < 600 ? 860 : 900 }, timezoneId: 'America/Toronto' });
@@ -27,6 +28,7 @@ async function session(width) {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('dialog', (d) => { errors.push('dialog: ' + d.message()); d.dismiss(); });
   await page.route(/^https?:/, (r) => {
+    if (/\/main\/rex_week_answers\.json/.test(r.request().url())) return KITCHEN_ANSWERS ? r.fulfill({ contentType: 'application/json', body: KITCHEN_ANSWERS }) : r.fulfill({ status: 404, body: '' });
     if (r.request().url() !== XLSX_URL) return r.abort();
     if (process.env.REX_XLSX_JS) return r.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(process.env.REX_XLSX_JS, 'utf8') });
     return r.continue();
@@ -101,6 +103,36 @@ for (const width of [1280, 390]) {
     await page.click('#rex-week-cancel');
     check(w + ' W1 no page errors', errors.length === 0, errors);
     await browser.close();
+  }
+  // ── Two computers: Keep DOOR's on one, not asked again on the other; taken back on the other, asked again here ──
+  {
+    KITCHEN_ANSWERS = null;
+    const A = await session(width);
+    await A.page.evaluate(() => { window.__sent = []; PublishAuth.sidePublish = (path, content) => { window.__sent.push({ path, content }); return Promise.resolve({ ok: true }); }; });
+    await upload(A.page, W1);
+    await pick(A.page, '1-MONDAY-dinner', 'keep');
+    await A.page.click('#rex-week-save');
+    await A.page.waitForFunction(() => window.__sent.some(x => x.path === 'rex_week_answers.json'), null, { timeout: 10000 }).catch(() => {});
+    const sent = await A.page.evaluate(() => window.__sent.filter(x => x.path === 'rex_week_answers.json').pop());
+    check(w + ' 2pc computer A sends its answer to the kitchen', sent && JSON.parse(sent.content)['1-MONDAY-dinner'].answer === 'keep', sent);
+    KITCHEN_ANSWERS = sent && sent.content;
+    const B = await session(width);
+    await B.page.evaluate(() => { window.__sent = []; PublishAuth.sidePublish = (path, content) => { window.__sent.push({ path, content }); return Promise.resolve({ ok: true }); }; });
+    await upload(B.page, W1);
+    const txtB = await B.page.locator('.rex-week-review').innerText();
+    check(w + ' 2pc computer B: Mon dinner kept, not asked', await B.page.locator('.rex-week-review .rex-q[data-rex-meal="1-MONDAY-dinner"]').count() === 0 && /1\s*kept as answered before/.test(txtB), txtB.match(/\d+\s*meals match[^\n]*/)?.[0]);
+    await B.page.click('#rex-week-cancel');
+    // B takes it back by saving Rex's dish from the sheet: the next review on B asks; the kitchen's copy says cleared
+    await B.page.evaluate(() => { const a = loadRexWeekAnswers(); a['1-MONDAY-dinner'] = { answer: 'cleared', at: new Date(Date.now() + 1000).toISOString(), by: 'Rex' }; saveRexWeekAnswers(a); });
+    await B.page.waitForFunction(() => window.__sent.some(x => x.path === 'rex_week_answers.json' && /cleared/.test(x.content)), null, { timeout: 10000 }).catch(() => {});
+    const sentB = await B.page.evaluate(() => window.__sent.filter(x => x.path === 'rex_week_answers.json').pop());
+    check(w + ' 2pc computer B sends the take-back', sentB && JSON.parse(sentB.content)['1-MONDAY-dinner'].answer === 'cleared', sentB);
+    KITCHEN_ANSWERS = sentB && sentB.content;
+    await upload(A.page, W1);
+    check(w + ' 2pc computer A asks again after the take-back', await A.page.locator('.rex-week-review .rex-q[data-rex-meal="1-MONDAY-dinner"]').count() === 1);
+    check(w + ' 2pc no page errors', A.errors.length === 0 && B.errors.length === 0, A.errors.concat(B.errors));
+    await A.browser.close(); await B.browser.close();
+    KITCHEN_ANSWERS = null;
   }
   // ── Week 1, Thu lunch this week only: a dated swap on Oct 29 ──
   {

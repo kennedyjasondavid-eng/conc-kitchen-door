@@ -24,7 +24,7 @@ export function rexWeekBox(root) {
     fn('_hubAllergenResolve'), fn('hubAllergenToFlags'), fn('recipeMatchesSlotDef'),
     'const _hubUnmappedLabels = new Set();',
     fn('doorRexAccept'),
-    'this.api = { doorReadRexWeekRows, doorRexWeekStartFromName, doorRexSameDish, doorRexAlignLine, doorRexRecipeFor, doorRexPieceFlags, doorPlanRexWeek, doorRexBuildMeal, doorRexKind, doorRexWildcard, hubAllergenToFlags, rexAccept: doorRexAccept, recipes: DOOR_RECIPE_DATA_FALLBACK, emptyMealFlags };',
+    'this.api = { doorMergeRexAnswers, doorReadRexWeekRows, doorRexWeekStartFromName, doorRexSameDish, doorRexAlignLine, doorRexRecipeFor, doorRexPieceFlags, doorPlanRexWeek, doorRexBuildMeal, doorRexKind, doorRexWildcard, hubAllergenToFlags, rexAccept: doorRexAccept, recipes: DOOR_RECIPE_DATA_FALLBACK, emptyMealFlags };',
   ].join('\n');
   const ctx = { console };
   vm.createContext(ctx);

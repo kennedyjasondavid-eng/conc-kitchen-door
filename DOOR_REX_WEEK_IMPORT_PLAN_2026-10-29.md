@@ -129,9 +129,25 @@ Matched without a question: the July names (Chicken Burger, Vegetarian Sandwich,
 - **Re-pinned with a dated note:** `corn_recipe_alignment_gate` (its whole-file digest). The new block, its button and the build date are taken out, byte for byte, as was done for the Oct 24 logo.
 - Full suite: 561/561.
 
+## "Keep DOOR's" reaches every computer (`v31-standard.47`)
+
+Jason, 2026-10-29: "make the Keep DOOR's answers sync across computers". It follows the pattern swap reverts use.
+
+- **The file:** the answers live in `rex_week_answers.json` in the repo, keyed by meal: `{ rexSig, answer, at, by }`.
+- **When it moves:**
+  - each computer pulls it at boot, at each sync (`pullSecondaryState`) and before the review opens;
+  - it is sent after an answer (`doorPushRexAnswers`, merged with the kitchen's copy first);
+  - it goes with every full publish.
+- **Merge rule** (`doorMergeRexAnswers`, in the core): per meal, the newer answer wins. When a meal is saved from the sheet after all, its "keep" becomes `{ answer: 'cleared', at }`, never a delete, so an older "keep" on a computer that hadn't synced can't come back.
+- **Gates:**
+  - `rex_week_import_gate` test 12: the merge both ways, malformed entries, and the wiring.
+  - Browser block "2pc" (66/66): computer A keeps DOOR's dish and sends the file; computer B, given that file, isn't asked; B takes it back; A asks again.
+- **Re-pinned with dated notes:**
+  - `corn_recipe_alignment_gate`: its digest takes out the three sync lines outside the block.
+  - `door-smoke`: the publish harness stubs `doorPullRexAnswers`; with no answers, the publish set is unchanged.
+
 ## Not built / open
 
-- **"Keep DOOR's" answers stay on the computer where they were given** (localStorage). Another computer asks again.
 - **↩ Undo Last undoes the import's last meal only:** it undoes one change-log entry. Restore the original works per meal.
 - **EXPO** reads the saved menu as it does an Edit Menu save. Nothing new is sent to EXPO. A new dish reaches EXPO's "Set it up" by its name.
 - **Breakfast** is written to DOOR's menu, and EXPO doesn't schedule breakfast (ruled).

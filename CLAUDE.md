@@ -53,7 +53,7 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-10-29) — Rex's week sheet updates the menu (`v31-standard.46`)
+## Recent (2026-10-29) — Rex's week sheet updates the menu (`v31-standard.46`, merged via PR #143, `2f514e0`; sync `.47`)
 Jason, 2026-10-29: "a way for Rex (or me) to update DOOR with new menus without parsing the changes ourselves, and using docs that are already being generated"; Rex's menu is canon; Rex's allergen rows are not; breakfast goes in DOOR's menu, not EXPO's schedule. Plan, rulings and receipt: **`DOOR_REX_WEEK_IMPORT_PLAN_2026-10-29.md`**.
 - **Menu Config → ↑ Rex's week sheet** reads the weekly .xlsx Rex sends ("WEEK N" over SUNDAY…SATURDAY; BREAKFAST / LUNCH / DINNER with Vegetarian, Halal option, Allergens; Veg lunch / Veg dinner). The dates come from the file name, checked against DOOR's cycle. Pure core: `DOOR_TESTABLE_CORE rex-week` (`doorReadRexWeekRows`, `doorPlanRexWeek`, `doorRexBuildMeal`).
 - **The review** compares every meal with the rotation week and lists only what differs:
@@ -66,7 +66,12 @@ Jason, 2026-10-29: "a way for Rex (or me) to update DOOR with new menus without 
 - **Allergens:** Rex's allergen rows are never used. A new dish's CODEX recipe and name add allergens; a warning comes off only when ticked. Non-pork meat is treated as halal.
 - **Save** goes through Edit Menu's writers (the meal's original kept, the allergen line with the ticks, upcoming swaps of the slot cleared), then `publishAndSync`.
 - **Gates:** `tests/rex_week_import_gate.mjs` 11/11, on both of Rex's sheets (`tests/fixtures/rex_week/`); browser `tests/browser/rex_week_review.mjs` 56/56 at 1280/390 px (not in CI). `corn_recipe_alignment_gate`'s whole-file digest takes the new block out, byte for byte. Suite 561/561.
-- **Open:** "Keep DOOR's" answers stay on the computer that gave them; ↩ Undo Last undoes the import's last meal only.
+- **`v31-standard.47` — "Keep DOOR's" reaches every computer** (Jason: "make the Keep DOOR's answers sync across computers"):
+  - **The file:** `rex_week_answers.json` in the repo.
+  - **When it moves:** pulled at boot, at each sync and before the review opens; sent after an answer and with every publish, merged with the kitchen's copy first.
+  - **Merge rule:** per meal, the newer answer wins, and a take-back is a dated `cleared` record, never a delete (`doorMergeRexAnswers`).
+  - **Gates:** gate test 12; browser 66/66, two computers both ways.
+- **Open:** ↩ Undo Last undoes the import's last meal only.
 
 ## Recent (2026-10-22) — Corn alignment and shared reader
 
