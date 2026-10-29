@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.45';
-const DOOR_BUILD_DATE = '2026-10-19';
+const DOOR_APP_VERSION = 'v31-standard.46';
+const DOOR_BUILD_DATE = '2026-10-29';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -1855,6 +1855,7 @@ function updateCODEXBadge() {
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()">&#x2605; Special Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()">✏ Edit Menu</button>
       <button class="btn btn-ghost btn-sm" onclick="openTestMeal()" style="color:#7c3aed;border-color:#7c3aed;">&#x1F9EA; Test Meal</button>
+      <button class="btn btn-ghost btn-sm" id="mc-rex-week-btn" onclick="triggerRexWeekUpload()" title="Upload the week's menu sheet Rex sends. DOOR shows what changed and asks about what it can't tell.">&#x2191; Rex&rsquo;s week sheet</button>
       <button class="btn btn-sm btn-mint" id="mc-publish-btn" onclick="publishMenuFromConfig()" title="Send the current menu to the kitchen so EXPO and HUB can use it">&#x21EA; Send to kitchen</button>
     </div>
   </div>
@@ -18133,6 +18134,786 @@ function applyMenuPicks(menu, divergences, picks) {
   return menu;
 }
 /* DOOR_TESTABLE_CORE_END menu-parse */
+
+/* DOOR_TESTABLE_CORE_START rex-week */
+// ── Rex's week sheet (2026-10-29, Jason: "a way for Rex (or me) to update DOOR with new menus without parsing the
+// changes ourselves, and using docs that are already being generated") ────────────────────────────────────────────
+// Rex sends one sheet a week: "WEEK N" over SUNDAY…SATURDAY, then BREAKFAST / Vegetarian / (sides) / Allergens,
+// LUNCH and DINNER (each: regular, Vegetarian, Halal option, Allergens), and "Veg lunch" / "Veg dinner" (the starch and
+// veg Rex makes for each meal, two rows each). The rulings (plan: DOOR_REX_WEEK_IMPORT_PLAN_2026-10-29.md):
+//   - Rex's menu is canon. A change goes into the rotation; one that looks like two meals trading places is kept to
+//     those dates (a dated swap). Every change is confirmed.
+//   - Steamed veg drift applies without a question; the review says what it moves (restrictions).
+//   - The same dish written differently keeps DOOR's words and recipe link. A different dish is asked once; "Keep
+//     DOOR's" is remembered.
+//   - An empty Halal row means Rex didn't write it: DOOR keeps its halal plate. Non-pork meat is treated as halal.
+//   - The meal row wins over the Veg rows; when the Veg row still names DOOR's dish, the question says so.
+//   - Rex's allergen rows are ignored. Allergens come from CODEX's recipes and the dish names; an allergen is only
+//     ever added without asking, and taken off only when ticked.
+// Pure: no DOM, no localStorage. Reads emptyMealFlags / nameDetectFlags (menu-parse core) when they are there.
+const REX_DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+const REX_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+
+// The sheet as rows (header:1 arrays) → { week, days: { SUNDAY: { breakfast:{reg,veg}, lunch:{reg,veg,halal,vegRow,
+// allergens}, dinner:{…} } } }. Label-driven and anchored on the SUNDAY header, like extractPeriodsFromRows.
+function doorReadRexWeekRows(rows) {
+  rows = Array.isArray(rows) ? rows : [];
+  let head = -1, col = 1, week = null;
+  for (let r = 0; r < Math.min(rows.length, 6) && head < 0; r++) {
+    const row = rows[r] || [];
+    const i = row.findIndex(c => String(c == null ? '' : c).trim().toUpperCase() === 'SUNDAY');
+    if (i >= 0) { head = r; col = i; }
+  }
+  if (head < 0) return null;
+  for (let r = 0; r <= head && week == null; r++) (rows[r] || []).forEach(c => {
+    const m = String(c == null ? '' : c).match(/\bWEEK\s*([1-4])\b/i);
+    if (m && week == null) week = Number(m[1]);
+  });
+  const cell = (r, d) => String(((rows[r] || [])[col + d]) == null ? '' : rows[r][col + d]).replace(/\s+/g, ' ').trim();
+  const label = r => String(((rows[r] || [])[col - 1] || (rows[r] || [])[0] || '')).replace(/\s+/g, ' ').trim().toUpperCase();
+  const days = {};
+  REX_DAYS.forEach(d => { days[d] = {
+    breakfast: { reg: '', veg: '', halal: '', vegRow: [], allergens: '' },
+    lunch: { reg: '', veg: '', halal: '', vegRow: [], allergens: '' },
+    dinner: { reg: '', veg: '', halal: '', vegRow: [], allergens: '' } }; });
+  const add = (a, b) => (b ? (a ? a.replace(/[,\s]+$/, '') + ', ' + b : b) : a);
+  let period = null, cont = null;
+  for (let r = head + 1; r < rows.length; r++) {
+    const L = label(r);
+    const cells = REX_DAYS.map((_, d) => cell(r, d));
+    if (L === 'BREAKFAST' || L === 'LUNCH' || L === 'DINNER') {
+      period = L.toLowerCase();
+      REX_DAYS.forEach((d, i) => { days[d][period].reg = cells[i]; });
+      cont = period === 'breakfast' ? 'breakfast' : null;
+    } else if (/^VEG(ETARIAN)?\s+(LUNCH|DINNER)$/.test(L)) {
+      const p = /LUNCH/.test(L) ? 'lunch' : 'dinner';
+      REX_DAYS.forEach((d, i) => { if (cells[i]) days[d][p].vegRow.push(cells[i]); });
+      cont = 'vegrow-' + p;
+    } else if (/^(VEGETARIAN|VEGAN|VEG)$/.test(L)) {
+      if (period) REX_DAYS.forEach((d, i) => { days[d][period].veg = cells[i]; });
+      cont = period === 'breakfast' ? 'breakfast' : null;
+    } else if (/^HALAL/.test(L)) {
+      if (period) REX_DAYS.forEach((d, i) => { days[d][period].halal = cells[i]; });
+      cont = null;
+    } else if (/^ALLERGEN/.test(L)) {
+      if (period) REX_DAYS.forEach((d, i) => { days[d][period].allergens = cells[i]; });
+      cont = null;
+    } else if (L === '') {
+      if (!cells.some(Boolean)) { cont = null; continue; }
+      if (cont === 'breakfast') REX_DAYS.forEach((d, i) => {
+        days[d].breakfast.reg = add(days[d].breakfast.reg, cells[i]);
+        days[d].breakfast.veg = add(days[d].breakfast.veg, cells[i]);
+      });
+      else if (cont && cont.indexOf('vegrow-') === 0) {
+        const p = cont.slice(7);
+        REX_DAYS.forEach((d, i) => { if (cells[i]) days[d][p].vegRow.push(cells[i]); });
+      }
+    } else cont = null;
+  }
+  return { week, days };
+}
+
+// The week's Sunday from the file name ("Week 4 18 Oct - 24 Oct.xlsx", "Week 1 - Menu Oct 25 - Oct 31 -.xlsx"):
+// the first day-and-month, in the year that puts it nearest today. 'YYYY-MM-DD', or '' when the name has none.
+function doorRexWeekStartFromName(name, today) {
+  const s = String(name || '').toLowerCase().replace(/[_]+/g, ' ');
+  const mon = '(' + REX_MONTHS.join('|') + ')[a-z]*';
+  const m = s.match(new RegExp('(?:^|[^0-9])(\\d{1,2})(?:st|nd|rd|th)?\\s*' + mon)) || s.match(new RegExp(mon + '\\s*(\\d{1,2})(?![0-9])'));
+  if (!m) return '';
+  const dayNum = Number(/^\d/.test(m[1]) ? m[1] : m[2]);
+  const month = REX_MONTHS.indexOf((/^\d/.test(m[1]) ? m[2] : m[1]).slice(0, 3));
+  if (!(dayNum >= 1 && dayNum <= 31) || month < 0) return '';
+  const t = today ? new Date(today) : new Date();
+  let best = null;
+  [t.getFullYear() - 1, t.getFullYear(), t.getFullYear() + 1].forEach(y => {
+    const d = new Date(y, month, dayNum);
+    if (!best || Math.abs(d - t) < Math.abs(best - t)) best = d;
+  });
+  best.setDate(best.getDate() - best.getDay());   // the Sunday that starts that week
+  return best.getFullYear() + '-' + String(best.getMonth() + 1).padStart(2, '0') + '-' + String(best.getDate()).padStart(2, '0');
+}
+
+// ── Same dish? ──
+// Words → tokens: case, punctuation, "&"/"and", plurals and Rex's spellings don't matter; vegetarian / vegan /
+// vegetable / veggie / veg are one word.
+const REX_STOP = new Set(['and','with','the','of','a','an','on','in','served','w']);
+const REX_SYN = { vegetarian:'veg', vegan:'veg', vegetable:'veg', vegetables:'veg', veggie:'veg', veggies:'veg', fries:'fry',
+  yoghurt:'yogurt', briyani:'biryani', tumeric:'turmeric', strogonoff:'stroganoff', chilli:'chili', roasted:'roast', potatoe:'potato', tomatoe:'tomato' };
+// Words that only say how a side is made: a side named with or without them is the same side.
+// Words that name a different kind of dish: a name that adds one is another dish ("Sweet Potato" ≠ Sweet Potato
+// Biscuits, "Potato" ≠ Potato Salad).
+const REX_DISH_TYPES = new Set(['biscuit','salad','soup','cake','pie','bread','bun','sandwich','wrap','taco','burger','stew','curry',
+  'sauce','hash','pudding','cookie','muffin','rice','pasta','noodle','casserole','lasagna','slaw','dip','gravy','marinade','spice','mix','dough','crust']);
+const REX_MODIFIERS = new Set(['steamed','roasted','roast','seasoned','herbed','plain','fresh','mixed','baked','boiled','side',
+  'garlic','buttered','sauteed','stir','fried','grilled','hot','cold','small','large','inch']);
+function doorRexLev1(a, b) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++edits > 1) return false;
+    if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
+}
+function doorRexToken(w) {
+  if (REX_SYN[w]) return REX_SYN[w];
+  if (w.length >= 6) for (const k in REX_SYN) if (k.length >= 6 && doorRexLev1(w, k)) return REX_SYN[k];
+  if (w.length > 3 && /oes$/.test(w)) w = w.slice(0, -2);
+  else if (w.length > 3 && /ies$/.test(w)) w = w.slice(0, -3) + 'y';
+  else if (w.length > 3 && /[^s]s$/.test(w)) w = w.slice(0, -1);
+  return REX_SYN[w] || w;
+}
+function doorRexTokens(text) {
+  return String(text || '').toLowerCase().replace(/['’`]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ')
+    .split(' ').filter(w => w && !REX_STOP.has(w)).map(doorRexToken)
+    .filter((w, i, a) => a.indexOf(w) === i);
+}
+const doorRexTokEq = (a, b) => a === b || (a.length >= 5 && b.length >= 5 && doorRexLev1(a, b));
+const doorRexHas = (set, t) => set.some(x => doorRexTokEq(x, t));
+// Same dish: the same words, or one name inside the other. For a main the shorter name needs two words ("Chicken
+// Burger" = "Breaded Chicken Burgers"; "Jerk Tofu" ≠ "Jerk Cauliflower"); for a side the extra words may only say how
+// it is made ("Broccoli" = "Steamed Broccoli"; "Rice" ≠ "Rice and Beans").
+function doorRexSameDish(a, b, side) {
+  const A = doorRexTokens(a), B = doorRexTokens(b);
+  if (!A.length || !B.length) return false;
+  const [S, Lg] = A.length <= B.length ? [A, B] : [B, A];
+  if (!S.every(t => doorRexHas(Lg, t))) return false;
+  if (S.length === Lg.length) return true;
+  const extra = Lg.filter(t => !doorRexHas(S, t));
+  if (side && extra.every(t => REX_MODIFIERS.has(t) || /^\d+$/.test(t))) return true;
+  return S.length >= 2 && !extra.some(t => REX_DISH_TYPES.has(t));
+}
+// "Seasonal Vegetables", "Seasonal Side", "Vegetables": Rex's stand-in for the day's veg.
+function doorRexWildcard(piece) {
+  const t = doorRexTokens(piece);
+  if (!t.length) return null;
+  if (t[0] === 'seasonal' && t.length <= 2 && (t.length === 1 || /^(veg|side)$/.test(t[1]))) return t[1] === 'side' ? 'side' : 'veg';
+  if (t.length === 1 && t[0] === 'veg') return 'veg';
+  return null;
+}
+const REX_STARCH_RE = /\b(rice|pasta|noodles?|potato(es)?|fries|naan|bread|buns?|couscous|quinoa|tortillas?|chips|biryani|briyani|chow mein|lasagn\w*|wraps?|pitas?|roti|biscuits?|yams?|hash|bagels?|rolls?|toast|pancakes?|oatmeal|cereal|wedges)\b/i;
+const REX_VEG_RE = /\b(carrots?|broccoli|beans?|zucchini|cauliflower|cabbage|peas?|corn|collards?|bok ?choy|napp?a|kale|spinach|parsnips?|squash|veg|vegetables?|medley|greens?|okra|eggplant|peppers?|asparagus|celery|beets?)\b/i;
+// A side's kind: 'starch', plain 'veg' (steamed at Rex: drift needs no question), or 'other' (salads, slaws, soups,
+// sauces — things a kitchen makes). Sweet potato is a starch.
+function doorRexKind(piece) {
+  const s = String(piece || '').toLowerCase();
+  if (/\b(salad|slaw|soup|stew|sauce|dip|tzatziki|gravy|dressing|curry|shakshuka|stir ?fry|stirfry|fruit|yogurt|yoghurt|dessert|cake)\b/.test(s)) return 'other';
+  if (REX_STARCH_RE.test(s)) return 'starch';
+  if (REX_VEG_RE.test(s)) return 'veg';
+  return 'other';
+}
+function doorRexPieces(text) {
+  const out = [];
+  String(text || '').split(',').forEach(p => {
+    const c = p.replace(/\s+/g, ' ').replace(/^[\s.;:-]+|[\s.;:-]+$/g, '').trim();
+    if (c && !out.some(o => doorRexSameDish(o, c, true) && doorRexTokens(o).join(' ') === doorRexTokens(c).join(' '))) out.push(c);
+  });
+  return out;
+}
+
+// One line (regular, vegan, breakfast) of Rex's sheet against DOOR's. Returns { diffs, merged } where merged keeps
+// DOOR's order and words for the dishes that are the same and diffs lists every piece:
+//   { status: 'same'|'changed'|'added'|'removed', role: 'main'|'side', kind, rex, door, via }.
+// vegRow: Rex's Veg lunch / Veg dinner cells for the meal. They name the "Seasonal" veg, and a DOOR side Rex's line
+// leaves out but the Veg row still lists stays.
+function doorRexAlignLine(rexText, doorText, vegRow) {
+  const rp = doorRexPieces(rexText), dp = doorRexPieces(doorText);
+  const vr = [];
+  (vegRow || []).forEach(c => doorRexPieces(c).forEach(p => vr.push(p)));
+  if (!rp.length) return { diffs: dp.map((p, i) => ({ status: 'same', role: i ? 'side' : 'main', kind: i ? doorRexKind(p) : 'main', rex: '', door: p, via: 'not on the sheet' })), merged: dp.slice(), empty: true };
+  const diffs = [];
+  const mainSame = dp.length && doorRexSameDish(rp[0], dp[0], false);
+  diffs.push(dp.length
+    ? { status: mainSame ? 'same' : 'changed', role: 'main', kind: 'main', rex: rp[0], door: dp[0] }
+    : { status: 'added', role: 'main', kind: 'main', rex: rp[0], door: '' });
+  const rs = rp.slice(1), ds = dp.slice(1).map(p => ({ p, used: false }));
+  const usedVr = new Set();
+  // 1. "Seasonal …" becomes the Veg row's veg (one not already on the line); with none, it stands for DOOR's veg.
+  const rsx = rs.map(p => {
+    const w = doorRexWildcard(p);
+    if (!w) return { p, wild: null };
+    const onLine = q => rp.some(x => !doorRexWildcard(x) && doorRexSameDish(x, q, true));
+    const pick = vr.findIndex((q, i) => !usedVr.has(i) && !onLine(q) && (w === 'veg' ? doorRexKind(q) === 'veg' : doorRexKind(q) !== 'starch'));
+    if (pick >= 0) { usedVr.add(pick); return { p: vr[pick], wild: p, via: 'Veg row' }; }
+    return { p: null, wild: p };
+  });
+  // 2. The same side by name.
+  const rest = [];
+  rsx.forEach(x => {
+    if (!x.p) { rest.push(x); return; }
+    const d = ds.find(d => !d.used && doorRexSameDish(x.p, d.p, true));
+    if (d) { d.used = true; diffs.push({ status: 'same', role: 'side', kind: doorRexKind(d.p), rex: x.wild || x.p, door: d.p, via: x.via }); }
+    else rest.push(x);
+  });
+  // 3. A DOOR side the Veg row still names stays, unless Rex's line has a new dish of its kind (then Rex changed it,
+  // and the question says the Veg row still names DOOR's); an unresolved "Seasonal" stands for DOOR's veg.
+  ds.forEach(d => {
+    if (d.used) return;
+    const k = doorRexKind(d.p);
+    if (rest.some(x => x.p && !x.wild && (doorRexKind(x.p) === k || (k !== 'veg' && doorRexKind(x.p) !== 'veg')))) return;
+    if (vr.some(q => doorRexSameDish(q, d.p, true))) { d.used = true; diffs.push({ status: 'same', role: 'side', kind: k, rex: '', door: d.p, via: 'Veg row' }); }
+  });
+  rest.filter(x => !x.p).forEach(x => {
+    const d = ds.find(d => !d.used && doorRexKind(d.p) !== 'starch') || null;
+    if (d) { d.used = true; diffs.push({ status: 'same', role: 'side', kind: doorRexKind(d.p), rex: x.wild, door: d.p, via: 'seasonal' }); }
+  });
+  // 4. What is left pairs by kind (a side Rex changed), then stands alone (added, removed).
+  const left = rest.filter(x => x.p);
+  const leftD = ds.filter(d => !d.used);
+  const pair = (x, d) => { d.used = true; x.done = true; diffs.push({ status: 'changed', role: 'side', kind: doorRexKind(x.p), rex: x.p, door: d.p, via: x.via, wild: x.wild }); };
+  left.forEach(x => { const d = leftD.find(d => !d.used && doorRexKind(d.p) === doorRexKind(x.p)); if (d) pair(x, d); });
+  // A potato hash for a potato salad: two dishes a kitchen makes, of different kinds (never a plain veg).
+  left.forEach(x => { if (x.done || doorRexKind(x.p) === 'veg') return; const d = leftD.find(d => !d.used && doorRexKind(d.p) !== 'veg'); if (d) pair(x, d); });
+  left.forEach(x => { if (!x.done) diffs.push({ status: 'added', role: 'side', kind: doorRexKind(x.p), rex: x.p, door: '', via: x.via, wild: x.wild }); });
+  leftD.filter(d => !d.used).forEach(d => diffs.push({ status: 'removed', role: 'side', kind: doorRexKind(d.p), rex: '', door: d.p }));
+  // DOOR's order and words; Rex's words where the dish changed; added dishes after.
+  const merged = [];
+  dp.forEach(p => {
+    const df = diffs.find(x => x.door === p);
+    if (!df || df.status === 'removed') return;
+    merged.push(df.status === 'changed' ? df.rex : p);
+  });
+  diffs.filter(x => x.status === 'added').forEach(x => (x.role === 'main' ? merged.unshift(x.rex) : merged.push(x.rex)));
+  return { diffs, merged: merged.filter((p, i) => merged.indexOf(p) === i), empty: false };
+}
+
+// A CODEX recipe for a dish: one with the same words wins; otherwise the closest names, for the review to offer.
+// accept(recipe) narrows to the recipes a slot can link (recipeMatchesSlotDef in the app).
+function doorRexRecipeFor(piece, recipes, accept) {
+  const T = doorRexTokens(piece);
+  if (!T.length) return { exact: null, close: [] };
+  const list = (recipes || []).filter(r => r && r.recipeName && (!accept || accept(r)));
+  const exact = list.find(r => { const R = doorRexTokens(r.recipeName); return R.length === T.length && T.every(t => doorRexHas(R, t)); }) || null;
+  // The same dish under a longer recipe name: every word of the dish that says what it is is in the recipe's name
+  // ("Teriyaki Chicken" → Teriyaki Chicken Legs; not "Roasted Sweet Potatoes" → Roasted Potatoes).
+  const sameAs = r => { const R = doorRexTokens(r.recipeName); const core = T.filter(t => !REX_MODIFIERS.has(t));
+    return core.length > 0 && core.every(t => doorRexHas(R, t)) && !R.some(t => !doorRexHas(T, t) && REX_DISH_TYPES.has(t)); };
+  const close = list.map(r => {
+    const R = doorRexTokens(r.recipeName);
+    const shared = T.filter(t => !REX_MODIFIERS.has(t) && doorRexHas(R, t)).length;
+    return { r, score: shared ? shared / (T.length + R.length - shared) + (sameAs(r) ? 1 : 0) : 0 };
+  }).filter(x => x.score > 0 && x.r !== exact).sort((a, b) => b.score - a.score).slice(0, 5).map(x => x.r);
+  return { exact, close, same: !exact && close[0] && sameAs(close[0]) ? close[0] : null };
+}
+// A plain staple needs no recipe: its name says what it holds (gluten in noodles, a roll, naan).
+const REX_STAPLES = new Set(['rice','pasta','noodle','naan','bread','bun','roll','tortilla','pita','wrap','roti','bagel','toast','chip','fry','cereal','fruit','yogurt','milk','sub','burger','sausage','hotdog','potato','couscous','quinoa','veg','salad','soup','milk','cheese','granola','oatmeal','cream']);
+function doorRexIsStaple(piece) {
+  const t = doorRexTokens(piece).filter(w => !REX_MODIFIERS.has(w) && !/^\d+$/.test(w));
+  return t.length > 0 && t.length <= 2 && t.every(w => REX_STAPLES.has(w)) && !(t.length === 2 && t[0] === t[1]);
+}
+
+// What a dish brings, as DOOR's flags: its recipe's allergens (CODEX) and what its name says. Name reading adds the
+// families a plain veg carries (corn, mushroom, nightshades, beans), which nameDetectFlags leaves to the recipe.
+function doorRexPieceFlags(piece, recipe, toFlags) {
+  const f = typeof emptyMealFlags === 'function' ? emptyMealFlags() : {};
+  if (recipe && toFlags) { const rf = toFlags(recipe.allergens || []); Object.keys(rf).forEach(k => { if (rf[k]) f[k] = true; }); }
+  if (typeof nameDetectFlags === 'function') nameDetectFlags(piece, f);
+  const s = ' ' + String(piece || '').toLowerCase() + ' ';
+  if (/\bcorn\b(?!\s*starch)/.test(s)) f.hasCorn = true;
+  if (/mushroom/.test(s)) f.hasMushroom = true;
+  if (/\btomato|\beggplant|\bbell pepper|\bpaprika|\bchil(i|li)\b|\bjalape|(?<!sweet )\bpotato/.test(s)) f.hasNightshades = true;
+  if (/\bbeans?\b|chickpea|lentil|\bdhal\b|\bdal\b/.test(s.replace(/green beans?/g, ''))) f.hasBeans = true;   // as DOOR reads green beans
+  delete f.isCarb; delete f.halalCertifiedMeat;
+  return f;
+}
+const REX_MEAT_RE = /\b(chicken|chik'?n|beef|turkey|pork|lamb|goat|ham|bacon|sausages?|carnitas|souvlaki|meatballs?|meatloaf|drum\w*|legs?|wings?)\b/i;
+
+// The week against DOOR's rotation. doorWeek: DOOR's days for that week (getMenuData()[week]). ctx:
+//   recipes, accept(role, recipe), toFlags(allergens), remembered ({ 'w-DAY-period': { rexSig, answer } }),
+//   datesFrom: 'YYYY-MM-DD' (the sheet's Sunday, or ''), today: 'YYYY-MM-DD'.
+// Returns { week, meals: [plan] }. A plan: { key, week, day, period, status: 'same'|'auto'|'ask'|'kept', lines:{reg,
+// veg}, halal, swapWith, conflicts, newDishes, addFlags, removeFlags, mainChanged, choices, defaultChoice, date, rexSig }.
+function doorPlanRexWeek(rex, doorWeek, ctx) {
+  const c = ctx || {};
+  const week = rex && rex.week;
+  const meals = [];
+  if (!rex || !week) return { week, meals };
+  REX_DAYS.forEach((day, di) => {
+    ['breakfast', 'lunch', 'dinner'].forEach(period => {
+      const R = rex.days[day][period];
+      const D = (doorWeek && doorWeek[day]) || {};
+      const key = week + '-' + day + '-' + period;
+      const vegRow = period === 'breakfast' ? [] : R.vegRow;
+      const reg = doorRexAlignLine(R.reg, D[period] || '', vegRow);
+      const veg = doorRexAlignLine(R.veg, D[period + '_veg'] || '', vegRow);
+      const plan = { key, week, day, period, lines: { reg, veg }, conflicts: [], newDishes: [], addFlags: [], removeFlags: [],
+        swapWith: null, notes: [] };
+      if (c.datesFrom) {
+        const d0 = new Date(c.datesFrom + 'T12:00:00'); d0.setDate(d0.getDate() + di);
+        plan.date = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' + String(d0.getDate()).padStart(2, '0');
+      } else plan.date = '';
+      const changedPieces = line => line.diffs.filter(x => x.status !== 'same');
+      const all = changedPieces(reg).concat(changedPieces(veg));
+      plan.mainChanged = reg.diffs[0] && reg.diffs[0].status !== 'same';
+      plan.vegMainChanged = veg.diffs[0] && veg.diffs[0].status !== 'same';
+      // Halal: Rex's row when written; else DOOR's, unless the main changed. A pork meal with no halal plate is asked.
+      const doorH = String(D[period + '_halal'] || '').trim();
+      const rexH = String(R.halal || '').trim();
+      const regText = reg.merged.join(', ');
+      const pork = plan.mainChanged ? /\bpork\b|\bham\b|bacon|carnitas|al pastor|souvlaki|griot|\bsausage/i.test(reg.merged[0] || '') && !/\b(chicken|turkey|beef|halal|vegan|veg)\b/i.test(reg.merged[0] || '')
+        : !!(D[period + '_flags'] || {}).hasPork;
+      const halal = { rex: rexH, door: doorH, result: doorH, changed: false, ask: false };
+      if (period !== 'breakfast') {
+        if (rexH) { halal.result = rexH; halal.changed = !doorRexSameDish(rexH, doorH, false); if (!halal.changed) halal.result = doorH || rexH; }
+        else if (plan.mainChanged) { halal.result = pork ? doorH : ''; halal.ask = pork; halal.changed = !pork && !!doorH; }
+        else if (pork && !doorH) halal.ask = true;
+      }
+      plan.halal = halal;
+      plan.pork = pork;
+      // Allergens: added from the new dishes, offered for removal when only a dish that left named them.
+      const recipeOf = (piece, role) => doorRexRecipeFor(piece, c.recipes, c.accept ? r => c.accept(role, r) : null);
+      const flagsOf = (piece, role) => { const rr = recipeOf(piece, role); return doorRexPieceFlags(piece, rr.exact || rr.same, c.toFlags); };
+      const oldFlags = D[period + '_flags'] || {};
+      const newFlags = {}, goneFlags = {}, keepFlags = {};
+      reg.diffs.forEach(x => {
+        const role = x.role === 'main' ? 'main' : 'side';
+        if (x.status === 'changed' || x.status === 'added') { const f = flagsOf(x.rex, role); Object.keys(f).forEach(k => { if (f[k]) newFlags[k] = true; }); }
+        if (x.status === 'changed' || x.status === 'removed') { const f = flagsOf(x.door, role); Object.keys(f).forEach(k => { if (f[k]) goneFlags[k] = true; }); }
+        if (x.status === 'same') { const f = flagsOf(x.door, role); Object.keys(f).forEach(k => { if (f[k]) keepFlags[k] = true; }); }
+      });
+      plan.addFlags = Object.keys(newFlags).filter(k => !oldFlags[k]).sort();
+      // When the main changed, every warning nothing left on the plate names is offered (it was likely the old main's,
+      // through its recipe); otherwise only what a dish that left named. Offered, never taken off unticked.
+      const mainGone = reg.diffs[0] && reg.diffs[0].status === 'changed';
+      plan.removeFlags = Object.keys(oldFlags).filter(k => oldFlags[k] && k !== 'isCarb' && k !== 'halalCertifiedMeat' && !newFlags[k] && !keepFlags[k] && (mainGone || goneFlags[k])).sort();
+      // A dish that has no CODEX recipe: the review offers the closest ones, or ticks by hand.
+      if (period !== 'breakfast') [['reg', reg, 'main'], ['veg', veg, 'veganalt']].forEach(([ln, line, mainRole]) => line.diffs.forEach(x => {
+        if ((x.status !== 'changed' && x.status !== 'added') || (x.role === 'side' && (x.kind === 'veg' || doorRexIsStaple(x.rex)))) return;
+        const role = x.role === 'main' ? mainRole : 'side';
+        const rr = recipeOf(x.rex, role);
+        if (!rr.exact) plan.newDishes.push({ line: ln, piece: x.rex, role, suggest: (rr.same ? [rr.same] : []).concat(rr.close.filter(r => r !== rr.same)).slice(0, 5).map(r => r.recipeName), lean: rr.same ? rr.same.recipeName : '' });
+      }));
+      // The sheet against itself: a dish Rex changed that its own Veg row still names.
+      [reg, veg].forEach(line => line.diffs.forEach(x => {
+        if (x.status !== 'changed' || x.role !== 'side' || x.via === 'Veg row') return;
+        const vr = vegRow.find(cl => doorRexPieces(cl).some(q => doorRexSameDish(q, x.door, true)));
+        if (vr && !plan.conflicts.some(cf => cf.rex === x.rex)) plan.conflicts.push({ rex: x.rex, door: x.door, vegRow: vr });
+      }));
+      // What kind of change: none, steamed veg only (no question), or a question.
+      const onlyVeg = all.length && all.every(x => x.role === 'side' && x.kind === 'veg') && !halal.changed && !halal.ask;
+      const breakfastSides = period === 'breakfast' && all.length && all.every(x => x.role === 'side');
+      plan.rexSig = [reg.merged.join(', '), veg.merged.join(', '), halal.result].map(t => doorRexTokens(t).join(' ')).join(' | ');
+      const mem = c.remembered && c.remembered[key];
+      if (!all.length && !halal.changed && !halal.ask) plan.status = 'same';
+      else if (mem && mem.answer === 'keep' && mem.rexSig === plan.rexSig) { plan.status = 'kept'; plan.keptAt = mem.at || ''; plan.keptBy = mem.by || ''; }
+      else if (onlyVeg || breakfastSides) plan.status = 'auto';
+      else plan.status = 'ask';
+      const dated = period !== 'breakfast' && plan.date && (!c.today || plan.date >= c.today);
+      plan.choices = plan.status === 'ask' ? ['rotation'].concat(dated ? ['week'] : []).concat(['keep']) : [];
+      plan.defaultChoice = plan.status === 'ask' ? 'rotation' : (plan.status === 'auto' ? 'rotation' : 'keep');
+      plan.regText = regText;
+      meals.push(plan);
+    });
+  });
+  // Two meals trading places: each one's new main is the other's old one. Kept to those dates by default.
+  meals.filter(m => m.status === 'ask' && m.mainChanged).forEach(m => {
+    const o = meals.find(n => n !== m && n.status === 'ask' && n.mainChanged && n.period !== 'breakfast' && m.period !== 'breakfast' &&
+      doorRexSameDish(m.lines.reg.diffs[0].rex, n.lines.reg.diffs[0].door, false) && doorRexSameDish(n.lines.reg.diffs[0].rex, m.lines.reg.diffs[0].door, false));
+    if (!o) return;
+    m.swapWith = o.key;
+    if (m.choices.indexOf('week') >= 0) m.defaultChoice = 'week';
+  });
+  return { week, meals };
+}
+
+// The meal as it will be saved, for a plan and its answers: { fields, flags, slots, text, veg }. door: DOOR's day.
+// ans: { removeFlags:[keys], halal:'text', links:{ 'reg|piece': recipeName|'' }, ticks:{ 'reg|piece': [keys] },
+// alts:{ gfAlt, softAlt, … } }. ctx as for doorPlanRexWeek, plus emptySlots (DOOR_DISH_PART_EMPTY).
+function doorRexBuildMeal(plan, door, ans, ctx) {
+  const c = ctx || {}, a = ans || {}, p = plan.period, D = door || {};
+  const reg = plan.lines.reg, veg = plan.lines.veg;
+  const text = reg.merged.join(', ');
+  const vegText = veg.merged.join(', ');
+  const recipesByName = {};
+  (c.recipes || []).forEach(r => { if (r && r.recipeName) recipesByName[r.recipeName] = r; });
+  const flags = Object.assign(typeof emptyMealFlags === 'function' ? emptyMealFlags() : {}, D[p + '_flags'] || {});
+  const linkFor = (ln, piece, role) => {
+    const k = ln + '|' + piece;
+    if (a.links && Object.prototype.hasOwnProperty.call(a.links, k)) return a.links[k] ? recipesByName[a.links[k]] || null : null;
+    const rr = doorRexRecipeFor(piece, c.recipes, c.accept ? r => c.accept(role, r) : null);
+    return rr.exact || rr.same || null;
+  };
+  const pieceFlags = (ln, piece, role) => {
+    const r = linkFor(ln, piece, role);
+    const f = doorRexPieceFlags(piece, r, c.toFlags);
+    ((a.ticks || {})[ln + '|' + piece] || []).forEach(k => { f[k] = true; });
+    return f;
+  };
+  // Regular plate: DOOR's ticks, plus what the new dishes bring, less the removals ticked off.
+  reg.diffs.forEach(x => {
+    if (x.status !== 'changed' && x.status !== 'added') return;
+    const f = pieceFlags('reg', x.rex, x.role === 'main' ? 'main' : 'side');
+    Object.keys(f).forEach(k => { if (f[k]) flags[k] = true; });
+  });
+  (a.removeFlags || []).forEach(k => { if (plan.removeFlags.indexOf(k) >= 0) flags[k] = false; });
+  const starchChanged = reg.diffs.some(x => x.status !== 'same' && (x.role === 'main' || x.kind === 'starch'));
+  if (starchChanged) flags.isCarb = REX_STARCH_RE.test(text) || /casserole|fajita|taco|gyro|nachos/i.test(text);
+  if (plan.mainChanged) {
+    const m = reg.merged[0] || '';
+    const meat = REX_MEAT_RE.test(m) && !/\b(veg|vegan|vegetarian|tofu|chik'?n)\b/i.test(m);
+    flags.halalCertifiedMeat = !!(meat && !plan.pork);   // non-pork meat is treated as halal (Jason, 2026-10-29)
+    if (plan.pork) flags.hasPork = true;
+  }
+  // Slots: DOOR's slot for a dish that is the same; a new slot (linked when the recipe is known) for one that changed.
+  const old = (D[p + '_slots'] && typeof D[p + '_slots'] === 'object') ? D[p + '_slots'] : {};
+  const st = s => (s ? (s.displayText || s.recipeName || s.manual || '') : '');
+  const newSlot = (ln, piece, role) => {
+    const r = linkFor(ln, piece, role);
+    const f = pieceFlags(ln, piece, role);
+    if (r) { const s = { recipeName: r.recipeName, flags: f }; if (r.recipeId) s.recipeId = String(r.recipeId); if (piece !== r.recipeName) s.displayText = piece; return s; }
+    return { manual: piece, flags: f };
+  };
+  const slots = {};
+  const regMain = reg.diffs[0], vegMain = veg.diffs[0];
+  if (reg.merged[0]) slots.main = (regMain && regMain.status === 'same' && old.main) ? old.main : newSlot('reg', reg.merged[0], 'main');
+  if (veg.merged[0]) slots.veganalt = (vegMain && vegMain.status === 'same' && old.veganalt) ? old.veganalt : newSlot('veg', veg.merged[0], 'veganalt');
+  const halalText = plan.halal.ask ? String(a.halal == null ? plan.halal.result : a.halal).trim() : plan.halal.result;
+  if (halalText) slots.mainalt = (!plan.halal.changed && !plan.halal.ask && old.mainalt) ? old.mainalt : newSlot('halal', halalText, 'main');
+  if (!plan.mainChanged && old.noporkalt) slots.noporkalt = old.noporkalt;
+  if (old.extras) slots.extras = old.extras;
+  const sideIds = { starch: 'starch', veg: 'vegside', other: 'xtra' };
+  reg.merged.slice(1).forEach(piece => {
+    const id = sideIds[doorRexKind(piece)];
+    const prior = ['starch', 'vegside', 'xtra'].map(k => old[k]).find(s => s && doorRexSameDish(st(s), piece, true));
+    const slot = prior || newSlot('reg', piece, 'side');
+    if (!slots[id]) slots[id] = slot;
+    else if (!slots.xtra) slots.xtra = slot;
+  });
+  const fields = {};
+  fields[p] = text;
+  fields[p + '_veg'] = vegText;
+  if (p !== 'breakfast' || D[p + '_mainItem'] !== undefined) {
+    fields[p + '_mainItem'] = reg.merged[0] || '';
+    fields[p + '_sides'] = reg.merged.slice(1).join(', ');
+  }
+  if (p !== 'breakfast') {
+    fields[p + '_halal'] = halalText;
+    fields[p + '_mainAlt'] = halalText ? ((!plan.halal.changed && !plan.halal.ask) ? (D[p + '_mainAlt'] || halalText) : halalText) : '';
+    fields[p + '_slots'] = slots;
+    if (plan.mainChanged) fields[p + '_noPorkAlt'] = '';
+    // The kitchen's alternatives, as answered (the review shows them when the main changes).
+    Object.keys(a.alts || {}).forEach(k => {
+      const v = String(a.alts[k] || '').trim();
+      if (k === 'softAlt') { fields[p + '_softAlt'] = v; fields[p + '_altMeals'] = v ? [{ text: v, type: 'soft', flags: {} }] : []; }
+      else fields[p + '_' + k] = v;
+    });
+  }
+  return { fields, flags, slots, text, veg: vegText, halal: halalText };
+}
+/* DOOR_TESTABLE_CORE_END rex-week */
+
+// ── Rex's week sheet: the Menu Config upload, review and save (2026-10-29) ─────────────────────────────────────────
+// The pure core above (rex-week) reads the sheet and compares it with DOOR's week; this shell reads the file, shows the
+// review, and on Save writes what was answered: rotation changes through the overlay (as Edit Menu's save does, the
+// meal's original kept), "this week only" as dated swaps, "Keep DOOR's" remembered, then the normal publish.
+const REX_WEEK_ANSWERS_KEY = 'concRexWeekAnswers';
+let _rexReview = null;
+function loadRexWeekAnswers() { try { return JSON.parse(localStorage.getItem(REX_WEEK_ANSWERS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function saveRexWeekAnswers(obj) { try { localStorage.setItem(REX_WEEK_ANSWERS_KEY, JSON.stringify(obj || {})); } catch (e) {} }
+// The recipes a dish can link: a main, the vegan dish, a side (any side slot's recipes, or a salad, soup, dessert).
+function doorRexAccept(role, r) {
+  const def = id => MEAL_SLOT_DEFS.find(d => d.id === id);
+  if (role === 'side') return ['starch', 'vegside'].some(id => recipeMatchesSlotDef(def(id), r)) || ['salad', 'soup', 'dessert', 'breakfast'].includes(r.category);
+  return recipeMatchesSlotDef(def(role === 'veganalt' ? 'veganalt' : 'main'), r);
+}
+function doorRexLocalKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// The Sundays this sheet could be for: those whose rotation week is the sheet's, three weeks back to four ahead.
+function doorRexCandidateSundays(week) {
+  const out = [];
+  const s0 = getSundayStart(new Date());
+  for (let i = -4; i <= 4; i++) {
+    const d = new Date(s0); d.setDate(s0.getDate() + i * 7); d.setHours(12, 0, 0, 0);
+    if (doorRotationWeekOf(d) === Number(week)) out.push(doorRexLocalKey(d));
+  }
+  return out;
+}
+function doorRexResidentsFor(flagKey) {
+  if (typeof REGISTRY_LIST === 'undefined' || typeof RESIDENT_TO_MEAL_FLAG === 'undefined') return 0;
+  return REGISTRY_LIST.filter(r => (r.tags || []).concat(r.anaphTags || []).some(t => RESIDENT_TO_MEAL_FLAG[t] === flagKey)).length;
+}
+function doorRexFlagLabel(k) { const f = FLAG_DEFS.find(x => x.key === k); return f ? f.label : k; }
+
+function triggerRexWeekUpload() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        let rex = null;
+        for (const n of wb.SheetNames) {
+          const r = doorReadRexWeekRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' }));
+          if (r && r.week) { rex = r; break; }
+        }
+        if (!rex) { alert('DOOR couldn’t read this as Rex’s week sheet. It looks for "WEEK 1"–"WEEK 4" over SUNDAY…SATURDAY, then BREAKFAST, LUNCH and DINNER rows.'); return; }
+        doorOpenRexWeekReview(rex, file.name);
+      } catch (err) { alert('Could not read the file: ' + (err && err.message ? err.message : err)); }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  input.click();
+}
+
+function doorRexWeekCtx(start) {
+  return { recipes: isHubLoaded() ? DOOR_RECIPE_DATA : [], accept: doorRexAccept, toFlags: hubAllergenToFlags,
+    remembered: loadRexWeekAnswers(), datesFrom: start || '', today: doorDateKey(new Date()) };
+}
+function doorOpenRexWeekReview(rex, fileName, start) {
+  const fromName = doorRexWeekStartFromName(fileName, new Date());
+  const cands = doorRexCandidateSundays(rex.week);
+  let s = start || '';
+  let dateNote = '';
+  if (!s) {
+    if (fromName && cands.indexOf(fromName) >= 0) { s = fromName; dateNote = 'from the file name'; }
+    else {
+      const ref = fromName ? new Date(fromName + 'T12:00:00') : new Date();
+      s = cands.slice().sort((a, b) => Math.abs(new Date(a + 'T12:00:00') - ref) - Math.abs(new Date(b + 'T12:00:00') - ref))[0] || '';
+      dateNote = fromName ? 'the file name says the week of ' + formatShortDate(new Date(fromName + 'T12:00:00')) + ', which DOOR has as Week ' + doorRotationWeekOf(new Date(fromName + 'T12:00:00')) + ' — check the dates'
+        : 'the file name has no dates — check them';
+    }
+  }
+  const plan = doorPlanRexWeek(rex, (getMenuData() || {})[String(rex.week)] || {}, doorRexWeekCtx(s));
+  _rexReview = { rex, fileName, start: s, dateNote: start ? (_rexReview && _rexReview.dateNote) || '' : dateNote, cands, plan };
+  doorRenderRexWeekReview();
+}
+
+function doorRexMark(line, side) {
+  // The line's dishes, the ones that differ marked.
+  const pieces = side === 'rex'
+    ? line.diffs.filter(x => x.rex).map(x => ({ t: x.rex, d: x.status !== 'same' }))
+    : line.diffs.filter(x => x.door).map(x => ({ t: x.door, d: x.status !== 'same' }));
+  if (!pieces.length) return '<span style="color:var(--muted);">—</span>';
+  return pieces.map(p => p.d ? '<mark style="background:#fef08a;color:#1f2937;padding:0 2px;border-radius:2px;">' + escapeHtml(p.t) + '</mark>' : escapeHtml(p.t)).join(', ');
+}
+function doorRexMealTitle(m) {
+  const d = m.date ? new Date(m.date + 'T12:00:00') : null;
+  return 'Wk' + m.week + ' ' + dayLabel(m.day) + ' ' + m.period + (d ? ' · ' + formatShortDate(d) : '');
+}
+function doorRexFlagsList(keys) { return keys.map(doorRexFlagLabel).join(', '); }
+function doorRexRemovalsHTML(m) {
+  if (!m.removeFlags.length) return '';
+  return '<div style="margin-top:6px;font-size:12px;"><div style="color:var(--muted);margin-bottom:2px;">Only a dish that left named these. Tick to take one off; unticked, DOOR keeps the warning.</div>' +
+    m.removeFlags.map(k => {
+      const n = doorRexResidentsFor(k);
+      return '<label style="display:inline-flex;gap:4px;align-items:center;margin-right:12px;"><input type="checkbox" data-rex-remove="' + _escAttr(m.key) + '" value="' + _escAttr(k) + '"> Take off ' +
+        escapeHtml(doorRexFlagLabel(k)) + (n ? ' <span style="color:var(--muted);">(' + n + ' resident' + (n === 1 ? '' : 's') + ' avoid it)</span>' : '') + '</label>';
+    }).join('') + '</div>';
+}
+function doorRexAddsHTML(m) {
+  if (!m.addFlags.length) return '';
+  return '<div style="margin-top:4px;font-size:12px;">Adds: ' + m.addFlags.map(k => {
+    const n = doorRexResidentsFor(k);
+    return escapeHtml(doorRexFlagLabel(k)) + (n ? ' <span style="color:var(--muted);">(' + n + ' resident' + (n === 1 ? '' : 's') + ' avoid it)</span>' : '');
+  }).join(', ') + '</div>';
+}
+function doorRexQuestionHTML(m, idx) {
+  const L = m.lines;
+  const row = (label, line) => line.empty ? '' : '<tr><td style="padding:3px 8px 3px 0;color:var(--muted);white-space:nowrap;vertical-align:top;">' + label + '</td>' +
+    '<td style="padding:3px 8px;vertical-align:top;">' + doorRexMark(line, 'rex') + '</td><td style="padding:3px 0 3px 8px;vertical-align:top;">' + doorRexMark(line, 'door') + '</td></tr>';
+  const H = m.halal;
+  const halalRow = m.period === 'breakfast' || (!H.changed && !H.ask) ? '' : '<tr><td style="padding:3px 8px 3px 0;color:var(--muted);vertical-align:top;">Halal</td><td style="padding:3px 8px;">' +
+    (H.rex ? '<mark style="background:#fef08a;color:#1f2937;padding:0 2px;border-radius:2px;">' + escapeHtml(H.rex) + '</mark>' : '<span style="color:var(--muted);">not written</span>') + '</td><td style="padding:3px 0 3px 8px;">' + (H.door ? escapeHtml(H.door) : '<span style="color:var(--muted);">none</span>') + '</td></tr>';
+  let notes = '';
+  if (m.swapWith) {
+    const o = _rexReview.plan.meals.find(n => n.key === m.swapWith);
+    notes += '<div class="rex-note">Looks like a swap: Rex has this meal and ' + escapeHtml(o ? doorRexMealTitle(o) : m.swapWith) + ' trading places. A swap is usually one time, so this week only is picked.</div>';
+  }
+  m.conflicts.forEach(cf => {
+    notes += '<div class="rex-note">The sheet disagrees with itself: the meal row says “' + escapeHtml(cf.rex) + '”, but its Veg ' + escapeHtml(m.period) + ' row still says “' + escapeHtml(cf.vegRow) +
+      '”. Lean: “' + escapeHtml(cf.rex) + '” replaces “' + escapeHtml(cf.door) + '” (the meal row). Pick Keep DOOR’s if the Veg row is right.</div>';
+  });
+  const seen = new Set();
+  m.newDishes.forEach((nd, j) => {
+    if (seen.has(nd.piece.toLowerCase())) return;
+    seen.add(nd.piece.toLowerCase());
+    const id = 'rex-nd-' + idx + '-' + j;
+    const ticks = doorRexPieceFlags(nd.piece, null, null);
+    notes += '<div class="rex-note"><label for="' + id + '">“' + escapeHtml(nd.piece) + '” isn’t a CODEX recipe. Its allergens come from: </label>' +
+      '<select id="' + id + '" data-rex-link="' + _escAttr(m.key) + '" data-piece="' + _escAttr(nd.piece) + '" class="form-input" style="font-size:12px;padding:3px 6px;max-width:100%;">' +
+      nd.suggest.map(n => '<option value="' + _escAttr(n) + '"' + (n === nd.lean ? ' selected' : '') + '>the ' + escapeHtml(n) + ' recipe</option>').join('') +
+      '<option value=""' + (nd.lean ? '' : ' selected') + '>no recipe yet: tick its allergens</option></select>' +
+      '<div data-rex-ticks="' + _escAttr(id) + '" style="margin-top:4px;' + (nd.lean ? 'display:none;' : '') + '">' +
+      FLAG_DEFS.filter(f => !f.mealLevel || f.key === 'isSpicy').map(f => '<label style="display:inline-flex;gap:3px;align-items:center;margin:0 8px 2px 0;font-size:11px;"><input type="checkbox" data-rex-tick="' + _escAttr(id) + '" value="' + _escAttr(f.key) + '"' + (ticks[f.key] ? ' checked' : '') + '>' + escapeHtml(f.label) + '</label>').join('') +
+      '<div style="font-size:11px;color:var(--muted);">Add it to CODEX when you can, so DOOR reads its allergens and EXPO knows how it’s made.</div></div></div>';
+  });
+  if (H.ask) {
+    notes += '<div class="rex-note"><label>This is a pork meal and ' + (H.door ? 'its main changed' : 'neither the sheet nor DOOR names a halal dish') + '. What do Halal residents get? ' +
+      '<input class="form-input" data-rex-halal="' + _escAttr(m.key) + '" value="' + _escAttr(H.result || '') + '" placeholder="e.g. Halal chicken sausage" style="font-size:12px;padding:3px 6px;width:100%;margin-top:3px;"></label>' +
+      '<div style="font-size:11px;color:var(--muted);">Left empty, Halal residents get the plating sheet’s "Halal alternative" line for the supervisor to fill in.</div></div>';
+  }
+  if (m.mainChanged && m.period !== 'breakfast') {
+    const day = ((getMenuData() || {})[String(m.week)] || {})[m.day] || {};
+    const alts = Object.assign({ gfAlt: day[m.period + '_gfAlt'] || '', softAlt: day[m.period + '_softAlt'] || '' }, doorKitchenAlternatives(day, m.period));
+    const labels = Object.assign({ softAlt: 'Soft' }, DOOR_KITCHEN_ALT_LABELS);
+    const keys = ['gfAlt', 'softAlt'].concat(DOOR_KITCHEN_ALT_FIELDS);
+    if (keys.some(k => alts[k])) {
+      notes += '<details class="rex-note" open><summary>The kitchen’s alternatives were written for “' + escapeHtml((L.reg.diffs[0] || {}).door || '') + '”. Change any that don’t fit the new dish (an empty box takes that plate off).</summary>' +
+        keys.map(k => '<label style="display:block;font-size:11px;margin-top:4px;">' + escapeHtml(labels[k] || k) + '<input class="form-input" data-rex-alt="' + _escAttr(m.key) + '" data-alt="' + _escAttr(k) + '" value="' + _escAttr(alts[k] || '') + '" style="font-size:12px;padding:3px 6px;width:100%;"></label>').join('') + '</details>';
+    }
+  }
+  const choiceLabel = {
+    rotation: ['Every cycle', 'change Wk' + m.week + ' ' + dayLabel(m.day) + ' ' + m.period + ' in the rotation'],
+    week: ['This week only', m.date ? 'a swap on ' + formatShortDate(new Date(m.date + 'T12:00:00')) + '; the rotation stays' : 'a swap; the rotation stays'],
+    keep: ['Keep DOOR’s', 'the sheet is out of date here; DOOR won’t ask again until this meal changes on the sheet'],
+  };
+  const choices = m.choices.map(c => '<label style="display:flex;gap:6px;align-items:baseline;font-size:12px;margin-top:3px;"><input type="radio" name="rex-ch-' + idx + '" data-rex-choice="' + _escAttr(m.key) + '" value="' + c + '"' + (c === m.defaultChoice ? ' checked' : '') + '><span><strong>' + choiceLabel[c][0] + '</strong> — ' + escapeHtml(choiceLabel[c][1]) + '</span></label>').join('');
+  return '<div class="rex-q" data-rex-meal="' + _escAttr(m.key) + '" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">' +
+    '<div style="font-weight:700;font-size:13px;margin-bottom:4px;">' + escapeHtml(doorRexMealTitle(m)) + '</div>' +
+    '<div style="overflow-x:auto;"><table style="font-size:12px;border-collapse:collapse;width:100%;"><thead><tr><th></th><th style="text-align:left;padding:0 8px;color:var(--muted);font-weight:600;">Rex’s sheet</th><th style="text-align:left;padding:0 0 0 8px;color:var(--muted);font-weight:600;">DOOR now</th></tr></thead><tbody>' +
+    row('Regular', L.reg) + row('Vegetarian', L.veg) + halalRow + '</tbody></table></div>' + notes + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) +
+    '<div style="margin-top:6px;">' + choices + '</div></div>';
+}
+function doorRexAutoHTML(m) {
+  const ch = m.lines.reg.diffs.concat(m.lines.veg.diffs).filter(x => x.status !== 'same');
+  const seen = new Set();
+  const what = ch.filter(x => { const k = x.door + '→' + x.rex; if (seen.has(k)) return false; seen.add(k); return true; })
+    .map(x => x.status === 'changed' ? escapeHtml(x.door) + ' → ' + escapeHtml(x.rex) : x.status === 'added' ? '+ ' + escapeHtml(x.rex) : '− ' + escapeHtml(x.door)).join('; ');
+  return '<div class="rex-auto" data-rex-meal="' + _escAttr(m.key) + '" style="font-size:12px;padding:6px 0;border-top:1px solid var(--border);">' +
+    '<strong>' + escapeHtml(doorRexMealTitle(m)) + ':</strong> ' + what +
+    ' <label style="margin-left:8px;color:var(--muted);"><input type="checkbox" data-rex-auto-keep="' + _escAttr(m.key) + '"> keep DOOR’s</label>' +
+    doorRexAddsHTML(m) + doorRexRemovalsHTML(m) + '</div>';
+}
+function doorRenderRexWeekReview() {
+  const R = _rexReview;
+  if (!R) return;
+  document.querySelectorAll('.rex-week-review').forEach(n => n.remove());
+  const meals = R.plan.meals;
+  const ask = meals.filter(m => m.status === 'ask'), auto = meals.filter(m => m.status === 'auto');
+  const kept = meals.filter(m => m.status === 'kept'), same = meals.filter(m => m.status === 'same');
+  const end = R.start ? new Date(R.start + 'T12:00:00') : null;
+  if (end) end.setDate(end.getDate() + 6);
+  const dates = R.start ? formatShortDate(new Date(R.start + 'T12:00:00')) + ' – ' + formatShortDate(end) : 'no dates';
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open rex-week-review';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = '<div class="modal-box" style="max-width:780px;width:96%;max-height:90vh;display:flex;flex-direction:column;">' +
+    '<div class="modal-header"><h2>Rex’s week sheet — Week ' + R.rex.week + '</h2></div>' +
+    '<div class="modal-body" style="padding:14px 18px;overflow-y:auto;flex:1;">' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + escapeHtml(R.fileName || '') + '</div>' +
+    '<div style="font-size:12px;margin-bottom:8px;"><label>Week of <select id="rex-week-start" class="form-input" style="font-size:12px;padding:3px 6px;display:inline-block;width:auto;">' +
+    R.cands.map(c => '<option value="' + c + '"' + (c === R.start ? ' selected' : '') + '>' + escapeHtml(formatShortDate(new Date(c + 'T12:00:00'))) + '</option>').join('') +
+    '</select></label> <span style="color:var(--muted);">' + escapeHtml(dates) + (R.dateNote ? ' · ' + escapeHtml(R.dateNote) : '') + '</span></div>' +
+    '<div style="font-size:12px;background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:12px;">' +
+    '<strong>' + same.length + '</strong> meals match DOOR · <strong>' + auto.length + '</strong> veg change' + (auto.length === 1 ? '' : 's') + ' applied · <strong>' + ask.length + '</strong> to look at' +
+    (kept.length ? ' · <strong>' + kept.length + '</strong> kept as answered before' : '') +
+    '<div style="color:var(--muted);margin-top:3px;">Rex’s allergen rows aren’t used: DOOR reads allergens from CODEX’s recipes and the dish names.</div></div>' +
+    (ask.length ? '<div style="font-size:13px;font-weight:700;margin:4px 0 8px;">To look at</div>' + ask.map((m, i) => doorRexQuestionHTML(m, i)).join('') : '') +
+    (auto.length ? '<div style="font-size:13px;font-weight:700;margin:12px 0 2px;">Steamed veg, applied without asking</div>' + auto.map(doorRexAutoHTML).join('') : '') +
+    (kept.length ? '<div style="font-size:13px;font-weight:700;margin:12px 0 2px;">Kept DOOR’s, as answered before</div>' + kept.map(m => '<div style="font-size:12px;">' + escapeHtml(doorRexMealTitle(m)) +
+      (m.keptAt ? ' <span style="color:var(--muted);">(' + escapeHtml(formatShortDate(new Date(m.keptAt))) + (m.keptBy ? ', ' + escapeHtml(m.keptBy) : '') + ')</span>' : '') + '</div>').join('') : '') +
+    '<details style="margin-top:12px;font-size:12px;"><summary>' + same.length + ' meals match DOOR</summary>' + same.map(m => '<div style="color:var(--muted);">' + escapeHtml(doorRexMealTitle(m)) + ': ' + escapeHtml(m.lines.reg.merged.join(', ')) + '</div>').join('') + '</details>' +
+    '</div><div style="display:flex;gap:8px;justify-content:flex-end;padding:10px 18px;border-top:1px solid var(--border);">' +
+    '<button class="btn btn-ghost" id="rex-week-cancel">Cancel</button>' +
+    '<button class="btn btn-primary" id="rex-week-save"' + (ask.length || auto.length ? '' : ' disabled') + '>' + (ask.length || auto.length ? 'Save and send to the kitchen' : 'Nothing to change') + '</button></div></div>';
+  const style = document.createElement('style');
+  style.textContent = '.rex-week-review .rex-note{font-size:12px;background:var(--cream);border-left:3px solid #f59e0b;padding:5px 8px;margin-top:6px;border-radius:0 4px 4px 0;}' +
+    '.rex-week-review label{text-transform:none;letter-spacing:normal;font-weight:400;color:inherit;}.rex-week-review label strong{font-weight:700;}';
+  overlay.appendChild(style);
+  document.body.appendChild(overlay);
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey, true); };
+  const onKey = ev => { if (ev.key === 'Escape') { ev.preventDefault(); close(); } };
+  document.addEventListener('keydown', onKey, true);
+  overlay.querySelector('#rex-week-cancel').onclick = () => { close(); _rexReview = null; };
+  overlay.querySelector('#rex-week-save').onclick = () => { doorSaveRexWeek().then(ok => { if (ok) close(); }); };
+  overlay.querySelector('#rex-week-start').onchange = ev => { close(); doorOpenRexWeekReview(R.rex, R.fileName, ev.target.value); };
+  overlay.querySelectorAll('select[data-rex-link]').forEach(sel => {
+    sel.onchange = () => { const t = overlay.querySelector('[data-rex-ticks="' + sel.id + '"]'); if (t) t.style.display = sel.value ? 'none' : ''; };
+  });
+}
+
+// The answers on the review, per meal.
+function doorRexReadAnswers(root) {
+  const out = {};
+  const get = k => (out[k] = out[k] || { removeFlags: [], links: {}, ticks: {}, alts: {} });
+  root.querySelectorAll('[data-rex-choice]:checked').forEach(el => { get(el.dataset.rexChoice).choice = el.value; });
+  root.querySelectorAll('[data-rex-auto-keep]').forEach(el => { get(el.dataset.rexAutoKeep).choice = el.checked ? 'keep' : 'rotation'; });
+  root.querySelectorAll('[data-rex-remove]:checked').forEach(el => { get(el.dataset.rexRemove).removeFlags.push(el.value); });
+  root.querySelectorAll('[data-rex-halal]').forEach(el => { get(el.dataset.rexHalal).halal = el.value; });
+  root.querySelectorAll('[data-rex-alt]').forEach(el => { get(el.dataset.rexAlt).alts[el.dataset.alt] = el.value; });
+  root.querySelectorAll('select[data-rex-link]').forEach(el => {
+    const a = get(el.dataset.rexLink);
+    const piece = el.dataset.piece;
+    ['reg', 'veg', 'halal'].forEach(ln => { a.links[ln + '|' + piece] = el.value; });
+    if (!el.value) {
+      const ticks = Array.from(root.querySelectorAll('[data-rex-tick="' + el.id + '"]:checked')).map(t => t.value);
+      ['reg', 'veg', 'halal'].forEach(ln => { a.ticks[ln + '|' + piece] = ticks; });
+    }
+  });
+  return out;
+}
+
+async function doorSaveRexWeek() {
+  const R = _rexReview;
+  if (!R || !guardStandardMenuWrite('Rex’s week sheet')) return false;
+  const root = document.querySelector('.rex-week-review');
+  const answers = doorRexReadAnswers(root || document);
+  const ctx = doorRexWeekCtx(R.start);
+  const menu = getMenuData() || {};
+  const overlay = loadMenuBaseOverlay();
+  const swaps = loadMealSwaps();
+  const remembered = loadRexWeekAnswers();
+  const done = { rotation: [], week: [], keep: [] };
+  let overlayChanged = false, swapsChanged = false;
+  R.plan.meals.forEach(m => {
+    if (m.status !== 'ask' && m.status !== 'auto') return;
+    const a = answers[m.key] || { removeFlags: [], links: {}, ticks: {}, alts: {} };
+    const choice = a.choice || m.defaultChoice;
+    if (choice === 'keep') {
+      remembered[m.key] = { rexSig: m.rexSig, answer: 'keep', at: new Date().toISOString(), by: getOperatorName() || '' };
+      done.keep.push(m);
+      return;
+    }
+    delete remembered[m.key];
+    const w = String(m.week), day = m.day, p = m.period;
+    const built = doorRexBuildMeal(m, (menu[w] || {})[day] || {}, a, ctx);
+    if (choice === 'week' && m.date && p !== 'breakfast') {
+      const key = m.date + '-' + p;
+      REVERTED_SWAP_KEYS.delete(key);
+      swaps[key] = {
+        specialName: built.text, veg: built.veg,
+        allergens: SM_ALLERGENS.filter(x => built.flags[x.key]).map(x => x.key),
+        verified: false, notes: 'From Rex’s week sheet (Week ' + m.week + ', ' + (R.fileName || '') + ')',
+        createdAt: new Date().toISOString(), site: getSelectedSite() || 'unknown',
+        _flagsRaw: built.flags, _rotationSlot: m.week + '-' + day + '-' + p
+      };
+      swapsChanged = true;
+      done.week.push(m);
+      return;
+    }
+    if (!overlay[w]) overlay[w] = {};
+    if (!overlay[w][day]) overlay[w][day] = {};
+    const before = doorMealCopy(doorStoredMenuDay(overlay, w, day), p);
+    const node = overlay[w][day];
+    Object.keys(built.fields).forEach(k => { node[k] = built.fields[k]; });
+    doorSetMealFlags(node, p, built.flags);
+    const noted = doorNoteMealChange(overlay, w, day, p, before, 'Rex’s week sheet');
+    // A rotation change replaces any upcoming swap of the slot, as Edit Menu's save does.
+    doorSwapKeysForSlot(w, day, p, swaps).forEach(k => { delete swaps[k]; REVERTED_SWAP_KEYS.add(k); swapsChanged = true; });
+    appendChangeLog({ type: 'permanent_edit', week: w, day, period: p, oldName: before[''] || '', newName: built.text, flags: built.flags,
+      before: noted.before, afterSig: noted.afterSig, first: noted.first, via: 'rex-week' });
+    overlayChanged = true;
+    done.rotation.push(m);
+  });
+  saveRexWeekAnswers(remembered);
+  if (overlayChanged) saveMenuBaseOverlay(overlay);
+  if (swapsChanged) saveMealSwaps(swaps);
+  const n = done.rotation.length + done.week.length;
+  logMenuEvent('upload_import', 'Rex’s week sheet (Week ' + R.rex.week + '): ' + done.rotation.length + ' changed in the rotation, ' + done.week.length + ' this week only, ' + done.keep.length + ' kept DOOR’s');
+  _rexReview = null;
+  if (typeof renderMenuConfig === 'function') renderMenuConfig();
+  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
+  showToast(n ? 'Saved ' + n + ' meal' + (n === 1 ? '' : 's') + ' from Rex’s sheet — sending to the kitchen' : 'Nothing changed — DOOR’s answers are kept');
+  if (n) publishAndSync('Rex’s week sheet');
+  return true;
+}
+// ── Rex’s week sheet: end ──
 
 // Thin XLSX shell over the pure menu-parse core. Locates each week's Kitchen
 // + Intake sheets (tolerant of a leading space / casing / the "Week N" legacy
