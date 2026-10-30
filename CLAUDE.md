@@ -1,11 +1,11 @@
 # DOOR — Kitchen DOOR
 
-> **Cross-app status may be stale here — single source of truth for cross-app facts (versions, phases, schema seams) is the HOUSE status ledger in `~/.claude/CLAUDE.md` (as of 2026-06-13).**
+> **Cross-app status may be stale here — single source of truth for cross-app facts (versions, phases, schema seams) is the HOUSE status ledger, `conc-kitchen-house/HOUSE_STATUS_LEDGER.md` (moved there from `~/.claude/CLAUDE.md` on 2026-10-29 so cloud sessions can read it).**
 
 ## HOUSE context
 DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations Unified System Engine). It sits **upstream of everything**: the resident registry + the active menu source. Pipeline: **DOOR → EXPO → HUB**; MISE/CODEX feeds recipe + allergen data *into* DOOR.
 - Siblings: **EXPO** (`conc-kitchen-expo`, consumes DOOR's menu) · **HUB** (`conc-kitchen-hub`, daily board) · **MISE/CODEX** (`conc-recipe-hub`, recipe + allergen + cost source).
-- Machine-global HOUSE map: `~/.claude/CLAUDE.md`. Ecosystem vision (the "why"): `…\OneDrive - CHRISTIE OSSINGTON NEIGHBOURHOOD CENTRE\~CONC Project Management Tool~\CURRENT\CONC_Kitchen_Operations_Vision_V42.html`.
+- HOUSE map and cross-app status: `conc-kitchen-house/HOUSE_STATUS_LEDGER.md`. Ecosystem vision (the "why"): `…\OneDrive - CHRISTIE OSSINGTON NEIGHBOURHOOD CENTRE\~CONC Project Management Tool~\CURRENT\CONC_Kitchen_Operations_Vision_V42.html`.
 - Design lessons (KNOWLEDGE owner): cross-HOUSE design wisdom + lessons live in `conc-kitchen-house/INSIGHTS.md` (the single owner) — read it before a design pass; point here, don't restate.
 - Implementation seams: `conc-kitchen-house/HOUSE_PROVEN_SEAMS.md` — problem classes solved once somewhere in HOUSE (quota-safe writes, token handling, atomic multi-file publish, escaper families, …); **port the seam, don't reinvent — cite the row**. DOOR owns row 4 (`PublishAuth`). **Rows 1, 3 and 5 were DOOR's named gaps and are all closed:** row 5 `ghPushFilesAtomic` (2026-08-17, D1); row 3 `doorSanitizeConnectionKey` in `PublishAuth` (2026-09-11, publish-resilience P2, #91); row 1 `doorSetItemSafe` for the publish outbox (2026-09-11, P3, #92 — partial port: expendable-keys drop, no upkeep map). The registry cells are updated in the paired `conc-kitchen-house` changes.
 
@@ -19,7 +19,7 @@ Daily operational interface for Rexdale shelter meal service. Staff enter reside
 - Single-file HTML; all CSS/JS inline; no build step.
 - **localStorage = live state** (residents, queue, registry). The repo's JSON files are *snapshots* the push writes for the rest of HOUSE to consume.
 - Screens are **tabs toggled by `showScreen()`** (`data-screen`), not routes. All UI rendered up-front.
-- Recipe + allergen data comes from CODEX, with its public shared recipe projection applied over the base feed and a baked-in offline fallback. Producer contract: CODEX `docs/CODEX_PUBLIC_LIBRARY_CONTRACT.md`; current cross-app release evidence: `~/.claude/CLAUDE.md`. **Allergen data is owned by CODEX — fix it there, never fork it into DOOR.**
+- Recipe + allergen data comes from CODEX, with its public shared recipe projection applied over the base feed and a baked-in offline fallback. Producer contract: CODEX `docs/CODEX_PUBLIC_LIBRARY_CONTRACT.md`; current cross-app release evidence: `conc-kitchen-house/HOUSE_STATUS_LEDGER.md`. **Allergen data is owned by CODEX — fix it there, never fork it into DOOR.**
 - Compliance engine: **exclude-array** pattern. **Anaphylactic flags are sacred — never silently overridden; always surfaced in red with explicit acknowledgement.**
 
 ## Published data contracts (DOOR = menu + resident source)
@@ -77,7 +77,7 @@ Jason, 2026-10-29: "a way for Rex (or me) to update DOOR with new menus without 
 
 Jason's CODEX ruling to include Corn is carried into nine regular/shared/halal meal ticks and their main-slot flags, saved together through `saveMenuBaseOverlay` and the normal publish builders. Eight vegan-only Corn meals keep the regular tick off and read their own recipe online/offline. W4 Thursday dinner's existing Sulphites stays because the meal's sides are not cleared. The scoped fallback refresh changes 43 records, adds 14 (131 → 145), and fixes Vegan Baked Pasta's stale stream; the delivery continuation additionally changes only the reader URL and two comments.
 
-All non-metadata resident, registry-summary and routing content is exact; validation is 0/0/0. Both independent reviews are complete, including the source-supported Nightshades addition to the bagged curry sauce's shared/offline copies. The Corn gate and separate review extension pass 22/22; the full suite passes 547/547 without skips. The added warning changes none of the 84 current meal outputs. Detailed meal list, offline family impacts and verification: `docs/DOOR_CORN_RECIPE_ALIGNMENT_2026-10-22.md`. Current cross-app release status is owned by the canonical HOUSE ledger (`~/.claude/CLAUDE.md`); the receipt records the completed live checks.
+All non-metadata resident, registry-summary and routing content is exact; validation is 0/0/0. Both independent reviews are complete, including the source-supported Nightshades addition to the bagged curry sauce's shared/offline copies. The Corn gate and separate review extension pass 22/22; the full suite passes 547/547 without skips. The added warning changes none of the 84 current meal outputs. Detailed meal list, offline family impacts and verification: `docs/DOOR_CORN_RECIPE_ALIGNMENT_2026-10-22.md`. Current cross-app release status is owned by the canonical HOUSE ledger (`conc-kitchen-house/HOUSE_STATUS_LEDGER.md`); the receipt records the completed live checks.
 
 ## Recent (2026-10-22) — W1b: the meals that serve CODEX's safe-side Sulphites tick them (menu data, no code)
 CODEX v29 (W1, conc-recipe-hub #179) gave Library recipes Sulphites on the safe side. Jason, 2026-10-21, on the CODEX walkthrough's calls: "add Sulphites to all 29 now (safe side), naming the juice" (call 2), "the Library's words" (call 3), "safe side now" (call 4). Then, 2026-10-22, on the W1 follow-up's call 1: "safe side now" (raisins and dried cranberries list Sulphites, naming the fruit; CODEX v30). DOOR checks residents against each meal's own ticks, not the CODEX feed, so the meals that serve those dishes need the tick. It only ever adds a warning.
