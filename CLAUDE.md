@@ -53,6 +53,22 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-10-30) — the vegan meat holds no soy: five linked vegan-alt slots take their CODEX dish's families (menu data and the offline list, no code)
+Jason, 2026-10-30: "I don't think there's any soy in the vegan meat"; asked about the vegan cheddar shreds, vegan mozzarella shreds and vegan gravy mix: "All contain soy". CODEX v34 (conc-recipe-hub branch `codex/vegan-meat-soy`) takes "Soy (Vegan Meat)" off the six dishes whose only Soy it was, stamped, and relabels Vegan Baked Pasta, Vegan Lasagna Sauce and Vegan Stew to the bought item. A linked dish keeps the flags it captured at link time, so five vegan-alt slots would have gone on saying SOY. Each now carries its CODEX dish's families (Jason, the same day: "Sync all five slots' stored flags to CODEX"):
+- Wk2 FRI lunch, Vegan CONC Salad Mix: Soy off, Corn on.
+- Wk2 SAT dinner, Vegan Meatloaf: Soy off, Corn on.
+- Wk3 SUN dinner, Vegan Meatballs: Soy off, Corn on (Beans and Mushroom, which CODEX has no family for, stay).
+- Wk3 WED lunch, Vegan Nacho Mix: Soy off; Corn, Gluten, Sulphites and Spicy on (the slot had only Soy and Nightshades).
+- Wk4 FRI lunch, Vegan Lasagna Sauce: keeps Soy (the mozzarella); Corn on.
+
+Details:
+- **How:** the slot flags were set to the same values in `menu_current.json` and `menu_overlay.json` (a removed flag is `false`, as every other flag is). The five days were stamped in `dayEditedAt`, `menu_current.json` `_meta.exported` was advanced, and `builtFromMenu` was re-stamped on `routing_by_meal`, `door_state` and `registry_summary` with `doorContentHash`. These are direct file edits that match what `saveMenuBaseOverlay` and the publish builders write; they did not go through the app. Meal text, meal ticks and routing counts are unchanged.
+- **The offline list** (`DOOR_RECIPE_DATA_FALLBACK`) takes the same nine labels as CODEX's feed.
+- **Plates:** run with the real DOOR (`door_vegalt_safety_gate`, CODEX main's feed against v34's), there are 0 `_vegAltSafe` transitions. The meatloaf and nachos plates lose SOY.
+- **Soy still on two plates:** the CONC Salad plate (Wk2 FRI lunch) and Vegan Meatballs Pasta (Wk3 SUN dinner) still read SOY from another part of the plate. That source isn't traced yet.
+- **Order doesn't matter:** against CODEX's current feed the plates keep Soy through the recipe lookup, so this never drops a warning before v34 is on Pages.
+- **Gate:** `tests/vegan_meat_soy_slots_gate.mjs` (3), authored red 0/3 on `f4ca9a3`; helper `tests/helpers/vegan_meat_soy.mjs`. Re-pinned with dated notes: `corn_recipe_alignment_gate` (its frozen manifest takes v34's labels; the menu put-back puts these five slots back first) and `vegan_plate_dishes_gate` (the nachos carry Gluten, Sulphites, Spicy and Corn, not Soy). Suite 562 → 565.
+
 ## Recent (2026-10-29) — Rex's week sheet updates the menu (`v31-standard.46`, merged via PR #143, `2f514e0`; sync `.47`)
 Jason, 2026-10-29: "a way for Rex (or me) to update DOOR with new menus without parsing the changes ourselves, and using docs that are already being generated"; Rex's menu is canon; Rex's allergen rows are not; breakfast goes in DOOR's menu, not EXPO's schedule. Plan, rulings and receipt: **`DOOR_REX_WEEK_IMPORT_PLAN_2026-10-29.md`**.
 - **Menu Config → ↑ Rex's week sheet** reads the weekly .xlsx Rex sends ("WEEK N" over SUNDAY…SATURDAY; BREAKFAST / LUNCH / DINNER with Vegetarian, Halal option, Allergens; Veg lunch / Veg dinner). The dates come from the file name, checked against DOOR's cycle. Pure core: `DOOR_TESTABLE_CORE rex-week` (`doorReadRexWeekRows`, `doorPlanRexWeek`, `doorRexBuildMeal`).

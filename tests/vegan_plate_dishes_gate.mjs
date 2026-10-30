@@ -191,7 +191,8 @@ test('with the CODEX feed: each linked recipe\'s allergens reach its plate', () 
     const want = (byName[recipe].allergens || []).filter((a) => a && a !== 'None').map(fam);
     assert.ok(want.every((t) => canonSet(p[k].after).has(t)), k + ' carries ' + recipe + "'s " + want.join(',') + ': ' + p[k].after);
   }
-  assert.ok(has(p, '3 WED lunch', ['SOY', 'GLUTEN', 'SULPHITES', 'SPICY']), 'the vegan nachos carry Vegan Nacho Mix');
+  // Re-pinned 2026-10-30 (CODEX v34): Vegan Nacho Mix's only Soy was the vegan meat, which holds none.
+  assert.ok(has(p, '3 WED lunch', ['GLUTEN', 'SULPHITES', 'SPICY', 'CORN']), 'the vegan nachos carry Vegan Nacho Mix');
   assert.ok(has(p, '1 SAT lunch', ['SOY', 'SPICY']), 'Vegetarian Fajitas carry Vegan Fajitas');
   assert.ok(has(p, '4 FRI lunch', ['SOY', 'SULPHITES']), 'Veggie lasagna carries Vegan Lasagna Sauce');
 });

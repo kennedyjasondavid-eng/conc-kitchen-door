@@ -10,9 +10,12 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
 import { withBaggedNightshadesReview } from './helpers/bagged_curry_nightshades_review.mjs';
+// Re-pinned 2026-10-30 (CODEX v34): the vegan meat holds no soy. The manifest stays frozen; the helper applies v34's
+// labels to its source and fallback lists, and puts back the five vegan-alt slots' flags before the Corn put-back.
+import { withVeganMeatSoy, putBackVeganMeatSoySlots } from './helpers/vegan_meat_soy.mjs';
 const read = f => JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'));
 // Separate safety-review correction; the original Corn fixture is unchanged.
-const F=withBaggedNightshadesReview(read('tests/fixtures/corn_recipe_alignment_2026-10-22.json'));
+const F=withVeganMeatSoy(withBaggedNightshadesReview(read('tests/fixtures/corn_recipe_alignment_2026-10-22.json')));
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'), R=liftCornDoor(html);
 const menuArtifact=read('menu_current.json'), menu=menuArtifact.menu, overlay=read('menu_overlay.json');
 const J=x=>JSON.parse(JSON.stringify(x));
@@ -67,8 +70,8 @@ test('vegan-only Corn never becomes a regular meal tick; existing Corn and uncer
   assert.equal(menu['4'].THURSDAY.dinner_slots.veganalt.flags.hasSulphites,true,'existing tofu slot warning is not silently cleared');
 });
 test('putting back only the nine Corn booleans recovers every menu/overlay content field',()=>{
-  assert.equal(hash(putBack(menu,'menu')),F.digests.menuBefore,'menu content moved beyond the Corn ticks');
-  assert.equal(hash(omitMeta(putBack(overlay,'overlay'))),F.digests.overlayBefore,'overlay content moved beyond the Corn ticks');
+  assert.equal(hash(putBack(putBackVeganMeatSoySlots(menu),'menu')),F.digests.menuBefore,'menu content moved beyond the Corn ticks');
+  assert.equal(hash(omitMeta(putBack(putBackVeganMeatSoySlots(overlay),'overlay'))),F.digests.overlayBefore,'overlay content moved beyond the Corn ticks');
 });
 test('a fresh tablet sweep preserves every regular/shared/halal Corn tick',()=>{
   const report=J(R.sweep(overlay));
