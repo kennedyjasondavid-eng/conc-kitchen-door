@@ -91,3 +91,12 @@ test('routing counts the new dishes, not the old ones', () => {
   assert.ok(!c('2', 'THURSDAY', 'dinner')['Roasted Potatoes'] && !c('2', 'FRIDAY', 'dinner')['Refried Beans'], 'the dishes count where their meal is now');
   assert.ok(c('2', 'SATURDAY', 'dinner')['Mashed Potato'] > 100 && !c('2', 'SATURDAY', 'lunch')['Roasted Parsnip and Carrot']);
 });
+
+// 2026-10-30, Rex's week sheet: Wk2 SUN's vegan lunch is Rex's "Portobello Cheese Melt"; Jason: it has vegan cheese.
+test('the vegan Sunday lunch reads as Rex names it, keeps its recipe link, and never reads as dairy', () => {
+  const d = menu['2'].SUNDAY;
+  assert.equal(d.lunch_veg, 'Portobello Cheese Melt (vegan cheese), Chips, Fruit');
+  assert.equal(d.lunch_slots.veganalt.recipeName, 'Vegan Mushroom Sandwich');
+  assert.equal(d.lunch_slots.veganalt.displayText, 'Portobello Cheese Melt (vegan cheese)');
+  assert.equal(d.lunch_slots.veganalt.flags.hasDairy, false);
+});
