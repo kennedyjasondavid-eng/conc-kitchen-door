@@ -154,7 +154,9 @@ test('the receipt: each restriction the audit found unserved and unnamed is name
   assert.ok(named(at('3', 'FRI', 'breakfast'), '1006', 'no turkey'));
   // #8, #9 301a (GF, No Beans, Vegetarian) on vegan plates whose own line has wheat or beans.
   assert.ok(named(at('2', 'THU', 'dinner'), '301a', 'gluten-free'), 'Wk2 THU dinner: vegan sausages');
-  assert.ok(named(at('3', 'SUN', 'dinner'), '301a', 'no beans'), 'Wk3 SUN dinner');
+  // Re-pinned 2026-10-30 (Mat's Rexdale changes): Wk3 SUN dinner is Bolognese again, and its vegan batch has no beans;
+  // the vegan Wk2 FRI lunch (the chili's vegan batch) does.
+  assert.ok(named(at('2', 'FRI', 'lunch'), '301a', 'no beans'), 'Wk2 FRI lunch');
   // Found by the flag-source census (A5): the halal plate's own dish. Wk2 SAT lunch's halal plate is Halal Breaded Chicken
   // Burgers (egg, spicy, nightshades); the main meal (chicken tenders) ticks no egg. 304 is Halal + No Eggs.
   const w2sat = at('2', 'SAT', 'lunch');
