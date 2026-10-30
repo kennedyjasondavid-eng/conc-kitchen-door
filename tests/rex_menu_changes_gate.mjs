@@ -100,3 +100,13 @@ test('the vegan Sunday lunch reads as Rex names it, keeps its recipe link, and n
   assert.equal(d.lunch_slots.veganalt.displayText, 'Portobello Cheese Melt (vegan cheese)');
   assert.equal(d.lunch_slots.veganalt.flags.hasDairy, false);
 });
+
+// 2026-10-30, Rex's week sheet: Seasonal Soup joins Wk2 TUE lunch on both lines (Jason: "Add the seasonal soup too").
+test('Wk2 TUE lunch serves Seasonal Soup on both lines, with no new ticks, and routing counts it', () => {
+  const d = menu['2'].TUESDAY;
+  assert.equal(d.lunch, 'Tuna Salad Sandwich Mix, Seasonal Soup, Chips, Fruit Cup');
+  assert.equal(d.lunch_veg, 'Falafel Sandwich, Seasonal Soup, Chips, Fruit Cup');
+  assert.equal(d.lunch_slots.vegside.manual, 'Seasonal Soup');
+  assert.equal(d.allergens_lunch, 'gluten, egg, fish, mustard, sulphites', 'the soup adds no tick: the line is the meal’s own');
+  assert.ok((((routing.routing['2'] || {}).TUESDAY || {}).lunch || {})._components['Seasonal Soup'] > 100);
+});

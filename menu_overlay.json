@@ -3439,8 +3439,8 @@
       },
       "allergens_breakfast": "gluten, dairy",
       "allergens_dinner": "mustard, pork",
-      "lunch": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
-      "lunch_veg": "Falafel Sandwich, Chips, Fruit Cup",
+      "lunch": "Tuna Salad Sandwich Mix, Seasonal Soup, Chips, Fruit Cup",
+      "lunch_veg": "Falafel Sandwich, Seasonal Soup, Chips, Fruit Cup",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -3565,6 +3565,10 @@
         "xtra": {
           "manual": "Fruit Cup",
           "flags": {}
+        },
+        "vegside": {
+          "manual": "Seasonal Soup",
+          "flags": {}
         }
       },
       "dinner_slots": {
@@ -3641,7 +3645,150 @@
       "lunch_diabeticAlt": "Whole Wheat Pita, Tuna Salad Sandwich, Seasonal Soup or Salad",
       "lunch_altMeals": [],
       "lunch_softAlt": "",
-      "lunch_altMealsNone": true
+      "lunch_altMealsNone": true,
+      "lunch_sides": "Seasonal Soup, Chips, Fruit Cup",
+      "lunch_original": {
+        "meal": {
+          "": "Tuna Salad Sandwich Mix, Chips, Fruit Cup",
+          "_veg": "Falafel Sandwich, Chips, Fruit Cup",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": true,
+            "hasFish": true,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": true,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Tuna Salad Sandwich Mix",
+          "_mainAlt": "",
+          "_sides": "Chips, Fruit Cup",
+          "_softAlt": "",
+          "_noPorkAlt": "",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "recipeName": "Tuna Salad Sandwich Mix",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": true,
+                "hasFish": true,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": true,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Rexdale Falafel",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": true,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "rexdale-falafel",
+              "displayText": "Falafel Sandwich"
+            },
+            "starch": {
+              "recipeName": "Chips",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              }
+            },
+            "xtra": {
+              "manual": "Fruit Cup",
+              "flags": {}
+            }
+          },
+          "_diabeticAlt": "Whole Wheat Pita, Tuna Salad Sandwich, Seasonal Soup or Salad"
+        },
+        "at": "2026-10-30T15:30:04.324Z",
+        "by": "Jason",
+        "how": "Rex week sheet Nov 1-7 (Jason: add the seasonal soup), 2026-10-30"
+      }
     },
     "SUNDAY": {
       "dinner_slots": {
@@ -7190,7 +7337,7 @@
       "1|FRIDAY": 1792681340848,
       "2|WEDNESDAY": 1792681340848,
       "2|MONDAY": 1792667375478,
-      "2|TUESDAY": 1792667375478,
+      "2|TUESDAY": 1793374204326,
       "4|FRIDAY": 1792667375478,
       "4|SUNDAY": 1792681340848,
       "4|WEDNESDAY": 1792667375478,

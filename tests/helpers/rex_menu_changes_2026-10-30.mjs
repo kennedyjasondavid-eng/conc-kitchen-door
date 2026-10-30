@@ -19,6 +19,15 @@ export function putBackRexMenuChanges(weeks, which) {
     const va = sun.lunch_slots && sun.lunch_slots.veganalt;
     if (va && va.displayText === 'Portobello Cheese Melt (vegan cheese)') delete va.displayText;
   }
+  // Rex's week sheet adds Seasonal Soup to Wk2 TUE lunch (Jason, 2026-10-30: "Add the seasonal soup too").
+  const tue = out['2'] && out['2'].TUESDAY;
+  if (tue && /Seasonal Soup/.test(String(tue.lunch || ''))) {
+    tue.lunch = 'Tuna Salad Sandwich Mix, Chips, Fruit Cup';
+    tue.lunch_veg = 'Falafel Sandwich, Chips, Fruit Cup';
+    if (which === 'menu') tue.lunch_sides = 'Chips, Fruit Cup';
+    else { delete tue.lunch_sides; delete tue.lunch_original; }
+    if (tue.lunch_slots) delete tue.lunch_slots.vegside;
+  }
   return out;
 }
 // Rex's week sheet is canon for meal placement (Jason, 2026-10-30): Wk2 THU and FRI dinners traded days (Arroz con Pollo
