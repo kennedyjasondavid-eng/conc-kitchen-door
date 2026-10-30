@@ -71,8 +71,9 @@ const LINKS = [
   ['1', 'SATURDAY', 'lunch', 'Vegan Fajitas'], ['1', 'SATURDAY', 'dinner', 'Vegan Gomen Be Siga'],
   ['2', 'SUNDAY', 'dinner', 'Sausage and Greens Pasta Sauce (Pork, Halal Chicken + Vegan)'], ['2', 'MONDAY', 'lunch', 'Vegan Gyro'],
   ['2', 'MONDAY', 'dinner', 'African Peanut Chicken Stew'], ['2', 'TUESDAY', 'lunch', 'Rexdale Falafel'], ['2', 'TUESDAY', 'dinner', 'Vegan Vindaloo'],
-  ['2', 'THURSDAY', 'lunch', 'Veggie Burger (Black Bean)'], ['2', 'THURSDAY', 'dinner', 'Vegan Sausage'],
-  ['2', 'FRIDAY', 'dinner', 'Arroz Con Pollo (Regular + Vegan)'], ['2', 'SATURDAY', 'dinner', 'Vegan Meatloaf'],
+  // Re-pinned 2026-10-30 (Rex's sheet is canon for placement): Wk2 THU and FRI dinners traded days.
+  ['2', 'THURSDAY', 'lunch', 'Veggie Burger (Black Bean)'], ['2', 'FRIDAY', 'dinner', 'Vegan Sausage'],
+  ['2', 'THURSDAY', 'dinner', 'Arroz Con Pollo (Regular + Vegan)'], ['2', 'SATURDAY', 'dinner', 'Vegan Meatloaf'],
   ['3', 'TUESDAY', 'lunch', 'Tofu and Potato Hash'], ['3', 'TUESDAY', 'dinner', 'Caribbean Stew with Sweet Potato and Collard Greens'],
   ['3', 'WEDNESDAY', 'lunch', 'Vegan Nacho Mix'], ['3', 'WEDNESDAY', 'dinner', 'Baked Tomato Tofu'], ['3', 'FRIDAY', 'lunch', 'Nigerian Pepper Stew Tofu'],
   ['3', 'FRIDAY', 'dinner', 'Soy-Free Mushroom Fried Rice'], ['3', 'SATURDAY', 'lunch', 'Roast Tofu'], ['4', 'SUNDAY', 'lunch', 'Vegan Bean Patties'],
