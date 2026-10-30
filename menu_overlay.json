@@ -1656,11 +1656,11 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "lunch": "Chicken Tenders, Sweet Potato, Roasted Parsnip and Carrot",
-      "lunch_veg": "Vegan Tenders, Sweet Potato, Roasted Parsnip and Carrot",
+      "lunch": "Chicken Tenders, Sweet Potato, Buttered Green Beans",
+      "lunch_veg": "Vegan Tenders, Sweet Potato, Green Beans",
       "lunch_halal": "Halal breaded chicken burgers",
       "lunch_mainItem": "Chicken Tenders",
-      "lunch_sides": "Sweet Potato, Roasted Parsnip and Carrot",
+      "lunch_sides": "Sweet Potato, Buttered Green Beans",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -1688,10 +1688,10 @@
         "hasBrassicas": false,
         "hasCorn": false
       },
-      "dinner": "Beef Meatloaf, Roasted Zucchini, Potatoes",
-      "dinner_veg": "Vegan Meatloaf, Roasted Zucchini, Potatoes, Butternut Squash",
-      "dinner_mainItem": "Beef Meatloaf",
-      "dinner_sides": "Roasted Zucchini, Potatoes",
+      "dinner": "BBQ Beef Meatloaf, Mashed Potato, Roasted Zucchini",
+      "dinner_veg": "BBQ Vegan Meatloaf, Mashed Potato, Roasted Zucchini, Butternut Squash",
+      "dinner_mainItem": "BBQ Beef Meatloaf",
+      "dinner_sides": "Mashed Potato, Roasted Zucchini",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -1807,13 +1807,13 @@
           "flags": {}
         },
         "vegside": {
-          "manual": "Roasted Parsnip and Carrot",
+          "manual": "Green Beans",
           "flags": {}
         }
       },
       "dinner_slots": {
         "main": {
-          "manual": "Beef Meatloaf & Roasted Zucchini",
+          "manual": "BBQ Beef Meatloaf",
           "flags": {
             "hasGluten": true,
             "hasDairy": false,
@@ -1872,11 +1872,13 @@
             "hasCorn": false
           },
           "recipeId": "vegan-meatloaf",
-          "displayText": "Vegan Meatloaf, Roasted Zucchini, Butternut Squash"
+          "displayText": "BBQ Vegan Meatloaf, Roasted Zucchini, Butternut Squash"
         },
         "starch": {
-          "manual": "Potatoes",
-          "flags": {}
+          "manual": "Mashed Potato",
+          "flags": {
+            "hasNightshades": true
+          }
         }
       },
       "lunch_gfAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
@@ -1890,7 +1892,253 @@
         }
       ],
       "dinner_softAlt": "Plain Chicken leg, Rice, Squash",
-      "dinner_altMealsNone": false
+      "dinner_altMealsNone": false,
+      "lunch_original": {
+        "meal": {
+          "": "Chicken Tenders, Sweet Potato, Roasted Parsnip and Carrot",
+          "_veg": "Vegan Tenders, Sweet Potato, Roasted Parsnip and Carrot",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Chicken Tenders",
+          "_mainAlt": "Halal Breaded Chicken Burgers",
+          "_sides": "Sweet Potato, Roasted Parsnip and Carrot",
+          "_halal": "Halal breaded chicken burgers",
+          "_softAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+          "_noPorkAlt": "",
+          "_gfAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+          "_altMeals": [
+            {
+              "text": "Plain Roasted Chicken Leg, Roast Yam, Parsnips",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "recipeName": "Chicken Tenders",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": true,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "chicken-tenders"
+            },
+            "mainalt": {
+              "recipeName": "Halal Breaded Chicken Burgers",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": true,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": true,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              }
+            },
+            "veganalt": {
+              "manual": "Vegan Tenders",
+              "flags": {
+                "hasGluten": true,
+                "hasSoy": true
+              }
+            },
+            "starch": {
+              "manual": "Sweet Potato",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Roasted Parsnip and Carrot",
+              "flags": {}
+            }
+          },
+          "_noEggAlt": "Plain Roasted Chicken Leg, Roast Yam, Parsnips"
+        },
+        "at": "2026-10-30T15:30:04.314Z",
+        "by": "Jason",
+        "how": "Mat (Rexdale), 2026-10-30"
+      },
+      "dinner_original": {
+        "meal": {
+          "": "Beef Meatloaf, Roasted Zucchini, Potatoes",
+          "_veg": "Vegan Meatloaf, Roasted Zucchini, Potatoes, Butternut Squash",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": true,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "_mainItem": "Beef Meatloaf",
+          "_sides": "Roasted Zucchini, Potatoes",
+          "_softAlt": "Plain Chicken leg, Rice, Squash",
+          "_gfAlt": "Plain Chicken leg, Rice, Squash",
+          "_altMeals": [
+            {
+              "text": "Plain Chicken leg, Rice, Squash",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Beef Meatloaf & Roasted Zucchini",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": true,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": true,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": true,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": true,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan Meatloaf",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": true,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-meatloaf",
+              "displayText": "Vegan Meatloaf, Roasted Zucchini, Butternut Squash"
+            },
+            "starch": {
+              "manual": "Potatoes",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-10-30T15:30:04.316Z",
+        "by": "Jason",
+        "how": "Mat (Rexdale), 2026-10-30"
+      }
     },
     "FRIDAY": {
       "breakfast": "Ham, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
@@ -2032,86 +2280,55 @@
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_dinner": "sulphites",
-      "lunch": "CONC Salad - Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
-      "lunch_veg": "CONC Salad - Vegan Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan, CONC salad",
-      "lunch_mainItem": "CONC Salad - Beef",
-      "lunch_sides": "lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
+      "lunch": "Beef Chili, Cornbread, Sautéed Cabbage",
+      "lunch_veg": "Vegetarian Chili, Vegan Cornbread, Sautéed Cabbage (no butter)",
+      "lunch_mainItem": "Beef Chili",
+      "lunch_sides": "Cornbread, Sautéed Cabbage",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
+        "hasEgg": true,
         "hasBeef": true,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
         "isCarb": true,
+        "isSpicy": true,
         "halalCertifiedMeat": true,
-        "hasProcessedMeat": false,
-        "hasCoconut": false,
-        "hasMushroom": false,
         "hasBrassicas": true,
         "hasCorn": true,
-        "hasNightshades": false,
-        "hasBeans": false
+        "hasNightshades": true,
+        "hasBeans": true
       },
-      "allergens_lunch": "gluten, dairy, beef",
+      "allergens_lunch": "gluten, dairy, egg, beef",
       "lunch_slots": {
         "main": {
-          "manual": "CONC Salad - Beef",
+          "manual": "Beef Chili",
           "flags": {
             "hasGluten": true,
             "hasDairy": true,
+            "hasEgg": true,
             "hasBeef": true,
             "isCarb": true,
+            "isSpicy": true,
             "halalCertifiedMeat": true,
             "hasBrassicas": true,
-            "hasCorn": true
+            "hasCorn": true,
+            "hasNightshades": true,
+            "hasBeans": true
           }
         },
         "veganalt": {
-          "recipeName": "Vegan CONC Salad Mix",
+          "manual": "Vegetarian Chili",
           "flags": {
             "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": true,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
             "hasSulphites": true,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
+            "hasCorn": true,
             "hasNightshades": true,
-            "hasBrassicas": false,
-            "hasCorn": false
-          },
-          "recipeId": "vegan-conc-salad-mix",
-          "displayText": "CONC Salad - Vegan Beef"
+            "isSpicy": true,
+            "hasBeans": true
+          }
         }
       },
-      "lunch_gfAlt": "CONC Salad (Halal spiced beef, corn, beans, lettuce, red cabbage, carrots, pickled onion, (DF Cheese/No Naan)",
-      "lunch_diabeticAlt": "CONC Salad (Halal spiced beef, corn, beans, lettuce, red cabbage, carrots, pickled onion), Cheese, No Naan",
+      "lunch_gfAlt": "Beef Chili, Sautéed Cabbage",
+      "lunch_diabeticAlt": "Beef Chili, Sautéed Cabbage",
       "lunch_altMeals": [
         {
           "text": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
@@ -2120,7 +2337,111 @@
         }
       ],
       "lunch_softAlt": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
-      "lunch_altMealsNone": false
+      "lunch_altMealsNone": false,
+      "lunch_mainAlt": "",
+      "lunch_halal": "",
+      "lunch_noPorkAlt": "",
+      "lunch_noDairyAlt": "Beef Chili, Sautéed Cabbage (no butter)",
+      "lunch_blandAlt": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
+      "lunch_noEggAlt": "Beef Chili, Sautéed Cabbage",
+      "lunch_anaphAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "CONC Salad - Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
+          "_veg": "CONC Salad - Vegan Beef, lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan, CONC salad",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": true,
+            "hasCorn": true,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "CONC Salad - Beef",
+          "_mainAlt": "",
+          "_sides": "lettuce, beans, red cabbage, carrots, cheese, pickled onion, naan",
+          "_softAlt": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
+          "_noPorkAlt": "",
+          "_gfAlt": "CONC Salad (Halal spiced beef, corn, beans, lettuce, red cabbage, carrots, pickled onion, (DF Cheese/No Naan)",
+          "_altMeals": [
+            {
+              "text": "Roasted Chicken Leg, Steamed rice and soft Veg strifry",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "CONC Salad - Beef",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasBeef": true,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasBrassicas": true,
+                "hasCorn": true
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan CONC Salad Mix",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-conc-salad-mix",
+              "displayText": "CONC Salad - Vegan Beef"
+            }
+          },
+          "_diabeticAlt": "CONC Salad (Halal spiced beef, corn, beans, lettuce, red cabbage, carrots, pickled onion), Cheese, No Naan"
+        },
+        "at": "2026-10-30T15:30:04.307Z",
+        "by": "Jason",
+        "how": "Mat (Rexdale), 2026-10-30"
+      }
     },
     "WEDNESDAY": {
       "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -2357,11 +2678,11 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "dinner": "Sausages & Mash, Gravy, Peas & Carrots",
-      "dinner_veg": "Vegan Sausages & Mash, Gravy, Peas & Carrots, Mashed Potato",
+      "dinner": "Sausages, Roasted Potatoes, Gravy, Peas & Carrots",
+      "dinner_veg": "Vegan Sausages, Roasted Potatoes, Gravy, Peas & Carrots",
       "dinner_halal": "Halal beef sausages",
-      "dinner_mainItem": "Sausages & Mash",
-      "dinner_sides": "Gravy, Peas & Carrots",
+      "dinner_mainItem": "Sausages",
+      "dinner_sides": "Roasted Potatoes, Gravy, Peas & Carrots",
       "dinner_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -2469,7 +2790,7 @@
       },
       "dinner_slots": {
         "main": {
-          "manual": "Sausages & Mash & Gravy & Carrots",
+          "manual": "Sausages",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -2528,11 +2849,13 @@
             "hasCorn": false
           },
           "recipeId": "vegan-sausage",
-          "displayText": "Vegan Sausages & Mash, Gravy"
+          "displayText": "Vegan Sausages"
         },
         "starch": {
-          "manual": "Mashed Potato",
-          "flags": {}
+          "manual": "Roasted Potatoes",
+          "flags": {
+            "hasNightshades": true
+          }
         },
         "vegside": {
           "manual": "Peas",
@@ -2550,7 +2873,127 @@
         }
       ],
       "dinner_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
-      "dinner_altMealsNone": false
+      "dinner_altMealsNone": false,
+      "dinner_original": {
+        "meal": {
+          "": "Sausages & Mash, Gravy, Peas & Carrots",
+          "_veg": "Vegan Sausages & Mash, Gravy, Peas & Carrots, Mashed Potato",
+          "_flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "_mainItem": "Sausages & Mash",
+          "_sides": "Gravy, Peas & Carrots",
+          "_halal": "Halal beef sausages",
+          "_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "_altMeals": [
+            {
+              "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Sausages & Mash & Gravy & Carrots",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": true,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": true,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan Sausage",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-sausage",
+              "displayText": "Vegan Sausages & Mash, Gravy"
+            },
+            "starch": {
+              "manual": "Mashed Potato",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Peas",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-10-30T15:30:04.311Z",
+        "by": "Jason",
+        "how": "Mat (Rexdale), 2026-10-30"
+      }
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -4230,36 +4673,16 @@
         "hasNightshades": true,
         "hasBeans": false
       },
-      "dinner": "Halal Beef Meatballs, Pasta, Peas & Carrots",
-      "dinner_veg": "Vegan Meatballs Pasta, Pasta, Peas & Carrots",
-      "dinner_mainItem": "Halal Beef Meatballs",
+      "dinner": "Beef Bolognese, Pasta, Peas & Carrots",
+      "dinner_veg": "Vegetarian Bolognese, Pasta, Peas & Carrots",
+      "dinner_mainItem": "Beef Bolognese",
       "dinner_sides": "Pasta, Peas & Carrots",
       "dinner_flags": {
         "hasGluten": true,
-        "hasDairy": false,
-        "hasEgg": true,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": true,
-        "hasShellfish": false,
-        "hasSulphites": true,
-        "hasPork": false,
         "hasBeef": true,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
         "isCarb": true,
         "halalCertifiedMeat": true,
-        "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
-        "hasCoconut": false,
-        "hasNightshades": true,
-        "hasBrassicas": false,
-        "hasCorn": false
+        "hasNightshades": true
       },
       "dinner_softAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
       "dinner_altMeals": [
@@ -4274,71 +4697,29 @@
       "dinner_mainAlt": "",
       "dinner_slots": {
         "main": {
-          "manual": "Halal Beef Meatballs",
+          "manual": "Beef Bolognese",
           "flags": {
-            "hasDairy": false,
             "hasGluten": true,
-            "hasPork": false,
             "hasBeef": true,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "hasFish": false,
-            "hasEgg": true,
-            "hasPeanuts": false,
-            "isSpicy": false,
             "isCarb": true,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": true,
-            "hasBeans": false,
-            "hasTreeNuts": false,
-            "hasShellfish": false,
-            "hasMustard": true,
-            "hasSulphites": true,
-            "hasSoy": false,
-            "hasSesame": false,
             "halalCertifiedMeat": true,
-            "hasProcessedMeat": false
+            "hasNightshades": true
           }
         },
         "veganalt": {
-          "recipeName": "Vegan Meatballs",
+          "manual": "Vegetarian Bolognese",
           "flags": {
             "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": true,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": true,
-            "hasShellfish": false,
             "hasSulphites": true,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": true,
-            "hasMushroom": true,
-            "hasCoconut": false,
-            "hasNightshades": true,
-            "hasBrassicas": false,
-            "hasCorn": false
-          },
-          "recipeId": "vegan-meatballs",
-          "displayText": "Vegan Meatballs Pasta"
+            "hasCorn": true,
+            "hasNightshades": true
+          }
         },
         "starch": {
           "manual": "Pasta",
           "flags": {
-            "hasGluten": true
+            "hasGluten": true,
+            "isCarb": true
           }
         },
         "vegside": {
@@ -4348,7 +4729,7 @@
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_lunch": "gluten, egg, mustard",
-      "allergens_dinner": "gluten, egg, mustard, sulphites, beef",
+      "allergens_dinner": "gluten, beef",
       "lunch_gfAlt": "NO MAYO Coronation chicken salad, GF BREAD, Seasonal soup or salad",
       "lunch_noEggAlt": "NO MAYO Coronation chicken salad sandwich, Salad or Seasonal Soup",
       "lunch_altMeals": [
@@ -4361,7 +4742,137 @@
       "lunch_softAlt": "Coronation chicken salad, WW sliced BREAD, Seasonal soup or salad",
       "lunch_altMealsNone": false,
       "dinner_gfAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
-      "dinner_diabeticAlt": "WHOLE WHEAT PASTA, Halal Beef Meatball, Pea&Carrot"
+      "dinner_diabeticAlt": "Whole wheat pasta, Beef Bolognese, Peas & Carrots",
+      "dinner_halal": "",
+      "dinner_noDairyAlt": "",
+      "dinner_blandAlt": "",
+      "dinner_noEggAlt": "",
+      "dinner_anaphAlt": "",
+      "dinner_original": {
+        "meal": {
+          "": "Halal Beef Meatballs, Pasta, Peas & Carrots",
+          "_veg": "Vegan Meatballs Pasta, Pasta, Peas & Carrots",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": true,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Halal Beef Meatballs",
+          "_mainAlt": "",
+          "_sides": "Pasta, Peas & Carrots",
+          "_softAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
+          "_noPorkAlt": "",
+          "_gfAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
+          "_altMeals": [
+            {
+              "text": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Halal Beef Meatballs",
+              "flags": {
+                "hasDairy": false,
+                "hasGluten": true,
+                "hasPork": false,
+                "hasBeef": true,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "hasFish": false,
+                "hasEgg": true,
+                "hasPeanuts": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false,
+                "hasTreeNuts": false,
+                "hasShellfish": false,
+                "hasMustard": true,
+                "hasSulphites": true,
+                "hasSoy": false,
+                "hasSesame": false,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan Meatballs",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": true,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": true,
+                "hasMushroom": true,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-meatballs",
+              "displayText": "Vegan Meatballs Pasta"
+            },
+            "starch": {
+              "manual": "Pasta",
+              "flags": {
+                "hasGluten": true
+              }
+            },
+            "vegside": {
+              "manual": "Peas & Carrots",
+              "flags": {}
+            }
+          },
+          "_diabeticAlt": "WHOLE WHEAT PASTA, Halal Beef Meatball, Pea&Carrot"
+        },
+        "at": "2026-10-30T15:30:04.320Z",
+        "by": "Jason",
+        "how": "Mat (Rexdale), 2026-10-30"
+      }
     },
     "MONDAY": {
       "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -4463,7 +4974,9 @@
       "dinner_mainAlt": "",
       "dinner_slots": {
         "main": {
-          "manual": "Roast Chicken",
+          "recipeName": "Moroccan Chicken Legs",
+          "recipeId": "moroccan-chicken-legs",
+          "displayText": "Roast Chicken",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -4515,7 +5028,99 @@
       "allergens_breakfast": "gluten, dairy, egg, turkey",
       "allergens_lunch": "gluten, dairy, egg, sulphites, pork",
       "allergens_dinner": "sulphites",
-      "lunch_gfAlt": "Roasted Chicken Leg, Roasted Potato, Veg Medley"
+      "lunch_gfAlt": "Roasted Chicken Leg, Roasted Potato, Veg Medley",
+      "dinner_original": {
+        "meal": {
+          "": "Roast Chicken, Moroccan Rice, Green Beans",
+          "_veg": "Roasted Portobello Mushrooms, Moroccan Rice, Green Beans",
+          "_flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Roast Chicken",
+          "_mainAlt": "",
+          "_sides": "Moroccan Rice, Green Beans",
+          "_softAlt": "",
+          "_noPorkAlt": "",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Roast Chicken",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              }
+            },
+            "veganalt": {
+              "manual": "Roasted Portobello Mushrooms",
+              "flags": {
+                "hasMushroom": true
+              }
+            },
+            "starch": {
+              "manual": "Moroccan Rice",
+              "flags": {
+                "hasNightshades": true,
+                "hasSulphites": true
+              }
+            },
+            "vegside": {
+              "manual": "Green Beans",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-10-30T15:30:04.323Z",
+        "by": "Jason",
+        "how": "Mat (Rexdale), 2026-10-30"
+      }
     },
     "TUESDAY": {
       "dinner_flags": {
@@ -6322,13 +6927,13 @@
     "standardCutover": 1783971058450,
     "dayEditedAt": {
       "1|TUESDAY": 1792415770014,
-      "2|SATURDAY": 1792667375478,
+      "2|SATURDAY": 1793374204325,
       "3|WEDNESDAY": 1792415770014,
       "1|WEDNESDAY": 1792415770014,
       "1|SUNDAY": 1792415770014,
-      "2|THURSDAY": 1792415770014,
+      "2|THURSDAY": 1793374204325,
       "3|FRIDAY": 1792681340848,
-      "3|SUNDAY": 1792415770014,
+      "3|SUNDAY": 1793374204325,
       "4|TUESDAY": 1792415770014,
       "4|THURSDAY": 1792415770014,
       "4|SATURDAY": 1792681340848,
@@ -6340,10 +6945,10 @@
       "4|FRIDAY": 1792667375478,
       "4|SUNDAY": 1792681340848,
       "4|WEDNESDAY": 1792667375478,
-      "2|FRIDAY": 1792681340848,
+      "2|FRIDAY": 1793374204325,
       "3|SATURDAY": 1792667375478,
       "3|THURSDAY": 1792415770014,
-      "3|MONDAY": 1792415770014,
+      "3|MONDAY": 1793374204325,
       "4|MONDAY": 1792681340848,
       "1|MONDAY": 1792415770014,
       "3|TUESDAY": 1792681340848,

@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
 import { withBaggedNightshadesReview } from './helpers/bagged_curry_nightshades_review.mjs';
+import { putBackRexMenuChanges } from './helpers/rex_menu_changes_2026-10-30.mjs';
 const read = f => JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'));
 // Separate safety-review correction; the original Corn fixture is unchanged.
 const F=withBaggedNightshadesReview(read('tests/fixtures/corn_recipe_alignment_2026-10-22.json'));
@@ -67,8 +68,9 @@ test('vegan-only Corn never becomes a regular meal tick; existing Corn and uncer
   assert.equal(menu['4'].THURSDAY.dinner_slots.veganalt.flags.hasSulphites,true,'existing tofu slot warning is not silently cleared');
 });
 test('putting back only the nine Corn booleans recovers every menu/overlay content field',()=>{
-  assert.equal(hash(putBack(menu,'menu')),F.digests.menuBefore,'menu content moved beyond the Corn ticks');
-  assert.equal(hash(omitMeta(putBack(overlay,'overlay'))),F.digests.overlayBefore,'overlay content moved beyond the Corn ticks');
+  // Re-pinned 2026-10-30 (Mat's Rexdale menu changes, a later owning edit): its five days are put back first.
+  assert.equal(hash(putBack(putBackRexMenuChanges(menu,'menu'),'menu')),F.digests.menuBefore,'menu content moved beyond the Corn ticks');
+  assert.equal(hash(omitMeta(putBack(putBackRexMenuChanges(overlay,'overlay'),'overlay'))),F.digests.overlayBefore,'overlay content moved beyond the Corn ticks');
 });
 test('a fresh tablet sweep preserves every regular/shared/halal Corn tick',()=>{
   const report=J(R.sweep(overlay));

@@ -123,7 +123,8 @@ test('6. the published menu carries the kitchen’s alternatives, and every DOOR
     gfAlt: count((m) => field(m, 'gfAlt')), diabeticAlt: count((m) => field(m, 'diabeticAlt')), noDairyAlt: count((m) => field(m, 'noDairyAlt')),
     noEggAlt: count((m) => field(m, 'noEggAlt')), anaphAlt: count((m) => field(m, 'anaphAlt')), blandAlt: count((m) => field(m, 'blandAlt')),
     softPlate: count((m) => (field(m, 'altMeals') || []).some((a) => a && a.type === 'soft' && a.text)),
-  }, { gfAlt: 25, diabeticAlt: 10, noDairyAlt: 6, noEggAlt: 4, anaphAlt: 4, blandAlt: 2, softPlate: 21 });
+  // Re-pinned 2026-10-30 (Mat's Rexdale changes): Wk2 FRI lunch's Beef Chili adds a no-dairy, no-egg and bland plate.
+  }, { gfAlt: 25, diabeticAlt: 10, noDairyAlt: 7, noEggAlt: 5, anaphAlt: 4, blandAlt: 3, softPlate: 21 });
   const at = (wk, day, period) => MEALS.find((m) => m.wk === wk && m.day === day && m.period === period);
   const philly = at('2', 'SUNDAY', 'lunch');
   assert.equal(field(philly, 'diabeticAlt'), 'Whole Wheat Tortilla, Philly Cheese Melt (Onions and Green Peppers)');
