@@ -27,15 +27,21 @@ test('Wk2 FRI lunch is Beef Chili with Rex’s cornbread and cabbage; the vegan 
   assert.ok(d.lunch_blandAlt, 'a spicy main gets a bland plate');
 });
 
-test('Wk2 THU dinner has roasted potatoes, Wk2 SAT lunch buttered green beans, Wk2 SAT dinner BBQ meatloaf and mash', () => {
-  assert.equal(menu['2'].THURSDAY.dinner, 'Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
-  assert.equal(menu['2'].THURSDAY.dinner_veg, 'Vegan Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
-  assert.equal(menu['2'].THURSDAY.dinner_slots.veganalt.displayText, 'Vegan Sausages');
+// Re-pinned 2026-10-30 (Rex's week sheet is canon for meal placement, Jason): the sausage dinner with its roasted
+// potatoes is Wk2 FRI now, and Arroz con Pollo with refried beans Wk2 THU (the two whole meals traded days).
+test('the sausage dinner (Wk2 FRI) has roasted potatoes, Wk2 SAT lunch buttered green beans, Wk2 SAT dinner BBQ meatloaf and mash', () => {
+  assert.equal(menu['2'].FRIDAY.dinner, 'Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
+  assert.equal(menu['2'].FRIDAY.dinner_veg, 'Vegan Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
+  assert.equal(menu['2'].FRIDAY.dinner_slots.veganalt.displayText, 'Vegan Sausages');
+  assert.equal(menu['2'].FRIDAY.dinner_halal, F.menu['2|THURSDAY'].dinner_halal, 'the halal sausages move with it');
+  assert.equal(menu['2'].THURSDAY.dinner, F.menu['2|FRIDAY'].dinner, 'Arroz con Pollo is Wk2 THU dinner');
+  assert.deepEqual(menu['2'].THURSDAY.dinner_flags, F.menu['2|FRIDAY'].dinner_flags, 'with its own ticks');
+  assert.deepEqual(menu['2'].FRIDAY.dinner_flags, F.menu['2|THURSDAY'].dinner_flags, 'and the sausages with theirs');
   assert.equal(menu['2'].SATURDAY.lunch, 'Chicken Tenders, Sweet Potato, Buttered Green Beans');
   assert.equal(menu['2'].SATURDAY.lunch_veg, 'Vegan Tenders, Sweet Potato, Green Beans');
   assert.equal(menu['2'].SATURDAY.dinner, 'BBQ Beef Meatloaf, Mashed Potato, Roasted Zucchini');
   assert.equal(menu['2'].SATURDAY.dinner_veg, 'BBQ Vegan Meatloaf, Mashed Potato, Roasted Zucchini, Butternut Squash');
-  for (const [d, p] of [['THURSDAY', 'dinner'], ['SATURDAY', 'lunch'], ['SATURDAY', 'dinner']])
+  for (const [d, p] of [['SATURDAY', 'lunch'], ['SATURDAY', 'dinner']])
     assert.deepEqual(menu['2'][d][p + '_flags'], F.menu['2|' + d][p + '_flags'], `Wk2 ${d} ${p} keeps its ticks`);
 });
 
@@ -81,6 +87,26 @@ test('routing counts the new dishes, not the old ones', () => {
   const fl = c('2', 'FRIDAY', 'lunch'), sun = c('3', 'SUNDAY', 'dinner');
   assert.ok(fl['Beef Chili'] > 100 && fl['Vegetarian Chili'] > 0 && !fl['CONC Salad - Beef'], JSON.stringify(fl));
   assert.ok(sun['Beef Bolognese'] > 100 && !sun['Halal Beef Meatballs'], JSON.stringify(sun));
-  assert.ok(c('2', 'THURSDAY', 'dinner')['Roasted Potatoes'] > 100 && !c('2', 'THURSDAY', 'dinner')['Mashed Potato']);
+  assert.ok(c('2', 'FRIDAY', 'dinner')['Roasted Potatoes'] > 100 && !c('2', 'FRIDAY', 'dinner')['Mashed Potato']);
+  assert.ok(!c('2', 'THURSDAY', 'dinner')['Roasted Potatoes'] && !c('2', 'FRIDAY', 'dinner')['Refried Beans'], 'the dishes count where their meal is now');
   assert.ok(c('2', 'SATURDAY', 'dinner')['Mashed Potato'] > 100 && !c('2', 'SATURDAY', 'lunch')['Roasted Parsnip and Carrot']);
+});
+
+// 2026-10-30, Rex's week sheet: Wk2 SUN's vegan lunch is Rex's "Portobello Cheese Melt"; Jason: it has vegan cheese.
+test('the vegan Sunday lunch reads as Rex names it, keeps its recipe link, and never reads as dairy', () => {
+  const d = menu['2'].SUNDAY;
+  assert.equal(d.lunch_veg, 'Portobello Cheese Melt (vegan cheese), Chips, Fruit');
+  assert.equal(d.lunch_slots.veganalt.recipeName, 'Vegan Mushroom Sandwich');
+  assert.equal(d.lunch_slots.veganalt.displayText, 'Portobello Cheese Melt (vegan cheese)');
+  assert.equal(d.lunch_slots.veganalt.flags.hasDairy, false);
+});
+
+// 2026-10-30, Rex's week sheet: Seasonal Soup joins Wk2 TUE lunch on both lines (Jason: "Add the seasonal soup too").
+test('Wk2 TUE lunch serves Seasonal Soup on both lines, with no new ticks, and routing counts it', () => {
+  const d = menu['2'].TUESDAY;
+  assert.equal(d.lunch, 'Tuna Salad Sandwich Mix, Seasonal Soup, Chips, Fruit Cup');
+  assert.equal(d.lunch_veg, 'Falafel Sandwich, Seasonal Soup, Chips, Fruit Cup');
+  assert.equal(d.lunch_slots.vegside.manual, 'Seasonal Soup');
+  assert.equal(d.allergens_lunch, 'gluten, egg, fish, mustard, sulphites', 'the soup adds no tick: the line is the meal’s own');
+  assert.ok((((routing.routing['2'] || {}).TUESDAY || {}).lunch || {})._components['Seasonal Soup'] > 100);
 });

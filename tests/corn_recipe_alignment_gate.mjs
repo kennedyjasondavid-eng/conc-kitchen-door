@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
 import { withBaggedNightshadesReview } from './helpers/bagged_curry_nightshades_review.mjs';
-import { putBackRexMenuChanges } from './helpers/rex_menu_changes_2026-10-30.mjs';
+import { putBackRexMenuChanges, rexMealDay } from './helpers/rex_menu_changes_2026-10-30.mjs';
 const read = f => JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'));
 // Separate safety-review correction; the original Corn fixture is unchanged.
 const F=withBaggedNightshadesReview(read('tests/fixtures/corn_recipe_alignment_2026-10-22.json'));
@@ -63,8 +63,11 @@ test('the shared menu overlay carries the same Corn edits with a newer day stamp
   assert.deepEqual(missing.map(key),[]);
 });
 test('vegan-only Corn never becomes a regular meal tick; existing Corn and uncertain Teriyaki meal Sulphites stay',()=>{
-  assert.deepEqual(F.vegan.filter(t=>menu[t.wk][t.day][t.period+'_flags'].hasCorn||slot(menu[t.wk][t.day][t.period+'_slots']).hasCorn).map(key),[]);
-  for(const t of F.held)assert.equal(menu[t.wk][t.day][t.period+'_flags'][t.flag],true,key(t)+' '+t.flag);
+  // Re-pinned 2026-10-30 (Rex's sheet is canon for placement): Wk2 THU and FRI dinners traded days, so each meal is read
+  // where it is now (rexMealDay).
+  const at=t=>menu[t.wk][rexMealDay(t.wk,t.day,t.period)];
+  assert.deepEqual(F.vegan.filter(t=>at(t)[t.period+'_flags'].hasCorn||slot(at(t)[t.period+'_slots']).hasCorn).map(key),[]);
+  for(const t of F.held)assert.equal(at(t)[t.period+'_flags'][t.flag],true,key(t)+' '+t.flag);
   assert.equal(menu['4'].THURSDAY.dinner_slots.veganalt.flags.hasSulphites,true,'existing tofu slot warning is not silently cleared');
 });
 test('putting back only the nine Corn booleans recovers every menu/overlay content field',()=>{

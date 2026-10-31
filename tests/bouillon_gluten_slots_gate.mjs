@@ -29,7 +29,8 @@ const KEPT = [
   ['2', 'TUESDAY', 'lunch', 'Rexdale Falafel'],
   ['4', 'MONDAY', 'lunch', 'Rexdale Falafel'],
   ['4', 'SUNDAY', 'dinner', 'White Chicken & Chickpea Chili'],
-  ['2', 'FRIDAY', 'dinner', 'Arroz Con Pollo (Regular + Vegan)'],
+  // Re-pinned 2026-10-30 (Rex's sheet is canon for placement): Arroz con Pollo is Wk2 THU dinner now.
+  ['2', 'THURSDAY', 'dinner', 'Arroz Con Pollo (Regular + Vegan)'],
 ];
 const slotIn = (src, wk, day, period) => (((src[wk] || {})[day] || {})[period + '_slots'] || {}).veganalt || null;
 
