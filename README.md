@@ -109,11 +109,14 @@ DOOR is the **menu source** for EXPO and the **resident source** for everything 
 | Published file | Schema | Consumer |
 |---|---|---|
 | `menu_current.json` | `{ _meta:{...}, weeks:[...] }` with `version` incrementing | EXPO `loadMenuFromDOOR` |
-| `menu_reno.json` | Same shape; reno-mode 4-week (legacy — standard cutover live 2026-06-26) | EXPO only if `scheduleMode = reno` (non-default) |
-| `routing_by_meal.json` | `{ wk: { DAY: { meal: { SectionLabel: n, _components:{dish:portions} } } } }` (`_meta.version` 31) | EXPO portion math + HUB portion links |
-| `registry_summary.json` | Resident counts + tier summary | (informational — not currently consumed) |
+| `menu_reno.json` | Same shape; reno-mode 4-week (legacy — standard cutover live 2026-06-26) | none (EXPO no longer fetches it; not on Pages since 2026-10-31) |
+| `routing_by_meal.json` | `{ wk: { DAY: { meal: { SectionLabel: n, _components:{dish:portions} } } } }` (`_meta.version` 31) | EXPO portion math + HUB portion links + PROOF |
+| `registry_summary.json` | Resident counts + tier summary (counts only) | EXPO, HUB, PROOF |
+| `meal_swaps.json`, `meal_swaps_reverted.json`, `special_meals.json`, `special_meals_removed.json` | Dated swaps and special meals | EXPO (dated meals) |
 
 If you change one of these schemas, update the consumer in the same change set, or stage carefully via menu overlays.
+
+**What GitHub Pages serves (since 2026-10-31).** Pages is public, and stays public even when the repository is private, so `.github/workflows/pages.yml` serves a list: `index.html`, `favicon.ico` and the files in the table above that someone reads (not `menu_reno.json`). Everything else stays in the repository only: `door_state.json`, `recent_log.json`, `learned_nr.json`, `menu_overlay.json`, `change_log.json`, `rex_week_answers.json`, `custom_tag_rules.json`, docs and tests. DOOR reads those through the repository, not through Pages. `tests/pages_served_privacy_gate.mjs` holds the list, and fails if the page carries a resident. Adding a file to the list makes it public. Settings → Pages → Source must be **GitHub Actions**.
 
 ### Push workflow
 
@@ -123,7 +126,7 @@ If you change one of these schemas, update the consumer in the same change set, 
 3. Click Sync (writes door_state.json, menu_current.json, etc.)
 4. Double-click KitchenDOOR_Push.hta
 5. HTA detects path (home vs work OneDrive), runs git add/commit/push
-6. GitHub Pages redeploys in ~60s
+6. GitHub Pages redeploys in ~60s when a served file changed (see "What GitHub Pages serves")
 7. EXPO and other consumers see new data on next fetch / hard refresh
 ```
 

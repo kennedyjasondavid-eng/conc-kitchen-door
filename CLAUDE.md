@@ -11,9 +11,9 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-10-29'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-10-31'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
-- Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/
+- Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/ — Pages serves only the app and the files other apps read (`.github/workflows/pages.yml`, since 2026-10-31; README "What GitHub Pages serves").
 
 ## Architecture
 - Single-file HTML; all CSS/JS inline; no build step.
@@ -52,6 +52,36 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-10-31) — Pages serves only the app and its feeds; the page carries no resident (`v31-standard.48`)
+Jason, 2026-10-31: "go ahead with phase 1, the Pages allowlist PR". Pages is public, and stays public when a repository is private, so what it serves is decided file by file.
+- **Pages:** `.github/workflows/pages.yml`, ported from HUB's `deploy.yml`, serves:
+  - `index.html` and `favicon.ico`;
+  - `menu_current.json`, `routing_by_meal.json`, `registry_summary.json` (EXPO, HUB, PROOF);
+  - `meal_swaps.json`, `meal_swaps_reverted.json`, `special_meals.json`, `special_meals_removed.json` (EXPO's dated meals).
+
+  Nothing else is served: no resident or editor files, no docs or tests, and not `menu_reno.json` (nobody fetches it). It deploys only when one of those files changes. DOOR itself reads its files through the repository, never through its own Pages, so no computer's reads change. **Jason switches Settings → Pages → Source to "GitHub Actions" after merge**; until then the old branch build keeps serving everything, and the new deploy job fails.
+- **The page:**
+  - `REGISTRY_LIST` starts empty. It carried 182 built-in records from April, which a new computer with no internet showed as its list.
+  - `anaphRooms` starts empty. Its one built-in room is on the kitchen's published anaphylactic list, and every saved list carries its own, so no computer loses it.
+  - `buildRecentLog` returns `[]`. The first-run sample invented eight changes on real room numbers; with no `_real:false` mark they read as real and went out with that computer's next publish.
+  - Comments that named rooms now say "one room", "two rooms" or use `101a`-style examples.
+- **No list on this computer:** the plating sheet shows a red alert, on screen and in print (`doorNoResidentListNoticeHTML`), instead of a sheet with no residents that reads as finished. The boot line says "No resident list on this computer yet". Offline, the existing "Couldn't get the latest" follows it.
+- **Gate:** `tests/pages_served_privacy_gate.mjs` (5), red 3/5 on `50bf716` (1, 3, 4). It checks:
+  1. the served list and its deploy filter;
+  2. that no served file is a resident or editor file;
+  3. the page: no built-in list, anaphylactic room, `room:` literal or invented log, and the notice is wired;
+  4. that no page line about residents names a room on today's list (an HTTP status code that matches a room doesn't count);
+  5. that no resident field appears in any served data file.
+
+  Its messages name line numbers, never a room.
+- **Re-pinned with a dated note:** `corn_recipe_alignment_gate`'s whole-page digest. The removed bytes are resident records and can't be put back from a fixture, so each change's new text is taken out for a numbered marker, and the digest is `50bf716`'s page with the same regions taken out (`tests/fixtures/served_privacy_takeout_2026-10-31.json`). A changed byte anywhere else still fails it.
+- **Results:**
+  - Suite 571 → 576; local failures are the same 6 as `main` (5 need a CODEX checkout beside DOOR, plus test 76, the Corn booleans).
+  - In a real browser, offline at 1280 and 390 px: no built-in residents, anaphylactic room or log, the alert on the plating sheet, no alert once a saved list loads, no page errors.
+- **Found, not changed:**
+  - The sidebar and the registry header say "181 residents" from the page's markup until a list loads, even with no list.
+  - The plating dashboard (`renderPlatingDashboard`) renders into `#plating-dash-body`, which isn't on the page.
 
 ## Recent (2026-10-30) — Rex's week sheet places the meals: Wk2 THU and FRI dinners trade days (menu data, no code)
 Jason, 2026-10-30, sending Rex's sheet for Nov 1–7: "Meal placement canon lies with Rex menu". The sheet puts **Arroz con Pollo, Refried Beans** on Wk2 THU dinner and **Sausages, Roasted Potato, Gravy, Peas & Carrots** on Wk2 FRI dinner; DOOR had them the other way round. Every cycle.
