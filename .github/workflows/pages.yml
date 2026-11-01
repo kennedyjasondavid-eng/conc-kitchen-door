@@ -1,0 +1,88 @@
+# DOOR — deploy to GitHub Pages: the app and the files other apps read, nothing else (2026-10-31).
+#
+# Before this, Pages served the whole repository from main, resident files included. Pages stays public even
+# when the repository is private, so what it serves is decided here, file by file. The served list is DOOR's
+# published contract (the HOUSE status ledger's DOOR rows) plus the app:
+#   - index.html, favicon.ico — the app;
+#   - menu_current.json, routing_by_meal.json, registry_summary.json — EXPO, HUB, PROOF;
+#   - meal_swaps.json, meal_swaps_reverted.json, special_meals.json, special_meals_removed.json — EXPO's dated
+#     meals.
+# Never served: the resident files (door_state.json, recent_log.json, learned_nr.json), the editor files DOOR reads
+# through the repository (menu_overlay.json, change_log.json, rex_week_answers.json, custom_tag_rules.json), docs,
+# tests and notes. tests/pages_served_privacy_gate.mjs holds this list to that rule.
+#
+# Ported from HUB's deploy.yml (the HOUSE allowlist pattern; CODEX's build-pages.mjs is the other instance). As
+# there, the deploy is ungated: DOOR's tests run in door-tests.yml, and a red test must never freeze the files EXPO
+# and HUB read. The app files are required; a missing data file is logged and skipped, so its readers fall back to
+# their cached copy (HUB FORK-5).
+#
+# Needs Settings → Pages → Source: "GitHub Actions". Until that switch, the old branch build keeps serving
+# everything and this deploy job fails.
+
+name: Deploy DOOR Pages
+
+on:
+  push:
+    branches: [main]
+    # A publish that changes only resident or editor files has nothing to deploy.
+    paths:
+      - 'index.html'
+      - 'favicon.ico'
+      - 'menu_current.json'
+      - 'routing_by_meal.json'
+      - 'registry_summary.json'
+      - 'meal_swaps.json'
+      - 'meal_swaps_reverted.json'
+      - 'special_meals.json'
+      - 'special_meals_removed.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a newer pending run replaces an older pending one and deploys the newest commit.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare Pages artifact
+        run: |
+          set -e
+          mkdir -p _site
+
+          # The app (required)
+          cp index.html _site/index.html
+          cp favicon.ico _site/favicon.ico
+
+          # The files other apps read (a missing one is logged, never fatal)
+          for f in menu_current.json routing_by_meal.json registry_summary.json meal_swaps.json meal_swaps_reverted.json special_meals.json special_meals_removed.json; do
+            if [ -f "$f" ]; then cp "$f" "_site/$f"; else echo "::warning::$f is missing; not served"; fi
+          done
+
+          echo "── Pages artifact contents ──"
+          ls -la _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

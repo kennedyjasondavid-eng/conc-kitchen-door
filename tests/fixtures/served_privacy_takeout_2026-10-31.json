@@ -1,0 +1,158 @@
+{
+  "_note": "corn_recipe_alignment_gate, 2026-10-31: the new text of each index.html change that took residents out of the page, replaced by a numbered marker before the whole-page digest. htmlOutsideFallback is DOOR 50bf716's page (which matched the Corn digest) with the same regions replaced by the same markers.",
+  "hunks": [
+    {
+      "k": 1,
+      "text": "const DOOR_APP_VERSION = 'v31-standard.48';\nconst DOOR_BUILD_DATE = '2026-10-31';"
+    },
+    {
+      "k": 2,
+      "text": "                <input type=\"text\" id=\"room-dest\" placeholder=\"e.g. 101b\" oninput=\"onDestInput(this.value)\">"
+    },
+    {
+      "k": 3,
+      "text": "// The resident list lives in the kitchen's door_state.json and in this computer's saved copy, never in this page\n// (2026-10-31). The page is served publicly on GitHub Pages, and it used to carry April's list as a built-in fallback:\n// a new computer with no internet showed that list, flags and all. A computer with no saved list now starts empty\n// and says so (doorNoResidentListNoticeHTML) until it gets the kitchen's list.\nconst REGISTRY_LIST = [];"
+    },
+    {
+      "k": 4,
+      "text": "  // A new computer starts with an empty log and takes the kitchen's recent_log.json at its first sync (2026-10-31).\n  // The first-run sample used to invent eight changes on real room numbers. They carried no _real:false mark, so\n  // they read as real here and went out with this computer's next publish.\n  return [];"
+    },
+    {
+      "k": 5,
+      "text": "  // anaphylactic list (one room: an import reset the flag), and taking the room off silently ended its lockout."
+    },
+    {
+      "k": 6,
+      "text": "  // lunch and dinner together, so on a day with a dinner-only allergen the Daily Entry preview showed one room's lunch\n  // as \"Anaphylactic Alternative\" while the lunch plating sheet seated it in Soft Meals."
+    },
+    {
+      "k": 7,
+      "text": "    // Check if sub-rooms (e.g. 101a, 101b) are occupied"
+    },
+    {
+      "k": 8,
+      "text": "  // Check for ambiguous room (e.g. \"101\" when 101a and 101b both exist)"
+    },
+    {
+      "k": 9,
+      "text": "// Is this resident anaphylactic? Their own flag, or a room on DOOR's anaphylactic list (2026-10-18, Jason: \"[that room] should"
+    },
+    {
+      "k": 10,
+      "text": "// list and published count read only the flag, so a room (on the list, flag reset by an import) was contained but"
+    },
+    {
+      "k": 11,
+      "text": "  // Rooms the list keeps naming none of their allergens (2026-10-18): Generate asks about each."
+    },
+    {
+      "k": 12,
+      "text": "// Jason: \"Ask once at Generate\"). One room: its anaphylactic resident was discharged by the Sep 11 import,"
+    },
+    {
+      "k": 13,
+      "text": "// Jason: \"yes let's build that\"). The meal list never says who is anaphylactic, so its \"Regular\" can't take a\n// room off the list by itself. But one room read as anaphylactic for a month with nothing to contain, and a resident who"
+    },
+    {
+      "k": 14,
+      "text": "      // (e.g. a room double-added in door_state.json) otherwise left a copy"
+    },
+    {
+      "k": 15,
+      "text": "// lingered in door_state.json — made discharges fail to stick:"
+    },
+    {
+      "k": 16,
+      "text": "// baked-in seed when localStorage was empty — the \"historical data\" first imports\n// were showing; the seed is gone since 2026-10-31). Caches the first sync; pullStateFromGitHub swallows its own"
+    },
+    {
+      "k": 17,
+      "text": "  // none of their allergens. The rest of Generate runs without a wait."
+    },
+    {
+      "k": 18,
+      "text": "let anaphRooms = []; // The kitchen's list comes with door_state.json, and this computer's copy just below; no room is built into this page (2026-10-31)."
+    },
+    {
+      "k": 19,
+      "text": "//     eat (the vegan line; a halal, no-pork or single alternative plate), those too. Only ever adds: a resident (GF,"
+    },
+    {
+      "k": 20,
+      "text": "  // \"No Sea Food\" is fish and shellfish (2026-10-19, the plating review): it was never read, so two rooms (\"Gluten"
+    },
+    {
+      "k": 21,
+      "text": "  // A tree nut named by its kind is a tree nut (2026-10-19): one room's \"No Almond\" was never read, so it lost No Tree Nuts."
+    },
+    {
+      "k": 22,
+      "text": "// for four rooms). Now the answer keeps the tags it gave (_tags), and a row whose words it answered"
+    },
+    {
+      "k": 23,
+      "text": "    // TAG SET did not change (one room's \"White Rice / Bread\") used to be silent forever. The"
+    },
+    {
+      "k": 24,
+      "text": "  // Group both sides by base room (e.g. 101, 101a, 101b all share base \"101\")."
+    },
+    {
+      "k": 25,
+      "text": "      // v31: detect rooms listed more than once in the upload (e.g. 101 typed twice"
+    },
+    {
+      "k": 26,
+      "text": "// one \"Add to queue\" took No Fish and No Shellfish off two rooms, No Tree Nuts off one and No Brassicas and No\n// Nightshades off another on Sep 11, because the list's words for them (\"No Sea Food\", \"No Almond\", \"No Caulilower …\")"
+    },
+    {
+      "k": 27,
+      "text": "// A row DOOR reads in full (e.g. \"Regular\") still starts ticked. Returns a reason when held, else ''."
+    },
+    {
+      "k": 28,
+      "text": "      A reassignment moves an existing resident's record to a different suffix in the same base room (e.g. 101 &rarr; 101a when a second occupant arrives). The original record &mdash; tags, history, anaphylactic flags &mdash; carries forward; only the room key changes. Any new arrival in the same base appears below as an intake."
+    },
+    {
+      "k": 29,
+      "text": "      .catch(() => updateSyncBar('No resident list on this computer yet — press ↻ Refresh list when online, or import today’s list.', '#dc2626'));"
+    },
+    {
+      "k": 30,
+      "text": "// It added tags by room number to the residents of April 27 (a \"Gluten Free\" and a \"No Pork\"), once per device. A"
+    },
+    {
+      "k": 31,
+      "text": "    // N/A\"; 56 stayed Provisional for nothing). An anaphylactic one stays Provisional: the list is a medical fact."
+    },
+    {
+      "k": 32,
+      "text": "  // An anaphylactic resident is listed even with no restriction recorded (2026-10-18, the routing audit)."
+    },
+    {
+      "k": 33,
+      "text": "  // An anaphylactic resident gets a red label even with no restriction recorded (2026-10-18, the routing audit)."
+    },
+    {
+      "k": 34,
+      "text": "// A computer with no resident list says so on its plating sheet, in red and in print, rather than showing a sheet\n// with no residents that reads as finished (2026-10-31, when the built-in list left this page).\nfunction doorNoResidentListNoticeHTML() {\n  if (REGISTRY_LIST.length) return '';\n  return '<div class=\"door-no-resident-list\" role=\"alert\" style=\"margin:0 0 12px;padding:10px 14px;border:2px solid #dc2626;border-radius:6px;background:#fef2f2;color:#991b1b;font-weight:600;font-size:13px;\">' +\n    'No resident list on this computer — these sheets show no residents. Press ↻ Refresh list on Enter Changes when online, or ↑ Import Daily List.</div>';\n}\n"
+    },
+    {
+      "k": 35,
+      "text": "  preview.innerHTML = doorNoResidentListNoticeHTML() + buildPlatingHtml(pd, false);"
+    },
+    {
+      "k": 36,
+      "text": "    .filter(r => (r.tags && !r.tags.every(t => t === 'Regular')) || doorIsAnaphResident(r))   // an anaphylactic resident on Regular (2026-10-18)"
+    },
+    {
+      "k": 37,
+      "text": "    const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t=>t==='Regular')) || doorIsAnaphResident(r)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));   // an anaphylactic resident on Regular, as the real files (2026-10-18)"
+    },
+    {
+      "k": 38,
+      "text": "    const restricted = REGISTRY_LIST.filter(r => (r.tags && !r.tags.every(t=>t==='Regular')) || doorIsAnaphResident(r)).sort((a,b)=>parseInt(a.room)-parseInt(b.room));   // an anaphylactic resident on Regular, as the real files (2026-10-18)"
+    }
+  ],
+  "htmlOutsideFallback": "59994a119260c25697b573b404569de474b8baccb9d33b00fd468fc558d8961e"
+}

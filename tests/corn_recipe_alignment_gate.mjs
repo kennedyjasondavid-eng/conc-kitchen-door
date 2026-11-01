@@ -115,6 +115,25 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
       '  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); the raw CDN can still hold a copy for ~5 min.']
   ];
   let normal=html.replace(/\r\n/g,'\n');
+  // 2026-10-31 (v31-standard.48, Jason: "go ahead with phase 1, the Pages allowlist PR"): the page stopped carrying
+  // residents (the built-in list, the built-in anaphylactic room, the invented first-run log, room numbers in comments).
+  // The old bytes are resident records, so they can't be put back from a fixture without committing them again. Each
+  // change's new text is taken out instead, in order, for a numbered marker; the digest it is compared with is DOOR
+  // 50bf716's page (which matched htmlOutsideFallback) with the same regions taken out the same way.
+  // tests/pages_served_privacy_gate.mjs reviews the changes themselves.
+  const served31=JSON.parse(fs.readFileSync(new URL('./fixtures/served_privacy_takeout_2026-10-31.json',import.meta.url),'utf8'));
+  let expectedOutside=F.digests.htmlOutsideFallback;
+  if(normal.includes(served31.hunks[0].text+'\n')){
+    let pos=0;
+    for(const h of served31.hunks){
+      const i=normal.indexOf(h.text+'\n',pos);
+      assert.ok(i>=0,'the 2026-10-31 change #'+h.k+' is not where it was');
+      const mark='/* taken out 2026-10-31 #'+h.k+' */';
+      normal=normal.slice(0,i)+mark+'\n'+normal.slice(i+h.text.length+1);
+      pos=i+mark.length+1;
+    }
+    expectedOutside=served31.htmlOutsideFallback;
+  }
   for(const [current,prior] of transport){
     assert.equal(normal.split(current).length-1,1,'expected exactly one authorized transport line: '+current);
     normal=normal.replace(current,prior);
@@ -146,7 +165,7 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
     }
   }
   normal=normal.replace(/const DOOR_RECIPE_DATA_FALLBACK = [^\n]+/,'const DOOR_RECIPE_DATA_FALLBACK = <scoped fixture>;').replace(/const DOOR_APP_VERSION = '[^']+';/,"const DOOR_APP_VERSION = '<release>';");
-  assert.equal(crypto.createHash('sha256').update(normal).digest('hex'),F.digests.htmlOutsideFallback);
+  assert.equal(crypto.createHash('sha256').update(normal).digest('hex'),expectedOutside);
 });
 test('offline fallback has the 42 Corn sources and corrected Teriyaki; source labels and all other fields are exact',()=>{
   const wrong=F.fallbackDeltas.filter(d=>!eq(fallback.find(r=>r.recipeName===d.recipeName),d.after));
