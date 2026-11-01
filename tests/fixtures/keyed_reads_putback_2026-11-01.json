@@ -1,0 +1,255 @@
+{
+ "_note": "tests/corn_recipe_alignment_gate.mjs puts these back first (2026-11-01, v31-standard.49, privacy plan phase 2: one reader for the kitchen's files, viewing keys, the plain state). Each hunk is the branch text (new) and the 6fd8829 text (old), one line of context each side; replacing each new with its old, in order, searching forward from the previous one, gives 6fd8829's page byte for byte. Generated from git diff --no-index -U0. Holds no resident: the page is resident-free since 2026-10-31.",
+ "hunks": [
+  {
+   "k": 1,
+   "new": "// Staff-visible app stamp. Published JSON files remain their own contract authority.\nconst DOOR_APP_VERSION = 'v31-standard.49';\nconst DOOR_BUILD_DATE = '2026-11-01';\nconst DOOR_SCHEMA_VERSIONS = Object.freeze({\n",
+   "old": "// Staff-visible app stamp. Published JSON files remain their own contract authority.\nconst DOOR_APP_VERSION = 'v31-standard.48';\nconst DOOR_BUILD_DATE = '2026-10-31';\nconst DOOR_SCHEMA_VERSIONS = Object.freeze({\n"
+  },
+  {
+   "k": 2,
+   "new": "                <div id=\"gh-auth-status\" style=\"font-size:12px;line-height:1.5;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--cream);color:var(--muted);margin-bottom:10px;\"></div>\n                <div class=\"form-group mb-12\">\n                  <label style=\"display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;\"><input type=\"checkbox\" id=\"door-private-rehearsal\" onchange=\"doorSetPrivateRehearsal(this.checked)\"> Rehearse a private kitchen repository on this computer</label>\n                  <div class=\"form-hint\">On: this computer reads the resident list only with its own key, as every computer will once the kitchen repository is private.</div>\n                  <div class=\"form-hint\" id=\"door-kitchen-list-read\"></div>\n                </div>\n                <div style=\"display:flex;gap:8px;align-items:center;margin-top:12px;\">\n",
+   "old": "                <div id=\"gh-auth-status\" style=\"font-size:12px;line-height:1.5;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--cream);color:var(--muted);margin-bottom:10px;\"></div>\n                <div style=\"display:flex;gap:8px;align-items:center;margin-top:12px;\">\n"
+  },
+  {
+   "k": 3,
+   "new": "        const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';\n        const r = await doorReadKitchenFile(publishPath, { repo });   // the one reader (2026-11-01)\n        if (r.ok) s.mergeRemote(r.data);\n      } catch(e) {}\n",
+   "old": "        const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';\n        const res = await fetch('https://raw.githubusercontent.com/' + repo + '/main/' + publishPath + '?_=' + Date.now());\n        if (res.ok) s.mergeRemote(await res.json());\n      } catch(e) {}\n"
+  },
+  {
+   "k": 4,
+   "new": "  missing_auth:                { label: 'no connection key on this computer', action: 'connect' },\n  viewing_key:                 { label: 'this computer can view the kitchen’s lists but not send changes (viewing key)', action: 'connect' }, // 2026-11-01\n  not_hydrated:                { label: 'this page hadn’t finished loading the latest list', action: 'reload' },\n",
+   "old": "  missing_auth:                { label: 'no connection key on this computer', action: 'connect' },\n  not_hydrated:                { label: 'this page hadn’t finished loading the latest list', action: 'reload' },\n"
+  },
+  {
+   "k": 5,
+   "new": "  const reasons = [];\n  // 2026-11-01 (privacy plan phase 2): a viewing key reads the kitchen's lists and sends nothing; it gets a quiet line,\n  // not a nag. A computer whose last try at the resident list found no key says that first, in red: its list may be old.\n  const viewing = !!inp.hasToken && !inp.tokenExpired && inp.keyKind === 'viewing';\n  const listUnreadable = !!inp.kitchenListUnreadable;\n  if (listUnreadable) {\n    const d = inp.kitchenListReadAt ? new Date(inp.kitchenListReadAt) : null;\n    const when = (d && !isNaN(d.getTime())) ? d.toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'an unknown date';\n    reasons.push({ code: 'no-viewing-key', label: 'this computer can’t get the kitchen’s resident list — it needs a viewing key (the list here is from ' + when + ')', action: 'connect' });\n  }\n  else if (!inp.hasToken && inp.readOnly) reasons.push({ code: 'read-only', label: 'this computer was set up as read-only — connect it to send changes to the kitchen', action: 'connect' }); // P4 (F2)\n  else if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the kitchen — no connection key', action: 'connect' });\n",
+   "old": "  const reasons = [];\n  if (!inp.hasToken && inp.readOnly) reasons.push({ code: 'read-only', label: 'this computer was set up as read-only — connect it to send changes to the kitchen', action: 'connect' }); // P4 (F2)\n  else if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the kitchen — no connection key', action: 'connect' });\n"
+  },
+  {
+   "k": 6,
+   "new": "                (inp.lastSkip.reason === 'stale-tab' && inp.tabStale) ||\n                (inp.lastSkip.reason === 'auto_publish_off' && inp.autoPublishOn === false) ||\n                (inp.lastSkip.reason === 'viewing_key' && viewing);\n    if (!dup) reasons.push({ code: 'last-skip', label: m.label, action: m.action, at: inp.lastSkip.at || null });\n",
+   "old": "                (inp.lastSkip.reason === 'stale-tab' && inp.tabStale) ||\n                (inp.lastSkip.reason === 'auto_publish_off' && inp.autoPublishOn === false);\n    if (!dup) reasons.push({ code: 'last-skip', label: m.label, action: m.action, at: inp.lastSkip.at || null });\n"
+  },
+  {
+   "k": 7,
+   "new": "  const since = outbox.length ? (outbox[0].ts || null) : (proxyPending ? inp.lastGeneratedAt : null);\n  // Work made on a viewing computer never reaches the kitchen: say why beside the red line.\n  if (viewing && pending) reasons.unshift({ code: 'viewing-key', label: DOOR_PUBLISH_SKIP_REASONS.viewing_key.label, action: 'connect' });\n  const canPublish = reasons.length === 0 && !viewing;\n  // A freshly generated set is briefly newer than the last successful send while\n",
+   "old": "  const since = outbox.length ? (outbox[0].ts || null) : (proxyPending ? inp.lastGeneratedAt : null);\n  const canPublish = reasons.length === 0;\n  // A freshly generated set is briefly newer than the last successful send while\n"
+  },
+  {
+   "k": 8,
+   "new": "  const sendInFlight = !!inp.sendInFlight;\n  const level = sendInFlight ? 'none' : ((pending || listUnreadable) ? 'red' : (reasons.length ? 'amber' : 'none'));\n  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, sendInFlight, level, viewing, listUnreadable };\n}\n",
+   "old": "  const sendInFlight = !!inp.sendInFlight;\n  const level = sendInFlight ? 'none' : (pending ? 'red' : (reasons.length ? 'amber' : 'none'));\n  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, sendInFlight, level };\n}\n"
+  },
+  {
+   "k": 9,
+   "new": "    sendInFlight: (typeof _doorPublishInFlight !== 'undefined') ? !!_doorPublishInFlight : false,\n    readOnly: g('concDeviceReadOnly') === '1', // P4: set up as read-only (F2)\n    keyKind: meta.keyKind || null, // 2026-11-01: 'viewing' | 'sending'\n    kitchenListUnreadable: (typeof doorKitchenListUnreadable === 'function') ? doorKitchenListUnreadable() : false,\n    kitchenListReadAt: g('concKitchenListReadAt')\n  };\n",
+   "old": "    sendInFlight: (typeof _doorPublishInFlight !== 'undefined') ? !!_doorPublishInFlight : false,\n    readOnly: g('concDeviceReadOnly') === '1' // P4: set up as read-only (F2)\n  };\n"
+  },
+  {
+   "k": 10,
+   "new": "  const cardHtml = (typeof _doorConnectCardOpen !== 'undefined' && _doorConnectCardOpen && typeof _doorConnectCardHTML === 'function') ? _doorConnectCardHTML() : '';\n  // 2026-11-01: a viewing computer with nothing owed gets one quiet line, never a red or amber banner.\n  const quiet = (c && c.viewing) ? '<div class=\"door-viewing-line\" style=\"padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:10px;\">' +\n    'This computer can view the kitchen&rsquo;s lists but not send changes (viewing key).</div>' : '';\n  if (!c || c.level === 'none') return quiet + cardHtml;\n  const red = c.level === 'red';\n",
+   "old": "  const cardHtml = (typeof _doorConnectCardOpen !== 'undefined' && _doorConnectCardOpen && typeof _doorConnectCardHTML === 'function') ? _doorConnectCardHTML() : '';\n  if (!c || c.level === 'none') return cardHtml;\n  const red = c.level === 'red';\n"
+  },
+  {
+   "k": 11,
+   "new": "    head = '&#x26A0; ' + (n > 1 ? n + ' sets of changes' : 'Changes') + ' on this computer have NOT reached the kitchen' + (since ? ' (' + (n ? 'oldest ' : 'generated ') + escapeHtml(since) + ')' : '');\n  } else if (c.listUnreadable) {\n    head = '&#x26A0; This computer can’t get the kitchen’s resident list'; // 2026-11-01\n  } else {\n",
+   "old": "    head = '&#x26A0; ' + (n > 1 ? n + ' sets of changes' : 'Changes') + ' on this computer have NOT reached the kitchen' + (since ? ' (' + (n ? 'oldest ' : 'generated ') + escapeHtml(since) + ')' : '');\n  } else {\n"
+  },
+  {
+   "k": 12,
+   "new": "    '<div style=\"font-weight:700;\">Connect this computer to the kitchen</div>' +\n    '<div style=\"margin-top:4px;color:#4b5563;\">Paste the key for this computer: a connection key, or a viewing key that shows the kitchen&rsquo;s lists without sending changes. It is issued once per computer &mdash; ask Jason (kitchen lead) if you don&rsquo;t have one.</div>' +\n    '<div style=\"display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;\">' +\n",
+   "old": "    '<div style=\"font-weight:700;\">Connect this computer to the kitchen</div>' +\n    '<div style=\"margin-top:4px;color:#4b5563;\">Paste the connection key for this computer. It is issued once per computer &mdash; ask Jason (kitchen lead) if you don&rsquo;t have one.</div>' +\n    '<div style=\"display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;\">' +\n"
+  },
+  {
+   "k": 13,
+   "new": "  if (!hasKey) return 0;\n  if (typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey()) return 0; // a viewing key sends nothing (2026-11-01)\n  if (typeof publishAndSync === 'function') publishAndSync('sending ' + list.length + ' unpublished change set' + (list.length === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');\n",
+   "old": "  if (!hasKey) return 0;\n  if (typeof publishAndSync === 'function') publishAndSync('sending ' + list.length + ' unpublished change set' + (list.length === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');\n"
+  },
+  {
+   "k": 14,
+   "new": "    '<div style=\"font-weight:700;font-size:14px;color:#3730a3;\">Set up this computer for DOOR</div>' +\n    '<div style=\"margin-top:4px;color:#3730a3;\">Once per computer. Your name is stamped on every change you make. A connection key lets this computer see the kitchen&rsquo;s resident list and send changes; a viewing key lets it see the list only.</div>' +\n    '<div style=\"display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;\">' +\n",
+   "old": "    '<div style=\"font-weight:700;font-size:14px;color:#3730a3;\">Set up this computer for DOOR</div>' +\n    '<div style=\"margin-top:4px;color:#3730a3;\">Once per computer. Your name is stamped on every change you make; the connection key lets this computer send changes to the kitchen.</div>' +\n    '<div style=\"display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;\">' +\n"
+  },
+  {
+   "k": 15,
+   "new": "      '<button class=\"btn btn-sm\" style=\"background:#4f46e5;color:#fff;font-size:12px;padding:6px 12px;\" onclick=\"doorFirstRunSubmit()\">Set up this computer</button>' +\n      '<button class=\"btn btn-ghost btn-sm\" style=\"font-size:12px;padding:6px 10px;\" onclick=\"doorFirstRunSkip()\">Skip &mdash; this computer will only read menus</button>' +\n      '<span id=\"door-firstrun-status\" style=\"font-size:12px;color:var(--muted);\"></span>' +\n    '</div>' +\n    '<div style=\"margin-top:6px;font-size:12px;color:#3730a3;\">Without a key, this computer sees menus only. To see residents, it needs a viewing key from Jason (kitchen lead).</div>' +\n  '</div>';\n",
+   "old": "      '<button class=\"btn btn-sm\" style=\"background:#4f46e5;color:#fff;font-size:12px;padding:6px 12px;\" onclick=\"doorFirstRunSubmit()\">Set up this computer</button>' +\n      '<button class=\"btn btn-ghost btn-sm\" style=\"font-size:12px;padding:6px 10px;\" onclick=\"doorFirstRunSkip()\">Skip &mdash; this computer will only read</button>' +\n      '<span id=\"door-firstrun-status\" style=\"font-size:12px;color:var(--muted);\"></span>' +\n    '</div>' +\n  '</div>';\n"
+  },
+  {
+   "k": 16,
+   "new": "  const repo = ((typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door');\n  // 2026-11-01: through the one reader (with this computer's key when it has one). No key, no file or an error answer:\n  // null, as a kitchen that answered with an error always was, so the publish goes ahead as before. No answer at all\n  // (offline, timed out) throws, as the fetch did: the callers say \"unchecked\".\n  const r = await doorReadKitchenFile('door_state.json', { repo });\n  if (r && r.error && !r.status) throw new Error(r.error);\n  if (!r || !r.ok) return null;\n  const j = r.data;\n  return (j && j._meta) ? j._meta : null;\n",
+   "old": "  const repo = ((typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door');\n  const res = await fetch('https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now(), { cache: 'no-store' });\n  if (!res || !res.ok) return null;\n  const j = await res.json();\n  return (j && j._meta) ? j._meta : null;\n"
+  },
+  {
+   "k": 17,
+   "new": "      if (result.reason === 'missing_auth') _doorConnectCardOpen = true;\n      // 2026-11-01: a viewing key says so, in its own words (it isn't a failure to retry).\n      const _skipWhy = result.reason === 'viewing_key' ? ' ' + DOOR_VIEWING_KEY_COPY : '';\n      updateSyncBar('Saved on this computer — not sent to the kitchen yet · ' + timeStr + _skipWhy, '#dc2626');\n      if (typeof showToast === 'function') showToast('Saved on this computer — not sent to the kitchen yet.' + _skipWhy);\n      return;\n",
+   "old": "      if (result.reason === 'missing_auth') _doorConnectCardOpen = true;\n      updateSyncBar('Saved on this computer — not sent to the kitchen yet · ' + timeStr, '#dc2626');\n      if (typeof showToast === 'function') showToast('Saved on this computer — not sent to the kitchen yet.');\n      return;\n"
+  },
+  {
+   "k": 18,
+   "new": "    const _noKey = !((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : '');\n    // 2026-11-01: a write refused with 403 has just marked this key as a viewing key (noteViewingKey).\n    const _viewing = !_noKey && typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey();\n    const _code = _noKey ? 'missing_auth' : (_viewing ? 'viewing_key' : (/expir/i.test(msg) ? 'missing_auth' : 'error'));\n    _recordSkip(_code, msg);\n",
+   "old": "    const _noKey = !((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : '');\n    const _code = _noKey ? 'missing_auth' : (/expir/i.test(msg) ? 'missing_auth' : 'error');\n    _recordSkip(_code, msg);\n"
+  },
+  {
+   "k": 19,
+   "new": "async function pullSecondaryState(repo) {\n  // 2026-11-01: each file comes through the one reader (doorReadKitchenFile); the order and the merges are unchanged.\n  const files = [\n",
+   "old": "async function pullSecondaryState(repo) {\n  const base = 'https://raw.githubusercontent.com/' + repo + '/main/';\n  const bust = '?_=' + Date.now();\n  const files = [\n"
+  },
+  {
+   "k": 20,
+   "new": "    try {\n      const r = await doorReadKitchenFile(filename, { repo });\n      if (r.ok) { apply(r.data); }\n      else if (r.error) console.warn('secondary pull [' + filename + ']:', r.error);\n    } catch(e) { console.warn('secondary pull [' + filename + ']:', e.message); }\n",
+   "old": "    try {\n      const res = await fetch(base + filename + bust);\n      if (res.ok) { apply(await res.json()); }\n    } catch(e) { console.warn('secondary pull [' + filename + ']:', e.message); }\n"
+  },
+  {
+   "k": 21,
+   "new": "  try {\n    // 2026-11-01: through the one reader — with this computer's key when it has one (the Contents API, fresher than the\n    // raw CDN); without one, the raw URL only while the repository is public and this computer isn't rehearsing.\n    const r = await doorReadKitchenFile('door_state.json', { repo });\n    if (r.noKey) {\n      if (manual) showToast(DOOR_LIST_NEEDS_VIEWING_KEY);\n      updateSyncBar(DOOR_LIST_NEEDS_VIEWING_KEY, '#dc2626');\n      return;\n    }\n    if (r.absent) {\n      if (manual) showToast('Nothing to get yet — the kitchen has no saved list. Import today’s list and Generate first.');\n",
+   "old": "  try {\n    // Use raw.githubusercontent.com — no auth needed for public repo,\n    // no CORS preflight, no base64 envelope, works through work firewalls\n    const rawUrl = 'https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now();\n    const res = await fetch(rawUrl);\n    if (!res.ok) {\n      if (manual) showToast('Nothing to get yet — the kitchen has no saved list. Import today’s list and Generate first.');\n"
+  },
+  {
+   "k": 22,
+   "new": "    }\n    if (!r.ok) throw new Error(r.error || 'the resident list could not be read');\n    const state = r.data;\n    if (!state.residents || !state.residents.length) {\n",
+   "old": "    }\n    const state = await res.json();\n    if (!state.residents || !state.residents.length) {\n"
+  },
+  {
+   "k": 23,
+   "new": "\n// Generate on a computer that can't read the kitchen's resident list (2026-11-01, privacy plan phase 2): its sheets would\n// come from this computer's own copy, which may be days old. Ask first; Go back (the default) stops.\nasync function doorAskGenerateWithoutKitchenList() {\n  if (!(typeof doorKitchenListUnreadable === 'function' && doorKitchenListUnreadable())) return true;\n  return (await doorAsk({\n    title: 'Generate from this computer’s list from ' + doorKitchenListDateText() + '?',\n    lines: ['This computer can’t get the kitchen’s resident list — it needs a viewing key. Its own list may be out of date: people who arrived, left or changed since aren’t on it.',\n      'Go back and ask Jason for a key, or Generate from this computer’s list anyway.'],\n    cancelLabel: 'Go back', goLabel: 'Generate anyway' })) === true;\n}\n\nlet _doorGenerateBusy = false;   // a second click while Generate waits on the kitchen or its question does nothing\n",
+   "old": "\nlet _doorGenerateBusy = false;   // a second click while Generate waits on the kitchen or its question does nothing\n"
+  },
+  {
+   "k": 24,
+   "new": "  try {\n    if (!(await doorAskGenerateWithoutKitchenList())) return;   // 2026-11-01: no key to read the kitchen's list\n    await doorTakeNewerKitchenList();\n",
+   "old": "  try {\n    await doorTakeNewerKitchenList();\n"
+  },
+  {
+   "k": 25,
+   "new": "        else if (days !== null && days <= 14) { text = 'Kitchen connection saved. The key expires in ' + days + ' day(s); ask Jason to replace it soon.'; stateColor = '#92400e'; }\n        else if (meta.keyKind === 'viewing') text = 'Connected to view the kitchen’s lists (viewing key)' + (expiry ? ' until ' + expiry + '.' : '.'); // 2026-11-01\n        else text = 'This computer is connected to the kitchen' + (expiry ? ' until ' + expiry + '.' : '.');\n",
+   "old": "        else if (days !== null && days <= 14) { text = 'Kitchen connection saved. The key expires in ' + days + ' day(s); ask Jason to replace it soon.'; stateColor = '#92400e'; }\n        else text = 'This computer is connected to the kitchen' + (expiry ? ' until ' + expiry + '.' : '.');\n"
+  },
+  {
+   "k": 26,
+   "new": "  },\n  // A viewing key (2026-11-01, privacy plan phase 2): the same one-repository key with Contents read-only. It reads the\n  // kitchen's lists; publishing skips before any write (viewing_key) instead of failing on GitHub's 403.\n  isViewingKey() {\n    return !!this.getSavedToken() && this.getMeta().keyKind === 'viewing';\n  },\n  // The second net: a write refused with 403 by a key that reads means a viewing key. Not an error to show in red.\n  noteViewingKey() {\n    const meta = this.getMeta();\n    meta.keyKind = 'viewing';\n    meta.keyKindNotedAt = new Date().toISOString();\n    delete meta.lastError; delete meta.lastErrorAt;\n    this.setMeta(meta);\n    this.renderStatus();\n  },\n  _getSavedCredentials() {\n",
+   "old": "  },\n  _getSavedCredentials() {\n"
+  },
+  {
+   "k": 27,
+   "new": "    }\n    if (this.isViewingKey()) {\n      this.showSidePublishResult(label + ' — saved on this computer. ' + DOOR_VIEWING_KEY_COPY, '#92400e', visible, 300);\n      return Promise.resolve({ skipped:true, reason:'viewing_key' });\n    }\n    return ghPushFile(creds, path, content).then(result => {\n",
+   "old": "    }\n    return ghPushFile(creds, path, content).then(result => {\n"
+  },
+  {
+   "k": 28,
+   "new": "      const msg = label + ' — saved on this computer, couldn’t send to the kitchen. Try again.';\n      if (/token|github|access|refused|rejected/i.test(detail) && !this.isViewingKey()) this.rememberFailure(detail); // a 403 marked a viewing key (2026-11-01)\n      this.showSidePublishResult(msg, '#dc2626', visible);\n",
+   "old": "      const msg = label + ' — saved on this computer, couldn’t send to the kitchen. Try again.';\n      if (/token|github|access|refused|rejected/i.test(detail)) this.rememberFailure(detail);\n      this.showSidePublishResult(msg, '#dc2626', visible);\n"
+  },
+  {
+   "k": 29,
+   "new": "    }\n    const body = await res.json();\n    // The read above passes for a viewing key too, so every connect path also asks which kind this is (2026-11-01).\n    this._probedKeyKind = { token: doorSanitizeConnectionKey(token), kind: await this.probeKeyKind(token, repo) };\n    return body;\n  },\n  // Viewing or sending key (2026-11-01, privacy plan phase 2): GET /repos/<repo> with the key; permissions.push false =\n  // a viewing key (Contents read-only). Anything else (push true, no permissions, a failed read) is a sending key, as\n  // every key was before. Still to confirm on a real viewing key in the rehearsal (plan phase 3) that a fine-grained key\n  // reports its own Contents permission here; a 403 on a write is the second net (noteViewingKey).\n  async probeKeyKind(token, repo) {\n    try {\n      const res = await fetch('https://api.github.com/repos/' + (repo || this.getRepo()).trim(), { headers: this.githubHeaders(token), cache: 'no-store' });\n      if (!res.ok) return 'sending';\n      const j = await res.json();\n      return (j && j.permissions && j.permissions.push === false) ? 'viewing' : 'sending';\n    } catch (e) { return 'sending'; }\n  },\n",
+   "old": "    }\n    return res.json();\n  },\n"
+  },
+  {
+   "k": 30,
+   "new": "    const expiry = this.getExpiryInput();\n    const probed = this._probedKeyKind;\n    this.setMeta({\n",
+   "old": "    const expiry = this.getExpiryInput();\n    this.setMeta({\n"
+  },
+  {
+   "k": 31,
+   "new": "      expiryDate: expiry,\n      repo: appSettings['gh-repo'],\n      keyKind: (probed && probed.token === appSettings['gh-token'] && probed.kind) || 'sending'\n    });\n    this._probedKeyKind = null;\n    try {\n",
+   "old": "      expiryDate: expiry,\n      repo: appSettings['gh-repo']\n    });\n    try {\n"
+  },
+  {
+   "k": 32,
+   "new": "    if (input) input.value = '';\n    this.renderStatus(this.isViewingKey() ? 'Kitchen connection confirmed — a viewing key: this computer can view the kitchen’s lists but not send changes.' : 'Kitchen connection confirmed.', 'var(--forest)');\n  },\n",
+   "old": "    if (input) input.value = '';\n    this.renderStatus('Kitchen connection confirmed.', 'var(--forest)');\n  },\n"
+  },
+  {
+   "k": 33,
+   "new": "\n// ── One reader for the kitchen's files (2026-11-01, v31-standard.49) ───────────────────────────────────────────────────\n// Jason, 2026-11-01: \"go ahead with phase 2\" (DOOR resident-data privacy plan, D3 and D4). The repository is still public,\n// and DOOR read its own files from GitHub's raw file address with no key. Once the repository is private, those reads\n// fail on every computer. DOOR now reads its files here, and only here:\n//   - With this computer's saved key (not past its expiry date): the Contents API at ref=main, with the raw media type\n//     (the JSON type stops at 1 MB, and door_state.json grows with each resident's history), no-store and a timeout.\n//     A 404 means the file isn't there; a 401 is recorded so Settings shows it. A public feed the key can't read is\n//     read from Pages instead.\n//   - Without a key: a public feed (the seven files Pages serves) from DOOR's own Pages. A kitchen file from the raw URL\n//     as before, while DOOR_PUBLIC_RAW_FALLBACK is on and this computer isn't rehearsing; otherwise nothing ({noKey}).\n// The HOUSE pattern: EXPO reads its private HUB repository the same way (_readRemoteHubPayload). The key is PublishAuth's\n// (HOUSE_PROVEN_SEAMS row 4, DOOR owns it).\n// → {ok:true, data, via:'key'|'pages'|'raw'} | {absent:true} | {noKey:true} | {error, status}. Never throws.\nconst DOOR_PUBLIC_FEEDS = Object.freeze(['menu_current.json', 'routing_by_meal.json', 'registry_summary.json',\n  'meal_swaps.json', 'meal_swaps_reverted.json', 'special_meals.json', 'special_meals_removed.json']);\nconst DOOR_KITCHEN_FILES = Object.freeze(['door_state.json', 'recent_log.json', 'learned_nr.json', 'menu_overlay.json',\n  'change_log.json', 'rex_week_answers.json', 'custom_tag_rules.json']);\nconst DOOR_PUBLIC_RAW_FALLBACK = true; // until the repository is private; remove in phase 5\nconst DOOR_KITCHEN_READ_TIMEOUT_MS = 8000;\nconst DOOR_VIEWING_KEY_COPY = 'This computer can view the kitchen’s lists but not send changes (viewing key).';\n\n// The rehearsal switch (Settings): this computer reads as it will once the repository is private.\nfunction doorPrivateRehearsal() {\n  try { return localStorage.getItem('concPrivateRehearsal') === '1'; } catch (e) { return false; }\n}\n\n// DOOR's own Pages address for a file, from the repository setting. Relative when this page is served from there.\nfunction doorPagesUrl(repo, file) {\n  const parts = String(repo || '').split('/');\n  const owner = (parts[0] || '').toLowerCase(), name = parts[1] || '';\n  const bust = '?_=' + Date.now();\n  try {\n    if (typeof location !== 'undefined' && location.protocol === 'https:' && location.hostname === owner + '.github.io' &&\n        String(location.pathname || '').indexOf('/' + name + '/') === 0) return file + bust;\n  } catch (e) {}\n  return 'https://' + owner + '.github.io/' + name + '/' + file + bust;\n}\n\nasync function doorReadKitchenFile(file, opts) {\n  opts = opts || {};\n  let result = null;\n  try {\n    const auth = (typeof PublishAuth !== 'undefined') ? PublishAuth : null;\n    const repo = opts.repo || (auth && typeof auth.getRepo === 'function' && auth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';\n    const isPublic = DOOR_PUBLIC_FEEDS.indexOf(file) >= 0;\n    const ms = opts.timeoutMs || DOOR_KITCHEN_READ_TIMEOUT_MS;\n    const get = async (url, headers) => {\n      const ctl = (typeof AbortController === 'function') ? new AbortController() : null;\n      const timer = ctl ? setTimeout(() => { try { ctl.abort(); } catch (e) {} }, ms) : null;\n      try {\n        const init = { cache: 'no-store' };\n        if (headers) init.headers = headers;\n        if (ctl) init.signal = ctl.signal;\n        const res = await fetch(url, init);\n        if (res.ok) return { ok: true, data: await res.json() };\n        if (res.status === 404) return { absent: true };\n        return { error: 'HTTP ' + res.status, status: res.status };\n      } catch (e) { return { error: (e && e.message) || 'read failed', status: 0 }; }\n      finally { if (timer) clearTimeout(timer); }\n    };\n    const key = (auth && typeof auth.getSavedToken === 'function') ? auth.getSavedToken() : '';\n    const usable = !!key && !(typeof auth.isExpired === 'function' && auth.isExpired());\n    if (usable) {\n      const r = await get('https://api.github.com/repos/' + repo + '/contents/' + file + '?ref=main', {\n        'Authorization': 'Bearer ' + key, 'Accept': 'application/vnd.github.raw+json', 'X-GitHub-Api-Version': '2022-11-28' });\n      if (r.status === 401 && typeof auth.rememberFailure === 'function') {\n        auth.rememberFailure(typeof auth.classifyGitHubError === 'function' ? auth.classifyGitHubError(401, r.error) : r.error);\n      }\n      if (r.ok) result = { ok: true, data: r.data, via: 'key' };\n      else if (r.absent || !isPublic) result = r;\n    }\n    if (!result && isPublic) {\n      const r = await get(doorPagesUrl(repo, file));\n      result = r.ok ? { ok: true, data: r.data, via: 'pages' } : r;\n    }\n    if (!result) {\n      if (DOOR_PUBLIC_RAW_FALLBACK && !doorPrivateRehearsal()) {\n        const r = await get('https://raw.githubusercontent.com/' + repo + '/main/' + file + '?_=' + Date.now());\n        result = r.ok ? { ok: true, data: r.data, via: 'raw' } : r;\n      } else result = { noKey: true };\n    }\n  } catch (e) { result = { error: (e && e.message) || 'read failed', status: 0 }; }\n  doorNoteKitchenRead(file, result);\n  return result;\n}\n\n// What the last read of the resident list (door_state.json) gave, for the plating notice, the banner and Settings.\nfunction doorNoteKitchenRead(file, r) {\n  if (file !== 'door_state.json' || !r) return;\n  const kind = r.ok ? 'ok' : (r.noKey ? 'noKey' : (r.absent ? 'absent' : 'error'));\n  let was = null;\n  try {\n    was = localStorage.getItem('concKitchenListLastResult');\n    localStorage.setItem('concKitchenListLastResult', kind);\n    if (r.ok) {\n      localStorage.setItem('concKitchenListReadAt', new Date().toISOString());\n      localStorage.setItem('concKitchenListReadVia', r.via);\n    }\n  } catch (e) {}\n  if ((was === 'noKey') !== (kind === 'noKey') && typeof updateDailyImportPrompt === 'function') {\n    try { updateDailyImportPrompt(); } catch (e) {}\n  }\n  if (typeof doorRenderKitchenListReadLine === 'function') { try { doorRenderKitchenListReadLine(); } catch (e) {} }\n}\n\n// True when this computer's last try at the resident list found no key to read it with, and that still holds.\nfunction doorKitchenListUnreadable() {\n  try {\n    if (localStorage.getItem('concKitchenListLastResult') !== 'noKey') return false;\n    if (DOOR_PUBLIC_RAW_FALLBACK && !doorPrivateRehearsal()) return false;\n    const auth = (typeof PublishAuth !== 'undefined') ? PublishAuth : null;\n    const key = (auth && typeof auth.getSavedToken === 'function') ? auth.getSavedToken() : '';\n    return !(key && !(typeof auth.isExpired === 'function' && auth.isExpired()));\n  } catch (e) { return false; }\n}\n\n// When this computer last read the kitchen's resident list, in kitchen words.\nfunction doorKitchenListDateText() {\n  let at = null;\n  try { at = localStorage.getItem('concKitchenListReadAt'); } catch (e) {}\n  const d = at ? new Date(at) : null;\n  return (d && !isNaN(d.getTime())) ? d.toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'an unknown date';\n}\n\nconst DOOR_LIST_NEEDS_VIEWING_KEY = 'This computer can’t read the kitchen’s resident list — it needs a viewing key. Ask Jason.';\n\n// Settings: the rehearsal switch and the last read of the resident list.\nfunction doorSetPrivateRehearsal(on) {\n  try { if (on) localStorage.setItem('concPrivateRehearsal', '1'); else localStorage.removeItem('concPrivateRehearsal'); } catch (e) {}\n  doorRenderKitchenListReadLine();\n  if (typeof pullStateFromGitHub === 'function') pullStateFromGitHub(false); // read again the way this computer now reads\n}\nfunction doorRenderKitchenListReadLine() {\n  if (typeof document === 'undefined' || !document.getElementById) return;\n  const box = document.getElementById('door-private-rehearsal');\n  if (box) box.checked = doorPrivateRehearsal();\n  const el = document.getElementById('door-kitchen-list-read');\n  if (!el) return;\n  let at = null, via = null;\n  try { at = localStorage.getItem('concKitchenListReadAt'); via = localStorage.getItem('concKitchenListReadVia'); } catch (e) {}\n  const how = via === 'key' ? ' with this computer’s key.' : (via === 'raw' ? ' from the public repository, without a key.' : '.');\n  el.textContent = doorKitchenListUnreadable()\n    ? 'This computer can’t read the kitchen’s resident list — it needs a viewing key. Its list is from ' + doorKitchenListDateText() + '.'\n    : (at ? 'Resident list last read ' + doorKitchenListDateText() + how : 'This computer hasn’t read the kitchen’s resident list yet.');\n}\n\nfunction loadSettings() {\n",
+   "old": "\nfunction loadSettings() {\n"
+  },
+  {
+   "k": 34,
+   "new": "  PublishAuth.renderStatus();\n  doorRenderKitchenListReadLine(); // the rehearsal switch and the last read of the resident list (2026-11-01)\n}\n",
+   "old": "  PublishAuth.renderStatus();\n}\n"
+  },
+  {
+   "k": 35,
+   "new": "      e.status = res.status;\n      e.method = method; e.detail = err.message || ''; // which call, and GitHub's own words (2026-11-01)\n      throw e;\n",
+   "old": "      e.status = res.status;\n      throw e;\n"
+  },
+  {
+   "k": 36,
+   "new": "    }\n    // 2026-11-01: a write the key may not make (403, not a rate limit) means a viewing key — the second net behind the\n    // permissions probe at connect (PublishAuth.probeKeyKind).\n    if (e.status === 403 && e.method && e.method !== 'GET' && !/rate limit/i.test(e.detail || '') && typeof PublishAuth.noteViewingKey === 'function') PublishAuth.noteViewingKey();\n    else if (e.status === 401 || e.status === 403) PublishAuth.rememberFailure(e.message);\n    throw e;\n",
+   "old": "    }\n    if (e.status === 401 || e.status === 403) PublishAuth.rememberFailure(e.message);\n    throw e;\n"
+  },
+  {
+   "k": 37,
+   "new": "    const msg = PublishAuth.classifyGitHubError(res.status, err.message||res.statusText);\n    // 2026-11-01: a PUT refused with 403 (not a rate limit) marks a viewing key, as in the atomic publish.\n    if(res.status === 403 && !/rate limit/i.test(err.message || '') && typeof PublishAuth.noteViewingKey === 'function') PublishAuth.noteViewingKey();\n    else if(res.status === 401 || res.status === 403) PublishAuth.rememberFailure(msg);\n    throw new Error(msg);\n",
+   "old": "    const msg = PublishAuth.classifyGitHubError(res.status, err.message||res.statusText);\n    if(res.status === 401 || res.status === 403) PublishAuth.rememberFailure(msg);\n    throw new Error(msg);\n"
+  },
+  {
+   "k": 38,
+   "new": "  }\n  // 2026-11-01 (privacy plan phase 2): a viewing key reads but never writes. Skip before any read or write of the publish.\n  if (typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey()) {\n    if(statusEl){ statusEl.textContent='Not sent — ' + DOOR_VIEWING_KEY_COPY; statusEl.style.color='#92400e'; }\n    if(manual) showToast(DOOR_VIEWING_KEY_COPY);\n    return { skipped:true, reason:'viewing_key', message:'viewing key — this computer can view but not send' };\n  }\n  if(statusEl){ statusEl.textContent='Sending to the kitchen\\u2026'; statusEl.style.color='var(--forest-mid)'; }\n",
+   "old": "  }\n  if(statusEl){ statusEl.textContent='Sending to the kitchen\\u2026'; statusEl.style.color='var(--forest-mid)'; }\n"
+  },
+  {
+   "k": 39,
+   "new": "    console.error('GitHub publish failed:',err);\n    if (typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey()) { // a 403 just showed it (2026-11-01)\n      if(statusEl){ statusEl.textContent='Not sent \\u2014 ' + DOOR_VIEWING_KEY_COPY; statusEl.style.color='#92400e'; }\n      if(manual) showToast(DOOR_VIEWING_KEY_COPY);\n      throw err;\n    }\n    if(statusEl){ statusEl.textContent='Couldn\\u2019t send to the kitchen \\u2014 try again.'; statusEl.style.color='#dc2626'; }\n",
+   "old": "    console.error('GitHub publish failed:',err);\n    if(statusEl){ statusEl.textContent='Couldn\\u2019t send to the kitchen \\u2014 try again.'; statusEl.style.color='#dc2626'; }\n"
+  },
+  {
+   "k": 40,
+   "new": "    const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';\n    const r = await doorReadKitchenFile(REX_WEEK_ANSWERS_FILE, { repo, timeoutMs: 6000 });   // the one reader (2026-11-01)\n    if (r.ok) return doorApplyRemoteRexAnswers(r.data);\n  } catch (e) {}\n",
+   "old": "    const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';\n    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;\n    const t = ctl ? setTimeout(() => ctl.abort(), 6000) : null;\n    const res = await fetch('https://raw.githubusercontent.com/' + repo + '/main/' + REX_WEEK_ANSWERS_FILE + '?_=' + Date.now(), ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' });\n    if (t) clearTimeout(t);\n    if (res.ok) return doorApplyRemoteRexAnswers(await res.json());\n  } catch (e) {}\n"
+  },
+  {
+   "k": 41,
+   "new": "    const repo = settings['gh-repo'] || 'kennedyjasondavid-eng/conc-kitchen-door';\n    // 2026-11-01: every file through the one reader (doorReadKitchenFile); null when it can't be read, as before.\n    const read = (file) => doorReadKitchenFile(file, { repo }).then(r => (r && r.ok) ? r.data : null);\n\n    // menu_overlay.json\n    const _overlaySync = read('menu_overlay.json')\n      .then(remote => {\n",
+   "old": "    const repo = settings['gh-repo'] || 'kennedyjasondavid-eng/conc-kitchen-door';\n    const base = 'https://raw.githubusercontent.com/' + repo + '/main/';\n    const bust = '?_=' + Date.now();\n\n    // menu_overlay.json\n    const _overlaySync = fetch(base + 'menu_overlay.json' + bust)\n      .then(r => r.ok ? r.json() : null)\n      .then(remote => {\n"
+  },
+  {
+   "k": 42,
+   "new": "    // wiped by a stale cloud copy.\n    const _currentSync = read('menu_current.json')\n      .then(remote => {\n",
+   "old": "    // wiped by a stale cloud copy.\n    const _currentSync = fetch(base + 'menu_current.json' + bust)\n      .then(r => r.ok ? r.json() : null)\n      .then(remote => {\n"
+  },
+  {
+   "k": 43,
+   "new": "    Promise.allSettled([\n      read('menu_overlay.json'),\n      read('door_state.json'),\n    ]).then(()=>{ _ghHydrated = true; }).catch(()=>{ _ghHydrated = true; });\n",
+   "old": "    Promise.allSettled([\n      fetch(base+'menu_overlay.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),\n      fetch(base+'door_state.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null),\n    ]).then(()=>{ _ghHydrated = true; }).catch(()=>{ _ghHydrated = true; });\n"
+  },
+  {
+   "k": 44,
+   "new": "    // The revert list, then the swaps (2026-10-18): a swap reverted on another computer leaves this one too.\n    read('meal_swaps_reverted.json')\n      .then(rev=>read('meal_swaps.json').then(d=>doorApplyRemoteSwaps(d, rev)))\n      .catch(()=>{});\n    read('rex_week_answers.json').then(d=>{ if(d) doorApplyRemoteRexAnswers(d); }).catch(()=>{});\n    read('special_meals_removed.json')\n      .then(rem=>read('special_meals.json').then(d=>doorApplyRemoteSpecials(d, rem)))\n      .catch(()=>{});\n    read('recent_log.json').then(remote=>{\n      if(!remote||!Array.isArray(remote))return;\n",
+   "old": "    // The revert list, then the swaps (2026-10-18): a swap reverted on another computer leaves this one too.\n    fetch(base+'meal_swaps_reverted.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null)\n      .then(rev=>fetch(base+'meal_swaps.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>doorApplyRemoteSwaps(d, rev)))\n      .catch(()=>{});\n    fetch(base+'rex_week_answers.json'+bust).then(r=>r.ok?r.json():null).then(d=>{ if(d) doorApplyRemoteRexAnswers(d); }).catch(()=>{});\n    fetch(base+'special_meals_removed.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null)\n      .then(rem=>fetch(base+'special_meals.json'+bust).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>doorApplyRemoteSpecials(d, rem)))\n      .catch(()=>{});\n    fetch(base+'recent_log.json'+bust).then(r=>r.ok?r.json():null).then(remote=>{\n      if(!remote||!Array.isArray(remote))return;\n"
+  },
+  {
+   "k": 45,
+   "new": "    // back if local has entries the cloud lacks.\n    read('change_log.json')\n      .then(remote => {\n",
+   "old": "    // back if local has entries the cloud lacks.\n    fetch(base + 'change_log.json' + bust)\n      .then(r => r.ok ? r.json() : null)\n      .then(remote => {\n"
+  },
+  {
+   "k": 46,
+   "new": "    // custom_tag_rules.json\n    read('custom_tag_rules.json')\n      .then(remote => {\n",
+   "old": "    // custom_tag_rules.json\n    fetch(base + 'custom_tag_rules.json' + bust)\n      .then(r => r.ok ? r.json() : null)\n      .then(remote => {\n"
+  },
+  {
+   "k": 47,
+   "new": "                 || 'kennedyjasondavid-eng/conc-kitchen-door';\n    // 2026-11-01: through the one reader, keeping the 3 s limit.\n    doorReadKitchenFile('learned_nr.json', { repo, timeoutMs: 3000 })\n      .then(r => (r && r.ok) ? r.data : null)\n      .then(remote => {\n",
+   "old": "                 || 'kennedyjasondavid-eng/conc-kitchen-door';\n    const url = 'https://raw.githubusercontent.com/' + repo + '/main/learned_nr.json?_=' + Date.now();\n    const controller = new AbortController();\n    const tid = setTimeout(() => controller.abort(), 3000);\n    fetch(url, { signal: controller.signal })\n      .then(res => { clearTimeout(tid); return res.ok ? res.json() : null; })\n      .then(remote => {\n"
+  },
+  {
+   "k": 48,
+   "new": "  } else {\n    // No local state — a quiet pull of the kitchen's list through the one reader (2026-11-01): with this computer's key,\n    // or the raw URL while the repository is public. No key and no fallback: say so (the line below).\n    const repo = (typeof appSettings !== 'undefined' && appSettings['gh-repo']) || 'kennedyjasondavid-eng/conc-kitchen-door';\n    let noKey = false;\n    doorReadKitchenFile('door_state.json', { repo })\n      .then(r => { if (r.error) throw new Error(r.error); noKey = !!r.noKey; return r.ok ? r.data : null; })\n      .then(state => {\n",
+   "old": "  } else {\n    // No local state — try silent pull from public GitHub repo (raw URL — no auth, no CORS)\n    const repo = (typeof appSettings !== 'undefined' && appSettings['gh-repo']) || 'kennedyjasondavid-eng/conc-kitchen-door';\n    fetch('https://raw.githubusercontent.com/' + repo + '/main/door_state.json?_=' + Date.now())\n      .then(r => r.ok ? r.json() : null)\n      .then(state => {\n"
+  },
+  {
+   "k": 49,
+   "new": "          updateDailyImportPrompt();\n        } else if (noKey) {\n          updateSyncBar(DOOR_LIST_NEEDS_VIEWING_KEY, '#dc2626');\n        } else {\n",
+   "old": "          updateDailyImportPrompt();\n        } else {\n"
+  },
+  {
+   "k": 50,
+   "new": "// with no residents that reads as finished (2026-10-31, when the built-in list left this page).\n// 2026-11-01: a computer whose last try at the kitchen's list found no key says that too, with the date of the list it\n// holds, even when that list has residents: it may be out of date (privacy plan phase 2).\nfunction doorNoResidentListNoticeHTML() {\n  const noKey = (typeof doorKitchenListUnreadable === 'function') && doorKitchenListUnreadable();\n  if (REGISTRY_LIST.length && !noKey) return '';\n  const box = '<div class=\"door-no-resident-list\" role=\"alert\" style=\"margin:0 0 12px;padding:10px 14px;border:2px solid #dc2626;border-radius:6px;background:#fef2f2;color:#991b1b;font-weight:600;font-size:13px;\">';\n  if (noKey) return box + 'This computer can’t get the kitchen’s resident list — it needs a viewing key. The list here is from ' +\n    escapeHtml(doorKitchenListDateText()) + '.' + (REGISTRY_LIST.length ? '' : ' These sheets show no residents.') + '</div>';\n  return box +\n    'No resident list on this computer — these sheets show no residents. Press ↻ Refresh list on Enter Changes when online, or ↑ Import Daily List.</div>';\n",
+   "old": "// with no residents that reads as finished (2026-10-31, when the built-in list left this page).\nfunction doorNoResidentListNoticeHTML() {\n  if (REGISTRY_LIST.length) return '';\n  return '<div class=\"door-no-resident-list\" role=\"alert\" style=\"margin:0 0 12px;padding:10px 14px;border:2px solid #dc2626;border-radius:6px;background:#fef2f2;color:#991b1b;font-weight:600;font-size:13px;\">' +\n    'No resident list on this computer — these sheets show no residents. Press ↻ Refresh list on Enter Changes when online, or ↑ Import Daily List.</div>';\n"
+  }
+ ]
+}

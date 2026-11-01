@@ -215,7 +215,8 @@ test('review P2: every swap and special-meal "today" is the kitchen\'s local day
     'renderSpecialsBanner', 'clearPastSpecials', 'clearPastSwaps', 'applyMealSwap', 'makePermanent', 'revertMealSwap', 'executeSlotSwap', 'openMealEdit', '_finishMenuSave', 'getMealForDate']) {
     assert.doesNotMatch(fn(name), /toISOString\(\)\.slice\(0, ?10\)/, name + ' reads a UTC date');
   }
-  assert.doesNotMatch(between("fetch(base+'meal_swaps.json'+bust)", '\n'), /toISOString/, 'the boot swap sync');
+  // Re-pinned 2026-11-01 (v31-standard.49): the boot sync reads through the one reader (rev=>read('meal_swaps.json')).
+  assert.doesNotMatch(between("rev=>read('meal_swaps.json')", '\n'), /toISOString/, 'the boot swap sync');
 });
 
 test('review P2: today\'s sections follow the resident list; the previews list 813', () => {

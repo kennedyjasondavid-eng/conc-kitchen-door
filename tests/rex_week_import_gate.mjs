@@ -247,7 +247,8 @@ test('12. "Keep DOOR’s" answers reach every DOOR computer (2026-10-29, Jason: 
   // a "keep" taken back is a dated record, never a delete
   const fnText = (n) => { const i = html.indexOf('function ' + n + '('); return html.slice(i, html.indexOf('\n}\n', i)); };
   assert.ok(html.includes("['rex_week_answers.json', d => doorApplyRemoteRexAnswers(d)]"), 'pullSecondaryState reads it');
-  assert.ok(html.includes("fetch(base+'rex_week_answers.json'+bust)"), 'boot reads it');
+  // Re-pinned 2026-11-01 (v31-standard.49): boot reads it through the one reader (read(...), doorReadKitchenFile).
+  assert.ok(html.includes("read('rex_week_answers.json').then(d=>{ if(d) doorApplyRemoteRexAnswers(d); })"), 'boot reads it');
   assert.ok(/await doorPullRexAnswers\(\); if \(Object\.keys\(_rexA\)\.length\) _push\('rex_week_answers\.json'/.test(fnText('_doPublishToGitHub')), 'every publish sends it, merged first');
   assert.ok(/doorPullRexAnswers\(\)\.then\(\(\) => doorOpenRexWeekReview/.test(fnText('triggerRexWeekUpload')), 'the review pulls it first');
   assert.ok(/sidePublish\(REX_WEEK_ANSWERS_FILE/.test(fnText('doorPushRexAnswers')) && /doorPullRexAnswers\(\)/.test(fnText('doorPushRexAnswers')), 'an answer is sent, merged first');

@@ -77,7 +77,9 @@ test('3. the page has no built-in resident list, anaphylactic room or invented l
   assert.equal(roomLiterals, 0, 'the page holds ' + roomLiterals + ' room: literal(s)');
   const log = html.slice(html.indexOf('function buildRecentLog() {'), html.indexOf('function saveRecentLog() {'));
   assert.ok(/return \[\];\s*\}\s*$/.test(log), 'a new computer must start with an empty recent log');
-  assert.ok(/function doorNoResidentListNoticeHTML\(\) \{\n\s*if \(REGISTRY_LIST\.length\) return '';/.test(html), 'the no-list notice is missing');
+  // Re-pinned 2026-11-01 (v31-standard.49, privacy plan phase 2): the notice also shows, with a list, when this computer's
+  // last try at the kitchen's list found no key (tests/kitchen_reader_gate.mjs (h)); an empty list still always shows it.
+  assert.ok(/function doorNoResidentListNoticeHTML\(\) \{\n\s*const noKey = [^\n]*doorKitchenListUnreadable\(\);\n\s*if \(REGISTRY_LIST\.length && !noKey\) return '';/.test(html), 'the no-list notice is missing');
   assert.ok(/preview\.innerHTML = doorNoResidentListNoticeHTML\(\) \+ buildPlatingHtml\(pd, false\)/.test(html), 'the plating sheet must show the notice');
   assert.ok(!/Using the built-in resident list/.test(html), 'there is no built-in resident list to use');
 });
