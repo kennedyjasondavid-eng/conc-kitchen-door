@@ -115,6 +115,20 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
       '  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); the raw CDN can still hold a copy for ~5 min.']
   ];
   let normal=html.replace(/\r\n/g,'\n');
+  // 2026-11-01: isolate the room inputs from saved connection-key credentials. Require and put back
+  // only these exact HTML edits before the older privacy/Corn checks; keep their fixtures and digests intact.
+  const roomAutofill=[
+    ["                <!-- Separate form ownership keeps room fields out of connection-key login heuristics. -->\n                <form id=\"door-room-entry\" autocomplete=\"off\" onsubmit=\"return false;\"></form>\n",
+      ""],
+    ["<input type=\"text\" id=\"room-number\" name=\"resident-room\" form=\"door-room-entry\" autocomplete=\"off\" placeholder=\"e.g. 614a\" oninput=\"onRoomInput(this.value)\">",
+      "<input type=\"text\" id=\"room-number\" placeholder=\"e.g. 614a\" oninput=\"onRoomInput(this.value)\">"],
+    ["<input type=\"text\" id=\"room-dest\" name=\"destination-room\" form=\"door-room-entry\" autocomplete=\"off\" placeholder=\"e.g. 101b\" oninput=\"onDestInput(this.value)\">",
+      "<input type=\"text\" id=\"room-dest\" placeholder=\"e.g. 101b\" oninput=\"onDestInput(this.value)\">"]
+  ];
+  for(const [current,prior] of roomAutofill){
+    assert.equal(normal.split(current).length-1,1,'expected exactly one authorized room-autofill edit: '+current);
+    normal=normal.replace(current,prior);
+  }
   // 2026-10-31 (v31-standard.48, Jason: "go ahead with phase 1, the Pages allowlist PR"): the page stopped carrying
   // residents (the built-in list, the built-in anaphylactic room, the invented first-run log, room numbers in comments).
   // The old bytes are resident records, so they can't be put back from a fixture without committing them again. Each
