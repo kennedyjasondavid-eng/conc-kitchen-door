@@ -11,6 +11,7 @@ import crypto from 'node:crypto';
 import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
 import { withBaggedNightshadesReview } from './helpers/bagged_curry_nightshades_review.mjs';
 import { putBackRexMenuChanges, rexMealDay } from './helpers/rex_menu_changes_2026-10-30.mjs';
+import { putBackMenuChanges20261031 } from './helpers/menu_changes_2026-10-31.mjs';
 const read = f => JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'));
 // Separate safety-review correction; the original Corn fixture is unchanged.
 const F=withBaggedNightshadesReview(read('tests/fixtures/corn_recipe_alignment_2026-10-22.json'));
@@ -72,8 +73,15 @@ test('vegan-only Corn never becomes a regular meal tick; existing Corn and uncer
 });
 test('putting back only the nine Corn booleans recovers every menu/overlay content field',()=>{
   // Re-pinned 2026-10-30 (Mat's Rexdale menu changes, a later owning edit): its five days are put back first.
-  assert.equal(hash(putBack(putBackRexMenuChanges(menu,'menu'),'menu')),F.digests.menuBefore,'menu content moved beyond the Corn ticks');
-  assert.equal(hash(omitMeta(putBack(putBackRexMenuChanges(overlay,'overlay'),'overlay'))),F.digests.overlayBefore,'overlay content moved beyond the Corn ticks');
+  // Re-pinned 2026-11-01 (DOOR's menu publish of 2026-10-31 18:37Z, Jason's own edit): Wk1 THU dinner's main reads
+  // "Spiced Roast Chicken Legs". Reviewed: not a Corn meal; the main slot's Gluten, Sulphites and Beans ticks came off,
+  // and the couscous and the shakshuka still carry them, so the meal's ticks and allergen line are unchanged; the
+  // routing renames the dish with the same 157 portions. Its fields are put back first, newest edit first. A dated
+  // put-back, not frozen copies of the two files: this check reads the live menu so that content outside the Corn
+  // ticks can't change without a reviewed, dated owning edit.
+  const prior=(w,which)=>putBackRexMenuChanges(putBackMenuChanges20261031(w,which),which);
+  assert.equal(hash(putBack(prior(menu,'menu'),'menu')),F.digests.menuBefore,'menu content moved beyond the Corn ticks');
+  assert.equal(hash(omitMeta(putBack(prior(overlay,'overlay'),'overlay'))),F.digests.overlayBefore,'overlay content moved beyond the Corn ticks');
 });
 test('a fresh tablet sweep preserves every regular/shared/halal Corn tick',()=>{
   const report=J(R.sweep(overlay));
