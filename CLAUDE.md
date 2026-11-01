@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-10-31'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-11-01'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/ — Pages serves only the app and the files other apps read (`.github/workflows/pages.yml`, since 2026-10-31; README "What GitHub Pages serves").
 
@@ -52,6 +52,64 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-11-01) — DOOR reads its own files through one reader; viewing keys; it says when it can't read the list (`v31-standard.49`)
+Jason, 2026-11-01: "go ahead with phase 2" (the resident-data privacy plan, D3 and D4). The repository is still public. Phase 2 makes DOOR ready for it to be private, and nothing changes for a computer until then, except that a computer with a key now reads through the Contents API.
+- **One reader:** `doorReadKitchenFile(file, opts)`, beside `PublishAuth` (HOUSE seam row 4, DOOR owns it). It ports EXPO's `_readRemoteHubPayload`, which reads EXPO's private HUB repository. It returns `{ok, data, via: 'key'|'pages'|'raw'}`, `{absent}`, `{noKey}` or `{error, status}`, and never throws.
+  - **With a saved key that hasn't expired:** the Contents API at `ref=main`, with `Accept: application/vnd.github.raw+json` (the JSON type stops at 1 MB), no-store and an 8 s timeout. The 3 s and 6 s timeouts of `bootLearnedNR` and `doorPullRexAnswers` are kept. A 404 is `{absent}`. A 401 is recorded for Settings. A public feed the key can't read comes from Pages.
+  - **Without a key:** a public feed (`DOOR_PUBLIC_FEEDS`, the seven JSON files Pages serves) comes from DOOR's Pages: a relative URL on Pages, the absolute URL from `file://`. A kitchen file (`DOOR_KITCHEN_FILES`) comes from the raw URL while `DOOR_PUBLIC_RAW_FALLBACK = true` and the computer isn't rehearsing. Otherwise the reader returns `{noKey}` and makes no request.
+  - **Raw or Pages 404:** read as `{absent}`, as before (both are public).
+  - **The eight keyless sites call it:**
+    - `bootRemoteState` (its 12 reads);
+    - `bootLearnedNR`;
+    - `bootRegistry`;
+    - `pullStateFromGitHub`;
+    - `pullSecondaryState` (11 files);
+    - `doorFetchRemoteRegistryMeta` (the P5 guard);
+    - `doorMakeRevertList` (the revert lists);
+    - `doorPullRexAnswers`.
+
+    The apply and merge logic and its order are unchanged. `raw.githubusercontent.com` is left only in the reader and in CODEX's Settings placeholder. CODEX's own reads are untouched.
+  - **`pullStateFromGitHub`:** "Nothing to get yet" shows only on `{absent}`. `{noKey}` says "This computer can't read the kitchen's resident list — it needs a viewing key. Ask Jason." An error gives the existing "Couldn't get the latest".
+  - **`doorFetchRemoteRegistryMeta`:** null on noKey, absent or an error answer. No answer at all (offline) still throws, as the fetch did, so `doorTakeNewerKitchenList` still says `unchecked`; `anaph_list_reaches_gate` 7 pins this.
+  - **What it remembers:** the last read of `door_state.json` (`concKitchenListLastResult`, `concKitchenListReadAt`, `concKitchenListReadVia`).
+- **Viewing keys:** the same one-repository key with Contents **read-only** (README admin section).
+  - **Telling the two apart:** each connect path's `validateToken` also asks `GET /repos/<repo>` (`probeKeyKind`). `permissions.push === false` stores `keyKind: 'viewing'` in the key's metadata; anything else is `'sending'`, as every key was. This is **not yet verified on a real viewing key**; check it in the rehearsal (plan phase 3).
+  - **The second net:** a write refused with 403 (not a rate limit, not on a GET) marks the key viewing (`PublishAuth.noteViewingKey`), in the atomic publish and in `ghPushFile`.
+  - **Publishing:** a viewing key skips before any read or write, with the new skip reason `viewing_key` ("This computer can view the kitchen's lists but not send changes (viewing key)."). So do side publishes and the outbox drain.
+  - **What staff see:** Settings says "Connected to view the kitchen's lists (viewing key)". The P1 banner gives a viewing computer one quiet grey line, or the reason in red if it has work that won't reach the kitchen.
+  - **The first-run card:** "Skip — this computer will only read menus"; without a key a computer sees menus only and needs a viewing key from Jason to see residents.
+- **When the list can't be read** (the last read was `{noKey}` and the computer still has no key):
+  - **Plating sheet:** the red, printed notice (`doorNoResidentListNoticeHTML`) says "This computer can't get the kitchen's resident list — it needs a viewing key. The list here is from <date>", even when the computer holds a list.
+  - **Enter Changes banner:** the same reason, in red.
+  - **Generate:** asks first through `doorAsk` ("Generate from this computer's list from <date>?"; **Go back** is the default and stops; **Generate anyway**).
+  - **Saved data:** nothing is wiped.
+- **Rehearsal switch:** Settings → Kitchen connection → Advanced connection setup → "Rehearse a private kitchen repository on this computer" (`concPrivateRehearsal`). On, the raw fallback is off for this computer only; it reads again at once, and Settings shows when and how the list was last read.
+- **Gate:** `tests/kitchen_reader_gate.mjs` (15), red 15/15 on `6fd8829`, and red on each of nine one-line mutants of the branch. It checks:
+  - (a) the keyed request, absent, 401 and the Pages fallback;
+  - (b) the Pages address for each public feed, against `pages.yml`;
+  - (c) raw while the fallback is on, and noKey with no fetch when rehearsing or with it off;
+  - (d) the source scan of the eight sites;
+  - (e) the key kind, the `viewing_key` skip with no read or write, the 403 net and the banner;
+  - (f) the three `pullStateFromGitHub` messages;
+  - (g) the P5 guard on two keyed computers through the Contents API, with a newer list adopted;
+  - (h) the notice, Generate's question, the banner reason, the rehearsal switch and the first-run words.
+
+  Every resident in it is made up.
+- **Re-pinned with dated notes (the old transport only):**
+  - `tests/helpers/door_two_computers.mjs` runs the reader (its computers have no key, so they read the raw URL as before);
+  - `swap_revert_reaches_gate` 4 runs the reader, and 4c and 5 scan the boot lines;
+  - `anaph_matrix_gate` (the boot swap line);
+  - `rex_week_import_gate` 12 (the boot line);
+  - `pages_served_privacy_gate` 3 (the notice's first lines);
+  - `corn_recipe_alignment_gate`'s whole-page digest, which now puts the phase-1 page back first, byte for byte (`tests/fixtures/keyed_reads_putback_2026-11-01.json`: 50 `{new, old}` hunks from `git diff -U0` against `6fd8829`). The round trip is exact, the fixture holds no room from today's list, and a changed byte inside or outside the hunks still fails it.
+- **Results:**
+  - Suite 576 → 591. The local failures are the same 5 as `main`; they need a CODEX checkout beside DOOR. Test 76, the Corn booleans, is green on `main` since the 2026-11-01 re-pin.
+  - Browser, not in CI: real Chromium from `file://` at 1280 and 390 px, every request routed (the Contents API served made-up files, Pages the public feeds, raw blocked). 74/74 across a sending key, a viewing key (publish skipped, no write), no key while rehearsing (the plain state, Generate asks, Go back stops) and no key otherwise (raw tried, the existing error lines, the same as `main`). No page errors.
+- **Open, for Jason:**
+  - Confirm `permissions.push` on a real viewing key (phase 3).
+  - With a key, a kitchen-file read that errors (a 401, say) doesn't fall back to raw; a public feed does.
+  - Phase 5 removes `DOOR_PUBLIC_RAW_FALLBACK` and the rehearsal switch.
 
 ## Recent (2026-10-31) — Pages serves only the app and its feeds; the page carries no resident (`v31-standard.48`)
 Jason, 2026-10-31: "go ahead with phase 1, the Pages allowlist PR". Pages is public, and stays public when a repository is private, so what it serves is decided file by file.

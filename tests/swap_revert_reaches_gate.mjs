@@ -94,7 +94,10 @@ function revertList(stored, remote) {
     Date, JSON, Object, Set, String, Array, Promise,
   };
   vm.createContext(ctx);
+  // Re-pinned 2026-11-01 (v31-standard.49, privacy plan phase 2): the kitchen's list is read through the one reader
+  // (doorReadKitchenFile; with no key here, from Pages), so the reader runs here too; fetch above still answers it.
   vm.runInContext(between('/* DOOR_TESTABLE_CORE_START swap-store */', '/* DOOR_TESTABLE_CORE_END swap-store */') + '\n' +
+    between('const DOOR_PUBLIC_FEEDS = ', '// Settings: the rehearsal switch') + '\n' +
     fnBlock('doorMakeRevertList') + '\nvar R = doorMakeRevertList("concRevertedSwapKeys", "meal_swaps_reverted.json", "Swap reverts");', ctx);
   const flush = async () => { for (const f of timers.splice(0)) await f(); };
   return { R: ctx.R, store, sent, flush };
@@ -160,7 +163,8 @@ test('4c. review P2: a special meal removed on one computer is removed on every 
   const pull = fnBlock('pullSecondaryState');
   const iRem = pull.indexOf("['special_meals_removed.json'"), iSm = pull.indexOf("['special_meals.json'");
   assert.ok(iRem > 0 && iSm > iRem && /doorApplyRemoteSpecials\(d, null\)/.test(pull), 'the sync reads the removal list first');
-  assert.match(between("fetch(base+'special_meals_removed.json'+bust)", '.catch(()=>{});'), /doorApplyRemoteSpecials\(d, rem\)/, 'and so does the boot sync');
+  // Re-pinned 2026-11-01 (v31-standard.49): the boot sync reads through the one reader (read(...), doorReadKitchenFile).
+  assert.match(between("read('special_meals_removed.json')\n      .then(rem=>", '.catch(()=>{});'), /read\('special_meals\.json'\)\.then\(d=>doorApplyRemoteSpecials\(d, rem\)\)/, 'and so does the boot sync');
   assert.match(fnBlock('_doPublishToGitHub'), /_push\('special_meals_removed\.json', JSON\.stringify\(loadSpecialRemovals\(\)/);
   assert.match(between('const ALLOW_SHRINK_PATHS', '\n'), /'special_meals_removed\.json'/);
 });
@@ -188,8 +192,9 @@ test('5. the publish sends the revert list; every sync reads it before the swaps
   const iRev = pull.indexOf("['meal_swaps_reverted.json'"), iSw = pull.indexOf("['meal_swaps.json'");
   assert.ok(iRev > 0 && iSw > iRev, 'pullSecondaryState reads the revert list first');
   assert.match(pull.slice(iSw, iSw + 200), /doorApplyRemoteSwaps\(d, null\)/);
-  const boot = between("fetch(base+'meal_swaps_reverted.json'+bust)", '.catch(()=>{});');
-  assert.match(boot, /fetch\(base\+'meal_swaps\.json'\+bust\)[\s\S]*doorApplyRemoteSwaps\(d, rev\)/, 'the boot sync reads the revert list, then the swaps');
+  // Re-pinned 2026-11-01 (v31-standard.49): the boot sync reads through the one reader (read(...), doorReadKitchenFile).
+  const boot = between("read('meal_swaps_reverted.json')\n      .then(rev=>", '.catch(()=>{});');
+  assert.match(boot, /read\('meal_swaps\.json'\)\.then\(d=>doorApplyRemoteSwaps\(d, rev\)\)/, 'the boot sync reads the revert list, then the swaps');
   assert.doesNotMatch(html, /REVERTED_SWAP_KEYS\.has\(k\)\)\s*delete/, 'no merge strips by key alone any more');
   assert.match(fnBlock('doorApplyRemoteSwaps'), /doorMergeSwapStores\(loadMealSwaps\(\), remote, REVERTED_SWAP_KEYS\.toPublished\(\), today\)/);
 });

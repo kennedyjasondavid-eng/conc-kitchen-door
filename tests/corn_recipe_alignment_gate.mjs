@@ -115,6 +115,23 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
       '  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); the raw CDN can still hold a copy for ~5 min.']
   ];
   let normal=html.replace(/\r\n/g,'\n');
+  // 2026-11-01 (v31-standard.49, Jason: "go ahead with phase 2"): one reader for the kitchen's files, viewing keys and
+  // the plain state when the list can't be read. The page was resident-free before this change, so this is a true
+  // put-back: each hunk's new text is replaced with its old text, in order, searching forward from the previous one
+  // (tests/fixtures/keyed_reads_putback_2026-11-01.json, from git diff -U0 against 6fd8829 with one line of context).
+  // That gives 6fd8829's page byte for byte, and the steps below run on it unchanged. tests/kitchen_reader_gate.mjs
+  // reviews the change itself.
+  const keyed=JSON.parse(fs.readFileSync(new URL('./fixtures/keyed_reads_putback_2026-11-01.json',import.meta.url),'utf8'));
+  if(normal.includes('\n'+keyed.hunks[0].new)){
+    let pos=0;
+    for(const h of keyed.hunks){
+      const i=normal.indexOf('\n'+h.new,pos);
+      assert.ok(i>=0,'the 2026-11-01 change #'+h.k+' is not where it was');
+      const s=i+1;
+      normal=normal.slice(0,s)+h.old+normal.slice(s+h.new.length);
+      pos=s+h.old.length-1;
+    }
+  }
   // 2026-11-01: isolate the room inputs from saved connection-key credentials. Require and put back
   // only these exact HTML edits before the older privacy/Corn checks; keep their fixtures and digests intact.
   const roomAutofill=[

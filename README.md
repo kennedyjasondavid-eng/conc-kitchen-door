@@ -143,7 +143,24 @@ Staff never deal with GitHub. Each computer that publishes needs one **connectio
 5. Give the key to the device once. Staff paste it into the **Connect** card that appears on Enter Changes whenever a computer cannot publish (or under Settings → GitHub connection → Test & Save). DOOR strips paste artifacts (smart quotes, invisible characters) before use.
 6. If a computer is lost or replaced, revoke that key on GitHub. Because it is scoped to this one repo with contents-only rights, that is the whole blast radius.
 
-Why this shape: the repo is public, so any key pasted into a public page can write to it. Scoping the key to one repo and one permission limits what a leaked key can do; per-device issuance means one revocation retires one machine. The longer-term answer for staff is Microsoft 365 sign-in (HOUSE build-path phase 6), after which no key is needed at all.
+**Viewing keys (since 2026-11-01, `v31-standard.49`).** A computer that shows plating sheets but never sends changes gets a **viewing key** instead. Issue it the same way, with two differences:
+
+1. Permissions: **Contents: Read-only** (and nothing else). Repository access: only `conc-kitchen-door`.
+2. Expiration: up to one year, as for a connection key. Staff paste it into the same Connect card or Settings field.
+
+What each kind of key does:
+
+| Key | Reads the kitchen's lists (residents included) | Sends changes | What DOOR says |
+|---|---|---|---|
+| Connection key (Contents: Read and write) | yes, through the Contents API | yes | "This computer is connected to the kitchen" |
+| Viewing key (Contents: Read-only) | yes, through the Contents API | no; Publish skips before any write | "Connected to view the kitchen's lists (viewing key)"; a skipped send says "This computer can view the kitchen's lists but not send changes (viewing key)." |
+| No key | menus and counts, from DOOR's Pages; the resident list only while the repository is public | no | Once the repository is private (or while rehearsing): the plating sheet and Enter Changes say it needs a viewing key, with the date of the list it holds, and Generate asks first. |
+
+DOOR tells the two kinds apart when the key is saved (`permissions.push` from `GET /repos/<repo>`; still to be confirmed on a real viewing key in the rehearsal) and, as a second net, from a 403 on a write.
+
+**Rehearsing a private repository on one computer.** Settings → Kitchen connection → Advanced connection setup → **Rehearse a private kitchen repository on this computer**. On, this computer reads the resident list only with its own key, as every computer will once the repository is private; Settings shows when the list was last read and how. Turn it off to go back. It changes nothing on any other computer.
+
+Why this shape: the repo will be private (the resident-data privacy plan), and any key pasted into a public page can read it, and write to it if it is a connection key. Scoping the key to one repo and one permission limits what a leaked key can do; per-device issuance means one revocation retires one machine. The longer-term answer for staff is Microsoft 365 sign-in (HOUSE build-path phase 6), after which no key is needed at all.
 
 ### Related apps
 

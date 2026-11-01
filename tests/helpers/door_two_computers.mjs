@@ -28,8 +28,13 @@ export const intake = (room, tags) => ({ room, type: 'intake', tags, route: 'Reg
 // extraSrc: declarations those writers need; ctx(c): more sandbox globals, given the computer being built.
 export function twoComputers(html, { fns = [], optFns = [], extraSrc = '', ctx = () => ({}) } = {}) {
   const { between, fn, has, fnOpt } = doorSource(html);
+  // Re-pinned 2026-11-01 (v31-standard.49, privacy plan phase 2): pullStateFromGitHub and doorFetchRemoteRegistryMeta
+  // read door_state.json through the one reader (doorReadKitchenFile), so the reader and its constants run here too.
+  // These computers have no key, so the reader goes to the raw URL as before, and fetchStub below still answers it;
+  // ctx() can give a computer a key (tests/kitchen_reader_gate.mjs (g)).
+  const READER = html.includes('const DOOR_PUBLIC_FEEDS = ') ? between('const DOOR_PUBLIC_FEEDS = ', '// Settings: the rehearsal switch') : '';
   const SRC = [
-    html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0], between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('),
+    html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0], between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('), READER,
     fn('getRegistryProvenanceTs'), fn('setRegistryProvenance'), fn('doorRegistryDataTs'), fn('doorRegistrySyncShouldSkip'),
     fn('doorFetchRemoteRegistryMeta'), fn('doorRegistryPublishGate'), fnOpt('doorTakeNewerKitchenList'), fn('doorRegistryPublishPreflight'),
     fn('pullStateFromGitHub'), fn('saveRegistryState'), fn('dedupeRegistryList'), fn('buildStateJSON'),
