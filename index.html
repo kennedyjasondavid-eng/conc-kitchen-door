@@ -1058,7 +1058,9 @@ function updateCODEXBadge() {
               </div>
               <div class="form-group">
                 <label>Room Number</label>
-                <input type="text" id="room-number" placeholder="e.g. 614a" oninput="onRoomInput(this.value)">
+                <!-- Separate form ownership keeps room fields out of connection-key login heuristics. -->
+                <form id="door-room-entry" autocomplete="off" onsubmit="return false;"></form>
+                <input type="text" id="room-number" name="resident-room" form="door-room-entry" autocomplete="off" placeholder="e.g. 614a" oninput="onRoomInput(this.value)">
                 <div class="room-lookup-card" id="room-lookup"></div>
               </div>
             </div>
@@ -1067,7 +1069,7 @@ function updateCODEXBadge() {
             <div id="switch-dest-row" style="display:none" class="form-row">
               <div class="form-group" style="flex:0 0 50%">
                 <label>Destination Room</label>
-                <input type="text" id="room-dest" placeholder="e.g. 101b" oninput="onDestInput(this.value)">
+                <input type="text" id="room-dest" name="destination-room" form="door-room-entry" autocomplete="off" placeholder="e.g. 101b" oninput="onDestInput(this.value)">
                 <div class="room-lookup-card" id="dest-lookup"></div>
               </div>
               <div class="form-group" style="flex:1; padding-top:26px; font-size:13px; color:var(--muted);">
