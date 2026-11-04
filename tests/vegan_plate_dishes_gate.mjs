@@ -9,6 +9,7 @@
 // Runs the REAL functions from index.html in a vm. Authored to fail on a295eca (v31-standard.28).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mealDay, linksVegan } from './helpers/meal_where.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -122,7 +123,9 @@ test('computePlatingData merges the vegan line\'s slots into the floor; a stored
 });
 
 test('the menu links each confirmed vegan dish to its recipe and still shows what the menu said', () => {
-  for (const [wk, day, period, recipe] of LINKS) {
+  for (const [wk, pinned, period, recipe] of LINKS) {
+    // The meal is checked where it is now, found by its linked recipe (2026-11-04: Jason's swaps move whole meals).
+    const day = mealDay(menu, wk, pinned, period, linksVegan(period, recipe));
     const d = menu[wk][day]; const label = `Wk${wk} ${day} ${period}`;
     const v = ((d[period + '_slots'] || {}).veganalt) || {};
     assert.equal(v.recipeName, recipe, label + ' links to ' + recipe);

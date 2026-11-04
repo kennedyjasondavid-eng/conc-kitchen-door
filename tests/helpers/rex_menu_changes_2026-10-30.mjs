@@ -30,7 +30,5 @@ export function putBackRexMenuChanges(weeks, which) {
   }
   return out;
 }
-// Rex's week sheet is canon for meal placement (Jason, 2026-10-30): Wk2 THU and FRI dinners traded days (Arroz con Pollo
-// on Thursday, the sausages on Friday). A gate that names a meal by its old day reads it where it is now.
-const REX_MOVED = { '2|THURSDAY|dinner': 'FRIDAY', '2|FRIDAY|dinner': 'THURSDAY' };
-export function rexMealDay(wk, day, period) { return REX_MOVED[wk + '|' + day + '|' + period] || day; }
+// Retired 2026-11-04: rexMealDay read Wk2 THU and FRI dinners at a fixed traded day (Rex's sheet, Oct 30), so Jason's
+// Nov 4 swap back put every gate using it red. Gates find a meal where it is now: tests/helpers/meal_where.mjs.

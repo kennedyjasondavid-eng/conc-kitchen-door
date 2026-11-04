@@ -1,0 +1,60 @@
+{
+  "_note": "2026-11-04 (v31-standard.50, Jason: \"Swap should move everything that needs moving\"): the slot swap carries the whole meal. Each hunk is this change's new text and the old text it replaced, one line of context before it, from a line diff against DOOR 94f1cd2. tests/corn_recipe_alignment_gate.mjs puts them back in order before the older put-backs; tests/slot_swap_whole_meal_gate.mjs reviews the change itself.",
+  "hunks": [
+    {
+      "k": "1",
+      "new": "// Staff-visible app stamp. Published JSON files remain their own contract authority.\nconst DOOR_APP_VERSION = 'v31-standard.50';\nconst DOOR_BUILD_DATE = '2026-11-04';\n",
+      "old": "// Staff-visible app stamp. Published JSON files remain their own contract authority.\nconst DOOR_APP_VERSION = 'v31-standard.49';\nconst DOOR_BUILD_DATE = '2026-11-01';\n"
+    },
+    {
+      "k": "2",
+      "new": "}\n// The whole meal a swap moved (2026-11-04, Jason: \"Swap should move everything that needs moving\"). A swap or special\n// meal holds only a name, a vegan line and ticks: that is all a dish typed into the swap panel has. Swap Slots and a\n// special meal's \"displace\" moved a rotation meal in that shape too, so its halal line, soft and kitchen plates, parts\n// and recipe-linked slots stayed behind, and the readers wrote them empty (doorApplyDatedMeal; both Make Permanent paths).\n// On Nov 4 the Wk2 THU <-> FRI dinner swap, made permanent, left the sausage dinner with no halal line and no soft plate.\n// A swap that moves a rotation meal now carries it whole as `_meal` (doorMealCopy's shape), and each reader writes that\n// copy. It is read only while its name is the swap's, so a swap renamed later never brings another dish's parts.\nfunction doorSwapWholeMeal(entry) {\n  const m = entry && entry._meal;\n  return m && typeof m === 'object' && !Array.isArray(m) && entry.specialName && m[''] === entry.specialName ? m : null;\n}\n",
+      "old": "}\n"
+    },
+    {
+      "k": "3",
+      "new": "  const d = { ...(dayData || {}) };\n  // A rotation meal moved here whole (Swap Slots, a displaced meal: 2026-11-04) brings every part of its own.\n  const whole = dated.entry && dated.entry._meal ? doorSwapWholeMeal({ ...dated.entry, specialName: dated.name }) : null;\n  if (whole) { doorWriteMealCopy(d, period, whole); return d; }\n",
+      "old": "  const d = { ...(dayData || {}) };\n"
+    },
+    {
+      "k": "4",
+      "new": "  if (!overlay[String(week)][day]) overlay[String(week)][day] = {};\n  // A rotation meal moved here by Swap Slots (2026-11-04) is written whole; what the panel changed goes on top of it.\n  const _swapStore = loadMealSwaps();\n  const _moved = (mealSwaps[editKey] && mealSwaps[editKey].meal)\n    || doorSwapKeysForSlot(week, day, period, _swapStore).map(k => doorSwapWholeMeal(_swapStore[k])).find(Boolean) || null;\n  const whole = _moved && _moved[''] === name ? _moved : null;\n  if (whole) {\n    const node = overlay[String(week)][day];\n    doorWriteMealCopy(node, period, whole);\n    if (veg !== (whole._veg || '')) node[period + '_veg'] = veg;\n    if (doorMealSig({ _flags: flags }) !== doorMealSig({ _flags: whole._flags })) doorSetMealFlags(node, period, flags);\n    if (softAlt && softAlt !== (whole._softAlt || '')) node[period + '_softAlt'] = softAlt;\n  } else {\n    overlay[String(week)][day][period] = name;\n    overlay[String(week)][day][period + '_veg'] = veg;\n    // The new dish comes whole (2026-10-19): Make Permanent doesn't know its slot breakdown, so the old dish's parts,\n    // slots, halal line and alternatives are written empty (not deleted: they came back from the base menu) and the\n    // allergen line follows the new ticks. The meal reads from its text until it is saved in Edit Menu.\n    doorEmptyDishParts(overlay[String(week)][day], period);\n    doorSetMealFlags(overlay[String(week)][day], period, flags);\n    overlay[String(week)][day][period + '_softAlt'] = softAlt;   // the panel's soft alternative\n  }\n",
+      "old": "  if (!overlay[String(week)][day]) overlay[String(week)][day] = {};\n  overlay[String(week)][day][period] = name;\n  overlay[String(week)][day][period + '_veg'] = veg;\n  // The new dish comes whole (2026-10-19): Make Permanent doesn't know its slot breakdown, so the old dish's parts, slots,\n  // halal line and alternatives are written empty (not deleted: they came back from the base menu) and the allergen line\n  // follows the new ticks. The meal reads from its text until it is saved in Edit Menu.\n  doorEmptyDishParts(overlay[String(week)][day], period);\n  doorSetMealFlags(overlay[String(week)][day], period, flags);\n  overlay[String(week)][day][period + '_softAlt'] = softAlt;   // the panel's soft alternative\n"
+    },
+    {
+      "k": "5",
+      "new": "  if (!overlay[String(week)][dayName]) overlay[String(week)][dayName] = {};\n  const whole = doorSwapWholeMeal(sw);\n  if (whole) {\n    // A rotation meal moved by Swap Slots (2026-11-04): written whole, every part of its own.\n    doorWriteMealCopy(overlay[String(week)][dayName], period, whole);\n  } else {\n    overlay[String(week)][dayName][period] = sw.specialName;\n    overlay[String(week)][dayName][period + '_veg'] = sw.veg || '';\n    // The swap's dish comes whole (2026-10-19), as in makePermanent: the old dish's parts written empty, the allergen\n    // line from the swap's ticks.\n    doorEmptyDishParts(overlay[String(week)][dayName], period);\n    doorSetMealFlags(overlay[String(week)][dayName], period, sw._flagsRaw || {});\n  }\n",
+      "old": "  if (!overlay[String(week)][dayName]) overlay[String(week)][dayName] = {};\n  overlay[String(week)][dayName][period] = sw.specialName;\n  overlay[String(week)][dayName][period + '_veg'] = sw.veg || '';\n  // The swap's dish comes whole (2026-10-19), as in makePermanent: the old dish's parts written empty, the allergen\n  // line from the swap's ticks.\n  doorEmptyDishParts(overlay[String(week)][dayName], period);\n  doorSetMealFlags(overlay[String(week)][dayName], period, sw._flagsRaw || {});\n"
+    },
+    {
+      "k": "6",
+      "new": "    if (sw._rotationSlot === weekNum + '-' + dayName + '-' + period) {\n      return { name: sw.specialName, veg: sw.veg || '', flags: sw._flagsRaw || {}, meal: doorSwapWholeMeal(sw) };\n",
+      "old": "    if (sw._rotationSlot === weekNum + '-' + dayName + '-' + period) {\n      return { name: sw.specialName, veg: sw.veg || '', flags: sw._flagsRaw || {} };\n"
+    },
+    {
+      "k": "7",
+      "new": "    if (wn === weekNum && DAYS[d.getDay()] === dayName) {\n      return { name: sw.specialName, veg: sw.veg || '', flags: sw._flagsRaw || {}, meal: doorSwapWholeMeal(sw) };\n",
+      "old": "    if (wn === weekNum && DAYS[d.getDay()] === dayName) {\n      return { name: sw.specialName, veg: sw.veg || '', flags: sw._flagsRaw || {} };\n"
+    },
+    {
+      "k": "8",
+      "new": "      veg: existing ? (existing.veg || '') : (dayData[s.period+'_veg'] || ''),\n      flags: existing ? {...existing.flags} : {...(dayData[s.period+'_flags'] || {})},\n      // The whole meal moves (2026-11-04): its halal line, plates, parts and slots with it (doorSwapWholeMeal). A typed\n      // swap already on the slot has no whole meal, so only its words and ticks move, as before.\n      meal: existing ? (existing.meal ? doorCopyValue(existing.meal) : null) : doorMealCopy(dayData, s.period)\n",
+      "old": "      veg: existing ? (existing.veg || '') : (dayData[s.period+'_veg'] || ''),\n      flags: existing ? {...existing.flags} : {...(dayData[s.period+'_flags'] || {})}\n"
+    },
+    {
+      "k": "9",
+      "new": "  // Write B's data into A's slot and vice versa (render hints)\n  mealSwaps[slotA.key] = {name: slotB.name, veg: slotB.veg, flags: slotB.flags, meal: slotB.meal};\n  mealSwaps[slotB.key] = {name: slotA.name, veg: slotA.veg, flags: slotA.flags, meal: slotA.meal};\n",
+      "old": "  // Write B's data into A's slot and vice versa (render hints)\n  mealSwaps[slotA.key] = {name: slotB.name, veg: slotB.veg, flags: slotB.flags};\n  mealSwaps[slotB.key] = {name: slotA.name, veg: slotA.veg, flags: slotA.flags};\n"
+    },
+    {
+      "k": "10",
+      "new": "    };\n    if (mealSwaps[swapData.key].meal) swaps[smKey]._meal = doorCopyValue(mealSwaps[swapData.key].meal);\n",
+      "old": "    };\n"
+    },
+    {
+      "k": "11",
+      "new": "      _flagsRaw: doorMealFlagsOf(origMeal),\n      // The displaced rotation meal moves whole (2026-11-04): its halal line, plates, parts and slots with it.\n      _meal: doorMealCopy(((getMenuData()[String(origAtTarget.week)] || {})[origAtTarget.day]) || {}, displacePeriod),\n",
+      "old": "      _flagsRaw: doorMealFlagsOf(origMeal),\n"
+    }
+  ]
+}
