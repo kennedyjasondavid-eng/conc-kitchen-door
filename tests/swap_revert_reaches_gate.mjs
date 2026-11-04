@@ -44,6 +44,9 @@ const core = () => {
 
 // The Nov 3 swap as DOOR recorded it on Oct 7, and its key.
 const NOV3 = '2026-11-03-lunch';
+// Re-pinned 2026-11-04: tests 4 and 4b read today's date, and Nov 3 passed, so its revert left the list as it should
+// (past dates leave). They use a date that stays ahead; the Nov 3 record stays where a test gives its own today.
+const AHEAD = '2999-11-03-lunch';
 const RECORDED = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/meal_swap_2026-11-03_recorded.json'), 'utf8'))[NOV3];
 
 test('1. a revert drops a swap made before it, and keeps one made after it', () => {
@@ -104,15 +107,15 @@ function revertList(stored, remote) {
 }
 
 test('4. the revert list keeps when each key was reverted, reads the older list of keys, and is sent quietly', async () => {
-  const { R, store, sent, flush } = revertList([NOV3, '2026-01-01-lunch'], null);
+  const { R, store, sent, flush } = revertList([AHEAD, '2026-01-01-lunch'], null);
   // the older list: the future key reads as reverted now; the past one leaves
   const pub = R.toPublished();
-  assert.deepEqual(plain(Object.keys(pub)), [NOV3]);
-  assert.match(pub[NOV3], /^\d{4}-\d\d-\d\dT/);
-  assert.equal(R.has(NOV3), true, 'Set API kept');
+  assert.deepEqual(plain(Object.keys(pub)), [AHEAD]);
+  assert.match(pub[AHEAD], /^\d{4}-\d\d-\d\dT/);
+  assert.equal(R.has(AHEAD), true, 'Set API kept');
   // the kitchen's list merged in: a later time wins, nothing is sent back
-  R.mergeRemote({ [NOV3]: '2999-01-01T00:00:00.000Z', '2999-02-02-dinner': '2026-10-18T16:00:00.000Z' });
-  assert.equal(R.toPublished()[NOV3], '2999-01-01T00:00:00.000Z');
+  R.mergeRemote({ [AHEAD]: '2999-01-01T00:00:00.000Z', '2999-02-02-dinner': '2026-10-18T16:00:00.000Z' });
+  assert.equal(R.toPublished()[AHEAD], '2999-01-01T00:00:00.000Z');
   assert.equal(R.has('2999-02-02-dinner'), true);
   await flush();
   assert.equal(sent.length, 0, 'a merge sends nothing');
@@ -122,7 +125,7 @@ test('4. the revert list keeps when each key was reverted, reads the older list 
   assert.equal(sent.length, 1, 'one send for the two reverts');
   assert.equal(sent[0].p, 'meal_swaps_reverted.json');
   assert.equal(sent[0].visible, false);
-  assert.deepEqual(Object.keys(sent[0].content).sort(), [NOV3, '2999-02-02-dinner', '2999-03-03-lunch', '2999-03-04-lunch'].sort());
+  assert.deepEqual(Object.keys(sent[0].content).sort(), [AHEAD, '2999-02-02-dinner', '2999-03-03-lunch', '2999-03-04-lunch'].sort());
   assert.deepEqual(JSON.parse(store.concRevertedSwapKeys), plain(R.toPublished()), 'stored as key → time');
   // making the swap again takes its key off
   R.delete('2999-03-03-lunch');
@@ -132,11 +135,11 @@ test('4. the revert list keeps when each key was reverted, reads the older list 
 
 test('4b. review P1: a computer that has not synced never sends a shorter revert list', async () => {
   // computer B holds no revert; the kitchen's list has A's Nov 3 revert. B reverts another swap: what B sends holds both.
-  const { R, sent, flush } = revertList([], { [NOV3]: '2026-10-18T15:00:04.730Z' });
+  const { R, sent, flush } = revertList([], { [AHEAD]: '2026-10-18T15:00:04.730Z' });
   R.add('2999-05-05-dinner');
   await flush();
   assert.equal(sent.length, 1);
-  assert.deepEqual(Object.keys(sent[0].content).sort(), [NOV3, '2999-05-05-dinner'].sort(), 'the kitchen\'s revert survives B\'s send');
+  assert.deepEqual(Object.keys(sent[0].content).sort(), [AHEAD, '2999-05-05-dinner'].sort(), 'the kitchen\'s revert survives B\'s send');
   // the full publish merges the kitchen's files before staging the swaps and both lists
   const pub = fnBlock('_doPublishToGitHub');
   const iMerge = pub.indexOf('await preMergeSwapsWithCloud(creds);'), iSwaps = pub.indexOf("_push('meal_swaps.json'");
@@ -227,7 +230,10 @@ test('6. a slot swap lands both halves as far apart as the meals are on the menu
 test('7. the Nov 3 swap is removed, and the revert is published', () => {
   const swaps = J('meal_swaps.json'), rev = J('meal_swaps_reverted.json');
   assert.equal(swaps[NOV3], undefined, 'not in the swap file');
-  assert.ok(rev[NOV3] && rev[NOV3] > RECORDED.createdAt, 'reverted after it was made: every computer drops its copy');
+  // Re-pinned 2026-11-04: once Nov 3 has passed, its revert leaves the published list (past dates leave, as every
+  // revert does: doorMergeSwapReverts) and the swap stays gone. While it is ahead, the revert must be published.
+  if (NOV3.slice(0, 10) >= new Date().toISOString().slice(0, 10)) assert.ok(rev[NOV3] && rev[NOV3] > RECORDED.createdAt, 'reverted after it was made: every computer drops its copy');
+  else assert.ok(!rev[NOV3] || rev[NOV3] > RECORDED.createdAt, 'a past revert has left the list, or still postdates the swap');
   // the routing file's Wk2 TUE lunch is the rotation's again
   const r = J('routing_by_meal.json').routing['2'].TUESDAY.lunch;
   assert.ok(r._components['Tuna Salad Sandwich Mix'] > 0 && !r._components['Halal Beef Burger'], JSON.stringify(r._components));

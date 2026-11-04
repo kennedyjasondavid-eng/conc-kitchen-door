@@ -69,8 +69,10 @@ Menu Config and made both halves permanent from the Active Swaps banner. **"Swap
 - **Gates:** checks find a meal where it is, not by its day (`tests/helpers/meal_where.mjs`; `rexMealDay` retired):
   bouillon_gluten, corn, rex_menu_changes, vegan_plate_dishes. New `tests/slot_swap_whole_meal_gate.mjs` (7, red 5/7 on
   94f1cd2). Corn page digest: put-back fixture `tests/fixtures/slot_swap_whole_meal_putback_2026-11-04.json`.
-- **Still red, not this change:** routing_replay 478 and swap_revert_reaches 4/4b/7 since the 2026-11-04T14:48 publish
-  (they pin live data: a routing count and the revert list).
+- **Checks pinned to live data, unpinned:** red on main since the 2026-11-04T14:48 publish. The routing receipt
+  (`routing_replay` §8) named rooms, and room 704 was discharged; each row now checks every resident who holds the
+  restriction today and needs at least one. `swap_revert_reaches` 4/4b used the real Nov 3 key against today's date, and
+  Nov 3 passed; they use a date that stays ahead, and 7 accepts a past revert leaving the list. Suite 598: 0 fail.
 
 ## Recent (2026-11-01) — DOOR reads its own files through one reader; viewing keys; it says when it can't read the list (`v31-standard.49`)
 Jason, 2026-11-01: "go ahead with phase 2" (the resident-data privacy plan, D3 and D4). The repository is still public. Phase 2 makes DOOR ready for it to be private, and nothing changes for a computer until then, except that a computer with a key now reads through the Contents API.
