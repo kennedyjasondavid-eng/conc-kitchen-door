@@ -2334,8 +2334,8 @@
       },
       "dinner": "Arroz Con Pollo, Refried Beans",
       "dinner_veg": "Vegan Arroz con Pollo, Refried Beans",
-      "dinner_mainItem": "",
-      "dinner_sides": "",
+      "dinner_mainItem": "Arroz Con Pollo",
+      "dinner_sides": "Refried Beans",
       "dinner_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -2365,10 +2365,79 @@
       },
       "dinner_softAlt": "",
       "dinner_altMeals": [],
-      "dinner_altMealsNone": false,
+      "dinner_altMealsNone": true,
       "dinner_noPorkAlt": "",
       "dinner_mainAlt": "",
-      "dinner_slots": null,
+      "dinner_slots": {
+        "main": {
+          "manual": "Arroz Con Pollo",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": true,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": true
+          }
+        },
+        "veganalt": {
+          "recipeName": "Arroz Con Pollo (Regular + Vegan)",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": true
+          },
+          "recipeId": "arroz-con-pollo-regular-vegan",
+          "displayText": "Vegan Arroz con Pollo"
+        },
+        "starch": {
+          "manual": "Refried Beans",
+          "flags": {
+            "hasBeans": true
+          }
+        }
+      },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_dinner": "sulphites",
       "lunch": "Beef Chili, Cornbread, Sautéed Cabbage",
@@ -2891,9 +2960,9 @@
       },
       "dinner": "Sausages, Roasted Potatoes, Gravy, Peas & Carrots",
       "dinner_veg": "Vegan Sausages, Roasted Potatoes, Gravy, Peas & Carrots",
-      "dinner_halal": "",
-      "dinner_mainItem": "",
-      "dinner_sides": "",
+      "dinner_halal": "Halal beef sausages",
+      "dinner_mainItem": "Sausages",
+      "dinner_sides": "Roasted Potatoes, Gravy, Peas & Carrots",
       "dinner_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -2999,12 +3068,91 @@
           "manual": "Chickpea Salad"
         }
       },
-      "dinner_slots": null,
+      "dinner_slots": {
+        "main": {
+          "manual": "Sausages",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          }
+        },
+        "veganalt": {
+          "recipeName": "Vegan Sausage",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "recipeId": "vegan-sausage",
+          "displayText": "Vegan Sausages"
+        },
+        "starch": {
+          "manual": "Roasted Potatoes",
+          "flags": {
+            "hasNightshades": true
+          }
+        },
+        "vegside": {
+          "manual": "Peas",
+          "flags": {}
+        }
+      },
       "lunch_gfAlt": "Rice, Chicken Leg and Vegetable stirfry",
       "lunch_diabeticAlt": "Halal Beef Burger, Lettuce, Tomato, Cheese and Chickpea Salad",
       "lunch_noDairyAlt": "Halal Beef Burger, Lettuce, Tomato, DF Cheese and Chickpea Salad",
-      "dinner_altMeals": [],
-      "dinner_softAlt": "",
+      "dinner_altMeals": [
+        {
+          "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "type": "soft",
+          "flags": {}
+        }
+      ],
+      "dinner_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
       "dinner_altMealsNone": false,
       "dinner_original": {
         "meal": {
@@ -7339,7 +7487,7 @@
       "3|WEDNESDAY": 1792415770014,
       "1|WEDNESDAY": 1792415770014,
       "1|SUNDAY": 1792415770014,
-      "2|THURSDAY": 1793815348285,
+      "2|THURSDAY": 1793817864609,
       "3|FRIDAY": 1792681340848,
       "3|SUNDAY": 1793374204325,
       "4|TUESDAY": 1792415770014,
@@ -7353,7 +7501,7 @@
       "4|FRIDAY": 1792667375478,
       "4|SUNDAY": 1792681340848,
       "4|WEDNESDAY": 1792667375478,
-      "2|FRIDAY": 1793815350195,
+      "2|FRIDAY": 1793817864609,
       "3|SATURDAY": 1792667375478,
       "3|THURSDAY": 1792415770014,
       "3|MONDAY": 1793374204325,

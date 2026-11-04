@@ -10,7 +10,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
 import { withBaggedNightshadesReview } from './helpers/bagged_curry_nightshades_review.mjs';
-import { putBackRexMenuChanges, rexMealDay } from './helpers/rex_menu_changes_2026-10-30.mjs';
+import { putBackRexMenuChanges } from './helpers/rex_menu_changes_2026-10-30.mjs';
+import { mealDay, namesDish } from './helpers/meal_where.mjs';
 import { putBackMenuChanges20261031 } from './helpers/menu_changes_2026-10-31.mjs';
 const read = f => JSON.parse(fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'));
 // Separate safety-review correction; the original Corn fixture is unchanged.
@@ -64,9 +65,9 @@ test('the shared menu overlay carries the same Corn edits with a newer day stamp
   assert.deepEqual(missing.map(key),[]);
 });
 test('vegan-only Corn never becomes a regular meal tick; existing Corn and uncertain Teriyaki meal Sulphites stay',()=>{
-  // Re-pinned 2026-10-30 (Rex's sheet is canon for placement): Wk2 THU and FRI dinners traded days, so each meal is read
-  // where it is now (rexMealDay).
-  const at=t=>menu[t.wk][rexMealDay(t.wk,t.day,t.period)];
+  // Re-pinned 2026-11-04 (Jason: "the swap should change the rule"): each meal is read where it is now, found by its
+  // dish (tests/helpers/meal_where.mjs), so a meal Jason moves keeps its checks. Was a fixed Oct 30 map (rexMealDay).
+  const at=t=>menu[t.wk][mealDay(menu,t.wk,t.day,t.period,namesDish(t.period,t.dish))];
   assert.deepEqual(F.vegan.filter(t=>at(t)[t.period+'_flags'].hasCorn||slot(at(t)[t.period+'_slots']).hasCorn).map(key),[]);
   for(const t of F.held)assert.equal(at(t)[t.period+'_flags'][t.flag],true,key(t)+' '+t.flag);
   assert.equal(menu['4'].THURSDAY.dinner_slots.veganalt.flags.hasSulphites,true,'existing tofu slot warning is not silently cleared');
@@ -115,6 +116,20 @@ test('all DOOR app bytes outside scoped fallback, release version and exact publ
       '  // Cache-busted AND no-store (HOUSE_PROVEN_SEAMS row 2); the raw CDN can still hold a copy for ~5 min.']
   ];
   let normal=html.replace(/\r\n/g,'\n');
+  // 2026-11-04 (v31-standard.50, Jason: "Swap should move everything that needs moving"): Swap Slots carries the whole
+  // meal. A true put-back, as for 2026-11-01 below: each hunk's new text back to its old text, in order, searching forward
+  // (tests/fixtures/slot_swap_whole_meal_putback_2026-11-04.json, a line diff against 94f1cd2 with one line of context).
+  // That gives 94f1cd2's page byte for byte. tests/slot_swap_whole_meal_gate.mjs reviews the change itself.
+  const wholeSwap=JSON.parse(fs.readFileSync(new URL('./fixtures/slot_swap_whole_meal_putback_2026-11-04.json',import.meta.url),'utf8'));
+  if(normal.includes(wholeSwap.hunks[wholeSwap.hunks.length-1].new)){
+    let pos=0;
+    for(const h of wholeSwap.hunks){
+      const i=normal.indexOf(h.new,pos);
+      assert.ok(i>=0,'the 2026-11-04 change #'+h.k+' is not where it was');
+      normal=normal.slice(0,i)+h.old+normal.slice(i+h.new.length);
+      pos=i+h.old.length;
+    }
+  }
   // 2026-11-01 (v31-standard.49, Jason: "go ahead with phase 2"): one reader for the kitchen's files, viewing keys and
   // the plain state when the list can't be read. The page was resident-free before this change, so this is a true
   // put-back: each hunk's new text is replaced with its old text, in order, searching forward from the previous one

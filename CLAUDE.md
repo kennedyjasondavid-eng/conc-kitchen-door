@@ -53,6 +53,27 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-04) — Swap Slots moves each meal whole (`v31-standard.50`)
+Jason, 2026-11-04: Arroz con Pollo is Wk2 FRI dinner after all ("Rex was wrong"), so he swapped Wk2 THU ⇄ FRI dinner in
+Menu Config and made both halves permanent from the Active Swaps banner. **"Swap should move everything that needs moving."**
+- **Why it broke:** a swap entry (`meal_swaps.json`) held only a name, a vegan line and ticks — the shape of a dish typed
+  into the swap panel. Swap Slots and a special meal's "displace" moved rotation meals in that shape, and the three
+  readers (`doorApplyDatedMeal`, `makePermanent`, `makeSwapPermanentFromBanner`) write every other part empty, on purpose,
+  for a typed dish (2026-10-19). So the sausage dinner lost its halal line and soft plate (the 2 soft residents went to
+  the halal line), Arroz's day opened a Soft Meals section with no plate, and both lost their recipe-linked slots and parts.
+- **Fix:** a swap that moves a rotation meal carries it whole as `_meal` (`doorMealCopy`'s shape); every reader writes it
+  (`doorSwapWholeMeal`, read only while its name is the swap's). A typed swap still brings only its words and ticks.
+  `meal_swaps.json` / `special_meals.json` gain the additive `_meal` field; EXPO ignores it.
+- **Data:** Wk2 THU dinner (Sausages) and FRI dinner (Arroz) written whole from DOOR's 2026-11-04T14:48 publish, both days
+  stamped newer; `routing_by_meal.json` for both from the same publish (the resident list was unchanged since 14:48).
+- **Gates:** checks find a meal where it is, not by its day (`tests/helpers/meal_where.mjs`; `rexMealDay` retired):
+  bouillon_gluten, corn, rex_menu_changes, vegan_plate_dishes. New `tests/slot_swap_whole_meal_gate.mjs` (7, red 5/7 on
+  94f1cd2). Corn page digest: put-back fixture `tests/fixtures/slot_swap_whole_meal_putback_2026-11-04.json`.
+- **Checks pinned to live data, unpinned:** red on main since the 2026-11-04T14:48 publish. The routing receipt
+  (`routing_replay` §8) named rooms, and room 704 was discharged; each row now checks every resident who holds the
+  restriction today and needs at least one. `swap_revert_reaches` 4/4b used the real Nov 3 key against today's date, and
+  Nov 3 passed; they use a date that stays ahead, and 7 accepts a past revert leaving the list. Suite 598: 0 fail.
+
 ## Recent (2026-11-01) — DOOR reads its own files through one reader; viewing keys; it says when it can't read the list (`v31-standard.49`)
 Jason, 2026-11-01: "go ahead with phase 2" (the resident-data privacy plan, D3 and D4). The repository is still public. Phase 2 makes DOOR ready for it to be private, and nothing changes for a computer until then, except that a computer with a key now reads through the Contents API.
 - **One reader:** `doorReadKitchenFile(file, opts)`, beside `PublishAuth` (HOUSE seam row 4, DOOR owns it). It ports EXPO's `_readRemoteHubPayload`, which reads EXPO's private HUB repository. It returns `{ok, data, via: 'key'|'pages'|'raw'}`, `{absent}`, `{noKey}` or `{error, status}`, and never throws.

@@ -9,6 +9,7 @@
 // Authored to fail on 910fb7c (v31-standard.29).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mealDay, linksVegan } from './helpers/meal_where.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -29,8 +30,8 @@ const KEPT = [
   ['2', 'TUESDAY', 'lunch', 'Rexdale Falafel'],
   ['4', 'MONDAY', 'lunch', 'Rexdale Falafel'],
   ['4', 'SUNDAY', 'dinner', 'White Chicken & Chickpea Chili'],
-  // Re-pinned 2026-10-30 (Rex's sheet is canon for placement): Arroz con Pollo is Wk2 THU dinner now.
-  ['2', 'THURSDAY', 'dinner', 'Arroz Con Pollo (Regular + Vegan)'],
+  // The day is where the meal was pinned; the check finds it by its linked recipe wherever it is now (2026-11-04).
+  ['2', 'FRIDAY', 'dinner', 'Arroz Con Pollo (Regular + Vegan)'],
 ];
 const slotIn = (src, wk, day, period) => (((src[wk] || {})[day] || {})[period + '_slots'] || {}).veganalt || null;
 
@@ -45,7 +46,8 @@ test('the three dishes linked to a bouillon recipe no longer carry its Gluten, a
 });
 
 test('dishes whose Gluten has another source keep it (bread, pasta, an Edit Menu tag)', () => {
-  for (const [wk, day, period, recipe] of KEPT) {
+  for (const [wk, pinned, period, recipe] of KEPT) {
+    const day = mealDay(menu, wk, pinned, period, linksVegan(period, recipe));   // where the meal is now (2026-11-04)
     const va = slotIn(menu, wk, day, period);
     assert.ok(va && va.recipeName === recipe, `Wk${wk} ${day} ${period}: linked to ${recipe}`);
     assert.equal(!!(va.flags || {}).hasGluten, true, `Wk${wk} ${day} ${period}: keeps Gluten`);

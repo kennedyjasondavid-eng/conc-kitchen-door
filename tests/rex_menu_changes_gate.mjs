@@ -8,11 +8,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { putBackRexMenuChanges } from './helpers/rex_menu_changes_2026-10-30.mjs';
+import { mealDay, namesDish } from './helpers/meal_where.mjs';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
 const menu = read('menu_current.json').menu, overlay = read('menu_overlay.json'), routing = read('routing_by_meal.json');
 const F = read('tests/fixtures/rex_menu_changes_2026-10-30.json');
 const on = (flags) => Object.keys(flags || {}).filter((k) => flags[k]).sort();
+// Wk2's sausage dinner and Arroz con Pollo are checked where they are now (2026-11-04, Jason: "the swap should change the
+// rule"). Rex's sheet traded their days on Oct 30 and Jason traded them back on Nov 4; a placement is his to make, and the
+// checks are that each meal arrived whole: its words, ticks, halal line, plates and routing.
+const SAUSAGES = mealDay(menu, '2', 'THURSDAY', 'dinner', namesDish('dinner', 'Sausages, Roasted Potatoes'));
+const ARROZ = mealDay(menu, '2', 'FRIDAY', 'dinner', namesDish('dinner', 'Arroz Con Pollo'));
 
 test('Wk2 FRI lunch is Beef Chili with Rex’s cornbread and cabbage; the vegan line is the chili’s vegan batch', () => {
   const d = menu['2'].FRIDAY;
@@ -27,16 +33,19 @@ test('Wk2 FRI lunch is Beef Chili with Rex’s cornbread and cabbage; the vegan 
   assert.ok(d.lunch_blandAlt, 'a spicy main gets a bland plate');
 });
 
-// Re-pinned 2026-10-30 (Rex's week sheet is canon for meal placement, Jason): the sausage dinner with its roasted
-// potatoes is Wk2 FRI now, and Arroz con Pollo with refried beans Wk2 THU (the two whole meals traded days).
-test('the sausage dinner (Wk2 FRI) has roasted potatoes, Wk2 SAT lunch buttered green beans, Wk2 SAT dinner BBQ meatloaf and mash', () => {
-  assert.equal(menu['2'].FRIDAY.dinner, 'Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
-  assert.equal(menu['2'].FRIDAY.dinner_veg, 'Vegan Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
-  assert.equal(menu['2'].FRIDAY.dinner_slots.veganalt.displayText, 'Vegan Sausages');
-  assert.equal(menu['2'].FRIDAY.dinner_halal, F.menu['2|THURSDAY'].dinner_halal, 'the halal sausages move with it');
-  assert.equal(menu['2'].THURSDAY.dinner, F.menu['2|FRIDAY'].dinner, 'Arroz con Pollo is Wk2 THU dinner');
-  assert.deepEqual(menu['2'].THURSDAY.dinner_flags, F.menu['2|FRIDAY'].dinner_flags, 'with its own ticks');
-  assert.deepEqual(menu['2'].FRIDAY.dinner_flags, F.menu['2|THURSDAY'].dinner_flags, 'and the sausages with theirs');
+// Re-pinned 2026-11-04: the two Wk2 dinners are checked wherever they are (SAUSAGES, ARROZ above), each one whole.
+test('the Wk2 sausage dinner has roasted potatoes, Wk2 SAT lunch buttered green beans, Wk2 SAT dinner BBQ meatloaf and mash', () => {
+  const s = menu['2'][SAUSAGES], a = menu['2'][ARROZ];
+  assert.notEqual(SAUSAGES, ARROZ, 'the two dinners are on two days');
+  assert.equal(s.dinner, 'Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
+  assert.equal(s.dinner_veg, 'Vegan Sausages, Roasted Potatoes, Gravy, Peas & Carrots');
+  assert.equal(s.dinner_slots.veganalt.displayText, 'Vegan Sausages');
+  assert.equal(s.dinner_halal, F.menu['2|THURSDAY'].dinner_halal, 'the halal sausages move with it');
+  assert.equal(s.dinner_softAlt, F.menu['2|THURSDAY'].dinner_softAlt, 'and its soft plate');
+  assert.equal(a.dinner, F.menu['2|FRIDAY'].dinner, 'Arroz con Pollo is the other Wk2 dinner');
+  assert.equal(a.dinner_altMealsNone, F.menu['2|FRIDAY'].dinner_altMealsNone, 'it keeps "no soft plate needed"');
+  assert.deepEqual(a.dinner_flags, F.menu['2|FRIDAY'].dinner_flags, 'with its own ticks');
+  assert.deepEqual(s.dinner_flags, F.menu['2|THURSDAY'].dinner_flags, 'and the sausages with theirs');
   assert.equal(menu['2'].SATURDAY.lunch, 'Chicken Tenders, Sweet Potato, Buttered Green Beans');
   assert.equal(menu['2'].SATURDAY.lunch_veg, 'Vegan Tenders, Sweet Potato, Green Beans');
   assert.equal(menu['2'].SATURDAY.dinner, 'BBQ Beef Meatloaf, Mashed Potato, Roasted Zucchini');
@@ -87,8 +96,9 @@ test('routing counts the new dishes, not the old ones', () => {
   const fl = c('2', 'FRIDAY', 'lunch'), sun = c('3', 'SUNDAY', 'dinner');
   assert.ok(fl['Beef Chili'] > 100 && fl['Vegetarian Chili'] > 0 && !fl['CONC Salad - Beef'], JSON.stringify(fl));
   assert.ok(sun['Beef Bolognese'] > 100 && !sun['Halal Beef Meatballs'], JSON.stringify(sun));
-  assert.ok(c('2', 'FRIDAY', 'dinner')['Roasted Potatoes'] > 100 && !c('2', 'FRIDAY', 'dinner')['Mashed Potato']);
-  assert.ok(!c('2', 'THURSDAY', 'dinner')['Roasted Potatoes'] && !c('2', 'FRIDAY', 'dinner')['Refried Beans'], 'the dishes count where their meal is now');
+  assert.ok(c('2', SAUSAGES, 'dinner')['Roasted Potatoes'] > 100 && !c('2', SAUSAGES, 'dinner')['Mashed Potato']);
+  assert.ok(c('2', SAUSAGES, 'dinner')['Halal beef sausages'] > 0, 'the halal sausages count with their meal');
+  assert.ok(!c('2', ARROZ, 'dinner')['Roasted Potatoes'] && !c('2', SAUSAGES, 'dinner')['Refried Beans'], 'the dishes count where their meal is now');
   assert.ok(c('2', 'SATURDAY', 'dinner')['Mashed Potato'] > 100 && !c('2', 'SATURDAY', 'lunch')['Roasted Parsnip and Carrot']);
 });
 
