@@ -10,8 +10,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { syntheticResident } from './helpers/historical_menu.mjs';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
@@ -119,18 +120,25 @@ test('adding Lactose Intolerant on import waits for review, like No Dairy (it ch
   assert.match(set, /'lactoIntolerant'/, 'a routing tag is never auto-applied');
 });
 
-test('today\'s list: the import proposes nothing, and every lactose-intolerant resident still eats as No Dairy', () => {
-  const state = json('door_state.json');
-  const box = importBox(state.residents);
+test('a fixed import keeps Lactose Intolerant and explicit No Dairy without proposing tag changes', () => {
+  const residents = [
+    syntheticResident('case_lactose', ['Lactose Intolerant'], { rawRestriction: 'Lactose Intolerant' }),
+    syntheticResident('case_dairy', ['No Dairy'], { rawRestriction: 'No Dairy' }),
+    syntheticResident('case_both', ['No Dairy', 'Lactose Intolerant'], { rawRestriction: 'No Dairy, Lactose Intolerant' }),
+  ];
+  const box = importBox(residents);
   const entries = vm.runInContext('REGISTRY_LIST.filter(r => r.rawRestriction).map(r => ({ room: r.room, parsed: normalizeRestriction(r.rawRestriction) }))', box);
   const d = out(vm.runInContext('diffImportAgainstRegistry(' + JSON.stringify(entries) + ')', box));
-  assert.deepEqual(d.updates.map(u => u.room), [], 'no proposals');
-  const li = state.residents.filter(r => (r.tags || []).includes('Lactose Intolerant'));
-  // 2026-10-22: the published list follows the kitchen's meal list, so which rooms are lactose intolerant changes with
-  // the residents (the Oct 21 list gives 1207 "GF, No Shellfish, No Pork"; it pinned ['1115a', '1207', '301a', '412']).
-  // The check is the rule, for whoever is lactose intolerant today; it only needs one.
-  assert.ok(li.length >= 1, 'the published list has a lactose-intolerant resident to check');
-  for (const r of li) {
-    assert.ok(out(c.checkResidentMealConflicts({ hasDairy: true }, { tags: r.tags })).some(x => x.mealFlag === 'hasDairy'), r.room + ' warned on dairy');
-  }
+  assert.deepEqual(d.updates.map(u => u.room), [], 'no artificial No Dairy proposal');
+  for (const r of residents) assert.ok(out(c.checkResidentMealConflicts({ hasDairy: true }, { tags: r.tags })).some(x => x.mealFlag === 'hasDairy'));
+});
+
+test('the current lactose cohort is checked when present; a legitimate empty cohort is allowed', () => {
+  const check = residents => {
+    for (const r of residents.filter(r => (r.tags || []).includes('Lactose Intolerant')))
+      assert.ok(out(c.checkResidentMealConflicts({ hasDairy: true }, { tags: r.tags })).some(x => x.mealFlag === 'hasDairy'), 'lactose resident warned on dairy');
+  };
+  check(json('door_state.json').residents);
+  check([]);
+  check([syntheticResident('case_regular')]);
 });

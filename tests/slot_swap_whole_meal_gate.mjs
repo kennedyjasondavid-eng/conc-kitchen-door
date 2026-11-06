@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/slot_swap_whole_meal_gate.mjs — Swap Slots moves each meal whole (2026-11-04, v31-standard.50).
 // Jason, 2026-11-04: "Swap should move everything that needs moving." He swapped Wk2 THU <-> FRI dinner in Menu Config
 // (Arroz con Pollo and the sausage dinner) and made both halves permanent from the Active Swaps banner. Only each meal's
@@ -17,6 +19,7 @@
 //   6. a special meal that displaces the rotation meal moves the displaced meal whole
 // Authored to fail on DOOR 94f1cd2 (1-4, 6). Env: SLOT_SWAP_ROOT (another checkout's directory).
 import test from 'node:test';
+import { historical, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,7 +27,7 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = process.env.SLOT_SWAP_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
 // The menu is this checkout's: the meals as published with every part (a red run on 94f1cd2 still reads them whole).
 const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const json = (f) => JSON.parse(fs.readFileSync(path.join(HERE, f), 'utf8'));
@@ -34,7 +37,7 @@ const fnOpt = (name) => (html.includes('function ' + name + '(') ? fn(name) : ''
 const lineOf = (prefix) => { const s = html.indexOf(prefix); assert.ok(s >= 0, 'missing ' + prefix); return html.slice(s, html.indexOf('\n', s)) + '\n'; };
 const out = (v) => JSON.parse(JSON.stringify(v));
 
-const BASE = json('menu_current.json').menu;
+const BASE = copy(historical.menu);
 // The two Wk2 dinners Jason swapped, found by name wherever they are: A Arroz con Pollo, B the sausage dinner. The checks
 // below swap A <-> B, so A's day receives the sausages with their halal line and soft plate.
 const P = 'dinner';
@@ -87,7 +90,7 @@ function assertWhole(got, want, label) {
   for (const k of [''].concat(['_veg'], PARTS)) assert.deepEqual(got[P + k] ?? null, want[P + k] ?? null, `${label}: ${P}${k}`);
 }
 
-function swapStore() { return { overlay: out(json('menu_overlay.json')), swaps: {} }; }
+function swapStore() { return { overlay: copy(historical.overlay), swaps: {} }; }
 function slotSwap(store) { const b = box(store); b.executeSlotSwap(A, B); return b; }
 
 test('the meals carry parts a swap could lose', () => {

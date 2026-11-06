@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/vegan_plate_dishes_gate.mjs — the vegan plate reads the dishes set on the vegan line (2026-10-17, v31-standard.29).
 // DOOR guessed most vegan dishes' allergens from the menu TEXT (getVegAltAllergenStr, a fuzzy name match on vegan-stream
 // CODEX recipes): only 6 of the 56 lunches and dinners were linked to a recipe, about half the names matched nothing or
@@ -8,6 +10,7 @@
 // slot, the recipe's allergens from today's CODEX list. It is a floor — it only ever adds — and a stored statement wins.
 // Runs the REAL functions from index.html in a vm. Authored to fail on a295eca (v31-standard.28).
 import test from 'node:test';
+import { historicalMenu } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import { mealDay, linksVegan } from './helpers/meal_where.mjs';
 import fs from 'node:fs';
@@ -16,9 +19,8 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const menu = JSON.parse(fs.readFileSync(path.join(root, 'menu_current.json'), 'utf8')).menu;
-const overlay = JSON.parse(fs.readFileSync(path.join(root, 'menu_overlay.json'), 'utf8'));
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
+const { menu, overlay } = historicalMenu(html); // historical decisions through the current exporter
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
 const hasReader = html.indexOf('function getVegAltSlotAllergenStr(') >= 0;
@@ -186,8 +188,8 @@ test('offline (the baked list): the tofu and Gardein plates say Soy, the tenders
   assert.ok(has(p, '3 MON dinner', ['MUSHROOM']), 'the portobello plate says Mushroom');
 });
 
-test('with the CODEX feed: each linked recipe\'s allergens reach its plate', () => {
-  if (!fs.existsSync(feedPath)) { console.log('SKIP: sibling recipe-hub feed not checked out'); return; }
+test('with the CODEX feed: each linked recipe\'s allergens reach its plate', (t) =>{
+  if (!fs.existsSync(feedPath)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const feed = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
   const p = census(ctxFor(feed));
   const byName = Object.fromEntries(feed.map((r) => [r.recipeName, r]));

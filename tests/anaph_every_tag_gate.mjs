@@ -12,6 +12,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { historical, syntheticResident } from './helpers/historical_menu.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
@@ -126,7 +127,7 @@ test('the week-ahead list gives each tag a meal sets off its own red line; peanu
 
 function publishedMeals() {
   const meals = [];
-  for (const [where, data] of [['menu', json('menu_current.json').menu], ['overlay', json('menu_overlay.json')]]) {
+  for (const [where, data] of [['menu', historical.menu], ['overlay', historical.overlay]]) {
     for (const wk of Object.keys(data)) {
       if (wk === '_meta' || !data[wk] || typeof data[wk] !== 'object') continue;
       for (const day of Object.keys(data[wk])) {
@@ -141,11 +142,15 @@ function publishedMeals() {
 // The one live change. Room 213 is on DOOR's anaphylactic list (H&W, April 22) with Tree Nuts and Coconut ticked as its
 // anaphylactic tags; neither tag was in the map, so 213 had no lockout or alert on the published menu's coconut and
 // tree-nut meals (9 of them). Now it does — and nothing else moves: no other resident, no other meal.
-test('on the published menu, overlay and resident list, only room 213 moves: contained and alerted on its tree-nut and coconut meals', () => {
-  const state = json('door_state.json');
+test('on fixed meals, the synthetic coconut/tree-nut case gains containment while other alerts stay unchanged', () => {
+  const state = { residents: [
+    syntheticResident('case_coconut', ['No Coconut', 'No Tree Nuts'], { anaphTags: ['noCoconut', 'noTreeNuts'] }),
+    syntheticResident('case_peanut', ['No Peanuts'], { isAnaph: true, anaphTags: ['noPeanuts'] }),
+    syntheticResident('case_regular'),
+  ], anaphRooms: ['case_coconut'] };
   const residents = state.residents;
-  const r213 = residents.find(r => r.room === '213');
-  assert.ok(state.anaphRooms.includes('213') && r213 && JSON.stringify(r213.anaphTags) === JSON.stringify(['noCoconut', 'noTreeNuts']),
+  const r213 = residents.find(r => r.room === 'case_coconut');
+  assert.ok(state.anaphRooms.includes('case_coconut') && r213 && JSON.stringify(r213.anaphTags) === JSON.stringify(['noCoconut', 'noTreeNuts']),
     'room 213 is on the anaphylactic list with Coconut and Tree Nuts as its anaphylactic tags');
   const now = ctxFor(), was = ctxFor(before);
   for (const c of [now, was]) c.__set(residents, state.anaphRooms.slice());
@@ -153,24 +158,24 @@ test('on the published menu, overlay and resident list, only room 213 moves: con
   let contained = 0;
   for (const m of publishedMeals()) {
     const w = rooms(was.getAnaphConflictRooms(m.lunch, m.dinner));
-    const expected = hits213(m.lunch, m.dinner) ? [...new Set(w.concat('213'))].sort() : w;
+    const expected = hits213(m.lunch, m.dinner) ? [...new Set(w.concat('case_coconut'))].sort() : w;
     assert.deepEqual(rooms(now.getAnaphConflictRooms(m.lunch, m.dinner)), expected, m.where);
     const alertsNow = out(now.getAnaphAlertInfo(m.lunch, m.dinner)), alertsWas = out(was.getAnaphAlertInfo(m.lunch, m.dinner));
-    assert.deepEqual(alertsNow.filter(a => a.anaphRoom !== '213'), alertsWas.filter(a => a.anaphRoom !== '213'), m.where + ': other alerts');
-    assert.deepEqual(alertsNow.filter(a => a.anaphRoom === '213').map(a => a.allergen).sort(),
+    assert.deepEqual(alertsNow.filter(a => a.anaphRoom !== 'case_coconut'), alertsWas.filter(a => a.anaphRoom !== 'case_coconut'), m.where + ': other alerts');
+    assert.deepEqual(alertsNow.filter(a => a.anaphRoom === 'case_coconut').map(a => a.allergen).sort(),
       (hits213(m.lunch, m.dinner) ? ['No Coconut', 'No Tree Nuts'].filter(t => [m.lunch, m.dinner].some(f => f[t === 'No Coconut' ? 'hasCoconut' : 'hasTreeNuts'])) : []).sort(),
-      m.where + ': 213\'s alerts');
+      m.where + ': the synthetic case alerts');
     // the routing file counts lockout per meal (buildRoutingByMealJSON: getAnaphConflictRooms(mealFlags, emptyFlags))
     for (const p of ['lunch', 'dinner']) {
       const wp = rooms(was.getAnaphConflictRooms(m[p], {}));
-      const ep = hits213(m[p]) ? [...new Set(wp.concat('213'))].sort() : wp;
+      const ep = hits213(m[p]) ? [...new Set(wp.concat('case_coconut'))].sort() : wp;
       assert.deepEqual(rooms(now.getAnaphConflictRooms(m[p], {})), ep, m.where + ' ' + p);
       if (m.where.startsWith('menu') && hits213(m[p])) contained++;
     }
   }
   // Re-pinned 2026-10-19 (the plating review): Wk3 THU dinner's Pork Griot is served with coconut rice and takes the
   // Coconut tick (tests/plating_review_ticks_gate.mjs), so 213 is contained there too.
-  assert.equal(contained, 10, 'the published menu\'s tree-nut and coconut meals');
+  assert.equal(contained, 10, 'the fixed menu tree-nut and coconut examples');
 });
 
 test('the map carries the dated ruling', () => {

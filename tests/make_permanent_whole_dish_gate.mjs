@@ -19,6 +19,7 @@
 //   6. one list of a dish's parts: a swap drops the same ones, and DOOR reads the empty values as none
 // Authored to fail on 4bedd9d (1–6). Env: MAKE_PERMANENT_ROOT (another checkout's directory).
 import test from 'node:test';
+import { historical, regressionResidents, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -48,8 +49,8 @@ const DISH_PARTS = ['_mainItem', '_mainAlt', '_sides', '_halal', '_softAlt', '_n
 const EMPTY = (k) => (k === '_altMeals' ? [] : k === '_altMealsNone' ? false : k === '_slots' ? null : '');
 
 const PUBLISHED = json('menu_current.json');
-const BASE = PUBLISHED.menu;                 // every DOOR computer's base menu: the last published one
-const OVERLAY = json('menu_overlay.json');
+const BASE = copy(historical.menu); // fixed whole-dish regression input
+const OVERLAY = copy(historical.overlay);
 const W = '3', D = 'TUESDAY', P = 'dinner';  // Caribbean Chicken Curry, Naan: linked slots, a halal plate, the kitchen's plates
 const NEW = { name: 'Beef Burger, Side Salad', veg: 'Veggie Burger, Side Salad', ticks: ['hasBeef', 'hasGluten'] };
 
@@ -89,7 +90,7 @@ const newTicksLine = () => vm.runInNewContext(fn('flagsToMenuAllergens') + `;fla
 
 // The plating sheet, as routing_replay_gate runs it: the real computePlatingData over a given menu.
 function platingBox(menu) {
-  const state = json('door_state.json');
+  const state = { residents: copy(regressionResidents), anaphRooms: [] };
   const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: null,
     getMenuData: () => menu, loadSpecialMeals: () => ({}), loadMealSwaps: () => ({}) };
   vm.createContext(c);
@@ -180,11 +181,11 @@ test('5. the publish check: an older allergen line in the overlay stops nothing;
   const artifacts = (overlay) => ({ 'menu_current.json': PUBLISHED, 'registry_summary.json': json('registry_summary.json'),
     'routing_by_meal.json': json('routing_by_meal.json'), 'door_state.json': json('door_state.json'), 'menu_overlay.json': overlay });
   const stops = (overlay) => out(core.validateDoorPublishArtifacts(artifacts(overlay)).stop || []).map((s) => s.code + ':' + (s.details || {}).field);
-  assert.deepEqual(stops(out(OVERLAY)), [], 'the published files pass');
-  const older = out(OVERLAY);
+  assert.deepEqual(stops(json('menu_overlay.json')), [], 'the published files pass');
+  const older = json('menu_overlay.json');
   older[W][D]['allergens_' + P] = 'gluten, dairy, tree nuts, sulphites, peanuts';
   assert.deepEqual(stops(older), [], 'an older copy of a derived line is no contradiction');
-  const contradictory = out(OVERLAY);
+  const contradictory = json('menu_overlay.json');
   contradictory[W][D][P] = 'Contradictory dinner';
   assert.deepEqual(stops(contradictory), ['overlay-menu-conflict:' + P], 'a contradictory dish still stops the send');
 });

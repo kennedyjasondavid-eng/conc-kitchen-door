@@ -104,10 +104,10 @@ test('runtime surface fires on a genuinely-new allergen, NOT on known non-allerg
   assert.ok(c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__.has('lupin'), 'a new unmappable allergen is surfaced');
 });
 
-test('every non-noise label in the LIVE CODEX feed now resolves (coverage)', () => {
+test('every non-noise label in the LIVE CODEX feed now resolves (coverage)', (t) =>{
   const c = freshCtx();
   const feedPath = path.resolve(root, '..', 'conc-recipe-hub', 'DOOR_RECIPE_DATA.json');
-  if (!fs.existsSync(feedPath)) { console.log('SKIP: sibling recipe-hub feed not checked out'); return; }
+  if (!fs.existsSync(feedPath)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const feed = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
   c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__.clear();
   for (const r of feed) set(c, r.allergens || []);

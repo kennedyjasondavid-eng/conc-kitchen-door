@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/restore_original_gate.mjs — putting a meal back means the meal as it was before its first change (2026-10-19).
 // Jason, 2026-10-19, on what "the original" should mean: "A, go ahead and build it" (the meal before its first change).
 // Revert to Original (the meal panel), Reset to Original (Edit Menu) and ↩ Undo Last deleted the change and fell back to
@@ -19,6 +21,7 @@
 //      keeps copies on its newest entries; a workbook import starts fresh
 // Authored to fail on ce6a9fa (1–6). Env: RESTORE_ORIGINAL_ROOT (another checkout's directory).
 import test from 'node:test';
+import { historical, regressionResidents, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +29,7 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = process.env.RESTORE_ORIGINAL_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
 const json = (f) => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return (html.includes('async function ' + name + '(') ? 'async ' : '') + between('function ' + name + '(', '\n}\n') + '\n}\n'; }
@@ -42,8 +45,8 @@ const MENU_SRC = [CORE, PARTS_SRC, fn('doorEmptyDishParts'), fn('doorSetMealFlag
   fn('saveEditFlags'), fn('_finishMenuSave'), fn('revertLastChange'), fn('buildMenuJSON')].join('\n');
 
 const PUBLISHED = json('menu_current.json');
-const BASE = PUBLISHED.menu;                 // every DOOR computer's base menu: the last published one
-const OVERLAY = json('menu_overlay.json');
+const BASE = copy(historical.menu); // fixed incident; the real restore/export paths run on it
+const OVERLAY = copy(historical.overlay);
 const W = '3', D = 'TUESDAY', P = 'dinner';  // Caribbean Chicken Curry, Naan
 const ORIGINAL = BASE[W][D];
 const NEW = { name: 'Beef Burger, Side Salad', veg: 'Veggie Burger, Side Salad', ticks: ['hasBeef', 'hasGluten'] };
@@ -128,7 +131,7 @@ function load(store, sent) {
 
 // The plating sheet, as routing_replay_gate runs it: the real computePlatingData over a given menu.
 function platingBox(menu) {
-  const state = json('door_state.json');
+  const state = { residents: copy(regressionResidents), anaphRooms: [] };
   const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: null,
     getMenuData: () => menu, loadSpecialMeals: () => ({}), loadMealSwaps: () => ({}) };
   vm.createContext(c);
@@ -302,8 +305,10 @@ test('6. the copy stays DOOR\'s: not in menu_current.json, no publish stop, edit
   for (const wk of Object.keys(built.menu)) for (const d of Object.keys(built.menu[wk]))
     assert.deepEqual(Object.keys(built.menu[wk][d]).filter((k) => /_original$/.test(k)), [], 'menu_current.json carries no copy (' + wk + ' ' + d + ')');
   // The publish check: the copy in the overlay is no contradiction.
+  const liveWithCopy = out(json('menu_overlay.json'));
+  liveWithCopy[W][D][P + '_original'] = copy;
   const res = box.validateDoorPublishArtifacts({ 'menu_current.json': PUBLISHED, 'registry_summary.json': json('registry_summary.json'),
-    'routing_by_meal.json': json('routing_by_meal.json'), 'door_state.json': json('door_state.json'), 'menu_overlay.json': withCopy });
+    'routing_by_meal.json': json('routing_by_meal.json'), 'door_state.json': json('door_state.json'), 'menu_overlay.json': liveWithCopy });
   assert.deepEqual(out(res.stop), [], 'no publish stop');
   // The P4 "what's different" list: a copy on one computer only is an editor detail, named by its meal.
   assert.deepEqual(out(box.doorOverlayDayDifferences(withCopy[W][D], OVERLAY[W][D], {})),

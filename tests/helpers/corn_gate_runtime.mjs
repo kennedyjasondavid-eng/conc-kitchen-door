@@ -2,6 +2,7 @@
 // Test recipes/menus and synthetic residents are supplied by the caller; no registry snapshot is embedded.
 import vm from 'node:vm';
 export function liftCornDoor(html) {
+html = html.replace(/\r\n?/g, '\n');
 function between(a,b) {const s=html.indexOf(a),e=html.indexOf(b,s);if(s<0||e<=s)throw Error('missing '+a);return html.slice(s,e);}
 function fn(n){return between('function '+n+'(','\n}\n')+'\n}\n';}
 const fnOpt=n=>html.includes('function '+n+'(')?fn(n):'';
@@ -30,8 +31,8 @@ function publishMenu(weeks, overlay, ticks) {
   ].join('\n'),c);
   return {before:c.before,after:c.after,saved:JSON.parse(storage.concMenuBase),side};
 }
-function engine(weeks, feed, registry = []) {
-  const state = {residents: registry, anaphRooms: []};
+function engine(weeks, feed, registry = [], anaphRooms = []) {
+  const state = {residents: registry, anaphRooms};
   const TAG_LABELS = html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0];
   const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: feed || null,
     getMenuData: () => weeks, loadSpecialMeals: () => ({}), loadMealSwaps: () => ({}) };

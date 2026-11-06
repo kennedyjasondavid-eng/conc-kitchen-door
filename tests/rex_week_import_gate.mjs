@@ -13,21 +13,22 @@
 //   7 a dish with no CODEX recipe: link the closest one, or tick its allergens
 // Rex's allergen rows are never used: allergens come from CODEX's recipes and the dish names, are added without
 // asking, and come off only when ticked.
-// Run on Rex's two sheets (tests/fixtures/rex_week/, as rows) against the published menu_current.json, with the baked
+// Run on Rex's two sheets (tests/fixtures/rex_week/, as rows) against a fixed comparison menu, with the baked
 // recipe list (and CODEX's feed in test 11 when conc-recipe-hub is beside this repo). Authored to fail on 1ac3486.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { historical } from './helpers/historical_menu.mjs';
 import { rexWeekBox, rexCtx } from './helpers/rex_week_box.mjs';
 
 const ROOT = process.env.REX_WEEK_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
 const json = (f) => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
 const out = (v) => JSON.parse(JSON.stringify(v));
 const api = rexWeekBox(ROOT);
-const MENU = json('menu_current.json').menu;
+const MENU = out(historical.menu); // fixed workbook comparison, independent of the kitchen's next edit
 const W4 = json('tests/fixtures/rex_week/Week 4 18 Oct - 24 Oct.rows.json');
 const W1 = json('tests/fixtures/rex_week/Week 1 - Menu Oct 25 - Oct 31 -.rows.json');
 const TODAY = '2026-10-29';   // Thu, Week 1

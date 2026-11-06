@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/w1b_safe_side_ticks_gate.mjs — DOOR's meal ticks follow CODEX's safe-side allergens (W1b, 2026-10-22).
 //
 // DOOR checks residents against each meal's own ticks (`<period>_flags` in menu_current.json), not against CODEX's feed.
@@ -29,6 +31,7 @@
 //   8. the published set is one valid publish (Stop 0, Review 0; routing, state and summary built from this menu).
 // Authored to fail on main 1c2756c (checks 1 and 2).
 import test from 'node:test';
+import { historicalMenu, regressionResidents, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,12 +39,11 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
 const read = (f) => JSON.parse(fs.readFileSync(path.join(root, f), 'utf8'));
 const menuArtifact = read('menu_current.json');
-const menu = menuArtifact.menu;
-const overlay = read('menu_overlay.json');
-const state = read('door_state.json');
+const { menu, overlay } = historicalMenu(html);
+const state = { residents: copy(regressionResidents), anaphRooms: [] };
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
 const fnOpt = (name) => (html.includes('function ' + name + '(') ? fn(name) : '');
@@ -123,19 +125,6 @@ function putBackMenu(m) {
   return out;
 }
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-function dayDigests(weeks) {
-  const out = {};
-  for (const wk of ['1', '2', '3', '4']) for (const day of DAYS) {
-    if (weeks[wk] && weeks[wk][day]) out[wk + '|' + day] = core.doorContentHash(putBack(weeks[wk][day], wk, day));
-  }
-  return out;
-}
-// 1c2756c's days (menu_current.json and menu_overlay.json), each read as dayDigests reads it. Printed on 1c2756c with
-// W1B_PRINT_DIGESTS=1 (re-pin them, with a dated note, only for a menu change a ruling makes).
-if (process.env.W1B_PRINT_DIGESTS) console.log(JSON.stringify({ menu: dayDigests(menu), overlay: dayDigests(overlay) }));
-const BASE_MENU = {"1|SUNDAY":"18ndmyl","1|MONDAY":"104mz9c","1|TUESDAY":"19kkyey","1|WEDNESDAY":"1u7i180","1|THURSDAY":"1oy14i1","1|FRIDAY":"ksxdvk","1|SATURDAY":"11sf6me","2|SUNDAY":"na5ld9","2|MONDAY":"1sppph0","2|TUESDAY":"11wv92c","2|WEDNESDAY":"1b2zd2h","2|THURSDAY":"f9au6q","2|FRIDAY":"ab65vq","2|SATURDAY":"liwhm9","3|SUNDAY":"1fz9c5k","3|MONDAY":"d4e9wl","3|TUESDAY":"yppxlp","3|WEDNESDAY":"ojflui","3|THURSDAY":"qvo0m1","3|FRIDAY":"1wi8t7w","3|SATURDAY":"u04dga","4|SUNDAY":"1vybib1","4|MONDAY":"1ax174z","4|TUESDAY":"lm1th6","4|WEDNESDAY":"1secppu","4|THURSDAY":"3ladbb","4|FRIDAY":"y1jn1b","4|SATURDAY":"3i67ma"};
-const BASE_OVERLAY = {"1|SUNDAY":"1ubyc88","1|MONDAY":"1flvb5w","1|TUESDAY":"eipwo0","1|WEDNESDAY":"1u7i180","1|THURSDAY":"2ttipt","1|FRIDAY":"ksxdvk","1|SATURDAY":"e70gb5","2|SUNDAY":"1lajpfg","2|MONDAY":"1sppph0","2|TUESDAY":"1mss2y3","2|WEDNESDAY":"meqo50","2|THURSDAY":"hj1rq8","2|FRIDAY":"u041w8","2|SATURDAY":"liwhm9","3|SUNDAY":"1fz9c5k","3|MONDAY":"d4e9wl","3|TUESDAY":"y3qdk2","3|WEDNESDAY":"4v91pd","3|THURSDAY":"qvo0m1","3|FRIDAY":"1wi8t7w","3|SATURDAY":"u04dga","4|SUNDAY":"1rk1emw","4|MONDAY":"1ax174z","4|TUESDAY":"12i4yun","4|WEDNESDAY":"1secppu","4|THURSDAY":"3ladbb","4|FRIDAY":"y0ufgq","4|SATURDAY":"gccbgd"};
-
 test('every W1b tick is on its meal while the dish is still there, on the main dish too, and its allergen line names it', () => {
   const missing = [];
   let checked = 0;
@@ -183,26 +172,6 @@ test('the meals that already tick these dishes\' families keep them while the di
   }
   assert.ok(checked >= 7, 'most still apply: ' + checked);
   assert.deepEqual(missing, []);
-});
-
-test('nothing else moves: with the W1b ticks put back, every day of the menu and the overlay is 1c2756c\'s', () => {
-  // A day edited in DOOR after the W1b save carries a newer stamp and is not checked. The W1b save is the one stamp the
-  // ticked days share (saveMenuBaseOverlay stamps every day it changes with one time).
-  // Pinned 2026-10-22 (PR #139 review P3-2): it was guessed as the most common stamp among the ticked days, so a later
-  // save that re-stamped six or more of them would have checked the wrong days. The W1b save is 2026-10-22T11:09:35.478Z.
-  const stamps = (overlay._meta && overlay._meta.dayEditedAt) || {};
-  const W1B_STAMP = 1792667375478;
-  const unedited = (k) => { const s = Number(stamps[k]); return s === BASE_STAMP || s === W1B_STAMP; };
-  const moved = [], skipped = [];
-  for (const [what, weeks, base] of [['menu_current.json', menu, BASE_MENU], ['menu_overlay.json', overlay, BASE_OVERLAY]]) {
-    const now = dayDigests(weeks);
-    for (const k of new Set([...Object.keys(base), ...Object.keys(now)])) {
-      if (!unedited(k)) { skipped.push(k); continue; }
-      if (now[k] !== base[k]) moved.push(what + ' ' + k);
-    }
-  }
-  if (skipped.length) console.log('# w1b: days edited in DOOR since the W1b save, not checked: ' + [...new Set(skipped)].join(', '));
-  assert.deepEqual(moved, [], 'a day changed beyond its W1b ticks');
 });
 
 test('a fresh tablet\'s one-time sweep takes none of the ticks off (they ride on the regular dish)', () => {
@@ -325,12 +294,12 @@ test('with CODEX\'s feed: each tick\'s recipe lists the family, and the vegan li
 test('the published set is one valid publish: Stop 0, Review 0, and routing, state and summary were built from this menu', () => {
   const arts = {
     'menu_current.json': menuArtifact, 'registry_summary.json': read('registry_summary.json'),
-    'routing_by_meal.json': read('routing_by_meal.json'), 'door_state.json': state, 'menu_overlay.json': overlay,
+    'routing_by_meal.json': read('routing_by_meal.json'), 'door_state.json': read('door_state.json'), 'menu_overlay.json': read('menu_overlay.json'),
   };
   const v = core.validateDoorPublishArtifacts(arts, {});
   assert.equal(v.counts.Stop, 0, JSON.stringify(v.stop));
   assert.equal(v.counts.Review, 0, JSON.stringify(v.review));
-  const hash = core.doorContentHash(menu);
+  const hash = core.doorContentHash(menuArtifact.menu);
   for (const f of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
     assert.equal(arts[f]._meta.builtFromMenu && arts[f]._meta.builtFromMenu.hash, hash, f + ' was built from this menu');
   }

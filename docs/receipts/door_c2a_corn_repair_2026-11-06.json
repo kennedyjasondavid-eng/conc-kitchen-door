@@ -1,0 +1,63 @@
+{
+  "command": "node --experimental-test-isolation=none --import ./tests/checks/c2a_variation.mjs --test <tracked root test files except concurrent smoke/outbox/revert>",
+  "sourceSnapshot": "C:\\Users\\JASONK~1\\AppData\\Local\\Temp\\door-c2a-source-8066a1f.html",
+  "date": "2026-11-06",
+  "excludedConcurrentFiles": [
+    "tests/door-smoke.mjs",
+    "tests/publish_outbox_gate.mjs",
+    "tests/swap_revert_reaches_gate.mjs"
+  ],
+  "passedVariants": [
+    "baseline",
+    "comment",
+    "swap",
+    "replace",
+    "swap-corn",
+    "replace-corn",
+    "zero-lactose",
+    "zero-anaph"
+  ],
+  "files": [
+    {
+      "sha256": "77bc09a4128292594c7e58d6ee4a1399b35db97310d2c3d62bfae18620fcb1cf",
+      "path": "tests/corn_recipe_alignment_gate.mjs"
+    },
+    {
+      "sha256": "08e68145f6beb52213aee30ab035d6b7470d8ddfd7ebeab9bfe138aaa7c483d2",
+      "path": "tests/checks/c2a_variation.mjs"
+    },
+    {
+      "sha256": "6919f49fad9528f317968fa1a3bd7735d258a84ecd93930d2e847b2fd03169d8",
+      "path": "tests/checks/c2a_current_corn_loss.mjs"
+    },
+    {
+      "sha256": "337b11488a02353ee46440a9ebfb0f09e923a4362f77cf707a465ee837a5f2a0",
+      "path": "docs/C2A_COVERAGE_MAP_2026-11-06.md"
+    }
+  ],
+  "eachPassedResult": {
+    "total": 453,
+    "fail": 0,
+    "pass": 442,
+    "skip": 11
+  },
+  "node": "24.19.0",
+  "productBaseline": "8066a1f",
+  "logs": "%TEMP%/door-c2a-repair-<variant>.log; door-c2a-repair-current-corn.log",
+  "frozenFault": {
+    "pass": 441,
+    "total": 453,
+    "assertion": "current exact-bound Corn recipes retain their own warning floor wherever the meal moves",
+    "fail": 1,
+    "message": "exact source Corn must remain on its slot",
+    "skip": 11
+  },
+  "faultCommand": "node --experimental-test-isolation=none --import ./tests/checks/c2a_current_corn_loss.mjs --test <same files>",
+  "limits": [
+    "The original receipt remains a record of the pre-review handoff; this receipt supersedes its Corn test/probe hashes.",
+    "No production changes. Frozen reviewer probe unchanged.",
+    "Combined current F1/C2a suite remains root responsibility after old harness adaptation.",
+    "Unknown bindings are explicitly diagnosed, not inferred to have no allergens. This does not replace F3a identity or C2b coverage prerequisites."
+  ],
+  "issue": "Independent food/data review coherent current Corn loss"
+}

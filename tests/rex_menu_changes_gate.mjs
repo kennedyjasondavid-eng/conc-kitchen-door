@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // Mat's Rexdale menu changes (2026-10-30), every cycle (Jason, 2026-10-30). Authored red on DOOR c71a5cf.
 // Wk2 FRI lunch: CONC Salad → Beef Chili (Bloor; its vegan batch is the vegetarian chili), Cornbread and Sautéed Cabbage
 // from Rex (vegan: Rex's vegan cornbread, the cabbage in oil). Wk2 THU dinner: roasted potatoes hot from Bloor for the mash.
@@ -7,11 +9,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { historicalMenu, routingFor } from './helpers/historical_menu.mjs';
 import { putBackRexMenuChanges } from './helpers/rex_menu_changes_2026-10-30.mjs';
 import { mealDay, namesDish } from './helpers/meal_where.mjs';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
-const menu = read('menu_current.json').menu, overlay = read('menu_overlay.json'), routing = read('routing_by_meal.json');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
+const { menu, overlay } = historicalMenu(html);
+const routing = routingFor(html, menu); // six invented residents, never today's population
 const F = read('tests/fixtures/rex_menu_changes_2026-10-30.json');
 const on = (flags) => Object.keys(flags || {}).filter((k) => flags[k]).sort();
 // Wk2's sausage dinner and Arroz con Pollo are checked where they are now (2026-11-04, Jason: "the swap should change the
@@ -94,12 +99,12 @@ test('putting back the five days recovers the menu as published before them', ()
 test('routing counts the new dishes, not the old ones', () => {
   const c = (wk, day, p) => (((routing.routing[wk] || {})[day] || {})[p] || {})._components || {};
   const fl = c('2', 'FRIDAY', 'lunch'), sun = c('3', 'SUNDAY', 'dinner');
-  assert.ok(fl['Beef Chili'] > 100 && fl['Vegetarian Chili'] > 0 && !fl['CONC Salad - Beef'], JSON.stringify(fl));
-  assert.ok(sun['Beef Bolognese'] > 100 && !sun['Halal Beef Meatballs'], JSON.stringify(sun));
-  assert.ok(c('2', SAUSAGES, 'dinner')['Roasted Potatoes'] > 100 && !c('2', SAUSAGES, 'dinner')['Mashed Potato']);
+  assert.ok(fl['Beef Chili'] > 0 && fl['Vegetarian Chili'] > 0 && !fl['CONC Salad - Beef'], JSON.stringify(fl));
+  assert.ok(sun['Beef Bolognese'] > 0 && !sun['Halal Beef Meatballs'], JSON.stringify(sun));
+  assert.ok(c('2', SAUSAGES, 'dinner')['Roasted Potatoes'] > 0 && !c('2', SAUSAGES, 'dinner')['Mashed Potato']);
   assert.ok(c('2', SAUSAGES, 'dinner')['Halal beef sausages'] > 0, 'the halal sausages count with their meal');
   assert.ok(!c('2', ARROZ, 'dinner')['Roasted Potatoes'] && !c('2', SAUSAGES, 'dinner')['Refried Beans'], 'the dishes count where their meal is now');
-  assert.ok(c('2', 'SATURDAY', 'dinner')['Mashed Potato'] > 100 && !c('2', 'SATURDAY', 'lunch')['Roasted Parsnip and Carrot']);
+  assert.ok(c('2', 'SATURDAY', 'dinner')['Mashed Potato'] > 0 && !c('2', 'SATURDAY', 'lunch')['Roasted Parsnip and Carrot']);
 });
 
 // 2026-10-30, Rex's week sheet: Wk2 SUN's vegan lunch is Rex's "Portobello Cheese Melt"; Jason: it has vegan cheese.
@@ -118,5 +123,5 @@ test('Wk2 TUE lunch serves Seasonal Soup on both lines, with no new ticks, and r
   assert.equal(d.lunch_veg, 'Falafel Sandwich, Seasonal Soup, Chips, Fruit Cup');
   assert.equal(d.lunch_slots.vegside.manual, 'Seasonal Soup');
   assert.equal(d.allergens_lunch, 'gluten, egg, fish, mustard, sulphites', 'the soup adds no tick: the line is the meal’s own');
-  assert.ok((((routing.routing['2'] || {}).TUESDAY || {}).lunch || {})._components['Seasonal Soup'] > 100);
+  assert.ok((((routing.routing['2'] || {}).TUESDAY || {}).lunch || {})._components['Seasonal Soup'] > 0);
 });

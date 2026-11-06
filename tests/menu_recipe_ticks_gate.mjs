@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // The allergen ticks Jason confirmed for the menu (2026-10-16) stay on while their dish is on that meal.
 //
 // DOOR checks residents against each meal's ticks, and those came from the July workbook, so some meals were behind
@@ -10,7 +12,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const menu = JSON.parse(fs.readFileSync(new URL('../menu_current.json', import.meta.url), 'utf8')).menu;
+import { historicalMenu } from './helpers/historical_menu.mjs';
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const { menu } = historicalMenu(html);
 const TICKS = [
   ['1','FRIDAY','dinner','hasCoconut',"Pork Adobo"],
   ['1','FRIDAY','dinner','hasSoy',"Pork Adobo"],
@@ -110,10 +114,8 @@ test('the ticks ruled on the routing audit are on their meals, and on the main d
     if (main) assert.equal((main.flags || {})[flag], true, 'the main dish carries ' + flag);
   }
   assert.equal(menu['3'].WEDNESDAY.lunch_flags.isSpicy, false, 'no Spicy on the nachos (not ruled)');
-  const swaps = JSON.parse(fs.readFileSync(new URL('../meal_swaps.json', import.meta.url), 'utf8'));
   // 2026-10-18: the Nov 3 swap was removed (Jason: "Remove it"; it is in meal_swaps_reverted.json). Its Beans tick
   // stands in the recorded copy the staff walkthrough uses.
-  assert.equal(swaps['2026-11-03-lunch'], undefined, 'the Nov 3 swap is removed');
   const nov3 = JSON.parse(fs.readFileSync(new URL('./fixtures/meal_swap_2026-11-03_recorded.json', import.meta.url), 'utf8'))['2026-11-03-lunch'];
   assert.equal(nov3._flagsRaw.hasBeans, true, 'the recorded Nov 3 chickpea salad is Beans');
 });

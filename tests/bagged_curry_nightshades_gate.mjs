@@ -37,10 +37,10 @@ test('shared overlay carries all nine source warnings and the existing identity 
   assert.equal(expected.allergens.length, 9);
   for (const family of ['Nightshades', 'Corn', 'Sulphites', 'Milk']) assert.ok(expected.allergens.some(a => a.startsWith(family + ' (')));
 });
-test('a paired shared candidate contains the exact labels, evidence and legacy door fields', () => {
+test('a paired shared candidate contains the exact labels, evidence and legacy door fields', (t) =>{
   const url = new URL('../../shared-library/library_shared.json', import.meta.url);
   // A standalone checkout still checks the frozen source, actual fallback and overlay above.
-  if (!fs.existsSync(url)) return;
+  if (!fs.existsSync(url)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const actual = JSON.parse(fs.readFileSync(url, 'utf8')).recipes.find(r => r.recipeName === BAGGED_CURRY);
   assert.deepEqual(actual.allergens, corrected.allergens);
   assert.deepEqual(actual.door, corrected.door);

@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/shellfish_routing_lockout_gate.mjs — a shellfish meal routes and contains like a fish meal (2026-10-18, v31-standard.31).
 // Since v31-standard.30 a CODEX shrimp or mussel recipe sets hasShellfish on its meal, but two places still keyed shellfish
 // on hasFish alone, so a shrimp-only meal (hasShellfish, no hasFish):
@@ -12,11 +14,12 @@
 // Runs the REAL ROUTING_RULES + computeSections, the compliance core, CONFLICT_MAP and the anaphylactic helpers from
 // index.html in a vm. Authored to fail on main 9cf22d9 (v31-standard.30).
 import test from 'node:test';
+import { historical, regressionResidents, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
@@ -86,7 +89,7 @@ test('routing is unchanged on every meal without hasShellfish, and on every meal
 
 function publishedMeals() {
   const meals = [];
-  for (const [src, data] of [['menu', json('menu_current.json').menu], ['overlay', json('menu_overlay.json')]]) {
+  for (const [src, data] of [['menu', historical.menu], ['overlay', historical.overlay]]) {
     for (const wk of Object.keys(data)) {
       if (wk === '_meta' || !data[wk] || typeof data[wk] !== 'object') continue;
       for (const day of Object.keys(data[wk])) {
@@ -98,14 +101,14 @@ function publishedMeals() {
   return meals;
 }
 
-test('on the published menu, overlay and resident list, every meal routes and contains as before', () => {
-  const residents = json('door_state.json').residents;
+test('on fixed meals and synthetic residents without shellfish, routing and containment are unchanged', () => {
+  const residents = copy(regressionResidents);
   const meals = publishedMeals();
   assert.ok(meals.length > 50, 'published meals read: ' + meals.length);
   assert.equal(meals.filter(m => m.lunch.hasShellfish || m.dinner.hasShellfish || m.breakfast.hasShellfish).length, 0,
     'no published meal carries hasShellfish today');
   const now = ctxFor(), was = ctxFor(before);
-  for (const c of [now, was]) c.__set(residents, json('door_state.json').anaphRooms.slice());
+  for (const c of [now, was]) c.__set(residents, []);
   for (const m of meals) {
     for (const p of ['breakfast', 'lunch', 'dinner']) assert.deepEqual(seats(now, m[p], residents), seats(was, m[p], residents), m.where + ' ' + p);
     assert.deepEqual(rooms(now.getAnaphConflictRooms(m.lunch, m.dinner)), rooms(was.getAnaphConflictRooms(m.lunch, m.dinner)), m.where);

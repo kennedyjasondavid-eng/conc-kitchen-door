@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/kitchen_alternatives_gate.mjs — DOOR's plating sheets follow the kitchen's alternatives (2026-10-19).
 // The plating review compared DOOR's sheets with the kitchen's manual ones (the eight Oct 17 workbooks). Jason,
 // 2026-10-19: "Copy the kitchen's": copy each meal's alternatives into DOOR's menu, and follow the kitchen on five
@@ -14,6 +16,7 @@
 // permanent change dropping the old dish's alternatives, and a plate's dishes split outside brackets.
 // Authored to fail on 2e37447 (DOOR PR #135's head). Env: KITCHEN_ALTS_ROOT (another checkout's directory).
 import test from 'node:test';
+import { historicalMenu, regressionResidents, syntheticResident, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +24,7 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = process.env.KITCHEN_ALTS_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
 const json = (f) => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
@@ -110,8 +113,7 @@ test('5. No Pork on the halal plate on pork only; Halal keeps it on meat that is
 });
 
 // The published menu: the kitchen's alternatives, copied from the eight workbooks (scratchpad mapping, majority rule).
-const MENU = json('menu_current.json').menu;
-const OVERLAY = json('menu_overlay.json');
+const { menu: MENU, overlay: OVERLAY } = historicalMenu(html);
 const MEALS = [];
 for (const wk of ['1', '2', '3', '4']) for (const day of Object.keys(MENU[wk] || {})) for (const period of ['lunch', 'dinner'])
   if (MENU[wk][day] && MENU[wk][day][period]) MEALS.push({ wk, day, period, d: MENU[wk][day] });
@@ -151,7 +153,7 @@ test('6. the published menu carries the kitchen’s alternatives, and every DOOR
 });
 
 test('7. on every published meal the plates open as the kitchen’s alternatives say', () => {
-  const residents = json('door_state.json').residents;
+  const residents = [...copy(regressionResidents), syntheticResident('case_diabetic', ['Diabetic']), syntheticResident('case_dairy', ['No Dairy'])];
   assert.equal(typeof c.doorAddKitchenPlateFlags, 'function', 'doorAddKitchenPlateFlags');
   // The sheet, the routing file's fallback and the menu screens' previews all read a meal's plates through it.
   assert.match(fn('computePlatingData'), /doorAddKitchenPlateFlags\(mealFlags, dayData, period\);/);

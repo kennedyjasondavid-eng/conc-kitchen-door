@@ -1,9 +1,12 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // Recipe-attach S4 — the F-E "no allergen source" nudge.
 // A meal-level (not per-slot) advisory: a named meal that would save with NO allergen data
 // at all (no flag set AND no recipe-linked slot). Meal-level on purpose — a per-slot check
 // cries wolf on every legacy manual slot. Authored-to-fail: _mealNoAllergenSource is absent
 // pre-S4. The data invariant proves it never fires on the live committed menu.
 import test from 'node:test';
+import { historicalMenu } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,7 +14,7 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
 
 function fnBlock(name) {
   const start = html.indexOf('function ' + name + '(');
@@ -49,8 +52,8 @@ test('DELIBERATE deferral (review P2): the mixed "linked main + unflagged manual
     'an all-manual meal WITH a set allergen flag is covered → no nudge');
 });
 
-test('NO CRY WOLF: not one committed meal fires the nudge', () => {
-  const menu = JSON.parse(fs.readFileSync(path.join(root, 'menu_current.json'), 'utf8')).menu;
+test('NO CRY WOLF: the fixed healthy meals do not fire the nudge', () => {
+  const { menu } = historicalMenu(html);
   const PERIODS = ['breakfast', 'lunch', 'dinner'];
   let meals = 0, fired = 0;
   for (const w of Object.keys(menu)) for (const d of Object.keys(menu[w])) {
