@@ -1,0 +1,9 @@
+# F4 producer integration receipt
+
+Product SHA256 `9e4687bd9697566bd1f4a4c294abb11ab423b6ef5fbba2517ce796e73071e81d` is the exact producer cleared by the independent food/data and release/feed reviews. Both activation constants remain empty. This slice adds the protocol and regression coverage without starting a new production occurrence lineage.
+
+Root reran the complete pure safety suite on this final source: 740 total, 729 pass, zero fail, 11 existing optional sibling-source skips. The six actual publisher browser gates pass 65/65: original producer 24, operator inputs 5, occurrence recovery 9, rollback 6, private counter 15 and known-counter witness 6. All Git/Pages transport in those browser tests is intercepted; no operational menu, resident or credential was used. Logs are retained in the local audit scratch directory as `f4-root-final-pure.log` and `f4-isolated-*.log`.
+
+The public Pages allowlist is unchanged. Five existing artifacts carry the same occurrence; only menu, routing and registry summary are public receipt carriers. The overlay, resident state and sixth counter artifact remain private. The public reader validates the seven-file input family. Knownness and anaphylactic distinctions remain explicit, and recipe portion bases remain unknown. A counter restored below an already known occurrence holds the edit locally instead of reusing a sequence.
+
+The CI addition uses the existing safety runner and the separately reviewed Ubuntu 24.04 / Playwright 1.56.1 pair. Independent Pages delivery remains separate. C2b must replace this temporary all-push browser selection before activation. Consumers must be served first, and activation requires a separate reviewed fence against the current authoritative head. One user system is confirmed reconnected; other devices and PAT revocations were waived by the user and are not claimed verified.

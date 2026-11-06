@@ -11233,7 +11233,419 @@ const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'special_meals.json', 'me
 // This is an extension of the existing publish queue, not a second outbox.
 const DOOR_PUBLISH_DEPENDENCIES = new Set(['menu_current.json','menu_overlay.json','meal_swaps.json',
   'meal_swaps_reverted.json','special_meals.json','special_meals_removed.json','routing_by_meal.json',
-  'registry_summary.json','door_state.json','learned_nr.json','custom_tag_rules.json']);
+  'registry_summary.json','door_state.json','learned_nr.json','custom_tag_rules.json','door_flow_publication.json']);
+/* HOUSE_TESTABLE_CORE_START flow-validity */
+// Shared additive contract, ported inline so each app still works without a build or module server.
+function houseFlowCanonical(value) {
+  if (value === null) return 'null';
+  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(houseFlowCanonical).join(',') + ']';
+  if (value && typeof value === 'object' && Object.prototype.toString.call(value) === '[object Object]') {
+    return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + houseFlowCanonical(value[k])).join(',') + '}';
+  }
+  throw new Error('Flow inputs must be finite JSON values');
+}
+function houseFlowCopy(value) { return JSON.parse(houseFlowCanonical(value)); }
+async function houseFlowDigest(value) {
+  if (typeof crypto === 'undefined' || !crypto.subtle) throw new Error('Flow verification is unavailable on this connection');
+  const bytes = new TextEncoder().encode(houseFlowCanonical(value));
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return 'sha256:' + Array.from(new Uint8Array(hash), x => x.toString(16).padStart(2,'0')).join('');
+}
+function houseFlowProjection(value, kind) {
+  let out = houseFlowCopy(value);
+  if (out && !Array.isArray(out) && typeof out === 'object') {
+    delete out._meta; delete out._cachedAt; delete out.checkedAt; delete out.exported;
+  }
+  if (kind === 'menu') {
+    if (out && out.menu) out = out.menu;
+    const withoutOriginal = v => {
+      if (Array.isArray(v)) return v.map(withoutOriginal);
+      if (!v || typeof v !== 'object') return v;
+      const n = {};
+      Object.keys(v).forEach(k => { if (k !== '_original' && !k.endsWith('_original')) n[k] = withoutOriginal(v[k]); });
+      return n;
+    };
+    out = withoutOriginal(out);
+  }
+  if (kind === 'registry' && out) {
+    if (Array.isArray(out.residents)) {
+      out.residents.forEach(r => { if (Array.isArray(r.tags)) r.tags = Array.from(new Set(r.tags)).sort(); });
+      const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
+      out.residents.sort((a,b) => compare(String(a.id || a.room || ''),String(b.id || b.room || '')) || compare(houseFlowCanonical(a),houseFlowCanonical(b)));
+    }
+    if (Array.isArray(out.anaphRooms)) out.anaphRooms = Array.from(new Set(out.anaphRooms)).sort();
+  }
+  return out;
+}
+async function houseFlowReceipt(inputs) {
+  if (!inputs || typeof inputs.site !== 'string' || !inputs.site) throw new Error('A flow receipt needs its site');
+  const components = {};
+  for (const kind of ['menu','dated','registry','recipe','calendar']) components[kind] = await houseFlowDigest(houseFlowProjection(inputs[kind],kind));
+  return {schema:1,inputRevision:await houseFlowDigest({schema:1,site:inputs.site,components}),components,calendar:houseFlowProjection(inputs.calendar,'calendar')};
+}
+function houseFlowCivilDay(date) {
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const n = Date.parse(date + 'T12:00:00Z');
+  return Number.isFinite(n) && new Date(n).toISOString().slice(0,10) === date ? Math.floor(n / 86400000) : null;
+}
+function houseFlowCalendarValid(calendar) {
+  if (!calendar || calendar.mode !== 'standard' || calendar.cycleWeeks !== 4 || calendar.weekStartsOn !== 'SUNDAY' || calendar.zone !== 'America/Toronto') return false;
+  const day = houseFlowCivilDay(calendar.cycleStart), basis = houseFlowCivilDay('2026-06-07');
+  return day !== null && (day - basis) % 28 === 0;
+}
+function houseFlowReceiptValid(receipt) {
+  const hash = v => typeof v === 'string' && /^sha256:[a-f0-9]{64}$/.test(v);
+  const p = receipt && receipt.publication;
+  return !!(receipt && receipt.schema === 1 && hash(receipt.inputRevision) && receipt.components &&
+    ['menu','dated','registry','recipe','calendar'].every(k => hash(receipt.components[k])) &&
+    p && typeof p.epoch === 'string' && p.epoch.length > 0 && p.epoch.length <= 200 && Number.isSafeInteger(p.sequence) && p.sequence > 0 && houseFlowCalendarValid(receipt.calendar));
+}
+function houseFlowCreateState(options) {
+  const opts = options || {}, max = 7 * 86400000;
+  const state = {generation:0,maxAgeMs:Number.isFinite(opts.maxAgeMs) && opts.maxAgeMs > 0 ? Math.min(opts.maxAgeMs,max) : max,highest:null,conflict:false,accepted:null};
+  const saved = opts.snapshot;
+  if (saved && saved.schema === 1 && saved.highest && houseFlowReceiptValid(saved.highest.receipt) && typeof saved.highest.site === 'string') {
+    state.highest = houseFlowCopy(saved.highest); state.conflict = saved.conflict === true;
+  }
+  return state;
+}
+function houseFlowBegin(state) { return ++state.generation; }
+function houseFlowObserve(state,generation,receipt,context) {
+  if (generation !== state.generation || !context || context.source !== 'live' ||
+      !['menu','overlay','registry','routing'].includes(context.family) || typeof context.site !== 'string' || !context.site) return false;
+  if (context.family === 'overlay' && receipt == null) return false;
+  if (!houseFlowReceiptValid(receipt)) {
+    // A successful authoritative response that has lost its receipt is a known
+    // uncertainty, unlike a failed/offline request. An old cache cannot erase it.
+    if (state.highest && state.highest.site === context.site) state.conflict = true;
+    return false;
+  }
+  if (!state.highest) { state.highest = {site:context.site,receipt:houseFlowCopy(receipt)}; return true; }
+  const old = state.highest;
+  if (old.site !== context.site) return false;
+  if (old.receipt.publication.epoch !== receipt.publication.epoch) { state.conflict = true; return false; }
+  if (receipt.publication.sequence < old.receipt.publication.sequence) return false;
+  if (receipt.publication.sequence === old.receipt.publication.sequence) {
+    if (houseFlowCanonical(receipt) !== houseFlowCanonical(old.receipt)) state.conflict = true;
+    return !state.conflict;
+  }
+  state.highest = {site:context.site,receipt:houseFlowCopy(receipt)}; state.conflict = false;
+  return true;
+}
+function houseFlowCountsValid(counts) {
+  if (!counts || typeof counts !== 'object' || Array.isArray(counts)) return false;
+  const keys = Object.keys(counts);
+  if (!keys.some(k => k !== '_components')) return false;
+  return keys.every(k => k === '_components' ? counts[k] && typeof counts[k] === 'object' && !Array.isArray(counts[k]) &&
+    Object.values(counts[k]).every(n => Number.isSafeInteger(n) && n >= 0) : Number.isSafeInteger(counts[k]) && counts[k] >= 0);
+}
+function houseFlowSlotValid(slot) {
+  return !!(slot && (slot.status === 'valid' ? houseFlowCountsValid(slot.counts) : slot.status === 'unavailable' && typeof slot.reason === 'string' && slot.reason.length > 0 && slot.counts === undefined));
+}
+function houseFlowRoutingValid(flow) {
+  if (!flow || flow.schema !== 1 || !flow.rotation || !flow.dated || Array.isArray(flow.dated)) return false;
+  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const meals = ['breakfast','lunch','dinner'];
+  for (const week of ['1','2','3','4']) for (const day of days) for (const meal of meals) {
+    if (!houseFlowSlotValid(flow.rotation[week] && flow.rotation[week][day] && flow.rotation[week][day][meal])) return false;
+  }
+  return Object.entries(flow.dated).every(([date,slots]) => houseFlowCivilDay(date) !== null && slots && typeof slots === 'object' &&
+    Object.entries(slots).every(([meal,slot]) => meals.includes(meal) && houseFlowSlotValid(slot)));
+}
+function houseFlowDatedCoverage(candidate,calendar) {
+  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const expected = {};
+  const alive = (entry,removed) => entry && typeof entry === 'object' && typeof entry.specialName === 'string' && entry.specialName.trim() &&
+    (!removed || (typeof entry.createdAt === 'string' && typeof removed === 'string' && entry.createdAt > removed));
+  const keys = new Set(Object.keys(candidate.swaps).concat(Object.keys(candidate.specials)));
+  for (const key of keys) {
+    const match = /^(\d{4}-\d{2}-\d{2})-(lunch|dinner)$/.exec(key);
+    if (!match || houseFlowCivilDay(match[1]) === null) return false;
+    const special = alive(candidate.specials[key],candidate.removed[key]);
+    const swap = alive(candidate.swaps[key],candidate.reverted[key]);
+    if (!special && !swap) continue;
+    expected[key] = special ? 'special' : 'swap';
+  }
+  const found = {};
+  for (const [date,meals] of Object.entries(candidate.routing.flow.dated)) for (const [meal,slot] of Object.entries(meals)) {
+    const key = date + '-' + meal, kind = expected[key];
+    if (!kind) return false;
+    const offset = ((houseFlowCivilDay(date) - houseFlowCivilDay(calendar.cycleStart)) % 28 + 28) % 28;
+    const week = String(Math.floor(offset / 7) + 1), day = days[offset % 7];
+    if (slot.status === 'valid' || slot.week !== undefined || slot.day !== undefined || slot.kind !== undefined) {
+      if (slot.week !== week || slot.day !== day || slot.kind !== kind) return false;
+    }
+    found[key] = true;
+  }
+  return Object.keys(expected).every(key => found[key]);
+}
+async function houseFlowPromote(state,generation,candidate,options) {
+  const opts = options || {};
+  if (generation !== state.generation || !candidate || !['live','cache'].includes(opts.source)) return false;
+  // Observe every authoritative family before rejecting a mixed response. Routing can arrive first.
+  const families = ['menu','registry','routing'].concat(candidate.overlay ? ['overlay'] : []);
+  if (opts.source === 'live') for (const family of families) {
+    const meta = candidate[family] && candidate[family]._meta;
+    const site = meta && meta.site || candidate.menu && candidate.menu._meta && candidate.menu._meta.site || state.highest && state.highest.site;
+    houseFlowObserve(state,generation,meta && meta.flow,{family,site,source:'live'});
+  }
+  try {
+    const meta = candidate.menu && candidate.menu._meta, receipt = meta && meta.flow;
+    if (!meta || !houseFlowReceiptValid(receipt) || typeof meta.site !== 'string' || !meta.site || state.conflict) return false;
+    for (const family of families.filter(name => name !== 'menu')) {
+      const other = candidate[family] && candidate[family]._meta;
+      if (!other || other.site !== meta.site || houseFlowCanonical(other.flow) !== houseFlowCanonical(receipt)) return false;
+    }
+    if (state.highest && (state.highest.site !== meta.site || houseFlowCanonical(state.highest.receipt) !== houseFlowCanonical(receipt))) return false;
+    if (!houseFlowRoutingValid(candidate.routing.flow) || candidate.routing.flow.inputRevision !== receipt.inputRevision) return false;
+    const dated = {};
+    for (const name of ['swaps','reverted','specials','removed']) {
+      const value = candidate[name];
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+      dated[name] = value;
+    }
+    if (!houseFlowDatedCoverage(candidate,receipt.calendar)) return false;
+    const checks = await Promise.all([
+      houseFlowDigest(houseFlowProjection(candidate.menu,'menu')),
+      houseFlowDigest(houseFlowProjection(dated,'dated')),
+      houseFlowDigest(houseFlowProjection(receipt.calendar,'calendar')),
+      houseFlowDigest({schema:1,site:meta.site,components:receipt.components})
+    ]);
+    if (checks[0] !== receipt.components.menu || checks[1] !== receipt.components.dated || checks[2] !== receipt.components.calendar || checks[3] !== receipt.inputRevision) return false;
+    const observedAt = opts.source === 'live' ? opts.now : opts.observedAt;
+    if (!Number.isFinite(opts.now) || !Number.isFinite(observedAt) || observedAt > opts.now || opts.now - observedAt > state.maxAgeMs) return false;
+    // Hashing yields: another refresh may have superseded this candidate meanwhile.
+    if (generation !== state.generation || state.conflict || (state.highest && houseFlowCanonical(state.highest.receipt) !== houseFlowCanonical(receipt))) return false;
+    if (!state.highest) state.highest = {site:meta.site,receipt:houseFlowCopy(receipt)};
+    state.accepted = {site:meta.site,receipt:houseFlowCopy(receipt),routing:houseFlowCopy(candidate.routing.flow),observedAt};
+    return true;
+  } catch (error) { return false; }
+}
+function houseFlowResolve(state,service,now) {
+  const unavailable = reason => ({status:'unavailable',reason,counts:null});
+  const accepted = state.accepted;
+  if (!accepted) return unavailable('unverified-flow');
+  if (state.conflict || !state.highest || houseFlowCanonical(state.highest.receipt) !== houseFlowCanonical(accepted.receipt)) return unavailable('superseded-flow');
+  if (!Number.isFinite(now) || now < accepted.observedAt || now - accepted.observedAt > state.maxAgeMs) return unavailable('expired-flow');
+  if (!service || service.site !== accepted.site) return unavailable('site-mismatch');
+  const date = houseFlowCivilDay(service.date), basis = houseFlowCivilDay(accepted.receipt.calendar.cycleStart);
+  if (date === null || !houseFlowCalendarValid(accepted.receipt.calendar)) return unavailable('calendar-mismatch');
+  const delta = ((date - basis) % 28 + 28) % 28;
+  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+  const week = String(1 + Math.floor(delta / 7)), day = days[delta % 7];
+  if (String(service.week) !== week || service.day !== day || !['breakfast','lunch','dinner'].includes(service.meal)) return unavailable('service-mismatch');
+  const dated = accepted.routing.dated[service.date];
+  const slot = dated && Object.prototype.hasOwnProperty.call(dated,service.meal) ? dated[service.meal] : accepted.routing.rotation[week][day][service.meal];
+  if (!slot || slot.status !== 'valid' || !houseFlowCountsValid(slot.counts)) return unavailable(slot && slot.reason || 'routing-unavailable');
+  return {status:'valid',counts:houseFlowCopy(slot.counts),inputRevision:accepted.receipt.inputRevision,publication:houseFlowCopy(accepted.receipt.publication)};
+}
+function houseFlowSnapshot(state) { return {schema:1,highest:state.highest && houseFlowCopy(state.highest),conflict:state.conflict === true,observedAt:state.accepted ? state.accepted.observedAt : null}; }
+/* HOUSE_TESTABLE_CORE_END flow-validity */
+// Empty until compatible readers are served and the operator-led writer cutover is complete.
+const DOOR_FLOW_ACTIVATION_EPOCH = '';
+const DOOR_FLOW_ACTIVATION_BASE = '';
+async function doorFlowPreviousReceipt(inputs,creds) {
+  const current = (inputs.revision.data['menu_current.json'] || {})._meta || {};
+  const remembered = localStorage.getItem('concDoorFlowPublication');
+  let witness = null;
+  if (remembered) {
+    try { witness = JSON.parse(remembered); } catch (error) {}
+    if (!witness || typeof witness.epoch !== 'string' || !Number.isSafeInteger(witness.sequence) || witness.sequence <= 0) {
+      throw new Error('The remembered kitchen occurrence is unreadable. Work remains pending.');
+    }
+  }
+  const remember = flow => {
+    if (witness && (flow.publication.epoch !== witness.epoch || flow.publication.sequence < witness.sequence)) {
+      throw new Error('The shared kitchen occurrence is older than this computer has verified. Work remains pending.');
+    }
+    if (!doorSetItemSafe('concDoorFlowPublication',JSON.stringify(flow.publication))) throw new Error('This computer could not retain the flow occurrence. Work remains pending.');
+    return flow;
+  };
+  if (current.flow && !houseFlowReceiptValid(current.flow)) throw new Error('The kitchen flow receipt cannot be verified. Work remains pending.');
+  const counter = inputs.revision.paths['door_flow_publication.json'] ? inputs.revision.data['door_flow_publication.json'] : null;
+  if (counter) {
+    const site = (typeof currentSite !== 'undefined' && currentSite.id) || current.site;
+    if (counter.schema !== 1 || !counter._meta || counter._meta.site !== site || !houseFlowReceiptValid(counter.flow)) {
+      throw new Error('The kitchen publication counter cannot be verified. Work remains pending.');
+    }
+    if (current.flow && (current.flow.publication.epoch !== counter.flow.publication.epoch ||
+        current.flow.publication.sequence > counter.flow.publication.sequence ||
+        (current.flow.publication.sequence === counter.flow.publication.sequence && houseFlowCanonical(current.flow) !== houseFlowCanonical(counter.flow)))) {
+      throw new Error('The kitchen receipt disagrees with its publication counter. Work remains pending.');
+    }
+    return remember(counter.flow);
+  }
+  // Before activation, legacy publishing stays usable. Once this device has
+  // observed flow metadata, its disappearance cannot silently restart sequence 1.
+  if (current.flow && !remembered && !DOOR_FLOW_ACTIVATION_EPOCH) return remember(current.flow);
+  if (!remembered && !DOOR_FLOW_ACTIVATION_EPOCH) return null;
+  if (current.flow && witness && current.flow.publication.epoch !== witness.epoch) {
+    throw new Error('The current publication epoch is inconsistent. Work remains pending.');
+  }
+  const read = path => doorPublishReadJSON(creds,path);
+  let head = inputs.revision.head;
+  for (let n = 0; head && n < 32; n++) {
+    const commit = await read('/git/commits/' + head);
+    if (head !== inputs.revision.head) {
+      const tree = await read('/git/trees/' + commit.tree.sha + '?recursive=1');
+      if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('The prior flow inventory is incomplete. Work remains pending.');
+      if (tree.tree.some(entry => entry.type === 'blob' && entry.path === 'menu_current.json')) {
+        const body = await read('/contents/menu_current.json?ref=' + encodeURIComponent(head));
+        if (typeof body.content !== 'string') throw new Error('The prior flow receipt is unreadable. Work remains pending.');
+        const menu = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
+        const prior = menu && menu._meta && menu._meta.flow;
+        if (prior) {
+          if (!houseFlowReceiptValid(prior)) throw new Error('The prior flow occurrence is invalid. Work remains pending.');
+          if (witness && prior.publication.epoch !== witness.epoch) throw new Error('The prior publication epoch is inconsistent. Work remains pending.');
+          if (!witness || prior.publication.sequence >= witness.sequence) {
+            // History establishes the missing-counter boundary, but a newer
+            // receipt at the pinned head remains authoritative after a CAS retry.
+            if (current.flow) {
+              if (current.flow.publication.epoch !== prior.publication.epoch ||
+                  (current.flow.publication.sequence === prior.publication.sequence && houseFlowCanonical(current.flow) !== houseFlowCanonical(prior))) {
+                throw new Error('The current and prior kitchen occurrences disagree. Work remains pending.');
+              }
+              if (current.flow.publication.sequence > prior.publication.sequence) return remember(current.flow);
+            }
+            return remember(prior);
+          }
+        }
+      }
+    }
+    // Only an explicitly reviewed bootstrap boundary permits the first occurrence.
+    if (!remembered && DOOR_FLOW_ACTIVATION_EPOCH && DOOR_FLOW_ACTIVATION_BASE && head === DOOR_FLOW_ACTIVATION_BASE) return null;
+    head = commit.parents && commit.parents[0] && commit.parents[0].sha;
+  }
+  throw new Error('The previous kitchen flow occurrence could not be established. Work remains pending.');
+}
+function doorFlowRecipeInput() {
+  const project = r => ({recipeId:r.recipeId || null,recipeName:r.recipeName || '',
+    allergens:Array.isArray(r.allergens) ? r.allergens.slice() : null,category:r.category || null,
+    stream:r.stream || null,veganFriendly:typeof r.veganFriendly === 'boolean' ? r.veganFriendly : null});
+  const records = (typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA) ? DOOR_RECIPE_DATA : []).map(project);
+  const shared = typeof _doorSharedLibrary !== 'undefined' && _doorSharedLibrary;
+  return {records,base:typeof _recipeDataSource !== 'undefined' && _recipeDataSource === 'fallback' ? 'fallback' : 'feed',
+    sharedOverrides:shared && Array.isArray(shared.recipes) ? shared.recipes.map(r => ({recipeName:r.recipeName || '',removed:r.removed === true,
+      door:r.door ? project(r.door) : null,removedAllergens:r.door && Array.isArray(r.door.removedAllergens) ? r.door.removedAllergens.slice() : []})) : []};
+}
+function doorFlowRecipeVector(records) {
+  const out = {}, duplicates = new Set();
+  records.forEach(r => {
+    if (!r.recipeId) return;
+    const id = String(r.recipeId);
+    if (Object.prototype.hasOwnProperty.call(out,id)) { duplicates.add(id); return; }
+    const parsed = Array.isArray(r.allergens) && typeof _hubAllergenResolve === 'function' ? _hubAllergenResolve(r.allergens) : null;
+    const stated = Array.isArray(r.allergens) && r.allergens.length > 0 && r.allergens.every(a =>
+      typeof a === 'string' && a.split('(')[0].split(/\s+and\s+|\s*&\s*|\s*,\s*/i).some(part => part.trim().replace(/^and\s+/i,'').length > 0));
+    const known = !!(parsed && stated && parsed.unknown && parsed.unknown.size === 0);
+    out[id] = {canonicalName:r.recipeName,allergenState:known ? 'known' : 'unknown',
+      allergenFlags:parsed && typeof hubAllergenToFlags === 'function' ? hubAllergenToFlags(r.allergens) : {},portionBasis:null};
+  });
+  duplicates.forEach(id => { out[id] = {canonicalName:null,allergenState:'unknown',allergenFlags:{},portionBasis:null}; });
+  return out;
+}
+function doorFlowRoutingSlot(inputs,week,day,meal,date) {
+  const previous = inputs.flowService;
+  inputs.flowService = {week,day,meal,date};
+  try {
+    const pd = computePlatingData(meal,week,day);
+    if (!pd) return {status:'unavailable',reason:'meal-unavailable'};
+    const counts = {}, components = {}, names = {};
+    pd.sections.forEach(section => {
+      if (section.residents.length > 0 || section.rule.key === 'regular') counts[section.rule.label] = section.residents.length;
+      if (!section.residents.length) return;
+      const type = section.rule.altType;
+      const text = type === 'modified_main' || type === 'diabetic_alt' || (type === 'bland_alt' && !pd.ctx.blandAlt)
+        ? pd.ctx.mealName : getAltMeal(type,pd.ctx);
+      doorSplitDishes(text).forEach(raw => {
+        const name = raw.trim();
+        if (!name || name.includes('[')) return;
+        const canonical = names[name.toLowerCase()] || (names[name.toLowerCase()] = name);
+        components[canonical] = (components[canonical] || 0) + section.residents.length;
+      });
+    });
+    if (pd.anaphSect.length) counts['Anaphylactic Alternative'] = pd.anaphSect.length;
+    counts._components = components;
+    return houseFlowCountsValid(counts) ? {status:'valid',counts} : {status:'unavailable',reason:'routing-invalid'};
+  } catch (error) { return {status:'unavailable',reason:'plating-unavailable'}; }
+  finally { if (previous === undefined) delete inputs.flowService; else inputs.flowService = previous; }
+}
+function doorFlowBuildProjection(inputs,artifacts) {
+  const previous = inputs.flowMenu;
+  // The same normalized menu that is publicly exported feeds the new projection.
+  inputs.flowMenu = artifacts['menu_current.json'].menu;
+  try {
+    const rotation = {}, dated = {}, days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+    ['1','2','3','4'].forEach(week => {
+      rotation[week] = {};
+      days.forEach(day => {
+        rotation[week][day] = {};
+        ['breakfast','lunch','dinner'].forEach(meal => { rotation[week][day][meal] = doorFlowRoutingSlot(inputs,week,day,meal,null); });
+      });
+    });
+    const keys = Array.from(new Set(Object.keys(inputs.swaps).concat(Object.keys(inputs.specials))));
+    keys.forEach(key => {
+      const match = /^(\d{4}-\d{2}-\d{2})-(lunch|dinner)$/.exec(key);
+      if (!match) return;
+      const date = match[1], meal = match[2], civil = houseFlowCivilDay(date);
+      if (civil === null) return;
+      const offset = ((civil - houseFlowCivilDay('2026-06-07')) % 28 + 28) % 28;
+      const week = String(Math.floor(offset / 7) + 1), day = days[offset % 7];
+      const special = inputs.specials[key], swap = inputs.swaps[key];
+      if (!(special || swap)) return;
+      dated[date] = dated[date] || {};
+      dated[date][meal] = Object.assign(doorFlowRoutingSlot(inputs,week,day,meal,date),{kind:special ? 'special' : 'swap',week,day});
+    });
+    return {schema:1,inputRevision:null,recipes:doorFlowRecipeVector(inputs.flowRecipe.records),rotation,dated};
+  } finally { if (previous === undefined) delete inputs.flowMenu; else inputs.flowMenu = previous; }
+}
+function doorFlowRegistryInput(inputs) {
+  const fields = ['room','section','tags','restrictions','allergenFlags','accommodations','preferences','avoidances','anaphTags','isAnaph','anaphylactic','_tierMigrated'];
+  const operatorMealRules = {};
+  Object.entries(inputs.menuEdits || {}).forEach(([slot,edit]) => {
+    // This effective statement changes smart No Egg routing without changing menu words.
+    // Retain it in the private aggregate input; only its digest is published.
+    if (/^[1-4]-(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)-(breakfast|lunch|dinner)$/.test(slot) && edit && edit.vegAllergens) {
+      operatorMealRules[slot] = {vegAllergens:edit.vegAllergens};
+    }
+  });
+  return {residents:inputs.registry.residents.map(r => Object.fromEntries(fields.filter(k => r[k] !== undefined).map(k => [k,r[k]]))),
+    anaphRooms:inputs.registry.anaphRooms,customRules:inputs.custom,learned:inputs.learned,operatorMealRules};
+}
+async function doorFlowStampCandidate(inputs,artifacts,creds) {
+  const prior = await doorFlowPreviousReceipt(inputs,creds);
+  if (!prior && !DOOR_FLOW_ACTIVATION_EPOCH) return null;
+  if (prior && !houseFlowReceiptValid(prior)) throw new Error('The kitchen flow receipt cannot be verified. Work remains pending.');
+  const publication = prior ? prior.publication : {epoch:DOOR_FLOW_ACTIVATION_EPOCH,sequence:0};
+  if (publication.sequence === Number.MAX_SAFE_INTEGER) throw new Error('The kitchen flow sequence needs maintenance. Work remains pending.');
+  const calendar = prior ? prior.calendar : {mode:'standard',cycleStart:'2026-06-07',cycleWeeks:4,weekStartsOn:'SUNDAY',zone:'America/Toronto'};
+  const flow = doorPublishWithInputs(inputs,() => doorFlowBuildProjection(inputs,artifacts));
+  const receipt = await houseFlowReceipt({site:artifacts['menu_current.json']._meta.site,menu:artifacts['menu_current.json'].menu,
+    dated:{swaps:inputs.swaps,reverted:inputs.reverted,specials:inputs.specials,removed:inputs.removed},
+    registry:doorFlowRegistryInput(inputs),recipe:inputs.flowRecipe,calendar});
+  // Keep the existing occurrence until prepared-commit recovery proves whether a new commit is needed.
+  receipt.publication = houseFlowCopy(publication);
+  flow.inputRevision = receipt.inputRevision;
+  artifacts['routing_by_meal.json'].flow = flow;
+  ['menu_current.json','menu_overlay.json','routing_by_meal.json','registry_summary.json','door_state.json'].forEach(name => {
+    artifacts[name]._meta = Object.assign({},artifacts[name]._meta,{flow:houseFlowCopy(receipt)});
+  });
+  artifacts['door_flow_publication.json'] = {_meta:{site:artifacts['menu_current.json']._meta.site},schema:1,flow:houseFlowCopy(receipt)};
+  return {epoch:publication.epoch,sequence:publication.sequence + 1};
+}
+function doorFlowAllocateOccurrence(files,publication) {
+  if (!publication) return;
+  const names = new Set(['menu_current.json','menu_overlay.json','routing_by_meal.json','registry_summary.json','door_state.json','door_flow_publication.json']);
+  files.forEach(file => {
+    if (!names.has(file.path)) return;
+    const data = JSON.parse(file.content);
+    if (file.path === 'door_flow_publication.json') data.flow.publication = houseFlowCopy(publication);
+    else data._meta.flow.publication = houseFlowCopy(publication);
+    file.content = JSON.stringify(data,null,2);
+  });
+}
 var _doorPublishInputs = null;
 function doorIsPublishDependency(path) { return DOOR_PUBLISH_DEPENDENCIES.has(path); }
 function doorRequestCoherentPublish(label) {
@@ -11270,7 +11682,7 @@ async function doorPublishReadRevision(creds) {
   const paths = Object.fromEntries(tree.tree.filter(x => x.type === 'blob').map(x => [x.path, x]));
   const data = {};
   const inputs = ['menu_current.json','menu_overlay.json','meal_swaps.json','meal_swaps_reverted.json',
-    'special_meals.json','special_meals_removed.json','door_state.json','custom_tag_rules.json','learned_nr.json'];
+    'special_meals.json','special_meals_removed.json','door_state.json','custom_tag_rules.json','learned_nr.json','door_flow_publication.json'];
   await Promise.all(inputs.map(async path => {
     // Absence is established by an authenticated, complete immutable tree, never by a generic 404.
     if (!paths[path]) { data[path] = path === 'custom_tag_rules.json' ? [] : {}; return; }
@@ -11290,6 +11702,7 @@ function doorPublishComparable(value, inMeta) {
     const out = {};
     Object.keys(value).sort().forEach(key => {
       if (inMeta && key === 'exported') return;
+      if (key === 'publication' && value.schema === 1 && typeof value.inputRevision === 'string' && value.inputRevision.startsWith('sha256:')) return;
       out[key] = doorPublishComparable(value[key],key === '_meta' || (inMeta && key === 'builtFromMenu'));
     });
     return out;
@@ -11315,6 +11728,9 @@ async function doorPublishRecoverPrepared(creds, revision, files, receipt) {
     if (typeof body.content !== 'string') throw new Error('The interrupted publish file is unreadable: ' + file.path);
     const remote = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
     const desired = JSON.parse(file.content);
+    const remoteFlow = file.path === 'door_flow_publication.json' ? remote.flow : remote._meta && remote._meta.flow;
+    const desiredFlow = file.path === 'door_flow_publication.json' ? desired.flow : desired._meta && desired._meta.flow;
+    if ((remoteFlow || desiredFlow) && JSON.stringify(remoteFlow && remoteFlow.publication) !== JSON.stringify(desiredFlow && desiredFlow.publication)) return false;
     if (JSON.stringify(doorPublishComparable(remote,false)) !== JSON.stringify(doorPublishComparable(desired,false))) return false;
   }
   return true;
@@ -11322,7 +11738,7 @@ async function doorPublishRecoverPrepared(creds, revision, files, receipt) {
 function doorPublishCapture(revision) {
   const keys = ['concMenuBase','concMealSwaps','concSpecialMeals','concRevertedSwapKeys','concRemovedSpecialKeys',
     'concCustomTagRules','concLearnedNR','concRegistryState','concRegistryProvenance','conc-door-anaph',
-    'concUploadedMenu','concUploadedMenuTimestamp'];
+    'concUploadedMenu','concUploadedMenuTimestamp','concMenuEdits'];
   const before = Object.fromEntries(keys.map(k => [k,localStorage.getItem(k)]));
   const local = (key, empty) => JSON.parse(before[key] || JSON.stringify(empty));
   const cloud = revision.data;
@@ -11349,7 +11765,8 @@ function doorPublishCapture(revision) {
     specials:doorMergeSwapStores(local('concSpecialMeals',{}),cloud['special_meals.json'],removed,''),
     reverted, removed,
     custom:custom.concat(cloud['custom_tag_rules.json'].filter(r => !patterns.has(r.pattern))),
-    learned:Object.assign({},local('concLearnedNR',{}),cloud['learned_nr.json']) };
+    learned:Object.assign({},local('concLearnedNR',{}),cloud['learned_nr.json']),
+    flowRecipe:doorFlowRecipeInput(),menuEdits:local('concMenuEdits',{}) };
   return inputs;
 }
 async function doorPublishSelectRegistry(inputs, manual) {
@@ -11378,7 +11795,9 @@ function doorPublishWithInputs(inputs, build) {
   const residents = REGISTRY_LIST.slice();
   const oldAnaph = typeof anaphRooms !== 'undefined' ? anaphRooms : null;
   const oldMap = typeof REGISTRY_MAP !== 'undefined' ? Object.assign({},REGISTRY_MAP) : null;
+  const oldRecipes = typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : null;
   _doorPublishInputs = inputs;
+  if (oldRecipes && inputs.flowRecipe) DOOR_RECIPE_DATA = inputs.flowRecipe.records;
   if (inputs.registry) {
     REGISTRY_LIST.splice(0,REGISTRY_LIST.length,...inputs.registry.residents);
     if (oldAnaph) anaphRooms = inputs.registry.anaphRooms;
@@ -11391,6 +11810,7 @@ function doorPublishWithInputs(inputs, build) {
     REGISTRY_LIST.splice(0,REGISTRY_LIST.length,...residents);
     if (oldAnaph) anaphRooms = oldAnaph;
     if (oldMap) { Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]); Object.assign(REGISTRY_MAP,oldMap); }
+    if (oldRecipes) DOOR_RECIPE_DATA = oldRecipes;
     _doorPublishInputs = previous;
   }
 }
@@ -11867,6 +12287,7 @@ async function _doPublishToGitHub(manual) {
     // routing can't drift silently downstream. Validation below Stops if any artifact
     // records a different menu than the one in this set (Gate-9 blocks the publish).
     doorStampBuiltFromMenu(publishArtifacts);
+    const nextFlowPublication = await doorFlowStampCandidate(inputs,publishArtifacts,creds);
     // D3 (silent-drift): buildMenuJSON() above called getMenuData(), which set
     // _doorMenuUsedBakedFallback to whether this device is on the baked fallback.
     // typeof-guarded so an undeclared context (tests) reads as false.
@@ -11892,6 +12313,7 @@ async function _doPublishToGitHub(manual) {
     _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
     _push('door_state.json', JSON.stringify(publishArtifacts['door_state.json'],null,2));
     _push('menu_overlay.json', JSON.stringify(publishArtifacts['menu_overlay.json'],null,2));
+    if (publishArtifacts['door_flow_publication.json']) _push('door_flow_publication.json',JSON.stringify(publishArtifacts['door_flow_publication.json'],null,2));
     const customRules = inputs.custom;
     _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
     const learnedNR = inputs.learned;
@@ -11913,6 +12335,7 @@ async function _doPublishToGitHub(manual) {
       if (await doorPublishRecoverPrepared(creds,revision,_staged,interrupted)) {
         _atomic = {ok:true,results:_staged.map(f => ({path:f.path,skipped:false})),commitSha:revision.head,recovered:true};
       } else {
+        doorFlowAllocateOccurrence(_staged,nextFlowPublication);
         _atomic = await ghPushFilesAtomic(creds, _staged,
           'Publish DOOR artifacts — ' + new Date().toISOString().slice(0,16), revision);
       }
@@ -11937,6 +12360,10 @@ async function _doPublishToGitHub(manual) {
       // banner can tell "work exists only here" from "published", and clear any
       // earlier recorded skip — a real publish is the only thing that clears it.
       try { localStorage.setItem('concLastPublishOk', new Date().toISOString()); localStorage.removeItem('concLastPublishSkip'); } catch(e) {}
+      if (nextFlowPublication) {
+        const landed = JSON.parse(_staged.find(file => file.path === 'door_flow_publication.json').content).flow.publication;
+        if (!doorSetItemSafe('concDoorFlowPublication',JSON.stringify(landed))) throw new Error('The publication landed but its local receipt is still pending.');
+      }
       doorPublishAcknowledge(inputs, _atomic.commitSha);
       // The acknowledgement retained any newer local intent for the next send.
       if (overlayAdvisoryMsg) {
@@ -14051,6 +14478,7 @@ function doorApplyTextDetectedFlags(menu) {
 }
 
 function getMenuData() {
+  if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs && _doorPublishInputs.flowMenu) return _doorPublishInputs.flowMenu;
   const publishOverlay = getDoorPublishMenuOverlayOverride();
   const uploaded = loadUploadedMenu();
   // No uploaded menu (concUploadedMenu absent — cleared, fresh browser, wiped
@@ -14117,6 +14545,13 @@ function doorDatedMealFlags(entry) {
 // getMealForDate; lunch and dinner only, as the stores hold. Returns null, or { kind, date, name, entry }.
 function doorDatedMealFor(week, dayName, period) {
   if (period !== 'lunch' && period !== 'dinner') return null;
+  const service = typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs && _doorPublishInputs.flowService;
+  if (service) {
+    if (!service.date) return null;
+    const key = service.date + '-' + period;
+    const special = _doorPublishInputs.specials[key], swap = _doorPublishInputs.swaps[key], entry = special || swap;
+    return entry && entry.specialName ? {kind:special ? 'special' : 'swap',date:service.date,name:entry.specialName,entry} : null;
+  }
   const d = nextDateForSlot(Number(week), dayName);
   if (!d) return null;
   const key = doorDateKey(d) + '-' + period;
@@ -16871,6 +17306,7 @@ let editMenuMode = false;
 let mcMenuEditKey = null; // 'week-day-period'
 
 function loadMenuEdits() {
+  if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs && _doorPublishInputs.menuEdits) return _doorPublishInputs.menuEdits;
   try { return JSON.parse(localStorage.getItem('concMenuEdits') || '{}'); } catch(e) { return {}; }
 }
 function saveMenuEdits(obj) {
@@ -17105,7 +17541,7 @@ try { if (typeof window !== 'undefined') window.__DOOR_UNMAPPED_ALLERGEN_LABELS_
 
 // The ONE normalized parse, shared by the flag setter and the editor preview so what
 // the operator is shown can never diverge from what actually gets flagged.
-// Returns { keys:Set<flagKey>, labels:Set<shown label> }.
+// Returns { keys:Set<flagKey>, labels:Set<shown label>, unknown:Set<unmapped label> }.
 // Self-contained (LC index + ignore-set built inline) so the door-smoke harness, which
 // extracts single function blocks, can run it without pulling separate module consts;
 // rebuilding the small index is bind-time-only, so its cost is irrelevant.
@@ -17120,7 +17556,7 @@ function _hubAllergenResolve(allergens) {
   // under-flag this slice removes, for the deadliest class.
   const IGNORE = new Set(['none','not vegan friendly','oats','honey','onion','potato','chicken','pork','beef','turkey']);
   const surface = (typeof _hubUnmappedLabels !== 'undefined') ? _hubUnmappedLabels : null;
-  const keys = new Set(), labels = new Set();
+  const keys = new Set(), labels = new Set(), unknown = new Set();
   (allergens || []).forEach(a => {
     if (a == null) return;
     const base = String(a).split('(')[0];                          // drop the "(source)" qualifier
@@ -17140,13 +17576,16 @@ function _hubAllergenResolve(allergens) {
         keys.add(key); labels.add(p);
         if (key === 'hasTreeNuts' && /\bcoconuts?\b/i.test(detail)) { keys.add('hasCoconut'); labels.add('coconut'); }
       }
-      else if (!IGNORE.has(p) && surface && !surface.has(p)) {
-        surface.add(p);
-        try { console.warn('[DOOR] CODEX allergen label not mapped to a DOOR flag (under-flag risk): "' + p + '" — add it to HUB_ALLERGEN_MAP or the ignore set.'); } catch (e) {}
+      else if (!IGNORE.has(p)) {
+        unknown.add(p);
+        if (surface && !surface.has(p)) {
+          surface.add(p);
+          try { console.warn('[DOOR] CODEX allergen label not mapped to a DOOR flag (under-flag risk): "' + p + '" — add it to HUB_ALLERGEN_MAP or the ignore set.'); } catch (e) {}
+        }
       }
     });
   });
-  return { keys, labels };
+  return { keys, labels, unknown };
 }
 
 function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA); }

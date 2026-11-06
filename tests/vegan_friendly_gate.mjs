@@ -70,15 +70,17 @@ test('a shared-Library save carries the flag from its door block; a record from 
 test('DOOR reads the flag in these places only (the vegan plate\'s allergen guess still reads the vegan line)', () => {
   // Re-pinned 2026-10-18 (review fold, P1-3): the overlay also clears the flag when a kept allergen names an animal family.
   // 2026-10-22 (Corn source alignment): the scoped fallback additions carry CODEX's inert veganFriendly data.
-  // Exclude only that literal data declaration; the same five executable reader sites remain mandatory below.
+  // F4 also preserves the typed source flag in its frozen recipe receipt projection.
+  // Exclude only the literal data declaration; all six exact reader sites remain mandatory below.
   const code = html.split('\n').filter(l => /veganFriendly/.test(l) && !/^\s*\/\//.test(l)
     && !/^const DOOR_RECIPE_DATA_FALLBACK = /.test(l));
-  assert.equal(code.length, 5, code.join('\n'));
+  assert.equal(code.length, 6, code.join('\n'));
   assert.ok(/out\.veganFriendly = d\.veganFriendly/.test(code[0]));
   assert.ok(/d\.veganFriendly === true && doorNamesAnimalFamily\(d\.allergens\)/.test(code[1]));
   assert.ok(/d\.veganFriendly = false/.test(code[2]));
   assert.ok(/const same = /.test(code[3]));
-  assert.ok(/recipe\.veganFriendly === true/.test(code[4]));
+  assert.ok(/veganFriendly:typeof r\.veganFriendly === 'boolean' \? r\.veganFriendly : null/.test(code[4]));
+  assert.ok(/recipe\.veganFriendly === true/.test(code[5]));
 });
 
 // Against CODEX's checked-in feed (when conc-recipe-hub is beside this repo): the Vegan Alt slot gains exactly the one
