@@ -43,22 +43,11 @@ jobs:
       - name: Run smoke tests
         run: node --test tests/*.mjs
 
-  menu-decisions:
-    name: Menu decisions review (advisory)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
+      # Reuse this runner; advisory failures never change the safety result.
+      # Still run after a safety failure, but stop spending work on cancelled runs.
       - name: Review architect-set menu decisions
         id: menu_review
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: node --test tests/advisory/menu-decisions.mjs
 
@@ -70,6 +59,9 @@ jobs:
             echo "::warning title=Menu decisions changed::Review the advisory test output and confirm whether the menu change was intentional."
             echo "### ⚠ Menu decisions changed" >> "$GITHUB_STEP_SUMMARY"
             echo "The application safety checks can still pass. Review the failed meal expectations and confirm whether the menu change was intentional." >> "$GITHUB_STEP_SUMMARY"
-          else
+          elif [[ "${{ steps.menu_review.outcome }}" == "success" ]]; then
             echo "### ✓ Menu decisions unchanged" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Menu decisions review did not complete" >> "$GITHUB_STEP_SUMMARY"
+            echo "No advisory result is available for this run. See the step results above." >> "$GITHUB_STEP_SUMMARY"
           fi

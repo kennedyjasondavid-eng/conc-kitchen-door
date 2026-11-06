@@ -1551,9 +1551,17 @@ test('a contradictory menu overlay cannot be manually overridden', async () => {
 });
 
 test('CI separates hard safety checks from non-blocking menu-decision review', () => {
-  const workflow = readText('.github/workflows/door-tests.yml');
+  const workflow = readText('.github/workflows/door-tests.yml').replace(/\r\n/g, '\n');
   assert.match(workflow, /name: DOOR safety checks[\s\S]*run: node --test tests\/\*\.mjs/);
-  assert.match(workflow, /name: Menu decisions review \(advisory\)[\s\S]*continue-on-error: true[\s\S]*tests\/advisory\/menu-decisions\.mjs/);
+  assert.equal([...workflow.slice(workflow.indexOf('\njobs:')).matchAll(/^  [\w-]+:$/gm)].length, 1,
+    'safety and advisory reuse one runner allocation');
+  const advisory = workflow.slice(workflow.indexOf('      - name: Review architect-set menu decisions'));
+  assert.match(advisory, /id: menu_review\s+if: \$\{\{ !cancelled\(\) \}\}\s+continue-on-error: true[\s\S]*tests\/advisory\/menu-decisions\.mjs/,
+    'advisory runs after safety failure but is the only tolerated failure');
+  assert.equal(workflow.slice(0, workflow.indexOf(advisory)).includes('continue-on-error:'), false,
+    'safety failure must retain its failing job result');
+  assert.match(advisory, /steps\.menu_review\.outcome[\s\S]*== "failure"[\s\S]*elif[\s\S]*== "success"[\s\S]*else[\s\S]*did not complete/,
+    'skipped advisory must not be reported as a pass');
   const retiredSnapshotTitle = ['July 2 canonical import', ' is published'].join('');
   assert.equal(readText('tests/door-smoke.mjs').includes("test('" + retiredSnapshotTitle), false,
     'the historical import snapshot must not return to the hard safety suite');
