@@ -96,17 +96,20 @@ test('preflight: local current, legacy remote, or unreachable remote → no pull
   }
 });
 
-test('wiring: _doPublishToGitHub runs the preflight after credentials and BEFORE building the artifact set; adoption/force is visible in the success line; confirm only on the manual path', () => {
+test('wiring: head-pinned registry selection follows credentials and precedes frozen artifact construction; adoption/force stays visible and manual only', () => {
   const pub = fnBlock('_doPublishToGitHub');
-  const pre = pub.indexOf('doorRegistryPublishPreflight(');
+  const read = pub.indexOf('await doorPublishReadRevision(creds)');
+  const capture = pub.indexOf('doorPublishCapture(revision)');
+  const pre = pub.indexOf('await doorPublishSelectRegistry(inputs, manual)');
   const creds = pub.indexOf('_getSavedCredentials()');
   const build = pub.indexOf("'menu_current.json': buildMenuJSON()");
-  assert.ok(pre > 0, 'preflight must be called');
-  assert.ok(creds > 0 && pre > creds, 'after credentials (no remote call for a device that cannot publish anyway)');
+  assert.ok(creds > 0 && read > creds && capture > read && pre > capture, 'select only from the captured authenticated revision');
   assert.ok(build > 0 && pre < build, 'before the artifacts are built (they must come from the adopted roster)');
+  assert.ok(pub.indexOf('doorPublishWithInputs(inputs,') > pre && pub.indexOf('doorPublishWithInputs(inputs,') < build, 'all artifact builders use the same selected roster');
+  assert.match(pub, /_registryPreflight\.cancelled[\s\S]{0,100}skipped:true/, 'Go back stops publication');
   assert.match(pub, /_registryPreflight[\s\S]*?(adopted|forced)[\s\S]*?updateSyncBar/, 'the outcome reaches the sync bar');
-  const pf = fnBlock('doorRegistryPublishPreflight');
-  // 2026-10-08 re-pin: the question is doorAsk now (publish_menu_ask_gate).
+  const pf = fnBlock('doorPublishSelectRegistry');
   assert.match(pf, /manual\s*&&[\s\S]{0,80}doorAsk/, 'the question is gated on manual');
-  assert.match(pf, /pullStateFromGitHub\(false\)/, 'adoption reuses the read-side pull, quietly');
+  assert.doesNotMatch(pf, /pullStateFromGitHub|fetch\(/, 'selection cannot introduce an unpinned second remote read');
+  assert.match(pf, /inputs\.registry\s*=\s*JSON\.parse\(JSON\.stringify\(remote\)\)/, 'adopt a frozen remote roster');
 });

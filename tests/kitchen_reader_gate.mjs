@@ -236,6 +236,16 @@ test('(d) no raw read of this repository outside the reader; each of the eight s
   assert.equal((reader.match(/raw\.githubusercontent\.com/g) || []).length, 1, 'one raw address, in the reader');
   for (const [name, src] of Object.entries(SITES)) {
     const body = src();
+    if (name === 'doorMakeRevertList') {
+      assert.match(body, /PublishAuth\.sidePublish\(/, 'removal timers request the coherent transaction');
+      assert.doesNotMatch(body, /doorReadKitchenFile\(|\bfetch\(/, 'no independent unpinned removal read');
+      continue;
+    }
+    if (name === 'preMergeOverlayWithCloud' || name === 'preMergeSwapsWithCloud') {
+      assert.match(body, /doorPublishReadRevision\(/, 'compatibility merge delegates to immutable input reader');
+      assert.doesNotMatch(body, /\bfetch\(/);
+      continue;
+    }
     assert.ok(/doorReadKitchenFile\(/.test(body), name + ' reads through doorReadKitchenFile');
     assert.ok(!/\bfetch\(/.test(body), name + ' fetches nothing itself');
   }
@@ -255,7 +265,7 @@ test('(d) no raw read of this repository outside the reader; each of the eight s
 
 // ── (e) viewing keys ────────────────────────────────────────────────────────────────────────────────────────────────
 function authBox({ answer, meta, token = '' } = {}) {
-  const st = memStore({ 'conc-door-gh-token-meta': JSON.stringify(meta || {}) });
+  const st = memStore({ 'conc-door-connection-v2': JSON.stringify({ schemaVersion: 2, token, repo: 'example-org/door-test', meta: meta || {} }) });
   const els = { 'gh-auth-status': { textContent: '', style: {} }, 'gh-status': { textContent: '', style: {} } };
   const calls = [], pushed = [], bars = [];
   const ctx = {
@@ -263,13 +273,13 @@ function authBox({ answer, meta, token = '' } = {}) {
     localStorage: st.api,
     document: { getElementById: (id) => els[id] || null, querySelector: () => null },
     fetch: async (url, init) => { calls.push({ url: String(url), init: init || {} }); return answer(String(url), init || {}); },
-    appSettings: { 'gh-token': token, 'gh-repo': 'example-org/door-test' },
+    appSettings: { 'gh-token': '', 'gh-repo': 'example-org/door-test' },
     DEFAULT_SETTINGS: { 'gh-repo': 'example-org/door-test' },
     updateSyncBar: (m) => bars.push(m), showToast: () => {}, setTimeout: (f) => f(),
     ghPushFile: async (creds, p) => { pushed.push(p); return {}; },
   };
   vm.createContext(ctx);
-  vm.runInContext([fnBlock('doorSanitizeConnectionKey'), fnBlock('doorConnectFailureCopy'), "const GH_TOKEN_META_KEY = 'conc-door-gh-token-meta';",
+  vm.runInContext([fnBlock('doorSanitizeConnectionKey'), fnBlock('doorConnectFailureCopy'), constLine('GH_CONNECTION_KEY'),
     constLine('DOOR_VIEWING_KEY_COPY'), between('const PublishAuth = {', '\nwindow.PublishAuth'), 'this.PA = PublishAuth;'].join('\n'), ctx);
   return { PA: ctx.PA, ctx, calls, pushed, els, store: st.s, bars };
 }
@@ -383,11 +393,14 @@ function atomicBox({ failAt, failStatus = 403, failMessage = 'Resource not acces
   };
   vm.createContext(ctx);
   vm.runInContext(['let _ghHydrated = true;', 'let _ghForceOverwrite = false;', "const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json']);",
+    between('/* DOOR_TESTABLE_CORE_START publish-transaction */', '/* DOOR_TESTABLE_CORE_END publish-transaction */'),
     'let _ghWriteQueue = Promise.resolve();', fnBlock('_ghEvaluateWriteGuards'), fnBlock('ghPushFilesAtomic'), fnBlock('_ghPushFilesAtomicNow'),
     fnBlock('ghPushFile'), fnBlock('_ghPushFileNow')].join('\n'), ctx);
   return { ctx, noted, remembered };
 }
-const FILES = [{ path: 'menu_current.json', content: '{"a":1}' }];
+// Transport classification on an independent log; dependency-atomic behavior
+// and pinned guard reads are covered by the applying F1 gates.
+const FILES = [{ path: 'change_log.json', content: '{"a":1}' }];
 
 test('(e) the second net: a write refused with 403 marks the key as viewing; a 403 on a read or a rate limit does not', async () => {
   const w = atomicBox({ failAt: 'POST /git/blobs' });

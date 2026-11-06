@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { ApplyingRemote, publishBox, initialRemote } from './helpers/door_publish_transaction_box.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(process.env.DOOR_GATE_HTML || path.join(root, 'index.html'), 'utf8');
@@ -91,6 +92,7 @@ function revertList(stored, remote) {
   const sent = [], timers = [];
   const ctx = {
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+    doorSetItemSafe: (k, v) => { store[k] = String(v); return true; },
     setTimeout: (fn) => { timers.push(fn); return timers.length; },
     fetch: async () => ({ ok: !!remote, json: async () => remote }),
     PublishAuth: { getRepo: () => 'kennedyjasondavid-eng/conc-kitchen-door', sidePublish: (p, content, label, visible) => { sent.push({ p, content: JSON.parse(content), visible }); } },
@@ -108,9 +110,9 @@ function revertList(stored, remote) {
 
 test('4. the revert list keeps when each key was reverted, reads the older list of keys, and is sent quietly', async () => {
   const { R, store, sent, flush } = revertList([AHEAD, '2026-01-01-lunch'], null);
-  // the older list: the future key reads as reverted now; the past one leaves
+  // F1 keeps removal history monotonic; old list entries acquire a timestamp.
   const pub = R.toPublished();
-  assert.deepEqual(plain(Object.keys(pub)), [AHEAD]);
+  assert.deepEqual(plain(Object.keys(pub)).sort(), ['2026-01-01-lunch', AHEAD].sort());
   assert.match(pub[AHEAD], /^\d{4}-\d\d-\d\dT/);
   assert.equal(R.has(AHEAD), true, 'Set API kept');
   // the kitchen's list merged in: a later time wins, nothing is sent back
@@ -125,7 +127,7 @@ test('4. the revert list keeps when each key was reverted, reads the older list 
   assert.equal(sent.length, 1, 'one send for the two reverts');
   assert.equal(sent[0].p, 'meal_swaps_reverted.json');
   assert.equal(sent[0].visible, false);
-  assert.deepEqual(Object.keys(sent[0].content).sort(), [AHEAD, '2999-02-02-dinner', '2999-03-03-lunch', '2999-03-04-lunch'].sort());
+  assert.deepEqual(Object.keys(sent[0].content).sort(), ['2026-01-01-lunch', AHEAD, '2999-02-02-dinner', '2999-03-03-lunch', '2999-03-04-lunch'].sort());
   assert.deepEqual(JSON.parse(store.concRevertedSwapKeys), plain(R.toPublished()), 'stored as key → time');
   // making the swap again takes its key off
   R.delete('2999-03-03-lunch');
@@ -134,20 +136,15 @@ test('4. the revert list keeps when each key was reverted, reads the older list 
 });
 
 test('4b. review P1: a computer that has not synced never sends a shorter revert list', async () => {
-  // computer B holds no revert; the kitchen's list has A's Nov 3 revert. B reverts another swap: what B sends holds both.
-  const { R, sent, flush } = revertList([], { [AHEAD]: '2026-10-18T15:00:04.730Z' });
-  R.add('2999-05-05-dinner');
-  await flush();
-  assert.equal(sent.length, 1);
-  assert.deepEqual(Object.keys(sent[0].content).sort(), [AHEAD, '2999-05-05-dinner'].sort(), 'the kitchen\'s revert survives B\'s send');
-  // the full publish merges the kitchen's files before staging the swaps and both lists
-  const pub = fnBlock('_doPublishToGitHub');
-  const iMerge = pub.indexOf('await preMergeSwapsWithCloud(creds);'), iSwaps = pub.indexOf("_push('meal_swaps.json'");
-  assert.ok(iMerge > 0 && iSwaps > iMerge, 'preMergeSwapsWithCloud runs before the swaps are staged');
-  const pre = fnBlock('preMergeSwapsWithCloud');
-  assert.match(pre, /doorApplyRemoteSwaps\(swaps, rev\)/);
-  assert.match(pre, /doorApplyRemoteSpecials\(specials, rem\)/);
-  assert.match(pre, /res\.status === 404\) return \{\}/, 'a missing file is empty');
+  // Run the timer through the actual coherent publisher and applying remote.
+  // The timer no longer performs its own unpinned read or a one-file overwrite.
+  const remote = new ApplyingRemote(initialRemote({ 'meal_swaps_reverted.json': { [AHEAD]: '2026-10-18T15:00:04.730Z' } }));
+  const box = publishBox({ remote });
+  box.c.REVERTED_SWAP_KEYS.add('2999-05-05-dinner');
+  await box.flush();
+  assert.equal(remote.visibleWrites.length, 1);
+  assert.equal(remote.visibleWrites[0].kind, 'atomic');
+  assert.deepEqual(Object.keys(remote.files['meal_swaps_reverted.json']).sort(), [AHEAD, '2999-05-05-dinner'].sort(), 'the kitchen revert survives the coherent send');
   // and B's own copy of the reverted swap is dropped by that merge (doorApplyRemoteSwaps's rule)
   const c = core();
   assert.deepEqual(Object.keys(c.doorMergeSwapStores({ [NOV3]: RECORDED }, { [NOV3]: RECORDED }, { [NOV3]: '2026-10-18T15:00:04.730Z' }, '2026-10-18')), []);
@@ -168,7 +165,7 @@ test('4c. review P2: a special meal removed on one computer is removed on every 
   assert.ok(iRem > 0 && iSm > iRem && /doorApplyRemoteSpecials\(d, null\)/.test(pull), 'the sync reads the removal list first');
   // Re-pinned 2026-11-01 (v31-standard.49): the boot sync reads through the one reader (read(...), doorReadKitchenFile).
   assert.match(between("read('special_meals_removed.json')\n      .then(rem=>", '.catch(()=>{});'), /read\('special_meals\.json'\)\.then\(d=>doorApplyRemoteSpecials\(d, rem\)\)/, 'and so does the boot sync');
-  assert.match(fnBlock('_doPublishToGitHub'), /_push\('special_meals_removed\.json', JSON\.stringify\(loadSpecialRemovals\(\)/);
+  assert.match(fnBlock('_doPublishToGitHub'), /_push\('special_meals_removed\.json', JSON\.stringify\(inputs\.removed/);
   assert.match(between('const ALLOW_SHRINK_PATHS', '\n'), /'special_meals_removed\.json'/);
 });
 
@@ -189,7 +186,7 @@ test('4d. review P2: a slot\'s Revert, Make permanent and Edit Menu save find ev
 
 test('5. the publish sends the revert list; every sync reads it before the swaps', () => {
   const pub = fnBlock('_doPublishToGitHub');
-  assert.match(pub, /_push\('meal_swaps_reverted\.json', JSON\.stringify\(loadSwapReverts\(\)/, 'the publish sends it');
+  assert.match(pub, /_push\('meal_swaps_reverted\.json', JSON\.stringify\(inputs\.reverted/, 'the publish sends the frozen merged history');
   assert.match(between('const ALLOW_SHRINK_PATHS', '\n'), /'meal_swaps_reverted\.json'/, 'it may shrink as dates pass');
   const pull = fnBlock('pullSecondaryState');
   const iRev = pull.indexOf("['meal_swaps_reverted.json'"), iSw = pull.indexOf("['meal_swaps.json'");

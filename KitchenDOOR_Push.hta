@@ -140,63 +140,18 @@ function dateStr() {
 }
 
 function runGit(repoDir, msg, logFile) {
-  var gitExe = findGit();
-  if (!gitExe) {
-    setStatus("Git not found. Is Git for Windows installed?", "err");
-    return;
-  }
-
-  var fso    = new ActiveXObject("Scripting.FileSystemObject");
-  var shell  = new ActiveXObject("WScript.Shell");
-  var tmpBat = shell.ExpandEnvironmentStrings("%TEMP%") + "\\__conc_door_push_tmp.bat";
-  var safeMsg = msg.replace(/"/g, "'");
-
-  var logLines = logFile
-    ? "echo ======================================== >> \"" + logFile + "\"\r\n" +
-      "echo Push: %DATE% %TIME% >> \"" + logFile + "\"\r\n" +
-      "echo Msg:  " + safeMsg + " >> \"" + logFile + "\"\r\n" +
-      "echo ======================================== >> \"" + logFile + "\"\r\n"
-    : "";
-
-  var bat =
-    "@echo off\r\n" +
-    "cd /d \"" + repoDir + "\"\r\n" +
-    logLines +
-    "echo Staging...\r\n" +
-    "\"" + gitExe + "\" add -A\r\n" +
-    "echo Committing...\r\n" +
-    "\"" + gitExe + "\" commit -m \"" + safeMsg + "\"\r\n" +
-    "echo Pulling...\r\n" +
-    "\"" + gitExe + "\" pull --rebase\r\n" +
-    "if errorlevel 1 (echo [ERROR] Pull failed & pause & exit /b 1)\r\n" +
-    "echo Pushing...\r\n" +
-    "\"" + gitExe + "\" push\r\n" +
-    "if errorlevel 1 (echo [ERROR] Push failed & pause & exit /b 1)\r\n" +
-    "echo.\r\n" +
-    "echo [SUCCESS] Push complete!\r\n" +
-    "del \"" + tmpBat + "\"\r\n" +
-    "pause\r\n";
-
-  var ts = fso.CreateTextFile(tmpBat, true);
-  ts.Write(bat);
-  ts.Close();
-
-  shell.Run("cmd /k \"" + tmpBat + "\"", 1, false);
-  setStatus("Running -- see cmd window for output.", "");
+  // F1: local Git snapshots cannot participate in DOOR's read/merge/build
+  // transaction. Retire this bypass; keep opening existing local files available.
+  setStatus("Direct push is retired. Open the updated DOOR and use Publish to send your saved changes together.", "err");
+  return false;
 }
 
 function pushSimple() {
-  var r = detectRepo();
-  if (!r) { setStatus("Repo not found.", "err"); return; }
-  runGit(r.dir, "Kitchen DOOR update " + dateStr(), null);
+  return runGit();
 }
 
 function pushComplex() {
-  var r = detectRepo();
-  if (!r) { setStatus("Repo not found.", "err"); return; }
-  var msg = prompt("Commit message:", "Kitchen DOOR update " + dateStr());
-  if (msg === null || msg === "") { setStatus("Cancelled.", ""); return; }
-  runGit(r.dir, msg, r.dir + "\\" + LOG_NAME);
+  return runGit();
 }
 
 function openInEdge(filename) {
@@ -226,25 +181,15 @@ function setStatus(msg, cls) {
 </head>
 <body>
 
-  <h1>Kitchen DOOR &mdash; Push to GitHub</h1>
-  <p class="sub">Git push helper &ndash; auto-detects home vs work path</p>
+  <h1>Kitchen DOOR &mdash; Open Files</h1>
+  <p class="sub">Send saved changes using Publish in the updated DOOR.</p>
 
   <div class="path-box">
     <div class="path-label" id="pathLabel">Detecting...</div>
     <div id="pathVal">...</div>
   </div>
 
-  <div class="section-label">Push</div>
-  <div class="btn-row">
-    <button class="btn-simple" onclick="pushSimple()">
-      &gt;&gt; Simple Push<br>
-      <span style="font-weight:400;font-size:10px">auto-timestamp &ndash; no prompt</span>
-    </button>
-    <button class="btn-complex" onclick="pushComplex()">
-      + Complex Push<br>
-      <span style="font-weight:400;font-size:10px">custom message &ndash; logs to file</span>
-    </button>
-  </div>
+  <p>Direct Git push is retired. Open DOOR below, then use its Publish button.</p>
 
   <hr class="divider">
 

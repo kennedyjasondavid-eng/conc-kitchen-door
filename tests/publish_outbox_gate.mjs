@@ -119,6 +119,19 @@ test('drain: owed + key present → ONE publishAndSync naming the count; nothing
   vm.runInContext('doorOutboxClear()', a.sb); assert.equal(vm.runInContext('doorOutboxRead().length', a.sb), 0);
 });
 
+test('F1 recovery drain: a pending/prepared receipt is retried even with an empty pointer outbox', () => {
+  for (const status of ['pending', 'prepared']) {
+    const calls = [];
+    const receipt = { status, commitSha: status === 'prepared' ? 'fixture-commit' : undefined };
+    const sb = { console, localStorage: fakeStorage({ concPublishOutbox: '[]', concPublishTransaction: JSON.stringify(receipt) }),
+      PublishAuth: { getSavedToken: () => 'fixture-key' }, publishAndSync: context => calls.push(context) };
+    vm.createContext(sb); vm.runInContext(OUTBOX_SRC(), sb);
+    vm.runInContext("doorOutboxDrain('boot')", sb);
+    assert.equal(calls.length, 1, status + ' receipt requires reconciliation');
+    assert.equal(JSON.parse(sb.localStorage.getItem('concPublishTransaction')).status, status, 'drain must preserve recovery evidence');
+  }
+});
+
 test('capability: outbox count drives "unpublished" (red) ahead of the timestamp proxy; both empty → nothing pending', () => {
   const sb = { console }; vm.createContext(sb);
   vm.runInContext(constBlock('DOOR_PUBLISH_SKIP_REASONS') + '\n' + fnBlock('doorDeviceCapability'), sb);
@@ -135,7 +148,8 @@ test('capability: outbox count drives "unpublished" (red) ahead of the timestamp
 test('wiring: publish paths append on skip/throw and clear on landed publish; connect drains; boot drains; input reads the outbox', () => {
   const pas = fnBlock('publishAndSync');
   assert.ok((pas.match(/doorOutboxAppend\(/g) || []).length >= 2, 'publishAndSync must append on skip AND on throw');
-  assert.match(fnBlock('_doPublishToGitHub'), /concLastPublishOk[\s\S]{0,200}doorOutboxClear\(\)/, 'landed publish clears the outbox next to the ok stamp');
+  assert.match(fnBlock('_doPublishToGitHub'), /doorPublishAcknowledge\(inputs,/, 'landed publish acknowledges only its captured generation');
+  assert.doesNotMatch(fnBlock('_doPublishToGitHub'), /doorOutboxClear\(\)/, 'a blanket clear would lose edits made during the request');
   const connect = fnBlock('doorConnectCardSubmit');
   assert.match(connect, /doorOutboxDrain\(/, 'connect drains the outbox');
   assert.ok(!/publishAndSync\(/.test(connect), 'connect must not bypass the drain with a direct publishAndSync');
