@@ -72,7 +72,7 @@ jobs:
         if: ${{ !cancelled() && steps.browser_scope.outputs.browser != 'false' }}
         shell: bash
         run: |
-          for gate in tests/browser/menu_flow_f4_producer.mjs tests/browser/menu_flow_f4_input_coverage.mjs tests/browser/menu_flow_f4_occurrence_recovery.mjs tests/browser/menu_flow_f4_occurrence_rollback.mjs tests/browser/menu_flow_f4_private_counter.mjs tests/browser/menu_flow_f4_counter_witness.mjs; do
+          for gate in tests/browser/menu_flow_f4_producer.mjs tests/browser/menu_flow_f4_input_coverage.mjs tests/browser/menu_flow_f4_occurrence_recovery.mjs tests/browser/menu_flow_f4_occurrence_rollback.mjs tests/browser/menu_flow_f4_private_counter.mjs tests/browser/menu_flow_f4_counter_witness.mjs tests/browser/menu_flow_f6_dedupe.mjs tests/browser/menu_flow_f6_delivery.mjs tests/browser/menu_flow_f6_recovery.mjs tests/browser/menu_flow_f6_source_authority.mjs tests/browser/menu_flow_f6_shared_delivery.mjs tests/browser/menu_flow_f6_late_ack.mjs tests/browser/menu_flow_f6_unlocked_order.mjs tests/browser/menu_flow_f6_served_order.mjs tests/browser/menu_flow_f6_prompt_publish.mjs tests/browser/menu_flow_f6_commit_status.mjs tests/browser/menu_flow_f6_observed_authority.mjs; do
             node "$gate"
           done
 

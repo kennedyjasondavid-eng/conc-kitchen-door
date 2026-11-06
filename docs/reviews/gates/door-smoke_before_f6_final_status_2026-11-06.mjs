@@ -1,0 +1,3608 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { webcrypto } from 'node:crypto';
+import { createSingleContextLockManager } from './helpers/single_context_lock_manager.mjs';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
+
+function readText(relativePath) {
+  return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
+}
+
+function readJson(relativePath) {
+  return JSON.parse(readText(relativePath));
+}
+
+function assertContains(haystack, needle, message) {
+  assert.ok(haystack.includes(needle), message || `Expected to find ${needle}`);
+}
+
+function assertMenuContractShape(menu, artifactName) {
+  const weeks = menu.menu;
+
+  assert.ok(weeks && typeof weeks === 'object', `${artifactName} should expose menu{}`);
+  assert.equal(Object.keys(weeks).length, 4, `${artifactName} should contain the four-week rotation`);
+
+  for (const [weekName, week] of Object.entries(weeks)) {
+    assert.ok(week && typeof week === 'object', `${artifactName}.${weekName} should contain days`);
+    for (const [dayName, day] of Object.entries(week)) {
+      assert.equal(typeof day.breakfast, 'string', `${artifactName}.${weekName}.${dayName} should contain breakfast`);
+      assert.equal(typeof day.lunch, 'string', `${artifactName}.${weekName}.${dayName} should contain lunch`);
+      assert.equal(typeof day.dinner, 'string', `${artifactName}.${weekName}.${dayName} should contain dinner`);
+    }
+  }
+}
+
+function extractConstString(html, constName) {
+  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = html.match(new RegExp(`const\\s+${escapedName}\\s*=\\s*'([^']+)'`));
+  assert.ok(match, `missing ${constName} string constant`);
+  return match[1];
+}
+
+function extractConstNumber(html, constName) {
+  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = html.match(new RegExp(`const\\s+${escapedName}\\s*=\\s*([0-9]+)`));
+  assert.ok(match, `missing ${constName} numeric constant`);
+  return Number(match[1]);
+}
+
+function extractSchemaVersionMap(html) {
+  const block = html.match(/const\s+DOOR_SCHEMA_VERSIONS\s*=\s*Object\.freeze\(\{([\s\S]*?)\}\);/);
+  assert.ok(block, 'missing DOOR_SCHEMA_VERSIONS Object.freeze block');
+
+  const versions = {};
+  const entryPattern = /^\s*([a-z0-9_]+):\s*([0-9]+),?\s*$/gm;
+  let entry;
+  while ((entry = entryPattern.exec(block[1])) !== null) {
+    versions[entry[1]] = Number(entry[2]);
+  }
+
+  assert.ok(Object.keys(versions).length > 0, 'DOOR_SCHEMA_VERSIONS should contain entries');
+  return versions;
+}
+
+function extractStringSetLiteral(html, constName) {
+  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const block = html.match(new RegExp(`const\\s+${escapedName}\\s*=\\s*new Set\\(\\[([\\s\\S]*?)\\]\\);`));
+  assert.ok(block, `missing ${constName} Set literal`);
+
+  const values = [];
+  const stringPattern = /'([^']+)'/g;
+  let entry;
+  while ((entry = stringPattern.exec(block[1])) !== null) {
+    values.push(entry[1]);
+  }
+
+  assert.ok(values.length > 0, `${constName} should contain string values`);
+  return new Set(values);
+}
+
+function extractTestableCoreBlock(html, blockName) {
+  const escapedName = blockName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(
+    `/\\* DOOR_TESTABLE_CORE_START ${escapedName} \\*/([\\s\\S]*?)/\\* DOOR_TESTABLE_CORE_END ${escapedName} \\*/`
+  );
+  const match = html.match(pattern);
+  assert.ok(match, `missing testable core block: ${blockName}`);
+  return match[1];
+}
+
+function extractFunctionBlock(html, functionName) {
+  const escapedName = functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`(?:async\\s+)?function\\s+${escapedName}\\s*\\(`);
+  const match = pattern.exec(html);
+  assert.ok(match, `missing function: ${functionName}`);
+
+  const start = match.index;
+  const bodyStart = html.indexOf('{', match.index + match[0].length);
+  assert.ok(bodyStart !== -1, `missing body for function: ${functionName}`);
+
+  let depth = 0;
+  let quote = '';
+  let escapeNext = false;
+  let templateDepth = 0;
+
+  for (let i = bodyStart; i < html.length; i++) {
+    const ch = html[i];
+    const prev = html[i - 1];
+
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (quote) {
+      if (ch === '\\') {
+        escapeNext = true;
+      } else if (quote === '`' && ch === '$' && html[i + 1] === '{') {
+        templateDepth++;
+        i++;
+      } else if (quote === '`' && templateDepth && ch === '}') {
+        templateDepth--;
+      } else if (ch === quote && !templateDepth) {
+        quote = '';
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '/' && html[i + 1] === '/') {
+      const nextLine = html.indexOf('\n', i + 2);
+      i = nextLine === -1 ? html.length : nextLine;
+      continue;
+    }
+    if (ch === '/' && html[i + 1] === '*') {
+      const endComment = html.indexOf('*/', i + 2);
+      i = endComment === -1 ? html.length : endComment + 1;
+      continue;
+    }
+    if (ch === '{') depth++;
+    if (ch === '}') {
+      depth--;
+      if (depth === 0) return html.slice(start, i + 1);
+    }
+    assert.ok(!(depth < 0), `brace mismatch while extracting ${functionName}`);
+  }
+
+  assert.fail(`unterminated function: ${functionName}`);
+}
+
+function loadComplianceConflictCore() {
+  const html = readText('index.html');
+  const code = extractTestableCoreBlock(html, 'compliance-conflicts');
+  // TAG_LABELS_MAP is defined above the core block; the display-allergen helper
+  // reads it at call time. Run the REAL literal from index.html into the context
+  // (never a hand-copied fixture that could drift from the app's own map).
+  const tagLabelsStmt = html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/);
+  assert.ok(tagLabelsStmt, 'missing TAG_LABELS_MAP object literal');
+  const context = {
+    Array,
+    Object,
+    Set,
+    ROUTING_TAGS: extractStringSetLiteral(html, 'ROUTING_TAGS')
+  };
+  vm.createContext(context);
+  vm.runInContext(tagLabelsStmt[0], context, { filename: 'index.html#TAG_LABELS_MAP', timeout: 1000 });
+  vm.runInContext(code, context, { filename: 'index.html#compliance-conflicts', timeout: 1000 });
+  assert.equal(typeof context.checkResidentMealConflicts, 'function', 'compliance core should expose checkResidentMealConflicts');
+  assert.equal(typeof context.computeDoorComplianceDiagnostics, 'function', 'compliance core should expose computeDoorComplianceDiagnostics');
+  assert.equal(typeof context.getAnaphDisplayAllergens, 'function', 'compliance core should expose getAnaphDisplayAllergens');
+  return context;
+}
+
+function loadPublishValidationCore() {
+  const html = readText('index.html');
+  const code = extractTestableCoreBlock(html, 'publish-validation');
+  const context = {
+    Array,
+    JSON,
+    Object,
+    isFinite
+  };
+  vm.createContext(context);
+  vm.runInContext(code, context, { filename: 'index.html#publish-validation', timeout: 1000 });
+  assert.equal(typeof context.validateDoorPublishArtifacts, 'function', 'publish core should expose validateDoorPublishArtifacts');
+  assert.equal(typeof context.doorNormalizeMenuOverlay, 'function', 'publish core should expose doorNormalizeMenuOverlay');
+  assert.equal(typeof context.doorMergeMenuOverlayWithCloud, 'function', 'publish core should expose doorMergeMenuOverlayWithCloud');
+  assert.equal(typeof context.buildDoorOverlayMergeAdvisory, 'function', 'publish core should expose buildDoorOverlayMergeAdvisory');
+  return context;
+}
+
+function loadMenuDataCore(options = {}) {
+  const html = readText('index.html');
+  const localOverlay = options.localOverlay || {};
+  const uploadedMenu = options.uploadedMenu || null;
+  const menuData = options.menuData || {
+    '1': {
+      MONDAY: { lunch: 'Base Monday lunch' },
+      TUESDAY: { dinner: 'Base Tuesday dinner' }
+    }
+  };
+  const context = {
+    JSON,
+    Object,
+    Set,
+    MENU_DATA: menuData,
+    localStorage: {
+      getItem(key) {
+        return key === 'concMenuBase' ? JSON.stringify(localOverlay) : null;
+      }
+    },
+    loadMenuBaseOverlay() {
+      return localOverlay;
+    },
+    loadUploadedMenu() {
+      return uploadedMenu;
+    }
+  };
+
+  vm.createContext(context);
+  const code = [
+    'var _doorPublishMenuOverlayOverride = null;',
+    extractFunctionBlock(html, 'setDoorPublishMenuOverlayOverride'),
+    extractFunctionBlock(html, 'getDoorPublishMenuOverlayOverride'),
+    extractFunctionBlock(html, 'mergeDoorMenuDataWithOverlay'),
+    extractFunctionBlock(html, 'getMenuData')
+  ].join('\n\n');
+  vm.runInContext(code, context, { filename: 'index.html#menu-data-core', timeout: 1000 });
+  assert.equal(typeof context.getMenuData, 'function', 'menu data core should expose getMenuData');
+  assert.equal(typeof context.setDoorPublishMenuOverlayOverride, 'function', 'menu data core should expose publish overlay override setter');
+  return context;
+}
+
+function makePublishArtifact(name) {
+  if (name === 'menu_current.json') return readJson('menu_current.json');
+  if (name === 'registry_summary.json') return readJson('registry_summary.json');
+  if (name === 'routing_by_meal.json') return readJson('routing_by_meal.json');
+  if (name === 'door_state.json') return readJson('door_state.json');
+  throw new Error(`Unknown publish artifact fixture: ${name}`);
+}
+
+function applyOverlayToMenuArtifact(artifact, overlay) {
+  for (const [weekKey, week] of Object.entries(overlay || {})) {
+    if (weekKey === '_meta' || !artifact.menu?.[weekKey] || !week || typeof week !== 'object') continue;
+    for (const [dayKey, node] of Object.entries(week)) {
+      if (!artifact.menu[weekKey][dayKey] || !node || typeof node !== 'object') continue;
+      Object.assign(artifact.menu[weekKey][dayKey], node);
+    }
+  }
+  return artifact;
+}
+
+function loadPublishFlowHarness(options = {}) {
+  const html = readText('index.html');
+  const standardCutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
+  const statusEl = { textContent: '', style: { color: '' } };
+  const deliveryLink = {};
+  const deliveryActions = { style: {}, querySelector: () => deliveryLink };
+  const timers = new Map();
+  const deliveryReads = [];
+  let transportHead = 'pinned-test-head';
+  let timerId = 0;
+  const pushed = [];
+  const syncBars = [];
+  const toasts = [];
+  const rememberedFailures = [];
+  const atomicCalls = [];
+  const consoleMessages = [];
+  const overlayOverrides = [];
+  const localOverlay = options.localOverlay || {};
+  const storage = {
+    concMenuBase: JSON.stringify({
+      ...localOverlay,
+      _meta: { ...(localOverlay._meta || {}), standardCutover }
+    }),
+    concCustomTagRules: '[]',
+    concLearnedNR: '{}'
+  };
+
+  const context = {
+    Array,
+    JSON,
+    Object,
+    Promise,
+    crypto: webcrypto, TextEncoder, AbortController,
+    navigator: { locks: createSingleContextLockManager() },
+    // Queue delivery retries without real timers or external reads in this VM.
+    setTimeout(callback, delay = 0) { const id = ++timerId; timers.set(id, { callback, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    async fetch(url, init = {}) {
+      assert.equal(init.method || 'GET', 'GET', 'delivery verification stays read-only');
+      if (String(url).startsWith('https://api.github.com/')) {
+        assert.equal(String(url), 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/git/ref/heads/main', 'the publish UI fixture only serves the final authoritative ref read');
+        return { ok: true, status: 200, json: async () => ({ object: { sha: transportHead } }) };
+      }
+      deliveryReads.push(String(url));
+      return { ok: false, status: 503 }; // committed, but no public delivery observed in this fixture
+    },
+    console: {
+      warn(...args) {
+        consoleMessages.push({ level: 'warn', args });
+      },
+      error(...args) {
+        consoleMessages.push({ level: 'error', args });
+      },
+      log(...args) {
+        consoleMessages.push({ level: 'log', args });
+      }
+    },
+    isFinite,
+    document: {
+      getElementById(id) {
+        return id === 'gh-status' ? statusEl : id === 'door-delivery-actions' ? deliveryActions : null;
+      },
+      querySelector() {
+        return null;
+      }
+    },
+    PublishAuth: {
+      getRepo() { return 'kennedyjasondavid-eng/conc-kitchen-door'; },
+      githubHeaders() { return { Accept: 'application/vnd.github+json' }; },
+      getCredentialsForManualPublish() {
+        if (options.credentialsError) throw new Error(options.credentialsError);
+        return { repo: 'kennedyjasondavid-eng/conc-kitchen-door', token: 'test-token' };
+      },
+      _getSavedCredentials() {
+        if (options.credentialsError) throw new Error(options.credentialsError);
+        return { repo: 'kennedyjasondavid-eng/conc-kitchen-door', token: 'test-token' };
+      },
+      rememberFailure(message) {
+        rememberedFailures.push(message);
+      }
+    },
+    localStorage: {
+      getItem(key) {
+        return Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null;
+      },
+      setItem(key, value) {
+        storage[key] = String(value);
+      },
+      removeItem(key) {
+        delete storage[key];
+      }
+    },
+    buildMenuJSON: options.buildMenuJSON || (() => applyOverlayToMenuArtifact(
+      makePublishArtifact('menu_current.json'),
+      context._doorPublishMenuOverlayOverride
+    )),
+    buildRegistrySummaryJSON: options.buildRegistrySummaryJSON || (() => makePublishArtifact('registry_summary.json')),
+    buildRoutingByMealJSON: options.buildRoutingByMealJSON || (() => makePublishArtifact('routing_by_meal.json')),
+    buildStateJSON: options.buildStateJSON || (() => makePublishArtifact('door_state.json')),
+    ghPushFile: options.ghPushFile || (async (creds, artifactPath, content) => {
+      pushed.push({ path: artifactPath, content: JSON.parse(content) });
+      return options.skippedPath === artifactPath ? { skipped: true, reason: options.skippedReason || 'test_skip' } : {};
+    }),
+    // D1: the publish path stages the whole artifact set and commits it once.
+    // The stub records every staged file (so path/content assertions are
+    // unchanged from the per-file era) and returns the per-path verdict list the
+    // real ghPushFilesAtomic returns.
+    ghPushFilesAtomic: options.ghPushFilesAtomic || (async (creds, files, message) => {
+      atomicCalls.push({ message, paths: Array.from(files, (f) => f.path) });
+      const results = files.map((f) => {
+        pushed.push({ path: f.path, content: JSON.parse(f.content) });
+        return options.skippedPath === f.path
+          ? { path: f.path, skipped: true, reason: options.skippedReason || 'test_skip' }
+          : { path: f.path, skipped: false };
+      });
+      transportHead = 'test-commit-sha';
+      return { ok: true, results, commitSha: transportHead, staged: results.filter((r) => !r.skipped).length };
+    }),
+    preMergeOverlayWithCloud: options.preMergeOverlayWithCloud || (async (creds, localOverlay) => localOverlay),
+    loadMealSwaps: () => [],
+    // 2026-10-18: the publish merges the kitchen's swaps and their revert lists first, and also sends the swap revert
+    // list (meal_swaps_reverted.json) and the special-meal removal list (special_meals_removed.json).
+    preMergeSwapsWithCloud: options.preMergeSwapsWithCloud || (async () => {}),
+    loadSwapReverts: () => ({}),
+    loadSpecialRemovals: () => ({}),
+    // 2026-10-29: the publish also sends Rex's week sheet "Keep DOOR's" answers (rex_week_answers.json), merged with
+    // the kitchen's first; a computer with none sends nothing, so the publish set here is unchanged.
+    doorPullRexAnswers: options.doorPullRexAnswers || (async () => ({})),
+    loadSpecialMeals: () => [],
+    RECENT_LOG: [],
+    REGISTRY_LIST: [{ room: '101' }, { room: '102' }],
+    updateSyncBar(message, color) {
+      syncBars.push({ message, color });
+    },
+    showToast(message) {
+      toasts.push(message);
+    }
+  };
+  context.setDoorPublishMenuOverlayOverride = (overlay) => {
+    overlayOverrides.push(overlay);
+    context._doorPublishMenuOverlayOverride = overlay;
+  };
+  context.confirm = options.confirm || (() => true);
+  // 2026-10-08 re-pin (publish_menu_ask_gate): the publish questions ask through doorAsk, not confirm().
+  // options.confirm still answers them, so each test keeps its meaning.
+  context.doorAsk = async (o) => (options.confirm || (() => true))(o);
+  // The validation/UI shim supplies one immutable read revision. The separate
+  // F1 applying-remote gates exercise real HTTP, merges, races and recovery.
+  context.doorSetItemSafe = (key, value) => { storage[key] = String(value); return true; };
+  context.doorOutboxRead = () => JSON.parse(storage.concPublishOutbox || '[]');
+  context.getRegistryProvenanceTs = () => 0;
+  context.REVERTED_SWAP_KEYS = { mergeRemote() {} };
+  context.REMOVED_SPECIAL_KEYS = { mergeRemote() {} };
+  context.doorPublishReadRevision = async (creds) => ({
+    head: transportHead, tree: 'pinned-test-tree', paths: {},
+    data: {
+      'menu_overlay.json': await context.preMergeOverlayWithCloud(creds, JSON.parse(storage.concMenuBase)),
+      'meal_swaps.json': {}, 'meal_swaps_reverted.json': {},
+      'special_meals.json': {}, 'special_meals_removed.json': {},
+      'custom_tag_rules.json': [], 'learned_nr.json': {}, 'door_state.json': {}
+    }
+  });
+  if ('tabStale' in options) context._doorTabStale = options.tabStale;
+  if ('staleOverride' in options) context._doorStaleOverride = options.staleOverride;
+  if (typeof options.configureContext === 'function') {
+    options.configureContext(context, storage);
+  }
+
+  vm.createContext(context);
+  const code = [
+    extractTestableCoreBlock(html, 'publish-validation'),
+    extractTestableCoreBlock(html, 'swap-store'),
+    "const DOOR_PUBLISH_OUTBOX_KEY = 'concPublishOutbox';",
+    extractFunctionBlock(html, 'doorDateKey'),
+    extractFunctionBlock(html, 'doorPagesUrl'),
+    extractTestableCoreBlock(html, 'publish-transaction').replace(extractFunctionBlock(html, 'doorPublishReadRevision'), ''),
+    extractFunctionBlock(html, 'reportDoorPublishValidation'),
+    extractFunctionBlock(html, 'reportDoorOverlayMergeAdvisory'),
+    extractFunctionBlock(html, '_doPublishToGitHub')
+  ].join('\n\n');
+  vm.runInContext(code, context, { filename: 'index.html#publish-flow', timeout: 1000 });
+
+  return {
+    context,
+    statusEl,
+    pushed,
+    syncBars,
+    toasts,
+    rememberedFailures,
+    consoleMessages,
+    overlayOverrides,
+    atomicCalls,
+    deliveryReads,
+    storage
+  };
+}
+
+function loadPublishAndSyncHarness(options = {}) {
+  const html = readText('index.html');
+  const syncBars = [];
+  const toasts = [];
+  const promptStates = [];
+  const storage = {};
+  const context = {
+    Date,
+    updateSyncBar(message, color) { syncBars.push({ message, color }); },
+    showToast(message) { toasts.push(message); },
+    updateDailyImportPrompt() { promptStates.push(context._doorPublishInFlight); },
+    getOperatorName: () => options.operator || '',
+    publishToGitHub: options.publishToGitHub || (() => Promise.resolve(options.result)),
+    localStorage: {
+      getItem(key) { return Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null; },
+      setItem(key, value) { storage[key] = String(value); }
+    },
+    PublishAuth: { getSavedToken: () => 'test-key' },
+    doorOutboxAppend() {},
+    doorOutboxRead: () => [],
+    document: { getElementById: () => null },
+    doorDeliveryCurrent: () => options.deliveryRecord || { served: null, consumed: null }
+  };
+  vm.createContext(context);
+  vm.runInContext(
+    'var _doorPublishInFlight = false;\nvar _doorConnectCardOpen = false;\n' +
+      extractFunctionBlock(html, 'doorDeliveryFresh') + '\n' +
+      extractFunctionBlock(html, 'doorDeliveryRender') + '\n' + extractFunctionBlock(html, 'publishAndSync'),
+    context,
+    { filename: 'index.html#publish-and-sync', timeout: 1000 }
+  );
+  assert.equal(typeof context.publishAndSync, 'function', 'publish-and-sync core should expose publishAndSync');
+  return { context, syncBars, toasts, promptStates, storage };
+}
+
+function extractOutputEncodingBlock(html) {
+  const joinedScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1])
+    .join('\n');
+  const start = joinedScripts.indexOf('function doorText(value)');
+  const end = joinedScripts.indexOf('// ============================================================\n// RESIDENT HISTORY', start);
+  assert.ok(start >= 0 && end > start, 'output encoding helper block should be extractable');
+  return joinedScripts.slice(start, end);
+}
+
+function loadOutputEncodingHelpers() {
+  const helperBlock = extractOutputEncodingBlock(readText('index.html'));
+  const factory = new Function('window', helperBlock + `
+    return {
+      doorText,
+      escapeHtml,
+      _escAttr,
+      _jsStringLiteral,
+      _jsArgLiteral,
+      _escJsAttrCall,
+      safeUrl,
+      _escUrlAttr,
+      doorTrustedColor,
+      highlightHtml
+    };
+  `);
+  return factory({ location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } });
+}
+
+function assertNoRawExecutablePayload(html, message) {
+  assert.doesNotMatch(html, /<img\b/i, `${message}: raw img tag should not render`);
+  assert.doesNotMatch(html, /<svg\b/i, `${message}: raw svg tag should not render`);
+  assert.doesNotMatch(html, /<(?:img|svg)\b[^>]*\son(?:error|load)\s*=/i, `${message}: event attributes should not render`);
+  assert.doesNotMatch(html, /javascript:/i, `${message}: javascript URLs should not render`);
+}
+
+test('index.html keeps the single-file DOOR safety surfaces', () => {
+  const html = readText('index.html');
+
+  assertContains(html, '<!DOCTYPE html>', 'index.html should remain a browser-loadable HTML document');
+  assert.match(html, /<title>[^<]*DOOR[^<]*<\/title>/i, 'the staff-facing app title should include DOOR');
+  assertContains(html, 'localStorage', 'DOOR live state depends on browser localStorage');
+  assertContains(html, 'https://api.github.com/repos/', 'publish path should still target the GitHub REST API');
+  assertContains(html, '/contents/', 'GitHub publish path should still use repository contents API routes');
+  assertContains(html, 'DOOR_APP_VERSION', 'DOOR should expose one app version constant');
+  assertContains(html, 'DOOR_BUILD_DATE', 'DOOR should expose one build date constant');
+  assertContains(html, 'DOOR_SCHEMA_VERSIONS', 'DOOR should expose schema version expectations');
+  assertContains(html, 'door-build-stamp', 'DOOR should render a staff-visible build stamp');
+  assertContains(html, 'DOOR_TESTABLE_CORE_START compliance-conflicts', 'DOOR should expose the first testable compliance core block');
+  assertContains(html, 'DOOR_TESTABLE_CORE_START publish-validation', 'DOOR should expose the publish validation core block');
+
+  const contractMarkers = [
+    'menu_current.json',
+    'routing_by_meal.json',
+    'door_state.json',
+    'registry_summary.json',
+    'DOOR_RECIPE_DATA.json'
+  ];
+
+  for (const marker of contractMarkers) {
+    assertContains(html, marker, `missing published/consumed contract marker: ${marker}`);
+  }
+
+  const safetyMarkers = [
+    'anaphylactic',
+    'Anaphylactic',
+    'exclude',
+    'DOOR_RECIPE_DATA_FALLBACK',
+    'https://kennedyjasondavid-eng.github.io/conc-recipe-hub/DOOR_RECIPE_DATA.json',
+    'ALLERGEN_TAGS',
+    'hubAllergenToFlags',
+    'flagsToAllergenStr',
+    'flagsToMenuAllergens',
+    'checkResidentMealConflicts',
+    'getAnaphConflictRooms',
+    'computePlatingData',
+    'buildRoutingByMealJSON'
+  ];
+
+  for (const marker of safetyMarkers) {
+    assertContains(html, marker, `missing safety/plating marker: ${marker}`);
+  }
+
+  const publishMarkers = [
+    'publishToGitHub',
+    'ghPushFile',
+    'validateDoorPublishArtifacts',
+    'reportDoorPublishValidation',
+    'buildMenuJSON',
+    'buildRoutingByMealJSON',
+    'buildStateJSON'
+  ];
+
+  for (const marker of publishMarkers) {
+    assertContains(html, marker, `missing publish marker: ${marker}`);
+  }
+});
+
+test('standard-menu cutover retires Alt Menu UI/paths and guards permanent writes', () => {
+  const html = readText('index.html');
+  const menuBuilder = extractFunctionBlock(html, 'buildMenuJSON');
+
+  assert.doesNotMatch(html, /id="mc-alt-menu-btn"/, 'the Alt Menu toggle should be retired');
+  assert.doesNotMatch(html, /id="alt-menu-banner"/, 'the Alt Menu banner should be retired');
+  assert.doesNotMatch(html, /function\s+(?:isAltMenuActive|toggleAltMenu|loadAltMenuCached|ensureAltMenuCached|refreshAltMenuIfStale)\b/, 'reno-source runtime paths should be retired');
+  assertContains(html, 'DOOR_STANDARD_MENU_CUTOVER', 'overlay pruning should carry a standing cutover marker');
+  assertContains(html, "guardStandardMenuWrite('Make Permanent')", 'Make Permanent should be source-guarded');
+  assertContains(html, "guardStandardMenuWrite('Edit Menu')", 'Edit Menu writes should be source-guarded');
+  assertContains(menuBuilder, 'version:DOOR_SCHEMA_VERSIONS.menu_current', 'menu export version should use the schema mirror');
+});
+
+test('buildMenuJSON enforces the pork-is-never-halal-certified invariant on export', () => {
+  // Pork can't be halal-certified. A stored/imported halalCertifiedMeat:true on a pork
+  // slot tells EXPO the pork main covers halal, so EXPO skips the halal cook the menu
+  // names (the Halal <chicken> alt) and halal residents get no dish. The guard corrects
+  // it on export so imported data (the July-2 workbook) can't reach EXPO wrong.
+  const html = readText('index.html');
+  const menuBuilder = extractFunctionBlock(html, 'buildMenuJSON');
+  const appState = {
+    '1': { SUNDAY: {
+      breakfast: 'Oatmeal', lunch: 'Roast Chicken', dinner: 'Pork Carnitas',
+      breakfast_flags: { hasPork: false, halalCertifiedMeat: false },
+      lunch_flags: { hasChicken: true, hasPork: false, halalCertifiedMeat: true },  // legit non-pork cert — must stay true
+      dinner_flags: { hasPork: true, halalCertifiedMeat: true }                     // wrong — must be forced false
+    } }
+  };
+  const context = { JSON, Object, Date, getMenuData: () => appState, flagsToMenuAllergens: () => 'x' };
+  vm.createContext(context);
+  vm.runInContext(`const DOOR_SCHEMA_VERSIONS = { menu_current: 32 };\n${menuBuilder}\nglobalThis.__out = buildMenuJSON();`,
+    context, { filename: 'index.html#buildMenuJSON', timeout: 1000 });
+  const out = context.__out.menu['1'].SUNDAY;
+  assert.equal(out.dinner_flags.halalCertifiedMeat, false, 'pork main must be forced halalCertifiedMeat:false on export');
+  assert.equal(out.lunch_flags.halalCertifiedMeat, true, 'a legit non-pork halal-certified main must stay true');
+  assert.equal(appState['1'].SUNDAY.dinner_flags.halalCertifiedMeat, true, 'the guard must clone _flags — never mutate app state');
+});
+
+test('menu_current.json carries no pork slot flagged halal-certified (invariant)', () => {
+  const menu = readJson('menu_current.json').menu;
+  const offenders = [];
+  for (const [wk, week] of Object.entries(menu))
+    for (const [day, node] of Object.entries(week))
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        const fl = node[meal + '_flags'];
+        if (fl && fl.hasPork && fl.halalCertifiedMeat) offenders.push(`${wk}/${day}/${meal}`);
+      }
+  assert.deepEqual(offenders, [], `pork slots must never be halalCertifiedMeat:true — EXPO would skip the halal cook: ${offenders.join(', ')}`);
+});
+
+test('menu_current.json allergen lines stay consistent with the meal flags', () => {
+  // buildMenuJSON regenerates allergens_<meal> from <meal>_flags on export, so the two
+  // must never disagree. Guards the class where a stored flag (e.g. a stray hasPork on the
+  // vegetarian Egg Salad Wrap) leaks a wrong allergen token onto the plating sheet.
+  const menu = readJson('menu_current.json').menu;
+  const ORDER = [['hasGluten','gluten'],['hasDairy','dairy'],['hasEgg','egg'],['hasFish','fish'],
+    ['hasPeanuts','peanuts'],['hasTreeNuts','tree nuts'],['hasSesame','sesame'],['hasSoy','soy'],
+    ['hasMustard','mustard'],['hasShellfish','shellfish'],['hasSulphites','sulphites'],
+    ['hasPork','pork'],['hasBeef','beef'],['hasTurkey','turkey']];
+  const line = fl => ORDER.filter(([k]) => fl && fl[k]).map(([, l]) => l).join(', ');
+  const bad = [];
+  for (const [wk, week] of Object.entries(menu))
+    for (const [day, node] of Object.entries(week))
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        const fl = node[meal + '_flags'];
+        if (!fl) continue;
+        const expect = line(fl), got = node['allergens_' + meal] || '';
+        if (expect !== got) bad.push(`${wk}/${day}/${meal}: expected "${expect}", got "${got}"`);
+      }
+  assert.deepEqual(bad, [], `allergen lines must match flags: ${bad.join(' | ')}`);
+});
+
+test('index.html exposes the accessibility affordances from the elegance pass', () => {
+  const html = readText('index.html');
+  assert.match(html, /:focus-visible\s*\{/, 'a visible keyboard-focus ring (:focus-visible) should exist');
+  assert.match(html, /enhanceNavA11y/, 'the div-based nav should be made keyboard-operable');
+  assert.match(html, /setAttribute\(\s*'role'\s*,\s*'alert'\s*\)/, 'the stale-version banner should announce as an alert');
+  assert.match(html, /id="sync-status"[^>]*aria-live/, 'the live status bar should announce updates to screen readers');
+  assert.match(html, /class="dm-toggle"[^>]*aria-label="Toggle dark mode"/, 'the icon-only dark-mode toggle should have an accessible name');
+});
+
+test('background and side publishes resolve credentials without the manual typed-token guard', () => {
+  const html = readText('index.html');
+  // _getSavedCredentials is the shared, guard-free resolver; ONLY the manual
+  // path adds the unsaved-typed-token check, so a value left in the field can't
+  // silently stall the automatic cloud feed (the single upstream source).
+  assert.match(html, /_getSavedCredentials\s*\(\)\s*\{/, 'a guard-free saved-credentials resolver should exist');
+  assert.match(html, /manual \? PublishAuth\.getCredentialsForManualPublish\(\) : PublishAuth\._getSavedCredentials\(\)/, 'the full-publish path should only apply the typed-token guard for manual publishes');
+  assert.match(html, /creds = this\._getSavedCredentials\(\);/, 'sidePublish should resolve creds without the manual typed-token guard');
+});
+
+test('output encoding helpers escape HTML, attributes, handlers, URLs, colors, and highlights', () => {
+  const h = loadOutputEncodingHelpers();
+
+  assert.equal(
+    h.escapeHtml('<img src=x onerror=alert(1)>'),
+    '&lt;img src=x onerror=alert(1)&gt;'
+  );
+  assert.equal(
+    h._escAttr('" onmouseover="alert(1)'),
+    '&quot; onmouseover&#x3D;&quot;alert(1)'
+  );
+  assert.equal(
+    h._escJsAttrCall('slotSelect', ['main', "Soup');alert(1);//<img>"]),
+    'slotSelect(&quot;main&quot;,&quot;Soup\\x27);alert(1);//\\x3Cimg\\x3E&quot;)'
+  );
+  assert.equal(h.safeUrl('javascript:alert(1)'), '#');
+  assert.equal(h.doorTrustedColor('background:url(javascript:alert(1))', '#888'), '#888');
+  assert.equal(
+    h.highlightHtml('<img src=x onerror=alert(1)> Soup', 'soup'),
+    '&lt;img src=x onerror=alert(1)&gt; <strong>Soup</strong>'
+  );
+});
+
+test('inline handler interpolation scan has no unescaped dynamic handlers', () => {
+  const html = readText('index.html');
+  const lines = html.split(/\r?\n/);
+  const handlerPattern = /on(?:click|change|input|keydown|focus|blur|mouseover|mouseout|error)="[^"]*\$\{[^}]+\}/g;
+  const suspicious = [];
+
+  lines.forEach((line, index) => {
+    for (const match of line.match(handlerPattern) || []) {
+      if (!/_esc(?:JsAttrCall|Attr)|_jsArgLiteral/.test(match)) {
+        suspicious.push(`${index + 1}: ${line.trim()}`);
+      }
+    }
+  });
+
+  assert.deepEqual(suspicious, []);
+});
+
+test('reviewed stored-text report sinks are escaped in source', () => {
+  const html = readText('index.html');
+  const forbidden = [
+    /\$\{g\.rooms\.sort\(\)\.join\(', '\)\}/,
+    /Rm \$\{room\}/,
+    /Breakfast\$\{md\.breakfast \? ': ' \+ md\.breakfast/,
+    /\$\{e\.date\}<\/span>\$\{e\.desc\}/,
+    /<strong>Room \$\{room\}<\/strong>/,
+    /\$\{res\.section\} .* \$\{res\.rawRestriction\}/,
+    /Rooms: \$\{x\.rooms\}/,
+    /\$\{e\.meal\}<\/td>/,
+    /<span class="log-room">\$\{e\.room\}/,
+    /<span class="log-desc">\$\{e\.desc\}/,
+    /<div class="log-date">\$\{e\.date\}/
+  ];
+
+  for (const pattern of forbidden) {
+    assert.doesNotMatch(html, pattern, `raw reviewed sink should not remain: ${pattern}`);
+  }
+
+  const requiredSafeMarkers = [
+    "escapeHtml(g.rooms.sort().join(', '))",
+    'Rm ${escapeHtml(room)}',
+    'escapeHtml(md.breakfast.slice(0,35))',
+    "escapeHtml((md.lunch.name || '').slice(0,40))",
+    "escapeHtml((md.dinner.name || '').slice(0,38))",
+    '${escapeHtml(e.date)}</span>${escapeHtml(e.desc)}',
+    '${escapeHtml(c.date)}',
+    '${escapeHtml(c.meal)}',
+    'Rooms: ${escapeHtml(x.rooms)}',
+    'Room ${escapeHtml(room)}',
+    '${escapeHtml(res.section)}',
+    '${escapeHtml(res.rawRestriction)}',
+    '${escapeHtml(m.name)}</td>',
+    '${escapeHtml(e.meal)}</td>'
+  ];
+
+  for (const marker of requiredSafeMarkers) {
+    assertContains(html, marker, `missing safe marker: ${marker}`);
+  }
+});
+
+test('report table helper renders stored meal-log payloads safely', () => {
+  const html = readText('index.html');
+  const context = {
+    Array,
+    Object,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } }
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, 'buildUptakeTable')
+  ].join('\n\n'), context, { filename: 'index.html#xss-report-table', timeout: 1000 });
+
+  const payload = '<img src=x onerror=alert(1)>';
+  const htmlOut = context.buildUptakeTable([{
+    date: payload,
+    period: '<svg onload=alert(2)>',
+    meal: payload + ' Meal',
+    totalServed: 10,
+    totalReturned: 1
+  }], ['Regular']);
+
+  assertContains(htmlOut, '&lt;img src=x onerror=alert(1)&gt;');
+  assertContains(htmlOut, '&lt;svg onload=alert(2)&gt;');
+  assertNoRawExecutablePayload(htmlOut, 'meal-log report table');
+});
+
+test('custom uptake-by-meal report renders synced meal names safely', () => {
+  const html = readText('index.html');
+  const payload = '<img src=x onerror=alert(1)>';
+  const els = {};
+  function el(id) {
+    if (!els[id]) els[id] = { id, style: {}, innerHTML: '', textContent: '', value: '' };
+    return els[id];
+  }
+  const context = {
+    Array,
+    Date,
+    Object,
+    URL,
+    Math,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: { getElementById: el },
+    Chart: function Chart() { return { destroy() {} }; },
+    crChart: null,
+    checkedBoxes: {
+      cr_type: 'uptake_by_meal',
+      crp_breakfast: true,
+      crp_lunch: true,
+      crp_dinner: true,
+      crs_Regular: true
+    },
+    BASE_SECTIONS: [{ name: 'Regular', color: '#52B788' }],
+    generateSampleLog() {
+      return [{
+        dateObj: new Date(),
+        period: 'lunch',
+        meal: payload + ' Meal',
+        totalServed: 10,
+        totalReturned: 1,
+        returns: { Regular: { served: 10, returned: 1 } }
+      }];
+    }
+  };
+  vm.createContext(context);
+  const runCustomReportStart = html.indexOf('function runCustomReport()');
+  const runCustomReportEnd = html.indexOf('\nfunction buildUptakeTable', runCustomReportStart);
+  assert.ok(runCustomReportStart >= 0 && runCustomReportEnd > runCustomReportStart, 'runCustomReport should be bounded by buildUptakeTable');
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    html.slice(runCustomReportStart, runCustomReportEnd)
+  ].join('\n\n'), context, { filename: 'index.html#xss-custom-uptake-by-meal', timeout: 1000 });
+
+  context.runCustomReport();
+  assertContains(els['cr-output'].innerHTML, '&lt;img src=x onerror=alert(1)&gt; Meal');
+  assertNoRawExecutablePayload(els['cr-output'].innerHTML, 'custom uptake-by-meal report');
+});
+
+test('review-and-generate and change-editor preview sinks are escaped in source', () => {
+  const html = readText('index.html');
+  function sliceBetween(startNeedle, endNeedle) {
+    const start = html.indexOf(startNeedle);
+    const end = html.indexOf(endNeedle, start);
+    assert.ok(start >= 0 && end > start, `missing slice ${startNeedle}`);
+    return html.slice(start, end);
+  }
+
+  const targets = [
+    {
+      name: 'resident history metadata',
+      source: sliceBetween('function populateCEHistory', 'function updateCERoutePreview'),
+      forbidden: [/\$\{entry\.date \|\| ''\} . \$\{entry\.by \|\| ''\}/],
+      required: ["escapeHtml(entry.date || '')", "escapeHtml(entry.by || '')"]
+    },
+    {
+      name: 'change editor route preview',
+      source: sliceBetween('function updateCERoutePreview', 'function saveChangeEdit'),
+      forbidden: [/\$\{lunchName\}<\/span>/, /\$\{dinnerName\}<\/span>/],
+      required: ['${escapeHtml(lunchName)}</span>', '${escapeHtml(dinnerName)}</span>']
+    },
+    {
+      name: 'review preview sections',
+      source: sliceBetween("document.getElementById('preview-sections')", "document.getElementById('preview-total-badge')"),
+      forbidden: [
+        /background:\$\{s\.color\}/,
+        /<div class="section-name">\$\{s\.name\}<\/div>/,
+        /<div class="section-meal">\$\{s\.meal\}<\/div>/
+      ],
+      required: ["doorTrustedColor(s.color, '#888')", '${escapeHtml(s.name)}</div>', '${escapeHtml(s.meal)}</div>']
+    },
+    {
+      name: 'regular slot summary',
+      source: sliceBetween('function updateSlotSummary', "document.addEventListener('click'"),
+      forbidden: [
+        />\$\{name\}<\/div>/,
+        /Veg alt: \$\{veg\}/,
+        /No Pork alt: \$\{noPorkAlt\}/,
+        /: \$\{a\.text\}<\/div>/
+      ],
+      required: ['${escapeHtml(name)}</div>', 'Veg alt: ${escapeHtml(veg)}', 'No Pork alt: ${escapeHtml(noPorkAlt)}', ': ${escapeHtml(a.text)}</div>']
+    }
+  ];
+
+  for (const target of targets) {
+    for (const pattern of target.forbidden) {
+      assert.doesNotMatch(target.source, pattern, `${target.name}: raw reviewed preview sink should not remain: ${pattern}`);
+    }
+    for (const marker of target.required) {
+      assertContains(target.source, marker, `${target.name}: missing safe marker ${marker}`);
+    }
+  }
+});
+
+test('change editor route preview renders synced meal names safely', () => {
+  const html = readText('index.html');
+  const payload = '<img src=x onerror=alert(1)>';
+  const routeEl = { style: {}, innerHTML: '' };
+  const context = {
+    Array,
+    Object,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: {
+      getElementById(id) {
+        if (id === 'ce-anaph') return { checked: false };
+        if (id === 'ce-route-preview') return routeEl;
+        return null;
+      }
+    },
+    ceMode: 'registry',
+    ceRoom: '101',
+    changesQueue: [],
+    MEAL_DATA: {
+      lunch: { name: payload + ' Lunch' },
+      dinner: { name: '<svg onload=alert(2)> Dinner' }
+    },
+    MEAL: {},
+    getCETags() { return []; },
+    // Re-pinned 2026-10-18 (the routing audit, "Per meal everywhere"): the preview routes today's lunch and dinner as
+    // the plating sheet reads them (doorTodayMealFlags).
+    doorTodayMealFlags() { return {}; },
+    routeResident() { return payload + ' Route'; }
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, 'updateCERoutePreview')
+  ].join('\n\n'), context, { filename: 'index.html#xss-change-editor-route', timeout: 1000 });
+
+  context.updateCERoutePreview();
+  assertContains(routeEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt; Lunch');
+  assertContains(routeEl.innerHTML, '&lt;svg onload=alert(2)&gt; Dinner');
+  assertContains(routeEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt; Route');
+  assertNoRawExecutablePayload(routeEl.innerHTML, 'change editor route preview');
+});
+
+test('regular menu slot summary renders staff-entered slot text safely', () => {
+  const html = readText('index.html');
+  const payload = '<img src=x onerror=alert(1)>';
+  const summaryEl = { style: {}, innerHTML: '' };
+  const context = {
+    Array,
+    Object,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: {
+      getElementById(id) {
+        if (id === 'mc-slot-name-preview') return summaryEl;
+        return null;
+      }
+    },
+    FLAG_DEFS: [],
+    _LAST_SLOT_FLAGS: {},
+    testMealActive: false,
+    MEAL_SLOT_STATE: {},
+    buildUnionFlags() { return {}; },
+    buildVegAltFlags() { return {}; },
+    buildAltMeals() { return [{ type: 'plain', text: '<svg onload=alert(2)> Plain alt' }]; },
+    buildMealName() { return payload + ' Main'; },
+    buildVegAlt() { return payload + ' Veg'; },
+    buildSoftAlt() { return ''; },
+    buildNoPorkAlt() { return payload + ' No Pork'; },
+    detectIsCarb() { return false; }
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, '_mealNoAllergenSource'),
+    // Re-pinned 2026-10-19 (the plating review): the preview opens the plates the sheet will, from Edit Menu's
+    // "Alternatives the kitchen makes" (doorEditorPlateFlags).
+    html.match(/const DOOR_KITCHEN_ALT_LABELS = \{[^\n]*\};/)[0],
+    extractFunctionBlock(html, 'doorKitchenAltInputValues'),
+    extractFunctionBlock(html, 'doorEditorPlateFlags'),
+    extractFunctionBlock(html, 'updateSlotSummary')
+  ].join('\n\n'), context, { filename: 'index.html#xss-slot-summary', timeout: 1000 });
+
+  context.updateSlotSummary();
+  assertContains(summaryEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt; Main');
+  assertContains(summaryEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt; Veg');
+  assertContains(summaryEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt; No Pork');
+  assertContains(summaryEl.innerHTML, '&lt;svg onload=alert(2)&gt; Plain alt');
+  assertNoRawExecutablePayload(summaryEl.innerHTML, 'regular menu slot summary');
+});
+
+test('daily import prompt renders synced import filename safely', () => {
+  const html = readText('index.html');
+  const payload = '<img src=x onerror=alert(1)>.xlsx';
+  const promptEl = { style: {}, innerHTML: '' };
+  const storage = {
+    concLastImportDate: new Date().toDateString(),
+    concLastImportFile: payload,
+    concUnresolvedNR: null,
+    concLastGenerated: null
+  };
+  const context = {
+    Array,
+    Date,
+    JSON,
+    Object,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: {
+      documentElement: { getAttribute() { return 'light'; } },
+      getElementById(id) {
+        if (id === 'daily-import-prompt') return promptEl;
+        return null;
+      }
+    },
+    localStorage: {
+      getItem(key) {
+        return Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null;
+      }
+    },
+    changesQueue: [],
+    // Hardening 2026-09: updateDailyImportPrompt now prepends the stale-registry
+    // banner. An empty registry is never stale, so the banner is silent here and
+    // the XSS assertion below is unaffected.
+    REGISTRY_LIST: []
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    'const DOOR_REGISTRY_STALE_WARN_DAYS = ' + extractConstNumber(html, 'DOOR_REGISTRY_STALE_WARN_DAYS') + ';',
+    extractFunctionBlock(html, 'doorFreshestImportTs'),
+    extractFunctionBlock(html, 'doorRegistryStaleAssessment'),
+    extractFunctionBlock(html, '_doorRegistryStaleBannerHTML'),
+    extractFunctionBlock(html, 'updateDailyImportPrompt')
+  ].join('\n\n'), context, { filename: 'index.html#xss-daily-import-prompt', timeout: 1000 });
+
+  context.updateDailyImportPrompt();
+  assertContains(promptEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt;.xlsx');
+  assertNoRawExecutablePayload(promptEl.innerHTML, 'daily import prompt filename');
+});
+
+test('report dashboard renders synced welfare and section payloads safely', () => {
+  const html = readText('index.html');
+  const payload = '<img src=x onerror=alert(1)>';
+  const els = {};
+  function el(id) {
+    if (!els[id]) els[id] = { id, style: {}, innerHTML: '', value: 'month' };
+    return els[id];
+  }
+  const context = {
+    Array,
+    Date,
+    Object,
+    URL,
+    Math,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: { getElementById: el },
+    Chart: function Chart() { return { destroy() {} }; },
+    uptakeChart: null,
+    BASE_SECTIONS: [{ name: payload, color: 'background:url(javascript:alert(1))' }],
+    RECENT_LOG: [{ type: 'welfare', date: payload, desc: payload }],
+    generateSampleLog() {
+      const returns = {};
+      returns[payload] = { served: 10, returned: 1 };
+      return [{
+        dateObj: new Date(),
+        date: payload,
+        period: '<svg onload=alert(2)>',
+        meal: payload + ' Meal',
+        totalServed: 10,
+        totalNotServed: 1,
+        returns
+      }];
+    }
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, 'renderReport')
+  ].join('\n\n'), context, { filename: 'index.html#xss-report-dashboard', timeout: 1000 });
+
+  context.renderReport();
+  const combined = [
+    els['report-by-section'].innerHTML,
+    els['report-welfare'].innerHTML,
+    els['report-log-table'].innerHTML
+  ].join('\n');
+
+  assertContains(combined, '&lt;img src=x onerror=alert(1)&gt;');
+  assertContains(combined, '&lt;svg onload=alert(2)&gt;');
+  assertNoRawExecutablePayload(combined, 'report dashboard');
+  assert.doesNotMatch(combined, /javascript:/i, 'trusted color guard should reject CSS javascript payload');
+});
+
+test('recipe slot dropdowns render synced recipe names and manual no-match text as text', () => {
+  const html = readText('index.html');
+  const dd = { style: {}, innerHTML: '' };
+  const context = {
+    Array,
+    Object,
+    RegExp,
+    Set,
+    String,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: {
+      getElementById(id) {
+        return id === 'slot-dd-main' || id === 'sm-slot-dd-main' ? dd : null;
+      }
+    },
+    MEAL_SLOT_DEFS: [{ id: 'main', cats: ['protein'], streams: ['regular'] }],
+    DOOR_RECIPE_DATA: [{
+      recipeName: '<img src=x onerror=alert(1)> Soup',
+      category: 'protein',
+      stream: 'regular',
+      allergens: ['None']
+    }],
+    HUB_ALLERGEN_MAP: {}
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    'function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== "undefined" && Array.isArray(DOOR_RECIPE_DATA); }',
+    extractFunctionBlock(html, '_hubAllergenResolve'),
+    extractFunctionBlock(html, '_allergenPreview'),
+    extractFunctionBlock(html, 'recipeMatchesSlotDef'),
+    // 2026-10-07 (V7): both searches list the best match first through these helpers.
+    extractFunctionBlock(html, 'doorNormDishName'),
+    extractFunctionBlock(html, 'doorRecipeMatchRank'),
+    extractFunctionBlock(html, 'doorRankedRecipeMatches'),
+    extractFunctionBlock(html, 'slotSearch'),
+    extractFunctionBlock(html, 'smSlotSearch')
+  ].join('\n\n'), context, { filename: 'index.html#xss-slot-search', timeout: 1000 });
+
+  context.slotSearch('main', 'soup');
+  assertContains(dd.innerHTML, '&lt;img src=x onerror=alert(1)&gt; <strong>Soup</strong>');
+  assertContains(dd.innerHTML, 'slotSelect(&quot;main&quot;');
+  assertNoRawExecutablePayload(dd.innerHTML, 'recipe search result');
+
+  context.DOOR_RECIPE_DATA = [];
+  context.slotSearch('main', '<svg onload=alert(1)>');
+  assertContains(dd.innerHTML, '&lt;svg onload=alert(1)&gt;');
+  assertContains(dd.innerHTML, 'slotSaveManual(&quot;main&quot;)');
+  assertNoRawExecutablePayload(dd.innerHTML, 'recipe no-match result');
+});
+
+test('recipe slot autosave applies stream filters before exact recipe linking', () => {
+  const html = readText('index.html');
+  const slotDd = { style: { display: 'none' } };
+  const smSlotDd = { style: { display: 'none' } };
+  const context = {
+    Array,
+    Object,
+    Set,
+    document: {
+      getElementById(id) {
+        if (id === 'slot-dd-main' || id === 'slot-dd-veganalt') return slotDd;
+        if (id === 'sm-slot-dd-main' || id === 'sm-slot-dd-veganalt') return smSlotDd;
+        return null;
+      }
+    },
+    FLAG_DEFS: [{ key: 'hasSoy' }],
+    MEAL_SLOT_DEFS: [
+      { id: 'main', cats: ['protein', 'stew_main'], streams: ['regular', ''] },
+      { id: 'veganalt', cats: ['protein', 'stew_main'], streams: ['vegan'] }
+    ],
+    DOOR_RECIPE_DATA: [
+      { recipeName: 'BBQ Chicken Legs', category: 'protein', stream: 'regular', allergens: ['None'] },
+      { recipeName: 'Vegan Chili', category: 'stew_main', stream: 'vegan', allergens: ['Soy (TVP)'] }
+    ],
+    MEAL_SLOT_STATE: {},
+    SM_SLOT_STATE: {},
+    HUB_ALLERGEN_MAP: { Soy: 'hasSoy' },
+    renderSlots() {},
+    updateSlotSummary() {},
+    renderSmSlots() {},
+    updateSmSlotSummary() {}
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractFunctionBlock(html, 'isHubLoaded'),
+    extractFunctionBlock(html, '_hubAllergenResolve'),
+    extractFunctionBlock(html, 'hubAllergenToFlags'),
+    extractFunctionBlock(html, 'recipeMatchesSlotDef'),
+    extractFunctionBlock(html, 'slotAutoSave'),
+    extractFunctionBlock(html, 'smSlotAutoSave')
+  ].join('\n\n'), context, { filename: 'index.html#slot-autosave-streams', timeout: 1000 });
+
+  context.slotAutoSave('main', 'BBQ Chicken Legs');
+  assert.equal(context.MEAL_SLOT_STATE.main.recipeName, 'BBQ Chicken Legs');
+
+  context.slotAutoSave('main', 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.main.manual, 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.main.recipeName, undefined);
+
+  context.slotAutoSave('veganalt', 'BBQ Chicken Legs');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.manual, 'BBQ Chicken Legs');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.recipeName, undefined);
+
+  context.slotAutoSave('veganalt', 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.recipeName, 'Vegan Chili');
+  assert.equal(context.MEAL_SLOT_STATE.veganalt.flags.hasSoy, true);
+
+  context.smSlotAutoSave('veganalt', 'BBQ Chicken Legs');
+  assert.equal(context.SM_SLOT_STATE.veganalt.manual, 'BBQ Chicken Legs');
+  assert.equal(context.SM_SLOT_STATE.veganalt.recipeName, undefined);
+
+  context.smSlotAutoSave('veganalt', 'Vegan Chili');
+  assert.equal(context.SM_SLOT_STATE.veganalt.recipeName, 'Vegan Chili');
+  assert.equal(context.SM_SLOT_STATE.veganalt.flags.hasSoy, true);
+});
+
+test('special meal summary renders staff-entered meal text safely', () => {
+  const html = readText('index.html');
+  const summaryEl = { style: {}, innerHTML: '' };
+  const context = {
+    Array,
+    Object,
+    Set,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    document: {
+      getElementById(id) {
+        if (id === 'sm-slot-summary') return summaryEl;
+        if (id.startsWith('sm-al-')) return { checked: false };
+        return null;
+      }
+    },
+    MEAL_SLOT_DEFS: [
+      { id: 'extras' },
+      { id: 'main' },
+      { id: 'mainalt' },
+      { id: 'starch' },
+      { id: 'vegside' },
+      { id: 'xtra' },
+      { id: 'veganalt' }
+    ],
+    SM_SLOT_STATE: {
+      extras: { manual: '<img src=x onerror=alert(1)> Holiday' },
+      main: null,
+      mainalt: null,
+      starch: null,
+      vegside: null,
+      xtra: null,
+      veganalt: { manual: '<svg onload=alert(2)> Vegan Alt' }
+    },
+    SM_ALLERGENS: []
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, 'buildSmMealName'),
+    extractFunctionBlock(html, 'buildSmVegAlt'),
+    extractFunctionBlock(html, 'buildSmUnionFlags'),
+    extractFunctionBlock(html, 'updateSmSlotSummary')
+  ].join('\n\n'), context, { filename: 'index.html#xss-special-summary', timeout: 1000 });
+
+  context.updateSmSlotSummary();
+  assertContains(summaryEl.innerHTML, '&lt;img src=x onerror=alert(1)&gt; Holiday');
+  assertContains(summaryEl.innerHTML, '&lt;svg onload=alert(2)&gt; Vegan Alt');
+  assertNoRawExecutablePayload(summaryEl.innerHTML, 'special meal summary');
+});
+
+test('plating HTML renders synced resident payload text safely', () => {
+  const html = readText('index.html');
+  const context = {
+    Array,
+    Object,
+    Set,
+    URL,
+    window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
+    REGISTRY_LIST: [{ room: '101' }],
+    anaphRooms: []
+  };
+  vm.createContext(context);
+  vm.runInContext([
+    extractOutputEncodingBlock(html),
+    extractFunctionBlock(html, 'buildPlatingHtml')
+  ].join('\n\n'), context, { filename: 'index.html#xss-plating', timeout: 1000 });
+
+  const payload = '<img src=x onerror=alert(1)>';
+  const htmlOut = context.buildPlatingHtml({
+    dayLabel: 'Monday',
+    periodLabel: 'Lunch',
+    mealName: payload + ' Meal',
+    mealVeg: '',
+    mealFlags: {},
+    allergenStr: payload,
+    vegAllergenStr: '',
+    conflictRooms: new Set(),
+    anaphSect: [],
+    sections: [],
+    regCount: 1,
+    halalCount: 0,
+    veganCount: 0,
+    diabCount: 0,
+    ctx: {},
+    regularNotes: [{
+      rawRestriction: payload,
+      room: "101' onclick='alert(1)",
+      conflictNote: payload,
+      serviceNote: payload
+    }]
+  }, false);
+
+  assertContains(htmlOut, '&lt;img src=x onerror=alert(1)&gt; Meal');
+  assertContains(htmlOut, '101&#x27; onclick=&#x27;alert(1)');
+  assertNoRawExecutablePayload(htmlOut, 'plating synced resident payload');
+});
+
+test('app build stamp constants are explicit and schema mirrors match checked-in artifacts', () => {
+  const html = readText('index.html');
+  const version = extractConstString(html, 'DOOR_APP_VERSION');
+  const buildDate = extractConstString(html, 'DOOR_BUILD_DATE');
+  const schemaVersions = extractSchemaVersionMap(html);
+
+  assert.match(version, /^v[0-9]+/, 'DOOR_APP_VERSION should start with a v-number');
+  assert.match(buildDate, /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/, 'DOOR_BUILD_DATE should be ISO yyyy-mm-dd');
+  assertContains(html, 'id="settings-build-stamp"', 'Settings build stamp target should be explicit');
+
+  const artifactBySchemaKey = {
+    menu_current: 'menu_current.json',
+    menu_reno: 'menu_reno.json',
+    routing_by_meal: 'routing_by_meal.json',
+    door_state: 'door_state.json',
+    registry_summary: 'registry_summary.json'
+  };
+
+  for (const [schemaKey, artifact] of Object.entries(artifactBySchemaKey)) {
+    const data = readJson(artifact);
+    assert.equal(
+      schemaVersions[schemaKey],
+      data._meta.version,
+      `${schemaKey} schema mirror should match ${artifact} _meta.version`
+    );
+  }
+});
+
+test('testable compliance core detects resident allergen and routing conflicts', () => {
+  const core = loadComplianceConflictCore();
+  const mealFlags = {
+    hasPeanuts: true,
+    hasGluten: true,
+    hasPork: true
+  };
+  const resident = {
+    room: '101',
+    tags: ['GF', 'No Pork'],
+    allergenFlags: ['No Peanuts'],
+    accommodations: []
+  };
+
+  const conflicts = core.checkResidentMealConflicts(mealFlags, resident);
+  const labels = Array.from(conflicts, (conflict) => `${conflict.tag}:${conflict.tier}`).sort();
+
+  assert.deepEqual(labels, [
+    'GF:restriction',
+    'No Peanuts:allergen',
+    'No Pork:restriction'
+  ]);
+});
+
+test('anaph banner allergens: a gluten-only anaphylactic names GF (the F2 fix — the old scrape rendered nothing)', () => {
+  const core = loadComplianceConflictCore();
+  // v29-scoped resident: anaphylactic to gluten ONLY. Pre-fix, the banner sinks
+  // scraped tags for startsWith('No ') — 'GF' does not — so the red ALERT banner
+  // rendered "Rooms 305 ()" with the lethal allergen omitted.
+  const resident = { room: '305', isAnaph: true, anaphTags: ['glutenFree'], tags: ['GF'], avoidances: [] };
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident, { hasGluten: true })), ['GF']);
+  // And the resident-scoped (section header) form names it too.
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident)), ['GF']);
+});
+
+test('anaph banner allergens honor anaphTags scoping and the meal trigger (the enforcer\'s answer)', () => {
+  const core = loadComplianceConflictCore();
+  // Anaphylactic to peanuts only; also carries a NON-anaphylactic dietary No Dairy tag.
+  const resident = { room: '306', isAnaph: true, anaphTags: ['noPeanuts'], tags: ['No Peanuts', 'No Dairy'], avoidances: [] };
+  // Meal carries both — only the anaphTags-scoped trigger may render.
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident, { hasPeanuts: true, hasDairy: true })), ['No Peanuts']);
+  // Meal carries neither of the resident's anaph allergens — no trigger, empty.
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident, { hasDairy: true })), []);
+});
+
+test('anaph section-header allergens: backward-compat residents keep every allergen tag, never routing tags', () => {
+  const core = loadComplianceConflictCore();
+  // No anaphTags (pre-v29 record): the alternative-prep header must list ALL
+  // allergen-shaped tags — unmapped 'No *' ones included (no under-listing) and
+  // GF via the map — while routing tags like Halal stay out.
+  const resident = { room: '307', isAnaph: true, tags: ['No Eggs', 'GF', 'Halal'], avoidances: [] };
+  assert.deepEqual(Array.from(core.getAnaphDisplayAllergens(resident)), ['No Eggs', 'GF']);
+});
+
+test('anaph banner sinks derive through the shared helper, never the raw tag scrape', () => {
+  const html = readText('index.html');
+  const scrapes = html.match(/flatMap\(r=>r\.tags\.filter\(t=>t\.startsWith\('No '\)\)\)/g) || [];
+  assert.equal(scrapes.length, 0, 'no banner/header sink may scrape raw No-* tags for allergen text');
+  const helperUses = html.match(/getAnaphDisplayAllergens\(/g) || [];
+  assert.ok(helperUses.length >= 5, `all four sinks + definition should reference getAnaphDisplayAllergens (saw ${helperUses.length})`);
+});
+
+test('testable compliance core leaves clean resident and meal combinations alone', () => {
+  const core = loadComplianceConflictCore();
+  const mealFlags = {
+    hasPeanuts: false,
+    hasGluten: false,
+    hasPork: false
+  };
+  const resident = {
+    room: '102',
+    tags: ['Regular'],
+    allergenFlags: ['No Peanuts'],
+    accommodations: []
+  };
+
+  assert.deepEqual(Array.from(core.checkResidentMealConflicts(mealFlags, resident)), []);
+});
+
+test('read-only diagnostics marks anaphylactic meal conflicts as Stop', () => {
+  const core = loadComplianceConflictCore();
+  const result = core.computeDoorComplianceDiagnostics({
+    mealFlags: { hasPeanuts: true },
+    recipeData: [{ recipeName: 'Peanut Stew', allergens: ['Peanuts'] }],
+    knownAllergenTags: extractStringSetLiteral(readText('index.html'), 'ALLERGEN_TAGS'),
+    knownRoutingTags: extractStringSetLiteral(readText('index.html'), 'ROUTING_TAGS'),
+    residents: [{
+      room: '201',
+      isAnaph: true,
+      tags: ['Regular'],
+      allergenFlags: ['No Peanuts'],
+      accommodations: []
+    }]
+  });
+
+  assert.equal(result.counts.Stop, 1);
+  assert.equal(result.certainty, 'blocked');
+  assert.equal(result.diagnosticIncomplete, false);
+  assert.equal(result.stop[0].code, 'anaphylactic-meal-conflict');
+  assert.equal(result.stop[0].details.room, '201');
+});
+
+test('read-only diagnostics surfaces unknown and unmapped allergen tokens', () => {
+  const core = loadComplianceConflictCore();
+  const html = readText('index.html');
+  const result = core.computeDoorComplianceDiagnostics({
+    mealFlags: {},
+    recipeData: [{ recipeName: 'Plain Rice', allergens: ['None'] }],
+    knownAllergenTags: extractStringSetLiteral(html, 'ALLERGEN_TAGS'),
+    knownRoutingTags: extractStringSetLiteral(html, 'ROUTING_TAGS'),
+    knownAccommodationTags: extractStringSetLiteral(html, 'ACCOMMODATION_TAGS'),
+    residents: [
+      {
+        room: '202',
+        isAnaph: false,
+        tags: ['Regular'],
+        allergenFlags: ['No Oats'],
+        accommodations: []
+      },
+      {
+        room: '203',
+        isAnaph: true,
+        tags: ['No Dragonfruit'],
+        allergenFlags: ['No Dragonfruit'],
+        accommodations: []
+      }
+    ]
+  });
+
+  const issueCodes = Array.from(result.issues, (issue) => `${issue.level}:${issue.code}:${issue.details.room}`).sort();
+
+  assert.deepEqual(issueCodes, [
+    'Review:unmapped-allergen-token:202',
+    'Stop:unknown-allergen-token:203'
+  ]);
+});
+
+test('read-only diagnostics reports missing CODEX data without blocking by itself', () => {
+  const core = loadComplianceConflictCore();
+  const result = core.computeDoorComplianceDiagnostics({
+    mealFlags: {},
+    recipeData: [],
+    residents: []
+  });
+
+  assert.equal(result.counts.Stop, 0);
+  assert.equal(result.counts.Review, 1);
+  assert.equal(result.certainty, 'degraded');
+  assert.equal(result.diagnosticIncomplete, true);
+  assert.equal(result.review[0].code, 'codex-recipe-data-missing');
+});
+
+test('read-only diagnostics checks bucketed accommodations directly', () => {
+  const core = loadComplianceConflictCore();
+  const html = readText('index.html');
+  const result = core.computeDoorComplianceDiagnostics({
+    mealFlags: {},
+    recipeData: [{ recipeName: 'Plain Rice', allergens: ['None'] }],
+    knownAllergenTags: extractStringSetLiteral(html, 'ALLERGEN_TAGS'),
+    knownRoutingTags: extractStringSetLiteral(html, 'ROUTING_TAGS'),
+    knownAccommodationTags: extractStringSetLiteral(html, 'ACCOMMODATION_TAGS'),
+    residents: [{
+      room: '204',
+      isAnaph: false,
+      tags: ['Regular'],
+      allergenFlags: [],
+      accommodations: ['Low Salt']
+    }]
+  });
+
+  assert.equal(result.counts.Review, 1);
+  assert.equal(result.review[0].code, 'unknown-accommodation-token');
+  assert.equal(result.review[0].details.tag, 'Low Salt');
+});
+
+test('read-only diagnostics degrades on invalid routing diagnostic input', () => {
+  const core = loadComplianceConflictCore();
+  const result = core.computeDoorComplianceDiagnostics({
+    mealFlags: {},
+    recipeData: [{ recipeName: 'Plain Rice', allergens: ['None'] }],
+    routingSections: { Regular: 1 },
+    residents: [{
+      room: '205',
+      isAnaph: false,
+      tags: ['Regular'],
+      allergenFlags: [],
+      accommodations: []
+    }]
+  });
+
+  assert.equal(result.counts.Review, 1);
+  assert.equal(result.review[0].code, 'diagnostic-routing-input-invalid');
+  assert.equal(result.certainty, 'degraded');
+  assert.equal(result.diagnosticIncomplete, true);
+});
+
+test('read-only diagnostics keeps incomplete flag when degraded data also has Stop issues', () => {
+  const core = loadComplianceConflictCore();
+  const html = readText('index.html');
+  const result = core.computeDoorComplianceDiagnostics({
+    mealFlags: { hasPeanuts: true },
+    recipeData: [],
+    knownAllergenTags: extractStringSetLiteral(html, 'ALLERGEN_TAGS'),
+    knownRoutingTags: extractStringSetLiteral(html, 'ROUTING_TAGS'),
+    residents: [{
+      room: '206',
+      isAnaph: true,
+      tags: ['Regular'],
+      allergenFlags: ['No Peanuts'],
+      accommodations: []
+    }]
+  });
+
+  assert.equal(result.counts.Stop, 1);
+  assert.equal(result.counts.Review, 1);
+  assert.equal(result.certainty, 'blocked');
+  assert.equal(result.diagnosticIncomplete, true);
+});
+
+test('publish validation accepts the checked-in core artifacts', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json'),
+    'menu_overlay.json': readJson('menu_overlay.json')
+  });
+
+  assert.equal(result.counts.Stop, 0);
+  assert.equal(result.blockingEnabled, false);
+});
+
+test('publish validation stops a stale or contradictory menu overlay before sending', () => {
+  const core = loadPublishValidationCore();
+  const base = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+
+  const stale = core.validateDoorPublishArtifacts({
+    ...base,
+    'menu_overlay.json': { _meta: { standardCutover: 0 }, '1': { MONDAY: { lunch: 'Old lunch' } } }
+  });
+  assert.ok(stale.stop.some((issue) => issue.code === 'overlay-cutover-stale'),
+    'an old overlay marker must stop the send');
+
+  const current = core.doorNormalizeMenuOverlay({});
+  current['1'] = { MONDAY: { lunch: 'Contradictory lunch' } };
+  const conflicting = core.validateDoorPublishArtifacts({ ...base, 'menu_overlay.json': current });
+  assert.ok(conflicting.stop.some((issue) => issue.code === 'overlay-menu-conflict'),
+    'an overlay that disagrees with the menu being sent must stop the send');
+});
+
+test('a contradictory menu overlay cannot be manually overridden', async () => {
+  let confirmCalls = 0;
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Overlay lunch' } } },
+    // Simulate a builder regression that ignored the overlay. The pre-send check
+    // must stop even a manual Send Now rather than offer the normal Gate-9 override.
+    buildMenuJSON: () => makePublishArtifact('menu_current.json'),
+    confirm: () => { confirmCalls++; return true; }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
+  assert.equal(harness.pushed.length, 0, 'a contradictory overlay must never reach GitHub');
+  assert.equal(confirmCalls, 0, 'a non-overridable overlay failure must not ask to send anyway');
+});
+
+test('CI separates hard safety checks from non-blocking menu-decision review', () => {
+  const workflow = readText('.github/workflows/door-tests.yml').replace(/\r\n/g, '\n');
+  assert.match(workflow, /name: DOOR safety checks[\s\S]*run: node --test tests\/\*\.mjs/);
+  assert.equal([...workflow.slice(workflow.indexOf('\njobs:')).matchAll(/^  [\w-]+:$/gm)].length, 1,
+    'safety and advisory reuse one runner allocation');
+  const advisory = workflow.slice(workflow.indexOf('      - name: Review architect-set menu decisions'));
+  assert.match(advisory, /id: menu_review\s+if: \$\{\{ !cancelled\(\) \}\}\s+continue-on-error: true[\s\S]*tests\/advisory\/menu-decisions\.mjs/,
+    'advisory runs after safety failure but is the only tolerated failure');
+  assert.equal(workflow.slice(0, workflow.indexOf(advisory)).includes('continue-on-error:'), false,
+    'safety failure must retain its failing job result');
+  assert.match(advisory, /steps\.menu_review\.outcome[\s\S]*== "failure"[\s\S]*elif[\s\S]*== "success"[\s\S]*else[\s\S]*did not complete/,
+    'skipped advisory must not be reported as a pass');
+  const retiredSnapshotTitle = ['July 2 canonical import', ' is published'].join('');
+  assert.equal(readText('tests/door-smoke.mjs').includes("test('" + retiredSnapshotTitle), false,
+    'the historical import snapshot must not return to the hard safety suite');
+});
+
+test('publish validation catches malformed routing component portions', () => {
+  const core = loadPublishValidationCore();
+  const routing = readJson('routing_by_meal.json');
+  const copy = JSON.parse(JSON.stringify(routing));
+  const weekKey = Object.keys(copy.routing)[0];
+  const dayKey = Object.keys(copy.routing[weekKey])[0];
+  const mealKey = Object.keys(copy.routing[weekKey][dayKey])[0];
+  copy.routing[weekKey][dayKey][mealKey]._components = { Rice: 'many' };
+
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': copy,
+    'door_state.json': readJson('door_state.json')
+  });
+
+  assert.equal(result.counts.Stop, 1);
+  assert.equal(result.stop[0].code, 'routing-component-portions-invalid');
+  assert.equal(result.stop[0].artifact, 'routing_by_meal.json');
+});
+
+test('publish validation catches missing menu contract days', () => {
+  const core = loadPublishValidationCore();
+  const menu = readJson('menu_current.json');
+  const copy = JSON.parse(JSON.stringify(menu));
+  delete copy.menu['1'].MONDAY;
+
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': copy,
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  });
+
+  assert.ok(result.stop.some((issue) =>
+    issue.code === 'menu-day-missing' &&
+    issue.artifact === 'menu_current.json' &&
+    issue.details.week === '1' &&
+    issue.details.day === 'MONDAY'
+  ));
+});
+
+test('publish validation catches non-whole routing counts', () => {
+  const core = loadPublishValidationCore();
+  const routing = readJson('routing_by_meal.json');
+  const copy = JSON.parse(JSON.stringify(routing));
+  const weekKey = Object.keys(copy.routing)[0];
+  const dayKey = Object.keys(copy.routing[weekKey])[0];
+  const mealKey = Object.keys(copy.routing[weekKey][dayKey])[0];
+  const sectionKey = Object.keys(copy.routing[weekKey][dayKey][mealKey]).find((key) => key !== '_components');
+  copy.routing[weekKey][dayKey][mealKey][sectionKey] = 0.5;
+
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': copy,
+    'door_state.json': readJson('door_state.json')
+  });
+
+  assert.ok(result.stop.some((issue) =>
+    issue.code === 'routing-section-count-invalid' &&
+    issue.artifact === 'routing_by_meal.json' &&
+    issue.details.section === sectionKey
+  ));
+});
+
+test('publish validation catches missing routing meal slots', () => {
+  const core = loadPublishValidationCore();
+  const routing = readJson('routing_by_meal.json');
+  const copy = JSON.parse(JSON.stringify(routing));
+  delete copy.routing['1'].MONDAY.dinner;
+
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': copy,
+    'door_state.json': readJson('door_state.json')
+  });
+
+  assert.ok(result.stop.some((issue) =>
+    issue.code === 'routing-meal-missing' &&
+    issue.artifact === 'routing_by_meal.json' &&
+    issue.details.week === '1' &&
+    issue.details.day === 'MONDAY' &&
+    issue.details.meal === 'dinner'
+  ));
+});
+
+test('publish validation reports missing required artifacts in warning-only mode', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json')
+  });
+  const missing = Array.from(result.stop, (issue) => issue.artifact).sort();
+
+  assert.deepEqual(missing, [
+    'door_state.json',
+    'registry_summary.json',
+    'routing_by_meal.json'
+  ]);
+  assert.equal(result.blockingEnabled, false);
+});
+
+test('overlay merge preserves local days and adds cloud-only days for advisory', () => {
+  const core = loadPublishValidationCore();
+  const currentMeta = core.doorNormalizeMenuOverlay({})._meta;
+  const local = {
+    _meta: { ...currentMeta },
+    '1': {
+      MONDAY: { lunch: 'Local lunch' }
+    }
+  };
+  const cloud = {
+    _meta: { ...currentMeta },
+    '1': {
+      MONDAY: { lunch: 'Cloud lunch should not win' },
+      TUESDAY: { dinner: 'Cloud dinner' }
+    },
+    '2': {
+      WEDNESDAY: { breakfast: 'Cloud breakfast' }
+    }
+  };
+
+  const result = core.doorMergeMenuOverlayWithCloud(local, cloud);
+
+  assert.equal(result.addedCount, 2);
+  assert.equal(JSON.stringify(result.addedDays), JSON.stringify([
+    { week: '1', day: 'TUESDAY' },
+    { week: '2', day: 'WEDNESDAY' }
+  ]));
+  assert.equal(result.merged['1'].MONDAY.lunch, 'Local lunch');
+  assert.equal(result.merged['1'].TUESDAY.dinner, 'Cloud dinner');
+  assert.equal(result.merged['2'].WEDNESDAY.breakfast, 'Cloud breakfast');
+});
+
+test('overlay cutover normalization prunes every unmarked legacy day and preserves metadata', () => {
+  const core = loadPublishValidationCore();
+  const legacy = {
+    _meta: { plainVegStirfryComponents: 'Carrot, Onion, Peppers' },
+    '1': { TUESDAY: { lunch: 'Stale reno lunch' } },
+    '4': { WEDNESDAY: { lunch: 'Stale reno sandwich' } }
+  };
+
+  const normalized = core.doorNormalizeMenuOverlay(legacy);
+
+  assert.equal(normalized['1'], undefined);
+  assert.equal(normalized['4'], undefined);
+  assert.equal(normalized._meta.plainVegStirfryComponents, 'Carrot, Onion, Peppers');
+  assert.equal(typeof normalized._meta.standardCutover, 'number');
+});
+
+test('overlay merge rejects stale cloud days and stale local days in both directions', () => {
+  const core = loadPublishValidationCore();
+  const currentMeta = core.doorNormalizeMenuOverlay({})._meta;
+  const currentLocal = {
+    _meta: { ...currentMeta },
+    '1': { MONDAY: { lunch: 'Current local lunch' } }
+  };
+  const staleCloud = {
+    _meta: { plainVegStirfryComponents: 'Carrot, Onion' },
+    '1': { TUESDAY: { lunch: 'Stale cloud lunch' } }
+  };
+
+  const staleCloudResult = core.doorMergeMenuOverlayWithCloud(currentLocal, staleCloud);
+  assert.equal(staleCloudResult.addedCount, 0);
+  assert.equal(staleCloudResult.merged['1'].MONDAY.lunch, 'Current local lunch');
+  assert.equal(staleCloudResult.merged['1'].TUESDAY, undefined);
+
+  const currentCloud = {
+    _meta: { ...currentMeta },
+    '2': { WEDNESDAY: { dinner: 'Current cloud dinner' } }
+  };
+  const staleLocalResult = core.doorMergeMenuOverlayWithCloud(staleCloud, currentCloud);
+  assert.equal(staleLocalResult.merged['1'], undefined);
+  assert.equal(staleLocalResult.merged['2'].WEDNESDAY.dinner, 'Current cloud dinner');
+  assert.equal(staleLocalResult.addedCount, 1);
+  assert.equal(staleLocalResult.addedDays.some((entry) => entry.week === '_meta'), false);
+});
+
+test('overlay advisory flags cloud-only days merged after core artifacts', () => {
+  const core = loadPublishValidationCore();
+  const local = { '1': { MONDAY: { lunch: 'Local lunch' } } };
+  const merged = {
+    '1': {
+      MONDAY: { lunch: 'Local lunch' },
+      TUESDAY: { dinner: 'Cloud dinner' }
+    }
+  };
+
+  const advisory = core.buildDoorOverlayMergeAdvisory(local, merged, true);
+
+  assert.equal(advisory.level, 'Review');
+  assert.equal(advisory.code, 'cloud-overlay-days-merged-after-core-artifacts');
+  assert.equal(advisory.addedCount, 1);
+  assert.equal(JSON.stringify(advisory.addedDays), JSON.stringify([{ week: '1', day: 'TUESDAY' }]));
+  assert.match(advisory.message, /reload and republish/i);
+});
+
+test('overlay advisory is informational when cloud-only days merge before core artifacts', () => {
+  const core = loadPublishValidationCore();
+  const local = { '1': { MONDAY: { lunch: 'Local lunch' } } };
+  const merged = {
+    '1': {
+      MONDAY: { lunch: 'Local lunch' },
+      TUESDAY: { dinner: 'Cloud dinner' }
+    }
+  };
+
+  const advisory = core.buildDoorOverlayMergeAdvisory(local, merged, false);
+
+  assert.equal(advisory.level, 'Info');
+  assert.equal(advisory.code, 'cloud-overlay-days-merged-before-core-artifacts');
+  assert.equal(advisory.addedCount, 1);
+  assert.match(advisory.message, /will include them in this publish/i);
+});
+
+test('getMenuData always uses the standard source and applies the publish overlay', () => {
+  const core = loadMenuDataCore({
+    menuData: {
+      '1': {
+        TUESDAY: { dinner: 'Base dinner' }
+      }
+    },
+    localOverlay: {
+      '1': {
+        TUESDAY: { dinner: 'Local overlay dinner' }
+      }
+    }
+  });
+
+  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Local overlay dinner');
+
+  core.setDoorPublishMenuOverlayOverride({
+    '1': {
+      TUESDAY: { dinner: 'Cloud publish overlay dinner' },
+      WEDNESDAY: { dinner: 'Published standard day' }
+    }
+  });
+  const published = core.getMenuData();
+  assert.equal(published['1'].TUESDAY.dinner, 'Cloud publish overlay dinner');
+  assert.equal(published['1'].WEDNESDAY.dinner, 'Published standard day');
+
+  core.setDoorPublishMenuOverlayOverride(null);
+  assert.equal(core.getMenuData()['1'].TUESDAY.dinner, 'Local overlay dinner');
+});
+
+test('getMenuData still applies normal overlay in standard menu mode', () => {
+  const core = loadMenuDataCore({
+    menuData: {
+      '1': {
+        MONDAY: { lunch: 'Base lunch', dinner: 'Base dinner' }
+      }
+    },
+    localOverlay: {
+      '1': {
+        MONDAY: { lunch: 'Overlay lunch' }
+      }
+    }
+  });
+
+  const menu = core.getMenuData();
+
+  assert.equal(menu['1'].MONDAY.lunch, 'Overlay lunch');
+  assert.equal(menu['1'].MONDAY.dinner, 'Base dinner');
+});
+
+test('publish flow shim reports committed pending until delivery is observed', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  const pushedPaths = harness.pushed.map((entry) => entry.path);
+  const lastSync = harness.syncBars.at(-1);
+
+  assert.deepEqual(pushedPaths, [
+    'menu_current.json',
+    'registry_summary.json',
+    'routing_by_meal.json',
+    'door_state.json',
+    'menu_overlay.json',
+    'custom_tag_rules.json',
+    'learned_nr.json',
+    'meal_swaps.json',
+    // 2026-10-18: the swap revert list, so a revert reaches every DOOR computer
+    'meal_swaps_reverted.json',
+    'special_meals.json',
+    'special_meals_removed.json',
+    'recent_log.json'
+  ]);
+  assert.equal(result.ok, true);
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'advisory'), false);
+  assert.match(harness.statusEl.textContent, /Committed — kitchen delivery pending/);
+  assert.equal(harness.statusEl.style.color, 'var(--muted)');
+  assert.match(lastSync.message, /Committed — kitchen delivery pending/);
+  assert.equal(lastSync.color, 'var(--muted)');
+  const receipt = harness.context.doorDeliveryCurrent();
+  assert.equal(receipt.served, null, 'a successful Git commit is not delivery evidence');
+  assert.ok(harness.deliveryReads.length > 0, 'the real verifier attempted public reads');
+  harness.context.doorDeliverySave({ ...receipt, served: { observedAt: new Date().toISOString() } });
+  harness.context.doorDeliveryRender();
+  assert.match(harness.statusEl.textContent, /Available to the kitchen ✓/);
+  assert.equal(harness.statusEl.style.color, 'var(--forest)');
+});
+
+test('publish flow shim builds menu and routing from pre-merged cloud overlay', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    preMergeOverlayWithCloud: async (creds, localOverlay) => ({
+      _meta: localOverlay._meta,
+      '1': {
+        ...localOverlay['1'],
+        TUESDAY: { dinner: 'Cloud dinner' }
+      }
+    }),
+    configureContext(context) {
+      context.buildMenuJSON = () => {
+        const overlay = context._doorPublishMenuOverlayOverride || {};
+        return applyOverlayToMenuArtifact(makePublishArtifact('menu_current.json'), overlay);
+      };
+      context.buildRoutingByMealJSON = () => {
+        const artifact = makePublishArtifact('routing_by_meal.json');
+        const overlay = context._doorPublishMenuOverlayOverride || {};
+        if (overlay['1'] && overlay['1'].TUESDAY && overlay['1'].TUESDAY.dinner) {
+          artifact.routing['1'].TUESDAY.dinner._components[overlay['1'].TUESDAY.dinner] = 1;
+        }
+        return artifact;
+      };
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  const lastSync = harness.syncBars.at(-1);
+  const overlayPush = harness.pushed.find((entry) => entry.path === 'menu_overlay.json');
+  const menuPush = harness.pushed.find((entry) => entry.path === 'menu_current.json');
+  const routingPush = harness.pushed.find((entry) => entry.path === 'routing_by_meal.json');
+
+  assert.equal(result.ok, true);
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'advisory'), false);
+  assert.match(harness.statusEl.textContent, /Committed — kitchen delivery pending/);
+  assert.equal(harness.statusEl.style.color, 'var(--muted)');
+  assert.match(lastSync.message, /Committed — kitchen delivery pending/);
+  assert.equal(lastSync.color, 'var(--muted)');
+  assert.equal(overlayPush.content['1'].TUESDAY.dinner, 'Cloud dinner');
+  assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY.dinner, 'Cloud dinner');
+  assert.equal(menuPush.content.menu['1'].TUESDAY.dinner, 'Cloud dinner');
+  assert.equal(routingPush.content.routing['1'].TUESDAY.dinner._components['Cloud dinner'], 1);
+  assert.equal(harness.overlayOverrides.length, 2);
+  assert.equal(harness.overlayOverrides[0]['1'].TUESDAY.dinner, 'Cloud dinner');
+  assert.equal(harness.overlayOverrides[1], null);
+  assert.equal(harness.context._doorPublishMenuOverlayOverride, null);
+});
+
+test('publish flow shim keeps a held transaction red when overlay days are merged', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    skippedPath: 'menu_current.json',
+    skippedReason: 'empty_clobber',
+    preMergeOverlayWithCloud: async (creds, localOverlay) => ({
+      _meta: localOverlay._meta,
+      '1': {
+        ...localOverlay['1'],
+        TUESDAY: { dinner: 'Cloud dinner' }
+      }
+    })
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  const lastSync = harness.syncBars.at(-1);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'blocked');
+  assert.match(harness.statusEl.textContent, /kitchen update is pending/);
+  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.match(lastSync.message, /kitchen update is pending/);
+  assert.equal(lastSync.color, '#dc2626');
+  // L11104: a blocked publish must NOT persist the cloud-merged overlay locally,
+  // so concMenuBase stays at the pre-publish value (not ahead of what published).
+  assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY, undefined, 'a blocked publish must not advance concMenuBase to the merged overlay');
+});
+
+test('F1 structural gate: a manual send cannot override an invalid artifact', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    // Even a positive answer cannot release a structurally invalid candidate.
+    buildMenuJSON: () => {
+      const artifact = makePublishArtifact('menu_current.json');
+      delete artifact.menu['1'].MONDAY; // Stop-level menu-day-missing
+      return artifact;
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+  const lastSync = harness.syncBars.at(-1);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
+  assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
+  assert.equal(harness.pushed.length, 0, 'invalid artifacts remain local and pending');
+  assert.doesNotMatch(harness.statusEl.textContent, /Sent to the kitchen ✓/);
+  assert.match(harness.statusEl.textContent, /data check found a problem/i);
+  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.notEqual(lastSync.color, 'var(--forest)');
+});
+
+test('F1 preflight: a blocked candidate never announces that it was sent', async () => {
+  const h = loadPublishFlowHarness({ buildMenuJSON: () => {
+    const artifact = makePublishArtifact('menu_current.json');
+    delete artifact.menu['1'].MONDAY;
+    return artifact;
+  } });
+  const result = await h.context._doPublishToGitHub(true);
+  assert.equal(result.skipped, true);
+  assert.equal(h.atomicCalls.length, 0);
+  assert.ok(h.syncBars.length > 0, 'the preflight must communicate the problem');
+  assert.ok(h.syncBars.every(x => !/^Sent to the kitchen/i.test(x.message)), 'no success wording before any commit');
+  assert.ok(h.toasts.every(x => !/^Sent to the kitchen/i.test(x)), 'no premature success toast');
+});
+
+test('Gate-9: an auto-publish is BLOCKED (not pushed) on a structural defect', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    buildMenuJSON: () => {
+      const artifact = makePublishArtifact('menu_current.json');
+      delete artifact.menu['1'].MONDAY;
+      return artifact;
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(false);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
+  assert.equal(harness.pushed.length, 0, 'a structural defect must block the auto-publish before any push reaches GitHub');
+  assert.match(harness.statusEl.textContent, /data check found a problem/i);
+  assert.doesNotMatch(harness.statusEl.textContent, /structural|publish|artifact/i,
+    'the staff status translates the internal validation failure');
+});
+
+test('F1 structural gate: a negative answer also leaves the invalid candidate pending', async () => {
+  const harness = loadPublishFlowHarness({
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
+    confirm: () => false,
+    buildMenuJSON: () => {
+      const artifact = makePublishArtifact('menu_current.json');
+      delete artifact.menu['1'].MONDAY;
+      return artifact;
+    }
+  });
+
+  const result = await harness.context._doPublishToGitHub(true);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
+  assert.equal(harness.pushed.length, 0, 'a cancelled structural publish must not push');
+  assert.match(harness.statusEl.textContent, /data check found a problem/i);
+});
+
+test('stale-tab override is scoped to manual — a background auto-sync still skips', async () => {
+  const harness = loadPublishFlowHarness({
+    tabStale: true,
+    staleOverride: true,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+
+  const result = await harness.context._doPublishToGitHub(false);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'stale-tab');
+  assert.equal(harness.pushed.length, 0, 'a session override must not un-guard background auto-syncs from a stale tab');
+});
+
+test('publishAndSync renders a degraded (Stop-flagged) auto-publish RED, not green', async () => {
+  const h = loadPublishAndSyncHarness({ result: { ok: true, degraded: true, message: 'Published with 1 preflight Stop issue — verify downstream' } });
+  h.context.publishAndSync('generate');
+  await new Promise((r) => setTimeout(r, 10));
+  const last = h.syncBars.at(-1);
+  assert.notEqual(last.color, 'var(--forest)', 'a degraded auto-publish must not paint the sync bar green');
+  assert.equal(last.color, '#dc2626');
+  assert.match(last.message, /data check flagged/i);
+});
+
+test('publishAndSync keeps a committed auto-publish pending until delivery is observed', async () => {
+  const h = loadPublishAndSyncHarness({ result: { ok: true } });
+  h.context.publishAndSync('generate');
+  await new Promise((r) => setTimeout(r, 10));
+  const last = h.syncBars.at(-1);
+  assert.equal(last.color, 'var(--muted)');
+  assert.match(last.message, /Committed — kitchen delivery pending/);
+});
+
+test('publishAndSync paints freshly observed delivery green', async () => {
+  const h = loadPublishAndSyncHarness({ result: { ok: true }, deliveryRecord: {
+    served: { observedAt: new Date().toISOString() }, consumed: null
+  } });
+  await h.context.publishAndSync('generate');
+  assert.equal(h.syncBars.at(-1).color, 'var(--forest)');
+  assert.match(h.syncBars.at(-1).message, /Available to the kitchen ✓/);
+});
+
+test('publishAndSync keeps the standing banner out of failure mode until the send finishes', async () => {
+  let finishSend;
+  const pendingSend = new Promise((resolve) => { finishSend = resolve; });
+  const h = loadPublishAndSyncHarness({ publishToGitHub: () => pendingSend });
+
+  const operation = h.context.publishAndSync('plating sheets generated');
+  assert.equal(h.context._doorPublishInFlight, true, 'the send is marked in progress before the first banner rerender');
+  assert.equal(h.promptStates.at(-1), true, 'the banner rerenders in the in-progress state');
+  assert.match(h.syncBars.at(-1).message, /Sending to the kitchen/);
+
+  finishSend({ ok: true });
+  await operation;
+  assert.equal(h.context._doorPublishInFlight, false, 'the in-progress marker clears after a terminal result');
+  assert.equal(h.promptStates.at(-1), false, 'the banner rerenders after success can be verified');
+  assert.match(h.syncBars.at(-1).message, /Committed — kitchen delivery pending/);
+});
+
+test('standing banner treats newer generated work as pending only after an active send ends', () => {
+  const html = readText('index.html');
+  const skipBlock = html.match(/const\s+DOOR_PUBLISH_SKIP_REASONS\s*=\s*Object\.freeze\(\{[\s\S]*?\}\);/);
+  assert.ok(skipBlock, 'missing publish-skip reason map');
+  const context = {};
+  vm.runInNewContext(
+    skipBlock[0] + '\n' + extractFunctionBlock(html, 'doorDeviceCapability') + '\nthis.capability = doorDeviceCapability;',
+    context
+  );
+  const input = {
+    hasToken: true,
+    operatorName: 'Jason',
+    autoPublishOn: true,
+    lastGeneratedAt: '2026-09-18T16:27:25Z',
+    lastPublishOkAt: '2026-09-18T12:33:27Z',
+    outbox: []
+  };
+
+  const sending = context.capability({ ...input, sendInFlight: true });
+  assert.equal(sending.unpublished.pending, true, 'the work remains truthfully pending until the send lands');
+  assert.equal(sending.level, 'none', 'pending work must not read as a failure during the active send');
+
+  const failed = context.capability({ ...input, sendInFlight: false });
+  assert.equal(failed.level, 'red', 'the standing warning returns if the send ends without a success marker');
+});
+
+test('Rexdale sidebar resident count is refreshed from the complete live registry', () => {
+  const html = readText('index.html');
+  const renderRegistry = extractFunctionBlock(html, 'renderRegistry');
+  assertContains(renderRegistry, 'updateResidentCountDisplays(REGISTRY_LIST.length)',
+    'filtered registry views must keep the sidebar tied to the complete registry');
+
+  const elements = new Map([
+    ['site-sub-label', { textContent: '' }],
+    ['total-count', { textContent: '' }],
+    ['stat-total', { textContent: '' }],
+    ['preview-total-badge', { textContent: '' }]
+  ]);
+  const totalLabel = { textContent: '' };
+  const rexdale = { name: 'Rexdale', sub: 'Rexdale Shelter · configured', residentCount: 181 };
+  const context = {
+    Number,
+    SITE_CONFIGS: { rexdale },
+    currentSite: rexdale,
+    document: {
+      getElementById(id) { return elements.get(id) || null; },
+      querySelector(selector) { return selector === '.total-label' ? totalLabel : null; }
+    }
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'updateResidentCountDisplays'), context);
+  context.updateResidentCountDisplays(169);
+
+  assert.equal(elements.get('site-sub-label').textContent, 'Rexdale Shelter · 169 residents');
+  assert.equal(elements.get('total-count').textContent, 169);
+  assert.equal(elements.get('preview-total-badge').textContent, '169 residents');
+});
+
+test('publish flow shim routes builder failures through visible publish failure handling', async () => {
+  const harness = loadPublishFlowHarness({
+    buildMenuJSON: () => {
+      throw new Error('builder exploded');
+    }
+  });
+
+  await assert.rejects(
+    () => harness.context._doPublishToGitHub(true),
+    /builder exploded/
+  );
+
+  assert.match(harness.statusEl.textContent, /Couldn.t send to the kitchen/);
+  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.ok(harness.toasts.some((message) => /Couldn.t send to the kitchen/i.test(message)));
+});
+
+test('publish flow shim skips auto-publish from a stale tab (saved locally, not pushed)', async () => {
+  const harness = loadPublishFlowHarness({
+    tabStale: true,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+
+  const result = await harness.context._doPublishToGitHub(false);
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'stale-tab');
+  assert.equal(harness.pushed.length, 0, 'a stale tab must not push anything on auto-publish');
+});
+
+test('manual publish from a stale tab proceeds only when the operator confirms', async () => {
+  const confirmHarness = loadPublishFlowHarness({
+    tabStale: true,
+    confirm: () => true,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+  const confirmed = await confirmHarness.context._doPublishToGitHub(true);
+  assert.equal(confirmed.ok, true, 'a confirmed manual publish should proceed');
+  assert.ok(confirmHarness.pushed.length > 0, 'a confirmed manual publish should push');
+
+  const cancelHarness = loadPublishFlowHarness({
+    tabStale: true,
+    confirm: () => false,
+    localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
+  });
+  const cancelled = await cancelHarness.context._doPublishToGitHub(true);
+  assert.equal(cancelled.skipped, true);
+  assert.equal(cancelled.reason, 'stale-tab-cancelled');
+  assert.equal(cancelHarness.pushed.length, 0, 'a cancelled stale-tab publish must not push');
+});
+
+test('publish flow shim surfaces missing credentials before pushing', async () => {
+  const harness = loadPublishFlowHarness({
+    credentialsError: 'GitHub token is not configured for publish.'
+  });
+
+  await assert.rejects(
+    () => harness.context._doPublishToGitHub(true),
+    /GitHub token is not configured/
+  );
+
+  assert.deepEqual(harness.pushed, []);
+  assert.ok(harness.rememberedFailures.some((message) => /GitHub token/i.test(message)));
+  assert.ok(harness.toasts.some((message) => /connected to the kitchen/i.test(message)));
+  assert.match(harness.statusEl.textContent, /Not sent — this computer isn.t connected/);
+  assert.equal(harness.statusEl.style.color, '#dc2626');
+});
+
+test('published JSON snapshots are parseable and carry metadata', () => {
+  const requiredArtifacts = [
+    'menu_current.json',
+    'menu_reno.json',
+    'routing_by_meal.json',
+    'door_state.json',
+    'registry_summary.json'
+  ];
+
+  for (const artifact of requiredArtifacts) {
+    const data = readJson(artifact);
+    assert.equal(typeof data, 'object', `${artifact} should parse as an object`);
+    assert.ok(data._meta, `${artifact} should carry _meta provenance`);
+  }
+});
+
+test('published regular and vegan allergen flags stay separated for every structured meal', () => {
+  const html = readText('index.html');
+  const flagDefs = html.match(/const FLAG_DEFS = (\[[\s\S]*?\n\]);/);
+  assert.ok(flagDefs, 'missing flag definitions');
+  const mealLevelFlags = new Set(vm.runInNewContext(flagDefs[1])
+    .filter(flag => flag.mealLevel).map(flag => flag.key));
+  const menu = readJson('menu_current.json').menu;
+  let differentiatedFlagsChecked = 0;
+
+  for (const week of Object.values(menu)) {
+    for (const day of Object.values(week)) {
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        const slots = day[`${meal}_slots`];
+        const veganFlags = slots?.veganalt?.flags;
+        if (!slots || !veganFlags) continue;
+
+        const regularUnion = {};
+        for (const [slotName, slot] of Object.entries(slots)) {
+          if (slotName === 'veganalt' || !slot?.flags) continue;
+          for (const [flag, value] of Object.entries(slot.flags)) {
+            if (value === true) regularUnion[flag] = true;
+          }
+        }
+        const publishedRegular = day[`${meal}_flags`] || {};
+        const allFlags = new Set([...Object.keys(regularUnion), ...Object.keys(veganFlags)]);
+        for (const flag of allFlags) {
+          // Routing flags can be explicitly set at meal level in the editor.
+          // A snapshot cannot prove that a shared value leaked from veganalt.
+          // Exercise automatic routing-flag isolation directly below instead.
+          if (mealLevelFlags.has(flag)) continue;
+          if (veganFlags[flag] === true && regularUnion[flag] !== true) {
+            assert.notEqual(publishedRegular[flag], true,
+              `${flag} from a vegan alternative must not leak into the regular ${meal} flags`);
+            differentiatedFlagsChecked++;
+          }
+          if (regularUnion[flag] === true && veganFlags[flag] !== true) {
+            assert.notEqual(veganFlags[flag], true,
+              `${flag} from a regular slot must not leak into the vegan ${meal} flags`);
+            differentiatedFlagsChecked++;
+          }
+        }
+      }
+    }
+  }
+
+  assert.ok(differentiatedFlagsChecked > 0,
+    'the checked-in menu must exercise at least one regular/vegan allergen difference');
+});
+
+test('automatic regular flags exclude vegan-only Spicy while explicit meal Spicy remains valid', () => {
+  const html = readText('index.html');
+  const state = {
+    main: { flags: { hasFish: true, isSpicy: false } },
+    veganalt: { flags: { hasSoy: true, isSpicy: true } },
+    starch: { flags: {} }, vegside: { flags: {} }
+  };
+  const grid = { innerHTML: '' };
+  const context = vm.createContext({
+    MEAL_SLOT_STATE: state,
+    FLAG_DEFS: [
+      { key: 'hasFish', label: 'Fish', color: '#000' },
+      { key: 'hasSoy', label: 'Soy', color: '#000' },
+      { key: 'isSpicy', label: 'Spicy', color: '#000', mealLevel: true }
+    ],
+    testMealActive: false,
+    document: { getElementById: () => grid }
+  });
+  vm.runInContext(extractFunctionBlock(html, 'buildUnionFlags') + '\n' +
+    extractFunctionBlock(html, 'renderEditFlagGrid'), context);
+  assert.equal(context.buildUnionFlags().isSpicy, false);
+  assert.equal(context.buildUnionFlags().hasSoy, false);
+  assert.equal(context.buildUnionFlags().hasFish, true);
+  context.renderEditFlagGrid({ isSpicy: true });
+  assert.match(grid.innerHTML, /id="mc-edit-flag-isSpicy" checked/);
+  context.renderEditFlagGrid({ isSpicy: false });
+  assert.doesNotMatch(grid.innerHTML, /id="mc-edit-flag-isSpicy" checked/);
+  state.main.flags.isSpicy = true;
+  assert.equal(context.buildUnionFlags().isSpicy, true);
+});
+
+test('checked-in menu overlay stays marked for the current cutover', () => {
+  const html = readText('index.html');
+  const overlay = readJson('menu_overlay.json');
+  const cutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
+
+  assert.equal(overlay._meta.standardCutover, cutover);
+  // Week/day entries are the overlay's JOB — it is the published "post-import user
+  // deltas" layer, so a menu edit made in the UI legitimately lands here.
+  //
+  // This assertion used to be `no week keys at all`, which froze the 2026-07-13
+  // post-repair state as a permanent invariant. It went red on 2026-07-19 the moment
+  // two real allergen fixes (stray hasPork on W1 WED Egg Salad Wrap; the W2 SAT halal
+  // main) were made through the UI, and stayed red on all 10 commits of every publish
+  // thereafter — nine days of red CI on healthy data. A check that fires on normal
+  // operation is not a check; it trains everyone to ignore the channel. (It also went
+  // unnoticed that HUB was serving a 14-day-old board in that same window.)
+  //
+  // The invariant that actually matters is the one the app enforces at merge time: an
+  // overlay entry must belong to the CURRENT cutover, so pre-cutover edits can never
+  // resurrect from another device or the cloud. Assert that, not emptiness.
+  const weekKeys = Object.keys(overlay).filter((key) => /^[1-4]$/.test(key));
+  const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const shapeProblems = [];
+  for (const wk of weekKeys) {
+    const week = overlay[wk];
+    assert.equal(typeof week, 'object', `overlay week ${wk} should be an object`);
+    for (const [day, node] of Object.entries(week || {})) {
+      if (!DAYS.includes(day)) shapeProblems.push(`${wk}/${day}: not a weekday key`);
+      else if (!node || typeof node !== 'object') shapeProblems.push(`${wk}/${day}: not an object`);
+      else if (Object.keys(node).length === 0) shapeProblems.push(`${wk}/${day}: empty edit`);
+    }
+  }
+  assert.deepEqual(shapeProblems, [], `overlay edits must be well-formed weekday nodes: ${shapeProblems.join(', ')}`);
+
+  // An overlay entry must not silently disagree with the canonical published menu:
+  // that combination is the 2026-07-13 contamination signature (a stale overlay day
+  // overriding the July 2 import). Agreement means the overlay is redundant, which is
+  // harmless; disagreement means one of the two is wrong and EXPO/HUB will diverge.
+  const menu = readJson('menu_current.json').menu;
+  const conflicts = [];
+  for (const wk of weekKeys)
+    for (const [day, node] of Object.entries(overlay[wk] || {}))
+      for (const [field, value] of Object.entries(node || {})) {
+        if (typeof value !== 'string' || !value) continue;
+        const canonical = menu?.[wk]?.[day]?.[field];
+        if (typeof canonical === 'string' && canonical !== value)
+          conflicts.push(`${wk}/${day}/${field}: overlay "${value}" vs menu_current "${canonical}"`);
+      }
+  assert.deepEqual(conflicts, [], `overlay must not contradict the published menu: ${conflicts.join(' | ')}`);
+});
+
+test('menu_current.json keeps the four-week menu contract shape', () => {
+  const menu = readJson('menu_current.json');
+
+  assertMenuContractShape(menu, 'menu_current.json');
+});
+
+test('menu_reno.json keeps the current reno four-week menu contract shape', () => {
+  const menu = readJson('menu_reno.json');
+
+  assertMenuContractShape(menu, 'menu_reno.json');
+});
+
+test('menu_v31_allergen_confirmations: the two Nigerian dishes flag Nightshades + Spicy (decision record)', () => {
+  // The Jason-confirmed decision record. CODEX (recipe-hub) flags "Nigerian Styled
+  // Tofu" / "Nigerian Fish" with Nightshades (roasted peppers in the pepper & onion
+  // sauce + smoked paprika in the Nigerian spice mix) and Spicy; this file records
+  // the DOOR-side reconciliation (Q-A, ruled 2026-08-10 add-to-both). NOTE: this
+  // artifact is a human-decision record read by nothing at runtime — the operative
+  // plating flags live in menu_current.json (next test).
+  const conf = readJson('menu_v31_allergen_confirmations.json');
+  for (const dish of ['Nigerian Fish', 'Nigerian Styled Tofu']) {
+    const entry = conf[dish];
+    assert.ok(entry && entry.flags, `${dish} must be present with a flags object`);
+    assert.equal(entry.flags.hasNightshades, true, `${dish} must flag hasNightshades:true (roasted peppers + smoked paprika)`);
+    assert.equal(entry.flags.isSpicy, true, `${dish} must keep isSpicy:true`);
+  }
+});
+
+test('every published Nigerian Fish occurrence carries the operative Nightshades + Spicy flags', () => {
+  // getIngredientConflicts()/routing read the menu slot's *_flags — NOT the
+  // confirmations record — so this is what actually surfaces the No-Nightshades
+  // advisory + Bland routing on the regular-stream plating sheet. nameDetectFlags()
+  // derives neither nightshades nor spicy, so these must be set on the slot.
+  // (The veg-alt stream, Nigerian Styled Tofu, derives its allergens from the CODEX
+  // feed via getVegAltAllergenStr, corrected in recipe-hub PR-1.)
+  const menu = readJson('menu_current.json').menu;
+  for (const [weekKey, week] of Object.entries(menu)) {
+    for (const [dayKey, day] of Object.entries(week)) {
+      for (const meal of ['breakfast', 'lunch', 'dinner']) {
+        if (!/Nigerian Fish/i.test(day[meal] || '')) continue;
+        const flags = day[`${meal}_flags`] || {};
+        const where = `W${weekKey} ${dayKey} ${meal}`;
+        assert.equal(flags.hasNightshades, true, `${where} must flag Nightshades (roasted peppers + smoked paprika)`);
+        assert.equal(flags.isSpicy, true, `${where} must flag Spicy (triggers Bland routing)`);
+        assert.equal(flags.hasFish, true, `${where} must retain Fish`);
+      }
+    }
+  }
+});
+
+test('routing_by_meal.json keeps numeric sections and component portion maps', () => {
+  const routing = readJson('routing_by_meal.json');
+  const routingWeeks = routing.routing;
+  const weekKeys = Object.keys(routingWeeks || {});
+
+  assert.ok(routingWeeks && typeof routingWeeks === 'object', 'routing_by_meal.json should expose routing{}');
+  assert.ok(weekKeys.length > 0, 'routing_by_meal.json should contain week entries');
+
+  let checkedMealSlots = 0;
+  let slotsWithComponents = 0;
+
+  for (const weekKey of weekKeys) {
+    const week = routingWeeks[weekKey];
+    assert.equal(typeof week, 'object', `${weekKey} should be an object`);
+
+    for (const [dayName, day] of Object.entries(week)) {
+      assert.equal(typeof day, 'object', `${weekKey}.${dayName} should be an object`);
+
+      for (const [mealName, meal] of Object.entries(day)) {
+        assert.equal(typeof meal, 'object', `${weekKey}.${dayName}.${mealName} should be an object`);
+        checkedMealSlots += 1;
+
+        for (const [sectionName, value] of Object.entries(meal)) {
+          if (sectionName === '_components') continue;
+          assert.equal(typeof value, 'number', `${weekKey}.${dayName}.${mealName}.${sectionName} should be numeric`);
+          assert.ok(Number.isFinite(value), `${weekKey}.${dayName}.${mealName}.${sectionName} should be finite`);
+        }
+
+        if (meal._components) {
+          slotsWithComponents += 1;
+          for (const [componentName, portions] of Object.entries(meal._components)) {
+            assert.equal(typeof portions, 'number', `${componentName} portions should be numeric`);
+            assert.ok(Number.isFinite(portions), `${componentName} portions should be finite`);
+          }
+        }
+      }
+    }
+  }
+
+  assert.ok(checkedMealSlots > 0, 'routing_by_meal.json should contain meal slots');
+  assert.ok(slotsWithComponents > 0, 'routing_by_meal.json should preserve _components portion maps');
+});
+
+test('door_state.json keeps registry data and provenance fields', () => {
+  const state = readJson('door_state.json');
+
+  assert.ok(state._meta, 'door_state.json should carry _meta provenance');
+  assert.ok(Array.isArray(state.residents), 'door_state.json should carry residents[]');
+  assert.ok(state.residents.length > 0, 'door_state.json residents should not be empty');
+  assert.ok(Array.isArray(state.anaphRooms), 'door_state.json should carry anaphRooms[]');
+
+  for (const [index, resident] of state.residents.entries()) {
+    assert.equal(typeof resident.room, 'string', `resident ${index} should carry room`);
+    assert.ok(resident.room.trim(), `resident ${index} room should not be empty`);
+    assert.ok(Array.isArray(resident.tags), `resident ${index} should carry tags[]`);
+  }
+});
+
+// ── Menu-workbook parse core (Kitchen + Intake dual-sheet) ─────────────────
+function loadMenuParseCore() {
+  const html = readText('index.html');
+  const code = extractTestableCoreBlock(html, 'menu-parse');
+  const context = { Array, Object, String, RegExp };
+  vm.createContext(context);
+  vm.runInContext(code, context, { filename: 'index.html#menu-parse', timeout: 1000 });
+  for (const fn of ['parseMenuFromSheetRows', 'applyMenuPicks', 'buildSlotFlags', 'extractPeriodsFromRows']) {
+    assert.equal(typeof context[fn], 'function', `menu-parse core should expose ${fn}`);
+  }
+  return context;
+}
+
+// A compact Kitchen sheet (days in cols B–H) with a real-shaped layout:
+// section labels in col A, an UNLABELED packaging row after breakfast, a
+// vegetarian row, a halal row, and lunch/dinner. No allergen rows (Kitchen).
+function kitchenSheet() {
+  return [
+    ['WEEK 1','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+    ['BREAKFAST','Pork Breakfast sandwich','Pancakes','','','','',''],
+    ['Vegetarian','Vegan Sausage Sandwich','Pancakes veg','','','','',''],
+    ['','fruit & yoghurt','fruit & yoghurt','','','','',''],
+    ['','12 x 12 Thermfoil & Labels','Small Square & Soup Lids','','','','',''], // packaging (unlabeled)
+    ['LUNCH','Egg Salad Wrap, Bean Salad','Fully Loaded Sausage, Side Salad','','','','',''],
+    ['Vegetarian','Chickpea Wrap, Bean Salad','Vegan Sausage, Side Salad','','','','',''],
+    ['Halal Option','','','','','','',''],
+    ['DINNER','Pork Carnitas, Rice','Beef Strogonoff, Noodles','','','','',''],
+    ['Vegetarian','Veg carnitas, Rice','Mushroom Strogonoff, Noodles','','','','',''],
+    ['Halal option','Halal Chicken Carnitas','','','','','',''],
+  ];
+}
+
+// Matching Intake sheet: same days, ALLERGENS rows per meal, and a DIVERGENT
+// Sunday lunch dish (Ham Mac & Cheese vs Egg Salad Wrap).
+function intakeSheet() {
+  return [
+    ['WEEK 1','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+    ['BREAKFAST','Pork Breakfast sandwich','Pancakes','','','','',''],
+    ['Vegetarian','Vegan Sausage Sandwich','Pancakes veg','','','','',''],
+    ['','fruit & yoghurt','fruit & yoghurt','','','','',''],
+    ['Allergens','gluten, dairy, pork','gluten, dairy, egg','','','','',''],
+    ['LUNCH','Ham Mac & Cheese, Pea and Carrot','Halal Sausages, Baked Beans','','','','',''],
+    ['Vegetarian','Veg option','Veg sausage','','','','',''],
+    ['Allergens','pork, gluten, dairy','gluten, beef','','','','',''],
+    ['DINNER','Pork Carnitas, Rice','Beef Strogonoff, Noodles','','','','',''],
+    ['Vegetarian','Veg carnitas, Rice','Mushroom Strogonoff, Noodles','','','','',''],
+    ['Allergens','pork','gluten, beef, dairy','','','','',''],
+  ];
+}
+
+test('menu-parse: Kitchen drives dish text, Intake drives allergens, packaging never leaks', () => {
+  const core = loadMenuParseCore();
+  const res = core.parseMenuFromSheetRows({ '1': { kitchen: kitchenSheet(), intake: intakeSheet() } });
+  const sun = res.menu['1'].SUNDAY;
+
+  // Kitchen wins for dish text (Egg Salad Wrap), not the Intake divergent dish.
+  assert.equal(sun.lunch, 'Egg Salad Wrap, Bean Salad', 'Kitchen dish text should win by default');
+  assert.equal(sun.lunch_mainItem, 'Egg Salad Wrap', 'mainItem = first comma segment');
+  assert.equal(sun.lunch_sides, 'Bean Salad', 'sides = remaining segments');
+
+  // Packaging row must not leak into the breakfast text.
+  assert.ok(!/thermfoil|thermofoil|soup lid/i.test(sun.breakfast), 'packaging row must not leak into breakfast');
+  assert.ok(sun.breakfast.includes('fruit & yoghurt'), 'real breakfast side should merge');
+
+  // Halal row captured onto _halal for the pork dinner.
+  assert.equal(sun.dinner_halal, 'Halal Chicken Carnitas', 'halal option row should populate <meal>_halal');
+
+  // Provenance: both sheets used, and the divergent Sunday lunch is recorded.
+  assert.equal(res.sheetsUsed['1'].kitchen, true, 'kitchen sheet used');
+  assert.equal(res.sheetsUsed['1'].intake, true, 'intake sheet used');
+  const div = res.divergences.find(d => d.day === 'SUNDAY' && d.period === 'lunch');
+  assert.ok(div, 'divergent Sunday lunch should be recorded');
+  assert.equal(div.kitchen, 'Egg Salad Wrap, Bean Salad');
+  assert.equal(div.intake, 'Ham Mac & Cheese, Pea and Carrot');
+});
+
+test('menu-parse: allergens are the UNION of Intake list and dish-name detection (never under-flags)', () => {
+  const core = loadMenuParseCore();
+  const res = core.parseMenuFromSheetRows({ '1': { kitchen: kitchenSheet(), intake: intakeSheet() } });
+  const sun = res.menu['1'].SUNDAY;
+
+  // Egg Salad Wrap: Intake row (written for Ham Mac) lists pork/gluten/dairy;
+  // the dish name adds egg — union keeps them all, so egg is NOT dropped.
+  const lf = sun.lunch_flags;
+  assert.equal(lf.hasEgg, true, 'egg must be detected from "Egg Salad" even though Intake row omitted it');
+  assert.equal(lf.hasGluten, true, 'gluten from Intake list / "Wrap"');
+  assert.equal(lf.hasDairy, true, 'dairy from Intake list');
+  assert.equal(lf.hasPork, true, 'pork carried from the Intake list (over-flag is the safe direction)');
+
+  // Pork dinner stays halalCertifiedMeat:false so EXPO emits a halal cook;
+  // the beef dinner (non-pork meat) defaults to halalCertifiedMeat:true.
+  assert.equal(sun.dinner_flags.hasPork, true);
+  assert.equal(sun.dinner_flags.halalCertifiedMeat, false, 'pork slot must not be halal-certified');
+  assert.equal(res.menu['1'].MONDAY.dinner_flags.hasBeef, true);
+  assert.equal(res.menu['1'].MONDAY.dinner_flags.halalCertifiedMeat, true, 'non-pork meat defaults halal-certified');
+});
+
+test('menu-parse: per-divergence pick swaps to the Intake dish and re-derives the slot', () => {
+  const core = loadMenuParseCore();
+  const res = core.parseMenuFromSheetRows({ '1': { kitchen: kitchenSheet(), intake: intakeSheet() } });
+  core.applyMenuPicks(res.menu, res.divergences, { '1-SUNDAY-lunch': 'intake' });
+  const sun = res.menu['1'].SUNDAY;
+  assert.equal(sun.lunch, 'Ham Mac & Cheese, Pea and Carrot', 'pick=intake swaps the dish text');
+  assert.equal(sun.lunch_mainItem, 'Ham Mac & Cheese', 'mainItem re-derived after swap');
+  assert.equal(sun.lunch_flags.hasPork, true, 'allergens re-derived (Intake ham row + name detection)');
+});
+
+test('menu-parse: day columns are anchored on SUNDAY, so an offset layout (days start col C) still parses', () => {
+  const core = loadMenuParseCore();
+  // Week-3-style: an extra leading label column pushes SUNDAY to index 2.
+  const offset = [
+    ['WEEK 3','','SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+    ['BREAKFAST','','Pork sandwich','Pancakes','','','','',''],
+    ['LUNCH','','Coronation Chicken Sandwich','Pulled Pork Sandwich','','','','',''],
+    ['DINNER','','Beef Meatballs Pasta','Roast Chicken, Rice','','','','',''],
+  ];
+  const res = core.parseMenuFromSheetRows({ '3': { kitchen: offset, intake: null } });
+  assert.equal(res.menu['3'].SUNDAY.lunch, 'Coronation Chicken Sandwich', 'SUNDAY column resolved past the offset');
+  assert.equal(res.menu['3'].MONDAY.dinner, 'Roast Chicken, Rice');
+  assert.equal(res.sheetsUsed['3'].kitchen, true, 'single-sheet legacy path uses the kitchen slot');
+  assert.equal(res.sheetsUsed['3'].intake, false, 'no intake sheet in the legacy path');
+});
+
+// --- veg-alt allergen floor (issue #63) -----------------------------------
+// getVegAltAllergenStr() is a component-partial, name-fuzzy lookup. It must only
+// ever ADD to the menu-flag fallback, never replace it — a fuzzy name match is
+// not authority to clear a declared allergen. These gates pin that floor and the
+// monotonicity it buys: _vegAltSafe can move true -> false, never false -> true.
+function loadVegAltAllergenFloor() {
+  const html = readText('index.html');
+  const context = { console };
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'mergeVegAltAllergenFloor'), context,
+    { filename: 'index.html#mergeVegAltAllergenFloor', timeout: 1000 });
+  return context.mergeVegAltAllergenFloor;
+}
+
+test('veg-alt floor: a partial feed lookup never drops a menu-declared allergen', () => {
+  const merge = loadVegAltAllergenFloor();
+
+  // Wk2 MON dinner — the veg main IS a peanut stew; the lookup matches only the
+  // rice side. PEANUTS must survive.
+  const peanut = merge('SESAME, SOY, NIGHTSHADES', 'PEANUTS');
+  assert.match(peanut, /PEANUTS/, 'peanut warning survives a side-only lookup');
+
+  // Wk4 SAT dinner — Massaman carries peanut + tree nut.
+  const massaman = merge('SESAME, SOY, NIGHTSHADES', 'PEANUTS, TREE NUTS, SOY, SULPHITES, Wheat, Coconut, SPICY');
+  for (const token of ['PEANUTS', 'TREE NUTS', 'SULPHITES', 'Coconut']) {
+    assert.ok(massaman.includes(token), `${token} survives the floor`);
+  }
+
+  // The lookup's own findings are kept too — the floor adds, it does not swap.
+  assert.match(massaman, /NIGHTSHADES/, 'feed-derived allergens are retained');
+});
+
+test('veg-alt floor: EGG/MUSTARD in the fallback always reaches the No-Egg check', () => {
+  const merge = loadVegAltAllergenFloor();
+
+  // Wk4 THU breakfast — the veg alt literally reads "Scrambled eggs & Vegan BF
+  // patties" while the feed lookup returned only GLUTEN, NIGHTSHADES. Pre-fix
+  // that suppressed the fallback and _vegAltSafe scored true, merging No Egg
+  // residents into the vegan pool.
+  const brk = merge('GLUTEN, NIGHTSHADES', 'Wheat, Dairy, Eggs, Processed Meat');
+  assert.match(brk, /EGG/i, 'egg reaches the _vegAltSafe regex');
+
+  // Wk4 THU dinner — "Vegetable Egg Noodles".
+  assert.match(merge('GLUTEN, SOY', 'SESAME, SOY, SULPHITES, Eggs'), /EGG/i);
+
+  // Mustard is the other _vegAltSafe token.
+  assert.match(merge('GLUTEN', 'MUSTARD'), /MUSTARD/i);
+});
+
+test('veg-alt floor: the result is always a superset of the fallback (monotone safety)', () => {
+  const merge = loadVegAltAllergenFloor();
+  const tokensOf = s => s.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+  const SYNONYMS = { WHEAT:'GLUTEN', MILK:'DAIRY', EGGS:'EGG' };
+  const canon = t => SYNONYMS[t] || t;
+
+  const cases = [
+    ['GLUTEN', 'Wheat, Dairy, Eggs'],
+    ['SESAME, SOY, NIGHTSHADES', 'PEANUTS'],
+    ['', 'PEANUTS, TREE NUTS'],
+    ['GLUTEN, OATS, SOY', ''],
+    ['', ''],
+  ];
+  for (const [lookup, fallback] of cases) {
+    const merged = tokensOf(merge(lookup, fallback)).map(canon);
+    for (const token of tokensOf(fallback).map(canon)) {
+      assert.ok(merged.includes(token), `floor keeps ${token} (lookup="${lookup}")`);
+    }
+    for (const token of tokensOf(lookup).map(canon)) {
+      assert.ok(merged.includes(token), `floor keeps ${token} (fallback="${fallback}")`);
+    }
+  }
+});
+
+test('veg-alt floor: DOOR flag vocabulary and CODEX feed labels do not double up', () => {
+  const merge = loadVegAltAllergenFloor();
+
+  // The feed says GLUTEN / DAIRY / EGG; DOOR's flags say Wheat / Dairy / Eggs.
+  // Same allergen — the plating sheet must not list it twice.
+  assert.equal(merge('GLUTEN', 'Wheat'), 'GLUTEN', 'Wheat collapses into GLUTEN');
+  assert.equal(merge('DAIRY', 'Dairy'), 'DAIRY', 'case-insensitive dedupe');
+  assert.equal(merge('MILK', 'Dairy'), 'MILK', 'MILK and Dairy are one allergen');
+  assert.equal(merge('EGG', 'Eggs'), 'EGG', 'EGG and Eggs are one allergen');
+
+  // Collapsing equivalents must never drop a genuinely distinct allergen.
+  assert.equal(merge('GLUTEN', 'Wheat, PEANUTS'), 'GLUTEN, PEANUTS');
+  // Empty on both sides stays falsy so computePlatingData can fall through to null.
+  assert.equal(merge('', ''), '');
+  assert.equal(merge(null, undefined), '');
+});
+
+test('computePlatingData routes the veg-alt lookup through the floor, not the || chain', () => {
+  const html = readText('index.html');
+
+  // The pre-fix precedence chain `stored || lookup || fallback` is the defect:
+  // a non-empty lookup short-circuits the fallback away.
+  assert.ok(
+    !/vegAllergenStored\s*\|\|\s*vegAllergenLookup\s*\|\|\s*vegAllergenFallback/.test(html),
+    'the replace-the-fallback precedence chain must not come back (issue #63)');
+
+  // Re-pinned 2026-10-17 (v31-standard.29): the dishes set on the vegan line's slots
+  // (getVegAltSlotAllergenStr) join the lookup; the fallback is still the floor under both.
+  assert.match(html, /vegAllergenStored\s*\|\|\s*\n?\s*mergeVegAltAllergenFloor\(mergeVegAltAllergenFloor\(vegAllergenLookup,\s*vegAllergenSlots\),\s*vegAllergenFallback\)/,
+    'computePlatingData composes the lookup with the fallback as a floor');
+
+  // A stored operator override is a deliberate statement and still wins outright.
+  assert.match(html, /const vegAllergenStr = vegAllergenStored/,
+    'the stored menu-editor override keeps first precedence');
+});
+
+// --- D1: atomic publish (one publish = one commit) ------------------------
+// HOUSE_PROVEN_SEAMS.md row 5, ported from EXPO's pushFilesToGitHubAtomic.
+// DOOR wrote one Contents-API commit per artifact, so 9 of the 10 CI runs per
+// publish evaluated partially-published sets that never existed — and a crash
+// mid-publish shipped one for real. These gates pin the all-or-nothing property.
+function loadAtomicPublishHarness(options = {}) {
+  const html = readText('index.html');
+  const requests = [];
+  const syncBars = [];
+  const consoleMessages = [];
+  const rememberedFailures = [];
+  const remote = options.remote || {};          // path -> { sha, size }
+  const failAt = options.failAt || null;        // e.g. 'POST /git/commits'
+  let refSha = options.refSha || 'tip-sha-1';
+  let refMoves = 0;
+
+  const json = (body, status = 200) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+    statusText: 'stub'
+  });
+
+  const context = {
+    console: {
+      warn: (...a) => consoleMessages.push(a.join(' ')),
+      log: () => {},
+      error: () => {}
+    },
+    Promise, Date, Math, JSON, Set, Error, TextEncoder,
+    setTimeout: (fn) => fn(),                   // no real waiting in the retry path
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+    unescape: (s) => decodeURIComponent(s.replace(/%(?![0-9A-Fa-f]{2})/g, '%25')),
+    encodeURIComponent,
+    updateSyncBar: (message, color) => syncBars.push({ message, color }),
+    PublishAuth: {
+      githubHeaders: (token) => ({ Authorization: 'Bearer ' + token }),
+      classifyGitHubError: (status, message) => 'GitHub API ' + status + ': ' + message,
+      rememberFailure: (m) => rememberedFailures.push(m)
+    },
+    fetch: async (url, init = {}) => {
+      const method = init.method || 'GET';
+      const key = method + ' ' + url.replace(/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+/, '');
+      requests.push({ key, url, method, body: init.body ? JSON.parse(init.body) : null });
+      if (failAt && key === failAt) return json({ message: 'stub failure' }, 500);
+
+      if (method === 'GET' && key.includes('/contents/')) {
+        const p = key.split('/contents/')[1].split('?')[0];
+        return Object.prototype.hasOwnProperty.call(remote, p)
+          ? json({ sha: remote[p].sha || 'blob-' + p, size: remote[p].size || 0 })
+          : json({ message: 'Not Found' }, 404);
+      }
+      if (key === 'GET /git/ref/heads/main') {
+        // conflictOnce: the first PATCH 422s, then the tip has moved.
+        return json({ object: { sha: refSha } });
+      }
+      if (key.startsWith('GET /git/commits/')) return json({ tree: { sha: 'tree-of-' + refSha } });
+      if (key === 'POST /git/blobs') return json({ sha: 'blob-sha-' + requests.filter(r => r.key === 'POST /git/blobs').length });
+      if (key === 'POST /git/trees') return json({ sha: 'new-tree-sha' });
+      if (key === 'POST /git/commits') return json({ sha: 'new-commit-sha' });
+      if (key === 'PATCH /git/refs/heads/main') {
+        refMoves++;
+        if (options.conflictOnce && refMoves === 1) { refSha = 'tip-sha-2'; return json({ message: 'not a fast forward' }, 422); }
+        return json({ object: { sha: 'new-commit-sha' } });
+      }
+      return json({ message: 'unexpected ' + key }, 500);
+    }
+  };
+  vm.createContext(context);
+  const prelude = [
+    'let _ghHydrated = ' + (options.hydrated === false ? 'false' : 'true') + ';',
+    'let _ghForceOverwrite = false;',
+    "const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'recent_log.json']);",
+    'let _ghWriteQueue = Promise.resolve();'
+  ].join('\n');
+  vm.runInContext([
+    prelude,
+    extractTestableCoreBlock(html, 'publish-transaction'),
+    extractFunctionBlock(html, '_ghEvaluateWriteGuards'),
+    extractFunctionBlock(html, 'ghPushFilesAtomic'),
+    extractFunctionBlock(html, '_ghPushFilesAtomicNow')
+  ].join('\n\n'), context, { filename: 'index.html#atomic-publish', timeout: 2000 });
+
+  // These transport tests begin after the transaction's read/build phase.
+  // F1a/F1b exercise that phase and full re-merge recovery with an applying remote.
+  context.doorSetItemSafe = () => true;
+  const atomic = context.ghPushFilesAtomic;
+  context.ghPushFilesAtomic = (creds, files, message) => atomic(creds, files, message, {
+    head: options.refSha || 'tip-sha-1', tree: 'tree-of-' + (options.refSha || 'tip-sha-1'),
+    paths: Object.fromEntries(Object.keys(remote).map(p => [p, { type: 'blob' }]))
+  });
+
+  return { context, requests, syncBars, consoleMessages, rememberedFailures };
+}
+
+const ATOMIC_FILES = [
+  { path: 'menu_current.json', content: '{"a":1}' },
+  { path: 'routing_by_meal.json', content: '{"b":2}' },
+  { path: 'door_state.json', content: '{"c":3}' }
+];
+
+test('D1: a publish issues exactly ONE ref update, and every artifact is in that one tree', async () => {
+  const h = loadAtomicPublishHarness();
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+
+  const refPatches = h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main');
+  assert.equal(refPatches.length, 1, 'exactly one ref update per publish');
+
+  const trees = h.requests.filter((r) => r.key === 'POST /git/trees');
+  assert.equal(trees.length, 1, 'exactly one tree per publish');
+  assert.deepEqual(
+    Array.from(trees[0].body.tree, (e) => e.path).sort(),
+    ATOMIC_FILES.map((f) => f.path).sort(),
+    'every staged artifact appears in the single tree');
+  assert.equal(trees[0].body.base_tree, 'tree-of-tip-sha-1', 'the tree is built atop the current tip');
+
+  const commits = h.requests.filter((r) => r.key === 'POST /git/commits');
+  assert.equal(commits.length, 1, 'one commit per publish');
+  assert.deepEqual(Array.from(commits[0].body.parents), ['tip-sha-1'], 'commit parents the current tip');
+  assert.equal(refPatches[0].body.force, false, 'the ref move is fast-forward only');
+  assert.equal(res.staged, 3);
+  assert.equal(res.results.filter((r) => r.skipped).length, 0);
+});
+
+test('D1: a failure before the ref PATCH leaves the repo byte-identical', async () => {
+  for (const failAt of ['POST /git/blobs', 'POST /git/trees', 'POST /git/commits']) {
+    const h = loadAtomicPublishHarness({ failAt });
+    await assert.rejects(
+      () => h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg'),
+      /GitHub API 500/,
+      `${failAt} must fail loudly`);
+
+    assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 0,
+      `${failAt}: no ref update, so nothing became visible`);
+    // Blobs/trees/commits are content-addressed and unreferenced until the ref
+    // moves — writing them changes no path in the repo.
+    assert.equal(h.requests.filter((r) => r.method === 'PUT').length, 0,
+      `${failAt}: the per-file Contents PUT path must never be used as a fallback`);
+  }
+});
+
+test('D1: no fallback to the per-file Contents path — a publish never PUTs', async () => {
+  const h = loadAtomicPublishHarness();
+  await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+  assert.equal(h.requests.filter((r) => r.method === 'PUT').length, 0,
+    'the seam is explicit: fail loudly rather than half-land via the split path');
+});
+
+test('D1: the write queue still serializes concurrent publishes', async () => {
+  const h = loadAtomicPublishHarness();
+  const order = [];
+  const creds = { repo: 'o/r', token: 't' };
+  const a = h.context.ghPushFilesAtomic(creds, ATOMIC_FILES, 'first').then(() => order.push('a'));
+  const b = h.context.ghPushFilesAtomic(creds, ATOMIC_FILES, 'second').then(() => order.push('b'));
+  await Promise.all([a, b]);
+
+  assert.deepEqual(order, ['a', 'b'], 'the second publish waits for the first');
+  const patchIdx = h.requests.map((r, i) => (r.key === 'PATCH /git/refs/heads/main' ? i : -1)).filter((i) => i >= 0);
+  const treeIdx = h.requests.map((r, i) => (r.key === 'POST /git/trees' ? i : -1)).filter((i) => i >= 0);
+  assert.equal(patchIdx.length, 2, 'one ref update each — never merged, never dropped');
+  assert.ok(patchIdx[0] < treeIdx[1],
+    'the first publish completes its ref update before the second builds its tree (no interleave)');
+});
+
+test('F1: a guard-blocked dependency holds the complete transaction and is reported', async () => {
+  // menu_current.json is empty locally while the cloud copy is substantial —
+  // the empty-clobber guard must still refuse it, exactly as in the per-file era.
+  const h = loadAtomicPublishHarness({ remote: { 'menu_current.json': { sha: 's', size: 5000 } } });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, [
+    { path: 'menu_current.json', content: '{}' },
+    { path: 'door_state.json', content: '{"c":3}' }
+  ], 'msg');
+
+  const blocked = res.results.find((r) => r.path === 'menu_current.json');
+  assert.equal(blocked.skipped, true, 'the guard still blocks');
+  assert.equal(blocked.reason, 'empty_clobber', 'the caller gets the reason for the held transaction');
+
+  const tree = h.requests.find((r) => r.key === 'POST /git/trees');
+  assert.equal(tree, undefined, 'no subset of a dependency group can be committed');
+  assert.equal(res.staged, 0);
+  assert.equal(res.commitSha, null);
+});
+
+test('D1: every artifact blocked means no commit at all', async () => {
+  const h = loadAtomicPublishHarness({ hydrated: false });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
+
+  assert.equal(res.staged, 0);
+  assert.equal(res.commitSha, null);
+  assert.deepEqual(Array.from(res.results, (r) => r.reason), ['not_hydrated', 'not_hydrated', 'not_hydrated']);
+  assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 0,
+    'nothing to publish must not move the ref');
+});
+
+test('F1: a pinned transport conflict returns to the transaction for re-merge', async () => {
+  const h = loadAtomicPublishHarness({ conflictOnce: true });
+  await assert.rejects(() => h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg'), /422/);
+  const trees = h.requests.filter((r) => r.key === 'POST /git/trees');
+  assert.equal(trees.length, 1, 'transport cannot reparent stale candidates');
+  const commits = h.requests.filter((r) => r.key === 'POST /git/commits');
+  assert.deepEqual(Array.from(commits[0].body.parents), ['tip-sha-1']);
+  assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 1);
+});
+
+test('D1: the publish path stages the whole artifact set into ONE atomic call', async () => {
+  const harness = loadPublishFlowHarness({ localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } } });
+  await harness.context._doPublishToGitHub(true);
+
+  assert.equal(harness.atomicCalls.length, 1, 'one publish = one atomic call = one commit');
+  assert.deepEqual(harness.atomicCalls[0].paths, [
+    'menu_current.json', 'registry_summary.json', 'routing_by_meal.json', 'door_state.json',
+    'menu_overlay.json', 'custom_tag_rules.json', 'learned_nr.json', 'meal_swaps.json',
+    'meal_swaps_reverted.json', 'special_meals.json', 'special_meals_removed.json', 'recent_log.json'
+  ], 'all twelve artifacts go in the single commit (2026-10-18: + the swap revert and special-meal removal lists)');
+
+  // The per-file loop is what produced 10 commits; it must not come back.
+  const html = readText('index.html');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assert.doesNotMatch(publishFlow, /await\s+ghPushFile\s*\(/,
+    '_doPublishToGitHub must not push artifacts one at a time (silent-drift D1)');
+  assertContains(publishFlow, 'ghPushFilesAtomic', 'the publish path commits the set atomically');
+});
+
+test('D1: both write paths share one anti-clobber evaluator, so the guards cannot drift', () => {
+  const html = readText('index.html');
+  const single = extractFunctionBlock(html, '_ghPushFileNow');
+  const batch = extractFunctionBlock(html, '_ghPushFilesAtomicNow');
+  for (const [name, body] of [['_ghPushFileNow', single], ['_ghPushFilesAtomicNow', batch]]) {
+    assertContains(body, '_ghEvaluateWriteGuards', `${name} routes through the shared guard evaluator`);
+    assert.doesNotMatch(body, /empty_clobber|size_regression/,
+      `${name} must not carry its own copy of the guards`);
+  }
+});
+
+test('friction: recent_log.json may shrink (display-only tail); the registry stays protected; the staff message leaks no filename or bytes', async () => {
+  // recent_log.json is a rolling activity tail whose length differs benignly per
+  // device. Blocking its push stranded real work in the outbox and lit the "not
+  // reached the shared board" banner on a healthy computer (the confusion Joan
+  // reported). It now bypasses the shrink guard; the authoritative registry does not.
+  const html = readText('index.html');
+  const setLine = html.match(/const ALLOW_SHRINK_PATHS = new Set\(\[([^\]]*)\]\)/);
+  assert.ok(setLine && /'recent_log\.json'/.test(setLine[1]),
+    'recent_log.json is in ALLOW_SHRINK_PATHS');
+
+  const h = loadAtomicPublishHarness({ remote: {
+    'recent_log.json':       { sha: 's1', size: 18833 },
+    'registry_summary.json': { sha: 's2', size: 18833 }
+  } });
+  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, [
+    { path: 'recent_log.json',       content: '[{"x":1}]' }, // tiny vs 18833 — but allow-shrink
+    { path: 'registry_summary.json', content: '{"a":1}' }    // tiny — must still be refused
+  ], 'msg');
+
+  const rl = res.results.find((r) => r.path === 'recent_log.json');
+  const reg = res.results.find((r) => r.path === 'registry_summary.json');
+  assert.notEqual(rl.skipped, true, 'the recent-activity tail is allowed to shrink');
+  assert.equal(reg.skipped, true, 'the authoritative registry is still clobber-protected');
+  assert.equal(reg.reason, 'size_regression');
+
+  // The staff-facing sync-bar message speaks plainly — no filename, no byte count.
+  const msg = h.syncBars.map((s) => s.message).join(' | ');
+  assert.doesNotMatch(msg, /\.json|\d+\s*b\b/i, 'no filename or byte count leaks to staff');
+  assertContains(msg, 'the kitchen', 'it speaks in staff language');
+});
+
+test('plain-language: staff-facing messages speak in kitchen terms, not app jargon', () => {
+  // The 2026 plain-language sweep: front-line entry staff (import → enter changes →
+  // Generate → auto-send) should never see filenames, byte counts, "publish/sync/
+  // registry/token/GitHub", or raw error text. This gate pins the staff-visible copy
+  // so a later edit can't quietly reintroduce the jargon. (Authored-to-fail: every
+  // PRESENT pattern is absent, and every ABSENT pattern present, in the pre-sweep file.)
+  const html = readText('index.html');
+
+  // The header button renamed from "Sync"; intake-mode keeps it visible by id, not title.
+  assert.match(html, /&#x21BB; Refresh list<\/button>/, 'header button reads “Refresh list”');
+  assert.doesNotMatch(html, /&#x21BB; Sync</, 'the old “Sync” button label is gone');
+  assert.match(html, /:not\(#refresh-list-btn\)/, 'intake-mode keeps the refresh button visible by id');
+
+  // Plain forms staff should see (\\. stands in for a curly apostrophe — encoding-robust).
+  const PRESENT = [
+    /Committed — kitchen delivery pending\./,          // commit acknowledged, delivery unobserved
+    /Available to the kitchen ✓/,                       // delivery confirmed separately
+    /Sending to the kitchen…/,                       // auto-send in-flight
+    /Got the latest from the kitchen ✓/,             // refresh success
+    /Nothing to get yet — the kitchen has no saved list/,
+    /Couldn.t find any residents in this file/,           // import error
+    /this page is out of date/,                           // stale-page banner reason
+    /kitchen update is pending because a data check needs attention/, // held coherent send
+    /Today's meal list imported/,                         // green import box
+    /Resident list loaded — /,                       // boot
+    /This computer isn.t connected to the kitchen yet/,   // refresh w/o connection
+    /<h2>Kitchen connection<\/h2>/,                       // Settings card
+    /Advanced connection setup/,
+    /Test &amp; Save Connection/,
+    />Disconnect<\/button>/,
+    />Send Now<\/button>/,
+    /&#x21EA; Send to kitchen<\/button>/
+  ];
+  for (const re of PRESENT) assert.match(html, re, 'expected plain copy: ' + re);
+
+  // Retired jargon that used to face staff (internal console/record strings are exempt).
+  const ABSENT = [
+    /Save blocked —/,                                // byte-count clobber line
+    /No data rows found\. Check that the sheet/,          // import "column A/B"
+    /to GitHub ✓/,                                   // "Pushed/Published to GitHub ✓"
+    /Registry synced —/,
+    /this tab is out of date/,                            // old banner reason
+    /<h2>Live Data Sync<\/h2>/,
+    /Advanced — token, repo, manual publish/,
+    /Test &amp; Save Token/,
+    />Forget Token<\/button>/,
+    />Publish Now<\/button>/,
+    /Enter token and repo first/,
+    /Publishing token forgotten on this device/,
+    /No publishing token saved on this device/,
+    /changes synced to registry/,
+    /A newer version of DOOR is published/,
+    /Re-import the menu workbook before publishing/,
+    /btn\.innerHTML = 'Publishing…'/,
+    /btn\.innerHTML = good \? 'Published ✓'/,
+    /title="Sync">\\u\{1f504\} Sync<\/button>/
+  ];
+  for (const re of ABSENT) assert.doesNotMatch(html, re, 'retired jargon should be gone: ' + re);
+
+  const testConnection = extractFunctionBlock(html, 'testGHPublish');
+  assert.doesNotMatch(testConnection, /s\.textContent\s*=\s*err\.message/,
+    'the connection test must translate raw provider errors before showing them');
+  assert.match(html, /else if \(meta\.lastError\) \{ text = doorConnectFailureCopy\(meta\.lastError\)\.text;/,
+    'saved provider errors must be translated before Settings renders them');
+});
+
+test('plain-language: provider failures are translated and legacy saved messages cannot leak into the banner', () => {
+  const html = readText('index.html');
+
+  const failureContext = {};
+  vm.runInNewContext(
+    extractFunctionBlock(html, 'doorConnectFailureCopy') + '\nthis.translate = doorConnectFailureCopy;',
+    failureContext
+  );
+  const rawFailures = [
+    'Set up a GitHub token in Settings before publishing.',
+    'GitHub rejected the token. It may be expired, revoked, or mistyped.',
+    'GitHub could not find this repo/file for the saved token.',
+    'Failed to fetch from api.github.com',
+    'GitHub API 500: request failed'
+  ];
+  for (const raw of rawFailures) {
+    const copy = failureContext.translate(raw).text;
+    assert.doesNotMatch(copy, /github|token|repo|publish|sync|shared board|api/i,
+      `translated staff copy must hide provider jargon for: ${raw}`);
+    assert.match(copy, /kitchen|connection|key/i, `translated copy should give a useful kitchen action for: ${raw}`);
+  }
+
+  const skipBlock = html.match(/const\s+DOOR_PUBLISH_SKIP_REASONS\s*=\s*Object\.freeze\(\{[\s\S]*?\}\);/);
+  assert.ok(skipBlock, 'missing publish-skip reason map');
+  const capabilityContext = {};
+  vm.runInNewContext(
+    skipBlock[0] + '\n' + extractFunctionBlock(html, 'doorDeviceCapability') + '\nthis.capability = doorDeviceCapability;',
+    capabilityContext
+  );
+  const cap = capabilityContext.capability({
+    hasToken: true,
+    operatorName: 'Joan',
+    autoPublishOn: true,
+    lastSkip: {
+      reason: 'old-provider-error',
+      message: 'GitHub token missing; shared board unavailable',
+      at: '2026-09-17T12:00:00Z'
+    }
+  });
+  const visibleReasons = cap.reasons.map((reason) => reason.label).join(' | ');
+  assert.doesNotMatch(visibleReasons, /github|token|publish|sync|shared board/i,
+    'historical raw failure text must not be repeated in the standing banner');
+  assertContains(visibleReasons, 'last send didn’t go through', 'the banner gives a plain replacement message');
+});
+
+// --- D2: routing_by_meal.json records which menu it was built from -----------
+// (silent-drift plan §5 D2, shape a: "two facts, never compared"). Every artifact
+// in a publish SET stamps `_meta.builtFromMenu = {exported, hash}` pointing at the
+// menu it was published alongside; validation Stops on a desync so a set assembled
+// from two different menus can't ship. Depends on D1 (one publish = one commit) —
+// cross-artifact Stop checks were unsound while intermediate sets were published.
+
+function stampedPublishSet() {
+  const core = loadPublishValidationCore();
+  const artifacts = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+  core.doorStampBuiltFromMenu(artifacts);
+  return { core, artifacts };
+}
+
+test('D2: content hash is content-true and key-order stable', () => {
+  const core = loadPublishValidationCore();
+  assert.equal(typeof core.doorContentHash, 'function', 'core exposes doorContentHash');
+  const a = core.doorContentHash({ x: 1, y: [2, 3], z: { q: true } });
+  const reordered = core.doorContentHash({ z: { q: true }, y: [2, 3], x: 1 });
+  assert.equal(a, reordered, 'same content in a different key order hashes the same');
+  assert.notEqual(a, core.doorContentHash({ x: 1, y: [2, 4], z: { q: true } }), 'a content change moves the hash');
+  assert.notEqual(a, core.doorContentHash({ x: 1, y: [3, 2], z: { q: true } }), 'array order is content, not noise');
+});
+
+test('D2: doorStampBuiltFromMenu stamps consumers from the menu and leaves the menu unstamped', () => {
+  const { artifacts } = stampedPublishSet();
+  const menuExported = artifacts['menu_current.json']._meta.exported;
+  assert.equal(artifacts['menu_current.json']._meta.builtFromMenu, undefined, 'the menu is the anchor, never stamped');
+  for (const name of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
+    const stamp = artifacts[name]._meta.builtFromMenu;
+    assert.ok(stamp && typeof stamp === 'object', `${name} records builtFromMenu`);
+    assert.equal(stamp.exported, menuExported, `${name} records the menu's exported timestamp`);
+    assert.equal(typeof stamp.hash, 'string', `${name} records a menu content hash`);
+    assert.ok(stamp.hash.length, `${name} hash is non-empty`);
+  }
+});
+
+test('D2: a coherent stamped set validates with no Stop and no builtFromMenu issue', () => {
+  const { core, artifacts } = stampedPublishSet();
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.equal(result.counts.Stop, 0, 'a self-consistent set does not block');
+  assert.ok(!result.issues.some((i) => String(i.code).startsWith('builtfrommenu')),
+    'no builtFromMenu issue on a coherent set (never cries wolf on healthy data)');
+});
+
+test('D2: a routing artifact built from a different menu revision is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  artifacts['routing_by_meal.json']._meta.builtFromMenu.exported = '1999-01-01T00:00:00.000Z';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-exported-mismatch' && i.artifact === 'routing_by_meal.json'),
+    'routing stamped with a different menu timestamp Stops the publish');
+});
+
+test('D2: an artifact built from different menu CONTENT (same timestamp) is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  // The exported timestamp can agree while the content diverged — this is exactly
+  // the case a version-number check misses (a content change that does not move the
+  // schema constant). The content hash is what catches it.
+  artifacts['registry_summary.json']._meta.builtFromMenu.hash = 'deadbeef';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-hash-mismatch' && i.artifact === 'registry_summary.json'),
+    'a content-hash disagreement Stops the publish even when the timestamp matches');
+});
+
+test('D2: a malformed builtFromMenu stamp is a Stop', () => {
+  const { core, artifacts } = stampedPublishSet();
+  artifacts['door_state.json']._meta.builtFromMenu = 'nope';
+  const result = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(result.stop.some((i) => i.code === 'builtfrommenu-malformed' && i.artifact === 'door_state.json'),
+    'a non-object builtFromMenu is a structural Stop');
+});
+
+test('D2: a legacy set with no builtFromMenu is Review, never Stop', () => {
+  const core = loadPublishValidationCore();
+  // Manufacture the legacy/pre-D2 condition: strip builtFromMenu from the three consumer
+  // artifacts. Reading the committed artifacts directly is not durable — they self-heal to
+  // present-and-matching on DOOR's next publish (they now carry the stamp), so a test that
+  // depends on them staying stamp-less fires on healthy data. Assert the VALIDATOR behavior
+  // (absent → Review, never Stop) independent of the committed tree's current stamp state.
+  const stripStamp = (name) => {
+    const art = readJson(name);
+    if (art && art._meta) delete art._meta.builtFromMenu;
+    return art;
+  };
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': stripStamp('registry_summary.json'),
+    'routing_by_meal.json': stripStamp('routing_by_meal.json'),
+    'door_state.json': stripStamp('door_state.json')
+  });
+  const absent = result.review.filter((i) => i.code === 'builtfrommenu-absent');
+  assert.equal(absent.length, 3, 'the three consumer artifacts each report absent provenance as Review');
+  assert.ok(!result.stop.some((i) => String(i.code).startsWith('builtfrommenu')),
+    'absence is advisory, not a block (pre-D2 artifacts and partial sets must not freeze publishing)');
+});
+
+test('D2: the real publish path stamps the whole set from the menu it published', async () => {
+  const harness = loadPublishFlowHarness();
+  await harness.context._doPublishToGitHub(true);
+
+  assert.equal(harness.atomicCalls.length, 1, 'still one atomic commit (D1 intact)');
+  const find = (p) => harness.pushed.find((x) => x.path === p);
+  const menu = find('menu_current.json').content;
+  assert.equal(menu._meta.builtFromMenu, undefined, 'the published menu is the anchor, never stamped');
+  for (const name of ['routing_by_meal.json', 'registry_summary.json', 'door_state.json']) {
+    const stamp = find(name).content._meta.builtFromMenu;
+    assert.ok(stamp && typeof stamp === 'object', `${name} is published carrying builtFromMenu`);
+    assert.equal(stamp.exported, menu._meta.exported, `${name} records the published menu's exported timestamp`);
+    assert.ok(typeof stamp.hash === 'string' && stamp.hash.length, `${name} records the published menu's content hash`);
+  }
+});
+
+test('D2: the publish orchestrator stamps provenance before it validates', () => {
+  const html = readText('index.html');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assertContains(publishFlow, 'doorStampBuiltFromMenu(publishArtifacts)', 'the publish path stamps the set (silent-drift D2)');
+  assert.ok(
+    publishFlow.indexOf('doorStampBuiltFromMenu(publishArtifacts)') < publishFlow.indexOf('validateDoorPublishArtifacts(publishArtifacts'),
+    'stamping must run before validation so the cross-artifact Stop check sees the stamps'
+  );
+  const core = extractTestableCoreBlock(html, 'publish-validation');
+  assertContains(core, 'builtfrommenu-exported-mismatch', 'the validator carries the exported-desync Stop code');
+  assertContains(core, 'builtfrommenu-hash-mismatch', 'the validator carries the content-desync Stop code');
+});
+
+// --- D3: the baked-MENU_DATA fallback is never a silent substitution ---------
+// (silent-drift plan §5 D3, shape d). When this device has no uploaded menu,
+// getMenuData() falls back to the baked MENU_DATA constant — the OLD rotation, not
+// the current standard base. A module flag drives a persistent banner and a
+// publish-time Stop (FORK-3 ruled Stop with Gate-9 override semantics), so the
+// stale built-in menu can never be silently stamped as current for EXPO/HUB.
+
+test('D3: getMenuData flags the baked fallback only when there is no uploaded menu', () => {
+  const withUpload = loadMenuDataCore({ uploadedMenu: { '1': { MONDAY: { lunch: 'Uploaded lunch' } } } });
+  withUpload.getMenuData();
+  assert.equal(withUpload._doorMenuUsedBakedFallback, false, 'an uploaded menu is not the baked fallback');
+
+  const noUpload = loadMenuDataCore({ uploadedMenu: null });
+  noUpload.getMenuData();
+  assert.equal(noUpload._doorMenuUsedBakedFallback, true, 'no uploaded menu => running on the baked constant');
+});
+
+test('D3: the publish validator Stops when the menu is the baked fallback', () => {
+  const core = loadPublishValidationCore();
+  const artifacts = {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': readJson('routing_by_meal.json'),
+    'door_state.json': readJson('door_state.json')
+  };
+  const flagged = core.validateDoorPublishArtifacts(artifacts, { menuSourceFallback: true });
+  assert.ok(flagged.stop.some((i) => i.code === 'menu-source-fallback' && i.artifact === 'menu_current.json'),
+    'a fallback-sourced menu is a Stop (Gate-9 blocks auto-publish, manual prompts override)');
+
+  const clean = core.validateDoorPublishArtifacts(artifacts, { menuSourceFallback: false });
+  assert.ok(!clean.stop.some((i) => i.code === 'menu-source-fallback'), 'no Stop when the menu is a real uploaded menu');
+  const noOpts = core.validateDoorPublishArtifacts(artifacts);
+  assert.ok(!noOpts.stop.some((i) => i.code === 'menu-source-fallback'), 'the check is opt-in; a bare call never manufactures it');
+});
+
+test('F1 structural gate: a baked fallback cannot be sent automatically or manually', async () => {
+  const blocked = loadPublishFlowHarness({ configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; } });
+  const autoRes = await blocked.context._doPublishToGitHub(false); // auto publish
+  assert.ok(autoRes && autoRes.skipped && autoRes.reason === 'validation-stop', 'auto-publish from the fallback is Gate-9 blocked');
+  assert.ok((autoRes.issues || []).some((i) => i.code === 'menu-source-fallback'), 'the block names the menu-source-fallback Stop');
+  assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
+
+  const overridden = loadPublishFlowHarness({
+    confirm: () => true,
+    configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; }
+  });
+  await overridden.context._doPublishToGitHub(true); // manual publish
+  assert.equal(overridden.atomicCalls.length, 0, 'the fallback cannot replace an authoritative menu');
+});
+
+test('D3: a normal publish (real uploaded menu) is unaffected by the fallback gate', async () => {
+  const harness = loadPublishFlowHarness(); // no fallback flag in context
+  await harness.context._doPublishToGitHub(true);
+  assert.equal(harness.atomicCalls.length, 1, 'a real-menu publish still commits');
+  const menuStop = (harness.pushed.length && false);
+  assert.ok(!menuStop, 'sanity');
+});
+
+test('D3: the fallback flag drives a persistent banner and the publish gate', () => {
+  const html = readText('index.html');
+  assertContains(html, 'id="mc-menu-source-banner"', 'the Menu Config screen carries the menu-source banner element');
+  const banner = extractFunctionBlock(html, 'renderMenuSourceBanner');
+  assertContains(banner, '_doorMenuUsedBakedFallback', 'the banner renders off the fallback flag');
+  const menuConfig = extractFunctionBlock(html, 'renderMenuConfig');
+  assertContains(menuConfig, 'renderMenuSourceBanner()', 'the Menu Config render surfaces the banner');
+  const getMenu = extractFunctionBlock(html, 'getMenuData');
+  assertContains(getMenu, '_doorMenuUsedBakedFallback = !uploaded', 'getMenuData sets the flag on every resolution');
+  const publishFlow = extractFunctionBlock(html, '_doPublishToGitHub');
+  assertContains(publishFlow, 'menuSourceFallback', 'the publish path passes the fallback state into validation');
+});
+
+// --- D4: a per-slot _components computation failure is no longer invisible ----
+// (silent-drift plan §5 D4, shape b). buildRoutingByMealJSON records each meal
+// slot whose portion-component computation THREW into _meta.componentErrors; the
+// validator surfaces each as a Review and Stops past a small threshold, so a
+// broadly-broken portions pipe blocks the publish instead of silently shipping a
+// routing artifact that under-reports portions.
+
+function routingSetWithComponentErrors(n) {
+  const routing = readJson('routing_by_meal.json');
+  routing._meta.componentErrors = Array.from({ length: n }, (_, i) => ({
+    week: '1', day: 'MONDAY', meal: ['breakfast', 'lunch', 'dinner'][i % 3], error: 'computePlatingData threw #' + i
+  }));
+  return {
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': routing,
+    'door_state.json': readJson('door_state.json')
+  };
+}
+
+test('D4: a few component-compute failures are Review, not a Stop', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts(routingSetWithComponentErrors(2));
+  const reviews = result.review.filter((i) => i.code === 'routing-component-compute-error');
+  assert.equal(reviews.length, 2, 'each failed slot is surfaced as a Review');
+  assert.equal(reviews[0].artifact, 'routing_by_meal.json');
+  assert.ok(reviews[0].details && reviews[0].details.error, 'the caught error reaches the issue list (publish status line)');
+  assert.ok(!result.stop.some((i) => i.code === 'routing-components-degraded'), 'at/below threshold does not block the kitchen publish');
+});
+
+test('D4: too many component-compute failures Stop the publish', () => {
+  const core = loadPublishValidationCore();
+  const result = core.validateDoorPublishArtifacts(routingSetWithComponentErrors(3));
+  assert.equal(result.review.filter((i) => i.code === 'routing-component-compute-error').length, 3, 'still one Review per failed slot');
+  const stop = result.stop.find((i) => i.code === 'routing-components-degraded');
+  assert.ok(stop && stop.artifact === 'routing_by_meal.json', 'past the small threshold, a broadly-broken pipe is a Stop');
+  assert.equal(stop.details.failedSlots, 3);
+});
+
+test('D4: a healthy routing artifact records no component errors and raises nothing', () => {
+  const core = loadPublishValidationCore();
+  const routing = readJson('routing_by_meal.json');
+  assert.equal(routing._meta.componentErrors, undefined, 'the committed (healthy) artifact carries no componentErrors');
+  const result = core.validateDoorPublishArtifacts({
+    'menu_current.json': readJson('menu_current.json'),
+    'registry_summary.json': readJson('registry_summary.json'),
+    'routing_by_meal.json': routing,
+    'door_state.json': readJson('door_state.json')
+  });
+  assert.ok(!result.issues.some((i) => String(i.code).startsWith('routing-component-compute') || i.code === 'routing-components-degraded'),
+    'never fires on healthy data (§1 meta-cause)');
+});
+
+test('D4: the builder records throwing slots and stamps them only under degradation', () => {
+  const html = readText('index.html');
+  const builder = extractFunctionBlock(html, 'buildRoutingByMealJSON');
+  assertContains(builder, 'componentErrors.push(', 'the catch records the failed slot');
+  assertContains(builder, 'if (componentErrors.length) _meta.componentErrors', 'the stamp is additive — absent on a healthy build');
+  // the recording must live in the per-slot catch, i.e. after the console.warn
+  assert.ok(builder.indexOf('per-component counts failed') < builder.indexOf('componentErrors.push('),
+    'the failed-slot record sits in the per-slot catch');
+});
+
+test('D4: a broadly-degraded routing artifact is Gate-9 blocked on auto-publish; a few slips publish', async () => {
+  const blocked = loadPublishFlowHarness({
+    buildRoutingByMealJSON: () => {
+      const r = makePublishArtifact('routing_by_meal.json');
+      r._meta.componentErrors = Array.from({ length: 4 }, (_, i) => ({ week: '2', day: 'TUESDAY', meal: 'lunch', error: 'boom' + i }));
+      return r;
+    }
+  });
+  const res = await blocked.context._doPublishToGitHub(false); // auto
+  assert.ok(res && res.skipped && res.reason === 'validation-stop', 'a broadly-broken portions pipe blocks auto-publish');
+  assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
+
+  const proceeds = loadPublishFlowHarness({
+    buildRoutingByMealJSON: () => {
+      const r = makePublishArtifact('routing_by_meal.json');
+      r._meta.componentErrors = [{ week: '2', day: 'TUESDAY', meal: 'lunch', error: 'boom' }];
+      return r;
+    }
+  });
+  await proceeds.context._doPublishToGitHub(true);
+  assert.equal(proceeds.atomicCalls.length, 1, 'a single slot failure is advisory — the publish still commits');
+});
+
+// --- D5: the stale-tab guard is per-tab, not per-origin ----------------------
+// (silent-drift plan §5 D5, shape c). The old guard compared the live server
+// stamp against localStorage['door_html_stamp'], shared across every tab on the
+// origin — so a second tab booting (or the first reloading) overwrote it and an
+// OLD-build tab then read as fresh and could publish with stale logic. The
+// staleness verdict now depends only on THIS tab's own boot anchor.
+
+function loadStaleVerdict() {
+  const html = readText('index.html');
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(extractFunctionBlock(html, 'doorTabStaleVerdict'), context, { filename: 'index.html#stale-verdict', timeout: 1000 });
+  assert.equal(typeof context.doorTabStaleVerdict, 'function', 'exposes doorTabStaleVerdict');
+  return context.doorTabStaleVerdict;
+}
+
+test('D5: an unanchored tab anchors to the live stamp and is not stale', () => {
+  const verdict = loadStaleVerdict();
+  const v = verdict(null, 'etag-E1');
+  assert.equal(v.stale, false, 'first boot never flags stale');
+  assert.equal(v.anchor, 'etag-E1', 'first boot anchors to what the server serves now (the build it loaded)');
+});
+
+test('D5: an anchored tab is fresh against its own stamp, stale against a newer one', () => {
+  const verdict = loadStaleVerdict();
+  assert.equal(verdict('etag-E1', 'etag-E1').stale, false, 'same server stamp = fresh');
+  const stale = verdict('etag-E1', 'etag-E2');
+  assert.equal(stale.stale, true, 'a newer server stamp = this tab is stale');
+  assert.equal(stale.anchor, 'etag-E1', 'the anchor never moves without a reload (it is what this tab runs)');
+});
+
+test('D5: two tabs with the same live stamp are judged by their OWN boot anchor (the fix)', () => {
+  const verdict = loadStaleVerdict();
+  // After a deploy E1 -> E2: a fresh tab booted on E2, an old tab still on E1.
+  // Both see the same live server stamp E2 — the old bug let the shared localStorage
+  // value make the old tab read fresh. Now each is judged by its own anchor.
+  const freshTab = verdict('etag-E2', 'etag-E2');
+  const oldTab = verdict('etag-E1', 'etag-E2');
+  assert.equal(freshTab.stale, false, 'the tab actually running the new build is fresh');
+  assert.equal(oldTab.stale, true, 'the tab running the OLD build is stale — same live stamp, opposite verdict');
+});
+
+test('D5: a missing live stamp (no header / offline) is never stale', () => {
+  const verdict = loadStaleVerdict();
+  assert.equal(verdict('etag-E1', '').stale, false, 'no server stamp = silent, never a false alarm');
+  assert.equal(verdict('etag-E1', '').anchor, 'etag-E1', 'and the anchor is left intact');
+});
+
+test('D5: the guard compares against the per-tab anchor, not shared localStorage', () => {
+  const html = readText('index.html');
+  const guard = extractFunctionBlock(html, 'checkForFreshDoorVersion');
+  assertContains(guard, 'doorTabStaleVerdict(_doorBootHtmlStamp,', 'staleness is decided against the per-tab boot anchor');
+  assert.doesNotMatch(guard, /localStorage\.getItem\(['"]door_html_stamp['"]\)/,
+    'the guard must not read the shared localStorage stamp as the staleness baseline (silent-drift D5)');
+});
+
+// ============================================================================
+// Registry sync/staleness hardening (2026-09)
+// Incident: the resident registry silently froze for ~3.5 months (every resident
+// stuck at one lastImported date) — daily imports were never APPLIED, and an
+// unrelated publish could clobber a freshly-reconciled registry because the sync
+// guard compared the whole-file _meta.exported (bumps on ANY publish) instead of
+// the registry-DATA timestamp. Each import then diffed against the stale baseline
+// and surfaced months of change at once, reading as "wrong intakes/discharges."
+// ============================================================================
+function loadRegistryHardening() {
+  const html = readText('index.html');
+  const warnDays = extractConstNumber(html, 'DOOR_REGISTRY_STALE_WARN_DAYS');
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(
+    'const DOOR_REGISTRY_STALE_WARN_DAYS = ' + warnDays + ';\n' +
+    extractFunctionBlock(html, 'doorRegistryDataTs') + '\n' +
+    extractFunctionBlock(html, 'doorRegistrySyncShouldSkip') + '\n' +
+    extractFunctionBlock(html, 'doorFreshestImportTs') + '\n' +
+    extractFunctionBlock(html, 'doorRegistryStaleAssessment') + '\n',
+    context, { filename: 'index.html#registry-hardening', timeout: 1000 });
+  return { context, warnDays };
+}
+
+test('HARDENING: doorRegistryDataTs prefers registryModifiedAt over the file exported time', () => {
+  const { context } = loadRegistryHardening();
+  const f = context.doorRegistryDataTs;
+  const reg = new Date('2026-05-20T00:00:00Z').getTime();
+  const exp = new Date('2026-08-31T00:00:00Z').getTime();
+  assert.equal(f({ registryModifiedAt: '2026-05-20T00:00:00Z', exported: '2026-08-31T00:00:00Z' }), reg,
+    'uses registryModifiedAt (the DATA time), not exported (the publish time)');
+  assert.equal(f({ exported: '2026-08-31T00:00:00Z' }), exp, 'falls back to exported for legacy files without the field');
+  assert.equal(f(null), 0, 'null meta → 0');
+  assert.equal(f({}), 0, 'meta with neither field → 0');
+  assert.equal(f({ registryModifiedAt: 'not-a-date' }), 0, 'garbage date → 0');
+});
+
+test('HARDENING: a menu-only publish (stale residents, fresh file) does NOT clobber a newer local registry', () => {
+  const { context } = loadRegistryHardening();
+  const shouldSkip = context.doorRegistrySyncShouldSkip;
+  const localProv = new Date('2026-09-01T10:00:00Z').getTime(); // device reconciled Sept 1
+  // Remote: residents last changed May 20 (registryModifiedAt) but the file was
+  // just republished Aug 31 (exported) for a MENU edit. The pre-hardening guard
+  // compared exported (Aug 31 > Sept-1? no — but > the device's OLDER provenance
+  // in the real freeze), and would clobber. The fix compares registryModifiedAt.
+  const remoteMeta = { registryModifiedAt: '2026-05-20T00:00:00Z', exported: '2026-08-31T00:00:00Z' };
+  assert.equal(shouldSkip(remoteMeta, localProv, false), true,
+    'remote registry DATA is older than local → skip the clobber (the fix)');
+  // Proof the trap is closed: had it compared exported (Aug 31) vs a device whose
+  // provenance predated Aug 31, it would apply. Simulate that device:
+  const staleDeviceProv = new Date('2026-08-01T00:00:00Z').getTime();
+  assert.equal(shouldSkip(remoteMeta, staleDeviceProv, false), true,
+    'even a device with Aug-1 provenance keeps its data: remote registry (May 20) is still older than Aug 1');
+});
+
+test('HARDENING: a genuinely newer remote registry IS adopted; manual sync always applies; missing info applies', () => {
+  const { context } = loadRegistryHardening();
+  const shouldSkip = context.doorRegistrySyncShouldSkip;
+  const localProv = new Date('2026-09-01T10:00:00Z').getTime();
+  // Remote residents genuinely changed Sept 2 (newer than local) → do NOT skip (adopt).
+  assert.equal(shouldSkip({ registryModifiedAt: '2026-09-02T00:00:00Z' }, localProv, false), false,
+    'newer remote registry data → apply');
+  // Manual Sync is an explicit override — never skips, even with older remote data.
+  assert.equal(shouldSkip({ registryModifiedAt: '2020-01-01T00:00:00Z' }, localProv, true), false,
+    'manual sync always applies');
+  // No local provenance (first run) → apply.
+  assert.equal(shouldSkip({ registryModifiedAt: '2026-05-20T00:00:00Z' }, 0, false), false,
+    'no local provenance → apply (legacy behaviour, nothing to protect)');
+  // Legacy remote file (only exported) still orders correctly via the fallback.
+  assert.equal(shouldSkip({ exported: '2026-05-20T00:00:00Z' }, localProv, false), true, 'legacy older file → skip');
+  assert.equal(shouldSkip({ exported: '2026-09-05T00:00:00Z' }, localProv, false), false, 'legacy newer file → apply');
+});
+
+test('HARDENING: staleness assessment keys on the freshest lastImported and does not cry wolf on empty', () => {
+  const { context, warnDays } = loadRegistryHardening();
+  const assess = context.doorRegistryStaleAssessment;
+  const now = new Date('2026-09-01T00:00:00Z').getTime();
+  const daysAgo = (n) => new Date(now - n * 86400000).toISOString().slice(0, 10);
+  // The freeze: freshest resident imported ~104 days ago (May 20 → Sept 1) → stale.
+  const frozen = assess([{ lastImported: '2026-05-20' }, { lastImported: '2026-05-20' }], now);
+  assert.equal(frozen.stale, true, 'a 3.5-month-old registry is stale');
+  assert.ok(frozen.days >= 100, 'reports ~104 days, got ' + frozen.days);
+  // Freshest is today → current.
+  assert.equal(assess([{ lastImported: daysAgo(0) }, { lastImported: '2026-05-20' }], now).stale, false,
+    'if ANY resident was imported today the registry is current (freshest wins)');
+  // No lastImported anywhere (brand-new/empty) → never stale (no false alarm).
+  const empty = assess([{ room: '101' }, {}], now);
+  assert.equal(empty.stale, false, 'no lastImported anywhere → not stale');
+  assert.equal(empty.days, null, 'unknown freshness reports null days');
+  // Threshold boundary is wired to the const (>=).
+  assert.equal(assess([{ lastImported: daysAgo(warnDays) }], now).stale, true, 'exactly warnDays → stale');
+  assert.equal(assess([{ lastImported: daysAgo(warnDays - 1) }], now).stale, false, 'warnDays-1 → not stale');
+});
+
+test('HARDENING: buildStateJSON publishes registryModifiedAt from registry provenance', () => {
+  const html = readText('index.html');
+  const fn = extractFunctionBlock(html, 'buildStateJSON');
+  assertContains(fn, 'registryModifiedAt:', 'buildStateJSON must publish _meta.registryModifiedAt');
+  assertContains(fn, "localStorage.getItem('concRegistryProvenance')",
+    'registryModifiedAt derives from the registry provenance, not the file publish time');
+});
+
+test('HARDENING: pullStateFromGitHub compares the registry-data ts (not raw exported) and adopts registryModifiedAt', () => {
+  const html = readText('index.html');
+  const fn = extractFunctionBlock(html, 'pullStateFromGitHub');
+  assertContains(fn, 'doorRegistrySyncShouldSkip(state._meta', 'the sync guard routes through the hardened helper');
+  assertContains(fn, 'setRegistryProvenance(state._meta.registryModifiedAt',
+    'adopting a snapshot stamps provenance from the registry-data time, not the file publish time');
+  assert.doesNotMatch(fn, /_remoteExportedTs/,
+    'the pre-hardening whole-file exported comparison must be gone (silent-drift: a menu-only publish must not clobber a newer registry)');
+});
+
+test('HARDENING: the Enter-Changes prompt surfaces a loud stale-registry banner', () => {
+  const html = readText('index.html');
+  const prompt = extractFunctionBlock(html, 'updateDailyImportPrompt');
+  assertContains(prompt, 'const _staleBanner = _doorRegistryStaleBannerHTML();', 'the prompt computes the stale banner');
+  assertContains(prompt, 'el.innerHTML = _staleBanner +', 'the banner is prepended to the rendered prompt');
+  // Behaviour: the banner fires on a stale registry, is silent on a current one.
+  const context = { REGISTRY_LIST: [] };
+  const warnDays = extractConstNumber(html, 'DOOR_REGISTRY_STALE_WARN_DAYS');
+  vm.createContext(context);
+  vm.runInContext(
+    'const DOOR_REGISTRY_STALE_WARN_DAYS = ' + warnDays + ';\n' +
+    extractFunctionBlock(html, 'doorFreshestImportTs') + '\n' +
+    extractFunctionBlock(html, 'doorRegistryStaleAssessment') + '\n' +
+    extractFunctionBlock(html, '_doorRegistryStaleBannerHTML') + '\n',
+    context, { filename: 'index.html#stale-banner', timeout: 1000 });
+  context.REGISTRY_LIST.length = 0;
+  context.REGISTRY_LIST.push({ lastImported: '2026-05-20' });
+  const stale = context._doorRegistryStaleBannerHTML();
+  assert.ok(stale && stale.includes('out of date'), 'stale registry → a visible "out of date" banner');
+  context.REGISTRY_LIST.length = 0;
+  context.REGISTRY_LIST.push({ lastImported: new Date().toISOString().slice(0, 10) });
+  assert.equal(context._doorRegistryStaleBannerHTML(), '', 'current registry → no banner (silent)');
+});

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { webcrypto } from 'node:crypto';
+import { createSingleContextLockManager } from './helpers/single_context_lock_manager.mjs';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -259,6 +261,12 @@ function loadPublishFlowHarness(options = {}) {
   const html = readText('index.html');
   const standardCutover = extractConstNumber(html, 'DOOR_STANDARD_MENU_CUTOVER');
   const statusEl = { textContent: '', style: { color: '' } };
+  const deliveryLink = {};
+  const deliveryActions = { style: {}, querySelector: () => deliveryLink };
+  const timers = new Map();
+  const deliveryReads = [];
+  let transportHead = 'pinned-test-head';
+  let timerId = 0;
   const pushed = [];
   const syncBars = [];
   const toasts = [];
@@ -281,6 +289,20 @@ function loadPublishFlowHarness(options = {}) {
     JSON,
     Object,
     Promise,
+    crypto: webcrypto, TextEncoder, AbortController,
+    navigator: { locks: createSingleContextLockManager() },
+    // Queue delivery retries without real timers or external reads in this VM.
+    setTimeout(callback, delay = 0) { const id = ++timerId; timers.set(id, { callback, delay }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    async fetch(url, init = {}) {
+      assert.equal(init.method || 'GET', 'GET', 'delivery verification stays read-only');
+      if (String(url).startsWith('https://api.github.com/')) {
+        assert.equal(String(url), 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/git/ref/heads/main', 'the publish UI fixture only serves the final authoritative ref read');
+        return { ok: true, status: 200, json: async () => ({ object: { sha: transportHead } }) };
+      }
+      deliveryReads.push(String(url));
+      return { ok: false, status: 503 }; // committed, but no public delivery observed in this fixture
+    },
     console: {
       warn(...args) {
         consoleMessages.push({ level: 'warn', args });
@@ -295,13 +317,15 @@ function loadPublishFlowHarness(options = {}) {
     isFinite,
     document: {
       getElementById(id) {
-        return id === 'gh-status' ? statusEl : null;
+        return id === 'gh-status' ? statusEl : id === 'door-delivery-actions' ? deliveryActions : null;
       },
       querySelector() {
         return null;
       }
     },
     PublishAuth: {
+      getRepo() { return 'kennedyjasondavid-eng/conc-kitchen-door'; },
+      githubHeaders() { return { Accept: 'application/vnd.github+json' }; },
       getCredentialsForManualPublish() {
         if (options.credentialsError) throw new Error(options.credentialsError);
         return { repo: 'kennedyjasondavid-eng/conc-kitchen-door', token: 'test-token' };
@@ -348,7 +372,8 @@ function loadPublishFlowHarness(options = {}) {
           ? { path: f.path, skipped: true, reason: options.skippedReason || 'test_skip' }
           : { path: f.path, skipped: false };
       });
-      return { ok: true, results, commitSha: 'test-commit-sha', staged: results.filter((r) => !r.skipped).length };
+      transportHead = 'test-commit-sha';
+      return { ok: true, results, commitSha: transportHead, staged: results.filter((r) => !r.skipped).length };
     }),
     preMergeOverlayWithCloud: options.preMergeOverlayWithCloud || (async (creds, localOverlay) => localOverlay),
     loadMealSwaps: () => [],
@@ -386,7 +411,7 @@ function loadPublishFlowHarness(options = {}) {
   context.REVERTED_SWAP_KEYS = { mergeRemote() {} };
   context.REMOVED_SPECIAL_KEYS = { mergeRemote() {} };
   context.doorPublishReadRevision = async (creds) => ({
-    head: 'pinned-test-head', tree: 'pinned-test-tree', paths: {},
+    head: transportHead, tree: 'pinned-test-tree', paths: {},
     data: {
       'menu_overlay.json': await context.preMergeOverlayWithCloud(creds, JSON.parse(storage.concMenuBase)),
       'meal_swaps.json': {}, 'meal_swaps_reverted.json': {},
@@ -406,6 +431,7 @@ function loadPublishFlowHarness(options = {}) {
     extractTestableCoreBlock(html, 'swap-store'),
     "const DOOR_PUBLISH_OUTBOX_KEY = 'concPublishOutbox';",
     extractFunctionBlock(html, 'doorDateKey'),
+    extractFunctionBlock(html, 'doorPagesUrl'),
     extractTestableCoreBlock(html, 'publish-transaction').replace(extractFunctionBlock(html, 'doorPublishReadRevision'), ''),
     extractFunctionBlock(html, 'reportDoorPublishValidation'),
     extractFunctionBlock(html, 'reportDoorOverlayMergeAdvisory'),
@@ -423,6 +449,7 @@ function loadPublishFlowHarness(options = {}) {
     consoleMessages,
     overlayOverrides,
     atomicCalls,
+    deliveryReads,
     storage
   };
 }
@@ -435,6 +462,7 @@ function loadPublishAndSyncHarness(options = {}) {
   const storage = {};
   const context = {
     Date,
+    navigator: { locks: createSingleContextLockManager() },
     updateSyncBar(message, color) { syncBars.push({ message, color }); },
     showToast(message) { toasts.push(message); },
     updateDailyImportPrompt() { promptStates.push(context._doorPublishInFlight); },
@@ -445,11 +473,17 @@ function loadPublishAndSyncHarness(options = {}) {
       setItem(key, value) { storage[key] = String(value); }
     },
     PublishAuth: { getSavedToken: () => 'test-key' },
-    doorOutboxAppend() {}
+    doorOutboxAppend() {},
+    doorOutboxRead: () => [],
+    document: { getElementById: () => null },
+    doorDeliveryCurrent: () => options.deliveryRecord || { served: null, consumed: null }
   };
   vm.createContext(context);
   vm.runInContext(
-    'var _doorPublishInFlight = false;\nvar _doorConnectCardOpen = false;\n' + extractFunctionBlock(html, 'publishAndSync'),
+    'var _doorPublishInFlight = false;\nvar _doorConnectCardOpen = false;\n' +
+      extractFunctionBlock(html, 'doorDeliveryFresh') + '\n' +
+      extractFunctionBlock(html, 'doorDeliveryCanVerify') + '\n' +
+      extractFunctionBlock(html, 'doorDeliveryRender') + '\n' + extractFunctionBlock(html, 'publishAndSync'),
     context,
     { filename: 'index.html#publish-and-sync', timeout: 1000 }
   );
@@ -1856,7 +1890,7 @@ test('getMenuData still applies normal overlay in standard menu mode', () => {
   assert.equal(menu['1'].MONDAY.dinner, 'Base dinner');
 });
 
-test('publish flow shim ends green on a clean publish', async () => {
+test('publish flow shim reports committed pending until delivery is observed', async () => {
   const harness = loadPublishFlowHarness({
     localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } }
   });
@@ -1882,10 +1916,17 @@ test('publish flow shim ends green on a clean publish', async () => {
   ]);
   assert.equal(result.ok, true);
   assert.equal(Object.prototype.hasOwnProperty.call(result, 'advisory'), false);
-  assert.match(harness.statusEl.textContent, /Sent to the kitchen/);
+  assert.match(harness.statusEl.textContent, /Committed — kitchen delivery pending/);
+  assert.equal(harness.statusEl.style.color, 'var(--muted)');
+  assert.match(lastSync.message, /Committed — kitchen delivery pending/);
+  assert.equal(lastSync.color, 'var(--muted)');
+  const receipt = harness.context.doorDeliveryCurrent();
+  assert.equal(receipt.served, null, 'a successful Git commit is not delivery evidence');
+  assert.ok(harness.deliveryReads.length > 0, 'the real verifier attempted public reads');
+  harness.context.doorDeliverySave({ ...receipt, served: { observedAt: new Date().toISOString() } });
+  harness.context.doorDeliveryRender();
+  assert.match(harness.statusEl.textContent, /Available to the kitchen ✓/);
   assert.equal(harness.statusEl.style.color, 'var(--forest)');
-  assert.match(lastSync.message, /Sent to the kitchen/);
-  assert.equal(lastSync.color, 'var(--forest)');
 });
 
 test('publish flow shim builds menu and routing from pre-merged cloud overlay', async () => {
@@ -1922,10 +1963,10 @@ test('publish flow shim builds menu and routing from pre-merged cloud overlay', 
 
   assert.equal(result.ok, true);
   assert.equal(Object.prototype.hasOwnProperty.call(result, 'advisory'), false);
-  assert.match(harness.statusEl.textContent, /Sent to the kitchen/);
-  assert.equal(harness.statusEl.style.color, 'var(--forest)');
-  assert.match(lastSync.message, /Sent to the kitchen/);
-  assert.equal(lastSync.color, 'var(--forest)');
+  assert.match(harness.statusEl.textContent, /Committed — kitchen delivery pending/);
+  assert.equal(harness.statusEl.style.color, 'var(--muted)');
+  assert.match(lastSync.message, /Committed — kitchen delivery pending/);
+  assert.equal(lastSync.color, 'var(--muted)');
   assert.equal(overlayPush.content['1'].TUESDAY.dinner, 'Cloud dinner');
   assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY.dinner, 'Cloud dinner');
   assert.equal(menuPush.content.menu['1'].TUESDAY.dinner, 'Cloud dinner');
@@ -2065,13 +2106,22 @@ test('publishAndSync renders a degraded (Stop-flagged) auto-publish RED, not gre
   assert.match(last.message, /data check flagged/i);
 });
 
-test('publishAndSync paints a clean auto-publish green', async () => {
+test('publishAndSync keeps a committed auto-publish pending until delivery is observed', async () => {
   const h = loadPublishAndSyncHarness({ result: { ok: true } });
   h.context.publishAndSync('generate');
   await new Promise((r) => setTimeout(r, 10));
   const last = h.syncBars.at(-1);
-  assert.equal(last.color, 'var(--forest)');
-  assert.match(last.message, /Sent to the kitchen/);
+  assert.equal(last.color, 'var(--muted)');
+  assert.match(last.message, /Committed — kitchen delivery pending/);
+});
+
+test('publishAndSync paints freshly observed delivery green', async () => {
+  const h = loadPublishAndSyncHarness({ result: { ok: true }, deliveryRecord: {
+    served: { observedAt: new Date().toISOString() }, consumed: null
+  } });
+  await h.context.publishAndSync('generate');
+  assert.equal(h.syncBars.at(-1).color, 'var(--forest)');
+  assert.match(h.syncBars.at(-1).message, /Available to the kitchen ✓/);
 });
 
 test('publishAndSync keeps the standing banner out of failure mode until the send finishes', async () => {
@@ -2088,7 +2138,7 @@ test('publishAndSync keeps the standing banner out of failure mode until the sen
   await operation;
   assert.equal(h.context._doorPublishInFlight, false, 'the in-progress marker clears after a terminal result');
   assert.equal(h.promptStates.at(-1), false, 'the banner rerenders after success can be verified');
-  assert.match(h.syncBars.at(-1).message, /Sent to the kitchen/);
+  assert.match(h.syncBars.at(-1).message, /Committed — kitchen delivery pending/);
 });
 
 test('standing banner treats newer generated work as pending only after an active send ends', () => {
@@ -2984,7 +3034,8 @@ test('plain-language: staff-facing messages speak in kitchen terms, not app jarg
 
   // Plain forms staff should see (\\. stands in for a curly apostrophe — encoding-robust).
   const PRESENT = [
-    /Sent to the kitchen ✓ — /,                 // auto-send success
+    /Committed — kitchen delivery pending\./,          // commit acknowledged, delivery unobserved
+    /Available to the kitchen ✓/,                       // delivery confirmed separately
     /Sending to the kitchen…/,                       // auto-send in-flight
     /Got the latest from the kitchen ✓/,             // refresh success
     /Nothing to get yet — the kitchen has no saved list/,

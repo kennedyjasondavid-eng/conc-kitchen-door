@@ -4,8 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { createSingleContextLockManager } from './single_context_lock_manager.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const html = fs.readFileSync(process.env.DOOR_GATE_HTML || path.join(root, 'index.html'), 'utf8');
@@ -182,12 +183,19 @@ export function publishBox(options = {}) {
   for (const [key, value] of Object.entries(seed)) if (!(key in storage)) storage[key] = JSON.stringify(value);
   const timers = [], pending = [], events = [], messages = [];
   let timerId = 0;
+  let fixtureNow = FixtureDate.now();
+  class BoxDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [fixtureNow])); }
+    static now() { return fixtureNow; }
+  }
   const c = {
-    Array, Object, JSON, Promise, Set, String, Number, Math, Date: FixtureDate, URL,
+    Array, Object, JSON, Promise, Set, String, Number, Math, Date: BoxDate, URL,
+    crypto: webcrypto, TextEncoder, AbortController,
+    navigator: { locks: createSingleContextLockManager() },
     console: { log(...x) { messages.push(x); }, warn(...x) { messages.push(x); }, error(...x) { messages.push(x); } },
     localStorage: { getItem: key => storage[key] ?? null, setItem: (key, value) => { storage[key] = String(value); }, removeItem: key => { delete storage[key]; } },
     document: { getElementById: () => null, querySelector: () => null },
-    setTimeout(cb, delay = 0) { const id = ++timerId; if (delay > 0 && delay < 1000) Promise.resolve().then(cb); else timers.push({ id, cb }); return id; },
+    setTimeout(cb, delay = 0) { const id = ++timerId; timers.push({ id, cb, due:fixtureNow+Math.max(0,Number(delay)||0) }); return id; },
     clearTimeout(id) { const i = timers.findIndex(x => x.id === id); if (i >= 0) timers.splice(i, 1); },
     fetch: remote.fetch.bind(remote),
     atob: x => Buffer.from(x, 'base64').toString('binary'), btoa: x => Buffer.from(x, 'binary').toString('base64'),
@@ -225,7 +233,7 @@ export function publishBox(options = {}) {
   };
   vm.createContext(c);
   const functions = [
-    'doorDateKey', 'doorMakeRevertList', 'loadMealSwaps', 'saveMealSwaps', 'loadSpecialMeals', 'saveSpecialMeals',
+    'doorDateKey', 'doorPagesUrl', 'doorMakeRevertList', 'loadMealSwaps', 'saveMealSwaps', 'loadSpecialMeals', 'saveSpecialMeals',
     'loadSwapReverts', 'loadSpecialRemovals', 'doorApplyRemoteSwaps', 'doorApplyRemoteSpecials',
     'loadMenuBaseOverlay', 'saveMenuBaseOverlay',
     'preMergeOverlayWithCloud', 'preMergeSwapsWithCloud', 'reportDoorPublishValidation', 'reportDoorOverlayMergeAdvisory',
@@ -251,8 +259,14 @@ export function publishBox(options = {}) {
   const originalPublishAndSync = c.publishAndSync;
   c.publishAndSync = (...args) => { const result = originalPublishAndSync(...args); pending.push(Promise.resolve(result)); return result; };
   const flush = async () => {
+    let callbacks=0;
     for (let i = 0; i < 20; i++) {
-      while (timers.length) await timers.shift().cb();
+      while (timers.length) {
+        if (++callbacks>1000) throw new Error('fixture timer callback bound exceeded');
+        timers.sort((a,b)=>a.due-b.due||a.id-b.id);
+        const timer=timers.shift();fixtureNow=Math.max(fixtureNow,timer.due);
+        await timer.cb();
+      }
       if (!pending.length) { await Promise.resolve(); if (!timers.length && !pending.length) return; }
       await Promise.all(pending.splice(0));
     }

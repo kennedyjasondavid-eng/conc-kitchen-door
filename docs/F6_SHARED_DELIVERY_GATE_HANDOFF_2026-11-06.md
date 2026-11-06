@@ -1,0 +1,14 @@
+# F6 shared delivery review findings and frozen supplement
+
+Independent review found two material gaps on DOOR SHA256 `04f5adfe421756b25ae08763d0d9a22d527913af027dbacb7ead9987876ee042`.
+
+1. Verification flights were only tracked inside each tab. Two real tabs sharing the same receipt could each start a read, spend another attempt and overwrite an older captured budget on completion. Operation identity alone cannot protect a newer attempt of that same operation.
+2. After A was served and consumed, a coherent later public B could replace served evidence while closed/stale EXPO left consumed A intact. Both visible status surfaces then still said EXPO accepted this update. Current consumed credit must match the current served publication/input pair; a previous acceptance cannot transfer to B.
+
+Frozen new `tests/browser/menu_flow_f6_shared_delivery.mjs` SHA256 `4465a57517004d183bfc175f9bda3eeb6ff9340bef08a871a742c9690fee34d2` uses the unchanged F6 applying-browser harness. It opens a real same-origin popup, proves the actual durable record is shared, holds anonymous transport, and invokes actual explicit rechecks in both tabs. It does not emulate two tabs using one function map or fabricate a delivery receipt.
+
+Pre-repair result: **13 checks, 8 pass and 5 fail**, source `04f5adfe...`, log `%TEMP%/door-ci-audit-20261106/f6-shared-delivery-red.log`. T3/T4 expose concurrent attempts/budget; T7/T8 expose inherited consumed A and visible false acceptance for B; T12 exposes automatic reads without the agreed cross-tab coordination capability. Real A acceptance, later B recovery, single content commit, shared-tab record, ordinary save in an unsupported browser, deployment link and runtime controls remain green.
+
+Reviewed repair contract: acquire a Web Lock by repository/branch/site for verification, using nonqueued availability to coalesce concurrent triggers. Re-read the current operation and budget inside that lock and persist before requests. Completion must compare operation plus the attempt witness before saving; an old result must not overwrite a newer attempt or operation. A denied lock must not cause a zero-delay retry loop. Owner completion/storage/focus supplies the next existing opportunity. On missing Web Locks, save and retain the pending receipt without automatic verification, expose the existing deployment link and disable/explain the unavailable recheck action. Do not introduce a racy localStorage pseudo-lock, background service or new credential permission.
+
+When a new served publication/input pair replaces the old pair, clear its current consumed credit before trying EXPO. A valid completed B capability can then restore B credit. No extra historical queue is needed. Existing F6 source-authority, dedupe, bounded schedule, timeout, restart and newer-local-intent assertions remain unchanged. The builder must not edit this supplement.
