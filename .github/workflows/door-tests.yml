@@ -28,8 +28,9 @@ permissions:
 jobs:
   smoke:
     name: DOOR safety checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Keep this OS paired with the reviewed test-only Playwright version.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -42,6 +43,31 @@ jobs:
 
       - name: Run smoke tests
         run: node --test tests/*.mjs
+
+      # F4's actual publisher checks join this runner. C2b will reduce browser
+      # selection for ordinary data writes after its operational gate is reviewed.
+      - name: Install Playwright for publisher contracts
+        if: ${{ !cancelled() }}
+        run: npm install --no-save --package-lock=false playwright@1.56.1
+
+      - name: Restore Chromium cache
+        if: ${{ !cancelled() }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-chromium-${{ runner.os }}-1.56.1
+
+      - name: Install Chromium for publisher contracts
+        if: ${{ !cancelled() }}
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Run coherent publisher browser contracts
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          for gate in tests/browser/menu_flow_f4_producer.mjs tests/browser/menu_flow_f4_input_coverage.mjs tests/browser/menu_flow_f4_occurrence_recovery.mjs tests/browser/menu_flow_f4_occurrence_rollback.mjs tests/browser/menu_flow_f4_private_counter.mjs tests/browser/menu_flow_f4_counter_witness.mjs; do
+            node "$gate"
+          done
 
       # Reuse this runner; advisory failures never change the safety result.
       # Still run after a safety failure, but stop spending work on cancelled runs.
