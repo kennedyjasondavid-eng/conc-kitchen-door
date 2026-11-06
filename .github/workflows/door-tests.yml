@@ -2,6 +2,7 @@ name: DOOR tests
 
 on:
   pull_request:
+  workflow_dispatch: {}
   push:
     branches:
       - main
@@ -35,34 +36,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
+      - name: Classify publisher browser coverage
+        id: browser_scope
+        run: node scripts/ci_door_scope.mjs
+
       - name: Run smoke tests
         run: node --test tests/*.mjs
 
-      # F4's actual publisher checks join this runner. C2b will reduce browser
-      # selection for ordinary data writes after its operational gate is reviewed.
+      # All Node safety contracts run above. Only verified ordinary data changes
+      # omit browser setup; unknown or failed classification keeps full coverage.
       - name: Install Playwright for publisher contracts
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.browser_scope.outputs.browser != 'false' }}
         run: npm install --no-save --package-lock=false playwright@1.56.1
 
       - name: Restore Chromium cache
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.browser_scope.outputs.browser != 'false' }}
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-chromium-${{ runner.os }}-1.56.1
 
       - name: Install Chromium for publisher contracts
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.browser_scope.outputs.browser != 'false' }}
         run: npx --no-install playwright install --with-deps chromium
 
       - name: Run coherent publisher browser contracts
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.browser_scope.outputs.browser != 'false' }}
         shell: bash
         run: |
           for gate in tests/browser/menu_flow_f4_producer.mjs tests/browser/menu_flow_f4_input_coverage.mjs tests/browser/menu_flow_f4_occurrence_recovery.mjs tests/browser/menu_flow_f4_occurrence_rollback.mjs tests/browser/menu_flow_f4_private_counter.mjs tests/browser/menu_flow_f4_counter_witness.mjs; do
