@@ -10,6 +10,7 @@ Validation:
 - Kitchen reader: 15/15 pass, `node tests/kitchen_reader_gate.mjs`.
 - Existing menu advisory: 3/4; the current W1 Tuesday Nightshades expectation disagreement is retained. No allergen data or advisory expectation changed.
 - Workflow diff has no whitespace errors. The default test runner encountered sandbox child-process EPERM; direct Node test-module execution completed.
+- The existing smoke assertion for a separate advisory job was updated to check the new one-job boundary, advisory execution/tolerance and truthful summary without masking safety failure. Focused in-process Node run: 1/1 pass. Both independent reviewers separately cleared this amendment before commit.
 
 Independent safety/data reviewer `/root/review_food_data`: clear, no material findings. Independent release/feed reviewer `/root/review_contract_release`: clear, no material findings. Both reviewed the complete workflow diff against the fixed acceptance checklist. Safety failure remains a job failure; only advisory failure is tolerated; the advisory still executes after a safety failure and reports pass/failure/incomplete accurately. Pages remains independent and serves exactly the previous allowlist. Reviews were source-based and did not exercise hosted Actions.
 
