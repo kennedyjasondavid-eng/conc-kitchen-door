@@ -1,0 +1,15 @@
+# C2b independent release review
+
+Verdict: clear for hosted checks and the separate food/data review. No runtime application source changes; `index.html` remains reviewed F4 producer SHA256 `9e4687bd9697566bd1f4a4c294abb11ab423b6ef5fbba2517ce796e73071e81d`.
+
+Reviewed classifier `scripts/ci_door_scope.mjs`, SHA256 `2a100f124e8e9dc19d5e931fcef37a07d68e7795cff7d28bd90378ebc06041cb`; publication checker `scripts/check_published_flow.mjs`, `19dfa397d3e44a051034e54aadb8a7cd1a82fea7e54bfa78972424e14643dc16`; workflow `.github/workflows/door-tests.yml`, `1341956ddb76f40502c0dc67af60d6e61a24f25c6665276f403527592c4ea182`.
+
+The classifier checks exact Git revisions and NUL-delimited name/status with external diff and rename detection disabled. Only known added/modified operational artifacts and narrowly recognized Markdown can omit browsers. Deletion, rename, copy, type change, mixed code/test/workflow, unknown paths, empty/malformed diff, unreadable base, spawn/parse exceptions and manual/unknown events retain full browser coverage. All subprocesses are bounded; a failed or absent output cannot select the light lane.
+
+The existing required safety job and entire unconditional Node suite remain. Only four browser setup/cache/install/run steps use the same conservative `browser != 'false'` condition. Supported Ubuntu/Playwright pairing, advisory-only nonblocking behavior, existing trigger filters, cancellation and independent Pages are retained. Checkout obtains the revisions; no new classifier job or runtime install is introduced. Whole-history fetch is an implementation cost to measure in hosted timing; the current local packed object store is small, and no fixed net minute saving is asserted.
+
+The publication checker evaluates active artifacts through the actual shipped shared F4 core, with matching five private/public receipt carriers and private counter, and all seven public families. It rejects incoherent receipts, menu/dated/calendar/projection changes and invalid counts. A wholly legacy bundle remains allowed before activation; explicit unavailable routing remains valid. The checker does not claim to reconstruct unpublished recipe facts from a digest. Existing complete Node coverage still supplies artifact structure, current resident/allergen/anaphylactic behavior, publisher protections and privacy checks.
+
+Independently reran all 67 frozen checks: 67 pass / 0 fail / 0 skip; hashes match the pre-build gates exactly. Also exercised actual local commit pairs: normal data `7f908e0...`→`8066a1f...` selects no browser; actual product change `7c7c8af...`→`b1bfd347...` selects full browser; subsequent documentation-only `b1bfd347...`→`44e2c0f...` selects no browser. No network or repository mutation was needed.
+
+Root owns the full 807-check Node run and hosted verification. This review is a source/diff and focused-execution clearance, not an assertion that hosted checks or the food/data review have completed. Gate author and builder remained separate; no frozen assertion changed during implementation.
