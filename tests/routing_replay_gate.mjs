@@ -10,9 +10,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { historical, syntheticResident } from './helpers/historical_menu.mjs';
+import { liftCornDoor } from './helpers/corn_gate_runtime.mjs';
 import { plateFor, requiredNotes, regularServiceNotes, anaphContained, NOTES } from './helpers/routing_oracle.mjs';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
@@ -126,75 +128,45 @@ test('every published Regular line names the restrictions and service notes its 
   assert.deepEqual(bad.slice(0, 12), [], bad.length + ' Regular lines miss a note');
 });
 
-test('the receipt: each restriction the audit found unserved and unnamed is named now (rules table §8)', () => {
-  const at = (wk, day, period) => MEALS.find((m) => m.wk === wk && m.day.startsWith(day) && m.period === period);
-  const named = (m, room, note) => { const l = lineFor(m, room); return !!(l && l.notes.has(note)); };
-  // Re-pinned 2026-11-04: the receipt named the audit's rooms, so a resident leaving turned it red while the rule held
-  // (704, Halal + No Beef, discharged in DOOR's 2026-11-04T14:48 publish). Each row now checks every resident who holds
-  // the restriction today, on that plate, and needs at least one, so a row never passes by checking no one.
-  const holding = (t) => state.residents.filter((r) => (r.tags || []).includes(t)).map((r) => r.room);
-  const onPlate = (m, t, key) => holding(t).filter((room) => { const l = lineFor(m, room); return !!l && (!key || l.key === key); });
-  function everyNamed(m, t, note, key, label) {
-    assert.ok(m, label + ': no such meal');
-    const rooms = onPlate(m, t, key);
-    assert.ok(rooms.length >= 1, label + ': no ' + t + ' resident on the ' + key + ' plate');
-    assert.deepEqual(rooms.filter((room) => !named(m, room, note)), [], label + ': ' + t + ' not named');
+// Named incidents stay as fixed inputs; the four tests above still check every current resident/meal.
+const examples = [
+  ['spicy_halal', ['Halal', 'No Spicy'], '2|TUESDAY|dinner', 'halal', 'not spicy'],
+  ['spicy_vegan', ['Vegan', 'No Spicy'], '2|TUESDAY|dinner', 'vegan', 'not spicy'],
+  ['soft_halal', ['Halal', 'Soft Meals'], '1|THURSDAY|lunch', 'halal', 'soft'],
+  ['processed', ['No Processed Food'], '2|THURSDAY|dinner', 'halal', 'no processed meat'],
+  ['beef_halal', ['Halal', 'No Beef'], '1|THURSDAY|lunch', 'halal', 'no beef'],
+  ['turkey_halal', ['Halal', 'No Turkey'], '3|FRIDAY|breakfast', 'halal', 'no turkey'],
+  ['gluten_vegan', ['Vegan', 'GF'], '2|THURSDAY|dinner', 'vegan', 'gluten-free'],
+  ['beans_vegan', ['Vegan', 'No Beans'], '2|FRIDAY|lunch', 'vegan', 'no beans'],
+  ['egg_halal', ['Halal', 'No Eggs'], '2|SATURDAY|lunch', 'halal', 'no egg'],
+];
+test('fixed audit examples name each restriction, independent of current dishes and cohort sizes', () => {
+  const residents = examples.map(([id, tags]) => syntheticResident('case_' + id, tags));
+  const replay = liftCornDoor(html).engine(historical.menu, null, residents).out;
+  for (const [id, , meal, plate, note] of examples) {
+    assert.equal(replay[meal].seat['case_' + id], plate, id + ' plate');
+    assert.ok(splitNotes(replay[meal].notes['case_' + id]).has(note), id + ': missing ' + note);
   }
-  // Every meal where a resident holding the restriction sits as `pick` says, and the ones whose line misses the note.
-  function acrossMeals(t, pick, note) {
-    const hits = [];
-    for (const room of holding(t)) for (const m of MEALS) if (pick(m, room)) hits.push({ m, room });
-    return { count: hits.length, missing: hits.filter(({ m, room }) => !named(m, room, note)).map(({ m, room }) => room + ' ' + tag(m)) };
-  }
-  // #1 No Spicy on the halal plate: Wk2 TUE dinner's halal plate is Chicken Vindaloo.
-  everyNamed(at('2', 'TUE', 'dinner'), 'No Spicy', 'not spicy', 'halal', 'Wk2 TUE dinner');
-  // #2 No Spicy on a vegan plate whose line says SPICY, every such meal.
-  const spicyVegan = acrossMeals('No Spicy', (m, room) => /\bSPICY\b/.test(m.pd.vegAllergenStr || '') && (lineFor(m, room) || {}).key === 'vegan', 'not spicy');
-  assert.ok(spicyVegan.count >= 15, spicyVegan.count + ' plates');
-  assert.deepEqual(spicyVegan.missing, []);
-  // #3, #4 Soft Meals on another plate, never served the soft alternative there.
-  const softOut = acrossMeals('Soft Meals', (m, room) => { const l = lineFor(m, room); return !!l && l.key !== 'soft' && !(l.key === 'halal' && m.pd.mealFlags.hasPork && !(m.pd.mealFlags._altMeals || []).length); }, 'soft');
-  assert.deepEqual(softOut.missing, []);
-  // Re-pinned 2026-10-19 (the plating review): with no bland plate on every spicy meal, a Soft Meals resident eats the soft
-  // plate there, or the regular plate where the kitchen marks "no soft alternative needed", with "soft" in the Regular notes.
-  const onRegular = (m, room) => (m.pd.sections.find((x) => x.rule.key === 'regular') || { residents: [] }).residents.some((r) => r.room === room);
-  const regularNote = (m, room) => { const n = (m.pd.regularNotes || []).find((x) => x.room === room); return n ? splitNotes([n.conflictNote, n.serviceNote].filter(Boolean).join(' · ')) : new Set(); };
-  const softRegular = [];
-  for (const room of holding('Soft Meals')) for (const m of MEALS) if (m.pd.mealFlags._altMealsNone && onRegular(m, room)) softRegular.push({ m, room });
-  assert.deepEqual(softRegular.filter(({ m, room }) => !regularNote(m, room).has('soft')).map(({ m, room }) => room + ' ' + tag(m)), []);
-  assert.ok(softOut.count + softRegular.length >= 10, softOut.count + ' + ' + softRegular.length + ' plates');
-  // #5 No Processed Food folded into Halal on a processed-pork day.
-  const proc = acrossMeals('No Processed Food', (m, room) => m.pd.mealFlags.hasProcessedMeat && (lineFor(m, room) || {}).key === 'halal', 'no processed meat');
-  assert.ok(proc.count >= 10, proc.count + ' plates');
-  assert.deepEqual(proc.missing, []);
-  // #6 No Beef on Wk1 THU lunch's halal beef sausage; #7 No Turkey on Wk3 FRI breakfast's halal plate.
-  everyNamed(at('1', 'THU', 'lunch'), 'No Beef', 'no beef', 'halal', 'Wk1 THU lunch');
-  everyNamed(at('3', 'FRI', 'breakfast'), 'No Turkey', 'no turkey', null, 'Wk3 FRI breakfast');
-  // #8, #9 GF and No Beans on vegan plates whose own line has wheat or beans. The vegan sausage dinner is found by its
-  // name wherever it is in Wk2 (2026-11-04: Jason moves meals between days).
-  const sausages = MEALS.find((m) => m.wk === '2' && m.period === 'dinner' && /^Vegan Sausages/.test(m.pd.ctx.vegName || m.pd.vegName || MENU['2'][m.day].dinner_veg || ''));
-  everyNamed(sausages, 'GF', 'gluten-free', 'vegan', 'the Wk2 vegan sausage dinner');
-  // Re-pinned 2026-10-30 (Mat's Rexdale changes): Wk3 SUN dinner is Bolognese again, and its vegan batch has no beans;
-  // the vegan Wk2 FRI lunch (the chili's vegan batch) does.
-  everyNamed(at('2', 'FRI', 'lunch'), 'No Beans', 'no beans', 'vegan', 'Wk2 FRI lunch');
-  // Found by the flag-source census (A5): the halal plate's own dish. Wk2 SAT lunch's halal plate is Halal Breaded Chicken
-  // Burgers (egg, spicy, nightshades); the main meal (chicken tenders) ticks no egg.
-  const w2sat = at('2', 'SAT', 'lunch');
-  assert.match(w2sat.pd.ctx.halalAllergenStr || '', /\bEGGS?\b/, 'the halal plate says egg');
-  everyNamed(w2sat, 'No Eggs', 'no egg', 'halal', 'Wk2 SAT lunch');
 });
 
-test('room 213 is contained meal by meal on the 10 published meals with tree nuts or coconut, and only there', () => {
-  // Re-pinned 2026-10-19 (the plating review): W3 THU dinner's Pork Griot comes with coconut rice and takes the Coconut
-  // tick (tests/plating_review_ticks_gate.mjs).
-  const contained = MEALS.filter((m) => m.pd.anaphSect.some((r) => r.room === '213')).map(tag).sort();
-  assert.deepEqual(contained, ['W1 FRI dinner', 'W1 MON dinner', 'W1 WED dinner', 'W2 MON dinner', 'W2 WED dinner', 'W3 FRI lunch',
-    'W3 THU dinner', 'W3 TUE dinner', 'W4 MON dinner', 'W4 SAT dinner']);
+test('a synthetic coconut-anaphylactic resident is contained exactly when a fixed meal sets off the flag', () => {
+  const resident = syntheticResident('case_anaphylaxis', ['No Coconut'], { isAnaph: true, anaphTags: ['noCoconut'] });
+  const { ctx, out: replay } = liftCornDoor(html).engine(historical.menu, null, [resident]);
+  let affected = 0, unaffected = 0;
+  for (const [meal, result] of Object.entries(replay)) {
+    const [wk, day, period] = meal.split('|');
+    const pd = ctx.computePlatingData(period, wk, day);
+    const expected = anaphContained(resident.room, [resident], [], pd.mealFlags, LABEL_OF);
+    assert.equal(result.seat[resident.room] === 'anaph', expected, meal);
+    expected ? affected++ : unaffected++;
+  }
+  assert.ok(affected > 0 && unaffected > 0, 'the fixture exercises containment and ordinary service');
 });
 
-test('review P2: a halal plate never says PORK, whatever a slot\'s copied ticks say', () => {
-  const pork = MEALS.filter((m) => /\bPORK\b/.test(m.pd.ctx.halalAllergenStr || '')).map(tag);
-  assert.deepEqual(pork, []);
-  const w4fri = MEALS.find((m) => m.wk === '4' && m.day === 'FRIDAY' && m.period === 'dinner');
-  assert.ok(w4fri.pd.ctx.halalAllergenStr, 'Wk4 FRI dinner\'s halal plate (Tandoori Chicken) has a CONTAINS line');
+test('a halal plate never says PORK, on current meals and a fixed known halal alternative', () => {
+  assert.deepEqual(MEALS.filter(m => /\bPORK\b/.test(m.pd.ctx.halalAllergenStr || '')).map(tag), []);
+  const { ctx } = liftCornDoor(html).engine(historical.menu, null, [syntheticResident('case_halal', ['Halal'])]);
+  const pd = ctx.computePlatingData('dinner', '4', 'FRIDAY');
+  assert.ok(pd.ctx.halalAllergenStr, 'the fixed Tandoori Chicken alternative has a CONTAINS line');
+  assert.doesNotMatch(pd.ctx.halalAllergenStr, /\bPORK\b/);
 });

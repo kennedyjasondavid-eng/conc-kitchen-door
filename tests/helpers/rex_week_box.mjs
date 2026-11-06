@@ -8,7 +8,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 export function rexWeekBox(root) {
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
   const between = (a, b) => { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e + b.length); };
   const fn = (name) => { const m = html.match(new RegExp('\\nfunction ' + name + '\\(')); assert.ok(m, 'missing ' + name); const s = m.index + 1; return html.slice(s, html.indexOf('\n}\n', s)) + '\n}\n'; };
   const line = (prefix) => { const s = html.indexOf(prefix); assert.ok(s >= 0, 'missing ' + prefix); return html.slice(s, html.indexOf('\n', s)) + '\n'; };

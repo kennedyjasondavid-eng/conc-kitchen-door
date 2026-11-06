@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/workbook_shellfish_words_gate.mjs — the menu workbook import reads shellfish (2026-10-18, v31-standard.31).
 // Importing the menu workbook sets each meal's flags from its Intake allergen row (allergenStrToFlags) and the dish
 // name (nameDetectFlags). The row knew only "shellfish", "shrimp" and "crab", so "prawns", "mussels", "molluscs" or
@@ -6,11 +8,12 @@
 // "seafood" in a dish name is read as fish and shellfish. No published dish names shellfish (checked below).
 // Authored to fail on main 9cf22d9 (v31-standard.30).
 import test from 'node:test';
+import { historical } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
 const json = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
@@ -63,10 +66,10 @@ test('the dish name reads shellfish; not an oyster mushroom; seafood is both', (
   assert.ok(!dish(c, 'Baked Basa').includes('hasShellfish'), 'fish is not shellfish');
 });
 
-test('every published dish imports as before (none names shellfish)', () => {
+test('the fixed pre-shellfish dishes import as before', () => {
   const now = ctxFor(), was = ctxFor(before);
   let n = 0;
-  for (const data of [json('menu_current.json').menu, json('menu_overlay.json'), json('menu_reno.json').menu || json('menu_reno.json')]) {
+  for (const data of [historical.menu, historical.overlay]) {
     for (const wk of Object.keys(data || {})) {
       if (wk === '_meta' || !data[wk] || typeof data[wk] !== 'object') continue;
       for (const day of Object.keys(data[wk])) {

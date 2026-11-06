@@ -100,9 +100,9 @@ test('every recipe in the baked fallback that names coconut sets Coconut, and no
   assert.ok(n >= 10, 'the baked list names coconut on at least 10 recipes: ' + n);
 });
 
-test('every recipe in the CODEX feed that names coconut sets Coconut, and nothing else moves', () => {
+test('every recipe in the CODEX feed that names coconut sets Coconut, and nothing else moves', (t) =>{
   const feedPath = path.resolve(root, '..', 'conc-recipe-hub', 'DOOR_RECIPE_DATA.json');
-  if (!fs.existsSync(feedPath)) { console.log('SKIP: sibling recipe-hub feed not checked out'); return; }
+  if (!fs.existsSync(feedPath)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const raw = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
   const feed = Array.isArray(raw) ? raw : (raw.recipes || []);
   const n = coverage(freshCtx(), feed, 'feed');

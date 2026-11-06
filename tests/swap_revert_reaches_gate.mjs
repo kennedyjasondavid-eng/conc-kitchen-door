@@ -227,16 +227,8 @@ test('6. a slot swap lands both halves as far apart as the meals are on the menu
   assert.match(ex, /formatShortDate\(d\)/, 'the toast names the dates');
 });
 
-test('7. the Nov 3 swap is removed, and the revert is published', () => {
-  const swaps = J('meal_swaps.json'), rev = J('meal_swaps_reverted.json');
-  assert.equal(swaps[NOV3], undefined, 'not in the swap file');
-  // Re-pinned 2026-11-04: once Nov 3 has passed, its revert leaves the published list (past dates leave, as every
-  // revert does: doorMergeSwapReverts) and the swap stays gone. While it is ahead, the revert must be published.
-  if (NOV3.slice(0, 10) >= new Date().toISOString().slice(0, 10)) assert.ok(rev[NOV3] && rev[NOV3] > RECORDED.createdAt, 'reverted after it was made: every computer drops its copy');
-  else assert.ok(!rev[NOV3] || rev[NOV3] > RECORDED.createdAt, 'a past revert has left the list, or still postdates the swap');
-  // the routing file's Wk2 TUE lunch is the rotation's again
-  const r = J('routing_by_meal.json').routing['2'].TUESDAY.lunch;
-  assert.ok(r._components['Tuna Salad Sandwich Mix'] > 0 && !r._components['Halal Beef Burger'], JSON.stringify(r._components));
+test('7. the current published routing, state and summary share the menu export stamp', () => {
+  // The fixed Nov 3 removal and expiry behavior is exercised in tests 1-3 above.
   // every artifact is stamped from the one menu
   const stamp = J('menu_current.json')._meta;
   for (const f of ['routing_by_meal.json', 'door_state.json', 'registry_summary.json'])

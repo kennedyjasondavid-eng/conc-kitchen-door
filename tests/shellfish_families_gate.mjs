@@ -117,11 +117,11 @@ function onlyShellfishMoves(recipes, where) {
   return named;
 }
 
-test('only Shellfish moves: every recipe in the baked fallback and the CODEX feed', () => {
+test('only Shellfish moves: every recipe in the baked fallback and the CODEX feed', (t) =>{
   const n = onlyShellfishMoves(freshCtx().__FB, 'baked');
   assert.equal(n, 0, 'no baked recipe names Crustaceans or Molluscs today');
   const feedPath = path.resolve(root, '..', 'conc-recipe-hub', 'DOOR_RECIPE_DATA.json');
-  if (!fs.existsSync(feedPath)) { console.log('SKIP feed: sibling recipe-hub not checked out'); return; }
+  if (!fs.existsSync(feedPath)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const raw = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
   assert.equal(onlyShellfishMoves(Array.isArray(raw) ? raw : (raw.recipes || []), 'feed'), 0, 'no published recipe names them today');
 });
@@ -138,9 +138,9 @@ const CODEX_FAMILY_FLAG = {
 const CODEX_FAMILY_IGNORED = ['oats'];                 // a separate CODEX flag; DOOR ignores it on purpose
 const CODEX_FAMILY_NO_DOOR_FLAG = ['lupin', 'buckwheat']; // DOOR has no flag: they stay on the unmapped banner
 
-test('every family CODEX\'s reader writes reaches a DOOR flag; every CODEX label naming Crustaceans or Molluscs sets Shellfish', () => {
+test('every family CODEX\'s reader writes reaches a DOOR flag; every CODEX label naming Crustaceans or Molluscs sets Shellfish', (t) =>{
   const dataPath = path.resolve(root, '..', 'conc-recipe-hub', 'CONC_Recipe_Data.js');
-  if (!fs.existsSync(dataPath)) { console.log('SKIP CODEX data layer: sibling recipe-hub not checked out'); return; }
+  if (!fs.existsSync(dataPath)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const data = {};
   vm.createContext(data);
   vm.runInContext(fs.readFileSync(dataPath, 'utf8') + '\nthis.DB = ALLERGEN_DB; this.PT = PROMPT_TEMPLATES; this.SEED = CONC_PRODUCTION_SEED;',

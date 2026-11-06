@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/plating_review_ticks_gate.mjs — the menu ticks the plating review found missing stay on while their dish is on
 // the meal (2026-10-19). The review compared DOOR's plating sheets with the kitchen's manual ones (Oct 17 workbooks):
 // the manual CONTAINS lines named an allergen DOOR's menu didn't tick, so No Dairy residents got cheese on both burger
@@ -10,10 +12,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { historicalMenu } from './helpers/historical_menu.mjs';
 
 const read = (f) => JSON.parse(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
-const menu = read('menu_current.json').menu;
-const overlay = read('menu_overlay.json');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const { menu, overlay } = historicalMenu(html);
 const TICKS = [
   ['1', 'MONDAY', 'lunch', 'hasMustard', 'Breaded Chicken Burgers', 'mustard'],
   ['2', 'SUNDAY', 'lunch', 'hasBeef', 'Philly Cheese Melt', 'beef'],

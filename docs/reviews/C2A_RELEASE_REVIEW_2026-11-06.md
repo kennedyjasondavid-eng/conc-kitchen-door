@@ -1,0 +1,11 @@
+# C2a independent release and coverage review
+
+Reviewer: primary agent, independent of C2a builder. Verdict: clear for PR after closure of the food/data review's Corn finding. No product, operational data or workflow change is included. The full default test command remains enabled.
+
+Reviewed the assertion map, fixed fixture/export helpers, changed historical regression tests and current-data warning floor. Historical dish dates, minimum resident cohorts, attachment ratios and whole-source hashes no longer constrain normal edits. Fixed cases still execute actual parsers, exporters, edit/swap paths, plating and containment behavior. Current artifact coherence, all current resident/meal routing checks, privacy and the exact-bound Corn warning floor remain live. Optional missing sibling CODEX checks report skips; they are not counted as passes. Unresolved bindings are not declared allergen-free.
+
+The initial historical-only Corn replacement was insufficient. Independent food/data review injected a coherent loss of a known source warning and demonstrated the gap. The builder restored an exact-identity current-data floor; the unchanged independent fault probe now fails at that assertion. The repair does not require a historical dish or date to remain present, and does not put vegan-only Corn on the regular meal.
+
+Final isolated checkout is based on merged C1 main `31cbd856b83c40987c22c685ab4599941a27cee0`. It contains only the C2a portion of `swap_revert_reaches_gate.mjs` (test 7); concurrent F1 harness/product edits are absent. Full suite: 598 total, 587 pass, 11 explicit skips, zero failures. Full-suite dynamic known-Corn swap, replacement and zero-anaphylactic-cohort scenarios each give the same result. The independent coherent-Corn-loss probe produces the intended source-warning failure. Local runtime: Node 24.19.0, in-process test isolation due sandbox subprocess restrictions. Hosted Node 22 still must run on the exact PR.
+
+Earlier receipts retain their original scope/counts; these final results supersede their incomplete concurrent-file isolation. The slice does not enable reduced operational check selection (C2b), certify F1 publishing recovery or complete cross-app quantity validity. Rollback changes test inputs/assertions only and never restores old staff data.

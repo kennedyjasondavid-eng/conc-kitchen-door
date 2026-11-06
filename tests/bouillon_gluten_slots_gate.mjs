@@ -1,3 +1,5 @@
+// C2a (2026-11-06): historical decisions below use fixed menu inputs; production code still executes.
+// Active-menu structural, routing-oracle and privacy checks remain separate. See docs/C2A_COVERAGE_MAP_2026-11-06.md.
 // tests/bouillon_gluten_slots_gate.mjs — bouillon carries no Gluten (2026-10-18, menu data only).
 // Jason, 2026-10-17: "no gluten in boullion we use currently". CODEX v22 (conc-recipe-hub PR #155) takes "Gluten
 // (Bouillon)" off its recipes. Three vegan dishes linked in v31-standard.29 captured Gluten from that label at link time,
@@ -8,6 +10,7 @@
 // Casserole (pasta) and Vegan Arroz con Pollo (an Edit Menu tag set before it was linked).
 // Authored to fail on 910fb7c (v31-standard.29).
 import test from 'node:test';
+import { historicalMenu } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
 import { mealDay, linksVegan } from './helpers/meal_where.mjs';
 import fs from 'node:fs';
@@ -16,9 +19,8 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const menu = JSON.parse(fs.readFileSync(path.join(root, 'menu_current.json'), 'utf8')).menu;
-const overlay = JSON.parse(fs.readFileSync(path.join(root, 'menu_overlay.json'), 'utf8'));
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/\r\n?/g, '\n');
+const { menu, overlay } = historicalMenu(html); // historical decisions through the current exporter
 const on = (f) => Object.keys(f || {}).filter((k) => f[k]).sort();
 
 const DROPPED = [

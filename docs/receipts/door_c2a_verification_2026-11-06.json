@@ -1,0 +1,248 @@
+{
+  "date": "2026-11-06",
+  "slice": "C2a",
+  "productBaseline": "8066a1f",
+  "runtime": "v24.19.0",
+  "testIsolation": "none (normal test subprocess spawn denied by sandbox)",
+  "baseline": {
+    "tests": 598,
+    "passed": 594,
+    "failed": 0,
+    "skipped": 4
+  },
+  "scope": "Existing full suite; concurrent new F1a gate excluded; C1 workflow assertions included",
+  "fixtureResidentFieldScan": [],
+  "verification": [
+    {
+      "name": "baseline",
+      "tests": 596,
+      "passed": 585,
+      "failed": 0,
+      "skipped": 11,
+      "durationMs": 15882.18,
+      "expected": "pass"
+    },
+    {
+      "name": "comment",
+      "tests": 596,
+      "passed": 585,
+      "failed": 0,
+      "skipped": 11,
+      "durationMs": 13042.3126,
+      "expected": "pass"
+    },
+    {
+      "name": "swap",
+      "tests": 596,
+      "passed": 585,
+      "failed": 0,
+      "skipped": 11,
+      "durationMs": 16297.7632,
+      "expected": "pass"
+    },
+    {
+      "name": "replace",
+      "tests": 596,
+      "passed": 585,
+      "failed": 0,
+      "skipped": 11,
+      "durationMs": 13261.1028,
+      "expected": "pass"
+    },
+    {
+      "name": "zero-lactose",
+      "tests": 596,
+      "passed": 585,
+      "failed": 0,
+      "skipped": 11,
+      "durationMs": 15926.5183,
+      "expected": "pass"
+    },
+    {
+      "name": "zero-anaph",
+      "tests": 596,
+      "passed": 585,
+      "failed": 0,
+      "skipped": 11,
+      "durationMs": 15900.5259,
+      "expected": "pass"
+    },
+    {
+      "name": "wrong-corn",
+      "tests": 14,
+      "passed": 12,
+      "failed": 1,
+      "skipped": 1,
+      "durationMs": 233.5432,
+      "expected": "fail"
+    },
+    {
+      "name": "wrong-lactose",
+      "tests": 9,
+      "passed": 5,
+      "failed": 4,
+      "skipped": 0,
+      "durationMs": 56.4312,
+      "expected": "fail"
+    },
+    {
+      "name": "lost-anaph",
+      "tests": 12,
+      "passed": 7,
+      "failed": 5,
+      "skipped": 0,
+      "durationMs": 566.6607,
+      "expected": "fail"
+    },
+    {
+      "name": "wrong-live-brassica",
+      "tests": 6,
+      "passed": 5,
+      "failed": 1,
+      "skipped": 0,
+      "durationMs": 49.7453,
+      "expected": "fail"
+    }
+  ],
+  "ownedFiles": [
+    {
+      "path": "tests/anaph_every_tag_gate.mjs",
+      "sha256": "65fd57d5dd4c336e9f5fc36f7ac7a4af12b2dae22502ad6a94ccf751efcfe617"
+    },
+    {
+      "path": "tests/anaph_flag_everywhere_gate.mjs",
+      "sha256": "91c433affe5cccaf7161906b4190fb36d977a5da4efd27069dfa159894e4cfa1"
+    },
+    {
+      "path": "tests/bagged_curry_nightshades_gate.mjs",
+      "sha256": "1fa9548fe96f912826087878fb288962f2c3c23d498a8e20b74d7aaeb82d9e7e"
+    },
+    {
+      "path": "tests/bouillon_gluten_slots_gate.mjs",
+      "sha256": "aa405b268799c0a49631d02c69c373fb9d65e10ac50aca2ee1cfe10b2b09ae42"
+    },
+    {
+      "path": "tests/brassica_detect_gate.mjs",
+      "sha256": "455e8fd4238a0b88ba05cda2b4a825d83984002052faccba8b48be25d9be8bb4"
+    },
+    {
+      "path": "tests/corn_recipe_alignment_gate.mjs",
+      "sha256": "a67b808ed78f6e36c5c28e45f9a525f81cbefa8dad7e1a391ce1008198a38d3d"
+    },
+    {
+      "path": "tests/helpers/corn_gate_runtime.mjs",
+      "sha256": "88b0516d1a47419d45d2d9e69d10d96e63156c8303c9d0050481dbfed84a7254"
+    },
+    {
+      "path": "tests/helpers/rex_week_box.mjs",
+      "sha256": "ff0ece9bb096d65c5e05e2c790fadd860b32776461dff8b3251504203006b640"
+    },
+    {
+      "path": "tests/helpers/historical_menu.mjs",
+      "sha256": "d66aa61c36a0dbd74010073a1a4f6ec1e30572c06d4eecdd29534dca573cb291"
+    },
+    {
+      "path": "tests/kitchen_alternatives_gate.mjs",
+      "sha256": "9096f27bcbfa24d3d9bb3e9636415047e9924e3dd4c8951ab01255afae446e31"
+    },
+    {
+      "path": "tests/lactose_no_dairy_gate.mjs",
+      "sha256": "63faa3ba30d6908ea1d69377f69ac9d01b02533de0d481d3caf90ce675f224d6"
+    },
+    {
+      "path": "tests/make_permanent_whole_dish_gate.mjs",
+      "sha256": "882930e29c54454053f1523370521d71b83c6f2656bac8e564eb45410cd53fe1"
+    },
+    {
+      "path": "tests/menu_recipe_ticks_gate.mjs",
+      "sha256": "c508b3dd1aba4317a8aa24e1678a97221812dfc5c9e9e54a258001716bc51044"
+    },
+    {
+      "path": "tests/pages_served_privacy_gate.mjs",
+      "sha256": "5b842ec4a7b4cc36acae615b71efbd77bdfb6a901c2479843350ddaca4504010"
+    },
+    {
+      "path": "tests/plating_review_ticks_gate.mjs",
+      "sha256": "120d194c7900ff1fed90762090648bf261b725be752d34b123ebd4fca21706d2"
+    },
+    {
+      "path": "tests/recipe_attach_allergen_norm_gate.mjs",
+      "sha256": "b82db77664bbda0893022542af4ea32a22ff3d44d1f516e2ccd4bfc6fcf70524"
+    },
+    {
+      "path": "tests/recipe_attach_p2_recipeid_gate.mjs",
+      "sha256": "492eeb9a575c293b3c08f70a512c9321c893da3efb4402c0c88e0a3890050b94"
+    },
+    {
+      "path": "tests/recipe_attach_s4_nudge_gate.mjs",
+      "sha256": "9d8fc9ab99479951010601512689d2ea9b5ec4c9088675cf091c4088fd73d291"
+    },
+    {
+      "path": "tests/restore_original_gate.mjs",
+      "sha256": "befe2af6177d3e9aa0b60a08f4872f6752a491aca870e947885eb040ee19dddf"
+    },
+    {
+      "path": "tests/restriction_short_codes_gate.mjs",
+      "sha256": "fcda5419f396c7475c8b507a4787949f9f7a6deaedfbdc55232f89bfab891f3e"
+    },
+    {
+      "path": "tests/rex_menu_changes_gate.mjs",
+      "sha256": "87b47a9f5df2eee17dbc709f58b627a0bd9dbe7b67dd056d288629c544ff1291"
+    },
+    {
+      "path": "tests/rex_week_import_gate.mjs",
+      "sha256": "8323d9d12f0c0e1685114f9877cb36e10237eb34ae13c9ebce869077325b761d"
+    },
+    {
+      "path": "tests/routing_replay_gate.mjs",
+      "sha256": "0a38a926bf29bed7210f32ea92274f69b99fc599ccc89c9c8524438719fdd80d"
+    },
+    {
+      "path": "tests/shellfish_families_gate.mjs",
+      "sha256": "844c721960a3c0eadcb4ed96a337c474740e9d0a0033b168dd840b55bfa03a84"
+    },
+    {
+      "path": "tests/shellfish_routing_lockout_gate.mjs",
+      "sha256": "f094ffa2aa158bdb056f7e973ae3a918e9105d3106544a04673853b3de61fe95"
+    },
+    {
+      "path": "tests/slot_swap_whole_meal_gate.mjs",
+      "sha256": "99034e4cb9fcf7f484213b07214e3206e56b5bfc67dc50b8d6a73bfe867cfcc0"
+    },
+    {
+      "path": "tests/swap_revert_reaches_gate.mjs",
+      "sha256": "4c27b6cf35cbc59e79bad18129afd539f49a58d0d598d7f26374c61ca83f4122"
+    },
+    {
+      "path": "tests/tree_nuts_coconut_gate.mjs",
+      "sha256": "038af8678888bbfd75098046e96a801b907ca3fcfa79dc838f7586471cd0955e"
+    },
+    {
+      "path": "tests/vegan_plate_dishes_gate.mjs",
+      "sha256": "ef44dc2f5326984ce6304de560c21415c31e80733c7726855e098158e66941ad"
+    },
+    {
+      "path": "tests/w1b_safe_side_ticks_gate.mjs",
+      "sha256": "efac0d7fc1b983c2b72b7949883f412c8f21b3bc01ba13e18d48942da5249dcd"
+    },
+    {
+      "path": "tests/workbook_shellfish_words_gate.mjs",
+      "sha256": "fa1e1930deef00719f1cd67679eb4124d59d4e16ee339cf5ead1b80a5ca076ca"
+    },
+    {
+      "path": "tests/checks/c2a_variation.mjs",
+      "sha256": "b433a403abeeb670a48850873fde734d853555f87032b3397ca576ef57a1b076"
+    },
+    {
+      "path": "tests/fixtures/menu_regressions_2026-11-06.json",
+      "sha256": "a73a71a1cfc3c91161a2ad822f6aacc67a8f655aba495ad38a08821e4bfead21"
+    }
+  ],
+  "limits": [
+    "No product/workflow edits by gate author",
+    "No hosted Node22 execution",
+    "No staff-device or live-feed operation",
+    "F1 product integration must be verified after its harness migration"
+  ],
+  "productHtmlNormalizedSha256": "bdefbf57c82d5a1b02551945a54619818d893ce17893b2d1cbf08bd9212e63ea"
+}
