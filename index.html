@@ -5390,23 +5390,21 @@ let moderateActive = false;
 // Blocklist for reverted swaps — prevents sync from re-introducing them.
 // Persisted to localStorage so reverts survive page reloads; in-memory only
 // previously meant a hard refresh let a stale local swap come back even after
-// the file on GitHub had been cleared. Auto-expires keys whose target date
-// has passed (the swap couldn't be triggered anymore anyway). Wraps .add()
+// the file on GitHub had been cleared. Removal history remains monotonic even
+// after the service date passes. Wraps .add()
 // and .delete() so every call site auto-persists without touching callers.
 // 2026-10-18: each key keeps when it was reverted ({key: ISO time}; an older list of keys reads as reverted now), the
 // list is published (meal_swaps_reverted.json), and the kitchen's list is merged in at every sync and before every
 // publish (mergeRemote), so a revert reaches every DOOR computer. A swap made after its key's revert is kept
 // (doorSwapRevertedOver). Special-meal removals keep the same kind of list (REMOVED_SPECIAL_KEYS).
 function doorMakeRevertList(storageKey, publishPath, label) {
-  const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-  const today = localDay();
   const times = {};
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
     const now = new Date().toISOString();
-    if (Array.isArray(stored)) stored.forEach(k => { if (typeof k === 'string' && k.slice(0,10) >= today) times[k] = now; });
+    if (Array.isArray(stored)) stored.forEach(k => { if (typeof k === 'string') times[k] = now; });
     else if (stored && typeof stored === 'object') Object.keys(stored).forEach(k => {
-      if (k.slice(0,10) >= today && typeof stored[k] === 'string') times[k] = stored[k];
+      if (typeof stored[k] === 'string') times[k] = stored[k];
     });
   } catch(e) {}
   const s = new Set(Object.keys(times));
@@ -5419,20 +5417,14 @@ function doorMakeRevertList(storageKey, publishPath, label) {
     if (_publishTimer) return;
     _publishTimer = setTimeout(async () => {
       _publishTimer = null;
-      try {
-        const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';
-        const r = await doorReadKitchenFile(publishPath, { repo });   // the one reader (2026-11-01)
-        if (r.ok) s.mergeRemote(r.data);
-      } catch(e) {}
-      try { PublishAuth.sidePublish(publishPath, JSON.stringify(s.toPublished(), null, 2), label, false); } catch(e) {}
+      // The transaction reads this history at its immutable merge head before building routing.
+      return PublishAuth.sidePublish(publishPath, JSON.stringify(s.toPublished(), null, 2), label, false);
     }, 0);
   };
   const _persist = (publish) => {
     try {
-      const t = localDay();
-      [...s].forEach(x => { if (typeof x !== 'string' || x.slice(0,10) < t) { _delete(x); delete times[x]; } });
-      localStorage.setItem(storageKey, JSON.stringify(s.toPublished()));
-    } catch(e) {}
+      if (!doorSetItemSafe(storageKey, JSON.stringify(s.toPublished()))) throw new Error('Could not save the removal on this computer.');
+    } catch(e) { showToast('The removal could not be saved on this computer. Try again.'); throw e; }
     if (publish) _publish();
   };
   s.add = function(k, at) { _add(k); times[k] = (typeof at === 'string' && at) || new Date().toISOString(); _persist(true); return s; };
@@ -5440,7 +5432,9 @@ function doorMakeRevertList(storageKey, publishPath, label) {
   s.toPublished = function() { const o = {}; [...s].sort().forEach(k => { if (times[k]) o[k] = times[k]; }); return o; };
   // The kitchen's list merged in (a key both hold keeps its later time). Not sent back: the kitchen already has it.
   s.mergeRemote = function(remote) {
-    const merged = doorMergeSwapReverts(s.toPublished(), remote, localDay());
+    let durable = {};
+    try { durable = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch(e) {}
+    const merged = doorMergeSwapReverts(doorMergeSwapReverts(s.toPublished(), durable, ''), remote, '');
     Object.keys(merged).forEach(k => { if (!s.has(k)) _add(k); times[k] = merged[k]; });
     _persist(false);
   };
@@ -7912,9 +7906,10 @@ function doorOutboxAppend(context, reason) {
   const list = doorOutboxRead();
   let prov = null;
   try { const t = (typeof getRegistryProvenanceTs === 'function') ? getRegistryProvenanceTs() : 0; prov = t ? new Date(t).toISOString() : null; } catch (e) {}
-  list.push({ ts: new Date().toISOString(), context: String(context || ''), reason: String(reason || 'skipped'), registryModifiedAt: prov });
+  list.push({ operationId: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2),
+    ts: new Date().toISOString(), context: String(context || ''), reason: String(reason || 'skipped'), registryModifiedAt: prov });
   while (list.length > DOOR_OUTBOX_MAX) list.shift();
-  doorSetItemSafe(DOOR_PUBLISH_OUTBOX_KEY, JSON.stringify(list));
+  if (!doorSetItemSafe(DOOR_PUBLISH_OUTBOX_KEY, JSON.stringify(list))) throw new Error('This computer could not retain the pending edit.');
   return list.length;
 }
 
@@ -7923,15 +7918,19 @@ function doorOutboxClear() {
 }
 
 // Returns the number of owed entries it attempted to send (0 = nothing to do or no key).
-// Does NOT clear — _doPublishToGitHub clears on a landed commit.
+// Does not clear: the publisher acknowledges only the input it actually committed.
 function doorOutboxDrain(trigger) {
   const list = doorOutboxRead();
-  if (!list.length) return 0;
+  let receipt = null;
+  try { receipt = JSON.parse(localStorage.getItem('concPublishTransaction') || 'null'); } catch(e) {}
+  const interrupted = receipt && (receipt.status === 'pending' || receipt.status === 'prepared');
+  if (!list.length && !interrupted) return 0;
   const hasKey = !!((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : '');
   if (!hasKey) return 0;
   if (typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey()) return 0; // a viewing key sends nothing (2026-11-01)
-  if (typeof publishAndSync === 'function') publishAndSync('sending ' + list.length + ' unpublished change set' + (list.length === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');
-  return list.length;
+  const count = list.length || 1;
+  if (typeof publishAndSync === 'function') publishAndSync('sending ' + count + ' unpublished change set' + (count === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');
+  return count;
 }
 
 // P4 (publish-resilience plan, 2026-09-11): first-run device setup card.
@@ -9863,22 +9862,30 @@ try {
   if (savedAnaph) anaphRooms = JSON.parse(savedAnaph);
 } catch(e) { /* keep default */ }
 
-const GH_TOKEN_META_KEY = 'conc-door-gh-token-meta';
+// F1 cutover: old tabs read conc-door-settings/conc_gh_token, never this key.
+// A release owner must revoke the legacy credentials; browser storage alone
+// cannot prevent already-open old code from using a previously loaded key.
+const GH_CONNECTION_KEY = 'conc-door-connection-v2';
 
 const PublishAuth = {
+  getConnection() {
+    try {
+      const record = JSON.parse(localStorage.getItem(GH_CONNECTION_KEY) || '{}');
+      return record && record.schemaVersion === 2 ? record : {};
+    } catch(e) { return {}; }
+  },
   getMeta() {
-    try { return JSON.parse(localStorage.getItem(GH_TOKEN_META_KEY) || '{}'); } catch(e) { return {}; }
+    return this.getConnection().meta || {};
   },
   setMeta(meta) {
-    try { localStorage.setItem(GH_TOKEN_META_KEY, JSON.stringify(meta || {})); } catch(e) { console.warn('Token metadata save failed:', e); }
+    const record = this.getConnection();
+    localStorage.setItem(GH_CONNECTION_KEY, JSON.stringify({ ...record, schemaVersion:2, meta:meta || {} }));
   },
   getRepo() {
-    return ((document.getElementById('gh-repo') || {}).value || appSettings['gh-repo'] || DEFAULT_SETTINGS['gh-repo'] || '').trim();
+    return ((document.getElementById('gh-repo') || {}).value || this.getConnection().repo || appSettings['gh-repo'] || DEFAULT_SETTINGS['gh-repo'] || '').trim();
   },
   getSavedToken() {
-    // P2 / seam row 3: sanitize on READ as well as on save, so a key stored by an
-    // older build with paste artifacts can't break the Authorization header.
-    return doorSanitizeConnectionKey(appSettings['gh-token'] || '');
+    return doorSanitizeConnectionKey(this.getConnection().token || '');
   },
   getTypedToken() {
     return doorSanitizeConnectionKey((document.getElementById('gh-token') || {}).value || '');
@@ -9951,6 +9958,7 @@ const PublishAuth = {
     const saved = this.getSavedToken();
     if (!repo) throw new Error('Set GitHub repo in Settings first.');
     if (!saved) throw new Error('Set up a GitHub token in Settings before publishing.');
+    if (this.getConnection().repo !== repo) throw new Error('Test & Save the connection for this repository before publishing.');
     if (this.isExpired()) throw new Error('GitHub token is past its recorded expiry date. Rotate before publishing.');
     return { repo, token: saved, source: 'saved' };
   },
@@ -9977,6 +9985,9 @@ const PublishAuth = {
     }, delayMs == null ? 250 : delayMs);
   },
   sidePublish(path, content, label, visible) {
+    if (typeof doorIsPublishDependency === 'function' && doorIsPublishDependency(path)) {
+      return doorRequestCoherentPublish(label || path);
+    }
     let creds;
     try {
       creds = this._getSavedCredentials();
@@ -10062,18 +10073,24 @@ const PublishAuth = {
     } catch (e) { return 'sending'; }
   },
   saveValidatedToken(token, repo) {
-    appSettings['gh-token'] = doorSanitizeConnectionKey(token || '');
-    appSettings['gh-repo'] = (repo || this.getRepo()).trim();
+    token = doorSanitizeConnectionKey(token || '');
+    repo = (repo || this.getRepo()).trim();
+    if (!token || !repo) throw new Error('Enter a connection key and repository first.');
     const expiry = this.getExpiryInput();
     const probed = this._probedKeyKind;
-    this.setMeta({
-      authModel: 'fine-grained-pat-explicit-v1',
+    const meta = {
+      authModel: 'coherent-publisher-v2',
       savedAt: new Date().toISOString(),
       validatedAt: new Date().toISOString(),
       expiryDate: expiry,
-      repo: appSettings['gh-repo'],
-      keyKind: (probed && probed.token === appSettings['gh-token'] && probed.kind) || 'sending'
-    });
+      repo,
+      keyKind: (probed && probed.token === token && probed.kind) || 'sending'
+    };
+    // Persist token and its validation metadata together before reporting success.
+    // Never mirror the replacement into appSettings or any legacy namespace.
+    localStorage.setItem(GH_CONNECTION_KEY, JSON.stringify({schemaVersion:2, token, repo, meta}));
+    appSettings['gh-token'] = '';
+    appSettings['gh-repo'] = repo;
     this._probedKeyKind = null;
     try {
       localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
@@ -10088,25 +10105,23 @@ const PublishAuth = {
       lines: ['This computer will stop sending to the kitchen. You’ll need the connection key to connect it again.'],
       cancelLabel: 'Stay connected', goLabel: 'Disconnect'
     }))) return;
+    localStorage.removeItem(GH_CONNECTION_KEY);
     appSettings['gh-token'] = '';
     try {
       localStorage.setItem('conc-door-settings', JSON.stringify(appSettings));
     } catch(e) { console.warn('Token clear failed:', e); }
-    this.setMeta({ authModel: 'fine-grained-pat-explicit-v1', forgottenAt: new Date().toISOString() });
     const input = document.getElementById('gh-token');
     if (input) input.value = '';
     this.renderStatus('This computer is disconnected from the kitchen.', '#dc2626');
   },
   migrateLegacyState() {
-    const meta = this.getMeta();
-    if (this.getSavedToken() && !meta.authModel) {
-      meta.authModel = 'legacy-saved-token';
-      meta.legacyRetestNeeded = true;
-      meta.detectedAt = new Date().toISOString();
-      this.setMeta(meta);
-    }
-    if (!this.getSavedToken() && localStorage.getItem('conc_gh_token')) {
-      this.setMeta({ authModel: 'shared-token-migration', migrationNeeded: true, detectedAt: new Date().toISOString() });
+    // Reconnection is explicit; keep every saved menu edit and outbox entry.
+    // Do not import a legacy writer key into the corrected publisher's boundary.
+    const legacy = appSettings['gh-token'] || localStorage.getItem('conc_gh_token');
+    appSettings['gh-token'] = '';
+    if (!this.getSavedToken() && legacy) {
+      try { this.setMeta({ authModel: 'coherent-publisher-v2', migrationNeeded: true, detectedAt: new Date().toISOString() }); }
+      catch(e) { console.warn('Connection migration status could not be saved:', e); }
     }
   }
 };
@@ -10262,7 +10277,7 @@ function doorRenderKitchenListReadLine() {
 function loadSettings() {
   Object.entries(DEFAULT_SETTINGS).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el && id !== 'gh-token') el.value = appSettings[id] || val;
+    if (el && id !== 'gh-token') el.value = (id === 'gh-repo' && PublishAuth.getConnection().repo) || appSettings[id] || val;
   });
   const expiryEl = document.getElementById('gh-token-expiry');
   if (expiryEl) expiryEl.value = PublishAuth.getMeta().expiryDate || '';
@@ -11181,10 +11196,12 @@ function doorParseHashRoute(hash) {
 function reportDoorPublishValidation(validation, manual) {
   if (!validation || !validation.issues || !validation.issues.length) return;
   const msg = validation.counts.Stop
-    ? 'Publish preflight found would-block issues; continuing in warning-only mode (' + validation.counts.Stop + ' Stop, ' + validation.counts.Review + ' Review)'
-    : 'Publish preflight review warning; continuing in warning-only mode (' + validation.counts.Review + ' Review)';
+    ? 'Publish preflight holds this candidate (' + validation.counts.Stop + ' Stop, ' + validation.counts.Review + ' Review)'
+    : 'Publish preflight review warning (' + validation.counts.Review + ' Review)';
   console.warn('[DOOR publish preflight]', msg, validation.issues);
-  const staffMsg = 'Sent to the kitchen — but a data check flagged something on today’s list. Let Jason know so he can look.';
+  const staffMsg = validation.counts.Stop
+    ? 'Not sent — a data check found a problem in today’s information. Fix it and try again, or ask Jason.'
+    : 'Checking before sending — a data check flagged something on today’s list. Let Jason know so he can look.';
   updateSyncBar(staffMsg, validation.counts.Stop ? '#dc2626' : '#d97706');
   if (manual && typeof showToast === 'function') showToast(staffMsg);
 }
@@ -11210,10 +11227,234 @@ function reportDoorOverlayMergeAdvisory(advisory, manual) {
 // protect, so a shrink here is noise, not a stale-device signal.
 let _ghHydrated = false;
 let _ghForceOverwrite = false;
-const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'meal_swaps_reverted.json', 'special_meals_removed.json', 'recent_log.json']);
+const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'special_meals.json', 'meal_swaps_reverted.json', 'special_meals_removed.json', 'recent_log.json']);
+/* DOOR_TESTABLE_CORE_START publish-transaction */
+// F1: one immutable read/build/write boundary, using HOUSE seams 1 and 5.
+// This is an extension of the existing publish queue, not a second outbox.
+const DOOR_PUBLISH_DEPENDENCIES = new Set(['menu_current.json','menu_overlay.json','meal_swaps.json',
+  'meal_swaps_reverted.json','special_meals.json','special_meals_removed.json','routing_by_meal.json',
+  'registry_summary.json','door_state.json','learned_nr.json','custom_tag_rules.json']);
+var _doorPublishInputs = null;
+function doorIsPublishDependency(path) { return DOOR_PUBLISH_DEPENDENCIES.has(path); }
+function doorRequestCoherentPublish(label) {
+  doorOutboxAppend(label, 'pending');
+  return publishAndSync(label);
+}
+async function doorPublishReadJSON(creds, path) {
+  const base = 'https://api.github.com/repos/' + creds.repo;
+  const headers = PublishAuth.githubHeaders(creds.token);
+  for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(),8000) : null;
+      try {
+        const r = await fetch(base + path, { headers, cache:'no-store', ...(controller ? {signal:controller.signal} : {}) });
+        if (!r.ok) {
+          const e = new Error('Cannot read the kitchen publish inputs (' + r.status + ').');
+          e.status = r.status; throw e;
+        }
+        return await r.json();
+      } catch (e) {
+        if (attempt === 0 && (e.status >= 500 || e.status === 429 || e.name === 'AbortError' || e.name === 'TypeError')) continue;
+        throw e;
+      } finally { if (timer) clearTimeout(timer); }
+  }
+}
+async function doorPublishReadRevision(creds) {
+  const read = path => doorPublishReadJSON(creds,path);
+  const ref = await read('/git/ref/heads/main');
+  const head = ref && ref.object && ref.object.sha;
+  if (!head) throw new Error('The kitchen revision could not be verified.');
+  const commit = await read('/git/commits/' + head);
+  const tree = await read('/git/trees/' + commit.tree.sha + '?recursive=1');
+  if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('The kitchen file inventory is incomplete.');
+  const paths = Object.fromEntries(tree.tree.filter(x => x.type === 'blob').map(x => [x.path, x]));
+  const data = {};
+  const inputs = ['menu_current.json','menu_overlay.json','meal_swaps.json','meal_swaps_reverted.json',
+    'special_meals.json','special_meals_removed.json','door_state.json','custom_tag_rules.json','learned_nr.json'];
+  await Promise.all(inputs.map(async path => {
+    // Absence is established by an authenticated, complete immutable tree, never by a generic 404.
+    if (!paths[path]) { data[path] = path === 'custom_tag_rules.json' ? [] : {}; return; }
+    const body = await read('/contents/' + path + '?ref=' + encodeURIComponent(head));
+    if (typeof body.content !== 'string') throw new Error('Unreadable kitchen input: ' + path);
+    const value = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
+    if (!value || typeof value !== 'object' || (path === 'custom_tag_rules.json' ? !Array.isArray(value) : Array.isArray(value))) {
+      throw new Error('Malformed kitchen input: ' + path);
+    }
+    data[path] = value;
+  }));
+  return { head, tree:commit.tree.sha, paths, data };
+}
+function doorPublishComparable(value, inMeta) {
+  if (Array.isArray(value)) return value.map(v => doorPublishComparable(v,false));
+  if (value && typeof value === 'object') {
+    const out = {};
+    Object.keys(value).sort().forEach(key => {
+      if (inMeta && key === 'exported') return;
+      out[key] = doorPublishComparable(value[key],key === '_meta' || (inMeta && key === 'builtFromMenu'));
+    });
+    return out;
+  }
+  return value;
+}
+async function doorPublishRecoverPrepared(creds, revision, files, receipt) {
+  if (!receipt || receipt.status !== 'prepared' || receipt.repo !== creds.repo || !receipt.commitSha) return false;
+  const get = path => doorPublishReadJSON(creds,path);
+  // Prove reachability, not merely that an unreferenced prepared commit exists.
+  let head = revision.head, found = false;
+  for (let n = 0; head && n < 16; n++) {
+    if (head === receipt.commitSha) { found = true; break; }
+    const commit = await get('/git/commits/' + head);
+    head = commit.parents && commit.parents[0] && commit.parents[0].sha;
+  }
+  if (!found) return false;
+  // The newest local intent is rebuilt first. Only an equivalent already-landed
+  // candidate is acknowledged; a newer edit/removal still gets its own commit.
+  for (const file of files) {
+    if (!revision.paths[file.path]) return false;
+    const body = await get('/contents/' + file.path + '?ref=' + encodeURIComponent(revision.head));
+    if (typeof body.content !== 'string') throw new Error('The interrupted publish file is unreadable: ' + file.path);
+    const remote = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
+    const desired = JSON.parse(file.content);
+    if (JSON.stringify(doorPublishComparable(remote,false)) !== JSON.stringify(doorPublishComparable(desired,false))) return false;
+  }
+  return true;
+}
+function doorPublishCapture(revision) {
+  const keys = ['concMenuBase','concMealSwaps','concSpecialMeals','concRevertedSwapKeys','concRemovedSpecialKeys',
+    'concCustomTagRules','concLearnedNR','concRegistryState','concRegistryProvenance','conc-door-anaph',
+    'concUploadedMenu','concUploadedMenuTimestamp'];
+  const before = Object.fromEntries(keys.map(k => [k,localStorage.getItem(k)]));
+  const local = (key, empty) => JSON.parse(before[key] || JSON.stringify(empty));
+  const cloud = revision.data;
+  const uploaded = local('concUploadedMenu',null);
+  const uploadedAt = parseInt(before.concUploadedMenuTimestamp || '0',10) || 0;
+  const remoteMenu = cloud['menu_current.json'] || {};
+  const remoteMenuAt = Date.parse((remoteMenu._meta || {}).exported || '') || 0;
+  if (revision.paths['menu_current.json'] && (!remoteMenu.menu || typeof remoteMenu.menu !== 'object' || Array.isArray(remoteMenu.menu))) {
+    throw new Error('The kitchen menu is malformed. Nothing was sent.');
+  }
+  // Preserve the existing upload ownership rule, now at the same pinned head as
+  // the overlay/removals: a newer local upload is intent, an older base is cache.
+  const useRemoteMenu = !!remoteMenu.menu && (!uploaded || remoteMenuAt > uploadedAt);
+  // Removal history is monotonic; expired entries cannot be silently shortened by a stale device.
+  const reverted = doorMergeSwapReverts(local('concRevertedSwapKeys',{}),cloud['meal_swaps_reverted.json'],'');
+  const removed = doorMergeSwapReverts(local('concRemovedSpecialKeys',{}),cloud['special_meals_removed.json'],'');
+  const today = doorDateKey(new Date());
+  const custom = local('concCustomTagRules',[]), patterns = new Set(custom.map(r => r.pattern));
+  const inputs = { revision, before, outbox:doorOutboxRead(),
+    uploaded:useRemoteMenu ? remoteMenu.menu : uploaded,
+    uploadedAt:useRemoteMenu ? remoteMenuAt : uploadedAt,
+    overlay:doorMergeMenuOverlayWithCloud(local('concMenuBase',{}),cloud['menu_overlay.json']).merged,
+    swaps:doorMergeSwapStores(local('concMealSwaps',{}),cloud['meal_swaps.json'],reverted,today),
+    specials:doorMergeSwapStores(local('concSpecialMeals',{}),cloud['special_meals.json'],removed,''),
+    reverted, removed,
+    custom:custom.concat(cloud['custom_tag_rules.json'].filter(r => !patterns.has(r.pattern))),
+    learned:Object.assign({},local('concLearnedNR',{}),cloud['learned_nr.json']) };
+  return inputs;
+}
+async function doorPublishSelectRegistry(inputs, manual) {
+  const remote = inputs.revision.data['door_state.json'];
+  const local = JSON.parse(JSON.stringify(buildStateJSON()));
+  inputs.registryBefore = JSON.stringify({residents:local.residents,anaphRooms:local.anaphRooms});
+  inputs.registry = local;
+  if (!inputs.revision.paths['door_state.json']) return {adopted:false,forced:false};
+  if (!Array.isArray(remote.residents) || !Array.isArray(remote.anaphRooms)) throw new Error('The kitchen resident list is malformed. Nothing was sent.');
+  const remoteTs = Date.parse((remote._meta || {}).registryModifiedAt || (remote._meta || {}).exported || '') || 0;
+  const localTs = getRegistryProvenanceTs();
+  if (!remoteTs || remoteTs <= localTs) return {adopted:false,forced:false};
+  // The existing deliberate rollback choice remains explicit; automatic saves use the newer authoritative list.
+  if (manual && typeof doorAsk === 'function') {
+    const answer = await doorAsk({title:'The kitchen has a newer resident list',
+      lines:['Use the kitchen’s newer resident list for this update. Sending this computer’s older list replaces it everywhere.'],
+      cancelLabel:'Go back',altLabel:'Send this computer’s older list',goLabel:'Use the kitchen’s newer list'});
+    if (answer === 'alt') return {adopted:false,forced:true};
+    if (answer !== true) return {adopted:false,forced:false,cancelled:true};
+  }
+  inputs.registry = JSON.parse(JSON.stringify(remote));
+  return {adopted:true,forced:false};
+}
+function doorPublishWithInputs(inputs, build) {
+  const previous = _doorPublishInputs;
+  const residents = REGISTRY_LIST.slice();
+  const oldAnaph = typeof anaphRooms !== 'undefined' ? anaphRooms : null;
+  const oldMap = typeof REGISTRY_MAP !== 'undefined' ? Object.assign({},REGISTRY_MAP) : null;
+  _doorPublishInputs = inputs;
+  if (inputs.registry) {
+    REGISTRY_LIST.splice(0,REGISTRY_LIST.length,...inputs.registry.residents);
+    if (oldAnaph) anaphRooms = inputs.registry.anaphRooms;
+    if (oldMap) {
+      Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
+      REGISTRY_LIST.forEach(r => { REGISTRY_MAP[String(r.room).toLowerCase()] = r; });
+    }
+  }
+  try { return build(); } finally {
+    REGISTRY_LIST.splice(0,REGISTRY_LIST.length,...residents);
+    if (oldAnaph) anaphRooms = oldAnaph;
+    if (oldMap) { Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]); Object.assign(REGISTRY_MAP,oldMap); }
+    _doorPublishInputs = previous;
+  }
+}
+function doorPublishAcknowledge(inputs, commitSha) {
+  const values = {concMenuBase:inputs.overlay,concMealSwaps:inputs.swaps,concSpecialMeals:inputs.specials,
+    concRevertedSwapKeys:inputs.reverted,concRemovedSpecialKeys:inputs.removed,
+    concCustomTagRules:inputs.custom,concLearnedNR:inputs.learned};
+  let newer = false;
+  const baseUnchanged = ['concUploadedMenu','concUploadedMenuTimestamp'].every(k => localStorage.getItem(k) === inputs.before[k]);
+  if (!baseUnchanged) newer = true;
+  else if (inputs.uploaded) {
+    if (!doorSetItemSafe('concUploadedMenu',JSON.stringify(inputs.uploaded)) ||
+        !doorSetItemSafe('concUploadedMenuTimestamp',String(inputs.uploadedAt))) {
+      throw new Error('Published, but the menu receipt could not be saved on this computer.');
+    }
+  }
+  for (const [key,value] of Object.entries(values)) {
+    // Compare at acknowledgement, after the final await. Another tab or gesture owns any newer value.
+    if (localStorage.getItem(key) !== inputs.before[key]) { newer = true; continue; }
+    if (!doorSetItemSafe(key,JSON.stringify(value))) throw new Error('Published, but this computer could not save the receipt.');
+  }
+  REVERTED_SWAP_KEYS.mergeRemote(inputs.reverted);
+  REMOVED_SPECIAL_KEYS.mergeRemote(inputs.removed);
+  const currentRegistry = buildStateJSON();
+  const registryUnchanged = inputs.registryBefore === JSON.stringify({residents:currentRegistry.residents,anaphRooms:currentRegistry.anaphRooms}) &&
+    ['concRegistryState','concRegistryProvenance','conc-door-anaph'].every(k => localStorage.getItem(k) === inputs.before[k]);
+  if (!registryUnchanged) newer = true;
+  else if (inputs.registry) {
+    const state = inputs.registry;
+    const saved = {_meta:{saved:new Date().toISOString(),count:state.residents.length},residents:state.residents,anaphRooms:state.anaphRooms};
+    if (!doorSetItemSafe('concRegistryState',JSON.stringify(saved)) ||
+        !doorSetItemSafe('conc-door-anaph',JSON.stringify(state.anaphRooms)) ||
+        !doorSetItemSafe('concRegistryProvenance',(state._meta || {}).registryModifiedAt || (state._meta || {}).exported || '')) {
+      throw new Error('Published, but the resident-list receipt could not be saved on this computer.');
+    }
+    REGISTRY_LIST.splice(0,REGISTRY_LIST.length,...state.residents);
+    if (typeof anaphRooms !== 'undefined') anaphRooms = state.anaphRooms;
+    if (typeof REGISTRY_MAP !== 'undefined') {
+      Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
+      REGISTRY_LIST.forEach(r => { REGISTRY_MAP[String(r.room).toLowerCase()] = r; });
+    }
+    if (typeof doorRefreshBaseSections === 'function') doorRefreshBaseSections();
+  }
+  const pending = doorOutboxRead(), sent = new Map();
+  const identity = item => item.operationId || JSON.stringify(item);
+  inputs.outbox.forEach(item => { const id=identity(item); sent.set(id,(sent.get(id)||0)+1); });
+  const tail = pending.filter(item => {
+    const id=identity(item),count=sent.get(id)||0;
+    if (!count) return true;
+    sent.set(id,count-1); return false;
+  });
+  if (newer && !tail.length) tail.push({operationId:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),
+    ts:new Date().toISOString(),context:'newer local edits',reason:'pending'});
+  if (!doorSetItemSafe(DOOR_PUBLISH_OUTBOX_KEY,JSON.stringify(tail))) throw new Error('Published, but the pending receipt could not be saved.');
+  if (!doorSetItemSafe('concPublishTransaction',JSON.stringify({status:'committed',head:commitSha,at:new Date().toISOString()}))) {
+    throw new Error('Published, but the commit receipt could not be saved.');
+  }
+}
+/* DOOR_TESTABLE_CORE_END publish-transaction */
+
 let _ghWriteQueue = Promise.resolve();
 
 async function ghPushFile(creds, path, content) {
+  if (typeof doorIsPublishDependency === 'function' && doorIsPublishDependency(path)) return doorRequestCoherentPublish(path);
   const next = _ghWriteQueue.then(() => _ghPushFileNow(creds, path, content));
   _ghWriteQueue = next.catch(() => {});
   return next;
@@ -11223,8 +11464,8 @@ async function ghPushFile(creds, path, content) {
 // Contents-API path and the atomic batch path route through this, so the guards
 // can never drift apart as one path is edited. Returns { sha, block }: `block` is
 // a {skipped,reason} verdict to return verbatim, or null to proceed.
-async function _ghEvaluateWriteGuards(creds, path, content) {
-  const url = 'https://api.github.com/repos/'+creds.repo+'/contents/'+path;
+async function _ghEvaluateWriteGuards(creds, path, content, revision) {
+  const url = 'https://api.github.com/repos/'+creds.repo+'/contents/'+path + (revision ? '?ref=' + encodeURIComponent(revision.head) : '');
   const headers = PublishAuth.githubHeaders(creds.token);
   if(!_ghHydrated && !_ghForceOverwrite){
     console.warn('[GH] skip '+path+' \u2014 not hydrated from cloud yet');
@@ -11233,7 +11474,18 @@ async function _ghEvaluateWriteGuards(creds, path, content) {
   let sha, remoteSize=0;
   // cache:'no-store' — the browser caches contents-API GETs ≤60s; a cached SHA here is what
   // poisoned the 2026-08-15 409 retries (double-writes within a save land <60s apart).
-  try { const ex=await fetch(url,{headers,cache:'no-store'}); if(ex.ok){ const j=await ex.json(); sha=j.sha; remoteSize=j.size||0; } } catch(e){}
+  if (!revision || revision.paths[path]) {
+    try {
+      if (revision) {
+        const j = await doorPublishReadJSON(creds,'/contents/' + path + '?ref=' + encodeURIComponent(revision.head));
+        if (!j.sha || typeof j.size !== 'number') throw new Error('Cannot verify publish guard for ' + path + '.');
+        sha = j.sha; remoteSize = j.size;
+      } else {
+        const ex=await fetch(url,{headers,cache:'no-store'});
+        if(ex.ok){ const j=await ex.json(); sha=j.sha; remoteSize=j.size||0; }
+      }
+    } catch(e){ if (revision) throw e; }
+  }
   const trimmed = (content||'').trim();
   const isEmpty = trimmed===''||trimmed==='{}'||trimmed==='[]'||trimmed==='null';
   const allowShrink = ALLOW_SHRINK_PATHS.has(path) || _ghForceOverwrite;
@@ -11266,27 +11518,30 @@ async function _ghEvaluateWriteGuards(creds, path, content) {
 // fallback to the per-file path: it fails loudly so the publish is retried whole
 // rather than half-landing.
 //
-// The per-file anti-clobber guards still run first, per path, through the shared
-// evaluator. A blocked artifact is dropped from the batch and reported exactly as
-// before; the surviving set is what lands in the single commit.
-async function ghPushFilesAtomic(creds, files, message) {
-  const next = _ghWriteQueue.then(() => _ghPushFilesAtomicNow(creds, files, message));
+// The per-file anti-clobber guards read the same immutable revision. Any block
+// holds the complete candidate. A changed ref returns to the owner for a fresh
+// read/merge/build; it never reparents a stale dependent candidate.
+async function ghPushFilesAtomic(creds, files, message, revision) {
+  if (!revision && (files || []).some(f => doorIsPublishDependency(f.path))) throw new Error('Dependent publish requires a verified input revision.');
+  const next = _ghWriteQueue.then(() => _ghPushFilesAtomicNow(creds, files, message, revision));
   _ghWriteQueue = next.catch(() => {});
   return next;
 }
 
-async function _ghPushFilesAtomicNow(creds, files, message) {
+async function _ghPushFilesAtomicNow(creds, files, message, revision) {
+  if (!revision && (files || []).some(f => doorIsPublishDependency(f.path))) throw new Error('Dependent publish requires a verified input revision.');
   if (!creds || !creds.repo || !creds.token) throw new Error('GitHub token is not configured for publish.');
   const headers = PublishAuth.githubHeaders(creds.token);
   const base = 'https://api.github.com/repos/'+creds.repo;
   const results = [];
   const staged = [];
   for (const f of (files||[])) {
-    const verdict = await _ghEvaluateWriteGuards(creds, f.path, f.content);
+    const verdict = await _ghEvaluateWriteGuards(creds, f.path, f.content, revision);
     if (verdict.block) { results.push({ path:f.path, skipped:true, reason:verdict.block.reason }); continue; }
     results.push({ path:f.path, skipped:false });
     staged.push(f);
   }
+  if (revision && results.some(r => r.skipped)) return { ok:false, results, commitSha:null, staged:0 };
   // Every artifact blocked (or nothing staged) \u2014 there is no commit to make.
   // Returning without a ref update leaves the repo untouched; reporting the
   // blocked set is the caller's job, unchanged from the per-file era.
@@ -11310,7 +11565,7 @@ async function _ghPushFilesAtomicNow(creds, files, message) {
   };
 
   const attempt = async () => {
-    const refData = await ghJSON('GET', '/git/ref/heads/main');
+    const refData = revision ? {object:{sha:revision.head}} : await ghJSON('GET', '/git/ref/heads/main');
     const baseCommitSha = refData.object.sha;
     const baseCommit = await ghJSON('GET', '/git/commits/'+baseCommitSha);
     const tree = [];
@@ -11325,6 +11580,9 @@ async function _ghPushFilesAtomicNow(creds, files, message) {
     const commit = await ghJSON('POST', '/git/commits', {
       message, tree: newTree.sha, parents: [baseCommitSha]
     });
+    if (revision && !doorSetItemSafe('concPublishTransaction',JSON.stringify({status:'prepared',repo:creds.repo,baseHead:baseCommitSha,commitSha:commit.sha,at:new Date().toISOString()}))) {
+      throw new Error('This computer could not save the pending publish. Nothing was sent.');
+    }
     // The atomic point \u2014 the only call that makes the publish visible.
     return await ghJSON('PATCH', '/git/refs/heads/main', { sha: commit.sha, force:false });
   };
@@ -11333,11 +11591,10 @@ async function _ghPushFilesAtomicNow(creds, files, message) {
     const ref = await attempt();
     return { ok:true, results, commitSha: ref && ref.object && ref.object.sha, staged: staged.length };
   } catch(e) {
-    // 409/422 = the ref moved between our read and the PATCH (another device, or a
-    // racing publish). Rebuild once atop the new tip \u2014 the same single retry the
-    // per-file path allowed, for the same reason: a second conflict is pathological
-    // and the operator should see it fail.
-    if (e.status === 409 || e.status === 422) {
+    // Only independent legacy writes may retry their transport here. A dependent
+    // candidate carries revision, so its conflict returns to the transaction
+    // owner for a new authoritative read, merge and complete rebuild.
+    if (!revision && (e.status === 409 || e.status === 422)) {
       console.warn('[GH] atomic publish '+e.status+' \u2014 ref moved; rebuilding on the new tip, retrying once');
       await new Promise(r => setTimeout(r, 250 + Math.random()*250));
       const ref = await attempt();
@@ -11352,6 +11609,7 @@ async function _ghPushFilesAtomicNow(creds, files, message) {
 }
 
 async function _ghPushFileNow(creds, path, content) {
+  if (doorIsPublishDependency(path)) throw new Error('Dependent files must use the coherent publisher.');
   if (!creds || !creds.repo || !creds.token) throw new Error('GitHub token is not configured for publish.');
   const repo = creds.repo;
   const token = creds.token;
@@ -11473,65 +11731,19 @@ function doorUsePublishedMenuDays() {
   return n;
 }
 
-// Before pushing menu_overlay.json, fetch the current cloud version and
-// merge it: (week, day) entries missing locally are added, and for a day
-// both sides have the NEWER edit wins (per-day stamps in _meta.dayEditedAt;
-// see doorMergeMenuOverlayWithCloud). Without this, a device holding an old
-// copy of a day silently overwrote another device's newer edit on every
-// publish. Merging stays day-level — a day is small and edited as one unit.
+// Compatibility helpers for callers inspecting merge results. The publisher
+// reads one revision for the whole group instead; neither helper mutates local
+// state or substitutes an empty remote file after a failed authoritative read.
 async function preMergeOverlayWithCloud(creds, localOverlay) {
-  try {
-    const repo = creds.repo;
-    const url = 'https://api.github.com/repos/' + repo + '/contents/menu_overlay.json';
-    const res = await fetch(url, { headers: PublishAuth.githubHeaders(creds.token) });
-    if (res.status === 401 || res.status === 403 || res.status === 404) {
-      const err = await res.json().catch(()=>({}));
-      throw new Error(PublishAuth.classifyGitHubError(res.status, err.message || res.statusText));
-    }
-    if (!res.ok) return localOverlay;
-    const j = await res.json();
-    const cloudText = decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,''))));
-    const cloud = JSON.parse(cloudText || '{}');
-    const mergeResult = doorMergeMenuOverlayWithCloud(localOverlay, cloud);
-    if (mergeResult.addedCount > 0) {
-      console.warn('[GH] preMergeOverlayWithCloud: added ' + mergeResult.addedCount + ' day-level entries from cloud that were missing locally', mergeResult.addedDays);
-    }
-    if (mergeResult.adoptedCount > 0) {
-      console.warn('[GH] preMergeOverlayWithCloud: took ' + mergeResult.adoptedCount + ' newer day edit(s) from another device', mergeResult.adoptedDays);
-    }
-    return mergeResult.merged;
-  } catch(e) {
-    if (/token|access|repo|find|refused|rejected/i.test(e.message || '')) {
-      PublishAuth.rememberFailure(e.message);
-      throw e;
-    }
-    console.warn('[GH] preMergeOverlayWithCloud failed (' + e.message + '); pushing local as-is');
-    return localOverlay;
-  }
+  const revision = await doorPublishReadRevision(creds);
+  return doorMergeMenuOverlayWithCloud(localOverlay, revision.data['menu_overlay.json']).merged;
 }
-
-// The kitchen's swap and special-meal files and their revert lists, merged into this computer's before a publish
-// (2026-10-18). A file that can't be read is skipped (this computer's copy goes as it is); a missing one is empty.
 async function preMergeSwapsWithCloud(creds) {
-  const read = async (path) => {
-    try {
-      const res = await fetch('https://api.github.com/repos/' + creds.repo + '/contents/' + path, { headers: PublishAuth.githubHeaders(creds.token) });
-      if (res.status === 404) return {};
-      if (!res.ok) return null;
-      const j = await res.json();
-      return JSON.parse(decodeURIComponent(escape(atob((j.content || '').replace(/\n/g, '')))) || '{}');
-    } catch(e) { return null; }
-  };
-  const [rev, swaps, rem, specials] = await Promise.all([read('meal_swaps_reverted.json'), read('meal_swaps.json'),
-    read('special_meals_removed.json'), read('special_meals.json')]);
-  try { doorApplyRemoteSwaps(swaps, rev); } catch(e) { console.warn('[GH] preMergeSwapsWithCloud: swaps', e); }
-  try { doorApplyRemoteSpecials(specials, rem); } catch(e) { console.warn('[GH] preMergeSwapsWithCloud: special meals', e); }
+  return doorPublishCapture(await doorPublishReadRevision(creds));
 }
 
-// Serialize publishToGitHub calls. Each call awaits the previous one so two
-// overlapping publishes can't race for the same file's SHA. ghPushFile still
-// has a retry-on-409 as belt-and-suspenders for any racing publish that
-// originates outside this queue (e.g., a different tab).
+// Serialize this tab's publish operations. Cross-tab/device conflicts are
+// resolved by a fresh immutable read, merge and rebuild before another ref PATCH.
 let _publishQueue = Promise.resolve();
 function publishToGitHub(manual) {
   const next = _publishQueue.then(() => _doPublishToGitHub(manual));
@@ -11542,9 +11754,8 @@ function publishToGitHub(manual) {
 }
 
 async function _doPublishToGitHub(manual) {
-  // v32 fix: prefer the live field value over the stored setting, matching
-  // testGHPublish — otherwise a freshly pasted token "tests fine" but
-  // publish 401s on the stale stored one until the user clicks Save.
+  // Writes use the validated versioned connection; a typed unsaved key is
+  // explained only on the manual path, never silently used for a write.
   const statusEl = document.getElementById('gh-status');
   if(!manual){
     const cb=document.querySelector('[onclick*="gh_auto_publish"]');
@@ -11604,37 +11815,50 @@ async function _doPublishToGitHub(manual) {
   // P5: before building anything, make sure this computer's roster is not OLDER than
   // the shared board's. Auto path adopts the shared roster; manual may force (F3).
   let _registryPreflight = { adopted: false, forced: false, gate: null };
-  if (typeof doorRegistryPublishPreflight === 'function') {
-    try { _registryPreflight = await doorRegistryPublishPreflight(manual) || _registryPreflight; }
-    catch (e) { console.warn('[DOOR] registry publish preflight:', e); }
-  }
-  if (_registryPreflight.cancelled) {
-    if(statusEl){ statusEl.textContent='Not sent — nothing was sent to the kitchen.'; statusEl.style.color='#dc2626'; }
-    return { skipped:true, reason:'registry-cancelled', message:'resident-list question — publish cancelled' };
-  }
   let _pushes = [];
   const _staged = [];
   const _push = (path, content) => { _staged.push({ path, content }); };
   try {
-    const menuOverlay = doorNormalizeMenuOverlay(JSON.parse(localStorage.getItem('concMenuBase') || '{}'));
-    const overlayToPush = doorNormalizeMenuOverlay(await preMergeOverlayWithCloud(creds, menuOverlay));
+    let interrupted = null;
+    try { interrupted = JSON.parse(localStorage.getItem('concPublishTransaction') || 'null'); } catch(e) {}
+    for (let attempt = 0; attempt < 3; attempt++) {
+    _staged.length = 0;
+    const retained = interrupted && interrupted.status === 'prepared' ? interrupted : {status:'pending',at:new Date().toISOString()};
+    if (!doorSetItemSafe('concPublishTransaction',JSON.stringify(retained))) {
+      throw new Error('This computer could not retain the publish operation. Nothing was sent.');
+    }
+    const revision = await doorPublishReadRevision(creds);
+    const inputs = doorPublishCapture(revision);
+    _registryPreflight = await doorPublishSelectRegistry(inputs, manual);
+    if (_registryPreflight.cancelled) return {skipped:true,reason:'registry-cancelled',message:'Publish cancelled; local work is retained.'};
+    if (Object.entries(inputs.before).some(([key,value]) => localStorage.getItem(key) !== value)) {
+      if (attempt < 2) continue;
+      throw new Error('The local edits changed during publish. They remain pending.');
+    }
+    const menuOverlay = doorNormalizeMenuOverlay(JSON.parse(inputs.before.concMenuBase || '{}'));
+    const overlayToPush = doorNormalizeMenuOverlay(inputs.overlay);
     const overlayAdvisory = buildDoorOverlayMergeAdvisory(menuOverlay, overlayToPush, false);
     const overlayAdvisoryMsg = reportDoorOverlayMergeAdvisory(overlayAdvisory, manual);
     // The publish-overlay override (set just below) is what feeds the
     // cloud-merged overlay into the builders. Persisting it into concMenuBase is
-    // DEFERRED until after a successful publish (see the non-blocked branch
-    // below), so a failed/partial push can't leave local state ahead of what was
-    // actually published.
+    // deferred until the accepted commit is acknowledged, without overwriting
+    // edits made locally while the request was in flight.
     let publishArtifacts;
     setDoorPublishMenuOverlayOverride(overlayToPush);
     try {
-      publishArtifacts = {
+      publishArtifacts = doorPublishWithInputs(inputs, () => JSON.parse(JSON.stringify({
         'menu_current.json': buildMenuJSON(),
         'registry_summary.json': buildRegistrySummaryJSON(),
         'routing_by_meal.json': buildRoutingByMealJSON(),
         'door_state.json': buildStateJSON(),
         'menu_overlay.json': overlayToPush
-      };
+      })));
+      if (inputs.registry && inputs.registry._meta) {
+        publishArtifacts['door_state.json']._meta.registryModifiedAt = inputs.registry._meta.registryModifiedAt || inputs.registry._meta.exported;
+        for (const field of ['lastImportDate','lastImportFile','lastImportCount']) {
+          if (inputs.registry[field] !== undefined) publishArtifacts['door_state.json'][field] = inputs.registry[field];
+        }
+      }
     } finally {
       setDoorPublishMenuOverlayOverride(null);
     }
@@ -11654,68 +11878,56 @@ async function _doPublishToGitHub(manual) {
     // _components, missing artifact / _meta.version). These are unambiguous
     // contract violations with no false-positive risk, so DOOR — the single
     // upstream source — refuses to push them rather than feed EXPO/HUB malformed
-    // data. Auto-publish skips; a manual publish lets the operator override most
-    // structural findings. Overlay cutover/conflict failures are never overridable:
-    // they mean the menu layers disagree, so there is no coherent set to send.
+    // data. Both automatic and manual saves retain the candidate locally until
+    // these defects are fixed; staff are never offered an unsafe-write bypass.
     const _structuralStop = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
-    const _overlayStop = !!(_publishValidation && _publishValidation.stop && _publishValidation.stop.some(function(issue) {
-      return issue && issue.artifact === 'menu_overlay.json';
-    }));
     if (_structuralStop) {
       const _blockMsg = 'Blocked — ' + _structuralStop + ' structural defect' + (_structuralStop === 1 ? '' : 's') + ' (fix the data before publishing)';
       const _blockStaffMsg = 'Not sent — a data check found a problem in today’s information. Fix it and try again, or ask Jason.';
-      if (!manual || _overlayStop) {
-        if(statusEl){ statusEl.textContent=_blockStaffMsg; statusEl.style.color='#dc2626'; }
-        return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
-      }
-      const _proceedStop = (typeof doorAsk === 'function')
-        ? await doorAsk({
-            title: 'Today’s list has a data problem',
-            lines: ['Today’s list has data problems that could send the wrong info to the kitchen.', 'It’s better to fix it and try again.'],
-            cancelLabel: 'Don’t send', goLabel: 'Send anyway'
-          })
-        : true;
-      if (!_proceedStop) {
-        if(statusEl){ statusEl.textContent='Send cancelled — nothing was sent to the kitchen.'; statusEl.style.color='#dc2626'; }
-        return { skipped:true, reason:'validation-stop-cancelled', message:_blockMsg, validationStop:_structuralStop };
-      }
-      // Manual override: operator chose to publish despite defects — fall through
-      // and push; the post-push branch keeps the terminal status red (degraded).
+      if(statusEl){ statusEl.textContent=_blockStaffMsg; statusEl.style.color='#dc2626'; }
+      return { skipped:true, reason:'validation-stop', message:_blockMsg, validationStop:_structuralStop, issues:_publishValidation.stop };
     }
     _push('menu_current.json', JSON.stringify(publishArtifacts['menu_current.json'],null,2));
     _push('registry_summary.json', JSON.stringify(publishArtifacts['registry_summary.json'],null,2));
     _push('routing_by_meal.json', JSON.stringify(publishArtifacts['routing_by_meal.json'],null,2));
     _push('door_state.json', JSON.stringify(publishArtifacts['door_state.json'],null,2));
     _push('menu_overlay.json', JSON.stringify(publishArtifacts['menu_overlay.json'],null,2));
-    const customRules = JSON.parse(localStorage.getItem('concCustomTagRules') || '[]');
+    const customRules = inputs.custom;
     _push('custom_tag_rules.json', JSON.stringify(customRules,null,2));
-    const learnedNR = JSON.parse(localStorage.getItem('concLearnedNR') || '{}');
+    const learnedNR = inputs.learned;
     _push('learned_nr.json', JSON.stringify(learnedNR,null,2));
     // 2026-10-18: the kitchen's swaps, special meals and their revert lists merged in first, so a computer that hasn't
     // synced since another one reverted a swap never sends it (or a shorter list) back.
-    await preMergeSwapsWithCloud(creds);
-    _push('meal_swaps.json', JSON.stringify(loadMealSwaps(),null,2));
-    _push('meal_swaps_reverted.json', JSON.stringify(loadSwapReverts(),null,2));
-    _push('special_meals.json', JSON.stringify(loadSpecialMeals(),null,2));
-    _push('special_meals_removed.json', JSON.stringify(loadSpecialRemovals(),null,2));
+    _push('meal_swaps.json', JSON.stringify(inputs.swaps,null,2));
+    _push('meal_swaps_reverted.json', JSON.stringify(inputs.reverted,null,2));
+    _push('special_meals.json', JSON.stringify(inputs.specials,null,2));
+    _push('special_meals_removed.json', JSON.stringify(inputs.removed,null,2));
     // "Keep DOOR's" answers on Rex's week sheet (2026-10-29), merged with the kitchen's first. Never empty: a
     // computer that never answered sends nothing.
     { const _rexA = await doorPullRexAnswers(); if (Object.keys(_rexA).length) _push('rex_week_answers.json', JSON.stringify(_rexA,null,2)); }
     const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
     _push('recent_log.json', JSON.stringify(_logToSync,null,2));
-    // One commit for the whole artifact set. Anti-clobber guards run per path
-    // inside; a blocked artifact drops out of the batch and is reported below in
-    // exactly the shape the per-file era produced.
-    const _atomic = await ghPushFilesAtomic(creds, _staged,
-      'Publish DOOR artifacts — ' + new Date().toISOString().slice(0,16));
+    // One commit for the complete candidate; any blocked dependency holds it all.
+    let _atomic;
+    try {
+      if (await doorPublishRecoverPrepared(creds,revision,_staged,interrupted)) {
+        _atomic = {ok:true,results:_staged.map(f => ({path:f.path,skipped:false})),commitSha:revision.head,recovered:true};
+      } else {
+        _atomic = await ghPushFilesAtomic(creds, _staged,
+          'Publish DOOR artifacts — ' + new Date().toISOString().slice(0,16), revision);
+      }
+    } catch (conflict) {
+      if ((conflict.status === 409 || conflict.status === 422) && attempt < 2) continue;
+      throw conflict;
+    }
     _pushes = (_atomic && _atomic.results) || [];
     const timeStr = new Date().toLocaleTimeString();
     const _blocked = _pushes.filter(p=>p.skipped);
     if(_blocked.length){
       const _names = _blocked.map(s=>s.path.replace('.json','')).join(', ');
-      const msg = 'Partial publish — '+_blocked.length+'/'+_pushes.length+' blocked ('+_names+')';
+      const msg = 'Publish held — '+_blocked.length+'/'+_pushes.length+' blocked ('+_names+')';
       console.warn('[DOOR publish]', msg);
-      const staffMsg = 'Some of today’s changes didn’t reach the kitchen. Reload this page and Generate again. If it keeps happening, tell Jason.';
+      const staffMsg = 'Saved on this computer — the kitchen update is pending because a data check needs attention.';
       if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#dc2626'; }
       updateSyncBar(staffMsg, '#dc2626');
       if(manual) showToast(staffMsg);
@@ -11725,33 +11937,8 @@ async function _doPublishToGitHub(manual) {
       // banner can tell "work exists only here" from "published", and clear any
       // earlier recorded skip — a real publish is the only thing that clears it.
       try { localStorage.setItem('concLastPublishOk', new Date().toISOString()); localStorage.removeItem('concLastPublishSkip'); } catch(e) {}
-      if (typeof doorOutboxClear === 'function') doorOutboxClear(); // P3: the debt is paid — current state is on the shared board
-      // Publish wasn't blocked, so it's now safe to persist the cloud-merged
-      // overlay locally (future sessions/renders see the same cloud-only days).
-      // Deferred from before the push so a failed/partial publish leaves
-      // concMenuBase untouched rather than ahead of what was published.
-      if (overlayToPush !== menuOverlay) {
-        localStorage.setItem('concMenuBase', JSON.stringify(overlayToPush));
-      }
-      const _stopCount = (_publishValidation && _publishValidation.counts && _publishValidation.counts.Stop) || 0;
-      if (_stopCount) {
-        // Reached only when a MANUAL publish OVERRODE the Gate-9 structural block
-        // above (auto-publish already skipped). The operator chose to publish
-        // despite structural defects, so keep the terminal status RED/persistent
-        // — the single upstream source must never read green on a flagged snapshot
-        // — and mark the result degraded so the auto wrapper would render it red.
-        const _stopMsg = 'Published with ' + _stopCount + ' preflight Stop issue' + (_stopCount === 1 ? '' : 's') + ' — verify downstream';
-        console.warn('[DOOR publish]', _stopMsg);
-        const staffMsg = 'Sent to the kitchen — but a data check flagged something on today’s list. Let Jason know so he can look.';
-        if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#dc2626'; }
-        updateSyncBar(staffMsg, '#dc2626');
-        if(manual) showToast(staffMsg);
-        // degraded:true so the auto-publish wrapper (publishAndSync) renders this
-        // RED rather than overwriting it with a green "Synced ✓". The file did
-        // publish (Gate-5 is non-blocking), but the snapshot is flagged — and the
-        // visible sync bar must reflect that on the default (auto) path too.
-        return { ok:true, degraded:true, validationStop: _stopCount, message: _stopMsg, issues: _publishValidation.stop };
-      }
+      doorPublishAcknowledge(inputs, _atomic.commitSha);
+      // The acknowledgement retained any newer local intent for the next send.
       if (overlayAdvisoryMsg) {
         const msg = 'Published with advisory — reload and republish menu/routing · ' + timeStr;
         console.warn('[DOOR publish]', msg);
@@ -11768,6 +11955,7 @@ async function _doPublishToGitHub(manual) {
       updateSyncBar('Sent to the kitchen ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr + _rosterNote, _registryPreflight.forced ? '#d97706' : 'var(--forest)');
       if(manual) showToast('Sent to the kitchen ✓');
       return { ok:true };
+    }
     }
   } catch(err) {
     console.error('GitHub publish failed:',err);
@@ -13809,6 +13997,7 @@ function runAltFlagSweepOnce() {
 }
 window.sweepAltFlagPollution = sweepAltFlagPollution;
 function loadUploadedMenu() {
+  if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) return _doorPublishInputs.uploaded;
   try { return JSON.parse(localStorage.getItem('concUploadedMenu') || 'null'); } catch(e) { return null; }
 }
 function saveUploadedMenu(obj) {
@@ -18789,6 +18978,7 @@ function updateSmSlotSummary() {
 }
 
 function loadSpecialMeals() {
+  if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) return _doorPublishInputs.specials;
   try { return JSON.parse(localStorage.getItem('concSpecialMeals') || '{}'); } catch(e) { return {}; }
 }
 function saveSpecialMeals(obj, skipPush) {
@@ -18823,14 +19013,17 @@ function doorMergeSwapStores(local, remote, reverted, today) {
   };
   return Object.assign({}, keep(local), keep(remote));
 }
-// Two revert lists as one: a key both hold keeps its later time; past dates leave.
+// Two revert lists as one: a key both hold keeps its later time. An empty cutoff
+// retains the full history. Legacy key arrays are removals, never numeric keys.
 function doorMergeSwapReverts(a, b, today) {
   const out = {};
-  [a || {}, b || {}].forEach(src => Object.keys(src).forEach(k => {
-    const at = src[k];
+  [a || {}, b || {}].forEach(src => {
+    const entries = Array.isArray(src) ? src.filter(k => typeof k === 'string').map(k => [k,new Date().toISOString()]) : Object.entries(src);
+    entries.forEach(([k,at]) => {
     if (typeof at !== 'string' || !at || k.slice(0, 10) < today) return;
     if (!out[k] || at > out[k]) out[k] = at;
-  }));
+    });
+  });
   return out;
 }
 // The dates a slot swap's two halves land on (2026-10-18, Jason: "Fix in DOOR"). Each half took its own slot's next
@@ -18858,6 +19051,7 @@ function doorSlotSwapDates(slots, today, cycleStart) {
 // Meal swaps — date-keyed, auto-expire. Separate from special meals.
 // Swaps = "plan changed, serve X instead of Y." Specials = "celebration/event override."
 function loadMealSwaps() {
+  if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) return _doorPublishInputs.swaps;
   try { return JSON.parse(localStorage.getItem('concMealSwaps') || '{}'); } catch(e) { return {}; }
 }
 function saveMealSwaps(obj, skipPush) {
@@ -18867,10 +19061,10 @@ function saveMealSwaps(obj, skipPush) {
   }
 }
 // This computer's revert list, as it is published (meal_swaps_reverted.json).
-function loadSwapReverts() { return REVERTED_SWAP_KEYS.toPublished(); }
+function loadSwapReverts() { return (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) ? _doorPublishInputs.reverted : REVERTED_SWAP_KEYS.toPublished(); }
 // The kitchen's swap file and revert list merged into this computer's (pullSecondaryState and the boot sync).
 // The same for special meals: a removed one leaves every computer; a past one stays until Clear expired.
-function loadSpecialRemovals() { return REMOVED_SPECIAL_KEYS.toPublished(); }
+function loadSpecialRemovals() { return (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) ? _doorPublishInputs.removed : REMOVED_SPECIAL_KEYS.toPublished(); }
 function doorApplyRemoteSpecials(remoteMeals, remoteRemoved) {
   if (remoteRemoved && typeof remoteRemoved === 'object') REMOVED_SPECIAL_KEYS.mergeRemote(remoteRemoved);
   const remote = (remoteMeals && typeof remoteMeals === 'object') ? remoteMeals : {};

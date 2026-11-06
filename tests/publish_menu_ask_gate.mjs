@@ -5,7 +5,7 @@
 //
 // Ten questions across nine places:
 //   publish path  — the registry preflight (kitchen has a newer resident list), send from an out-of-date page,
-//                   send despite a data problem, Disconnect;
+//                   Disconnect (structural data problems now hold every publish);
 //   menu screens  — make permanent (edit panel and Active Swaps banner), revert a swap or permanent change,
 //                   clear all swaps, remove a special meal, reset an edited menu meal.
 //
@@ -48,7 +48,8 @@ const nativeConfirm = /(^|[^.\w$])confirm\s*\(/;
 
 const ASKS = {
   doorRegistryPublishPreflight: 1,
-  _doPublishToGitHub: 2,
+  doorPublishSelectRegistry: 1,
+  _doPublishToGitHub: 1,
   makePermanent: 1,
   revertMealSwap: 1,
   clearAllSwaps: 1,

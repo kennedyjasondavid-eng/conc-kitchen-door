@@ -320,6 +320,9 @@ function loadPublishFlowHarness(options = {}) {
       },
       setItem(key, value) {
         storage[key] = String(value);
+      },
+      removeItem(key) {
+        delete storage[key];
       }
     },
     buildMenuJSON: options.buildMenuJSON || (() => applyOverlayToMenuArtifact(
@@ -375,6 +378,22 @@ function loadPublishFlowHarness(options = {}) {
   // 2026-10-08 re-pin (publish_menu_ask_gate): the publish questions ask through doorAsk, not confirm().
   // options.confirm still answers them, so each test keeps its meaning.
   context.doorAsk = async (o) => (options.confirm || (() => true))(o);
+  // The validation/UI shim supplies one immutable read revision. The separate
+  // F1 applying-remote gates exercise real HTTP, merges, races and recovery.
+  context.doorSetItemSafe = (key, value) => { storage[key] = String(value); return true; };
+  context.doorOutboxRead = () => JSON.parse(storage.concPublishOutbox || '[]');
+  context.getRegistryProvenanceTs = () => 0;
+  context.REVERTED_SWAP_KEYS = { mergeRemote() {} };
+  context.REMOVED_SPECIAL_KEYS = { mergeRemote() {} };
+  context.doorPublishReadRevision = async (creds) => ({
+    head: 'pinned-test-head', tree: 'pinned-test-tree', paths: {},
+    data: {
+      'menu_overlay.json': await context.preMergeOverlayWithCloud(creds, JSON.parse(storage.concMenuBase)),
+      'meal_swaps.json': {}, 'meal_swaps_reverted.json': {},
+      'special_meals.json': {}, 'special_meals_removed.json': {},
+      'custom_tag_rules.json': [], 'learned_nr.json': {}, 'door_state.json': {}
+    }
+  });
   if ('tabStale' in options) context._doorTabStale = options.tabStale;
   if ('staleOverride' in options) context._doorStaleOverride = options.staleOverride;
   if (typeof options.configureContext === 'function') {
@@ -384,6 +403,10 @@ function loadPublishFlowHarness(options = {}) {
   vm.createContext(context);
   const code = [
     extractTestableCoreBlock(html, 'publish-validation'),
+    extractTestableCoreBlock(html, 'swap-store'),
+    "const DOOR_PUBLISH_OUTBOX_KEY = 'concPublishOutbox';",
+    extractFunctionBlock(html, 'doorDateKey'),
+    extractTestableCoreBlock(html, 'publish-transaction').replace(extractFunctionBlock(html, 'doorPublishReadRevision'), ''),
     extractFunctionBlock(html, 'reportDoorPublishValidation'),
     extractFunctionBlock(html, 'reportDoorOverlayMergeAdvisory'),
     extractFunctionBlock(html, '_doPublishToGitHub')
@@ -1913,7 +1936,7 @@ test('publish flow shim builds menu and routing from pre-merged cloud overlay', 
   assert.equal(harness.context._doorPublishMenuOverlayOverride, null);
 });
 
-test('publish flow shim keeps partial publish red when overlay days are merged', async () => {
+test('publish flow shim keeps a held transaction red when overlay days are merged', async () => {
   const harness = loadPublishFlowHarness({
     localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
     skippedPath: 'menu_current.json',
@@ -1932,20 +1955,19 @@ test('publish flow shim keeps partial publish red when overlay days are merged',
 
   assert.equal(result.skipped, true);
   assert.equal(result.reason, 'blocked');
-  assert.match(harness.statusEl.textContent, /didn.t reach the kitchen/);
+  assert.match(harness.statusEl.textContent, /kitchen update is pending/);
   assert.equal(harness.statusEl.style.color, '#dc2626');
-  assert.match(lastSync.message, /didn.t reach the kitchen/);
+  assert.match(lastSync.message, /kitchen update is pending/);
   assert.equal(lastSync.color, '#dc2626');
   // L11104: a blocked publish must NOT persist the cloud-merged overlay locally,
   // so concMenuBase stays at the pre-publish value (not ahead of what published).
   assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY, undefined, 'a blocked publish must not advance concMenuBase to the merged overlay');
 });
 
-test('Gate-9: a manual OVERRIDE of a structural defect publishes but reads RED', async () => {
+test('F1 structural gate: a manual send cannot override an invalid artifact', async () => {
   const harness = loadPublishFlowHarness({
     localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
-    // confirm defaults to () => true in the harness — i.e. the operator overrides
-    // the Gate-9 structural block, so the file publishes but the status stays red.
+    // Even a positive answer cannot release a structurally invalid candidate.
     buildMenuJSON: () => {
       const artifact = makePublishArtifact('menu_current.json');
       delete artifact.menu['1'].MONDAY; // Stop-level menu-day-missing
@@ -1956,14 +1978,28 @@ test('Gate-9: a manual OVERRIDE of a structural defect publishes but reads RED',
   const result = await harness.context._doPublishToGitHub(true);
   const lastSync = harness.syncBars.at(-1);
 
-  assert.equal(result.ok, true);
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'validation-stop');
   assert.ok(result.validationStop >= 1, 'a detected Stop issue must be surfaced on the result');
-  assert.equal(result.degraded, true, 'an overridden structural publish stays degraded so the terminal signal is red');
-  assert.ok(harness.pushed.some((p) => p.path === 'menu_current.json'), 'the override publishes the flagged artifact');
+  assert.equal(harness.pushed.length, 0, 'invalid artifacts remain local and pending');
   assert.doesNotMatch(harness.statusEl.textContent, /Sent to the kitchen ✓/);
-  assert.match(harness.statusEl.textContent, /data check flagged/i);
+  assert.match(harness.statusEl.textContent, /data check found a problem/i);
   assert.equal(harness.statusEl.style.color, '#dc2626');
   assert.notEqual(lastSync.color, 'var(--forest)');
+});
+
+test('F1 preflight: a blocked candidate never announces that it was sent', async () => {
+  const h = loadPublishFlowHarness({ buildMenuJSON: () => {
+    const artifact = makePublishArtifact('menu_current.json');
+    delete artifact.menu['1'].MONDAY;
+    return artifact;
+  } });
+  const result = await h.context._doPublishToGitHub(true);
+  assert.equal(result.skipped, true);
+  assert.equal(h.atomicCalls.length, 0);
+  assert.ok(h.syncBars.length > 0, 'the preflight must communicate the problem');
+  assert.ok(h.syncBars.every(x => !/^Sent to the kitchen/i.test(x.message)), 'no success wording before any commit');
+  assert.ok(h.toasts.every(x => !/^Sent to the kitchen/i.test(x)), 'no premature success toast');
 });
 
 test('Gate-9: an auto-publish is BLOCKED (not pushed) on a structural defect', async () => {
@@ -1986,7 +2022,7 @@ test('Gate-9: an auto-publish is BLOCKED (not pushed) on a structural defect', a
     'the staff status translates the internal validation failure');
 });
 
-test('Gate-9: a manual publish cancelled at the structural-defect prompt does not push', async () => {
+test('F1 structural gate: a negative answer also leaves the invalid candidate pending', async () => {
   const harness = loadPublishFlowHarness({
     localOverlay: { '1': { MONDAY: { lunch: 'Local lunch' } } },
     confirm: () => false,
@@ -2000,9 +2036,9 @@ test('Gate-9: a manual publish cancelled at the structural-defect prompt does no
   const result = await harness.context._doPublishToGitHub(true);
 
   assert.equal(result.skipped, true);
-  assert.equal(result.reason, 'validation-stop-cancelled');
+  assert.equal(result.reason, 'validation-stop');
   assert.equal(harness.pushed.length, 0, 'a cancelled structural publish must not push');
-  assert.match(harness.statusEl.textContent, /Send cancelled — nothing was sent to the kitchen/);
+  assert.match(harness.statusEl.textContent, /data check found a problem/i);
 });
 
 test('stale-tab override is scoped to manual — a background auto-sync still skips', async () => {
@@ -2715,7 +2751,7 @@ function loadAtomicPublishHarness(options = {}) {
       if (failAt && key === failAt) return json({ message: 'stub failure' }, 500);
 
       if (method === 'GET' && key.includes('/contents/')) {
-        const p = key.split('/contents/')[1];
+        const p = key.split('/contents/')[1].split('?')[0];
         return Object.prototype.hasOwnProperty.call(remote, p)
           ? json({ sha: remote[p].sha || 'blob-' + p, size: remote[p].size || 0 })
           : json({ message: 'Not Found' }, 404);
@@ -2745,10 +2781,20 @@ function loadAtomicPublishHarness(options = {}) {
   ].join('\n');
   vm.runInContext([
     prelude,
+    extractTestableCoreBlock(html, 'publish-transaction'),
     extractFunctionBlock(html, '_ghEvaluateWriteGuards'),
     extractFunctionBlock(html, 'ghPushFilesAtomic'),
     extractFunctionBlock(html, '_ghPushFilesAtomicNow')
   ].join('\n\n'), context, { filename: 'index.html#atomic-publish', timeout: 2000 });
+
+  // These transport tests begin after the transaction's read/build phase.
+  // F1a/F1b exercise that phase and full re-merge recovery with an applying remote.
+  context.doorSetItemSafe = () => true;
+  const atomic = context.ghPushFilesAtomic;
+  context.ghPushFilesAtomic = (creds, files, message) => atomic(creds, files, message, {
+    head: options.refSha || 'tip-sha-1', tree: 'tree-of-' + (options.refSha || 'tip-sha-1'),
+    paths: Object.fromEntries(Object.keys(remote).map(p => [p, { type: 'blob' }]))
+  });
 
   return { context, requests, syncBars, consoleMessages, rememberedFailures };
 }
@@ -2822,7 +2868,7 @@ test('D1: the write queue still serializes concurrent publishes', async () => {
     'the first publish completes its ref update before the second builds its tree (no interleave)');
 });
 
-test('D1: a guard-blocked artifact drops out of the tree but is still reported', async () => {
+test('F1: a guard-blocked dependency holds the complete transaction and is reported', async () => {
   // menu_current.json is empty locally while the cloud copy is substantial —
   // the empty-clobber guard must still refuse it, exactly as in the per-file era.
   const h = loadAtomicPublishHarness({ remote: { 'menu_current.json': { sha: 's', size: 5000 } } });
@@ -2833,12 +2879,12 @@ test('D1: a guard-blocked artifact drops out of the tree but is still reported',
 
   const blocked = res.results.find((r) => r.path === 'menu_current.json');
   assert.equal(blocked.skipped, true, 'the guard still blocks');
-  assert.equal(blocked.reason, 'empty_clobber', 'and the caller still gets the reason for its partial-publish line');
+  assert.equal(blocked.reason, 'empty_clobber', 'the caller gets the reason for the held transaction');
 
   const tree = h.requests.find((r) => r.key === 'POST /git/trees');
-  assert.deepEqual(Array.from(tree.body.tree, (e) => e.path), ['door_state.json'],
-    'the blocked artifact is not committed; the surviving set still lands in one commit');
-  assert.equal(res.staged, 1);
+  assert.equal(tree, undefined, 'no subset of a dependency group can be committed');
+  assert.equal(res.staged, 0);
+  assert.equal(res.commitSha, null);
 });
 
 test('D1: every artifact blocked means no commit at all', async () => {
@@ -2852,18 +2898,14 @@ test('D1: every artifact blocked means no commit at all', async () => {
     'nothing to publish must not move the ref');
 });
 
-test('D1: a 422 (ref moved) rebuilds on the new tip and retries exactly once', async () => {
+test('F1: a pinned transport conflict returns to the transaction for re-merge', async () => {
   const h = loadAtomicPublishHarness({ conflictOnce: true });
-  const res = await h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg');
-
-  assert.equal(res.ok, true, 'the retry succeeds');
+  await assert.rejects(() => h.context.ghPushFilesAtomic({ repo: 'o/r', token: 't' }, ATOMIC_FILES, 'msg'), /422/);
   const trees = h.requests.filter((r) => r.key === 'POST /git/trees');
-  assert.equal(trees.length, 2, 'the tree is rebuilt, not reused');
-  assert.equal(trees[1].body.base_tree, 'tree-of-tip-sha-2', 'rebuilt atop the NEW tip, not the stale one');
+  assert.equal(trees.length, 1, 'transport cannot reparent stale candidates');
   const commits = h.requests.filter((r) => r.key === 'POST /git/commits');
-  assert.deepEqual(Array.from(commits[1].body.parents), ['tip-sha-2'], 'the retry commit parents the new tip');
-  assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 2,
-    'exactly one retry — a second conflict is pathological and must fail loudly');
+  assert.deepEqual(Array.from(commits[0].body.parents), ['tip-sha-1']);
+  assert.equal(h.requests.filter((r) => r.key === 'PATCH /git/refs/heads/main').length, 1);
 });
 
 test('D1: the publish path stages the whole artifact set into ONE atomic call', async () => {
@@ -2948,7 +2990,7 @@ test('plain-language: staff-facing messages speak in kitchen terms, not app jarg
     /Nothing to get yet — the kitchen has no saved list/,
     /Couldn.t find any residents in this file/,           // import error
     /this page is out of date/,                           // stale-page banner reason
-    /Some of today.s changes didn.t reach the kitchen/,   // partial send
+    /kitchen update is pending because a data check needs attention/, // held coherent send
     /Today's meal list imported/,                         // green import box
     /Resident list loaded — /,                       // boot
     /This computer isn.t connected to the kitchen yet/,   // refresh w/o connection
@@ -3202,7 +3244,7 @@ test('D3: the publish validator Stops when the menu is the baked fallback', () =
   assert.ok(!noOpts.stop.some((i) => i.code === 'menu-source-fallback'), 'the check is opt-in; a bare call never manufactures it');
 });
 
-test('D3: an auto-publish built from the baked fallback is blocked; a manual publish can override', async () => {
+test('F1 structural gate: a baked fallback cannot be sent automatically or manually', async () => {
   const blocked = loadPublishFlowHarness({ configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; } });
   const autoRes = await blocked.context._doPublishToGitHub(false); // auto publish
   assert.ok(autoRes && autoRes.skipped && autoRes.reason === 'validation-stop', 'auto-publish from the fallback is Gate-9 blocked');
@@ -3210,11 +3252,11 @@ test('D3: an auto-publish built from the baked fallback is blocked; a manual pub
   assert.equal(blocked.atomicCalls.length, 0, 'nothing is committed when blocked');
 
   const overridden = loadPublishFlowHarness({
-    confirm: () => true, // operator consciously overrides
+    confirm: () => true,
     configureContext(ctx) { ctx._doorMenuUsedBakedFallback = true; }
   });
   await overridden.context._doPublishToGitHub(true); // manual publish
-  assert.equal(overridden.atomicCalls.length, 1, 'a manual publish can override the fallback Stop (FORK-3 Gate-9 semantics)');
+  assert.equal(overridden.atomicCalls.length, 0, 'the fallback cannot replace an authoritative menu');
 });
 
 test('D3: a normal publish (real uploaded menu) is unaffected by the fallback gate', async () => {
