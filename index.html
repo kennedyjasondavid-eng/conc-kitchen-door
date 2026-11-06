@@ -8316,14 +8316,22 @@ function publishAndSync(context) {
       // onto the auto-publish path).
       const reason = result.message || 'published with preflight issues';
       console.warn('[DOOR auto-publish degraded]', reason);
-      const staffMsg = 'Sent to the kitchen — but a data check flagged something on today’s list. Let Jason know so he can look.';
+      const staffMsg = 'Committed — delivery pending; a data check flagged something on today’s list. Let Jason know so he can look.';
       updateSyncBar(staffMsg, '#dc2626');
       if (typeof showToast === 'function') showToast(staffMsg);
       return;
     }
-    updateSyncBar('Sent to the kitchen ✓ — ' + context + ' · ' + timeStr + (op ? ' · ' + op : ''), 'var(--forest)');
+    doorDeliveryRender();
   }).catch((err) => {
     const msg = (err && err.message) ? err.message : 'sync failed';
+    if (err?.doorCommittedSha) {
+      _recordSkip('receipt_pending',msg);
+      if(typeof doorOutboxAppend==='function')doorOutboxAppend(context,'receipt_pending');
+      const staffMsg='Committed — confirmation on this computer is pending. Try Generate again to check.';
+      updateSyncBar(staffMsg,'var(--muted)');
+      if(typeof showToast==='function')showToast(staffMsg);
+      return;
+    }
     // P3 (found by the e2e): with NO key at all, _doPublishToGitHub THROWS from the
     // credentials lookup instead of returning a missing_auth skip — so classify here,
     // or the outbox records "error" and the P2 card never auto-opens on a new device.
@@ -11727,11 +11735,13 @@ async function doorPublishRecoverPrepared(creds, revision, files, receipt) {
     const body = await get('/contents/' + file.path + '?ref=' + encodeURIComponent(revision.head));
     if (typeof body.content !== 'string') throw new Error('The interrupted publish file is unreadable: ' + file.path);
     const remote = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
+    revision.data[file.path] = remote;
     const desired = JSON.parse(file.content);
     const remoteFlow = file.path === 'door_flow_publication.json' ? remote.flow : remote._meta && remote._meta.flow;
     const desiredFlow = file.path === 'door_flow_publication.json' ? desired.flow : desired._meta && desired._meta.flow;
     if ((remoteFlow || desiredFlow) && JSON.stringify(remoteFlow && remoteFlow.publication) !== JSON.stringify(desiredFlow && desiredFlow.publication)) return false;
-    if (JSON.stringify(doorPublishComparable(remote,false)) !== JSON.stringify(doorPublishComparable(desired,false))) return false;
+    if ((remoteFlow && !houseFlowReceiptValid(remoteFlow)) || (desiredFlow && !houseFlowReceiptValid(desiredFlow))) return false;
+    if (houseFlowCanonical(doorDeliveryComparable(remote,[],false)) !== houseFlowCanonical(doorDeliveryComparable(desired,[],false))) return false;
   }
   return true;
 }
@@ -11869,6 +11879,295 @@ function doorPublishAcknowledge(inputs, commitSha) {
     throw new Error('Published, but the commit receipt could not be saved.');
   }
 }
+// F6: a commit and its anonymous delivery are separate facts. No credentials or
+// resident details enter this bounded, scope-local receipt.
+const DOOR_DELIVERY_PUBLIC_FILES = ['menu_current.json','registry_summary.json','routing_by_meal.json','meal_swaps.json','meal_swaps_reverted.json','special_meals.json','special_meals_removed.json'];
+const DOOR_DELIVERY_KEY = 'concDoorDeliveryV1';
+const DOOR_DELIVERY_DELAYS = [0,5000,30000];
+const _doorDeliveryFlights = new Map();
+let _doorDeliveryTimer = null;
+function doorDeliveryScope(repo,site) { return JSON.stringify([repo,'main',site]); }
+function doorDeliveryStore() {
+  try { const value=JSON.parse(localStorage.getItem(DOOR_DELIVERY_KEY)||'{}'); return value && !Array.isArray(value) && typeof value==='object' ? value : {}; } catch(e) { return {}; }
+}
+function doorDeliveryCurrent() {
+  const repo=PublishAuth.getRepo(),site=(typeof currentSite!=='undefined'&&currentSite&&currentSite.id)||'rexdale';
+  const record=doorDeliveryStore()[doorDeliveryScope(repo,site)];
+  return record && record.schema===1 && record.repo===repo && record.site===site && record.branch==='main' &&
+    typeof record.committedSha==='string' && Number.isFinite(Date.parse(record.committedAt)) &&
+    Number.isSafeInteger(record.attemptCount) && record.attemptCount>=0 ? record : null;
+}
+function doorDeliverySave(record,expectedOperation,expectedAttempt) {
+  const records=doorDeliveryStore(),key=doorDeliveryScope(record.repo,record.site);
+  if (expectedOperation && records[key]?.operationId!==expectedOperation) return false;
+  if (expectedAttempt!==undefined && (records[key]?.attemptCount!==expectedAttempt || records[key]?.lastAttemptAt!==record.lastAttemptAt)) return false;
+  records[key]=record;
+  if (!doorSetItemSafe(DOOR_DELIVERY_KEY,JSON.stringify(records))) throw new Error('The update is committed, but this computer could not retain its delivery receipt.');
+  return true;
+}
+function doorDeliveryFresh(evidence) {
+  const age=Date.now()-Date.parse(evidence&&evidence.observedAt);
+  return evidence?.current!==false&&Number.isFinite(age)&&age>=0&&age<=7*86400000;
+}
+function doorDeliveryCanVerify() {
+  return typeof navigator!=='undefined' && !!navigator.locks && typeof navigator.locks.request==='function';
+}
+function doorDeliveryRender() {
+  const record=doorDeliveryCurrent();
+  if (!record) return;
+  const served=doorDeliveryCanVerify()&&doorDeliveryFresh(record.served),pending=doorOutboxRead().length>0;
+  const text=pending ? 'Newer changes are saved on this computer — waiting to send.' : served ?
+    'Available to the kitchen ✓'+(doorDeliveryFresh(record.consumed)?' · EXPO accepted this update.':'') :
+    !doorDeliveryCanVerify() ? 'Committed — delivery checks are unavailable in this browser.' :
+    record.served ? 'Previously verified — check delivery for current confirmation.' : 'Committed — kitchen delivery pending.';
+  const color=served&&!pending?'var(--forest)':'var(--muted)';
+  const status=document.getElementById('gh-status');
+  if (status) { status.textContent=text;status.style.color=color; }
+  updateSyncBar(text,color);
+  let actions=document.getElementById('door-delivery-actions');
+  if (!actions && status) {
+    actions=document.createElement('span');actions.id='door-delivery-actions';actions.style.cssText='display:inline-flex;gap:10px;align-items:center;margin-left:8px';
+    const button=document.createElement('button');button.type='button';button.textContent='Check delivery';button.setAttribute('onclick','doorRecheckDelivery()');
+    const link=document.createElement('a');link.textContent='Deployment status';link.target='_blank';link.rel='noopener noreferrer';
+    actions.append(button,link);status.after(actions);
+  }
+  if (actions) {
+    actions.hidden=served;actions.style.display=served?'none':'inline-flex';
+    const button=actions.querySelector('button');
+    button.disabled=!doorDeliveryCanVerify();
+    button.title=button.disabled?'Delivery checks are unavailable in this browser. View deployment status.':'';
+    actions.querySelector('a').href='https://github.com/'+record.repo.split('/').map(encodeURIComponent).join('/')+'/actions';
+  }
+}
+function doorDeliveryComparable(value,path,ignorePublication) {
+  if (Array.isArray(value)) return value.map((v,i)=>doorDeliveryComparable(v,path.concat(String(i)),ignorePublication));
+  if (value && typeof value==='object') {
+    const out={};
+    Object.keys(value).sort().forEach(key=>{
+      const full=path.concat(key).join('.');
+      if (full==='_meta.exported'||full==='_meta.builtFromMenu.exported') return;
+      if (ignorePublication&&(full==='_meta.flow.publication'||full==='flow.publication')) return;
+      out[key]=doorDeliveryComparable(value[key],path.concat(key),ignorePublication);
+    });
+    return out;
+  }
+  return value;
+}
+async function doorDeliveryFlow(files,site,privateSet) {
+  const menu=files['menu_current.json'],flow=menu?._meta?.flow;
+  const active=!!flow || ['registry_summary.json','routing_by_meal.json','menu_overlay.json','door_state.json'].some(n=>files[n]?._meta?.flow)||!!files['routing_by_meal.json']?.flow||!!files['door_flow_publication.json'];
+  if (!active) return null;
+  if (!houseFlowReceiptValid(flow)||menu._meta.site!==site) throw new Error('Unverified delivery receipt');
+  if (privateSet) {
+    for (const name of ['menu_overlay.json','door_state.json']) if (files[name]?._meta?.site!==site||houseFlowCanonical(files[name]._meta.flow)!==houseFlowCanonical(flow)) throw new Error('Incomplete committed flow');
+    const counter=files['door_flow_publication.json'];
+    if (counter?.schema!==1||counter?._meta?.site!==site||houseFlowCanonical(counter.flow)!==houseFlowCanonical(flow)) throw new Error('Publication counter needs repair');
+  }
+  const candidate={menu,registry:files['registry_summary.json'],routing:files['routing_by_meal.json'],swaps:files['meal_swaps.json'],reverted:files['meal_swaps_reverted.json'],specials:files['special_meals.json'],removed:files['special_meals_removed.json']};
+  const state=houseFlowCreateState();
+  if (!await houseFlowPromote(state,houseFlowBegin(state),candidate,{source:'live',now:Date.now()})) throw new Error('Incomplete coherent delivery');
+  return flow;
+}
+async function doorPublishUnchanged(creds,revision,files) {
+  const desired=Object.fromEntries(files.map(f=>[f.path,JSON.parse(f.content)])),remote={};
+  for (const file of files) {
+    if (!revision.paths[file.path]) return false;
+    if (!Object.prototype.hasOwnProperty.call(revision.data,file.path)) {
+      const body=await doorPublishReadJSON(creds,'/contents/'+file.path+'?ref='+encodeURIComponent(revision.head));
+      if (typeof body.content!=='string') throw new Error('Unreadable committed artifact: '+file.path);
+      revision.data[file.path]=JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
+    }
+    remote[file.path]=revision.data[file.path];
+  }
+  const site=(typeof currentSite!=='undefined'&&currentSite&&currentSite.id)||'rexdale';
+  let remoteFlow,desiredFlow;
+  try { remoteFlow=await doorDeliveryFlow(remote,site,true);desiredFlow=await doorDeliveryFlow(desired,site,true); } catch(e) { return false; }
+  if (!!remoteFlow!==!!desiredFlow) return false;
+  for (const file of files) {
+    if (houseFlowCanonical(doorDeliveryComparable(remote[file.path],[],!!remoteFlow))!==houseFlowCanonical(doorDeliveryComparable(desired[file.path],[],!!desiredFlow))) return false;
+  }
+  // A read-only no-op still has a concurrency boundary: do not acknowledge a
+  // comparison against an obsolete head. The owner re-reads and rebuilds.
+  const ref=await doorPublishReadJSON(creds,'/git/ref/heads/main');
+  if (ref?.object?.sha!==revision.head) { const error=new Error('The kitchen changed during comparison.');error.status=409;throw error; }
+  return true;
+}
+async function doorDeliveryCommitted(creds,files,commitSha,unchanged,acknowledge) {
+  const site=(typeof currentSite!=='undefined'&&currentSite&&currentSite.id)||'rexdale';
+  const committedFiles=files;
+  const recordCommit=async(retry=0)=>{
+    let candidateFiles=committedFiles;
+    const scope=doorDeliveryScope(creds.repo,site);
+    const observedOperation=doorDeliveryStore()[scope]?.operationId;
+    // The PATCH response can be delayed while another tab commits and records
+    // newer work. Establish the current head while holding the receipt lock.
+    const ref=await doorPublishReadJSON(creds,'/git/ref/heads/main');
+    let verifiedHead=ref?.object?.sha;
+    if (!verifiedHead) throw new Error('The committed kitchen revision could not be verified.');
+    if (verifiedHead!==commitSha) {
+      const latest=await doorPublishReadRevision(creds);verifiedHead=latest.head;
+      candidateFiles=Object.fromEntries(Object.entries(latest.data).filter(([name])=>latest.paths[name]));
+      for (const name of DOOR_DELIVERY_PUBLIC_FILES) {
+        if (!latest.paths[name]) throw new Error('The latest kitchen delivery set is incomplete.');
+        if (!Object.prototype.hasOwnProperty.call(candidateFiles,name)) {
+          const body=await doorPublishReadJSON(creds,'/contents/'+name+'?ref='+encodeURIComponent(verifiedHead));
+          if (typeof body.content!=='string') throw new Error('The latest kitchen delivery file is unreadable.');
+          candidateFiles[name]=JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g,'')))));
+        }
+      }
+    }
+    const publicDigests={};
+    for (const name of DOOR_DELIVERY_PUBLIC_FILES) publicDigests[name]=await houseFlowDigest(candidateFiles[name]);
+    const flow=await doorDeliveryFlow(candidateFiles,site,true);
+    if (!doorDeliveryCanVerify()) {
+      // Without shared coordination, preserve any operation another tab has
+      // completed during our awaits. This is an optimistic observation check,
+      // not an atomic localStorage lock or a current-delivery certificate.
+      const observed=doorDeliveryStore()[scope];
+      if (observed?.operationId!==observedOperation) return observed;
+      const finalRef=await doorPublishReadJSON(creds,'/git/ref/heads/main');
+      const current=doorDeliveryStore()[scope];
+      if (current?.operationId!==observedOperation) return current;
+      if (finalRef?.object?.sha!==verifiedHead) {
+        if (retry<2) return recordCommit(retry+1);
+        throw new Error('Committed — the kitchen changed while this computer checked its receipt. Local work remains pending.');
+      }
+    }
+    const existing=doorDeliveryStore()[scope];
+    const sameContent=existing?.schema===1&&existing.publicDigests&&Object.prototype.hasOwnProperty.call(existing,'flow')&&
+      houseFlowCanonical(existing.publicDigests)===houseFlowCanonical(publicDigests)&&houseFlowCanonical(existing.flow)===houseFlowCanonical(flow);
+    let record=existing;
+    if (!sameContent||(!unchanged&&existing.committedSha!==verifiedHead)) {
+      const at=new Date().toISOString();
+      record={schema:1,repo:creds.repo,branch:'main',site,operationId:verifiedHead+':'+at,committedSha:verifiedHead,committedAt:at,flow,publicDigests,served:null,consumed:null,attemptCount:0,lastAttemptAt:null,nextDueAt:at,retryRunId:null};
+      doorDeliverySave(record);
+    }
+    if (flow) {
+      const saved=JSON.parse(localStorage.getItem('concDoorFlowPublication')||'null');
+      if (saved&&saved.epoch!==flow.publication.epoch) throw new Error('The kitchen publication epoch needs review.');
+      if ((!saved||saved.sequence<flow.publication.sequence)&&!doorSetItemSafe('concDoorFlowPublication',JSON.stringify(flow.publication))) throw new Error('The publication landed but its local receipt is still pending.');
+    }
+    // Only the owner of the still-current committed inputs may acknowledge them.
+    // A late A response must not replace B's transaction or invent another B edit.
+    if (verifiedHead===commitSha&&doorDeliveryStore()[scope]?.operationId===record.operationId) acknowledge();
+    return record;
+  };
+  if (doorDeliveryCanVerify()) return navigator.locks.request('door-delivery-commit:'+doorDeliveryScope(creds.repo,site),()=>recordCommit());
+  // Older browsers can still commit. They retain an honest pending receipt and
+  // never spend uncoordinated anonymous verification attempts.
+  return recordCommit();
+}
+async function doorDeliveryRead(url) {
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+  try { const response=await fetch(url,{cache:'no-store',credentials:'omit',signal:controller.signal});if(!response.ok)throw new Error('Delivery not observed');return await response.json(); }
+  finally { clearTimeout(timer); }
+}
+function doorDeliveryObserve(record,name,file) {
+  if(!record.flow||!['menu_current.json','registry_summary.json','routing_by_meal.json'].includes(name))return;
+  const receipt=file?._meta?.flow;
+  const prior=record.observedFlow||(record.served?.publication?record.served:record.flow);
+  let uncertain=false;
+  if(file?._meta?.site!==record.site||!houseFlowReceiptValid(receipt)||receipt.publication.epoch!==prior.publication.epoch) uncertain=true;
+  else if(receipt.publication.sequence>prior.publication.sequence) {
+    record.observedFlow=houseFlowCopy(receipt);uncertain=true;
+  } else if(receipt.publication.sequence<prior.publication.sequence||receipt.inputRevision!==prior.inputRevision||
+    (prior.schema===1&&houseFlowCanonical(receipt)!==houseFlowCanonical(prior))) uncertain=true;
+  else if(!record.observedFlow)record.observedFlow=houseFlowCopy(receipt);
+  // A successful authoritative response may invalidate old proof before any
+  // companion finishes. Persist the witness separately; it is not served proof.
+  if(uncertain) {
+    if(record.served)record.served.current=false;
+    if(record.consumed)record.consumed.current=false;
+  }
+  if(doorDeliverySave(record,record.operationId,record.attemptCount)&&uncertain)doorDeliveryRender();
+}
+function doorDeliverySchedule() {
+  if (_doorDeliveryTimer!==null) { clearTimeout(_doorDeliveryTimer);_doorDeliveryTimer=null; }
+  const record=doorDeliveryCurrent();
+  if (!doorDeliveryCanVerify()||!record||record.attemptCount>=DOOR_DELIVERY_DELAYS.length||(doorDeliveryFresh(record.served)&&doorDeliveryFresh(record.consumed))) return;
+  const due=Date.parse(record.committedAt)+DOOR_DELIVERY_DELAYS[record.attemptCount];
+  // A prior bounded request may have run past the next deadline. Resume its
+  // unused attempt after releasing the lock, without requiring another gesture.
+  if (due<=Date.now()) {doorDeliveryVerify(false).catch(()=>{});return;}
+  _doorDeliveryTimer=setTimeout(()=>{_doorDeliveryTimer=null;doorDeliveryVerify(false).catch(()=>{});},Math.max(0,due-Date.now()));
+}
+function doorDeliveryVerify(manual) {
+  let record=doorDeliveryCurrent();if(!record)return Promise.resolve(null);
+  if (!doorDeliveryCanVerify()) {doorDeliveryRender();return Promise.resolve(record);}
+  const key=doorDeliveryScope(record.repo,record.site)+':'+record.operationId;
+  if (_doorDeliveryFlights.has(key)) return _doorDeliveryFlights.get(key);
+  if (!manual&&(record.attemptCount>=3||Date.now()<Date.parse(record.committedAt)+DOOR_DELIVERY_DELAYS[record.attemptCount]||(doorDeliveryFresh(record.served)&&doorDeliveryFresh(record.consumed)))) {doorDeliveryRender();doorDeliverySchedule();return Promise.resolve(record);}
+  let ownsLock=false;
+  const run=navigator.locks.request('door-delivery:'+doorDeliveryScope(record.repo,record.site),{ifAvailable:true},async lock=>{
+    // Another tab owns the attempt. Do not queue another manual read or spin a
+    // past-due timer; its completion/storage change or a later focus resumes us.
+    if (!lock) return record;
+    ownsLock=true;
+    const latest=doorDeliveryCurrent();
+    if (!latest||latest.operationId!==record.operationId) return null;
+    record=latest;
+    if (!manual&&(record.attemptCount>=3||Date.now()<Date.parse(record.committedAt)+DOOR_DELIVERY_DELAYS[record.attemptCount]||(doorDeliveryFresh(record.served)&&doorDeliveryFresh(record.consumed)))) return record;
+    const at=new Date().toISOString();record.attemptCount++;record.lastAttemptAt=at;
+    record.nextDueAt=record.attemptCount<3?new Date(Date.parse(record.committedAt)+DOOR_DELIVERY_DELAYS[record.attemptCount]).toISOString():null;
+    if(!doorDeliverySave(record,record.operationId))return null;
+    try {
+      const reads=await Promise.allSettled(DOOR_DELIVERY_PUBLIC_FILES.map(async name=>{
+        const file=await doorDeliveryRead(doorPagesUrl(record.repo,name));
+        doorDeliveryObserve(record,name,file);
+        return [name,file];
+      }));
+      if(reads.some(read=>read.status!=='fulfilled'))throw new Error('Incomplete public delivery');
+      const files=Object.fromEntries(reads.map(read=>read.value));let verified=null,flow=null;
+      if (record.flow) {
+        flow=await doorDeliveryFlow(files,record.site,false);
+        // A later coherent public observation is a causal high-water mark even
+        // after it expires. Keep its age and identity when a CDN regresses;
+        // successful contradictory evidence suspends current credit.
+        const prior=record.observedFlow||(record.served?.publication?record.served:record.flow);
+        const same=flow&&houseFlowCanonical(flow.publication)===houseFlowCanonical(prior.publication)&&flow.inputRevision===prior.inputRevision;
+        if (!flow||flow.publication.epoch!==prior.publication.epoch||(!same&&flow.publication.sequence<=prior.publication.sequence)) {
+          if(record.served)record.served.current=false;
+          if(record.consumed)record.consumed.current=false;
+          doorDeliverySave(record,record.operationId,record.attemptCount);
+          throw new Error('Older or conflicting publication');
+        }
+        verified={observedAt:new Date().toISOString(),publication:houseFlowCopy(flow.publication),inputRevision:flow.inputRevision};
+      } else {
+        for(const name of DOOR_DELIVERY_PUBLIC_FILES) if(await houseFlowDigest(files[name])!==record.publicDigests[name]) throw new Error('Legacy delivery differs');
+        verified={observedAt:new Date().toISOString(),committedSha:record.committedSha};
+      }
+      record.served=verified;
+      if (record.consumed && (!flow || record.consumed.inputRevision!==verified.inputRevision ||
+        !record.consumed.publication || houseFlowCanonical(record.consumed.publication)!==houseFlowCanonical(verified.publication))) record.consumed=null;
+      if (flow) {
+        // EXPO publishes this proof to HUB's public schedule. Anonymous only;
+        // the DOOR connection is never forwarded to another repository.
+        try {
+          const schedule=await doorDeliveryRead(doorPagesUrl(record.repo.split('/')[0]+'/conc-kitchen-hub','hub_schedule.json'));
+          const meta=schedule?._doorMenu,attestation=meta?.buildAttestation;
+          if(['live','cached'].includes(schedule?._menuSource)&&meta?.site===record.site&&houseFlowReceiptValid(meta.flow)&&houseFlowCanonical(meta.flow)===houseFlowCanonical(flow)&&
+            attestation?.schema===1&&attestation.capability==='door-flow-build-v1'&&attestation.inputRevision===flow.inputRevision&&attestation.publication&&
+            houseFlowCanonical(attestation.publication)===houseFlowCanonical(flow.publication)) record.consumed={observedAt:new Date().toISOString(),publication:houseFlowCopy(flow.publication),inputRevision:flow.inputRevision};
+        }catch(e){}
+      }
+      doorDeliverySave(record,record.operationId,record.attemptCount);
+    }catch(e){} // The debt and its original time survive inaccessible/partial reads.
+    return record;
+  }).catch(()=>record);
+  _doorDeliveryFlights.set(key,run);
+  return run.finally(()=>{_doorDeliveryFlights.delete(key);doorDeliveryRender();if(ownsLock)doorDeliverySchedule();});
+}
+function doorRecheckDelivery() { return doorDeliveryVerify(true); }
+function doorDeliveryResume() { doorDeliveryRender();doorDeliveryVerify(false).catch(()=>{}); }
+if (typeof window!=='undefined' && window.addEventListener) {
+// Let the existing startup connection/site restoration complete before choosing
+// the scope. This is a single boot opportunity, not a polling loop.
+window.addEventListener('DOMContentLoaded',()=>setTimeout(doorDeliveryResume,0));
+window.addEventListener('focus',doorDeliveryResume);
+window.addEventListener('storage',event=>{if(event.key===DOOR_DELIVERY_KEY)doorDeliveryResume();});
+
+}
+
 /* DOOR_TESTABLE_CORE_END publish-transaction */
 
 let _ghWriteQueue = Promise.resolve();
@@ -12177,6 +12476,7 @@ async function _doPublishToGitHub(manual) {
   // Writes use the validated versioned connection; a typed unsaved key is
   // explained only on the manual path, never silently used for a write.
   const statusEl = document.getElementById('gh-status');
+  let knownCommittedSha=null;
   if(!manual){
     const cb=document.querySelector('[onclick*="gh_auto_publish"]');
     if(cb&&!cb.querySelector('input').checked) return { skipped:true, reason:'auto_publish_off', message:'auto-publish is off' };
@@ -12334,6 +12634,8 @@ async function _doPublishToGitHub(manual) {
     try {
       if (await doorPublishRecoverPrepared(creds,revision,_staged,interrupted)) {
         _atomic = {ok:true,results:_staged.map(f => ({path:f.path,skipped:false})),commitSha:revision.head,recovered:true};
+      } else if (await doorPublishUnchanged(creds,revision,_staged)) {
+        _atomic = {ok:true,results:_staged.map(f=>({path:f.path,skipped:false})),commitSha:revision.head,unchanged:true};
       } else {
         doorFlowAllocateOccurrence(_staged,nextFlowPublication);
         _atomic = await ghPushFilesAtomic(creds, _staged,
@@ -12359,33 +12661,39 @@ async function _doPublishToGitHub(manual) {
       // P1: the artifact set landed (one commit). Record the success so the device
       // banner can tell "work exists only here" from "published", and clear any
       // earlier recorded skip — a real publish is the only thing that clears it.
+      knownCommittedSha=_atomic.commitSha;
       try { localStorage.setItem('concLastPublishOk', new Date().toISOString()); localStorage.removeItem('concLastPublishSkip'); } catch(e) {}
-      if (nextFlowPublication) {
-        const landed = JSON.parse(_staged.find(file => file.path === 'door_flow_publication.json').content).flow.publication;
-        if (!doorSetItemSafe('concDoorFlowPublication',JSON.stringify(landed))) throw new Error('The publication landed but its local receipt is still pending.');
-      }
-      doorPublishAcknowledge(inputs, _atomic.commitSha);
+      const committedFiles=Object.fromEntries(_staged.map(file=>[file.path,(_atomic.unchanged||_atomic.recovered)?revision.data[file.path]:JSON.parse(file.content)]));
+      await doorDeliveryCommitted(creds,committedFiles,_atomic.commitSha,!!(_atomic.unchanged||_atomic.recovered),()=>doorPublishAcknowledge(inputs,_atomic.commitSha));
+      // The content queue ends at durable commit and acknowledgement. Slow
+      // anonymous delivery checks must not hold the next urgent menu edit.
+      doorDeliveryRender();
+      doorDeliveryVerify(false).catch(()=>{});
       // The acknowledgement retained any newer local intent for the next send.
       if (overlayAdvisoryMsg) {
         const msg = 'Published with advisory — reload and republish menu/routing · ' + timeStr;
         console.warn('[DOOR publish]', msg);
-        const staffMsg = 'Sent to the kitchen — but the menu changed after today’s sheets were made. Reload this page and Generate again so the kitchen has the current version.';
+        const staffMsg = 'Committed — but the menu changed after today’s sheets were made. Reload this page and Generate again so the kitchen has the current version.';
         if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#d97706'; }
         updateSyncBar(staffMsg, '#d97706');
         if(manual) showToast(staffMsg);
         return { ok:true, advisory: overlayAdvisory };
       }
-      if(statusEl){ statusEl.textContent='Sent to the kitchen ✓ '+timeStr; statusEl.style.color='var(--forest)'; }
-      // P5: say which resident list went out when the preflight had to intervene.
-      const _rosterNote = _registryPreflight.adopted ? ' · used the newest resident list (newer than this computer’s copy)'
-                        : (_registryPreflight.forced ? ' · sent this computer’s OLDER list (rollback)' : '');
-      updateSyncBar('Sent to the kitchen ✓ — ' + REGISTRY_LIST.length + ' residents · ' + timeStr + _rosterNote, _registryPreflight.forced ? '#d97706' : 'var(--forest)');
-      if(manual) showToast('Sent to the kitchen ✓');
-      return { ok:true };
+      doorDeliveryRender();
+      if(manual) showToast(statusEl?.textContent||'Committed — kitchen delivery pending.');
+      return { ok:true, unchanged:!!_atomic.unchanged };
     }
     }
   } catch(err) {
     console.error('GitHub publish failed:',err);
+    if (knownCommittedSha) {
+      err.doorCommittedSha=knownCommittedSha;
+      const staffMsg='Committed — confirmation on this computer is pending. Try Generate again to check.';
+      if(statusEl){statusEl.textContent=staffMsg;statusEl.style.color='var(--muted)';}
+      updateSyncBar(staffMsg,'var(--muted)');
+      if(manual)showToast(staffMsg);
+      throw err;
+    }
     if (typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey()) { // a 403 just showed it (2026-11-01)
       if(statusEl){ statusEl.textContent='Not sent \u2014 ' + DOOR_VIEWING_KEY_COPY; statusEl.style.color='#92400e'; }
       if(manual) showToast(DOOR_VIEWING_KEY_COPY);

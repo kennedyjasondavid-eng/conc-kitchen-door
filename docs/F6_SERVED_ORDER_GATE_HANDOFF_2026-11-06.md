@@ -1,0 +1,17 @@
+# F6 current delivery evidence must retain causal order
+
+Independent release reviewer and gate author: `review_contract_release`. Product builder: root. No product changes by this author.
+
+P2 finding: after DOOR observes a genuinely newer coherent B, a stale successful A response replaces B's served publication/input and refreshes its timestamp. Copied A build proof also renews the visible current EXPO acceptance. The incorrect state survives reload; expiry of B does not protect the causal history. A coherent same-sequence conflicting input is also incorrectly accepted. The verifier compares only the original committed `record.flow` and creates a fresh temporary F4 reader state for every attempt, forgetting its own later served observation.
+
+Frozen gate: `tests/browser/menu_flow_f6_served_order.mjs`, SHA256 `e92178a3e2c3763729bd0518548a682b935e438f770da73a3f4de7a0ae5f85b6`. Baseline: immutable `%TEMP%/door-ci-audit-20261106/f6-pre-highwater-21c8550e.html`, SHA256 `21c8550e164efda629cb2fc2e107b99f418e4c8632fa02ffbf5011f8d2bc43e2`. Result: **15 checks, 9 pass and 6 expected fail**, log `f6-served-order-frozen-red.log` in the same scratch directory. The original F6 gates and harness remain untouched.
+
+B comes from a second real publisher with a changed menu, different input digest and higher occurrence. The first device retains its A debt and sees B through anonymous transport. The later C control is another actual publication reverting B's menu. Only the same-sequence conflict case deliberately combines A's coherent input with B's occurrence to exercise refusal; no product authority function is replaced. Exact A proof, actual B construction/acceptance, same-B recovery, failed-network age preservation, genuine later revert C and no extra content writes all pass before repair. Stale A, restart, same-sequence conflict and expiry fail for the intended reason. All cases have zero browser errors and unsupported writes.
+
+## Agreed extension before builder repair
+
+Retain the highest successfully served publication/input pair and its original observation time independently of whether that evidence is still current. A successful complete response with a lower sequence, conflicting same-sequence input or incomparable epoch must not replace that high-water evidence or renew its age. It invalidates current serving/consumption credit and leaves the historical evidence visible with a pending/recheck state. Persist that uncertainty across restart and expiry. An additive `current:false` marker is one compatible representation; the gate binds behavior, not that field name.
+
+A successful coherent reread of the exact retained pair, or a genuinely higher coherent publication within the same epoch/scope, restores fresh serving evidence; exact current completed-build proof may restore consumption. A real revert therefore uses C's higher occurrence rather than permitting the old A occurrence. Failed HTTP/offline requests preserve previously bounded evidence without renewing its age, matching the existing network-failure contract. All ordinary verification limits, scope boundaries, exact legacy digest rules and no-new-content-commit behavior remain unchanged. Different epochs remain unordered and need the existing activation/review boundary.
+
+Root authorized this separate regression gate before repair. Final source review remains open until it passes unchanged and the retained delivery/race controls remain green. These are intercepted synthetic tests, not production publication or deployment evidence.
