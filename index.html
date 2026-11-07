@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.50';
-const DOOR_BUILD_DATE = '2026-11-04';
+const DOOR_APP_VERSION = 'v31-standard.51';
+const DOOR_BUILD_DATE = '2026-11-07';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -7677,6 +7677,8 @@ function doorDeviceCapability(inp) {
     reasons.push({ code: 'no-viewing-key', label: 'this computer can’t get the kitchen’s resident list — it needs a viewing key (the list here is from ' + when + ')', action: 'connect' });
   }
   else if (!inp.hasToken && inp.readOnly) reasons.push({ code: 'read-only', label: 'this computer was set up as read-only — connect it to send changes to the kitchen', action: 'connect' }); // P4 (F2)
+  // 2026-11-07: a computer that was sending and lost its key to an update (F1, #155) says so in red, not as new-computer setup.
+  else if (!inp.hasToken && inp.migrationNeeded) reasons.push({ code: 'reconnect-after-update', label: 'this computer stopped sending to the kitchen after an update — save its connection again (Settings → Kitchen connection)', action: 'connect' });
   else if (!inp.hasToken) reasons.push({ code: 'no-connection', label: 'this computer is not connected to the kitchen — no connection key', action: 'connect' });
   else if (inp.tokenExpired) reasons.push({ code: 'connection-expired', label: 'this computer’s connection key has expired', action: 'connect' });
   if (!(inp.operatorName || '').trim()) reasons.push({ code: 'no-operator', label: 'no name on this computer — changes would be sent as “unknown”', action: 'name' });
@@ -7709,8 +7711,9 @@ function doorDeviceCapability(inp) {
   // red "didn't reach the kitchen" banner. The terminal success/failure rerender
   // below decides what staff see once the request actually finishes.
   const sendInFlight = !!inp.sendInFlight;
-  const level = sendInFlight ? 'none' : ((pending || listUnreadable) ? 'red' : (reasons.length ? 'amber' : 'none'));
-  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, sendInFlight, level, viewing, listUnreadable };
+  const reconnectAfterUpdate = reasons.some(r => r.code === 'reconnect-after-update');
+  const level = sendInFlight ? 'none' : ((pending || listUnreadable || reconnectAfterUpdate) ? 'red' : (reasons.length ? 'amber' : 'none'));
+  return { canPublish, reasons, unpublished: { pending, count: outbox.length, since }, sendInFlight, level, viewing, listUnreadable, reconnectAfterUpdate };
 }
 
 // Live reader for the pure function. Everything is read at call time — no cached fossil.
@@ -7734,7 +7737,8 @@ function doorDeviceCapabilityInput() {
     readOnly: g('concDeviceReadOnly') === '1', // P4: set up as read-only (F2)
     keyKind: meta.keyKind || null, // 2026-11-01: 'viewing' | 'sending'
     kitchenListUnreadable: (typeof doorKitchenListUnreadable === 'function') ? doorKitchenListUnreadable() : false,
-    kitchenListReadAt: g('concKitchenListReadAt')
+    kitchenListReadAt: g('concKitchenListReadAt'),
+    migrationNeeded: !!meta.migrationNeeded // 2026-11-07: disconnected by the F1 update, not a new computer
   };
 }
 
@@ -7758,6 +7762,8 @@ function _doorDeviceBannerHTML(capOpt) {
     head = '&#x26A0; ' + (n > 1 ? n + ' sets of changes' : 'Changes') + ' on this computer have NOT reached the kitchen' + (since ? ' (' + (n ? 'oldest ' : 'generated ') + escapeHtml(since) + ')' : '');
   } else if (c.listUnreadable) {
     head = '&#x26A0; This computer can’t get the kitchen’s resident list'; // 2026-11-01
+  } else if (c.reconnectAfterUpdate) {
+    head = '&#x26A0; This computer stopped sending to the kitchen after an update'; // 2026-11-07
   } else {
     head = '&#x26A0; This computer can’t send changes to the kitchen yet';
   }

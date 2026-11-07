@@ -53,6 +53,19 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-07) — a computer the update disconnected says so in red; one journey check (`v31-standard.51`)
+On 2026-11-06 the F1 update (#155) left every DOOR computer without a saved key, and sending stopped. Each showed only the amber new-computer line ("not connected — no connection key"). Plan: `docs/DOOR_MENU_FLOW_ACTION_PLAN_2026-11-06.md`, "Next slice" S1/S2.
+- **S1, the banner.**
+  - `doorDeviceCapabilityInput` passes `PublishAuth.getMeta().migrationNeeded`.
+  - With no key, that flag gives reason `reconnect-after-update`, level red, worded "This computer stopped sending to the kitchen after an update — save its connection again (Settings → Kitchen connection)".
+  - A new computer keeps the amber line. Saving a key writes fresh details, so the red line clears.
+- **S2, the journey check:** `tests/journey_edit_reaches_kitchen_gate.mjs`. DOOR's real publisher runs with the real `PublishAuth` on one computer's storage.
+  - A connected computer's edit lands in `menu_current.json` and `routing_by_meal.json`.
+  - A computer set up before the update sends nothing, shows the red line and keeps its edit. Once its connection is saved again, the edit lands.
+  - The check fails on `main` and on a publisher that silently stops writing.
+  - The file builders are fixed stand-ins; a browser version with EXPO's full required-shape list is later.
+- Suite 808 → 813.
+
 ## Recent (2026-11-04) — Swap Slots moves each meal whole (`v31-standard.50`)
 Jason, 2026-11-04: Arroz con Pollo is Wk2 FRI dinner after all ("Rex was wrong"), so he swapped Wk2 THU ⇄ FRI dinner in
 Menu Config and made both halves permanent from the Active Swaps banner. **"Swap should move everything that needs moving."**
