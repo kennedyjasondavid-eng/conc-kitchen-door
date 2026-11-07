@@ -25,7 +25,7 @@ Normal menu edits should be saved once and reach EXPO's production schedule, HUB
 DOOR's side is built and switched off. What's left is to switch it on and let EXPO and HUB read it, without building more on top. In order:
 
 1. **R1. Put the plan on GitHub with this status section** (this PR, docs only).
-2. **R2. Switch F1 on. Jason leads; one sitting.**
+2. **R2. Switch F1 on.** *Done 2026-11-07 by reconnecting; see Rulings below.* Original plan: Jason leads; one sitting.
    - First, a one-page plain-words checklist made from §"One time writer cutover" and `docs/F1_PUBLISH_IMPLEMENTATION_2026-11-06.md`.
    - The sitting: revoke the old write keys, then reconnect Jason's two computers and Joan's connection. Check that an old tab can no longer write and that read-only use still works.
    - Merged-but-off code gets riskier the longer it waits, so this comes before more building.
@@ -34,7 +34,13 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
    - Before any consumer code: write the stamp's contract as a schema doc and add a row to the HOUSE ledger's contract matrix. It is a cross-app seam.
    - EXPO and HUB accept counts only when their stamp is current. Otherwise they keep the last good board and show one plain line saying the counts are waiting.
    - No new mechanism beyond that. Then a separate PR fills in the activation constants.
-5. **R5. F3b and F5 are paused.** They resume after R4 is on, and only if Jason rules that he wants recipe quantities scaled by service counts now. F5 may fold into R4's checks.
+5. **R5. F3b and F5 are paused** until F4 has run for about a week (ruled 2026-11-07). F5 may fold into R4's checks.
+
+### Rulings (Jason, 2026-11-07)
+- **F1 is on.** It went live on Pages with #155 (Nov 6). A reloaded DOOR computer asks for its connection again. Jason re-added the existing key through Test & Save and it works, so publishing is back without a new key.
+- **The old key: reload now, rotate later.** Every DOOR computer is reloaded once and reconnected: Jason's two, Joan's, and any at Rex. Reloading closes the old tabs that could resend older removal lists. The key is replaced when it next expires, and the new one is saved only in the v2 connection. No key change before then.
+- **F3b and F5 wait until F4 has run for about a week.** Then Jason decides on scaled recipe quantities with real counts in front of him. F5 is checked through F4's tests; it is built separately only if a mismatch shows.
+- **To confirm:** no DOOR publish has reached GitHub since 2026-11-06 10:15. That may be F6 skipping unchanged saves. The first real change after reconnecting should land as a commit.
 
 **Stopped:**
 - No more growth of F6's delivery tracking.
