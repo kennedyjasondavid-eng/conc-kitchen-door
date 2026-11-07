@@ -46,6 +46,42 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
 - **F3b and F5 wait until F4 has run for about a week.** Then Jason decides on scaled recipe quantities with real counts in front of him. F5 is checked through F4's tests; it is built separately only if a mismatch shows.
 - **To confirm:** no DOOR publish has reached GitHub since 2026-11-06 10:15. That may be F6 skipping unchanged saves. The first real change after reconnecting should land as a commit.
 
+### Next slice: catch the break (spec, 2026-11-07; not built)
+Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to EXPO, and the checks support rather than obstruct. HOUSE working rules ("silent when it works, loud when it breaks"; "checks support, never obstruct") are in the HOUSE ledger.
+
+**What happened on Nov 6.** Every DOOR computer stopped sending after #155 went live, and nothing said so clearly:
+- With no v2 key, `doorDeviceCapability` gives `no-connection`, which is **amber**. It turns red only if unsent work is waiting.
+- Its words are a new computer's: "not connected — no connection key".
+- The code knows the computer was disconnected by the update (`PublishAuth.getMeta().migrationNeeded`), but only Settings uses that.
+- Nothing tells Jason when another computer goes quiet.
+
+**S1. The banner says it plainly (DOOR, small).**
+- Add `migrationNeeded` to `doorDeviceCapabilityInput()`.
+- With no key and `migrationNeeded`, give a new reason `reconnect-after-update`, level **red**, worded: "This computer stopped sending to the kitchen after an update. Save its connection again (Settings → Kitchen connection)."
+- Clear the reason when a key is saved.
+- Check: start from a pre-#155 saved state (old key under `conc_gh_token`, no v2 record) → red banner with those words. Save a key → banner clears and a publish goes through, against a mocked GitHub. Authored red on `main`.
+
+**S2. One journey check (DOOR CI; replaces internal checks rather than adding to them).**
+- Run in a real browser against a mocked GitHub: make a menu edit in Edit Menu, Save, publish.
+- Check the published `menu_current.json` and `routing_by_meal.json` carry the edit and pass EXPO's required-shape list. That list is copied byte-for-byte as in the EXPO↔HUB contract pair.
+- Run it twice: from a fresh computer, and from a pre-update saved state (S1's case). That second run is the Nov 6 failure.
+- Fixed menu examples only, never live data.
+
+**S3. Jason hears when a computer goes quiet (operations level; needs a decision).**
+- An export-time staleness alarm in EXPO/HUB would misfire, because F6 rightly skips unchanged saves.
+- It needs a light "last check-in" that writes no content commit. F6 already keeps check-in time separate internally; decide where it is reported.
+- Lean: decide this together with F4's readers, since EXPO/HUB will be reading DOOR's stamp then anyway.
+
+**Flakiness, measured 2026-11-07.** `node --test tests/*.mjs` was run three times on unchanged `main` `21c0e06`, on Jason's computer, about 18 s each.
+- Every run gave 808 tests: 805 pass, 1 skipped, 2 fail. The results were identical, so **nothing was flaky.**
+- The same two failed each time:
+  - `corn_recipe_alignment_gate` "the paired CODEX feed is the canonical source…";
+  - `vegan_plate_dishes_gate` "with the CODEX feed: each linked recipe's allergens reach its plate".
+
+  Both read the CODEX copy beside DOOR. That copy was 12 commits behind on an unfinished branch, so its feed was old. In CI no CODEX copy is present, and these checks skip.
+- **Rule question:** a check whose result depends on whichever CODEX copy sits beside the repo is a form of live data. Lean: pin these to a fixed CODEX feed in `tests/fixtures/`, as C2a did for the menu and roster.
+- The browser checks (`tests/browser/`, the F4/F6 publishers) weren't in this run. CI runs them in its safety job.
+
 **Stopped:**
 - No more growth of F6's delivery tracking.
 - No further CI trimming (C1/C2 are done).
