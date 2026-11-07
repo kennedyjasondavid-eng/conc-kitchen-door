@@ -1,0 +1,2144 @@
+{
+  "auditDate": "2026-11-06",
+  "repository": "kennedyjasondavid-eng/conc-kitchen-door",
+  "visibilityVerified": "public",
+  "runner": "ubuntu-latest, standard GitHub-hosted",
+  "billingInterpretation": "Current standard-runner compute in this public repository has no billable minutes. Rounded-minute figures below are a planning proxy for comparable private-repository usage, not an invoice.",
+  "method": "Jobs API started_at to completed_at, excluding skipped/unstarted jobs; round each started job up separately only for the private-repository proxy. Sample covers all 26 push workflows on Nov 2-4 present in the latest 100 runs; all attempts are 1. 24 were operational Publish/Update commits; 2 were the code merge.",
+  "summaries": {
+    "all": {
+      "workflows": 26,
+      "conclusions": {
+        "success": 11,
+        "failure": 5,
+        "cancelled": 10
+      },
+      "jobs": 40,
+      "runnerSeconds": 1365,
+      "runnerMinutes": 22.8,
+      "roundedMinutesProxy": 52,
+      "byName": {
+        "DOOR safety checks": {
+          "count": 12,
+          "seconds": 276,
+          "roundedMinutes": 12,
+          "min": 1,
+          "max": 30
+        },
+        "Menu decisions review (advisory)": {
+          "count": 12,
+          "seconds": 81,
+          "roundedMinutes": 12,
+          "min": 1,
+          "max": 9
+        },
+        "build": {
+          "count": 8,
+          "seconds": 67,
+          "roundedMinutes": 8,
+          "min": 5,
+          "max": 15
+        },
+        "deploy": {
+          "count": 8,
+          "seconds": 941,
+          "roundedMinutes": 20,
+          "min": 12,
+          "max": 616
+        }
+      }
+    },
+    "operational": {
+      "workflows": 24,
+      "conclusions": {
+        "success": 9,
+        "failure": 5,
+        "cancelled": 10
+      },
+      "jobs": 36,
+      "runnerSeconds": 1314,
+      "runnerMinutes": 21.9,
+      "roundedMinutesProxy": 48,
+      "byName": {
+        "DOOR safety checks": {
+          "count": 11,
+          "seconds": 255,
+          "roundedMinutes": 11,
+          "min": 1,
+          "max": 30
+        },
+        "Menu decisions review (advisory)": {
+          "count": 11,
+          "seconds": 74,
+          "roundedMinutes": 11,
+          "min": 1,
+          "max": 9
+        },
+        "build": {
+          "count": 7,
+          "seconds": 61,
+          "roundedMinutes": 7,
+          "min": 5,
+          "max": 15
+        },
+        "deploy": {
+          "count": 7,
+          "seconds": 924,
+          "roundedMinutes": 19,
+          "min": 12,
+          "max": 616
+        }
+      }
+    },
+    "ordinary": {
+      "workflows": 6,
+      "conclusions": {
+        "success": 5,
+        "failure": 1
+      },
+      "jobs": 12,
+      "runnerSeconds": 191,
+      "runnerMinutes": 3.2,
+      "roundedMinutesProxy": 12,
+      "byName": {
+        "build": {
+          "count": 3,
+          "seconds": 31,
+          "roundedMinutes": 3,
+          "min": 8,
+          "max": 13
+        },
+        "deploy": {
+          "count": 3,
+          "seconds": 67,
+          "roundedMinutes": 3,
+          "min": 12,
+          "max": 33
+        },
+        "Menu decisions review (advisory)": {
+          "count": 3,
+          "seconds": 22,
+          "roundedMinutes": 3,
+          "min": 6,
+          "max": 9
+        },
+        "DOOR safety checks": {
+          "count": 3,
+          "seconds": 71,
+          "roundedMinutes": 3,
+          "min": 21,
+          "max": 28
+        }
+      }
+    },
+    "burst": {
+      "workflows": 14,
+      "conclusions": {
+        "failure": 2,
+        "success": 2,
+        "cancelled": 10
+      },
+      "jobs": 16,
+      "runnerSeconds": 370,
+      "runnerMinutes": 6.2,
+      "roundedMinutesProxy": 18,
+      "byName": {
+        "Menu decisions review (advisory)": {
+          "count": 6,
+          "seconds": 37,
+          "roundedMinutes": 6,
+          "min": 1,
+          "max": 8
+        },
+        "DOOR safety checks": {
+          "count": 6,
+          "seconds": 129,
+          "roundedMinutes": 6,
+          "min": 1,
+          "max": 30
+        },
+        "build": {
+          "count": 2,
+          "seconds": 20,
+          "roundedMinutes": 2,
+          "min": 5,
+          "max": 15
+        },
+        "deploy": {
+          "count": 2,
+          "seconds": 184,
+          "roundedMinutes": 4,
+          "min": 92,
+          "max": 92
+        }
+      }
+    }
+  },
+  "examples": {
+    "threeOrdinaryPublishes": {
+      "publishCount": 3,
+      "jobs": 12,
+      "runnerSeconds": 191,
+      "roundedMinutesProxy": 12,
+      "consolidatedTargetJobs": 6,
+      "estimatedRoundedMinutesProxy": 6,
+      "estimateCondition": "Keep one test job and an independent one-job Pages workflow, with each consolidated job below 60 seconds. Estimate; not deployed or benchmarked."
+    },
+    "swapBurst": {
+      "distinctCommits": 8,
+      "workflows": 14,
+      "cancelledWorkflows": 10,
+      "startedJobs": 16,
+      "runnerSeconds": 370,
+      "cancelledStartedRunnerSeconds": 94,
+      "roundedMinutesProxy": 18
+    },
+    "metadataOnlyPublish": {
+      "sha": "0996f8b78313882aca59981b11ac8d9399507a83",
+      "previous": "d96c23a142c5a5dc299b9caebdefff9629105e0b",
+      "changedOnly": [
+        "exported timestamps",
+        "builtFromMenu.exported timestamps"
+      ],
+      "jobs": 4,
+      "runnerSeconds": 656,
+      "roundedMinutesProxy": 14,
+      "deployJobSeconds": 616,
+      "deployResult": "timeout"
+    }
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Move advisory tests and their warning summary into the safety job; retain advisory continue-on-error, preserve safety failures.",
+      "effect": "Eliminate one runner start per test workflow."
+    },
+    {
+      "priority": 1,
+      "action": "Combine Pages artifact preparation/upload/deploy into one job, as EXPO already does; keep independent from CI and preserve allowlist.",
+      "effect": "Eliminate one runner start per deployment."
+    },
+    {
+      "priority": 2,
+      "action": "Publish each logical operation's sidecars and generated artifacts together through the existing atomic publisher; coalesce redundant sends.",
+      "effect": "Reduce push-triggered workflows and intermediate inconsistent states; requires app change and transaction tests."
+    },
+    {
+      "priority": 2,
+      "action": "Recognize unchanged content before making a new commit, with coherent revision timestamps and downstream freshness semantics retained.",
+      "effect": "Avoid timestamp-only commits; still recover undelivered data."
+    },
+    {
+      "priority": 3,
+      "action": "After removing historical locks, use operational invariant/contract checks for data-only pushes and the full suite for code/test/workflow changes.",
+      "effect": "Reduce actual test seconds; little rounded-minute benefit while both variants already finish below one minute."
+    }
+  ],
+  "cautions": [
+    "Do not use blanket skip-ci tags on operational commits; they can suppress the push-triggered Pages workflow.",
+    "Do not exclude menu/routing/swap JSON from all checks.",
+    "Do not make deployments depend on historical-menu tests.",
+    "Do not add a runner job just to classify paths or sleep for a debounce.",
+    "Do not invoke the full EXPO suite for every DOOR publish; use focused contract probes.",
+    "Keep existing cancellation/path filters; batching reduces work before runner allocation.",
+    "Treat Page-delivery timeouts with bounded recovery and delivery receipts; lowering timeout alone is not a proven flow improvement."
+  ],
+  "sources": [
+    "https://docs.github.com/en/actions/concepts/billing-and-usage",
+    "https://docs.github.com/en/actions/how-tos/monitor-workflows/view-job-execution-time",
+    "https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs",
+    "https://github.com/kennedyjasondavid-eng/conc-kitchen-expo/blob/7cd1fee4c50c767fbbe492a0def74451df8a68fb/.github/workflows/pages.yml",
+    "https://github.com/kennedyjasondavid-eng/conc-kitchen-door/blob/0996f8b78313882aca59981b11ac8d9399507a83/index.html#L11278"
+  ],
+  "runs": [
+    {
+      "id": 41893017639,
+      "workflow": "DOOR tests",
+      "sha": "0996f8b78313882aca59981b11ac8d9399507a83",
+      "title": "Publish DOOR artifacts — 2026-11-04T19:02",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T19:02:22Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126795088195,
+          "name": "DOOR safety checks",
+          "conclusion": "success",
+          "started": "2026-11-04T19:02:24Z",
+          "completed": "2026-11-04T19:02:53Z",
+          "seconds": 29,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "success",
+              "seconds": 21
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126795088344,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T19:02:24Z",
+          "completed": "2026-11-04T19:02:30Z",
+          "seconds": 6,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41893017538,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "0996f8b78313882aca59981b11ac8d9399507a83",
+      "title": "Publish DOOR artifacts — 2026-11-04T19:02",
+      "conclusion": "failure",
+      "event": "push",
+      "createdAt": "2026-11-04T19:02:22Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126795087944,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-04T19:02:24Z",
+          "completed": "2026-11-04T19:02:29Z",
+          "seconds": 5,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126795159923,
+          "name": "deploy",
+          "conclusion": "failure",
+          "started": "2026-11-04T19:02:34Z",
+          "completed": "2026-11-04T19:12:50Z",
+          "seconds": 616,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 3
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "failure",
+              "seconds": 610
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41892450739,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "d96c23a142c5a5dc299b9caebdefff9629105e0b",
+      "title": "Fix/slot swap whole meal (#152)",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T18:58:57Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126793134584,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-04T18:59:00Z",
+          "completed": "2026-11-04T18:59:06Z",
+          "seconds": 6,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126793213731,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-04T18:59:10Z",
+          "completed": "2026-11-04T18:59:27Z",
+          "seconds": 17,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 13
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41892450031,
+      "workflow": "DOOR tests",
+      "sha": "d96c23a142c5a5dc299b9caebdefff9629105e0b",
+      "title": "Fix/slot swap whole meal (#152)",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T18:58:57Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126793132054,
+          "name": "DOOR safety checks",
+          "conclusion": "success",
+          "started": "2026-11-04T18:58:59Z",
+          "completed": "2026-11-04T18:59:20Z",
+          "seconds": 21,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "success",
+              "seconds": 15
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126793132228,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T18:58:59Z",
+          "completed": "2026-11-04T18:59:06Z",
+          "seconds": 7,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41888079699,
+      "workflow": "DOOR tests",
+      "sha": "94f1cd265880e2a136d3b6b919dfd7c2e4525266",
+      "title": "Publish DOOR artifacts — 2026-11-04T18:31",
+      "conclusion": "failure",
+      "event": "push",
+      "createdAt": "2026-11-04T18:31:59Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126777815169,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T18:32:02Z",
+          "completed": "2026-11-04T18:32:11Z",
+          "seconds": 9,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 4
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126777815727,
+          "name": "DOOR safety checks",
+          "conclusion": "failure",
+          "started": "2026-11-04T18:32:02Z",
+          "completed": "2026-11-04T18:32:28Z",
+          "seconds": 26,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 21
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41888079655,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "94f1cd265880e2a136d3b6b919dfd7c2e4525266",
+      "title": "Publish DOOR artifacts — 2026-11-04T18:31",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T18:31:59Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126777816622,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-04T18:32:02Z",
+          "completed": "2026-11-04T18:32:07Z",
+          "seconds": 5,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126777887902,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-04T18:32:11Z",
+          "completed": "2026-11-04T18:33:08Z",
+          "seconds": 57,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 54
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883646971,
+      "workflow": "DOOR tests",
+      "sha": "37c31a78c2a47a6c9e7779f759089fbe384fc8dc",
+      "title": "Update menu_overlay.json — 2026-11-04T18:02",
+      "conclusion": "failure",
+      "event": "push",
+      "createdAt": "2026-11-04T18:05:50Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126762249521,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T18:05:53Z",
+          "completed": "2026-11-04T18:06:01Z",
+          "seconds": 8,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126762250209,
+          "name": "DOOR safety checks",
+          "conclusion": "failure",
+          "started": "2026-11-04T18:05:53Z",
+          "completed": "2026-11-04T18:06:23Z",
+          "seconds": 30,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 22
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883316342,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "c09667d18c8d5a8dfc857ff214c11a17f502a932",
+      "title": "Update meal_swaps.json — 2026-11-04T18:02",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T18:04:00Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126761581735,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-04T18:04:49Z",
+          "completed": "2026-11-04T18:05:04Z",
+          "seconds": 15,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 1
+            }
+          ]
+        },
+        {
+          "id": 126761756260,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-04T18:05:19Z",
+          "completed": "2026-11-04T18:06:51Z",
+          "seconds": 92,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 87
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883316332,
+      "workflow": "DOOR tests",
+      "sha": "c09667d18c8d5a8dfc857ff214c11a17f502a932",
+      "title": "Update meal_swaps.json — 2026-11-04T18:02",
+      "conclusion": "failure",
+      "event": "push",
+      "createdAt": "2026-11-04T18:04:00Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126761331492,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T18:04:24Z",
+          "completed": "2026-11-04T18:04:30Z",
+          "seconds": 6,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126761332226,
+          "name": "DOOR safety checks",
+          "conclusion": "failure",
+          "started": "2026-11-04T18:04:27Z",
+          "completed": "2026-11-04T18:04:55Z",
+          "seconds": 28,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 3
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 22
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883245569,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "e46fca6a37570e83a626408d6682c0e84dea2426",
+      "title": "Publish DOOR artifacts — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:35Z",
+      "attempt": 1,
+      "jobs": []
+    },
+    {
+      "id": 41883245475,
+      "workflow": "DOOR tests",
+      "sha": "e46fca6a37570e83a626408d6682c0e84dea2426",
+      "title": "Publish DOOR artifacts — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:35Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126761009967,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:54Z",
+          "completed": "2026-11-04T18:04:01Z",
+          "seconds": 7,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126761010357,
+          "name": "DOOR safety checks",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:53Z",
+          "completed": "2026-11-04T18:04:22Z",
+          "seconds": 29,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 22
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883214217,
+      "workflow": "DOOR tests",
+      "sha": "04da16fe0d51278e5204f33b26ec9c0105e8eb72",
+      "title": "Update meal_swaps_reverted.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:25Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126760772829,
+          "name": "DOOR safety checks",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:30Z",
+          "completed": "2026-11-04T18:03:50Z",
+          "seconds": 20,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 15
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126760773461,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:30Z",
+          "completed": "2026-11-04T18:03:38Z",
+          "seconds": 8,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883214157,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "04da16fe0d51278e5204f33b26ec9c0105e8eb72",
+      "title": "Update meal_swaps_reverted.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:25Z",
+      "attempt": 1,
+      "jobs": []
+    },
+    {
+      "id": 41883186174,
+      "workflow": "DOOR tests",
+      "sha": "ae52a06ed722f0d9d89a44a2c0c59bb5eb1ecc86",
+      "title": "Update meal_swaps_reverted.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:15Z",
+      "attempt": 1,
+      "jobs": []
+    },
+    {
+      "id": 41883185716,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "ae52a06ed722f0d9d89a44a2c0c59bb5eb1ecc86",
+      "title": "Update meal_swaps_reverted.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:15Z",
+      "attempt": 1,
+      "jobs": []
+    },
+    {
+      "id": 41883180641,
+      "workflow": "DOOR tests",
+      "sha": "136c7cebc61e525fe554d9008e98c7ad5fde6061",
+      "title": "Update menu_overlay.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:13Z",
+      "attempt": 1,
+      "jobs": []
+    },
+    {
+      "id": 41883150348,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "5cb09b75134574391c02ece3bcceb15a3bd37e2c",
+      "title": "Update meal_swaps.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:03Z",
+      "attempt": 1,
+      "jobs": []
+    },
+    {
+      "id": 41883149795,
+      "workflow": "DOOR tests",
+      "sha": "5cb09b75134574391c02ece3bcceb15a3bd37e2c",
+      "title": "Update meal_swaps.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:03Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126760537547,
+          "name": "DOOR safety checks",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:06Z",
+          "completed": "2026-11-04T18:03:27Z",
+          "seconds": 21,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 15
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126760537906,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T18:03:06Z",
+          "completed": "2026-11-04T18:03:13Z",
+          "seconds": 7,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41883146314,
+      "workflow": "DOOR tests",
+      "sha": "87216602cc422db67a8e3b1da11c2813de9f52f9",
+      "title": "Update meal_swaps.json — 2026-11-04T18:02",
+      "conclusion": "cancelled",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:02Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126760519317,
+          "name": "DOOR safety checks",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:03Z",
+          "completed": "2026-11-04T18:03:04Z",
+          "seconds": 1,
+          "steps": []
+        },
+        {
+          "id": 126760520081,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "cancelled",
+          "started": "2026-11-04T18:03:03Z",
+          "completed": "2026-11-04T18:03:04Z",
+          "seconds": 1,
+          "steps": []
+        }
+      ]
+    },
+    {
+      "id": 41883146262,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "87216602cc422db67a8e3b1da11c2813de9f52f9",
+      "title": "Update meal_swaps.json — 2026-11-04T18:02",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T18:03:02Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126760519193,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-04T18:03:05Z",
+          "completed": "2026-11-04T18:03:10Z",
+          "seconds": 5,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126760601437,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-04T18:03:14Z",
+          "completed": "2026-11-04T18:04:46Z",
+          "seconds": 92,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 88
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41851337794,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "9cd65a9d1f1aca7bada59d792dfed7492669a38b",
+      "title": "Publish DOOR artifacts — 2026-11-04T14:48",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-04T14:48:59Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126648146872,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-04T14:49:03Z",
+          "completed": "2026-11-04T14:49:16Z",
+          "seconds": 13,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 6
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126648306278,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-04T14:49:21Z",
+          "completed": "2026-11-04T14:49:54Z",
+          "seconds": 33,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 28
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41851337720,
+      "workflow": "DOOR tests",
+      "sha": "9cd65a9d1f1aca7bada59d792dfed7492669a38b",
+      "title": "Publish DOOR artifacts — 2026-11-04T14:48",
+      "conclusion": "failure",
+      "event": "push",
+      "createdAt": "2026-11-04T14:48:59Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126648147099,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-04T14:49:02Z",
+          "completed": "2026-11-04T14:49:08Z",
+          "seconds": 6,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126648147499,
+          "name": "DOOR safety checks",
+          "conclusion": "failure",
+          "started": "2026-11-04T14:49:02Z",
+          "completed": "2026-11-04T14:49:30Z",
+          "seconds": 28,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "failure",
+              "seconds": 22
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "skipped",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41668980910,
+      "workflow": "DOOR tests",
+      "sha": "6c0ae6b8d1f885f6a7094d30f5012cc1ee0387b1",
+      "title": "Publish DOOR artifacts — 2026-11-03T15:55",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-03T15:56:10Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126031899587,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-03T15:56:13Z",
+          "completed": "2026-11-03T15:56:20Z",
+          "seconds": 7,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126031900198,
+          "name": "DOOR safety checks",
+          "conclusion": "success",
+          "started": "2026-11-03T15:56:13Z",
+          "completed": "2026-11-03T15:56:34Z",
+          "seconds": 21,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "success",
+              "seconds": 15
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41668980408,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "6c0ae6b8d1f885f6a7094d30f5012cc1ee0387b1",
+      "title": "Publish DOOR artifacts — 2026-11-03T15:55",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-03T15:56:09Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 126031897184,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-03T15:56:14Z",
+          "completed": "2026-11-03T15:56:22Z",
+          "seconds": 8,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 126032019507,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-03T15:56:26Z",
+          "completed": "2026-11-03T15:56:38Z",
+          "seconds": 12,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 7
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41463732861,
+      "workflow": "Deploy DOOR Pages",
+      "sha": "dbbd1b56998dae6292d9651010430448db5c3ab2",
+      "title": "Publish DOOR artifacts — 2026-11-02T14:37",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-02T14:37:34Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 125339046521,
+          "name": "build",
+          "conclusion": "success",
+          "started": "2026-11-02T14:37:37Z",
+          "completed": "2026-11-02T14:37:47Z",
+          "seconds": 10,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Prepare Pages artifact",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Upload Pages artifact",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 125339165208,
+          "name": "deploy",
+          "conclusion": "success",
+          "started": "2026-11-02T14:37:55Z",
+          "completed": "2026-11-02T14:38:17Z",
+          "seconds": 22,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Deploy to GitHub Pages",
+              "conclusion": "success",
+              "seconds": 18
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41463732758,
+      "workflow": "DOOR tests",
+      "sha": "dbbd1b56998dae6292d9651010430448db5c3ab2",
+      "title": "Publish DOOR artifacts — 2026-11-02T14:37",
+      "conclusion": "success",
+      "event": "push",
+      "createdAt": "2026-11-02T14:37:34Z",
+      "attempt": 1,
+      "jobs": [
+        {
+          "id": 125339046323,
+          "name": "DOOR safety checks",
+          "conclusion": "success",
+          "started": "2026-11-02T14:37:37Z",
+          "completed": "2026-11-02T14:37:59Z",
+          "seconds": 22,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Run smoke tests",
+              "conclusion": "success",
+              "seconds": 15
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 125339046726,
+          "name": "Menu decisions review (advisory)",
+          "conclusion": "success",
+          "started": "2026-11-02T14:37:37Z",
+          "completed": "2026-11-02T14:37:46Z",
+          "seconds": 9,
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Checkout",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Setup Node",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Review architect-set menu decisions",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Explain advisory result",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Setup Node",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Checkout",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

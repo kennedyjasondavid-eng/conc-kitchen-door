@@ -1,0 +1,129 @@
+{
+  "date": "2026-11-06",
+  "actionsUsageReceipt": "door_actions_usage_2026-11-06.json",
+  "doorHead": "0996f8b78313882aca59981b11ac8d9399507a83",
+  "expoHead": "7cd1fee4c50c767fbbe492a0def74451df8a68fb",
+  "scope": "Read-only audit of current remote code and public feeds; temporary copies for probes; no live writes.",
+  "baseline": {
+    "localNode": "24.19.0",
+    "ciNode": "22",
+    "tests": 598,
+    "pass": 594,
+    "fail": 0,
+    "skipped": 4,
+    "ciRun": "https://github.com/kennedyjasondavid-eng/conc-kitchen-door/actions/runs/41893017639"
+  },
+  "branchProtection": {
+    "protected": false,
+    "requiredChecks": [],
+    "rulesets": []
+  },
+  "probes": {
+    "htmlComment": {
+      "tests": 16,
+      "pass": 15,
+      "fail": 1,
+      "failure": "corn_recipe_alignment_gate: all DOOR app bytes outside scoped fallback, release version and exact public-reader transport stay unchanged"
+    },
+    "wholeBreakfastSwap": {
+      "slotA": "W1 SUNDAY breakfast",
+      "slotB": "W1 MONDAY breakfast",
+      "appHelpers": [
+        "doorMealCopy",
+        "doorWriteMealCopy",
+        "doorStampOverlayEdits",
+        "saveMenuBaseOverlay",
+        "buildMenuJSON"
+      ],
+      "validation": {
+        "Stop": 0,
+        "Review": 0,
+        "Info": 0
+      },
+      "platingResult": "Both moved meals preserve their corresponding full engine result",
+      "tests": 598,
+      "pass": 592,
+      "fail": 2,
+      "skipped": 4,
+      "failures": [
+        "corn_recipe_alignment_gate: putting back only the nine Corn booleans recovers every menu/overlay content field",
+        "rex_week_import_gate: Week 1 (Oct 25-31) expected fixed questions"
+      ]
+    },
+    "zeroLactoseCohort": {
+      "scope": "Targeted behavior test only; not a complete publish simulation",
+      "tests": 8,
+      "pass": 7,
+      "fail": 1,
+      "failure": "Requires at least one lactose-intolerant resident in the live roster"
+    },
+    "wholeMealSwapBrowser": {
+      "producerFieldsKept": [
+        "halal",
+        "soft alternative",
+        "main item",
+        "sides",
+        "recipe slots"
+      ],
+      "consumerFieldsLost": [
+        "halal",
+        "soft alternative",
+        "main item",
+        "sides",
+        "recipe slots"
+      ],
+      "permanentHalalJob": "COOK Halal beef sausages",
+      "datedHalalJobs": [
+        "COOK Halal Chicken Sausages",
+        "SEND AM BAG Halal Chicken Sausages → Dinner"
+      ],
+      "pageErrors": 0,
+      "scope": "Clean headless EXPO with mocked DOOR feeds, pinned CODEX recipe-production fixture and fixed 2026-11-06 date; no live user ledger"
+    },
+    "refreshBrowser": {
+      "mirrorResult": "rebuilt",
+      "routingFetchesBefore": 1,
+      "routingFetchesAfter": 1,
+      "menuUpdated": true,
+      "routingMatchesNew": false,
+      "routingMatchesOld": true,
+      "pageErrors": 0
+    }
+  },
+  "historicalRuns": [
+    {
+      "at": "2026-10-31T18:37Z",
+      "tests": 571,
+      "pass": 566,
+      "fail": 1,
+      "skipped": 4,
+      "url": "https://github.com/kennedyjasondavid-eng/conc-kitchen-door/actions/runs/41230335953"
+    },
+    {
+      "at": "2026-11-04T14:48Z",
+      "tests": 591,
+      "pass": 583,
+      "fail": 4,
+      "skipped": 4,
+      "url": "https://github.com/kennedyjasondavid-eng/conc-kitchen-door/actions/runs/41851337720"
+    },
+    {
+      "at": "2026-11-04T18:31Z",
+      "tests": 591,
+      "pass": 577,
+      "fail": 10,
+      "skipped": 4,
+      "url": "https://github.com/kennedyjasondavid-eng/conc-kitchen-door/actions/runs/41888079699"
+    }
+  ],
+  "latestPages": {
+    "url": "https://github.com/kennedyjasondavid-eng/conc-kitchen-door/actions/runs/41893017538",
+    "result": "failure",
+    "reason": "Timed out while updating_pages; deployment cancelled",
+    "servedMenuExported": "2026-11-04T18:44:24.609Z",
+    "currentMenuExported": "2026-11-04T19:02:06.599Z",
+    "servedRoutingExported": "2026-11-04T18:44:24.609Z",
+    "currentRoutingExported": "2026-11-04T19:02:06.665Z",
+    "nonMetadataMenuAndRoutingEqual": true
+  }
+}

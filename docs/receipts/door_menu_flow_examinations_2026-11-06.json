@@ -1,0 +1,1059 @@
+{
+  "date": "2026-11-06",
+  "node": "v24.19.0",
+  "scope": "Read-only examination of refreshed remote main archives; controlled mutations only in temporary copies and mocked browser feeds; no live commits, deployments or GitHub Actions runs triggered",
+  "heads": {
+    "door": "0996f8b78313882aca59981b11ac8d9399507a83",
+    "expo": "7cd1fee4c50c767fbbe492a0def74451df8a68fb",
+    "hub": "f7a2b614e8e5d1f80f15392471c5596ca7145967"
+  },
+  "sources": {
+    "door/index.html": "bdefbf57c82d5a1b02551945a54619818d893ce17893b2d1cbf08bd9212e63ea",
+    "expo/index.html": "8a531ca3c1de9f4f20b90e9fbff0aa269cca52c0da2bfac2a819c0cef117561f",
+    "hub/CONC_Production_Hub.html": "281a97f5509ffe827611b633b5edba130d58b15f6cdf623856d00161e8eb82d3",
+    "expo/tests/fixtures/codex_recipe_production.json": "518afe4b72382d733107ac7fc3da587786b87d687cf6d7612c59fd78d310789f"
+  },
+  "regressions": {
+    "programs": 15,
+    "passed": 14,
+    "failed": 1,
+    "results": [
+      {
+        "repo": "door",
+        "file": "swap_revert_reaches_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 0,
+        "tail": [
+          "✔ 7. the Nov 3 swap is removed, and the revert is published (4.9977ms)",
+          "ℹ tests 10",
+          "ℹ suites 0",
+          "ℹ pass 10",
+          "ℹ fail 0",
+          "ℹ cancelled 0",
+          "ℹ skipped 0",
+          "ℹ todo 0",
+          "ℹ duration_ms 189.5614"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "door",
+        "file": "slot_swap_whole_meal_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 0,
+        "tail": [
+          "✔ 6. a special meal that displaces the rotation meal moves the displaced meal whole (1.1724ms)",
+          "ℹ tests 7",
+          "ℹ suites 0",
+          "ℹ pass 7",
+          "ℹ fail 0",
+          "ℹ cancelled 0",
+          "ℹ skipped 0",
+          "ℹ todo 0",
+          "ℹ duration_ms 246.0028"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "door",
+        "file": "publish_outbox_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 0,
+        "tail": [
+          "✔ wiring: publish paths append on skip/throw and clear on landed publish; connect drains; boot drains; input reads the outbox (2.466ms)",
+          "ℹ tests 7",
+          "ℹ suites 0",
+          "ℹ pass 7",
+          "ℹ fail 0",
+          "ℹ cancelled 0",
+          "ℹ skipped 0",
+          "ℹ todo 0",
+          "ℹ duration_ms 174.5961"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "door",
+        "file": "restore_original_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 1,
+        "tail": [
+          "✔ 6. the copy stays DOOR's: not in menu_current.json, no publish stop, editor-only on the P4 list; the change log keeps copies on its newest entries (18.2896ms)",
+          "ℹ tests 6",
+          "ℹ suites 0",
+          "ℹ pass 6",
+          "ℹ fail 0",
+          "ℹ cancelled 0",
+          "ℹ skipped 0",
+          "ℹ todo 0",
+          "ℹ duration_ms 447.0191"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "door",
+        "file": "door-smoke.mjs",
+        "pattern": "D1:|D2:|stale|merge|outbox",
+        "exitCode": 0,
+        "seconds": 1,
+        "tail": [
+          "✔ HARDENING: the Enter-Changes prompt surfaces a loud stale-registry banner (14.3511ms)",
+          "ℹ tests 34",
+          "ℹ suites 0",
+          "ℹ pass 34",
+          "ℹ fail 0",
+          "ℹ cancelled 0",
+          "ℹ skipped 0",
+          "ℹ todo 0",
+          "ℹ duration_ms 618.7945"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "expo",
+        "file": "hub_dated_meal_cross_repo_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 9,
+        "tail": [
+          "  PASS H4 the menu check compares the rotation and finds no drift",
+          "  PASS H5 the swap's cards say which day they are for (\"For Nov 3\")",
+          "  PASS H6 no page errors",
+          "P. HUB on Wed Dec 2, the same payload",
+          "  PASS P1 HUB's Wk2 TUE is now Dec 1, and the line says the swap has passed",
+          "  PASS P3 and so do its cards",
+          "  PASS P2 no page errors",
+          "",
+          "hub_dated_meal_cross_repo_gate: 10 passed, 0 failed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "expo",
+        "file": "door_dated_meals_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 19,
+        "tail": [
+          "F. without DOOR",
+          "  PASS F1 no DOOR and no copy: nothing dated, the rotation is planned",
+          "  PASS F2 DOOR unreachable: the last copy is used",
+          "  PASS F3 no page errors",
+          "  PASS F4 a revert list DOOR couldn't send keeps the last copy: the reverted swap stays off the board",
+          "E. CI",
+          "  PASS E1 this gate runs in verb-gates",
+          "",
+          "door_dated_meals_gate: 39 passed, 0 failed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "expo",
+        "file": "hub_frozen_cross_repo_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 14,
+        "tail": [
+          "  PASS P2 no item is missing from HUB's list",
+          "  PASS S3 a typed count saves to hub_frozen_onhand.json",
+          "  PASS S4 no HUB page errors",
+          "  PASS S2 no routing: each item EXPO counts with the 172 fallback reads \"count not available\" on HUB (6)",
+          "  PASS S5 a payload without FROZEN_SERVES shows no button and no error",
+          "  PASS L1 the current week's link (https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/?week=4&day=FRIDAY) opens HUB on Wk4 Friday's panel",
+          "  PASS L2 another week's link (https://kennedyjasondavid-eng.github.io/conc-kitchen-hub/?week=2) opens HUB on that week with no day open",
+          "",
+          "hub_frozen_cross_repo_gate: 10 passed, 0 failed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "expo",
+        "file": "s11_structure_wins_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 28,
+        "tail": [
+          "(node:14232) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:",
+          "--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"file%3A///C%3A/Users/JasonKennedy/AppData/Local/Temp/door-ci-audit-20261106/audit-loader.mjs\", pathToFileURL(\"./\"));'",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "",
+          "s11_structure_wins_gate: 122 passed, 0 failed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "expo",
+        "file": "board_views_print_gate.mjs",
+        "pattern": null,
+        "exitCode": 1,
+        "seconds": 35,
+        "tail": [
+          "  PASS  H light 1440: the toolbar is one row (≤ 56 px) and the board starts by 150 px   {\"over\":0,\"ctlH\":49,\"card\":291,\"board\":145}",
+          "  PASS  H dark 1024: no sideways overflow, both menus in view   {\"over\":0,\"ctlH\":49,\"card\":279,\"board\":146,\"inView\":{\"viewPop\":true,\"printPop\":true}}",
+          "  PASS  H dark 1280: no sideways overflow, both menus in view   {\"over\":0,\"ctlH\":49,\"card\":292,\"board\":146,\"inView\":{\"viewPop\":true,\"printPop\":true}}",
+          "  PASS  H dark 1280: the toolbar is one row (≤ 56 px) and the board starts by 150 px   {\"over\":0,\"ctlH\":49,\"card\":292,\"board\":146}",
+          "  PASS  H dark 1440: no sideways overflow, both menus in view   {\"over\":0,\"ctlH\":49,\"card\":292,\"board\":146,\"inView\":{\"viewPop\":true,\"printPop\":true}}",
+          "  PASS  H dark 1440: the toolbar is one row (≤ 56 px) and the board starts by 150 px   {\"over\":0,\"ctlH\":49,\"card\":292,\"board\":146}",
+          "  PASS  Z no page errors",
+          "",
+          "BOARD VIEWS + PRINT GATE: FAIL - 93/94"
+        ],
+        "failLines": [
+          "  FAIL  A4 applyViewLayers reads boardView and shows one view   len=0",
+          "BOARD VIEWS + PRINT GATE: FAIL - 93/94"
+        ]
+      },
+      {
+        "repo": "hub",
+        "file": "notes_conflict_contract.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 0,
+        "tail": [
+          "(node:67712) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:",
+          "--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"file%3A///C%3A/Users/JasonKennedy/AppData/Local/Temp/door-ci-audit-20261106/audit-loader.mjs\", pathToFileURL(\"./\"));'",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "notes_conflict_contract: canonical-content rules, verdicts, and save/load wiring — all assertions passed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "hub",
+        "file": "boot_pinned_prints.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 5,
+        "tail": [
+          "--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"file%3A///C%3A/Users/JasonKennedy/AppData/Local/Temp/door-ci-audit-20261106/audit-loader.mjs\", pathToFileURL(\"./\"));'",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "  ✓ boot calls initializeHomeSite() at the top level",
+          "  ✓ every top-level const/let the boot path reads is declared before boot runs it",
+          "  ✓ the print options are guarded where the boot path reads them",
+          "  ✓ boots with 5 print options pinned: no error thrown",
+          "  ✓ the pinned print buttons are drawn",
+          "  ✓ the loader ran (the status line is the loader’s, not the \"Built …\" placeholder)",
+          "boot_pinned_prints: 6 checks passed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "hub",
+        "file": "recipe_link_contract.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 0,
+        "tail": [
+          "(node:71836) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:",
+          "--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"file%3A///C%3A/Users/JasonKennedy/AppData/Local/Temp/door-ci-audit-20261106/audit-loader.mjs\", pathToFileURL(\"./\"));'",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "PASS canonical/planner links, wrappers, dietary distinction, ambiguity, legacy cache, portions and CI registration",
+          "PASS cold HTTP/offline recovery with valid, empty, malformed and invalid new cache",
+          "PASS quota preserves live index; empty live response recovers cached names",
+          "PASS Jason-approved Rice task selects Plain Rice, including reheat wrapper"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "hub",
+        "file": "frozen_stock_contract.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 0,
+        "tail": [
+          "(node:68004) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:",
+          "--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"file%3A///C%3A/Users/JasonKennedy/AppData/Local/Temp/door-ci-audit-20261106/audit-loader.mjs\", pathToFileURL(\"./\"));'",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "frozen stock contract: 66 checks passed"
+        ],
+        "failLines": []
+      },
+      {
+        "repo": "expo",
+        "file": "publish_partial_outcome_gate.mjs",
+        "pattern": null,
+        "exitCode": 0,
+        "seconds": 13,
+        "tail": [
+          "PASS  D2 the second toast still leads with the two-effect sentence",
+          "PASS  E1 pp_hub_board_pending is registered non-expendable",
+          "PASS  E2 _hubPublishFailure is initialized from the durable marker at parse time",
+          "PASS  E3 only a confirmed live board (verifiedAt) clears the marker",
+          "PASS  E4 the publish catch block is the sole writer of the marker",
+          "PASS  E5 the gate is enrolled in the CI verb-gates roster",
+          "PASS  app source stayed frozen during the gate",
+          "PASS  no page errors",
+          "publish_partial_outcome_gate: 28/28 passed"
+        ],
+        "failLines": []
+      }
+    ]
+  },
+  "newlineProbe": {
+    "originalBodyLength": 0,
+    "normalizedBodyLength": 1256,
+    "normalizedAssertionPass": true,
+    "interpretation": "Local CRLF-sensitive source assertion. Browser assertions passed. Hosted behavior was not checked in this follow-up."
+  },
+  "journeys": {
+    "date": "2026-11-06",
+    "scope": "Current-source isolated producer and browser consumers; all requests mocked; no live writes",
+    "producer": {
+      "swapKeys": [
+        "2026-11-06-dinner",
+        "2026-11-05-dinner"
+      ],
+      "wholeMeal": true
+    },
+    "checks": [
+      {
+        "name": "Both current DOOR swap entries reach EXPO on their dates",
+        "pass": true,
+        "detail": [
+          "2026-11-05-dinner",
+          "2026-11-06-dinner"
+        ]
+      },
+      {
+        "name": "Whole meal survives EXPO planning",
+        "pass": false,
+        "detail": {
+          "expectedHalal": "Halal beef sausages",
+          "actualHalal": null,
+          "expectedSlots": true,
+          "actualSlots": false,
+          "jobs": [
+            {
+              "week": "2",
+              "day": "FRIDAY",
+              "type": "COOK",
+              "name": "Halal Chicken Sausages",
+              "stream": "halal",
+              "servesWeek": "2",
+              "servesDay": "FRIDAY",
+              "servesMeal": "DINNER",
+              "resolved": null,
+              "datedFor": null,
+              "portions": null,
+              "cookMin": 30
+            },
+            {
+              "week": "2",
+              "day": "FRIDAY",
+              "type": "SEND AM",
+              "name": "BAG Halal Chicken Sausages → Dinner",
+              "stream": "halal",
+              "servesWeek": "2",
+              "servesDay": "FRIDAY",
+              "servesMeal": "DINNER",
+              "resolved": null,
+              "datedFor": null,
+              "portions": null,
+              "cookMin": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "HUB board, popup and task-print meal headings agree on the dated meal",
+        "pass": true,
+        "detail": {
+          "meal": "Sausages, Roasted Potatoes, Gravy, Peas & Carrots",
+          "date": "2026-11-06"
+        }
+      },
+      {
+        "name": "HUB task print contains the intended whole-meal halal dish",
+        "pass": false,
+        "detail": {
+          "expected": "Halal beef sausages",
+          "hasChickenFallback": true
+        }
+      },
+      {
+        "name": "HUB dated menu table agrees with its board and task print",
+        "pass": false,
+        "detail": {
+          "boardMeal": "Sausages, Roasted Potatoes, Gravy, Peas & Carrots",
+          "menuTable": "Arroz Con Pollo, Refried Beans◇ Vegan Arroz con Pollo, Refried Beans⚠ sulphites",
+          "tableDate": "FriNov 6",
+          "date": "2026-11-06"
+        }
+      },
+      {
+        "name": "Revert removes both dated meals and restores baseline production task placement",
+        "pass": true,
+        "detail": {
+          "mirror": "rebuilt",
+          "dated": [],
+          "expectedTasks": 14,
+          "actualTasks": 14,
+          "extra": [],
+          "missing": []
+        }
+      },
+      {
+        "name": "Revert refreshes routing alongside the restored meal",
+        "pass": false,
+        "detail": {
+          "expected": {
+            "Vegan / Vegetarian": 11,
+            "Regular": 159,
+            "_components": {
+              "Vegan Arroz con Pollo": 11,
+              "Refried Beans": 170,
+              "Arroz Con Pollo": 159
+            }
+          },
+          "actual": {
+            "Vegan / Vegetarian": 11,
+            "Halal": 57,
+            "Soft Meals": 2,
+            "Regular": 100,
+            "_components": {
+              "Vegan Sausages": 11,
+              "Roasted Potatoes": 168,
+              "Gravy": 168,
+              "Peas & Carrots": 168,
+              "Halal beef sausages": 57,
+              "Roasted plain chicken leg": 2,
+              "Steamed Rice": 2,
+              "Peas": 2,
+              "carrots and onions": 2,
+              "Sausages": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "Open HUB adopts reverted schedule and matching routing",
+        "pass": false,
+        "detail": {
+          "dated": null,
+          "routingRequests": 1,
+          "expected": {
+            "Vegan / Vegetarian": 11,
+            "Regular": 159,
+            "_components": {
+              "Vegan Arroz con Pollo": 11,
+              "Refried Beans": 170,
+              "Arroz Con Pollo": 159
+            }
+          },
+          "actual": {
+            "Vegan / Vegetarian": 11,
+            "Halal": 57,
+            "Soft Meals": 2,
+            "Regular": 100,
+            "_components": {
+              "Vegan Sausages": 11,
+              "Roasted Potatoes": 168,
+              "Gravy": 168,
+              "Peas & Carrots": 168,
+              "Halal beef sausages": 57,
+              "Roasted plain chicken leg": 2,
+              "Steamed Rice": 2,
+              "Peas": 2,
+              "carrots and onions": 2,
+              "Sausages": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "Next service after dated swap uses rotation tasks",
+        "pass": true,
+        "detail": {
+          "dated": [],
+          "expectedTasks": 14,
+          "actualTasks": 14
+        }
+      },
+      {
+        "name": "Fresh EXPO after date rollover has routing for the rotation meal",
+        "pass": false,
+        "detail": {
+          "expected": {
+            "Vegan / Vegetarian": 11,
+            "Regular": 159,
+            "_components": {
+              "Vegan Arroz con Pollo": 11,
+              "Refried Beans": 170,
+              "Arroz Con Pollo": 159
+            }
+          },
+          "actual": {
+            "Vegan / Vegetarian": 11,
+            "Halal": 57,
+            "Soft Meals": 2,
+            "Regular": 100,
+            "_components": {
+              "Vegan Sausages": 11,
+              "Roasted Potatoes": 168,
+              "Gravy": 168,
+              "Peas & Carrots": 168,
+              "Halal beef sausages": 57,
+              "Roasted plain chicken leg": 2,
+              "Steamed Rice": 2,
+              "Peas": 2,
+              "carrots and onions": 2,
+              "Sausages": 100
+            }
+          },
+          "feedWasUnchangedAfterLastDatedPublish": true
+        }
+      },
+      {
+        "name": "Structured rice identity reaches HUB recipe link",
+        "pass": false,
+        "detail": {
+          "doorBinding": {
+            "recipeName": "Lime and Coconut Rice",
+            "recipeId": "lime-and-coconut-rice",
+            "displayText": "Rice",
+            "flags": {
+              "hasCoconut": true
+            }
+          },
+          "expo": [
+            {
+              "week": "1",
+              "day": "SUNDAY",
+              "type": "COOK",
+              "name": "Rice",
+              "stream": "regular",
+              "servesWeek": "1",
+              "servesDay": "SUNDAY",
+              "servesMeal": "DINNER",
+              "resolved": null,
+              "datedFor": null,
+              "portions": null,
+              "cookMin": 40
+            }
+          ],
+          "bindings": [],
+          "hub": {
+            "cards": [
+              {
+                "section": "dinner",
+                "type": "COOK",
+                "item": "Rice",
+                "qty": "4 hotels",
+                "site": "Rex",
+                "cardPolicy": {
+                  "mode": "required",
+                  "reason": ""
+                },
+                "time": "🔥60",
+                "serves": "Today's Dinner"
+              }
+            ],
+            "links": [
+              {
+                "text": "RecipeCOOKRiceRexToday's Dinner4 hotels · ⏱ 🔥60",
+                "url": "https://kennedyjasondavid-eng.github.io/conc-recipe-hub/?recipe=Plain%20Rice&portions=148"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "Bound recipe equipment time agrees with cooking time",
+        "pass": false,
+        "detail": {
+          "rows": [
+            {
+              "name": "Rice",
+              "cookMin": 40,
+              "ovenMin": 60,
+              "stoveMin": 0
+            }
+          ],
+          "boundRecipe": {
+            "cookMin": 40,
+            "ovenMin": 40
+          }
+        }
+      },
+      {
+        "name": "Same menu words with changed recipe binding rebuild EXPO production",
+        "pass": true,
+        "detail": {
+          "plainMirror": "rebuilt",
+          "boundMirror": "rebuilt",
+          "plain": {
+            "week": "1",
+            "day": "SUNDAY",
+            "type": "COOK",
+            "name": "Rice",
+            "stream": "regular",
+            "servesWeek": "1",
+            "servesDay": "SUNDAY",
+            "servesMeal": "DINNER",
+            "resolved": null,
+            "datedFor": null,
+            "portions": null,
+            "cookMin": 30
+          },
+          "bound": {
+            "week": "1",
+            "day": "SUNDAY",
+            "type": "COOK",
+            "name": "Rice",
+            "stream": "regular",
+            "servesWeek": "1",
+            "servesDay": "SUNDAY",
+            "servesMeal": "DINNER",
+            "resolved": null,
+            "datedFor": null,
+            "portions": null,
+            "cookMin": 40
+          }
+        }
+      },
+      {
+        "name": "Roster-only change reaches open EXPO and HUB portion readers",
+        "pass": false,
+        "detail": {
+          "residentsRemoved": 6,
+          "beforePortions": 148,
+          "expectedPortions": 142,
+          "expo": {
+            "mirror": "same",
+            "portions": 148
+          },
+          "hub": {
+            "portions": 148,
+            "stale": false
+          }
+        }
+      },
+      {
+        "name": "Explicit HUB data reload picks up discharged-resident portions",
+        "pass": true,
+        "detail": {
+          "expectedPortions": 142,
+          "actualPortions": 142
+        }
+      },
+      {
+        "name": "Make-ahead recipe links carry their service-meal portions",
+        "pass": false,
+        "detail": {
+          "samples": [
+            {
+              "name": "Chicken Fajitas",
+              "workWeek": "1",
+              "workDay": "MONDAY",
+              "section": "production",
+              "serviceWeek": "1",
+              "serviceDay": "SATURDAY",
+              "serviceMeal": "LUNCH",
+              "expectedServicePortions": 152,
+              "actualLinkPortions": null,
+              "url": "https://conctoronto.sharepoint.com/sites/Kitchen/Shared%20Documents/Bloor/Recipes/Chicken_Fajitas_Main.xlsx"
+            },
+            {
+              "name": "Vegetarian Fajitas",
+              "workWeek": "1",
+              "workDay": "MONDAY",
+              "section": "production",
+              "serviceWeek": "1",
+              "serviceDay": "SATURDAY",
+              "serviceMeal": "LUNCH",
+              "expectedServicePortions": 11,
+              "actualLinkPortions": null,
+              "url": "https://kennedyjasondavid-eng.github.io/conc-recipe-hub/?recipe=Vegetarian%20Fajitas&match=exact"
+            },
+            {
+              "name": "Pork Adobo",
+              "workWeek": "1",
+              "workDay": "TUESDAY",
+              "section": "production",
+              "serviceWeek": "1",
+              "serviceDay": "FRIDAY",
+              "serviceMeal": "DINNER",
+              "expectedServicePortions": 101,
+              "actualLinkPortions": null,
+              "url": "https://conctoronto.sharepoint.com/sites/Kitchen/Shared%20Documents/Bloor/Recipes/Adobo_Marinade.xlsx"
+            },
+            {
+              "name": "Halal Chicken Adobo",
+              "workWeek": "1",
+              "workDay": "TUESDAY",
+              "section": "production",
+              "serviceWeek": "1",
+              "serviceDay": "FRIDAY",
+              "serviceMeal": "DINNER",
+              "expectedServicePortions": 58,
+              "actualLinkPortions": null,
+              "url": "https://kennedyjasondavid-eng.github.io/conc-recipe-hub/?recipe=Halal%20Chicken%20Adobo&match=exact"
+            },
+            {
+              "name": "Sausage and Vegetable Pasta",
+              "workWeek": "1",
+              "workDay": "TUESDAY",
+              "section": "production",
+              "serviceWeek": "2",
+              "serviceDay": "SUNDAY",
+              "serviceMeal": "DINNER",
+              "expectedServicePortions": 97,
+              "actualLinkPortions": null,
+              "url": "https://kennedyjasondavid-eng.github.io/conc-recipe-hub/?recipe=Sausage%20and%20Vegetable%20Pasta&match=exact"
+            },
+            {
+              "name": "Vegan Sausage and Vegetable Pasta",
+              "workWeek": "1",
+              "workDay": "TUESDAY",
+              "section": "production",
+              "serviceWeek": "2",
+              "serviceDay": "SUNDAY",
+              "serviceMeal": "DINNER",
+              "expectedServicePortions": 11,
+              "actualLinkPortions": null,
+              "url": "https://kennedyjasondavid-eng.github.io/conc-recipe-hub/?recipe=Vegan%20Sausage%20and%20Vegetable%20Pasta&match=exact"
+            }
+          ],
+          "interpretation": "A missing scale is an incomplete handoff, not a guessed wrong quantity."
+        }
+      },
+      {
+        "name": "All current-flow browser contexts stayed free of script errors",
+        "pass": true,
+        "detail": [
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ]
+      }
+    ]
+  },
+  "publish": {
+    "publishScenarios": [
+      {
+        "scenario": "Other device reverted; all cloud GETs succeed",
+        "result": {
+          "ok": true
+        },
+        "status": "Sent to the kitchen ✓ 12:00:00 PM",
+        "atomicCommits": 1,
+        "requests": [
+          "meal_swaps_reverted.json",
+          "meal_swaps.json",
+          "special_meals_removed.json",
+          "special_meals.json",
+          "meal_swaps_reverted.json",
+          "meal_swaps.json",
+          "special_meals_removed.json",
+          "special_meals.json",
+          "meal_swaps_reverted.json",
+          "meal_swaps.json",
+          "special_meals_removed.json",
+          "special_meals.json"
+        ],
+        "stagedSwapKeys": [],
+        "stagedRevertKeys": [
+          "2026-11-06-dinner"
+        ],
+        "expectedRouting": {
+          "Vegan / Vegetarian": 11,
+          "Regular": 159,
+          "_components": {
+            "Vegan Arroz con Pollo": 11,
+            "Refried Beans": 170,
+            "Arroz Con Pollo": 159
+          }
+        },
+        "stagedRouting": {
+          "Vegan / Vegetarian": 11,
+          "Halal": 57,
+          "Soft Meals": 2,
+          "Regular": 100,
+          "_components": {
+            "Vegan Sausages": 11,
+            "Roasted Potatoes": 168,
+            "Gravy": 168,
+            "Peas & Carrots": 168,
+            "Halal beef sausages": 57,
+            "Roasted plain chicken leg": 2,
+            "Steamed Rice": 2,
+            "Peas": 2,
+            "carrots and onions": 2,
+            "Sausages": 100
+          }
+        },
+        "coherent": false,
+        "menuReceipt": {
+          "exported": "2026-11-04T19:02:06.599Z",
+          "hash": "ea62d8"
+        },
+        "validation": [],
+        "recovery": [
+          {
+            "attempt": 2,
+            "allReadsNowSucceed": true,
+            "swapKeys": [],
+            "routingMatchesRestoredMeal": true
+          },
+          {
+            "attempt": 3,
+            "allReadsNowSucceed": true,
+            "swapKeys": [],
+            "routingMatchesRestoredMeal": true
+          }
+        ]
+      },
+      {
+        "scenario": "Other device reverted; revert-list GET returns 503",
+        "result": {
+          "ok": true
+        },
+        "status": "Sent to the kitchen ✓ 12:00:00 PM",
+        "atomicCommits": 1,
+        "requests": [
+          "meal_swaps_reverted.json",
+          "meal_swaps.json",
+          "special_meals_removed.json",
+          "special_meals.json",
+          "meal_swaps_reverted.json",
+          "meal_swaps.json",
+          "special_meals_removed.json",
+          "special_meals.json",
+          "meal_swaps_reverted.json",
+          "meal_swaps.json",
+          "special_meals_removed.json",
+          "special_meals.json"
+        ],
+        "stagedSwapKeys": [
+          "2026-11-06-dinner"
+        ],
+        "stagedRevertKeys": [],
+        "expectedRouting": {
+          "Vegan / Vegetarian": 11,
+          "Regular": 159,
+          "_components": {
+            "Vegan Arroz con Pollo": 11,
+            "Refried Beans": 170,
+            "Arroz Con Pollo": 159
+          }
+        },
+        "stagedRouting": {
+          "Vegan / Vegetarian": 11,
+          "Halal": 57,
+          "Soft Meals": 2,
+          "Regular": 100,
+          "_components": {
+            "Vegan Sausages": 11,
+            "Roasted Potatoes": 168,
+            "Gravy": 168,
+            "Peas & Carrots": 168,
+            "Halal beef sausages": 57,
+            "Roasted plain chicken leg": 2,
+            "Steamed Rice": 2,
+            "Peas": 2,
+            "carrots and onions": 2,
+            "Sausages": 100
+          }
+        },
+        "coherent": false,
+        "menuReceipt": {
+          "exported": "2026-11-04T19:02:06.599Z",
+          "hash": "ea62d8"
+        },
+        "validation": [],
+        "recovery": [
+          {
+            "attempt": 2,
+            "allReadsNowSucceed": true,
+            "swapKeys": [],
+            "routingMatchesRestoredMeal": false
+          },
+          {
+            "attempt": 3,
+            "allReadsNowSucceed": true,
+            "swapKeys": [],
+            "routingMatchesRestoredMeal": true
+          }
+        ]
+      }
+    ],
+    "dateBoundaries": [
+      {
+        "name": "week 4 to week 1",
+        "slots": [
+          {
+            "week": 4,
+            "day": "SATURDAY"
+          },
+          {
+            "week": 1,
+            "day": "SUNDAY"
+          }
+        ],
+        "today": "2026-11-20",
+        "cycle": "2026-10-25",
+        "expected": [
+          "2026-11-21",
+          "2026-11-22"
+        ],
+        "actual": [
+          "2026-11-21",
+          "2026-11-22"
+        ],
+        "pass": true
+      },
+      {
+        "name": "DST weekend",
+        "slots": [
+          {
+            "week": 1,
+            "day": "SATURDAY"
+          },
+          {
+            "week": 2,
+            "day": "SUNDAY"
+          }
+        ],
+        "today": "2026-10-31",
+        "cycle": "2026-10-25",
+        "expected": [
+          "2026-10-31",
+          "2026-11-01"
+        ],
+        "actual": [
+          "2026-10-31",
+          "2026-11-01"
+        ],
+        "pass": true
+      },
+      {
+        "name": "earlier half already passed",
+        "slots": [
+          {
+            "week": 2,
+            "day": "TUESDAY"
+          },
+          {
+            "week": 2,
+            "day": "THURSDAY"
+          }
+        ],
+        "today": "2026-11-04",
+        "cycle": "2026-10-25",
+        "expected": [
+          "2026-12-01",
+          "2026-12-03"
+        ],
+        "actual": [
+          "2026-12-01",
+          "2026-12-03"
+        ],
+        "pass": true
+      }
+    ]
+  },
+  "makeAhead": {
+    "scope": "Current HUB canonical reader and portion reader applied to actual current-source EXPO generated cards; fallback links excluded",
+    "count": 16,
+    "unscaled": 16,
+    "samples": [
+      {
+        "name": "Okra and cassava stew",
+        "canonicalRecipe": "Okra and Cassava Stew",
+        "workWeek": "1",
+        "workDay": "FRIDAY",
+        "section": "production",
+        "serviceWeek": "2",
+        "serviceDay": "WEDNESDAY",
+        "serviceMeal": "DINNER",
+        "expectedServicePortions": 170,
+        "actualLinkPortions": null
+      },
+      {
+        "name": "Seasonal Soup",
+        "canonicalRecipe": "Seasonal Soup",
+        "workWeek": "1",
+        "workDay": "SATURDAY",
+        "section": "production",
+        "serviceWeek": "2",
+        "serviceDay": "TUESDAY",
+        "serviceMeal": "LUNCH",
+        "expectedServicePortions": 168,
+        "actualLinkPortions": null
+      },
+      {
+        "name": "Mashed Potato",
+        "canonicalRecipe": "Olive Oil Mashed Potato (Vegan)",
+        "workWeek": "2",
+        "workDay": "TUESDAY",
+        "section": "production",
+        "serviceWeek": "2",
+        "serviceDay": "SATURDAY",
+        "serviceMeal": "DINNER",
+        "expectedServicePortions": 162,
+        "actualLinkPortions": null
+      },
+      {
+        "name": "Caribbean Chicken Curry",
+        "canonicalRecipe": "Caribbean Curry Spiced Chicken (to accompany Caribbean Stew)",
+        "workWeek": "2",
+        "workDay": "WEDNESDAY",
+        "section": "production",
+        "serviceWeek": "3",
+        "serviceDay": "TUESDAY",
+        "serviceMeal": "DINNER",
+        "expectedServicePortions": 147,
+        "actualLinkPortions": null
+      },
+      {
+        "name": "Pork Griot",
+        "canonicalRecipe": "Pork Griot",
+        "workWeek": "2",
+        "workDay": "SATURDAY",
+        "section": "production",
+        "serviceWeek": "3",
+        "serviceDay": "THURSDAY",
+        "serviceMeal": "DINNER",
+        "expectedServicePortions": 101,
+        "actualLinkPortions": null
+      },
+      {
+        "name": "Chicken Griot",
+        "canonicalRecipe": "Chicken Griot",
+        "workWeek": "2",
+        "workDay": "SATURDAY",
+        "section": "production",
+        "serviceWeek": "3",
+        "serviceDay": "THURSDAY",
+        "serviceMeal": "DINNER",
+        "expectedServicePortions": 58,
+        "actualLinkPortions": null
+      }
+    ]
+  },
+  "limitations": [
+    "CODEX identity was checked against EXPOs pinned production fixture and the resulting link URL; this is not an Office or live CODEX staff trial.",
+    "Publish probes execute DOORs actual staging and merge functions with mocked HTTP reads and an atomic writer recorder. Generated routing uses the actual plating builder. No remote repository was modified.",
+    "Publish recovery attempts assume the authoritative remote revert is available again; the writer recorder does not apply staged writes to the mock remote. Counts of attempts are not evidence that a tombstone overwritten on a real server would recover itself.",
+    "UI output checks inspect rendered DOM and generated task-print HTML; no physical print or live production scheduling occurred.",
+    "Repeated failed early harness launches were infrastructure errors and are excluded from the application results."
+  ],
+  "reproduction": {
+    "archive": "C:\\Users\\JasonKennedy\\AppData\\Local\\Temp\\door-ci-audit-20261106",
+    "scripts": [
+      "flow-journeys.mjs",
+      "publish-adversarial.mjs",
+      "makeahead-canonical.mjs",
+      "run-flow-regressions.mjs",
+      "audit-loader.mjs"
+    ],
+    "logs": "flow-logs",
+    "artifacts": "flow-artifacts"
+  }
+}
