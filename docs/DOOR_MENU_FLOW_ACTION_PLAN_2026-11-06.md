@@ -34,7 +34,10 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
    - Its checks were re-running on 2026-11-07.
    - It shares `index.html`, `tests/ux_baseline.json`, `tests/fixtures/e1_timing_receipt.json` and `schedule-gate.yml` with #560/#561. Whichever merges second rebases and rebuilds its baseline.
    - Lean: the EX queue first, then #565 rebased once.
-4. **R4. F4, smallest consumer, then switch it on.** It runs after the EXPO queue lands, so it doesn't collide with it.
+4. **R4. F4, smallest consumer, then switch it on.**
+   - *Prerequisites done 2026-11-07:* the contract row is in the HOUSE ledger (HOUSE #61).
+   - The planned site field isn't needed: the stamp already requires the site, hashes it into `inputRevision`, and carries it in `_meta.site` and `serviceRefs`. `rexdale` is a `sites.json` key (HOUSE #64).
+   - What remains is the EXPO/HUB readers, after the EXPO review lands #565. It runs after the EXPO queue lands, so it doesn't collide with it.
    - Before any consumer code: write the stamp's contract as a schema doc and add a row to the HOUSE ledger's contract matrix. It is a cross-app seam.
    - EXPO and HUB accept counts only when their stamp is current. Otherwise they keep the last good board and show one plain line saying the counts are waiting.
    - No new mechanism beyond that. Then a separate PR fills in the activation constants.
