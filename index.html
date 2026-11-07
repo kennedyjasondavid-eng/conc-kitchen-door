@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.52';
+const DOOR_APP_VERSION = 'v31-standard.53';
 const DOOR_BUILD_DATE = '2026-11-07';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1005,7 +1005,7 @@ function updateCODEXBadge() {
   <div class="sidebar-footer">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div><div class="total-label site-name-label">Residents</div>
-      <div class="total-count" id="total-count">181</div></div>
+      <div class="total-count" id="total-count">—</div></div>
       <span id="codex-source-badge" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.3);color:#aaa;">CODEX</span>
     </div>
     <div class="door-build-stamp" id="door-build-stamp"></div>
@@ -1215,7 +1215,7 @@ function updateCODEXBadge() {
   </div>
   <div class="content">
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num" id="stat-total">181</div><div class="stat-label">Total Residents</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Total Residents</div></div>
       <div class="stat-card" style="border-color:#bbf7d0"><div class="stat-num" style="color:#16a34a" id="stat-intakes">0</div><div class="stat-label">New Intakes</div></div>
       <div class="stat-card" style="border-color:#fca5a5"><div class="stat-num" style="color:var(--red)" id="stat-discharges">0</div><div class="stat-label">Discharges</div></div>
       <div class="stat-card" style="border-color:#fde68a"><div class="stat-num" style="color:#d97706" id="stat-flags">0</div><div class="stat-label">Needs Review</div></div>
@@ -1229,7 +1229,7 @@ function updateCODEXBadge() {
       <div class="routing-preview" id="routing-preview">
         <div class="preview-header">
           <div><div class="preview-header-title" id="preview-title">Routing Preview</div><div class="preview-header-sub" id="preview-sub"></div></div>
-          <span id="preview-total-badge" style="font-size:12px;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:20px;color:rgba(255,255,255,0.8)">181 residents</span>
+          <span id="preview-total-badge" style="font-size:12px;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:20px;color:rgba(255,255,255,0.8)">— residents</span>
         </div>
         <div id="preview-sections"></div>
       </div>
@@ -1315,7 +1315,7 @@ function updateCODEXBadge() {
 <!-- ===== REGISTRY ===== -->
 <div class="screen" id="screen-registry">
   <div class="topbar">
-    <div><div class="topbar-title">Resident Registry</div><div class="topbar-sub">181 residents · 93 restricted · 88 regular · Read-only reference</div></div>
+    <div><div class="topbar-title">Resident Registry</div><div class="topbar-sub">Read-only reference</div></div>
     <div class="topbar-right">
     </div>
   </div>
@@ -2276,12 +2276,13 @@ function updateResidentCountDisplays(liveCount) {
   if (!currentSite) return;
   const isRexdale = currentSite === SITE_CONFIGS.rexdale;
   const hasLiveCount = isRexdale && Number.isInteger(liveCount) && liveCount >= 0;
-  const count = hasLiveCount ? liveCount : currentSite.residentCount;
+  // 2026-11-07: no resident list yet shows "—", never the site's planning number (Rexdale read "181" on a computer with no list).
+  const count = hasLiveCount ? liveCount : '—';
 
   const sub = document.getElementById('site-sub-label');
   if (sub) sub.textContent = hasLiveCount
     ? currentSite.name + ' Shelter · ' + count + ' residents'
-    : currentSite.sub;
+    : currentSite.name + ' Shelter · no resident list yet';
 
   const totalLabel = document.querySelector('.total-label');
   if (totalLabel) totalLabel.textContent = currentSite.name + ' Residents';
@@ -8803,7 +8804,6 @@ async function generateFiles() {
 
   // Populate the recently generated files panel on review screen
   populateRecentGenerated();
-  renderPlatingDashboard();
 
   // Clear unresolved NR flag — operator has acknowledged and generated
   localStorage.removeItem('concUnresolvedNR');
@@ -9807,7 +9807,7 @@ function showScreen(name, navEl) {
   if (name === 'review') buildReview();
   if (name === 'registry') { renderRegistry(REGISTRY_LIST); }
   if (name === 'compliance') { renderComplianceView(); }
-  if (name === 'plating') { renderPlatingDashboard(); initPlatingPreview(); }
+  if (name === 'plating') { initPlatingPreview(); }
   if (name === 'reports') renderReport();
   if (name === 'settings') loadSettings();
   if (name === 'custom-reports') initCustomReports();
@@ -21750,7 +21750,6 @@ const BOOT_REGISTRY_ROOMS = new Set(REGISTRY_LIST.map(r => r.room.toLowerCase())
 
 renderRegistry(REGISTRY_LIST);
 renderRecentLog();
-renderPlatingDashboard();
 initPlatingPreview();
 updateComplianceBadge();
 
@@ -22939,89 +22938,7 @@ function doorNoResidentListNoticeHTML() {
     'No resident list on this computer — these sheets show no residents. Press ↻ Refresh list on Enter Changes when online, or ↑ Import Daily List.</div>';
 }
 
-function renderPlatingDashboard() {
-  const body = document.getElementById('plating-dash-body');
-  const timeEl = document.getElementById('plating-dash-time');
-  if (!body) return;
-
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const dayShort = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-
-  const todayData = getMealForDate(today);
-  const tomorrowData = getMealForDate(tomorrow);
-
-  const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
-
-  function mealCell(data, period, weekNum, dayName, dateLabel) {
-    if (!data) return '<div class="pd-cell"><span style="color:var(--muted)">—</span></div>';
-
-    const mealFlags = data[period] || {};
-    const mealName = mealFlags.name || '—';
-    const flags = period === 'breakfast' ? emptyFlags : mealFlags;
-
-    // Check anaphylactic conflict for this specific meal
-    const lf = period === 'lunch' ? flags : emptyFlags;
-    const df = period === 'dinner' ? flags : emptyFlags;
-    const conflicts = (period !== 'breakfast') ? getAnaphConflictRooms(lf, df) : new Set();
-    const hasConflict = conflicts.size > 0;
-
-    // Section counts for this meal
-    let sectSummary = '';
-    if (period !== 'breakfast') {
-      const counts = {};
-      REGISTRY_LIST.forEach(r => {
-        if (conflicts.has(r.room)) {
-          counts['Anaph'] = (counts['Anaph']||0) + 1;
-        } else {
-          const short = {'Regular':'Reg','Halal':'Hal','Vegan / Vegetarian':'Veg','Gluten Free':'GF','No Dairy':'ND','Diabetic':'Diab','Bland':'Bld'};
-          const k = short[r.section] || r.section.substring(0,3);
-          counts[k] = (counts[k]||0) + 1;
-        }
-      });
-      sectSummary = Object.entries(counts).map(([k,v])=>`${k} ${v}`).join(' · ');
-    }
-
-    const canDL = period !== 'breakfast';
-    const weekLabels = ['One','Two','Three','Four'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const ds = months[today.getMonth()]+' '+today.getDate();
-    const fileNum = period === 'lunch' ? (weekNum+4) : (weekNum+8);
-    const fn = `${fileNum<10?'0':''}${fileNum} ${period==='lunch'?'Lunch':'Dinner'} Week ${weekLabels[weekNum-1]} ${ds}.xlsx`;
-
-    return `<div class="pd-cell">
-      <div class="pd-meal-name">${escapeHtml(mealName)}</div>
-      ${hasConflict ? '<span class="pd-conflict">&#x26A0; Allergen conflict</span>' : ''}
-      ${sectSummary ? `<div class="pd-sections">${escapeHtml(sectSummary)}</div>` : ''}
-      ${canDL ? `<span class="pd-dl" onclick="${_escJsAttrCall('downloadPlatingSheet', [fn, period, Number(weekNum)])}">⬇ Download</span>` : ''}
-    </div>`;
-  }
-
-  const lastGen = generatedFiles.length ? 'Last generated: ' + document.getElementById('recent-gen-time')?.textContent?.replace('Generated ','') : 'Not yet generated this session';
-  timeEl.textContent = lastGen;
-
-  body.innerHTML = `
-    <div class="pd-grid">
-      <div class="pd-header"></div>
-      <div class="pd-header">Breakfast</div>
-      <div class="pd-header">Lunch</div>
-      <div class="pd-header">Dinner</div>
-
-      <div class="pd-cell"><div class="pd-day">Today</div><div class="pd-day-sub">${escapeHtml(dayNames[today.getDay()])} · Wk ${Number(todayData.week)}</div></div>
-      <div class="pd-cell"><div class="pd-meal-name">${escapeHtml(todayData.breakfast || '—')}</div></div>
-      ${mealCell(todayData, 'lunch', todayData.week, todayData.day, 'today')}
-      ${mealCell(todayData, 'dinner', todayData.week, todayData.day, 'today')}
-
-      <div class="pd-cell" style="border-bottom:none;"><div class="pd-day">Tomorrow</div><div class="pd-day-sub">${escapeHtml(dayNames[tomorrow.getDay()])} · Wk ${Number(tomorrowData.week)}</div></div>
-      <div class="pd-cell" style="border-bottom:none;"><div class="pd-meal-name">${escapeHtml(tomorrowData.breakfast || '—')}</div></div>
-      ${mealCell(tomorrowData, 'lunch', tomorrowData.week, tomorrowData.day, 'tomorrow').replace('pd-cell">', 'pd-cell" style="border-bottom:none;">')}
-      ${mealCell(tomorrowData, 'dinner', tomorrowData.week, tomorrowData.day, 'tomorrow').replace('pd-cell">', 'pd-cell" style="border-bottom:none;">')}
-    </div>`;
-}
-
+// 2026-11-07: renderPlatingDashboard removed; its #plating-dash-body container left the page in April 2026.
 // ============================================================
 // PLATING SHEET INLINE PREVIEW
 // ============================================================

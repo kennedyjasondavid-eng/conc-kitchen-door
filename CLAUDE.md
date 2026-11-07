@@ -53,6 +53,11 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-07) — no built-in resident count; the dead plating dashboard is gone (`v31-standard.53`)
+- **The count.** Until a resident list renders, the sidebar count, Review's total, the preview badge and the registry header read "—", and the site line reads "Rexdale Shelter · no resident list yet". They used to show 181, the site's planning number (`SITE_CONFIGS.rexdale.residentCount`). That number still exists but no longer reaches the screen.
+- **The dashboard.** `renderPlatingDashboard` (82 lines) and its three calls are removed. Its `#plating-dash-body` container left the page in April 2026, so the function always returned at once.
+- **Gate:** `tests/resident_count_placeholder_gate.mjs` (2), red 2/2 on `main`. Suite: 812 of 813 pass, 1 skipped.
+
 ## Recent (2026-11-07) — the offline recipe list follows CODEX again (`v31-standard.52`)
 The two CODEX-dependent checks always skipped in CI, because CI has no CODEX copy beside DOOR. Pinned to a frozen CODEX feed (`tests/fixtures/codex_door_recipe_data_2026-11-06_096ee08.json`), they showed `DOOR_RECIPE_DATA_FALLBACK` differed from CODEX on 72 recipes' allergens. Some differences were missing warnings, for example Soy and Spicy on Vegan Thai Green Curry Sauce and Mustard on the vindaloos. Only computers without internet were affected.
 - **Fix (Jason: "follow CODEX").**
@@ -183,9 +188,9 @@ Jason, 2026-10-31: "go ahead with phase 1, the Pages allowlist PR". Pages is pub
 - **Results:**
   - Suite 571 → 576; local failures are the same 6 as `main` (5 need a CODEX checkout beside DOOR, plus test 76, the Corn booleans).
   - In a real browser, offline at 1280 and 390 px: no built-in residents, anaphylactic room or log, the alert on the plating sheet, no alert once a saved list loads, no page errors.
-- **Found, not changed:**
-  - The sidebar and the registry header say "181 residents" from the page's markup until a list loads, even with no list.
-  - The plating dashboard (`renderPlatingDashboard`) renders into `#plating-dash-body`, which isn't on the page.
+- ~~**Found, not changed:**~~ Both fixed in `v31-standard.53` (2026-11-07):
+  - ~~The sidebar and the registry header say "181 residents" from the page's markup until a list loads, even with no list.~~
+  - ~~The plating dashboard (`renderPlatingDashboard`) renders into `#plating-dash-body`, which isn't on the page.~~
 
 ## Recent (2026-10-30) — Rex's week sheet places the meals: Wk2 THU and FRI dinners trade days (menu data, no code)
 Jason, 2026-10-30, sending Rex's sheet for Nov 1–7: "Meal placement canon lies with Rex menu". The sheet puts **Arroz con Pollo, Refried Beans** on Wk2 THU dinner and **Sausages, Roasted Potato, Gravy, Peas & Carrots** on Wk2 FRI dinner; DOOR had them the other way round. Every cycle.
