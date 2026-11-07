@@ -194,7 +194,9 @@ test('with the CODEX feed: each linked recipe\'s allergens reach its plate', (t)
   const p = census(ctxFor(feed));
   const byName = Object.fromEntries(feed.map((r) => [r.recipeName, r]));
   const fam = (a) => { const t = String(a).split('(')[0].trim().toUpperCase(); return CANON[t] || t; };
-  for (const [wk, day, period, recipe] of LINKS) {
+  for (const [wk, pinned, period, recipe] of LINKS) {
+    // 2026-11-07: found where it is now, like the link check above (the 2026-11-04 swap moved the sausage dinner to THU).
+    const day = mealDay(menu, wk, pinned, period, linksVegan(period, recipe));
     const k = wk + ' ' + day.slice(0, 3) + ' ' + period;
     const want = (byName[recipe].allergens || []).filter((a) => a && a !== 'None').map(fam);
     assert.ok(want.every((t) => canonSet(p[k].after).has(t)), k + ' carries ' + recipe + "'s " + want.join(',') + ': ' + p[k].after);
