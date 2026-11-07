@@ -140,9 +140,9 @@ test('offline fallback names remain unique',()=>{
   assert.equal(new Set(fallback.map(r=>r.recipeName)).size,fallback.length,'no duplicate fallback names');
 });
 test('the paired CODEX feed is the canonical source for the scoped fallback list',(t)=>{
-  const url=new URL('../../conc-recipe-hub/DOOR_RECIPE_DATA.json',import.meta.url);
-  // CI without a paired source still verifies all exact source-derived fallback records above.
-  if(!fs.existsSync(url)){t.skip('no sibling CODEX feed; fixed source-derived cases still run');return;}
+  // 2026-11-07 (HOUSE rule: checks never read live data): CODEX's feed frozen from conc-recipe-hub main 096ee08
+  // (2026-11-06), instead of whichever CODEX copy sits beside DOOR (CI had none, so this always skipped there).
+  const url=new URL('./fixtures/codex_door_recipe_data_2026-11-06_096ee08.json',import.meta.url);
   const feed=JSON.parse(fs.readFileSync(url,'utf8'));
   const sharedNames=new Set(F.shared.map(s=>s.record.recipeName));
   const wrong=F.source.filter(r=>!(sharedNames.has(r.recipeName)&&!feed.some(x=>x.recipeName===r.recipeName)))
