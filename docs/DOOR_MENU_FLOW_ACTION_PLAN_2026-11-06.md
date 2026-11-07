@@ -55,6 +55,17 @@ Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to
 - The code knows the computer was disconnected by the update (`PublishAuth.getMeta().migrationNeeded`), but only Settings uses that.
 - Nothing tells Jason when another computer goes quiet.
 
+**The two CODEX-feed checks (found and ruled 2026-11-07; built in `v31-standard.52`).**
+- **What they hid.** Pinned to CODEX `main` `096ee08`, both failed. GitHub's checks had hidden this by skipping them, since CI has no CODEX copy beside DOOR.
+  - DOOR's built-in offline recipe list differed from CODEX on 72 recipes' allergens, including missing warnings: Soy and Spicy on Vegan Thai Green Curry Sauce, Mustard on Vindaloo Sauce and Vegan Vindaloo, Nightshades on many dishes.
+  - `vegan_plate_dishes_gate` pinned the vegan sausage to Wk2 FRI, which the Nov 4 swap had moved to THU.
+- **Rulings (Jason).** The offline list follows CODEX. The live CODEX comparison becomes advisory. The vegan check finds the meal wherever it is.
+- **Built.**
+  - 130 offline records now follow the frozen feed. "Glazed Chicken with Pineapple" is dropped (renamed in CODEX, on no menu). The reviewed bagged curry record stays.
+  - `corn_recipe_alignment_gate` asserts the offline list is a faithful copy of the frozen feed and that its Corn recipes still say Corn.
+  - New advisory `tests/advisory/codex_offline_drift.mjs`, a non-blocking CI step.
+  - Suite: 810 of 811 pass, 1 skipped, 0 fail.
+
 **S1 and S2 built 2026-11-07 (`v31-standard.51`).**
 - S1: new reason `reconnect-after-update`; the banner reads "This computer stopped sending to the kitchen after an update". Three checks were added to `device_capability_banner_gate` (12/12); 2 of the 3 fail on `main`.
 - S2 is built the lean way: `tests/journey_edit_reaches_kitchen_gate.mjs` runs DOOR's real publisher with its real `PublishAuth`, without a browser. The file builders are the F1 box's fixed stand-ins, so EXPO's full required-shape check is deferred to a browser version. The check fails on `main` (journey 2), and fails on a publisher that silently stops writing (both journeys).

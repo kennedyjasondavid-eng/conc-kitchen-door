@@ -53,6 +53,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-07) — the offline recipe list follows CODEX again (`v31-standard.52`)
+The two CODEX-dependent checks always skipped in CI, because CI has no CODEX copy beside DOOR. Pinned to a frozen CODEX feed (`tests/fixtures/codex_door_recipe_data_2026-11-06_096ee08.json`), they showed `DOOR_RECIPE_DATA_FALLBACK` differed from CODEX on 72 recipes' allergens. Some differences were missing warnings, for example Soy and Spicy on Vegan Thai Green Curry Sauce and Mustard on the vindaloos. Only computers without internet were affected.
+- **Fix (Jason: "follow CODEX").**
+  - Every offline record CODEX has is now CODEX's (130 records).
+  - "Glazed Chicken with Pineapple" is dropped (renamed in CODEX, on no menu).
+  - The reviewed bagged curry record stays.
+- **Checks.**
+  - `corn_recipe_alignment_gate`: the offline list is a faithful copy of the frozen feed, and the Corn recipes still say Corn. The live comparison and the Oct 22 refresh receipt are retired, with dated notes.
+  - New non-blocking CI step `tests/advisory/codex_offline_drift.mjs` reports when the offline list falls behind CODEX's live feed.
+  - `vegan_plate_dishes_gate` finds each meal wherever it is (`meal_where`).
+- Suite: 810 of 811 pass, 1 skipped, 0 fail.
+
 ## Recent (2026-11-07) — a computer the update disconnected says so in red; one journey check (`v31-standard.51`)
 On 2026-11-06 the F1 update (#155) left every DOOR computer without a saved key, and sending stopped. Each showed only the amber new-computer line ("not connected — no connection key"). Plan: `docs/DOOR_MENU_FLOW_ACTION_PLAN_2026-11-06.md`, "Next slice" S1/S2.
 - **S1, the banner.**
