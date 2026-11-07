@@ -25,7 +25,8 @@ function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing '
 function fn(name) { return between('function ' + name + '(', '\n}\n') + '\n}\n'; }
 const hasReader = html.indexOf('function getVegAltSlotAllergenStr(') >= 0;
 const fallbackSrc = between('const DOOR_RECIPE_DATA_FALLBACK', 'let DOOR_RECIPE_DATA =');
-const feedPath = path.resolve(root, '..', 'conc-recipe-hub', 'DOOR_RECIPE_DATA.json');
+// 2026-11-07 (HOUSE rule: checks never read live data): CODEX's feed frozen from conc-recipe-hub main 096ee08 (2026-11-06).
+const feedPath = path.join(root, 'tests', 'fixtures', 'codex_door_recipe_data_2026-11-06_096ee08.json');
 
 function ctxFor(recipeData) {
   const ctx = {};
@@ -189,12 +190,13 @@ test('offline (the baked list): the tofu and Gardein plates say Soy, the tenders
 });
 
 test('with the CODEX feed: each linked recipe\'s allergens reach its plate', (t) =>{
-  if (!fs.existsSync(feedPath)) { t.skip('optional sibling CODEX source is not checked out'); return; }
   const feed = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
   const p = census(ctxFor(feed));
   const byName = Object.fromEntries(feed.map((r) => [r.recipeName, r]));
   const fam = (a) => { const t = String(a).split('(')[0].trim().toUpperCase(); return CANON[t] || t; };
-  for (const [wk, day, period, recipe] of LINKS) {
+  for (const [wk, pinned, period, recipe] of LINKS) {
+    // 2026-11-07: found where it is now, like the link check above (the 2026-11-04 swap moved the sausage dinner to THU).
+    const day = mealDay(menu, wk, pinned, period, linksVegan(period, recipe));
     const k = wk + ' ' + day.slice(0, 3) + ' ' + period;
     const want = (byName[recipe].allergens || []).filter((a) => a && a !== 'None').map(fam);
     assert.ok(want.every((t) => canonSet(p[k].after).has(t)), k + ' carries ' + recipe + "'s " + want.join(',') + ': ' + p[k].after);

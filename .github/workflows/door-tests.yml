@@ -84,6 +84,12 @@ jobs:
         continue-on-error: true
         run: node --test tests/advisory/menu-decisions.mjs
 
+      # 2026-11-07: report (never block) when the built-in offline recipe list falls behind CODEX's live feed.
+      - name: Compare the offline recipe list with CODEX
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: node --test tests/advisory/codex_offline_drift.mjs
+
       - name: Explain advisory result
         if: always()
         shell: bash
