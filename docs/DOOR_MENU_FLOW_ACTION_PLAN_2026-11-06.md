@@ -55,6 +55,11 @@ Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to
 - The code knows the computer was disconnected by the update (`PublishAuth.getMeta().migrationNeeded`), but only Settings uses that.
 - Nothing tells Jason when another computer goes quiet.
 
+**S1 and S2 built 2026-11-07 (`v31-standard.51`).**
+- S1: new reason `reconnect-after-update`; the banner reads "This computer stopped sending to the kitchen after an update". Three checks were added to `device_capability_banner_gate` (12/12); 2 of the 3 fail on `main`.
+- S2 is built the lean way: `tests/journey_edit_reaches_kitchen_gate.mjs` runs DOOR's real publisher with its real `PublishAuth`, without a browser. The file builders are the F1 box's fixed stand-ins, so EXPO's full required-shape check is deferred to a browser version. The check fails on `main` (journey 2), and fails on a publisher that silently stops writing (both journeys).
+- Full suite: 810 of 813 pass, 1 skipped. The 2 failures are the known outdated-CODEX-copy pair.
+
 **S1. The banner says it plainly (DOOR, small).**
 - Add `migrationNeeded` to `doorDeviceCapabilityInput()`.
 - With no key and `migrationNeeded`, give a new reason `reconnect-after-update`, level **red**, worded: "This computer stopped sending to the kitchen after an update. Save its connection again (Settings → Kitchen connection)."

@@ -161,3 +161,39 @@ test('wiring: daily prompt renders the device banner in BOTH branches; publish p
   assert.ok(/concLastPublishOk/.test(pub), '_doPublishToGitHub must record the last successful publish');
   assert.ok(/removeItem\('concLastPublishSkip'\)/.test(pub), 'a successful publish must clear the last skip');
 });
+
+// 2026-11-07 (menu-flow plan, "Next slice" S1). On 2026-11-06 the F1 update (#155) left every DOOR computer
+// without a saved key; each showed only the amber new-computer line ("not connected — no connection key"),
+// so nobody saw that sending had stopped. A computer the update disconnected now says so, in red.
+test('S1: a computer the update disconnected says so in red, with how to fix it', () => {
+  const sb = loadPure();
+  const c = cap(sb, { hasToken: false, migrationNeeded: true });
+  assert.equal(c.level, 'red', 'disconnected by the update is red even with nothing waiting to send');
+  assert.equal(c.reconnectAfterUpdate, true);
+  assert.equal(c.canPublish, false);
+  const r = c.reasons.find(x => x.code === 'reconnect-after-update');
+  assert.ok(r, 'reason reconnect-after-update');
+  assert.equal(r.action, 'connect');
+  assert.match(r.label, /stopped sending to the kitchen after an update/);
+  assert.match(r.label, /Kitchen connection/);
+  assert.ok(!c.reasons.some(x => x.code === 'no-connection'), 'not also reported as a new computer');
+});
+
+test('S1: a new computer still gets the amber setup line; a saved key clears the red one', () => {
+  const sb = loadPure();
+  const fresh = cap(sb, { hasToken: false });
+  assert.equal(fresh.level, 'amber');
+  assert.ok(fresh.reasons.some(x => x.code === 'no-connection'));
+  assert.ok(!fresh.reconnectAfterUpdate);
+  const reconnected = cap(sb, { hasToken: true, migrationNeeded: true });
+  assert.equal(reconnected.level, 'none');
+  assert.ok(!reconnected.reasons.some(x => x.code === 'reconnect-after-update'));
+});
+
+test('S1: the live reader passes the update flag, the update sets it, and saving a key drops it', () => {
+  assert.match(fnBlock('doorDeviceCapabilityInput'), /migrationNeeded:\s*!!meta\.migrationNeeded/);
+  assert.match(html, /migrateLegacyState\(\)\s*\{[\s\S]{0,600}migrationNeeded:\s*true/);
+  const save = html.slice(html.indexOf("authModel: 'coherent-publisher-v2',\n      savedAt"), html.indexOf('Never mirror the replacement'));
+  assert.ok(save.length > 0 && !/migrationNeeded/.test(save), 'the saved connection starts with fresh details, without the flag');
+  assert.match(fnBlock('_doorDeviceBannerHTML'), /reconnectAfterUpdate[\s\S]{0,120}stopped sending to the kitchen after an update/);
+});
