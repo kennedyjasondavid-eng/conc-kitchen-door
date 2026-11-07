@@ -29,7 +29,11 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
    - First, a one-page plain-words checklist made from §"One time writer cutover" and `docs/F1_PUBLISH_IMPLEMENTATION_2026-11-06.md`.
    - The sitting: revoke the old write keys, then reconnect Jason's two computers and Joan's connection. Check that an old tab can no longer write and that read-only use still works.
    - Merged-but-off code gets riskier the longer it waits, so this comes before more building.
-3. **R3. F3a, EXPO side:** EXPO #565, merged through the EXPO session's queue. Not this session.
+3. **R3. F3a, EXPO side: EXPO #565, on hold.** Jason, 2026-11-07: it goes into the separate review of Astra's EXPO PRs, with the EX queue (#560–#563).
+   - It changes the live board: dishes whose recipe can't be found become held cards; the 500 kept rows gain their service; 12 rows added and 18 removed; the Griot chain is redistributed within its 10-day limit.
+   - Its checks were re-running on 2026-11-07.
+   - It shares `index.html`, `tests/ux_baseline.json`, `tests/fixtures/e1_timing_receipt.json` and `schedule-gate.yml` with #560/#561. Whichever merges second rebases and rebuilds its baseline.
+   - Lean: the EX queue first, then #565 rebased once.
 4. **R4. F4, smallest consumer, then switch it on.** It runs after the EXPO queue lands, so it doesn't collide with it.
    - Before any consumer code: write the stamp's contract as a schema doc and add a row to the HOUSE ledger's contract matrix. It is a cross-app seam.
    - EXPO and HUB accept counts only when their stamp is current. Otherwise they keep the last good board and show one plain line saying the counts are waiting.
