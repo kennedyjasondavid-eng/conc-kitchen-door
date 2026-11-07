@@ -60,6 +60,16 @@ Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to
 - S2 is built the lean way: `tests/journey_edit_reaches_kitchen_gate.mjs` runs DOOR's real publisher with its real `PublishAuth`, without a browser. The file builders are the F1 box's fixed stand-ins, so EXPO's full required-shape check is deferred to a browser version. The check fails on `main` (journey 2), and fails on a publisher that silently stops writing (both journeys).
 - Full suite: 810 of 813 pass, 1 skipped. The 2 failures are the known outdated-CODEX-copy pair.
 
+**Next: the two CODEX-feed checks (found 2026-11-07, ruled by Jason; not built).** Pinned to CODEX `main` `096ee08` (2026-11-06), both still fail. GitHub's checks had hidden this by skipping them, since CI has no CODEX copy beside DOOR. Work in progress is on the local, unpushed branch `claude/door-codex-feed-fixture`, which holds the frozen feed.
+- **Offline list (ruled: follow CODEX).** DOOR's baked offline recipe list predates CODEX v34 (2026-10-30, "the vegan meat holds no soy").
+  - It still lists Soy for Vegan CONC Salad Mix, Vegan Kebabs, Vegan Meatballs, Vegan Meatloaf, Vegan Nacho Mix and Vegan Sloppy Joe Mix.
+  - It still carries "Glazed Chicken with Pineapple", which CODEX no longer has (renamed).
+  - Online DOOR already reads CODEX, so this only affects a computer without internet, and only in the safe direction (it over-warns).
+  - Fix: refresh those records from the frozen feed through the existing fallback seam, with a dated put-back for `corn_recipe_alignment_gate`'s fixed fallback cases.
+- **The checks (ruled: fix both properly).**
+  - (a) `corn_recipe_alignment_gate` "the paired CODEX feed is the canonical source…" compares against CODEX, so it fails on every CODEX change. It becomes an advisory drift report in `tests/advisory/`, reading the frozen feed. The offline list's own fixed checks keep blocking.
+  - (b) `vegan_plate_dishes_gate` pins Vegan Sausage to Wk2 FRI dinner, but the 2026-11-04 swap moved the sausage dinner to THU. It should find the meal wherever it is with `tests/helpers/meal_where.mjs`, as the other checks do since #152.
+
 **S1. The banner says it plainly (DOOR, small).**
 - Add `migrationNeeded` to `doorDeviceCapabilityInput()`.
 - With no key and `migrationNeeded`, give a new reason `reconnect-after-update`, level **red**, worded: "This computer stopped sending to the kitchen after an update. Save its connection again (Settings → Kitchen connection)."
