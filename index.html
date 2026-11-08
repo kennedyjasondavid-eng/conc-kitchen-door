@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.55';
+const DOOR_APP_VERSION = 'v31-standard.56';
 const DOOR_BUILD_DATE = '2026-11-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -17176,6 +17176,16 @@ async function doorPushRexAnswers() {
   try { PublishAuth.sidePublish(REX_WEEK_ANSWERS_FILE, JSON.stringify(merged, null, 2), 'Rex week answers', true); } catch (e) {}
 }
 // The recipes a dish can link: a main, the vegan dish, a side (any side slot's recipes, or a salad, soup, dessert).
+// W3c (2026-11-08, Week 3 log 2): after the closest suggestions, every recipe that fits the dish's role, A–Z. A select
+// jumps to a name as it is typed, so "Vegan Wrap" can still reach Piri Piri Tofu Wrap.
+function doorRexAllRecipeOptions(nd) {
+  const shown = new Set(nd.suggest || []);
+  const all = (typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA) ? DOOR_RECIPE_DATA : [])
+    .filter(r => r && r.recipeName && !shown.has(r.recipeName) && doorRexAccept(nd.role, r))
+    .map(r => r.recipeName).sort((a, b) => a.localeCompare(b));
+  if (!all.length) return '';
+  return '<optgroup label="Every other recipe (A–Z)">' + all.map(n => '<option value="' + _escAttr(n) + '">the ' + escapeHtml(n) + ' recipe</option>').join('') + '</optgroup>';
+}
 function doorRexAccept(role, r) {
   const def = id => MEAL_SLOT_DEFS.find(d => d.id === id);
   if (role === 'side') return ['starch', 'vegside'].some(id => recipeMatchesSlotDef(def(id), r)) || ['salad', 'soup', 'dessert', 'breakfast'].includes(r.category);
@@ -17312,6 +17322,7 @@ function doorRexQuestionHTML(m, idx) {
     notes += '<div class="rex-note"' + (lk ? ' data-rex-linked-before="1"' : '') + '><label for="' + id + '">' + intro + '</label>' +
       '<select id="' + id + '" data-rex-link="' + _escAttr(m.key) + '" data-piece="' + _escAttr(nd.piece) + '" class="form-input" style="font-size:12px;padding:3px 6px;max-width:100%;">' +
       nd.suggest.map(n => '<option value="' + _escAttr(n) + '"' + (n === nd.lean ? ' selected' : '') + '>the ' + escapeHtml(n) + ' recipe</option>').join('') +
+      doorRexAllRecipeOptions(nd) +
       '<option value=""' + (nd.lean ? '' : ' selected') + '>no recipe yet: tick its allergens</option></select>' +
       '<div data-rex-ticks="' + _escAttr(id) + '" style="margin-top:4px;' + (nd.lean ? 'display:none;' : '') + '">' +
       FLAG_DEFS.filter(f => !f.mealLevel || f.key === 'isSpicy').map(f => '<label style="display:inline-flex;gap:3px;align-items:center;margin:0 8px 2px 0;font-size:11px;"><input type="checkbox" data-rex-tick="' + _escAttr(id) + '" value="' + _escAttr(f.key) + '"' + (ticks[f.key] ? ' checked' : '') + '>' + escapeHtml(f.label) + '</label>').join('') +
@@ -18509,7 +18520,7 @@ function renderSlotCard(def, ns) {
         value="${_escAttr(currentVal)}"
         style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;"
         oninput="${_escAttr(fn + 'Search(' + _jsArgLiteral(def.id) + ',this.value)')}"
-        onfocus="${_escAttr(fn + 'Search(' + _jsArgLiteral(def.id) + ',this.value)')}"
+        onfocus="${_escAttr('this.select();' + fn + 'Search(' + _jsArgLiteral(def.id) + ',this.value)')}"
         onblur="${_escAttr(fn + 'AutoSave(' + _jsArgLiteral(def.id) + ',this.value)')}"
         onkeydown="${_escAttr(fn + 'Key(event,' + _jsArgLiteral(def.id) + ')')}">
       <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
@@ -18854,6 +18865,13 @@ async function saveMenuEdit() {
       mainalt: altProteins.map(m => m.label),
       noporkalt: noPorkProteins.map(m => m.label)
     };
+    // W3c (2026-11-08, Week 3 log 9): the question names the dish it is about and what DOOR read the meat from.
+    const _askSlot = MEAL_SLOT_STATE[hasPorkInMain ? 'mainalt' : 'main'] || {};
+    slotBreakdown.about = {
+      slot: hasPorkInMain ? 'Main Alt (Halal)' : 'Main',
+      dish: _askSlot.displayText || _askSlot.recipeName || _askSlot.manual || '',
+      from: _askSlot.recipeName ? 'the ' + _askSlot.recipeName + ' recipe' + (_askSlot.displayText ? ' and the menu’s words' : '') : 'the menu’s words'
+    };
     const askAbout = hasPorkInMain ? altMeatProteins : mainMeatProteins;
     _showHalalCertDialog(askAbout.join(' & '), hasPorkInMain, slotBreakdown, (isHalal) => {
       flags.halalCertifiedMeat = isHalal;
@@ -18901,6 +18919,7 @@ function _showHalalCertDialog(proteins, hasPorkInMain, slotBreakdown, callback) 
   overlay.innerHTML = `<div class="modal-box" style="max-width:500px;">
     <div class="modal-header"><h2>Halal Certification Check</h2></div>
     <div class="modal-body" style="padding:16px 20px;">
+      ${slotBreakdown.about && slotBreakdown.about.dish ? `<div class="halal-about" style="font-size:13px;margin-bottom:12px;">About the ${escapeHtml(slotBreakdown.about.slot)}: <strong>${escapeHtml(slotBreakdown.about.dish)}</strong>. DOOR read the ${escapeHtml(proteins)} from ${escapeHtml(slotBreakdown.about.from)}.</div>` : ''}
       ${breakdownHtml}
       ${porkNote}
       <p style="margin:0 0 16px;font-size:14px;">Is the <strong>${questionTarget}</strong> halal-certified?</p>
@@ -19464,7 +19483,7 @@ function smSlotSearch(slotId, query) {
   dd.innerHTML = results.length
     ? results.map(r => {
         const hilite = highlightHtml(r.recipeName, q);
-        return `<div onclick="${_escJsAttrCall('smSlotSelect', [slotId, r.recipeName])}" onmousedown="event.preventDefault()"
+        return `<div onmousedown="event.preventDefault();${_escJsAttrCall('smSlotSelect', [slotId, r.recipeName])}"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
@@ -19531,7 +19550,7 @@ function slotSearch(slotId, query) {
   dd.innerHTML = results.length
     ? results.map(r => {
         const hilite = highlightHtml(r.recipeName, q);
-        return `<div onclick="${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}" onmousedown="event.preventDefault()"
+        return `<div onmousedown="event.preventDefault();${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
@@ -19554,6 +19573,8 @@ function slotSelect(slotId, recipeName) {
   // Recipe-attach S2: a same-recipe re-confirm keeps the operator's display override;
   // a genuine recipe change drops it (the rename belonged to the old dish).
   if (sameRecipe && current.displayText) next.displayText = current.displayText;
+  // W3c (2026-11-08, Week 3 log 7): linking a hand-typed dish keeps the menu's words as what the menu shows.
+  else if (current && !current.recipeName && current.manual && current.manual.trim().toLowerCase() !== recipeName.toLowerCase()) next.displayText = current.manual.trim();
   // Recipe-attach phase-2 (store the id): additively record the CODEX recipe's stable id.
   // Nothing reads it yet in DOOR; it is published in _slots so HUB can build an exact
   // ?recipe= deep-link instead of a fuzzy display-text guess, and it is the anchor a later
