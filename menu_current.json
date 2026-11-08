@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-08T20:05:43.269Z",
+    "exported": "2026-11-08T20:18:15.199Z",
     "version": 32
   },
   "menu": {
@@ -4754,7 +4754,7 @@
           "hasCorn": false
         },
         "dinner": "Chicken and Mushroom Fried Rice, Spring Roll, Bok Choy",
-        "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring Roll, Bok Choy",
+        "dinner_veg": "Soy-Free Mushroom Fried Rice, Spring Roll, Bok Choy",
         "dinner_mainItem": "Chicken and Mushroom Fried Rice",
         "dinner_sides": "Spring Roll, Bok Choy",
         "dinner_flags": {
@@ -4777,12 +4777,12 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": true,
-          "hasBrassicas": true,
-          "hasCorn": true,
+          "hasCoconut": false,
           "hasNightshades": true,
-          "hasBeans": false
+          "hasBrassicas": true,
+          "hasCorn": true
         },
         "dinner_softAlt": "",
         "dinner_altMeals": [],
@@ -4821,7 +4821,7 @@
             }
           },
           "veganalt": {
-            "manual": "Chik'n and Mushroom Fried Rice",
+            "recipeName": "Soy-Free Mushroom Fried Rice",
             "flags": {
               "hasGluten": false,
               "hasDairy": false,
@@ -4839,14 +4839,17 @@
               "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
-              "hasCoconut": false,
+              "hasBeans": false,
               "hasMushroom": true,
-              "hasBrassicas": false,
-              "hasCorn": false,
+              "hasCoconut": false,
               "hasNightshades": false,
-              "hasBeans": false
-            }
+              "hasBrassicas": false,
+              "hasCorn": false
+            },
+            "recipeId": "soy-free-mushroom-fried-rice"
           },
           "starch": {
             "manual": "Spring Roll",
@@ -4989,7 +4992,13 @@
           }
         },
         "lunch_anaphAlt": "Plain Fish, Cauliflower&Green Bean",
-        "dinner_halal": ""
+        "dinner_halal": "",
+        "dinner_gfAlt": "",
+        "dinner_diabeticAlt": "",
+        "dinner_noDairyAlt": "",
+        "dinner_noEggAlt": "",
+        "dinner_blandAlt": "",
+        "dinner_anaphAlt": ""
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -5025,7 +5034,7 @@
         },
         "allergens_breakfast": "gluten, dairy, sulphites",
         "lunch": "Chicken a la King, Sweet Potato Biscuit",
-        "lunch_veg": "Vegan Chicken a la King, Roasted Sweet Potato",
+        "lunch_veg": "Vegan Chicken a la King, Sweet Potato Biscuit",
         "lunch_mainItem": "Chicken a la King",
         "lunch_sides": "Sweet Potato Biscuit",
         "lunch_flags": {
@@ -5036,10 +5045,10 @@
           "hasPeanuts": false,
           "hasSoy": true,
           "hasTreeNuts": false,
-          "hasSesame": true,
+          "hasSesame": false,
           "hasMustard": false,
           "hasShellfish": false,
-          "hasSulphites": false,
+          "hasSulphites": true,
           "hasPork": false,
           "hasBeef": false,
           "hasChicken": true,
@@ -5048,20 +5057,20 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": true,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": true,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Roasted Chicken leg, Pineapple Rice",
         "dinner_veg": "Roasted Tofu, Pineapple Rice",
         "dinner_mainItem": "Roasted Chicken leg",
         "dinner_sides": "Pineapple Rice",
         "dinner_flags": {
-          "hasGluten": true,
-          "hasDairy": true,
+          "hasGluten": false,
+          "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
@@ -5086,8 +5095,8 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "allergens_lunch": "gluten, dairy, sesame, soy",
-        "allergens_dinner": "gluten, dairy, sesame, soy",
+        "allergens_lunch": "gluten, dairy, soy, sulphites",
+        "allergens_dinner": "sesame, soy",
         "dinner_softAlt": "Chicken Leg, Herbed rice, Stir fry veg",
         "dinner_altMeals": [
           {
@@ -5192,60 +5201,68 @@
         },
         "lunch_slots": {
           "main": {
-            "manual": "Chicken a la King",
+            "recipeName": "Garden a la King",
             "flags": {
-              "hasGluten": false,
-              "hasDairy": false,
+              "hasGluten": true,
+              "hasDairy": true,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": true,
+              "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
               "hasCoconut": false,
-              "hasMushroom": true,
+              "hasNightshades": true,
               "hasBrassicas": false,
-              "hasCorn": false,
-              "hasNightshades": false,
-              "hasBeans": false
-            }
+              "hasCorn": false
+            },
+            "recipeId": "garden-a-la-king",
+            "displayText": "Chicken a la King"
           },
           "veganalt": {
-            "manual": "Vegan Chicken a la King",
+            "recipeName": "Vegan Garden a la King",
             "flags": {
-              "hasGluten": false,
+              "hasGluten": true,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
               "hasPeanuts": false,
-              "hasSoy": false,
+              "hasSoy": true,
               "hasTreeNuts": false,
               "hasSesame": false,
               "hasMustard": false,
               "hasShellfish": false,
-              "hasSulphites": false,
+              "hasSulphites": true,
               "hasPork": false,
               "hasBeef": false,
-              "hasChicken": true,
+              "hasChicken": false,
               "hasTurkey": false,
               "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
               "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
               "hasCoconut": false,
-              "hasMushroom": true,
+              "hasNightshades": true,
               "hasBrassicas": false,
-              "hasCorn": false,
-              "hasNightshades": false,
-              "hasBeans": false
-            }
+              "hasCorn": false
+            },
+            "recipeId": "vegan-garden-a-la-king",
+            "displayText": "Vegan Chicken a la King"
           },
           "starch": {
             "recipeName": "Sweet Potato Biscuits",
