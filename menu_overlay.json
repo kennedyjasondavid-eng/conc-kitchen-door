@@ -6098,10 +6098,10 @@
         "hasNightshades": true,
         "hasBeans": false
       },
-      "dinner": "Bolognese Pasta, Pasta, Peas & Carrots",
-      "dinner_veg": "Vegan Bolognese Pasta, Pasta, Peas & Carrots",
+      "dinner": "Bolognese Pasta, Peas & Carrots",
+      "dinner_veg": "Vegan Bolognese Pasta, Peas & Carrots",
       "dinner_mainItem": "Bolognese Pasta",
-      "dinner_sides": "Pasta, Peas & Carrots",
+      "dinner_sides": "Peas & Carrots",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -6122,18 +6122,18 @@
         "isCarb": true,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": false
       },
       "dinner_softAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
       "dinner_altMeals": [
         {
           "text": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
-          "type": "soft",
+          "type": "plain",
           "flags": {}
         }
       ],
@@ -6156,7 +6156,7 @@
             "hasShellfish": false,
             "hasSulphites": false,
             "hasPork": false,
-            "hasBeef": false,
+            "hasBeef": true,
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
@@ -6165,8 +6165,10 @@
             "hasMushroom": false,
             "hasBrassicas": false,
             "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false
+            "hasNightshades": true,
+            "hasBeans": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false
           }
         },
         "veganalt": {
@@ -6195,13 +6197,6 @@
             "hasCorn": false,
             "hasNightshades": false,
             "hasBeans": false
-          }
-        },
-        "starch": {
-          "manual": "Pasta",
-          "flags": {
-            "hasGluten": true,
-            "isCarb": true
           }
         },
         "vegside": {
@@ -8555,7 +8550,7 @@
       "1|SUNDAY": 1792415770014,
       "2|THURSDAY": 1793817864609,
       "3|FRIDAY": 1794166715601,
-      "3|SUNDAY": 1794166715601,
+      "3|SUNDAY": 1794166775863,
       "4|TUESDAY": 1792415770014,
       "4|THURSDAY": 1792415770014,
       "4|SATURDAY": 1792681340848,
