@@ -70,7 +70,8 @@ test('1. saveMenuEdit asks through doorAsk — no browser confirm() left in Save
   const save = fnBlock('saveMenuEdit');
   assert.match(save, /^async function saveMenuEdit\(/, 'Save waits for the answer');
   assert.ok(!/(^|[^.\w$])confirm\s*\(/.test(code(save)), 'no confirm() in saveMenuEdit');
-  assert.equal((save.match(/await doorAsk\(/g) || []).length, 2, 'both questions use doorAsk');
+  // 2026-11-08 (W3a): a third question, "Take off the old dish's warnings?", asked when the main changed.
+  assert.equal((save.match(/await doorAsk\(/g) || []).length, 3, 'all three questions use doorAsk');
   const runOn = save.indexOf('doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS)');
   assert.ok(runOn > 0 && runOn < save.indexOf('buildAltMeals()'), 'the run-on question still comes first');
 });
@@ -78,9 +79,13 @@ test('1. saveMenuEdit asks through doorAsk — no browser confirm() left in Save
 test('2. after the answer, Save stops if a different meal is open', () => {
   const save = fnBlock('saveMenuEdit');
   assert.match(save, /const editKey = mcMenuEditKey;/);
-  const recheck = save.indexOf('if (mcMenuEditKey !== editKey) return;');
-  assert.ok(recheck > save.lastIndexOf('await doorAsk('), 'the re-check comes after the last question');
-  assert.ok(recheck < save.indexOf('buildVegAlt()'), 'and before anything is built or written');
+  // 2026-11-08 (W3a): a third question (the old dish's warnings) comes after the meal is built, with its own re-check.
+  const first = save.indexOf('if (mcMenuEditKey !== editKey) return;');
+  const second = [...save.matchAll(/await doorAsk\(/g)][1].index;
+  assert.ok(first > second && first < save.indexOf('buildVegAlt()'), 'the first two questions are re-checked before anything is built');
+  const last = save.lastIndexOf('await doorAsk(');
+  const lastRecheck = save.indexOf('if (mcMenuEditKey !== editKey) return;', last);
+  assert.ok(lastRecheck > last && lastRecheck < save.indexOf('_finishMenuSave('), 'the last question is re-checked before the meal is written');
 });
 
 test('3. the dialog writes its text as text, never as HTML', () => {

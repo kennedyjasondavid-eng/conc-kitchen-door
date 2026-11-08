@@ -51,7 +51,7 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
 ### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; placed, not built)
 Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covers placing them, not building. These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
 
-**W3a. Allergen ticks follow the dish** (post-mortem rec. 4; log 3, 4). *Food safety; first.*
+**W3a. Allergen ticks follow the dish** *(built 2026-11-08, `v31-standard.55`)* (post-mortem rec. 4; log 3, 4). *Food safety; first.*
 - When a meal's main changes (Rex's week-sheet import, Edit Menu), recompute its ticks from the linked recipes. Show before and after for one confirm.
 - Never carry the old dish's ticks. On Week 3, leftover Pork ticks made EXPO invent "Halal Chicken" dishes.
 - Keep ticks that come from the dish's name (like Mushroom) when linking.

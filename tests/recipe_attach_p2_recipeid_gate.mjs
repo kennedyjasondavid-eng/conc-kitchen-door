@@ -48,7 +48,7 @@ function bindCtx() {
   vm.createContext(ctx);
   vm.runInContext([
     fnBlock('isHubLoaded'), fnBlock('recipeMatchesSlotDef'),
-    fnBlock('_hubAllergenResolve'), fnBlock('hubAllergenToFlags'),
+    fnBlock('_hubAllergenResolve'), fnBlock('hubAllergenToFlags'), "const DOOR_NON_CODEX_TICKS = ['hasMushroom', 'hasBeans'];", fnBlock('doorLinkFlags'), /* W3a 2026-11-08 */
     fnBlock('slotSelect'), fnBlock('slotAutoSave'),
     fnBlock('_buildSlotSnapshot'), fnBlock('_restoreSlotSnapshot'),
   ].join('\n\n'), ctx, { filename: 'index.html#p2-recipeid', timeout: 1000 });

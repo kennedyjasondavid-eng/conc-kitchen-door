@@ -62,7 +62,7 @@ function ctx(opts = {}) {
   vm.createContext(c);
   vm.runInContext([
     fnBlock('isHubLoaded'), fnBlock('recipeMatchesSlotDef'),
-    fnBlock('_hubAllergenResolve'), fnBlock('hubAllergenToFlags'),
+    fnBlock('_hubAllergenResolve'), fnBlock('hubAllergenToFlags'), "const DOOR_NON_CODEX_TICKS = ['hasMushroom', 'hasBeans'];", fnBlock('doorLinkFlags'), /* W3a 2026-11-08 */
     fnBlock('slotAutoSave'), fnBlock('slotKey'), fnBlock('slotSaveManual'),
     fnBlock('smSlotAutoSave'), fnBlock('smSlotKey'), fnBlock('smSlotSaveManual'),
   ].join('\n\n'), c, { filename: 'index.html#freetext', timeout: 1000 });

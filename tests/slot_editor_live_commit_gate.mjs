@@ -56,6 +56,7 @@ function ctx({ state = {}, inputs = {}, recipes = [] } = {}) {
     isHubLoaded: () => recipes.length > 0,
     recipeMatchesSlotDef: () => true,
     hubAllergenToFlags: (a) => ({ _from: a || null }),
+    doorLinkFlags: (r) => ({ _from: (r && r.allergens) || null }),   // W3a 2026-11-08: the link helper, stubbed like hubAllergenToFlags
     renderSlots() { c._renders = (c._renders || 0) + 1; },
     updateSlotSummary() {},
   };
