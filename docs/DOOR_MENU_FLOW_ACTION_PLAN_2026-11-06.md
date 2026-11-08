@@ -68,7 +68,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - The vegan line can name its own side. Week 3 SAT lunch's vegan side still reads "Sweet Potato Biscuit" instead of Rex's "Roasted Sweet Potato".
 - Needs a short design pass: today the sides are shared across lines, and the vegan-line pattern from sweep 2 (2026-10-04) applies.
 
-**W3d. Stale tab (log 8): needs Jason's ruling.**
+**W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.**
 - The report asks that a stale tab show a banner and still send; 4 saves sat silently until a reload.
 - But a stale tab runs the old page code, and DOOR deliberately stops old code sending (`stale-tab` skip). F1 relies on that: old code must not write.
 - Lean: keep the stop, and make it impossible to miss:
@@ -77,7 +77,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
   - the page reloads by itself when no edit is open.
 - This fits "loud when it breaks". The report's version would send from old code.
 
-**Order:** W3a → W3c → W3d (after the ruling) → W3b. Then the F4 readers once EXPO #565 lands.
+**Order:** W3a → W3c → W3d → W3b. Building waits for Jason's go. Then the F4 readers once EXPO #565 lands.
 
 ### Next slice: catch the break (spec, 2026-11-07; not built)
 Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to EXPO, and the checks support rather than obstruct. HOUSE working rules ("silent when it works, loud when it breaks"; "checks support, never obstruct") are in the HOUSE ledger.
