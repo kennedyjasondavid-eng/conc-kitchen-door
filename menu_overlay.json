@@ -4283,13 +4283,13 @@
         "hasBeans": false
       },
       "allergens_breakfast": "gluten, dairy, sulphites",
-      "lunch": "Roasted Chicken leg, Pineapple Rice",
-      "lunch_veg": "Roasted Tofu, Pineapple Rice",
-      "lunch_mainItem": "Roasted Chicken leg",
-      "lunch_sides": "Pineapple Rice",
+      "lunch": "Chicken a la King, Sweet Potato Biscuit",
+      "lunch_veg": "Vegan Chicken a la King, Roasted Sweet Potato",
+      "lunch_mainItem": "Chicken a la King",
+      "lunch_sides": "Sweet Potato Biscuit",
       "lunch_flags": {
-        "hasGluten": false,
-        "hasDairy": false,
+        "hasGluten": true,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -4308,45 +4308,45 @@
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasCoconut": false,
-        "hasMushroom": false,
+        "hasMushroom": true,
         "hasBrassicas": false,
         "hasCorn": false,
         "hasNightshades": true,
         "hasBeans": false
       },
-      "dinner": "Pepperoni Pizza, Side Salad",
-      "dinner_veg": "Pizza, Side Salad",
-      "dinner_mainItem": "Pepperoni Pizza",
-      "dinner_sides": "Side Salad",
+      "dinner": "Roasted Chicken leg, Pineapple Rice",
+      "dinner_veg": "Roasted Tofu, Pineapple Rice",
+      "dinner_mainItem": "Roasted Chicken leg",
+      "dinner_sides": "Pineapple Rice",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
-        "hasSoy": false,
+        "hasSoy": true,
         "hasTreeNuts": false,
-        "hasSesame": false,
+        "hasSesame": true,
         "hasMustard": false,
         "hasShellfish": false,
         "hasSulphites": false,
         "hasPork": true,
         "hasBeef": false,
-        "hasChicken": false,
+        "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": false,
-        "isCarb": false,
-        "halalCertifiedMeat": false,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": true,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false
       },
-      "allergens_lunch": "sesame, soy",
-      "allergens_dinner": "gluten, dairy, pork",
+      "allergens_lunch": "gluten, dairy, sesame, soy",
+      "allergens_dinner": "gluten, dairy, sesame, soy, pork",
       "dinner_softAlt": "Chicken Leg, Herbed rice, Stir fry veg",
       "dinner_altMeals": [
         {
@@ -4357,30 +4357,10 @@
       ],
       "dinner_altMealsNone": false,
       "dinner_noPorkAlt": "",
-      "dinner_mainAlt": "Halal Pizza",
+      "dinner_mainAlt": "",
       "dinner_slots": {
         "main": {
-          "manual": "Pepperoni Pizza",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": true,
-            "hasPork": true,
-            "hasProcessedMeat": true
-          }
-        },
-        "mainalt": {
-          "manual": "Halal Pizza",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": true
-          }
-        },
-        "veganalt": {
-          "manual": "Pizza",
-          "flags": {}
-        },
-        "xtra": {
-          "manual": "Side Salad",
+          "recipeName": "Roast Chicken Legs",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -4395,25 +4375,186 @@
             "hasSulphites": false,
             "hasPork": false,
             "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "recipeId": "roast-chicken-legs",
+          "displayText": "Roasted Chicken leg"
+        },
+        "veganalt": {
+          "recipeName": "Roast Tofu",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": false,
+            "hasMushroom": false,
             "hasBrassicas": false,
-            "hasCorn": false
-          }
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "recipeId": "roast-tofu",
+          "displayText": "Roasted Tofu"
+        },
+        "starch": {
+          "recipeName": "Pineapple Rice",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": true,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "recipeId": "pineapple-rice"
         }
       },
       "lunch_slots": {
         "main": {
-          "manual": "Roasted Chicken leg",
+          "manual": "Chicken a la King",
           "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": true,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
+        },
+        "veganalt": {
+          "manual": "Vegan Chicken a la King",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": true,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
+        },
+        "starch": {
+          "recipeName": "Sweet Potato Biscuits",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "recipeId": "sweet-potato-biscuits",
+          "displayText": "Sweet Potato Biscuit"
+        }
+      },
+      "lunch_gfAlt": "Plain Roasted Chicken & Veg Stirfry (no soy sauce/broccoli/cauliflower), Steamed rice",
+      "lunch_altMeals": [],
+      "lunch_softAlt": "",
+      "lunch_altMealsNone": true,
+      "dinner_gfAlt": "Chicken Leg, Herbed rice, Stir fry veg",
+      "lunch_halal": "",
+      "lunch_mainAlt": "",
+      "lunch_noPorkAlt": "",
+      "lunch_diabeticAlt": "",
+      "lunch_noDairyAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_noEggAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "Roasted Chicken leg, Pineapple Rice",
+          "_veg": "Roasted Tofu, Pineapple Rice",
+          "_flags": {
             "hasGluten": false,
             "hasDairy": false,
             "hasEgg": false,
@@ -4439,30 +4580,116 @@
             "hasCorn": false,
             "hasNightshades": true,
             "hasBeans": false
+          },
+          "_mainItem": "Roasted Chicken leg",
+          "_sides": "Pineapple Rice",
+          "_softAlt": "",
+          "_gfAlt": "Plain Roasted Chicken & Veg Stirfry (no soy sauce/broccoli/cauliflower), Steamed rice",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Roasted Chicken leg",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": true,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Roast Tofu",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "roast-tofu",
+              "displayText": "Roasted Tofu"
+            },
+            "starch": {
+              "manual": "Pineapple Rice",
+              "flags": {}
+            }
           }
         },
-        "veganalt": {
-          "recipeName": "Roast Tofu",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
+        "at": "2026-11-08T19:38:35.586Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      },
+      "dinner_halal": "",
+      "dinner_diabeticAlt": "",
+      "dinner_noDairyAlt": "",
+      "dinner_blandAlt": "",
+      "dinner_noEggAlt": "",
+      "dinner_anaphAlt": "",
+      "dinner_original": {
+        "meal": {
+          "": "Pepperoni Pizza, Side Salad",
+          "_veg": "Pizza, Side Salad",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
-            "hasSoy": true,
+            "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
             "hasShellfish": false,
             "hasSulphites": false,
-            "hasPork": false,
+            "hasPork": true,
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
             "isCarb": false,
             "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
+            "hasProcessedMeat": true,
             "hasBeans": false,
             "hasMushroom": false,
             "hasCoconut": false,
@@ -4470,19 +4697,77 @@
             "hasBrassicas": false,
             "hasCorn": false
           },
-          "recipeId": "roast-tofu",
-          "displayText": "Roasted Tofu"
+          "_mainItem": "Pepperoni Pizza",
+          "_mainAlt": "Halal Pizza",
+          "_sides": "Side Salad",
+          "_softAlt": "Chicken Leg, Herbed rice, Stir fry veg",
+          "_noPorkAlt": "",
+          "_gfAlt": "Chicken Leg, Herbed rice, Stir fry veg",
+          "_altMeals": [
+            {
+              "text": "Chicken Leg, Herbed rice, Stir fry veg",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Pepperoni Pizza",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasPork": true,
+                "hasProcessedMeat": true
+              }
+            },
+            "mainalt": {
+              "manual": "Halal Pizza",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true
+              }
+            },
+            "veganalt": {
+              "manual": "Pizza",
+              "flags": {}
+            },
+            "xtra": {
+              "manual": "Side Salad",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              }
+            }
+          }
         },
-        "starch": {
-          "manual": "Pineapple Rice",
-          "flags": {}
-        }
-      },
-      "lunch_gfAlt": "Plain Roasted Chicken & Veg Stirfry (no soy sauce/broccoli/cauliflower), Steamed rice",
-      "lunch_altMeals": [],
-      "lunch_softAlt": "",
-      "lunch_altMealsNone": true,
-      "dinner_gfAlt": "Chicken Leg, Herbed rice, Stir fry veg"
+        "at": "2026-11-08T19:38:35.595Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "FRIDAY": {
       "breakfast": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, Vienna Roll",
@@ -4548,7 +4833,7 @@
         "hasCorn": false
       },
       "dinner": "Chicken and Mushroom Fried Rice, Spring Roll, Bok Choy",
-      "dinner_veg": "Soy-Free Mushroom Fried Rice, Spring Roll, Bok Choy",
+      "dinner_veg": "Chik'n and Mushroom Fried Rice, Spring Roll, Bok Choy",
       "dinner_mainItem": "Chicken and Mushroom Fried Rice",
       "dinner_sides": "Spring Roll, Bok Choy",
       "dinner_flags": {
@@ -4571,12 +4856,12 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": true,
         "hasCoconut": false,
-        "hasNightshades": true,
+        "hasMushroom": true,
         "hasBrassicas": true,
-        "hasCorn": true
+        "hasCorn": true,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "dinner_softAlt": "",
       "dinner_altMeals": [],
@@ -4615,7 +4900,7 @@
           }
         },
         "veganalt": {
-          "recipeName": "Soy-Free Mushroom Fried Rice",
+          "manual": "Chik'n and Mushroom Fried Rice",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -4633,17 +4918,70 @@
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": false,
+            "hasMushroom": true,
             "hasBrassicas": false,
-            "hasCorn": false
-          },
-          "recipeId": "soy-free-mushroom-fried-rice"
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
+        },
+        "starch": {
+          "manual": "Spring Roll",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
+        },
+        "vegside": {
+          "manual": "Bok Choy",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": true,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
         }
       },
       "allergens_breakfast": "gluten, dairy, egg, pork, turkey",
@@ -4729,11 +5067,118 @@
           "flags": {}
         }
       },
-      "lunch_anaphAlt": "Plain Fish, Cauliflower&Green Bean"
+      "lunch_anaphAlt": "Plain Fish, Cauliflower&Green Bean",
+      "dinner_halal": "",
+      "dinner_original": {
+        "meal": {
+          "": "Chicken and Mushroom Fried Rice, Spring Roll, Bok Choy",
+          "_veg": "Soy-Free Mushroom Fried Rice, Spring Roll, Bok Choy",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": true,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": true,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": true,
+            "hasCorn": true
+          },
+          "_mainItem": "Chicken and Mushroom Fried Rice",
+          "_mainAlt": "",
+          "_sides": "Spring Roll, Bok Choy",
+          "_softAlt": "",
+          "_noPorkAlt": "",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Chicken and Mushroom Fried Rice",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": true,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": true,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": true,
+                "hasCorn": true
+              }
+            },
+            "veganalt": {
+              "recipeName": "Soy-Free Mushroom Fried Rice",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "soy-free-mushroom-fried-rice"
+            }
+          }
+        },
+        "at": "2026-11-08T19:38:35.579Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "WEDNESDAY": {
-      "lunch": "Beef Nachos Supreme, Tortillas, Sour Cream",
-      "lunch_veg": "Vegan Nachos Supreme, Tortillas, Sour Cream",
+      "lunch": "Beef Nachos Supreme, Tortilla chips, Sour Cream",
+      "lunch_veg": "Vegan Nachos Supreme, Tortilla chips, Sour Cream",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -4754,12 +5199,12 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": true,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": true
+        "hasCorn": true,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "lunch_softAlt": "Baked plain fish, rice, Stirfry Veg",
       "lunch_altMeals": [
@@ -4775,7 +5220,7 @@
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Beef Nachos Supreme",
       "lunch_mainAlt": "",
-      "lunch_sides": "Tortillas, Sour Cream",
+      "lunch_sides": "Tortilla chips, Sour Cream",
       "lunch_slots": {
         "main": {
           "recipeName": "Beef Nacho Mix",
@@ -4842,9 +5287,31 @@
           "displayText": "Vegan Nachos Supreme"
         },
         "starch": {
-          "manual": "Tortillas",
+          "manual": "Tortilla chips",
           "flags": {
-            "hasCorn": true
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           }
         },
         "xtra": {
@@ -4870,39 +5337,50 @@
         "hasBeef": false,
         "hasChicken": false,
         "hasTurkey": false,
-        "isSpicy": false,
+        "isSpicy": true,
         "isCarb": true,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": true,
+        "hasMushroom": false,
         "hasBrassicas": true,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "allergens_dinner": "gluten, fish",
       "dinner_slots": {
         "main": {
-          "manual": "Baked Tomato Fish",
+          "recipeName": "Cajun Fish",
           "flags": {
-            "hasGluten": true,
+            "hasGluten": false,
             "hasDairy": false,
-            "hasPork": false,
-            "hasFish": true,
             "hasEgg": false,
+            "hasFish": true,
             "hasPeanuts": false,
-            "hasSesame": false,
             "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
             "hasBeef": false,
-            "isSpicy": false,
-            "isCarb": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
             "hasNightshades": true,
-            "hasBrassicas": true
-          }
+            "hasBeans": false
+          },
+          "recipeId": "cajun-fish"
         },
         "veganalt": {
-          "recipeName": "Baked Tomato Tofu",
+          "recipeName": "Baked Cajun Tofu",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -4919,18 +5397,16 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
+            "isSpicy": true,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": true,
+            "hasMushroom": false,
             "hasBrassicas": false,
-            "hasCorn": false
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
           },
-          "recipeId": "baked-tomato-tofu"
+          "recipeId": "baked-cajun-tofu"
         },
         "starch": {
           "manual": "Couscous",
@@ -4941,10 +5417,256 @@
           "flags": {}
         }
       },
-      "dinner_gfAlt": "Baked Tomato fish, Rice, Veg Stirfry (no broccoli/cauliflower)",
+      "dinner_gfAlt": "Cajun Fish, Rice, Veg Stirfry (no broccoli/cauliflower)",
       "dinner_altMeals": [],
       "dinner_softAlt": "",
-      "dinner_altMealsNone": true
+      "dinner_altMealsNone": true,
+      "lunch_halal": "",
+      "allergens_lunch": "gluten, dairy, beef",
+      "lunch_original": {
+        "meal": {
+          "": "Beef Nachos Supreme, Tortillas, Sour Cream",
+          "_veg": "Vegan Nachos Supreme, Tortillas, Sour Cream",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": true
+          },
+          "_mainItem": "Beef Nachos Supreme",
+          "_mainAlt": "",
+          "_sides": "Tortillas, Sour Cream",
+          "_softAlt": "Baked plain fish, rice, Stirfry Veg",
+          "_noPorkAlt": "",
+          "_altMeals": [
+            {
+              "text": "Baked plain fish, rice, Stirfry Veg",
+              "type": "soft",
+              "flags": {
+                "hasFish": true
+              }
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "recipeName": "Beef Nacho Mix",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": true,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": true
+              },
+              "recipeId": "beef-nacho-mix",
+              "displayText": "Beef Nachos Supreme"
+            },
+            "veganalt": {
+              "recipeName": "Vegan Nacho Mix",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-nacho-mix",
+              "displayText": "Vegan Nachos Supreme"
+            },
+            "starch": {
+              "manual": "Tortillas",
+              "flags": {
+                "hasCorn": true
+              }
+            },
+            "xtra": {
+              "manual": "Sour Cream",
+              "flags": {
+                "hasDairy": true
+              }
+            }
+          }
+        },
+        "at": "2026-11-08T19:38:35.559Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      },
+      "dinner": "Cajun Fish, Couscous, Broccoli",
+      "dinner_veg": "Baked Cajun Tofu, Couscous, Broccoli",
+      "dinner_mainItem": "Cajun Fish",
+      "dinner_sides": "Couscous, Broccoli",
+      "dinner_halal": "",
+      "dinner_mainAlt": "",
+      "dinner_noPorkAlt": "",
+      "dinner_diabeticAlt": "",
+      "dinner_noDairyAlt": "",
+      "dinner_blandAlt": "",
+      "dinner_noEggAlt": "",
+      "dinner_anaphAlt": "",
+      "dinner_original": {
+        "meal": {
+          "": "Baked Tomato Fish, Couscous, Broccoli",
+          "_veg": "Baked Tomato Tofu, Couscous, Broccoli",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": true,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": true,
+            "hasCorn": false
+          },
+          "_mainItem": "Baked Tomato Fish",
+          "_mainAlt": "",
+          "_sides": "Couscous, Broccoli",
+          "_softAlt": "",
+          "_noPorkAlt": "",
+          "_gfAlt": "Baked Tomato fish, Rice, Veg Stirfry (no broccoli/cauliflower)",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Baked Tomato Fish",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasPork": false,
+                "hasFish": true,
+                "hasEgg": false,
+                "hasPeanuts": false,
+                "hasSesame": false,
+                "hasSoy": false,
+                "hasBeef": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "hasNightshades": true,
+                "hasBrassicas": true
+              }
+            },
+            "veganalt": {
+              "recipeName": "Baked Tomato Tofu",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "baked-tomato-tofu"
+            },
+            "starch": {
+              "manual": "Couscous",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Broccoli",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-08T19:38:35.565Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "THURSDAY": {
       "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, Vienna roll",
@@ -5097,10 +5819,10 @@
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_dinner": "sulphites, pork",
-      "lunch": "All Beef Hotdog, Toppings, Side Salad",
-      "lunch_veg": "Vegan Hotdog, Toppings, Side Salad",
-      "lunch_mainItem": "All Beef Hotdog",
-      "lunch_sides": "Toppings, Side Salad",
+      "lunch": "Piri Piri Chicken Wrap, Seasonal Soup",
+      "lunch_veg": "Piri Piri Tofu Wrap, Seasonal Soup",
+      "lunch_mainItem": "Piri Piri Chicken Wrap",
+      "lunch_sides": "Seasonal Soup",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -5112,27 +5834,27 @@
         "hasSesame": false,
         "hasMustard": true,
         "hasShellfish": false,
-        "hasSulphites": false,
+        "hasSulphites": true,
         "hasPork": false,
         "hasBeef": true,
-        "hasChicken": false,
+        "hasChicken": true,
         "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": false,
+        "isSpicy": true,
+        "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": true,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
         "hasBrassicas": false,
-        "hasCorn": false,
-        "hasNightshades": false,
-        "hasBeans": false
+        "hasCorn": false
       },
       "lunch_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
       "lunch_altMeals": [
         {
           "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
-          "type": "soft",
+          "type": "plain",
           "flags": {}
         }
       ],
@@ -5141,30 +5863,177 @@
       "lunch_mainAlt": "",
       "lunch_slots": {
         "main": {
-          "manual": "All Beef Hotdog",
+          "recipeName": "Piri Piri Chicken Wrap",
           "flags": {
             "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
             "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
             "hasMustard": true,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
             "hasBeef": true,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": true
-          }
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true
+          },
+          "recipeId": "piri-piri-chicken-wrap"
         },
         "veganalt": {
-          "manual": "Vegan Hotdog",
+          "recipeName": "Piri Piri Tofu Wrap",
           "flags": {
-            "hasSoy": true
-          }
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "recipeId": "piri-piri-tofu-wrap"
         },
         "xtra": {
-          "manual": "Toppings"
-        },
-        "vegside": {
-          "manual": "Side Salad"
+          "recipeName": "Seasonal Soup",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "recipeId": "seasonal-soup"
         }
       },
-      "allergens_lunch": "gluten, soy, mustard, beef"
+      "allergens_lunch": "gluten, soy, mustard, sulphites, beef",
+      "lunch_halal": "",
+      "lunch_gfAlt": "",
+      "lunch_diabeticAlt": "",
+      "lunch_noDairyAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_noEggAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "All Beef Hotdog, Toppings, Side Salad",
+          "_veg": "Vegan Hotdog, Toppings, Side Salad",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": true,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "All Beef Hotdog",
+          "_mainAlt": "",
+          "_sides": "Toppings, Side Salad",
+          "_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "_noPorkAlt": "",
+          "_altMeals": [
+            {
+              "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "All Beef Hotdog",
+              "flags": {
+                "hasGluten": true,
+                "hasSoy": true,
+                "hasMustard": true,
+                "hasBeef": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": true
+              }
+            },
+            "veganalt": {
+              "manual": "Vegan Hotdog",
+              "flags": {
+                "hasSoy": true
+              }
+            },
+            "xtra": {
+              "manual": "Toppings"
+            },
+            "vegside": {
+              "manual": "Side Salad"
+            }
+          }
+        },
+        "at": "2026-11-08T19:38:35.573Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "SUNDAY": {
       "breakfast": "Pork Breakfast sandwich, fruit & yoghurt",
@@ -5229,16 +6098,36 @@
         "hasNightshades": true,
         "hasBeans": false
       },
-      "dinner": "Beef Bolognese, Pasta, Peas & Carrots",
-      "dinner_veg": "Vegetarian Bolognese, Pasta, Peas & Carrots",
-      "dinner_mainItem": "Beef Bolognese",
+      "dinner": "Bolognese Pasta, Pasta, Peas & Carrots",
+      "dinner_veg": "Vegan Bolognese Pasta, Pasta, Peas & Carrots",
+      "dinner_mainItem": "Bolognese Pasta",
       "dinner_sides": "Pasta, Peas & Carrots",
       "dinner_flags": {
         "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
         "hasBeef": true,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
         "isCarb": true,
-        "halalCertifiedMeat": true,
-        "hasNightshades": true
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasCoconut": false,
+        "hasMushroom": false,
+        "hasBrassicas": false,
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "dinner_softAlt": "Plain chicken and veg strifry, rice No Tomato/lactose/mustard",
       "dinner_altMeals": [
@@ -5253,22 +6142,59 @@
       "dinner_mainAlt": "",
       "dinner_slots": {
         "main": {
-          "manual": "Beef Bolognese",
+          "manual": "Bolognese Pasta",
           "flags": {
             "hasGluten": true,
-            "hasBeef": true,
-            "isCarb": true,
-            "halalCertifiedMeat": true,
-            "hasNightshades": true
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           }
         },
         "veganalt": {
-          "manual": "Vegetarian Bolognese",
+          "manual": "Vegan Bolognese Pasta",
           "flags": {
             "hasGluten": true,
-            "hasSulphites": true,
-            "hasCorn": true,
-            "hasNightshades": true
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           }
         },
         "starch": {
@@ -5708,24 +6634,24 @@
       },
       "allergens_dinner": "gluten, dairy, tree nuts, sulphites",
       "lunch_flags": {
-        "hasGluten": false,
+        "hasGluten": true,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
-        "hasSoy": false,
+        "hasSoy": true,
         "hasTreeNuts": false,
-        "hasSesame": false,
+        "hasSesame": true,
         "hasMustard": false,
         "hasShellfish": false,
         "hasSulphites": true,
         "hasPork": true,
-        "hasBeef": false,
+        "hasBeef": true,
         "hasChicken": false,
         "hasTurkey": false,
-        "isSpicy": false,
+        "isSpicy": true,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": true,
         "hasCoconut": false,
         "hasMushroom": false,
@@ -5734,10 +6660,69 @@
         "hasNightshades": true,
         "hasBeans": false
       },
-      "allergens_lunch": "sulphites, pork",
+      "allergens_lunch": "gluten, sesame, soy, sulphites, pork, beef",
       "lunch_slots": {
         "main": {
-          "manual": "Glazed Ham & Bean",
+          "recipeName": "Ginger Beef",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": true,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": true,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "recipeId": "ginger-beef"
+        },
+        "veganalt": {
+          "recipeName": "Ginger Tofu and Portobello",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": true,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": true,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "recipeId": "ginger-tofu-and-portobello",
+          "displayText": "Ginger Portobello and Tofu"
+        },
+        "starch": {
+          "recipeName": "Biryani Rice",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -5749,58 +6734,22 @@
             "hasSesame": false,
             "hasMustard": false,
             "hasShellfish": false,
-            "hasSulphites": true,
-            "hasPork": true,
+            "hasSulphites": false,
+            "hasPork": false,
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": true,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": true,
+            "isSpicy": true,
+            "hasProcessedMeat": false,
             "hasCoconut": false,
             "hasMushroom": false,
             "hasBrassicas": false,
             "hasCorn": true,
             "hasNightshades": true,
             "hasBeans": false
-          }
-        },
-        "veganalt": {
-          "recipeName": "Tofu and Potato Hash",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": true,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
-            "hasCoconut": false,
-            "hasNightshades": true,
-            "hasBrassicas": false,
-            "hasCorn": false
           },
-          "recipeId": "tofu-and-potato-hash",
-          "displayText": "Roast Potato and Tofu Hash"
-        },
-        "starch": {
-          "manual": "Roast Potatoes",
-          "flags": {}
+          "recipeId": "biryani-rice",
+          "displayText": "Rice"
         },
         "vegside": {
           "manual": "Garlic corn",
@@ -5884,7 +6833,124 @@
         }
       ],
       "dinner_softAlt": "Halal Chicken Leg, Stirfry Vegetables, Roasted Potato",
-      "dinner_altMealsNone": false
+      "dinner_altMealsNone": false,
+      "lunch": "Ginger Beef, Rice, Garlic corn & Bean",
+      "lunch_veg": "Ginger Portobello and Tofu, Garlic Corn & Bean, Rice",
+      "lunch_mainItem": "Ginger Beef",
+      "lunch_sides": "Rice, Garlic corn & Bean",
+      "lunch_halal": "",
+      "lunch_mainAlt": "",
+      "lunch_noPorkAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "Glazed Ham, Roast Potatoes, Garlic corn & Bean",
+          "_veg": "Roast Potato and Tofu Hash, Garlic Corn & Bean",
+          "_flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": true,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "_mainItem": "Glazed Ham",
+          "_sides": "Roast Potatoes, Garlic corn & Bean",
+          "_slots": {
+            "main": {
+              "manual": "Glazed Ham & Bean",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": true,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": true,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": true,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Tofu and Potato Hash",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "tofu-and-potato-hash",
+              "displayText": "Roast Potato and Tofu Hash"
+            },
+            "starch": {
+              "manual": "Roast Potatoes",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Garlic corn",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-08T19:38:35.553Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     }
   },
   "4": {
@@ -7484,12 +8550,12 @@
     "dayEditedAt": {
       "1|TUESDAY": 1792415770014,
       "2|SATURDAY": 1793374204325,
-      "3|WEDNESDAY": 1792415770014,
+      "3|WEDNESDAY": 1794166715601,
       "1|WEDNESDAY": 1792415770014,
       "1|SUNDAY": 1792415770014,
       "2|THURSDAY": 1793817864609,
-      "3|FRIDAY": 1792681340848,
-      "3|SUNDAY": 1793374204325,
+      "3|FRIDAY": 1794166715601,
+      "3|SUNDAY": 1794166715601,
       "4|TUESDAY": 1792415770014,
       "4|THURSDAY": 1792415770014,
       "4|SATURDAY": 1792681340848,
@@ -7502,12 +8568,12 @@
       "4|SUNDAY": 1792681340848,
       "4|WEDNESDAY": 1792667375478,
       "2|FRIDAY": 1793817864609,
-      "3|SATURDAY": 1792667375478,
-      "3|THURSDAY": 1792415770014,
+      "3|SATURDAY": 1794166715601,
+      "3|THURSDAY": 1794166736273,
       "3|MONDAY": 1793374204325,
       "4|MONDAY": 1792681340848,
       "1|MONDAY": 1792415770014,
-      "3|TUESDAY": 1792681340848,
+      "3|TUESDAY": 1794166715601,
       "1|THURSDAY": 1793471834773,
       "2|SUNDAY": 1793374204907
     }
