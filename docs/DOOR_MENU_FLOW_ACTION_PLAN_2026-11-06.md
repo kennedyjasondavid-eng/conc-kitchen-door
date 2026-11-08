@@ -48,6 +48,37 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
 - **F3b and F5 wait until F4 has run for about a week.** Then Jason decides on scaled recipe quantities with real counts in front of him. F5 is checked through F4's tests; it is built separately only if a mismatch shows.
 - **To confirm:** no DOOR publish has reached GitHub since 2026-11-06 10:15. That may be F6 skipping unchanged saves. The first real change after reconnecting should land as a commit.
 
+### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; placed, not built)
+Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covers placing them, not building. These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
+
+**W3a. Allergen ticks follow the dish** (post-mortem rec. 4; log 3, 4). *Food safety; first.*
+- When a meal's main changes (Rex's week-sheet import, Edit Menu), recompute its ticks from the linked recipes. Show before and after for one confirm.
+- Never carry the old dish's ticks. On Week 3, leftover Pork ticks made EXPO invent "Halal Chicken" dishes.
+- Keep ticks that come from the dish's name (like Mushroom) when linking.
+- Builds on `doorEmptyDishParts` / `doorSetMealFlags` (`.42`) and `doorRexBuildMeal`.
+- Check: a main swapped from a pork dish to a non-pork dish leaves no Pork tick, and EXPO's halal line isn't invented.
+
+**W3c. Small Edit Menu and import fixes, one PR:**
+- (3, log 2) The import review searches every recipe, not only its top 5.
+- (4, log 6) The slot search box clears on focus, and the whole result row is clickable.
+- (5, log 7) Linking a recipe keeps the menu's words: `displayText`, as in `.29`'s links.
+- (7, log 9) The halal-certification question names its dish and where the halal claim comes from.
+
+**W3b. Per-line sides in Edit Menu** (log 5).
+- The vegan line can name its own side. Week 3 SAT lunch's vegan side still reads "Sweet Potato Biscuit" instead of Rex's "Roasted Sweet Potato".
+- Needs a short design pass: today the sides are shared across lines, and the vegan-line pattern from sweep 2 (2026-10-04) applies.
+
+**W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.**
+- The report asks that a stale tab show a banner and still send; 4 saves sat silently until a reload.
+- But a stale tab runs the old page code, and DOOR deliberately stops old code sending (`stale-tab` skip). F1 relies on that: old code must not write.
+- Lean: keep the stop, and make it impossible to miss:
+  - the banner goes red when saves are waiting;
+  - a one-click **Reload** keeps the work (it is saved on the computer and re-sends after the reload);
+  - the page reloads by itself when no edit is open.
+- This fits "loud when it breaks". The report's version would send from old code.
+
+**Order:** W3a → W3c → W3d → W3b. Building waits for Jason's go. Then the F4 readers once EXPO #565 lands.
+
 ### Next slice: catch the break (spec, 2026-11-07; not built)
 Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to EXPO, and the checks support rather than obstruct. HOUSE working rules ("silent when it works, loud when it breaks"; "checks support, never obstruct") are in the HOUSE ledger.
 
