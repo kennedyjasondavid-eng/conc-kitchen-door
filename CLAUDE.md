@@ -53,6 +53,14 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-08) — Rex's week sheet links a dish the menu has linked before (`v31-standard.54`)
+Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 sheet: "Chicken a la King" never links to the Library's Garden a la King on its own, and an unlinked dish loses its recipe's allergens.
+- **The memory is DOOR's menu.** `doorRexKnownLinks(menu)` reads every slot that links a recipe, by the words it shows (`displayText`, else the recipe name); a slot holding a whole line is skipped, and a name linked to two recipes is left out. `doorRexRecipeFor(piece, recipes, accept, known)` uses it after an exact name match (Rex's one-letter slips forgiven, as `doorRexSameDish` reads them), only for a recipe that fits the slot and is still in CODEX's list. `doorRexWeekCtx` passes `known` from `getMenuData()`. No new store; CODEX's `recipe_aliases.json` is not read (hand-curated, feed recipes only, with stand-in entries).
+- **The review** shows a remembered link as "uses the recipe it's linked to on Wk2 MON lunch", with the recipe picked in the same dropdown, so it can be changed.
+- **Spellings:** `REX_SYN` gains carribean and morrocan (Rex's Week 3 sheet).
+- **Gate:** `rex_week_import_gate` 13 (red on `main`). Suite 813/814, 1 skipped.
+- **Not remembered:** a "This week only" pick (a dated swap keeps no slot links).
+
 ## Recent (2026-11-07) — no built-in resident count; the dead plating dashboard is gone (`v31-standard.53`)
 - **The count.** Until a resident list renders, the sidebar count, Review's total, the preview badge and the registry header read "—", and the site line reads "Rexdale Shelter · no resident list yet". They used to show 181, the site's planning number (`SITE_CONFIGS.rexdale.residentCount`). That number still exists but no longer reaches the screen.
 - **The dashboard.** `renderPlatingDashboard` (82 lines) and its three calls are removed. Its `#plating-dash-body` container left the page in April 2026, so the function always returned at once.
