@@ -19,6 +19,8 @@ Normal menu edits should be saved once and reach EXPO's production schedule, HUB
 | F2 | A swapped meal reaches production whole | EXPO #564, HUB #56 |
 | F3a, HUB side | Tasks keep exact recipe identity | HUB #57 |
 
+**2026-11-08, Rex's week sheet remembers dish links (`v31-standard.54`, PR pending).** Jason: "remember and reuse dish links". A dish name DOOR's menu already links to a recipe is linked again on the next sheet, with that recipe's allergens; the review says where the link came from and it can still be changed. DOOR's menu is the only memory (a saved slot keeps the menu's words and the recipe); CODEX's `recipe_aliases.json` was not used (hand-curated, add-only, feed recipes only, and two entries are stand-ins that would give the wrong allergens). A link must still fit the slot, and a name linked to two recipes is asked. Rex's spellings "Carribean" and "Morrocan" join the spelling list. Week 3 (Nov 8–14) sheet against the live menu: no dish is linked from memory yet (all 15 new names are new); Wk3 TUE dinner now matches DOOR instead of asking. A "This week only" pick is a dated swap, which keeps no link, so it isn't remembered. Gate: `rex_week_import_gate` 13 (red on `main`); suite 813/814, 1 skipped.
+
 **Open:** F3a's EXPO side is EXPO #565. Its checks were cancelled and merging is blocked. It sits in the EXPO session's PR queue (behind EX-12 to EX-15, #560–#563).
 
 ### Reshaped plan (2026-11-07)

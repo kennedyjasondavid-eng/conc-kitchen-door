@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.53';
-const DOOR_BUILD_DATE = '2026-11-07';
+const DOOR_APP_VERSION = 'v31-standard.54';
+const DOOR_BUILD_DATE = '2026-11-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -16704,7 +16704,7 @@ function doorRexWeekStartFromName(name, today) {
 // vegetable / veggie / veg are one word.
 const REX_STOP = new Set(['and','with','the','of','a','an','on','in','served','w']);
 const REX_SYN = { vegetarian:'veg', vegan:'veg', vegetable:'veg', vegetables:'veg', veggie:'veg', veggies:'veg', fries:'fry',
-  yoghurt:'yogurt', briyani:'biryani', tumeric:'turmeric', strogonoff:'stroganoff', chilli:'chili', roasted:'roast', potatoe:'potato', tomatoe:'tomato' };
+  yoghurt:'yogurt', briyani:'biryani', tumeric:'turmeric', strogonoff:'stroganoff', carribean:'caribbean', morrocan:'moroccan', chilli:'chili', roasted:'roast', potatoe:'potato', tomatoe:'tomato' };
 // Words that only say how a side is made: a side named with or without them is the same side.
 // Words that name a different kind of dish: a name that adds one is another dish ("Sweet Potato" ≠ Sweet Potato
 // Biscuits, "Potato" ≠ Potato Salad).
@@ -16845,13 +16845,56 @@ function doorRexAlignLine(rexText, doorText, vegRow) {
   return { diffs, merged: merged.filter((p, i) => merged.indexOf(p) === i), empty: false };
 }
 
-// A CODEX recipe for a dish: one with the same words wins; otherwise the closest names, for the review to offer.
+// The dish names DOOR's menu already links to a recipe (2026-11-08, Jason: "remember and reuse dish links"). A link
+// picked in the review, or in Edit Menu, is saved on the meal's slot with the words the menu shows, so DOOR's menu is
+// where a link is remembered: no other store. { 'tokens': { recipeName, where: 'w-DAY-period' } }; a name the menu
+// links to two different recipes is left out (the review asks), and so is a slot holding a whole line ("a, b").
+function doorRexKnownLinks(menu) {
+  const out = {}, clash = {};
+  Object.keys(menu || {}).forEach(w => {
+    const days = menu[w];
+    if (!/^[1-4]$/.test(w) || !days || typeof days !== 'object') return;
+    Object.keys(days).forEach(day => {
+      const d = days[day];
+      if (!d || typeof d !== 'object') return;
+      Object.keys(d).forEach(k => {
+        const m = k.match(/^(breakfast|lunch|dinner)_slots$/);
+        const slots = m && d[k];
+        if (!slots || typeof slots !== 'object') return;
+        Object.keys(slots).forEach(id => {
+          const s = slots[id];
+          if (!s || typeof s !== 'object' || typeof s.recipeName !== 'string' || !s.recipeName.trim()) return;
+          const text = String(s.displayText || s.recipeName);
+          if (text.indexOf(',') >= 0) return;
+          const key = doorRexTokens(text).slice().sort().join(' ');
+          if (!key) return;
+          if (out[key] && out[key].recipeName !== s.recipeName) clash[key] = true;
+          else if (!out[key]) out[key] = { recipeName: s.recipeName, where: w + '-' + day + '-' + m[1] };
+        });
+      });
+    });
+  });
+  Object.keys(clash).forEach(k => { delete out[k]; });
+  return out;
+}
+
+// A CODEX recipe for a dish: one with the same words wins; then the recipe DOOR's menu already links those words to
+// (known: doorRexKnownLinks), when it can go in this slot; otherwise the closest names, for the review to offer.
 // accept(recipe) narrows to the recipes a slot can link (recipeMatchesSlotDef in the app).
-function doorRexRecipeFor(piece, recipes, accept) {
+function doorRexRecipeFor(piece, recipes, accept, known) {
   const T = doorRexTokens(piece);
   if (!T.length) return { exact: null, close: [] };
   const list = (recipes || []).filter(r => r && r.recipeName && (!accept || accept(r)));
-  const exact = list.find(r => { const R = doorRexTokens(r.recipeName); return R.length === T.length && T.every(t => doorRexHas(R, t)); }) || null;
+  let exact = list.find(r => { const R = doorRexTokens(r.recipeName); return R.length === T.length && T.every(t => doorRexHas(R, t)); }) || null;
+  let linkedAt = '';
+  // The same words, spelt as the sheet spells them ("Carribean" = Caribbean): one letter off in a long word, as
+  // doorRexSameDish reads it. Only when every such name points at one recipe.
+  let kn = !exact && known ? known[T.slice().sort().join(' ')] : null;
+  if (!exact && known && !kn) {
+    const hits = Object.keys(known).filter(k => { const K = k.split(' '); return K.length === T.length && T.every(t => doorRexHas(K, t)); });
+    if (hits.length && hits.every(k => known[k].recipeName === known[hits[0]].recipeName)) kn = known[hits[0]];
+  }
+  if (kn) { exact = list.find(r => r.recipeName === kn.recipeName) || null; if (exact) linkedAt = kn.where; }
   // The same dish under a longer recipe name: every word of the dish that says what it is is in the recipe's name
   // ("Teriyaki Chicken" → Teriyaki Chicken Legs; not "Roasted Sweet Potatoes" → Roasted Potatoes).
   const sameAs = r => { const R = doorRexTokens(r.recipeName); const core = T.filter(t => !REX_MODIFIERS.has(t));
@@ -16861,7 +16904,7 @@ function doorRexRecipeFor(piece, recipes, accept) {
     const shared = T.filter(t => !REX_MODIFIERS.has(t) && doorRexHas(R, t)).length;
     return { r, score: shared ? shared / (T.length + R.length - shared) + (sameAs(r) ? 1 : 0) : 0 };
   }).filter(x => x.score > 0 && x.r !== exact).sort((a, b) => b.score - a.score).slice(0, 5).map(x => x.r);
-  return { exact, close, same: !exact && close[0] && sameAs(close[0]) ? close[0] : null };
+  return { exact, close, same: !exact && close[0] && sameAs(close[0]) ? close[0] : null, linkedAt };
 }
 // A plain staple needs no recipe: its name says what it holds (gluten in noodles, a roll, naan).
 const REX_STAPLES = new Set(['rice','pasta','noodle','naan','bread','bun','roll','tortilla','pita','wrap','roti','bagel','toast','chip','fry','cereal','fruit','yogurt','milk','sub','burger','sausage','hotdog','potato','couscous','quinoa','veg','salad','soup','milk','cheese','granola','oatmeal','cream']);
@@ -16929,7 +16972,7 @@ function doorPlanRexWeek(rex, doorWeek, ctx) {
       plan.halal = halal;
       plan.pork = pork;
       // Allergens: added from the new dishes, offered for removal when only a dish that left named them.
-      const recipeOf = (piece, role) => doorRexRecipeFor(piece, c.recipes, c.accept ? r => c.accept(role, r) : null);
+      const recipeOf = (piece, role) => doorRexRecipeFor(piece, c.recipes, c.accept ? r => c.accept(role, r) : null, c.known);
       const flagsOf = (piece, role) => { const rr = recipeOf(piece, role); return doorRexPieceFlags(piece, rr.exact || rr.same, c.toFlags); };
       const oldFlags = D[period + '_flags'] || {};
       const newFlags = {}, goneFlags = {}, keepFlags = {};
@@ -16950,6 +16993,8 @@ function doorPlanRexWeek(rex, doorWeek, ctx) {
         const role = x.role === 'main' ? mainRole : 'side';
         const rr = recipeOf(x.rex, role);
         if (!rr.exact) plan.newDishes.push({ line: ln, piece: x.rex, role, suggest: (rr.same ? [rr.same] : []).concat(rr.close.filter(r => r !== rr.same)).slice(0, 5).map(r => r.recipeName), lean: rr.same ? rr.same.recipeName : '' });
+        // Linked before on DOOR's menu: no question, but the review says which recipe and where, and it can be changed.
+        else if (rr.linkedAt) plan.newDishes.push({ line: ln, piece: x.rex, role, suggest: [rr.exact.recipeName].concat(rr.close.map(r => r.recipeName)).slice(0, 5), lean: rr.exact.recipeName, linkedAt: rr.linkedAt });
       }));
       // The sheet against itself: a dish Rex changed that its own Veg row still names.
       [reg, veg].forEach(line => line.diffs.forEach(x => {
@@ -16998,7 +17043,7 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
   const linkFor = (ln, piece, role) => {
     const k = ln + '|' + piece;
     if (a.links && Object.prototype.hasOwnProperty.call(a.links, k)) return a.links[k] ? recipesByName[a.links[k]] || null : null;
-    const rr = doorRexRecipeFor(piece, c.recipes, c.accept ? r => c.accept(role, r) : null);
+    const rr = doorRexRecipeFor(piece, c.recipes, c.accept ? r => c.accept(role, r) : null, c.known);
     return rr.exact || rr.same || null;
   };
   const pieceFlags = (ln, piece, role) => {
@@ -17167,7 +17212,7 @@ function triggerRexWeekUpload() {
 }
 
 function doorRexWeekCtx(start) {
-  return { recipes: isHubLoaded() ? DOOR_RECIPE_DATA : [], accept: doorRexAccept, toFlags: hubAllergenToFlags,
+  return { recipes: isHubLoaded() ? DOOR_RECIPE_DATA : [], accept: doorRexAccept, toFlags: hubAllergenToFlags, known: doorRexKnownLinks(getMenuData() || {}),
     remembered: loadRexWeekAnswers(), datesFrom: start || '', today: doorDateKey(new Date()) };
 }
 function doorOpenRexWeekReview(rex, fileName, start) {
@@ -17240,7 +17285,11 @@ function doorRexQuestionHTML(m, idx) {
     seen.add(nd.piece.toLowerCase());
     const id = 'rex-nd-' + idx + '-' + j;
     const ticks = doorRexPieceFlags(nd.piece, null, null);
-    notes += '<div class="rex-note"><label for="' + id + '">“' + escapeHtml(nd.piece) + '” isn’t a CODEX recipe. Its allergens come from: </label>' +
+    const lk = nd.linkedAt ? nd.linkedAt.split('-') : null;
+    const intro = lk
+      ? '“' + escapeHtml(nd.piece) + '” uses the recipe it’s linked to on ' + escapeHtml('Wk' + lk[0] + ' ' + dayLabel(lk[1]) + ' ' + lk[2]) + '. Its allergens come from: '
+      : '“' + escapeHtml(nd.piece) + '” isn’t a CODEX recipe. Its allergens come from: ';
+    notes += '<div class="rex-note"' + (lk ? ' data-rex-linked-before="1"' : '') + '><label for="' + id + '">' + intro + '</label>' +
       '<select id="' + id + '" data-rex-link="' + _escAttr(m.key) + '" data-piece="' + _escAttr(nd.piece) + '" class="form-input" style="font-size:12px;padding:3px 6px;max-width:100%;">' +
       nd.suggest.map(n => '<option value="' + _escAttr(n) + '"' + (n === nd.lean ? ' selected' : '') + '>the ' + escapeHtml(n) + ' recipe</option>').join('') +
       '<option value=""' + (nd.lean ? '' : ' selected') + '>no recipe yet: tick its allergens</option></select>' +

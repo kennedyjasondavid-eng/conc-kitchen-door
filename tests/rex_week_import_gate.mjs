@@ -66,7 +66,9 @@ test('2. the week’s dates come from the file name', () => {
 test('3. same dish or not (ruling 3)', () => {
   const same = [['Chicken Burger', 'Breaded Chicken Burgers'], ['Vegetarian Tacos', 'Vegan Tacos al Pastor'], ['Vegetarian Sandwich', 'Roasted Vegetable Sandwich'],
     ['Pork Tacos Al Pastor', 'Pork Al Pastor Taco'], ['Beef Strogonoff', 'Beef Stroganoff'], ['Gomen Besiga (with Vegetale)', 'Gomen Besiga with Vegetable'],
-    ['Vegetarin Collard Stew', 'Vegetarian Collard Stew'], ['Teriyaki Chicken', 'Teriyaki Chicken Legs'], ['Vegetarian carnitas', 'Vegan Mushroom Carnitas']];
+    ['Vegetarin Collard Stew', 'Vegetarian Collard Stew'], ['Teriyaki Chicken', 'Teriyaki Chicken Legs'], ['Vegetarian carnitas', 'Vegan Mushroom Carnitas'],
+    // Rex's Week 3 sheet (Nov 8–14), added 2026-11-08
+    ['Carribean Chickpea Curry', 'Caribbean Chickpea Curry'], ['Morrocan Rice', 'Moroccan Rice']];
   const differ = [['Jerk Cauliflower', 'Jerk Tofu'], ['Roasted Tofu', 'Blackened Tofu'], ['Vegan Breakfast Patties Sandwich', 'Vegan Breakfast Sausage Sandwich'],
     ['Sweet Potato', 'Sweet Potato Biscuits'], ['Fish Curry', 'Fish Tacos']];
   same.forEach(([a, b]) => assert.ok(api.doorRexSameDish(a, b, false), a + ' = ' + b));
@@ -255,4 +257,88 @@ test('12. "Keep DOOR’s" answers reach every DOOR computer (2026-10-29, Jason: 
   assert.ok(/sidePublish\(REX_WEEK_ANSWERS_FILE/.test(fnText('doorPushRexAnswers')) && /doorPullRexAnswers\(\)/.test(fnText('doorPushRexAnswers')), 'an answer is sent, merged first');
   const save = fnText('doorSaveRexWeek');
   assert.ok(!/delete remembered\[/.test(save) && /answer: 'cleared'/.test(save));
+});
+
+// 2026-11-08, Jason: "remember and reuse dish links". A dish name DOOR's menu already links to a recipe (a link picked in
+// this review or in Edit Menu is saved on the meal's slot with the menu's words) is linked again on the next sheet, with
+// that recipe's allergens, and the review says where the link came from. No other store: DOOR's menu is the memory.
+test('13. a dish linked before on DOOR’s menu is linked again, with its recipe’s allergens', () => {
+  const recipes = api.recipes.concat([
+    { recipeName: 'Garden a la King', category: 'stew_main', stream: 'regular', allergens: ['Gluten (Flour)', 'Milk (Butter, Milk)', 'Soy (Veg Bouillon Cubes)', 'Sulphites (Lemon Juice)'] },
+    { recipeName: 'Vegan Garden a la King', category: 'stew_main', stream: 'vegan', allergens: ['Gluten (Flour)', 'Soy (Veg Bouillon Cubes)', 'Sulphites (Lemon Juice)'] },
+  ]);
+  const rex = api.doorReadRexWeekRows(W1);
+  rex.days.SATURDAY.lunch.reg = 'Chicken a la King, Sweet Potato Biscuit';
+  rex.days.SATURDAY.lunch.veg = 'Vegan Garden a la King, Roasted Sweet Potato';
+  const menu = out(MENU);
+  // the links as a save leaves them: Rex's words on the slot, the recipe's name linked (another week's lunch)
+  const d2 = menu['2'].MONDAY;
+  d2.lunch_slots = Object.assign({}, d2.lunch_slots || {}, {
+    main: { recipeName: 'Garden a la King', displayText: 'Chicken a la King', flags: {} },
+    xtra: { recipeName: 'Garden a la King', displayText: 'Chicken a la King, Biscuit', flags: {} },   // a whole line: not a dish name
+  });
+  const run = (m, extra) => {
+    const c = rexCtx(api, Object.assign({ recipes, known: api.doorRexKnownLinks(m), datesFrom: '2026-10-25', today: TODAY }, extra || {}));
+    const p = byKey(out(api.doorPlanRexWeek(rex, m['1'], c)))['1-SATURDAY-lunch'];
+    return { p, built: out(api.doorRexBuildMeal(p, m['1'].SATURDAY, {}, c)) };
+  };
+  const known = out(api.doorRexKnownLinks(menu));
+  assert.deepEqual(known['chicken king la'], { recipeName: 'Garden a la King', where: '2-MONDAY-lunch' });
+  assert.ok(!Object.keys(known).some(k => /biscuit/.test(k)), 'a slot holding a whole line is not a dish name');
+
+  // without the earlier link: a new dish, nothing picked, no recipe allergens (the gap)
+  const before = run(out(MENU));
+  const ndBefore = before.p.newDishes.find(n => n.piece === 'Chicken a la King');
+  assert.ok(ndBefore && !ndBefore.lean && !ndBefore.linkedAt);
+  assert.equal(before.built.slots.main.manual, 'Chicken a la King');
+  assert.ok(!before.built.flags.hasSulphites);
+
+  // with it: linked, the review says where from (and offers the recipe first), the slot carries the recipe's allergens
+  const { p, built } = run(menu);
+  const nd = p.newDishes.find(n => n.piece === 'Chicken a la King');
+  assert.equal(nd.linkedAt, '2-MONDAY-lunch');
+  assert.equal(nd.lean, 'Garden a la King');
+  assert.equal(nd.suggest[0], 'Garden a la King');
+  assert.equal(built.slots.main.recipeName, 'Garden a la King');
+  assert.equal(built.slots.main.displayText, 'Chicken a la King', 'the menu keeps Rex’s words');
+  ['hasSulphites', 'hasSoy', 'hasGluten', 'hasDairy'].forEach(k => {
+    assert.ok(built.slots.main.flags[k], 'the slot: ' + k);
+    assert.ok(built.flags[k], 'the meal: ' + k);
+  });
+  assert.equal(built.slots.veganalt.recipeName, 'Vegan Garden a la King', 'a name that is the recipe’s still links as before');
+  // an answer in the review still wins over the remembered link
+  const c = rexCtx(api, { recipes, known: api.doorRexKnownLinks(menu), datesFrom: '2026-10-25', today: TODAY });
+  assert.equal(out(api.doorRexBuildMeal(p, menu['1'].SATURDAY, { links: { 'reg|Chicken a la King': '' } }, c)).slots.main.manual, 'Chicken a la King');
+
+  // Rex's spelling: one letter off in a long word still finds the link (Week 3: "Carribean Chickpea Curry")
+  const sp = out(MENU);
+  sp['2'].MONDAY.lunch_slots = Object.assign({}, sp['2'].MONDAY.lunch_slots || {}, { main: { recipeName: 'Garden a la King', displayText: 'Chicken a la Kings', flags: {} } });
+  rex.days.SATURDAY.lunch.reg = 'Chiken a la King, Sweet Potato Biscuit';
+  assert.equal(run(sp).built.slots.main.recipeName, 'Garden a la King');
+  rex.days.SATURDAY.lunch.reg = 'Chicken a la King, Sweet Potato Biscuit';
+
+  // a remembered link must still fit the slot: the regular recipe is never the vegan line's
+  const veg = out(MENU);
+  veg['2'].MONDAY.lunch_slots = Object.assign({}, veg['2'].MONDAY.lunch_slots || {}, { veganalt: { recipeName: 'Garden a la King', displayText: 'Vegan Chicken a la King', flags: {} } });
+  rex.days.SATURDAY.lunch.veg = 'Vegan Chicken a la King, Roasted Sweet Potato';
+  const v = run(veg);
+  assert.notEqual(v.built.slots.veganalt.recipeName, 'Garden a la King');
+  assert.ok(!v.p.newDishes.find(n => n.piece === 'Vegan Chicken a la King').linkedAt);
+
+  // a name the menu links to two different recipes is asked, not guessed
+  const two = out(menu);
+  two['3'].TUESDAY.dinner_slots = Object.assign({}, two['3'].TUESDAY.dinner_slots || {}, { main: { recipeName: 'Butter Chicken', displayText: 'Chicken a la King', flags: {} } });
+  assert.equal(out(api.doorRexKnownLinks(two))['chicken king la'], undefined);
+  assert.ok(!run(two).p.newDishes.find(n => n.piece === 'Chicken a la King').linkedAt);
+
+  // a remembered recipe CODEX no longer has falls back to the suggestions
+  rex.days.SATURDAY.lunch.veg = 'Vegan Garden a la King, Roasted Sweet Potato';
+  const gone = rexCtx(api, { recipes: api.recipes, known: api.doorRexKnownLinks(menu), datesFrom: '2026-10-25', today: TODAY });
+  const pg = byKey(out(api.doorPlanRexWeek(rex, menu['1'], gone)))['1-SATURDAY-lunch'];
+  assert.ok(!pg.newDishes.find(n => n.piece === 'Chicken a la King').linkedAt);
+
+  // the app reads DOOR's own menu for the links, and the review names where a link came from
+  const fnText = (n) => { const i = html.indexOf('function ' + n + '('); return html.slice(i, html.indexOf('\n}\n', i)); };
+  assert.ok(/known: doorRexKnownLinks\(getMenuData\(\) \|\| \{\}\)/.test(fnText('doorRexWeekCtx')));
+  assert.ok(/uses the recipe it’s linked to on/.test(fnText('doorRexQuestionHTML')));
 });
