@@ -49,7 +49,7 @@ function freshCtx() {
   vm.createContext(ctx);
   vm.runInContext([
     fnBlock('isHubLoaded'), fnBlock('recipeMatchesSlotDef'),
-    fnBlock('_hubAllergenResolve'), fnBlock('hubAllergenToFlags'),
+    fnBlock('_hubAllergenResolve'), fnBlock('hubAllergenToFlags'), "const DOOR_NON_CODEX_TICKS = ['hasMushroom', 'hasBeans'];", fnBlock('doorLinkFlags'), /* W3a 2026-11-08 */
     fnBlock('_slotText'), fnBlock('buildMealName'), fnBlock('buildMainItem'),
     fnBlock('_slotDisplayRoutingWarn'), fnBlock('_slotRouteWarnHTML'), fnBlock('_refreshSlotRoutingWarn'),
     fnBlock('slotSetDisplayText'), fnBlock('slotSelect'), fnBlock('slotClear'),

@@ -1179,6 +1179,7 @@ test('recipe slot autosave applies stream filters before exact recipe linking', 
     extractFunctionBlock(html, 'isHubLoaded'),
     extractFunctionBlock(html, '_hubAllergenResolve'),
     extractFunctionBlock(html, 'hubAllergenToFlags'),
+    "const DOOR_NON_CODEX_TICKS = ['hasMushroom', 'hasBeans'];", extractFunctionBlock(html, 'doorLinkFlags'), // W3a 2026-11-08
     extractFunctionBlock(html, 'recipeMatchesSlotDef'),
     extractFunctionBlock(html, 'slotAutoSave'),
     extractFunctionBlock(html, 'smSlotAutoSave')
