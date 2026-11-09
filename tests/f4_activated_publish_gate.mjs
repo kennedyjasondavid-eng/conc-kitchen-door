@@ -61,3 +61,52 @@ test('a receipt nothing explains (no counter, no history to the base) holds the 
   assert.equal(remote.visibleWrites.length, 0, 'nothing is written');
   assert.ok(box.messages.some(m => /could not be established/.test(m.map(x => x && x.message ? x.message : String(x)).join(' '))), 'it says why');
 });
+
+// ── The F4 switch-on review (2026-11-09) ──
+import { DAY_KEY, SWAP } from './helpers/door_publish_transaction_box.mjs';
+
+test('P1: more than 32 receipt-free commits above the base still start sequence 1 (no bounded walk)', async () => {
+  const remote = new ApplyingRemote();
+  for (let i = 0; i < 40; i++) remote.externalUpdate({ 'recent_log.json': [{ n: i }] });
+  const box = publishBox({ remote });
+  const result = await box.publish();
+  assert.equal(result?.ok, true, JSON.stringify(result).slice(0, 300));
+  assert.deepEqual(remote.files['menu_current.json']._meta.flow.publication, { epoch: 'rexdale-f4-2026-11-09', sequence: 1 });
+});
+
+test('a counter that existed in history never restarts at sequence 1, even after the receipts were stripped', async () => {
+  const box = publishBox();
+  assert.equal((await box.publish())?.ok, true);
+  const remote = box.remote;
+  const stripped = {};
+  for (const name of STAMPED) { const f = JSON.parse(JSON.stringify(remote.files[name])); delete f._meta.flow; if (f.flow) delete f.flow; stripped[name] = f; }
+  stripped['door_flow_publication.json'] = null;
+  remote.externalUpdate(stripped);
+  const files = remote.files; delete files['door_flow_publication.json'];
+  remote.revisions.set(remote.head, files); remote.trees.set(remote.commits.get(remote.head).tree, files);
+  const fresh = publishBox({ remote });          // another computer: remembers nothing
+  fresh.storage.concMenuBase = JSON.stringify(editedOverlay('Fixture After Strip', 1793793600003));
+  const result = await fresh.publish();
+  const pub = remote.files['menu_current.json']._meta.flow?.publication;
+  assert.ok(!(result?.ok === true && pub && pub.sequence === 1), 'never sequence 1 again: ' + JSON.stringify({ result, pub }).slice(0, 300));
+});
+
+test('two computers racing on the first publish: one commit each, sequences 1 and 2', async () => {
+  const remote = new ApplyingRemote();
+  const a = publishBox({ remote }), b = publishBox({ remote });
+  b.storage.concMenuBase = JSON.stringify(editedOverlay('Fixture B Dish', 1793793600004));
+  remote.beforePatch = async () => { remote.beforePatch = null; const r = await a.publish(); assert.equal(r?.ok, true, 'A lands first'); };
+  const rb = await b.publish();
+  assert.equal(rb?.ok, true, 'B retries and lands: ' + JSON.stringify(rb).slice(0, 300));
+  assert.equal(remote.visibleWrites.length, 2);
+  assert.deepEqual(remote.visibleWrites.map(w => w.files['menu_current.json']._meta.flow.publication.sequence), [1, 2]);
+});
+
+test('a dated swap is in the first stamped routing projection', async () => {
+  const box = publishBox({ swaps: { [DAY_KEY]: SWAP } });
+  assert.equal((await box.publish())?.ok, true);
+  const flow = box.remote.files['routing_by_meal.json'].flow;
+  assert.ok(box.c.houseFlowRoutingValid(flow), 'a valid routing projection');
+  const date = DAY_KEY.replace(/-(lunch|dinner)$/, ''), meal = DAY_KEY.split('-').pop();
+  assert.ok(flow.dated[date] && flow.dated[date][meal], 'the swap date and meal are projected: ' + JSON.stringify(Object.keys(flow.dated)));
+});

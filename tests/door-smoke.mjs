@@ -299,6 +299,12 @@ function loadPublishFlowHarness(options = {}) {
     clearTimeout(id) { timers.delete(id); },
     async fetch(url, init = {}) {
       assert.equal(init.method || 'GET', 'GET', 'delivery verification stays read-only');
+      if (activationBase && String(url) === 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/compare/' + activationBase + '...' + activationBase) {
+        return { ok: true, status: 200, json: async () => ({ status: 'identical' }) };
+      }
+      if (activationBase && String(url).startsWith('https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/commits?sha=' + activationBase + '&path=door_flow_publication.json')) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
       if (activationBase && String(url) === 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/git/commits/' + activationBase) {
         return { ok: true, status: 200, json: async () => ({ sha: activationBase, tree: { sha: activationBase + '-tree' }, parents: [] }) };
       }

@@ -129,6 +129,23 @@ export class ApplyingRemote {
         sha: createHash('sha1').update(text).digest('hex'), encoding: 'base64' });
     }
     if (method === 'GET' && route === '/git/ref/heads/main') return response(200, { object: { sha: this.head } });
+    // 2026-11-09 (F4 switch-on review P1): the bootstrap proof's two reads, answered from this fixture's commit graph.
+    if (method === 'GET' && route.startsWith('/compare/')) {
+      const [base, head] = decodeURIComponent(route.slice('/compare/'.length)).split('...');
+      if (base === head) return response(200, { status: 'identical' });
+      for (let sha = head, n = 0; sha && n < 10000; n++) { const c = this.commits.get(sha); if (!c) break; sha = c.parents[0]; if (sha === base) return response(200, { status: 'ahead' }); }
+      return response(200, { status: 'diverged' });
+    }
+    if (method === 'GET' && route === '/commits') {
+      const path = u.searchParams.get('path'), out = [];
+      for (let sha = u.searchParams.get('sha'), n = 0; sha && n < 10000; n++) {
+        const c = this.commits.get(sha); if (!c) break;
+        const files = this.trees.get(c.tree) || this.revisions.get(sha) || {};
+        if (path in files) { out.push({ sha }); break; }
+        sha = c.parents[0];
+      }
+      return response(200, out);
+    }
     if (method === 'GET' && route.startsWith('/git/commits/')) {
       const sha = route.split('/').pop(), commit = this.commits.get(sha);
       assert.ok(commit, 'unknown commit ' + sha);

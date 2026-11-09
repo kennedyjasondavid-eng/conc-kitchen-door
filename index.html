@@ -11506,6 +11506,18 @@ async function doorFlowPreviousReceipt(inputs,creds) {
     throw new Error('The current publication epoch is inconsistent. Work remains pending.');
   }
   const read = path => doorPublishReadJSON(creds,path);
+  // v31-standard.61 (F4 switch-on review, P1). The first activated publish proves no receipt was ever written since
+  // the activation base. The walk below stops after 32 commits, and main takes about two commits per publish, so a base
+  // left behind by a busy day would have held every publish (resident list included) until a code change. When this
+  // computer remembers nothing and the head has no receipt and no counter, two reads prove it at any distance: the head
+  // is at or after the base, and the counter file has never existed. Anything else falls through to the walk.
+  if (!remembered && DOOR_FLOW_ACTIVATION_EPOCH && DOOR_FLOW_ACTIVATION_BASE && !current.flow) {
+    const cmp = await read('/compare/' + DOOR_FLOW_ACTIVATION_BASE + '...' + inputs.revision.head);
+    if (cmp && (cmp.status === 'ahead' || cmp.status === 'identical')) {
+      const counterHistory = await read('/commits?sha=' + encodeURIComponent(inputs.revision.head) + '&path=door_flow_publication.json&per_page=1');
+      if (Array.isArray(counterHistory) && counterHistory.length === 0) return null;
+    }
+  }
   let head = inputs.revision.head;
   for (let n = 0; head && n < 32; n++) {
     const commit = await read('/git/commits/' + head);
