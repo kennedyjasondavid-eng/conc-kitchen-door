@@ -22,7 +22,9 @@ export const CONSISTENCY_PATHS = [
 ];
 const cutover = Number(/const DOOR_STANDARD_MENU_CUTOVER\s*=\s*(\d+)/.exec(html)[1]);
 const schema = { menu: 32, routing: 31, registry: 30, state: 30 };
-const stamp = version => ({ version, exported: '2026-11-04T12:00:00.000Z', site: 'fixture' });
+// 2026-11-09 (F4 on): the site is DOOR's one site, as the real files carry it. The delivery check compares each stamped
+// file's site with the page's (currentSite, else 'rexdale'); 'fixture' never matched once receipts were written.
+const stamp = version => ({ version, exported: '2026-11-04T12:00:00.000Z', site: 'rexdale' });
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MEALS = ['breakfast', 'lunch', 'dinner'];
 export const emptyOverlay = () => ({ _meta: { standardCutover: cutover } });
@@ -76,10 +78,17 @@ const method = name => extractor.extractFunctionBlock(html.replace(new RegExp(' 
 
 // Contents GETs may be pinned to any existing immutable revision. Trees/blobs do
 // not change visible files; only an accepted ref update (or Contents PUT) does.
+// 2026-11-09 (F4 switched on, v31-standard.61): the fixture's first commit is DOOR_FLOW_ACTIVATION_BASE when the page
+// sets one, so a publish here is the first publish after activation (the walk in doorFlowPreviousReceipt reaches the
+// base and starts sequence 1), as it is in the kitchen. A starting set that already carries receipts is a later commit.
+// Before activation the base is empty and nothing changes.
+export const ACTIVATION_BASE = (html.match(/const DOOR_FLOW_ACTIVATION_BASE = '([0-9a-f]{40})';/) || [])[1] || '';
 export class ApplyingRemote {
   constructor(files = initialRemote()) {
     this.serial = 0;
-    this.head = this.id();
+    // The base is DOOR's last commit with no receipt, so only a receipt-free starting set sits on it.
+    const stamped = !!(files && (files['door_flow_publication.json'] || Object.values(files).some(f => f && f._meta && f._meta.flow)));
+    this.head = (!stamped && ACTIVATION_BASE) || this.id();
     this.revisions = new Map([[this.head, plain(files)]]);
     this.trees = new Map([[this.head + '-tree', plain(files)]]);
     this.commits = new Map([[this.head, { tree: this.head + '-tree', parents: [] }]]);

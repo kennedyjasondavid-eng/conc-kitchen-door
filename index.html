@@ -11650,8 +11650,12 @@ async function doorFlowStampCandidate(inputs,artifacts,creds) {
   receipt.publication = houseFlowCopy(publication);
   flow.inputRevision = receipt.inputRevision;
   artifacts['routing_by_meal.json'].flow = flow;
+  // v31-standard.61 (F4 switched on): every stamped file names its site. menu_overlay.json never carried one, and the
+  // delivery check (doorDeliveryFlow) requires it on the private files, so the first activated publish would have
+  // committed and then waited on its confirmation for ever.
+  const flowSite = artifacts['menu_current.json']._meta.site;
   ['menu_current.json','menu_overlay.json','routing_by_meal.json','registry_summary.json','door_state.json'].forEach(name => {
-    artifacts[name]._meta = Object.assign({},artifacts[name]._meta,{flow:houseFlowCopy(receipt)});
+    artifacts[name]._meta = Object.assign({},artifacts[name]._meta,{site:flowSite,flow:houseFlowCopy(receipt)});
   });
   artifacts['door_flow_publication.json'] = {_meta:{site:artifacts['menu_current.json']._meta.site},schema:1,flow:houseFlowCopy(receipt)};
   return {epoch:publication.epoch,sequence:publication.sequence + 1};
