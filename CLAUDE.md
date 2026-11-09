@@ -61,6 +61,16 @@ Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 she
 - **Gate:** `rex_week_import_gate` 13 (red on `main`). Suite 813/814, 1 skipped.
 - **Not remembered:** a "This week only" pick (a dated swap keeps no slot links).
 
+## Recent (2026-11-08) — four small Edit Menu and import fixes (W3c, `v31-standard.56`)
+Week 3 post-mortem, log 2, 6, 7 and 9. Jason's go, 2026-11-08.
+- **The import review reaches every recipe** (log 2). After the closest suggestions, the picker lists every recipe that fits the dish's role, A–Z (`doorRexAllRecipeOptions`). "Vegan Wrap" can now reach Piri Piri Tofu Wrap.
+- **The slot box** (log 6).
+  - It selects its words on focus, so typing replaces them instead of adding ("Chicken a la KingGarden a la").
+  - A search result is chosen on press anywhere on its row, before the box can lose focus and save the half-typed words. This applies to Edit Menu and Special Meal.
+- **Linking keeps the menu's words** (log 7). Choosing a recipe for a hand-typed dish keeps the typed words as what the menu shows (`displayText`). Changing the recipe on an already-linked slot still drops the old dish's words, as before.
+- **The halal question names its dish** (log 9). It says which slot and dish it is about, and whether DOOR read the meat from the recipe or the menu's words. All names are escaped.
+- **Gate:** `tests/w3c_edit_menu_import_gate.mjs` (4), red 4/4 on `main`. Suite: 823 of 824 pass, 1 skipped.
+
 ## Recent (2026-11-08) — allergen ticks follow the dish (W3a, `v31-standard.55`)
 Week 3 post-mortem (rec. 4, log 3–4; Jason, 2026-11-08: "ticks follow the dish"). On Week 3 a meal kept its old main's ticks after Rex's sheet changed the main: Pork and Processed Meat after Glazed Ham, hotdogs and pizza left the menu. EXPO's halal auto-alternative fires on `hasPork`, so it invented "Halal Chicken" dishes. Plan: `docs/DOOR_MENU_FLOW_ACTION_PLAN_2026-11-06.md`, "Week 3 post-mortem items".
 - **Rex's week-sheet import.** When the main changes, the warnings nothing on the new plate names come off by default. The review shows Before → After, and unticking a box keeps that warning (`plan.removeDefault`, `plan.beforeFlags`, `doorRexRemovalsHTML`). A side that stays keeps the ticks its saved slot carries. The main slot isn't read that way, because it holds the whole meal's ticks (`.29`). With an unchanged main, removals still start unticked.

@@ -58,7 +58,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - Builds on `doorEmptyDishParts` / `doorSetMealFlags` (`.42`) and `doorRexBuildMeal`.
 - Check: a main swapped from a pork dish to a non-pork dish leaves no Pork tick, and EXPO's halal line isn't invented.
 
-**W3c. Small Edit Menu and import fixes, one PR:**
+**W3c. Small Edit Menu and import fixes, one PR:** *(built 2026-11-08, `v31-standard.56`)*
 - (3, log 2) The import review searches every recipe, not only its top 5.
 - (4, log 6) The slot search box clears on focus, and the whole result row is clickable.
 - (5, log 7) Linking a recipe keeps the menu's words: `displayText`, as in `.29`'s links.
