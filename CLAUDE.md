@@ -68,6 +68,28 @@ Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 she
 - **Gate:** `rex_week_import_gate` 13 (red on `main`). Suite 813/814, 1 skipped.
 - **Not remembered:** a "This week only" pick (a dated swap keeps no slot links).
 
+## Recent (2026-11-08) — the vegan and halal lines can name their own sides (W3b, `v31-standard.58`)
+Week 3 post-mortem, log 5. Jason ruled 2026-11-08: per-side line versions, vegan and halal together, existing lines read in on open.
+- **Why.** Edit Menu's Save rebuilt the vegan line as the vegan main plus the regular sides. 9 of the 55 published lunches and dinners name different vegan sides: Vegan Cornbread, buns, Turmeric Quinoa and so on. Saving any of them overwrote that, and the vegan plate's allergens followed the regular sides.
+- **The model.**
+  - Each shared side slot (starch, vegside, xtra) can carry `lines.vegan` / `lines.halal`: `{ mode:'swap', recipeName|manual, recipeId, flags }` or `{ mode:'none' }`.
+  - New list slots `vegextras` ("Vegan line also gets") and `halalextras` ("Halal line also gets"). They are marked `list:true`, so the run-on question skips them.
+  - `doorLinePieces(slots, line)` gives what a line actually gets. `buildVegAlt` / `buildHalalLine` write it through `doorJoinLine`, which names each dish once. `buildVegAltFlags`, `buildHalalAltFlags` and the plating sheet's `getVegAltSlotAllergenStr` read the same pieces.
+  - The regular plate, meal ticks and routing don't change. EXPO reads the line text (`_veg`, `_halal`) and needs no change.
+- **Edit Menu.** Under each shared side: "Vegan line: gets this / gets instead… / doesn't get it", and the same for the halal line. The "instead" box suggests every recipe (`datalist`), and an exact recipe name links it with its allergens. Save writes `_halal` as a full line only when the halal line has its own sides.
+- **Existing meals.** On open, `doorReadInLineVersions` reads a meal's saved vegan (or full halal) line against the shared sides.
+  - A side the line names is the same. A missing one pairs with a leftover that shares a real word, as a swap; otherwise it is "not served". Leftovers are extras (`doorDeriveLineVersions`, in the rex-week core).
+  - A piece the line's main slot already holds isn't counted again. A line naming no sides keeps the shared ones.
+- **Rex's import** writes the same versions and extras from Rex's vegan line.
+- **Gate:** `tests/line_sides_gate.mjs` (6), red 6/6 on `main`.
+  - All 55 published meals' vegan lines come back unchanged after the read-in.
+  - The import's slots give back Rex's vegan line.
+  - The vegan plate drops the regular cornbread's Dairy.
+  - Re-pinned with a dated note: `recipe_attach_s1_decouple_gate` loads the new helpers.
+  - Suite: 834 of 835 pass, 1 skipped.
+  - Checked in a real browser over a local server on 6 meals: each vegan line comes back unchanged, a swap changes only the vegan line, and there were no errors.
+- **Found, not changed:** three meals' saved slots are behind their menu text, so saving them in Edit Menu would change the regular line. Wk2 FRI lunch would drop Cornbread and Sautéed Cabbage; Wk2 SAT lunch would read Green Beans for Buttered Green Beans; Wk2 SAT dinner would drop Roasted Zucchini. This happens on `main` too, and needs a ruling.
+
 ## Recent (2026-11-08) — an out-of-date page says so loudly and reloads itself (W3d, `v31-standard.57`)
 Week 3 post-mortem, log 8: four saves sat in the outbox on an out-of-date page until a reload, and staff wouldn't have known. Jason ruled 2026-11-08, "follow your leans": keep the stop and make it loud.
 - **The stop stays.** An out-of-date page's automatic sends are still held (`stale-tab`). F1 relies on old code never writing. What is held stays in the outbox.

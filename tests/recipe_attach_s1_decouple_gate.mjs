@@ -41,6 +41,9 @@ function freshCtx() {
     fn('_slotText'), fn('buildMealName'), fn('buildMainItem'), fn('buildMainAltItem'),
     fn('buildSides'), fn('buildVegAlt'), fn('buildNoPorkAlt'), fn('buildUnionFlags'),
     fn('_buildSlotSnapshot'), fn('_restoreSlotSnapshot'),
+    // 2026-11-08 (W3b): the vegan line is built from each side's line version.
+    "const DOOR_LINE_SIDE_IDS = ['starch', 'vegside', 'xtra']; const DOOR_LINE_EXTRAS = { vegan: 'vegextras', halal: 'halalextras' };",
+    fn('doorLinePieces'), fn('doorJoinLine'),
   ].join('\n\n'), ctx, { filename: 'index.html#s1-decouple', timeout: 1000 });
   return ctx;
 }
