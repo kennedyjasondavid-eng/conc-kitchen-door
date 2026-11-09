@@ -65,9 +65,24 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - (5, log 7) Linking a recipe keeps the menu's words: `displayText`, as in `.29`'s links.
 - (7, log 9) The halal-certification question names its dish and where the halal claim comes from.
 
-**W3b. Per-line sides in Edit Menu** (log 5).
-- The vegan line can name its own side. Week 3 SAT lunch's vegan side still reads "Sweet Potato Biscuit" instead of Rex's "Roasted Sweet Potato".
-- Needs a short design pass: today the sides are shared across lines, and the vegan-line pattern from sweep 2 (2026-10-04) applies.
+**W3b. Per-line sides in Edit Menu** (log 5). *Design pass 2026-11-08; calls below.*
+- **What happens today.** Edit Menu's Save rebuilds the vegan line as the vegan main plus the regular line's sides (`buildVegAlt` = veganalt + starch + vegside + xtra). The vegan plate's allergens come from the same slots (`buildVegAltFlags`).
+- **How big it is.** 9 of the 55 published lunches and dinners name different vegan sides (measured 2026-11-08), and saving any of them in Edit Menu silently overwrites that. Two patterns:
+  - a vegan **swap** for a shared side: Cornbread → Vegan Cornbread, Sautéed Cabbage → no butter, Buttered Green Beans → Green Beans;
+  - a vegan-only **extra**: a burger or sub bun (3 meals), tortillas, Turmeric Quinoa, butternut squash, pasta.
+
+  On save, the vegan plate would take the regular cornbread's Dairy, and the quinoa's allergens would drop.
+- **Proposed model (lean): C+.** Each shared side slot can carry an optional `vegan` version: a recipe or typed dish, or "not on the vegan line". A new optional `vegextras` slot holds vegan-only extras.
+  - `buildVegAlt` composes the vegan main, each side's vegan version (or the side), then the vegan extras.
+  - `buildVegAltFlags` reads the same pieces, so the vegan plate's allergens follow what the vegan line actually gets.
+  - The regular plate, meal ticks and routing are untouched.
+- **EXPO** reads the vegan line's text (`_veg`), not DOOR's side slots, so it needs no change.
+- **Rex's import** writes the swap or extra when Rex's vegan line differs from the regular sides, instead of copying the shared ones.
+- **Existing meals.** On opening, Edit Menu reads the 9 meals' current vegan lines into swaps and extras, so the first save keeps them.
+- **Ruled (Jason, 2026-11-08):**
+  1. **Model: per-side line versions (C+).** Each shared side gets an optional "On the vegan line:" and "On the halal line:" (a different recipe or dish, or not served), plus "also gets" extras per line.
+  2. **Vegan and halal together.** The same shape serves both lines: `vegan` and `halal` versions on each side slot, and `vegextras` / `halalextras`. The halal plate's text (`_halal`) and allergens (`buildHalalAltFlags`) follow it as the vegan line's do.
+  3. **Existing meals are read in on open.** Edit Menu turns a meal's current vegan or halal line into versions and extras when it opens, so the first save keeps them. No bulk data change.
 
 **W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.** *(built 2026-11-08, `v31-standard.57`)*
 - The report asks that a stale tab show a banner and still send; 4 saves sat silently until a reload.
