@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.57';
+const DOOR_APP_VERSION = 'v31-standard.58';
 const DOOR_BUILD_DATE = '2026-11-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -17921,6 +17921,9 @@ const HUB_ALLERGEN_MAP = {
   // CODEX writes shellfish as its two families, "Crustaceans (Shrimp)" and "Molluscs (Oyster Sauce)" (2026-10-18). DOOR
   // has one flag for both, as No Shellfish and No Molluscs residents already share it (RESIDENT_TO_MEAL_FLAG).
   'Crustaceans':'hasShellfish','Molluscs':'hasShellfish',
+  // C1-1 (2026-11-08, Jason: "go ahead with C1-1 Mushroom and Beans families"): CODEX writes "Mushroom (Portobello)"
+  // and "Beans (Chickpeas)" from its next edition. They set the ticks DOOR already has; No Mushroom / No Beans residents.
+  'Mushroom':'hasMushroom','Mushrooms':'hasMushroom','Beans':'hasBeans',
 };
 // Recipe-attach S1 (2026-08-18): the live CODEX feed labels don't all exact-match
 // the map above — it uses inconsistent casing ("egg"/"Egg"/"Eggs", "dairy"/"Dairy"),
@@ -17986,8 +17989,9 @@ function _hubAllergenResolve(allergens) {
 
 function isHubLoaded() { return typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA); }
 
-// W3a (2026-11-08, Week 3 post-mortem log 4): linking a slot to a recipe keeps the ticks CODEX has no family for.
-// CODEX lists no Mushroom or Beans, so a slot's Mushroom tick (or one its words name) would vanish on linking.
+// W3a (2026-11-08, Week 3 post-mortem log 4): linking a slot to a recipe keeps the ticks CODEX had no family for.
+// CODEX now writes Mushroom and Beans (C1-1, mapped in HUB_ALLERGEN_MAP); this still keeps a tick the slot or its
+// words carry when the recipe's labels don't (an older feed, or a hand-typed dish), so it only ever adds a warning.
 const DOOR_NON_CODEX_TICKS = ['hasMushroom', 'hasBeans'];
 function doorLinkFlags(recipe, current) {
   const f = hubAllergenToFlags((recipe && recipe.allergens) || []);

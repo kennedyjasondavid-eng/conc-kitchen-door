@@ -118,3 +118,16 @@ test('every non-noise label in the LIVE CODEX feed now resolves (coverage)', (t)
     assert.ok(!stillUnmapped.includes(l), `"${l}" must resolve, not remain unmapped`));
   console.log('live-feed residual unmapped (should be non-allergen only):', JSON.stringify(stillUnmapped));
 });
+
+// C1-1 (2026-11-08): CODEX writes Mushroom and Beans as families from its next edition. Each sets the tick DOOR
+// already has (No Mushroom / No Beans residents), and neither is left unmapped. Red on v31-standard.57.
+test('CODEX Mushroom and Beans labels set the Mushroom and Beans ticks', () => {
+  const c = freshCtx();
+  c.FLAG_DEFS = FLAG_KEYS.concat(['hasMushroom', 'hasBeans']).map(key => ({ key }));
+  c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__.clear();
+  assert.deepEqual(on(set(c, ['Mushroom (Portobello Mushrooms)'])), ['hasMushroom']);
+  assert.deepEqual(on(set(c, ['Beans (Chickpeas)'])), ['hasBeans']);
+  assert.deepEqual(on(set(c, ['Beans (Black Beans)', 'Mushroom (Button Mushrooms)', 'Soy (Soy Sauce)'])),
+    ['hasBeans', 'hasMushroom', 'hasSoy']);
+  assert.deepEqual([...c.window.__DOOR_UNMAPPED_ALLERGEN_LABELS__], [], 'neither label is reported as unmapped');
+});
