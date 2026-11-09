@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.56';
+const DOOR_APP_VERSION = 'v31-standard.57';
 const DOOR_BUILD_DATE = '2026-11-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -7917,6 +7917,8 @@ function doorOutboxAppend(context, reason) {
     ts: new Date().toISOString(), context: String(context || ''), reason: String(reason || 'skipped'), registryModifiedAt: prov });
   while (list.length > DOOR_OUTBOX_MAX) list.shift();
   if (!doorSetItemSafe(DOOR_PUBLISH_OUTBOX_KEY, JSON.stringify(list))) throw new Error('This computer could not retain the pending edit.');
+  // W3d (2026-11-08): on an out-of-date page, the red bar counts what is now waiting.
+  if (typeof _doorTabStale !== 'undefined' && _doorTabStale && typeof showStaleVersionBanner === 'function') { try { showStaleVersionBanner(); } catch (e) {} }
   return list.length;
 }
 
@@ -21584,6 +21586,8 @@ function commitImportToQueue() {
 // old way. _doorStaleOverride records a one-time "publish anyway" for the session.
 var _doorTabStale = false;
 var _doorStaleOverride = false;
+var _doorStaleStamp = '';
+var _doorStaleWatch = null;
 // D5 (silent-drift, shape c): the version THIS tab is running, anchored in a module
 // variable (per-tab, per-load — a reload starts a fresh context and re-anchors).
 // The old guard compared the live server stamp against localStorage['door_html_stamp'],
@@ -21623,31 +21627,83 @@ function checkForFreshDoorVersion() {
         if (verdict.stale) {
           console.log('[DOOR cache-check] new version detected: this tab', _doorBootHtmlStamp, '-> server', stamp);
           _doorTabStale = true;
+          _doorStaleStamp = stamp;
           showStaleVersionBanner(stamp);
+          doorStaleAutoReloadWatch();
         }
       })
       .catch(() => {});
   } catch (e) {}
 }
 
+// W3d (2026-11-08, Week 3 log 8; Jason: keep the stop, make it loud). A stale tab never sends (F1: old code must
+// not write), but it says so: the bar turns red and counts the changes waiting while any wait, and can't be dismissed
+// then. Reload keeps them (they are in the outbox, which drains at boot). The page reloads by itself once nothing is
+// open, at most once per new version.
+function doorStaleReloadDecision(st) {
+  // Pure. st: { stale, stamp, reloadedFor, editOpen, dialogOpen, typing, reviewOpen, unsaved }.
+  if (!st || !st.stale) return { action: 'none' };
+  if (st.stamp && st.reloadedFor === st.stamp) return { action: 'none', why: 'already reloaded for this version' };
+  const busy = st.editOpen ? 'a meal is open in Edit Menu' : st.reviewOpen ? 'Rex’s week review is open'
+    : st.dialogOpen ? 'a question is open' : st.typing ? 'someone is typing' : st.unsaved ? 'a box holds typed words not saved yet' : '';
+  return busy ? { action: 'wait', why: busy } : { action: 'reload' };
+}
+function doorStaleReloadState() {
+  const a = document.activeElement;
+  const typing = !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'checkbox' && a.type !== 'radio' && a.type !== 'button');
+  let reloadedFor = '';
+  try { reloadedFor = sessionStorage.getItem('door_auto_reload_for') || ''; } catch (e) {}
+  return {
+    stale: !!_doorTabStale, stamp: _doorStaleStamp, reloadedFor, typing,
+    editOpen: (typeof mcMenuEditKey !== 'undefined') && !!mcMenuEditKey,
+    reviewOpen: (typeof _rexReview !== 'undefined') && !!_rexReview,
+    dialogOpen: !!document.querySelector('.modal-overlay'),
+    // A visible box whose words differ from what the page drew there: typed, not saved (a half-filled intake form).
+    unsaved: Array.from(document.querySelectorAll('input, textarea')).some(el => el.offsetParent !== null &&
+      !/^(checkbox|radio|hidden|button|submit|file)$/.test(el.type) && el.value !== el.defaultValue)
+  };
+}
+function doorStaleReloadNow() {
+  try { sessionStorage.setItem('door_just_reloaded', '1'); sessionStorage.setItem('door_auto_reload_for', _doorStaleStamp || ''); } catch (e) {}
+  try { if (_doorStaleStamp) localStorage.setItem('door_html_stamp', _doorStaleStamp); } catch (e) {}
+  location.reload();
+}
+function doorStaleAutoReloadWatch() {
+  if (_doorStaleWatch) return;
+  const tick = () => { if (doorStaleReloadDecision(doorStaleReloadState()).action === 'reload') doorStaleReloadNow(); };
+  _doorStaleWatch = setInterval(tick, 15000);
+  setTimeout(tick, 2000);
+}
+function doorStaleBannerText(waiting) {
+  // Pure. Red, counted and not dismissable while changes wait; the quiet amber notice otherwise.
+  const n = Number(waiting) || 0;
+  return n > 0
+    ? { red: true, text: 'This page is out of date, and ' + n + ' change' + (n === 1 ? ' is' : 's are') + ' waiting to send to the kitchen. Reload to send them; your work is kept.' }
+    : { red: false, text: 'A newer version of DOOR is available. Reload before sending changes; automatic sending is paused until you do.' };
+}
 function showStaleVersionBanner(newStamp) {
-  if (document.getElementById('door-stale-banner')) return;
-  const bar = document.createElement('div');
-  bar.id = 'door-stale-banner';
-  bar.setAttribute('role', 'alert'); // a11y: announce the staleness warning to screen readers
-  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fef3c7;border-bottom:2px solid #f59e0b;color:#92400e;padding:10px 18px;display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.06);';
+  if (newStamp) _doorStaleStamp = newStamp;
+  let bar = document.getElementById('door-stale-banner');
+  const waiting = (typeof doorOutboxRead === 'function') ? (doorOutboxRead() || []).length : 0;
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'door-stale-banner';
+    bar.setAttribute('role', 'alert'); // a11y: announce the staleness warning to screen readers
+    document.body.appendChild(bar);
+  }
+  const { red, text } = doorStaleBannerText(waiting);
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 18px;display:flex;align-items:center;gap:14px;font-size:13px;' +
+    (red ? 'background:#fee2e2;border-bottom:2px solid #dc2626;color:#991b1b;' : 'background:#fef3c7;border-bottom:2px solid #f59e0b;color:#92400e;');
   bar.innerHTML =
     '<span style="font-size:16px;">↻</span>' +
-    '<span style="flex:1;">A newer version of DOOR is available. Reload before sending changes; automatic sending is paused until you do.</span>' +
-    '<button id="door-stale-reload" style="background:#92400e;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Reload now</button>' +
-    '<button id="door-stale-dismiss" title="Hide until next refresh" style="background:none;border:1px solid #f59e0b;color:#92400e;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;">Dismiss</button>';
-  document.body.appendChild(bar);
-  document.getElementById('door-stale-reload').onclick = function() {
-    sessionStorage.setItem('door_just_reloaded', '1');
-    localStorage.setItem('door_html_stamp', newStamp);
-    location.reload();
-  };
-  document.getElementById('door-stale-dismiss').onclick = function() { bar.remove(); };
+    '<span style="flex:1;"></span>' +
+    '<button id="door-stale-reload" style="background:' + (red ? '#991b1b' : '#92400e') + ';color:#fff;border:none;border-radius:4px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Reload now</button>' +
+    (red ? '' : '<button id="door-stale-dismiss" title="Hide until next refresh" style="background:none;border:1px solid #f59e0b;color:#92400e;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px;">Hide</button>');
+  bar.children[1].textContent = text;
+  bar.dataset.waiting = String(waiting);
+  document.getElementById('door-stale-reload').onclick = doorStaleReloadNow;
+  const dismiss = document.getElementById('door-stale-dismiss');
+  if (dismiss) dismiss.onclick = function() { bar.remove(); };
 }
 
 checkForFreshDoorVersion();
