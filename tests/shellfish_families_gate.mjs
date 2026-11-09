@@ -25,7 +25,7 @@ const residents = between('const RESIDENT_TO_MEAL_FLAG = {', '\n};\n') + '\n};\n
   + between('const ROUTING_TAGS = new Set([', ']);') + ']);\n' + fn('checkResidentMealConflicts');
 const fallback = between('const DOOR_RECIPE_DATA_FALLBACK', 'let DOOR_RECIPE_DATA =') + '\nthis.__FB = DOOR_RECIPE_DATA_FALLBACK;';
 
-const FLAG_KEYS = ['hasGluten','hasDairy','hasPeanuts','hasFish','hasEgg','hasSoy','hasSesame','hasMustard','hasTreeNuts','hasCoconut','hasCorn','hasSulphites','isSpicy','hasNightshades','hasShellfish'];
+const FLAG_KEYS = ['hasGluten','hasDairy','hasPeanuts','hasFish','hasEgg','hasSoy','hasSesame','hasMustard','hasTreeNuts','hasCoconut','hasCorn','hasSulphites','isSpicy','hasNightshades','hasShellfish','hasMushroom','hasBeans']; // 2026-11-08 (C1-1): DOOR's Mushroom and Beans flags, which CODEX now writes
 function freshCtx(block) {
   const ctx = { console: { warn() {} }, window: {}, FLAG_DEFS: FLAG_KEYS.map(key => ({ key })), DOOR_RECIPE_DATA: [] };
   vm.createContext(ctx);
@@ -134,6 +134,9 @@ const CODEX_FAMILY_FLAG = {
   'mustard':'hasMustard', 'sesame':'hasSesame', 'nightshades':'hasNightshades', 'spicy':'isSpicy',
   // 2026-10-22 (Jason): CODEX now reads Corn; DOOR's existing No Corn flag must receive it.
   'corn':'hasCorn',
+  // 2026-11-08 (C1-1, Jason: "go ahead with C1-1 Mushroom and Beans families"): CODEX now reads Mushroom and Beans;
+  // DOOR's existing No Mushroom / No Beans flags receive them (HUB_ALLERGEN_MAP, v31-standard.58).
+  'mushroom':'hasMushroom', 'beans':'hasBeans',
 };
 const CODEX_FAMILY_IGNORED = ['oats'];                 // a separate CODEX flag; DOOR ignores it on purpose
 const CODEX_FAMILY_NO_DOOR_FLAG = ['lupin', 'buckwheat']; // DOOR has no flag: they stay on the unmapped banner
