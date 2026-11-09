@@ -69,7 +69,7 @@ Week 3 post-mortem, log 2, 6, 7 and 9. Jason's go, 2026-11-08.
   - A search result is chosen on press anywhere on its row, before the box can lose focus and save the half-typed words. This applies to Edit Menu and Special Meal.
 - **Linking keeps the menu's words** (log 7). Choosing a recipe for a hand-typed dish keeps the typed words as what the menu shows (`displayText`). Changing the recipe on an already-linked slot still drops the old dish's words, as before.
 - **The halal question names its dish** (log 9). It says which slot and dish it is about, and whether DOOR read the meat from the recipe or the menu's words. All names are escaped.
-- **Gate:** `tests/w3c_edit_menu_import_gate.mjs` (4), red 4/4 on `main`. Suite: 820 of 821 pass, 1 skipped.
+- **Gate:** `tests/w3c_edit_menu_import_gate.mjs` (4), red 4/4 on `main`. Suite: 823 of 824 pass, 1 skipped.
 
 ## Recent (2026-11-08) — allergen ticks follow the dish (W3a, `v31-standard.55`)
 Week 3 post-mortem (rec. 4, log 3–4; Jason, 2026-11-08: "ticks follow the dish"). On Week 3 a meal kept its old main's ticks after Rex's sheet changed the main: Pork and Processed Meat after Glazed Ham, hotdogs and pizza left the menu. EXPO's halal auto-alternative fires on `hasPork`, so it invented "Halal Chicken" dishes. Plan: `docs/DOOR_MENU_FLOW_ACTION_PLAN_2026-11-06.md`, "Week 3 post-mortem items".
