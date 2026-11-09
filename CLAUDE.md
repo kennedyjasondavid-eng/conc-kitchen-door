@@ -68,6 +68,12 @@ Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 she
 - **Gate:** `rex_week_import_gate` 13 (red on `main`). Suite 813/814, 1 skipped.
 - **Not remembered:** a "This week only" pick (a dated swap keeps no slot links).
 
+## Recent (2026-11-08) — Edit Menu doesn't trust slots that are behind the menu text (`v31-standard.59`)
+Jason, 2026-11-08: "Fix the 3 and add a guard". The W3b check found meals whose saved `_slots` named other dishes than their menu text, from text edits made outside Edit Menu. Saving one would have rewritten its regular line: Wk2 FRI lunch's slots held only "Beef Chili", so Cornbread and Sautéed Cabbage would have gone. The six such meals were fixed in #174 (menu data).
+- **The guard.** `doorSlotsMatchText(slots, text)` compares the regular dishes: extras (Event Name), main, starch, vegside and xtra against the text. Commas, "&" and "—" split dishes, a repeat counts once, and case and punctuation don't count.
+- When the dishes differ, `openMenuEdit` doesn't restore the slots. It reads the dishes from the text instead, shows the existing "read from the menu text" notice (D1), and logs a console warning. The menu as published 2026-11-08 trips it on no meal; the menu before #174 trips it on exactly the six.
+- **Gate:** `tests/stale_slots_guard_gate.mjs` (3), with fixed examples: the six as they were, and five forms that must pass. Red on `main`. Re-pinned with a dated note: `legacy_slot_marker_gate` loads the helper. Suite: 837 of 838 pass, 1 skipped.
+
 ## Recent (2026-11-08) — the vegan and halal lines can name their own sides (W3b, `v31-standard.58`)
 Week 3 post-mortem, log 5. Jason ruled 2026-11-08: per-side line versions, vegan and halal together, existing lines read in on open.
 - **Why.** Edit Menu's Save rebuilt the vegan line as the vegan main plus the regular sides. 9 of the 55 published lunches and dinners name different vegan sides: Vegan Cornbread, buns, Turmeric Quinoa and so on. Saving any of them overwrote that, and the vegan plate's allergens followed the regular sides.

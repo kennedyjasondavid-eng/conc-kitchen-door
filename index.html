@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.58';
+const DOOR_APP_VERSION = 'v31-standard.59';
 const DOOR_BUILD_DATE = '2026-11-08';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -19237,6 +19237,18 @@ function parseMealNameIntoSlots(name) {
   }
 }
 
+// Do the saved slots name the same regular dishes as the menu text? Commas, "&" and an event name's "—" split
+// dishes; a dish listed twice counts once; spelling differences in case and punctuation don't count.
+function doorSlotsMatchText(slots, text) {
+  const norm = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const dishes = arr => new Set(arr.join(',').split(/,|&|—/).map(norm).filter(Boolean));
+  const st = x => (x && typeof x === 'object') ? (x.displayText || x.recipeName || x.manual || '') : '';
+  const fromSlots = dishes(['extras', 'main', 'starch', 'vegside', 'xtra'].map(k => st((slots || {})[k])).filter(Boolean));
+  const fromText = dishes([String(text || '')]);
+  if (fromSlots.size !== fromText.size) return false;
+  for (const d of fromSlots) if (!fromText.has(d)) return false;
+  return true;
+}
 function openMenuEdit(week, day, period) {
   if (testMealActive) closeTestMeal();
   const wkData = getMenuData()[String(week)];
@@ -19269,7 +19281,11 @@ function openMenuEdit(week, day, period) {
   _mcSlotsBlockPresent = false;
   // v30: Try slot snapshot first (lossless restore from previous save)
   const savedSlots = dayData[period + '_slots'];
-  if (savedSlots && _restoreSlotSnapshot(savedSlots)) {
+  // Guard (2026-11-08, Jason): saved slots that name other dishes than the menu text are behind it (a text edit made
+  // outside Edit Menu). Saving them would rewrite the regular line, so the editor reads the text instead and says so.
+  const _slotsBehind = !!(savedSlots && !doorSlotsMatchText(savedSlots, dayData[period]));
+  if (_slotsBehind) console.warn('[DOOR] ' + week + ' ' + day + ' ' + period + ': saved slots are behind the menu text; reading the text');
+  if (savedSlots && !_slotsBehind && _restoreSlotSnapshot(savedSlots)) {
     _mcSlotsBlockPresent = true;
     // Slot snapshot restored — apply flags from snapshot
     const rotFlags = dayData[period + '_flags'];
