@@ -34,11 +34,14 @@ test('W1 Tuesday lunch still matches the confirmed stream-specific allergen deci
   assert.equal(regular.hasFish, true, 'regular Blackened Fish retains its fish flag');
   assert.equal(regular.hasSoy, false, 'regular meal does not inherit vegan-alt soy');
   assert.equal(regular.isSpicy, true, 'regular Blackened Fish retains its spicy flag');
-  assert.equal(regular.hasNightshades, false, 'blackening spice is spicy, not Nightshades');
+  // 2026-11-09 (Jason: "Blackened has paprika"): the blackening spice is spicy AND Nightshades, as CODEX lists both
+  // recipes ("Nightshades (Paprika — Blackened Spice Mix)"). It read "not Nightshades" before.
+  assert.equal(regular.hasNightshades, true, 'blackening spice has paprika: Nightshades');
+  assert.equal(slot.lunch_slots?.main?.flags?.hasNightshades, true, 'the Blackened Fish slot carries Nightshades');
   assert.equal(vegan.hasFish, false, 'vegan Blackened Tofu does not inherit regular-stream fish');
   assert.equal(vegan.hasSoy, true, 'vegan Blackened Tofu retains its soy flag');
   assert.equal(vegan.isSpicy, true, 'vegan Blackened Tofu retains its spicy flag');
-  assert.equal(vegan.hasNightshades, false, 'vegan blackening spice is spicy, not Nightshades');
+  assert.equal(vegan.hasNightshades, true, 'vegan blackening spice has paprika: Nightshades');
   assert.equal(slot.allergens_lunch, 'fish', 'regular allergen line stays fish-only');
 });
 
