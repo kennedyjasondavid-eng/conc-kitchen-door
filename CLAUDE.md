@@ -53,6 +53,17 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-09) — a bare side word on the vegan line names that side only (`v31-standard.61`)
+Jason, 2026-11-09, from the veg pasta audit: "spin up a session for #2". `getVegAltAllergenStr` guesses each vegan-line piece's recipe by name, and the longest vegan recipe containing the piece won. So a bare "Pasta" read as Vegan Baked Pasta, and a bare "Rice" as Soy-Free Mushroom Fried Rice.
+- **The rule.** A piece of one significant word (`sigWords`, over 3 letters) matches only a vegan recipe of that name or its plural ("Roasted Yam" still finds Roasted Yams). A piece of two or more words keeps the old match. The lookup stays a floor: the slot reader (`getVegAltSlotAllergenStr`) and the meal-tick floor are untouched. The rule lives inside the function, so no harness that loads it changes.
+- **Census** (whole vegan plate: name guess, slots and floor, all 84 published meals, frozen CODEX feed plus the two Bolognese records): 3 plates move, 81 identical.
+  - Wk1 SUN dinner (Mushroom Stroganoff, Pasta) loses Corn and Sulphites.
+  - Wk2 SUN dinner (Vegan Sausage and Vegetable Pasta, Pasta) loses Corn and Sulphites.
+  - Wk3 SUN dinner (Vegan Bolognese, Pasta, Peas & Carrots) loses Soy (Vegan Baked Pasta's vegan cheddar).
+  - Each lost family was Vegan Baked Pasta's, and none of the plate's own dishes carries it. Against today's feed the name guess also stops adding Mushroom and Beans on Wk1 and Wk2 SUN (Wk2 keeps Beans through its linked sauce).
+- **Gate:** `tests/bare_side_word_gate.mjs` (4), red 2/4 on `d6d4cab` (3 and 4 lock what must not change).
+- Paired CODEX work, already merged: the Vegan Bolognese record's duplicate labels (conc-recipe-hub #294, `shared-library` `da88ba3`).
+
 ## Recent (2026-11-09) — W1 TUE lunch: Blackened Fish and Tofu carry Nightshades (menu data, no code)
 Jason, 2026-11-09: "Blackened has paprika". CODEX already lists both recipes as "Nightshades (Paprika — Blackened Spice Mix)"; DOOR's slots were linked before that label and had it off. The meal's own tick was on, but the vegan plate reads the tofu slot, so it was not marked Nightshades.
 - **Data:** the two slots' `hasNightshades` on, through `saveMenuBaseOverlay` (1|TUESDAY stamped newest), rebuilt with `buildMenuJSON` / `buildRoutingByMealJSON` in Chromium on the published menu, overlay and residents. The rebuild before the change matched the published menu and routing exactly; after it, only those two values move. Routing is unchanged; the three companion files are restamped (`builtFromMenu`), contents unchanged.
