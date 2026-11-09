@@ -68,7 +68,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - The vegan line can name its own side. Week 3 SAT lunch's vegan side still reads "Sweet Potato Biscuit" instead of Rex's "Roasted Sweet Potato".
 - Needs a short design pass: today the sides are shared across lines, and the vegan-line pattern from sweep 2 (2026-10-04) applies.
 
-**W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.**
+**W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.** *(built 2026-11-08, `v31-standard.57`)*
 - The report asks that a stale tab show a banner and still send; 4 saves sat silently until a reload.
 - But a stale tab runs the old page code, and DOOR deliberately stops old code sending (`stale-tab` skip). F1 relies on that: old code must not write.
 - Lean: keep the stop, and make it impossible to miss:

@@ -61,6 +61,16 @@ Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 she
 - **Gate:** `rex_week_import_gate` 13 (red on `main`). Suite 813/814, 1 skipped.
 - **Not remembered:** a "This week only" pick (a dated swap keeps no slot links).
 
+## Recent (2026-11-08) — an out-of-date page says so loudly and reloads itself (W3d, `v31-standard.57`)
+Week 3 post-mortem, log 8: four saves sat in the outbox on an out-of-date page until a reload, and staff wouldn't have known. Jason ruled 2026-11-08, "follow your leans": keep the stop and make it loud.
+- **The stop stays.** An out-of-date page's automatic sends are still held (`stale-tab`). F1 relies on old code never writing. What is held stays in the outbox.
+- **The top bar** (`showStaleVersionBanner`, `doorStaleBannerText`).
+  - While changes wait, it is red: "This page is out of date, and N changes are waiting to send to the kitchen. Reload to send them; your work is kept." It has no Hide button, and every held send refreshes the count (`doorOutboxAppend`).
+  - With nothing waiting, it shows the quiet amber notice as before.
+- **Reload keeps the work.** The outbox drains at boot (`doorOutboxDrain('boot')`).
+- **The page reloads itself** (`doorStaleReloadDecision`, checked 2 s after detection and then every 15 s). It waits while a meal is open in Edit Menu, Rex's review is open, a dialog is open, someone is typing, or a visible box holds typed words not saved yet. It reloads at most once per new version (`door_auto_reload_for` in sessionStorage), so it can't loop.
+- **Gate:** `tests/stale_tab_loud_gate.mjs` (4), red 4/4 on `main`. Suite: 827 of 828 pass, 1 skipped. Not seen in a real browser yet: the built-in browser couldn't open the local file.
+
 ## Recent (2026-11-08) — four small Edit Menu and import fixes (W3c, `v31-standard.56`)
 Week 3 post-mortem, log 2, 6, 7 and 9. Jason's go, 2026-11-08.
 - **The import review reaches every recipe** (log 2). After the closest suggestions, the picker lists every recipe that fits the dish's role, A–Z (`doorRexAllRecipeOptions`). "Vegan Wrap" can now reach Piri Piri Tofu Wrap.
