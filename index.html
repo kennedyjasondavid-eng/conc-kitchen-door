@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.60';
+const DOOR_APP_VERSION = 'v31-standard.61';
 const DOOR_BUILD_DATE = '2026-11-09';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11460,9 +11460,13 @@ function houseFlowResolve(state,service,now) {
 }
 function houseFlowSnapshot(state) { return {schema:1,highest:state.highest && houseFlowCopy(state.highest),conflict:state.conflict === true,observedAt:state.accepted ? state.accepted.observedAt : null}; }
 /* HOUSE_TESTABLE_CORE_END flow-validity */
-// Empty until compatible readers are served and the operator-led writer cutover is complete.
-const DOOR_FLOW_ACTIVATION_EPOCH = '';
-const DOOR_FLOW_ACTIVATION_BASE = '';
+// F4 switched on (v31-standard.61, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
+// read receipts (estimates past 7 days or once superseded). The writer cutover is the F1 reconnect of 2026-11-06/07 (R2;
+// Jason, 2026-11-09: "pretty sure that is the cutover, not 100% but I have a feeling it's not critical").
+// _BASE is DOOR main at activation: the first activated publish may start sequence 1 only when its first-parent walk
+// reaches this commit with no earlier receipt (doorFlowPreviousReceipt). Never change these two once receipts exist.
+const DOOR_FLOW_ACTIVATION_EPOCH = 'rexdale-f4-2026-11-09';
+const DOOR_FLOW_ACTIVATION_BASE = 'd6d4cabd3a2545b895ef7806caa4e1616da03e45';
 async function doorFlowPreviousReceipt(inputs,creds) {
   const current = (inputs.revision.data['menu_current.json'] || {})._meta || {};
   const remembered = localStorage.getItem('concDoorFlowPublication');
