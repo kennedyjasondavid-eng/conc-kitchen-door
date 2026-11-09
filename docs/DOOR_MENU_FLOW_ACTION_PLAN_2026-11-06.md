@@ -65,7 +65,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - (5, log 7) Linking a recipe keeps the menu's words: `displayText`, as in `.29`'s links.
 - (7, log 9) The halal-certification question names its dish and where the halal claim comes from.
 
-**W3b. Per-line sides in Edit Menu** (log 5). *Design pass 2026-11-08; calls below.*
+**W3b. Per-line sides in Edit Menu** (log 5). *Built 2026-11-08, `v31-standard.58`.* *Design pass 2026-11-08; calls below.*
 - **What happens today.** Edit Menu's Save rebuilds the vegan line as the vegan main plus the regular line's sides (`buildVegAlt` = veganalt + starch + vegside + xtra). The vegan plate's allergens come from the same slots (`buildVegAltFlags`).
 - **How big it is.** 9 of the 55 published lunches and dinners name different vegan sides (measured 2026-11-08), and saving any of them in Edit Menu silently overwrites that. Two patterns:
   - a vegan **swap** for a shared side: Cornbread → Vegan Cornbread, Sautéed Cabbage → no butter, Buttered Green Beans → Green Beans;

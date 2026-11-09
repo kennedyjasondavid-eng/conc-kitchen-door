@@ -17047,6 +17047,24 @@ function doorPlanRexWeek(rex, doorWeek, ctx) {
 // The meal as it will be saved, for a plan and its answers: { fields, flags, slots, text, veg }. door: DOOR's day.
 // ans: { removeFlags:[keys], halal:'text', links:{ 'reg|piece': recipeName|'' }, ticks:{ 'reg|piece': [keys] },
 // alts:{ gfAlt, softAlt, … } }. ctx as for doorPlanRexWeek, plus emptySlots (DOOR_DISH_PART_EMPTY).
+// W3b: a line's own sides against the shared ones. sides: [{ id, text }]; lineSides: [text]; same(a, b): one dish.
+// A shared side the line names is the same; a missing one pairs with a leftover sharing a real word (Cornbread ↔
+// Vegan Cornbread, Buttered Green Beans ↔ Green Beans) as a swap, else "not served"; leftovers are the line's extras.
+function doorDeriveLineVersions(sides, lineSides, same) {
+  const left = (lineSides || []).map(t => String(t || '').trim()).filter(Boolean);
+  const versions = {}, missing = [];
+  (sides || []).forEach(sd => {
+    const i = left.findIndex(t => same(t, sd.text));
+    if (i >= 0) left.splice(i, 1); else missing.push(sd);
+  });
+  const words = t => String(t).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 3 && !/^(with|vegan|halal|side|sides)$/.test(w));
+  missing.forEach(sd => {
+    const ws = words(sd.text);
+    const i = left.findIndex(t => words(t).some(w => ws.indexOf(w) >= 0));
+    versions[sd.id] = i >= 0 ? { mode: 'swap', text: left.splice(i, 1)[0] } : { mode: 'none' };
+  });
+  return { versions, extras: left };
+}
 function doorRexBuildMeal(plan, door, ans, ctx) {
   const c = ctx || {}, a = ans || {}, p = plan.period, D = door || {};
   const reg = plan.lines.reg, veg = plan.lines.veg;
@@ -17107,6 +17125,21 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
     if (!slots[id]) slots[id] = slot;
     else if (!slots.xtra) slots.xtra = slot;
   });
+  // W3b: Rex's vegan line against the shared sides: a different side is that side's vegan version, one it leaves out
+  // is "not served", and the rest are the vegan line's extras. A vegan line naming no sides keeps the shared ones.
+  if (p !== 'breakfast' && veg.merged.length > 1) {
+    const norm = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const shared = ['starch', 'vegside', 'xtra'].map(id => ({ id, text: st(slots[id]) })).filter(x => x.text);
+    // A piece the vegan main's slot already names (an older slot holding "Wrap, 12\" Tortilla") isn't a side again.
+    const vMain = ' ' + norm(st(slots.veganalt)) + ' ';
+    const vSides = veg.merged.slice(1).filter(t => vMain.indexOf(' ' + norm(t) + ' ') < 0);
+    const dv = doorDeriveLineVersions(shared.filter(x => vMain.indexOf(' ' + norm(x.text) + ' ') < 0), vSides, (x, y) => norm(x) === norm(y));
+    Object.keys(dv.versions).forEach(id => {
+      const ver = dv.versions[id].mode === 'none' ? { mode: 'none' } : Object.assign({ mode: 'swap' }, newSlot('veg', dv.versions[id].text, 'side'));
+      slots[id] = Object.assign({}, slots[id], { lines: Object.assign({}, (slots[id] || {}).lines, { vegan: ver }) });
+    });
+    if (dv.extras.length) slots.vegextras = newSlot('veg', dv.extras.join(', '), 'side');
+  }
   const fields = {};
   fields[p] = text;
   fields[p + '_veg'] = vegText;
@@ -17759,6 +17792,8 @@ const MEAL_SLOT_DEFS = [
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
   { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side'],                     streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
   { id:'xtra',     label:'Extras',      required:false,                                        streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
+  { id:'vegextras',   label:'Vegan line also gets', required:false, list:true, streams:null, ph:'Only on the vegan line, e.g. Burger bun, Turmeric Quinoa…' },
+  { id:'halalextras', label:'Halal line also gets', required:false, list:true, streams:null, ph:'Only on the halal line…' },
   { id:'extras',   label:'Event Name',  required:false, manual:true,                           streams:null,            ph:'Named events only — e.g. Jerk Night, Thanksgiving Dinner. Leave blank if components describe the meal.' },
 ];
 
@@ -18023,7 +18058,7 @@ function renderSlots() {
       </div>`;
     }
     return renderSlotCard(def, 'slot');
-  }).join('');
+  }).join('') + (isHubLoaded() ? '<datalist id="door-recipe-names">' + DOOR_RECIPE_DATA.map(r => '<option value="' + _escAttr(r.recipeName) + '">').join('') + '</datalist>' : '');
   renderAltMealsSection();
 }
 let _noPorkAltVisible = false;
@@ -18058,10 +18093,90 @@ function buildSides() {
     .filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
 }
 
+// W3b (2026-11-08, Week 3 log 5; Jason: per-side line versions, vegan and halal together). A shared side can be
+// different, or not served, on the vegan or the halal line: slot.lines = { vegan|halal: { mode:'swap', recipeName |
+// manual, recipeId, flags } | { mode:'none' } }. Each line also has its own extras slot (vegextras / halalextras).
+// The line's text and its plate allergens are built from the same pieces; the regular plate never reads them.
+const DOOR_LINE_SIDE_IDS = ['starch', 'vegside', 'xtra'];
+const DOOR_LINE_EXTRAS = { vegan: 'vegextras', halal: 'halalextras' };
+function doorLinePieces(slots, line, ids) {
+  const out = [];
+  if (!slots || typeof slots !== 'object') return out;
+  (ids || ['veganalt'].concat(DOOR_LINE_SIDE_IDS)).forEach(id => {
+    const s = slots[id];
+    if (!s) return;
+    const v = DOOR_LINE_SIDE_IDS.indexOf(id) >= 0 && s.lines && s.lines[line];
+    if (v && v.mode === 'none') return;
+    if (v && v.mode === 'swap' && (v.recipeName || v.manual)) { out.push(v); return; }
+    if (s.recipeName || s.manual) out.push(s);
+  });
+  const ex = slots[DOOR_LINE_EXTRAS[line]];
+  if (ex && (ex.recipeName || ex.manual)) out.push(ex);
+  return out;
+}
+function doorLineHasOwnSides(slots, line) {
+  if (!slots) return false;
+  const ex = slots[DOOR_LINE_EXTRAS[line]];
+  return !!((ex && (ex.recipeName || ex.manual)) || DOOR_LINE_SIDE_IDS.some(id => slots[id] && slots[id].lines && slots[id].lines[line]));
+}
+// A typed side or extra, linked when it is a recipe's exact name (its allergens with it), else read by its words.
+function doorMakeLineVersion(text) {
+  const t = String(text || '').trim();
+  if (!t) return null;
+  const recipes = (typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA)) ? DOOR_RECIPE_DATA : [];
+  const r = recipes.find(x => x && x.recipeName && x.recipeName.toLowerCase() === t.toLowerCase());
+  if (r) {
+    const v = { mode: 'swap', recipeName: r.recipeName, flags: (typeof doorLinkFlags === 'function') ? doorLinkFlags(r, { manual: t }) : {} };
+    if (r.recipeId) v.recipeId = String(r.recipeId);
+    return v;
+  }
+  return { mode: 'swap', manual: t, flags: (typeof doorRexPieceFlags === 'function') ? doorRexPieceFlags(t, null, null) : {} };
+}
+function doorMakeExtrasSlot(text) { const v = doorMakeLineVersion(text); if (v) delete v.mode; return v; }
+// A meal saved before W3b whose vegan (or full halal) line names other sides: read it into versions and extras on
+// open, so the first save keeps it. A line that names no sides keeps the shared ones.
+function doorReadInLineVersions(dayData, period) {
+  const norm = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const sides = DOOR_LINE_SIDE_IDS.map(id => ({ id, text: _slotText(MEAL_SLOT_STATE[id]) })).filter(x => x.text);
+  [['vegan', String((dayData || {})[period + '_veg'] || '')], ['halal', String((dayData || {})[period + '_halal'] || '')]].forEach(([line, text]) => {
+    if (doorLineHasOwnSides(MEAL_SLOT_STATE, line)) return;
+    if (line === 'halal' && text.indexOf(',') < 0) return;
+    const lineMain = ' ' + norm(_slotText(MEAL_SLOT_STATE[line === 'vegan' ? 'veganalt' : 'mainalt'])) + ' ';
+    const pieces = text.split(',').map(x => x.trim()).filter(Boolean).slice(1).filter(x => lineMain.indexOf(' ' + norm(x) + ' ') < 0);
+    if (!pieces.length) return;
+    const d = doorDeriveLineVersions(sides.filter(x => lineMain.indexOf(' ' + norm(x.text) + ' ') < 0), pieces, (a, b) => norm(a) === norm(b));
+    Object.keys(d.versions).forEach(id => {
+      const s = MEAL_SLOT_STATE[id];
+      if (!s) return;
+      const ver = d.versions[id].mode === 'none' ? { mode: 'none' } : doorMakeLineVersion(d.versions[id].text);
+      if (ver) s.lines = Object.assign({}, s.lines, { [line]: ver });
+    });
+    if (d.extras.length) MEAL_SLOT_STATE[DOOR_LINE_EXTRAS[line]] = doorMakeExtrasSlot(d.extras.join(', '));
+  });
+}
+function _unionPieceFlags(pieces) {
+  const union = {};
+  if (typeof FLAG_DEFS !== 'undefined') FLAG_DEFS.forEach(f => { union[f.key] = false; });
+  pieces.forEach(s => { if (s && s.flags) Object.keys(union).forEach(k => { if (s.flags[k]) union[k] = true; }); });
+  return union;
+}
+// A line as written: its pieces' words, each dish once (an older slot can hold "Adobo, Garlic Green Bean" while the
+// shared side is Garlic Green Bean too).
+function doorJoinLine(texts) {
+  const seen = new Set(), out = [];
+  (texts || []).join(', ').split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
+    const k = t.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!seen.has(k)) { seen.add(k); out.push(t); }
+  });
+  return out.join(', ');
+}
 function buildVegAlt() {
-  return ['veganalt','starch','vegside','xtra']
-    .map(id => _slotText(MEAL_SLOT_STATE[id]))
-    .filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
+  return doorJoinLine(doorLinePieces(MEAL_SLOT_STATE, 'vegan').map(_slotText));
+}
+// The halal line as a full sentence, only when it differs from the shared sides (else the plating sheet adds them).
+function buildHalalLine() {
+  if (!doorLineHasOwnSides(MEAL_SLOT_STATE, 'halal') || !_slotText(MEAL_SLOT_STATE['mainalt'])) return null;
+  return doorJoinLine(doorLinePieces(MEAL_SLOT_STATE, 'halal', ['mainalt'].concat(DOOR_LINE_SIDE_IDS)).map(_slotText));
 }
 
 function buildUnionFlags() {
@@ -18081,11 +18196,11 @@ function buildMainFlags() {
 }
 
 function buildVegAltFlags() {
-  return _buildSlotGroupFlags(['veganalt','starch','vegside','xtra']);
+  return _unionPieceFlags(doorLinePieces(MEAL_SLOT_STATE, 'vegan'));   // W3b: what the vegan line actually gets
 }
 
 function buildHalalAltFlags() {
-  return _buildSlotGroupFlags(['mainalt','starch','vegside','xtra']);
+  return _unionPieceFlags(doorLinePieces(MEAL_SLOT_STATE, 'halal', ['mainalt'].concat(DOOR_LINE_SIDE_IDS)));
 }
 
 function buildNoPorkAltFlags() {
@@ -18134,6 +18249,8 @@ function _buildSlotSnapshot() {
         }
       }
       else if (s.manual) snap[d.id] = { manual: s.manual, flags: s.flags || {} };
+      // W3b: a side's vegan / halal line version travels with it.
+      if (snap[d.id] && s.lines && DOOR_LINE_SIDE_IDS.indexOf(d.id) >= 0 && Object.keys(s.lines).length) snap[d.id].lines = JSON.parse(JSON.stringify(s.lines));
     }
   });
   return snap;
@@ -18296,8 +18413,9 @@ function getVegAltSlotAllergenStr(slots, ids) {
       flagsToAllergenStr(flags).split(',').map(t => t.trim().toUpperCase()).filter(Boolean).forEach(t => out.push(t));
     }
   };
-  (ids || ['veganalt', 'starch', 'vegside', 'xtra']).forEach(id => {
-    const s = slots[id];
+  // W3b: each side's vegan version (or none) and the vegan line's extras, as the vegan line is served.
+  const _ids = ids || ['veganalt', 'starch', 'vegside', 'xtra'];
+  (typeof doorLinePieces === 'function' ? doorLinePieces(slots, 'vegan', _ids) : _ids.map(id => slots[id])).forEach(s => {
     if (!s) return;
     if (!s.recipeName && !s.manual) return;
     fromFlags(s.flags);
@@ -18459,6 +18577,39 @@ function _slotLinkSuggestionHTML(def, state, fn) {
   return `<div class="slot-link-suggest" style="margin-top:6px;font-size:11px;color:#065f46;">Link to “${escapeHtml(sug.recipeName)}”? Its allergens come with it.
     <button onclick="${_escAttr(fn + 'Select(' + _jsArgLiteral(def.id) + ',' + _jsArgLiteral(sug.recipeName) + ')')}" class="btn btn-ghost btn-sm" style="font-size:11px;margin-left:4px;">Link</button></div>`;
 }
+// W3b: under each shared side, what the vegan and halal lines get instead (same / a different dish / not served).
+function _slotLinesHTML(id) {
+  const s = MEAL_SLOT_STATE[id];
+  if (!s) return '';
+  return '<div class="slot-lines" style="margin-top:6px;font-size:11px;display:grid;gap:4px;">' + ['vegan', 'halal'].map(line => {
+    const v = (s.lines || {})[line];
+    const mode = v ? v.mode : 'same';
+    const label = line === 'vegan' ? 'Vegan line' : 'Halal line';
+    const opt = (val, txt) => '<option value="' + val + '"' + (mode === val ? ' selected' : '') + '>' + txt + '</option>';
+    const sel = '<select data-slot-line="' + id + '-' + line + '" onchange="slotLineMode(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 4px;">' +
+      opt('same', 'gets this') + opt('swap', 'gets instead…') + opt('none', 'doesn’t get it') + '</select>';
+    const txt = mode === 'swap'
+      ? ' <input type="text" list="door-recipe-names" data-slot-line-text="' + id + '-' + line + '" value="' + _escAttr(_slotText(v)) + '" placeholder="the ' + label.toLowerCase() + '’s side" onchange="slotLineText(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 6px;width:55%;">'
+      : '';
+    return '<div><span style="color:var(--muted);">' + label + ':</span> ' + sel + txt + '</div>';
+  }).join('') + '</div>';
+}
+function slotLineMode(id, line, mode) {
+  const s = MEAL_SLOT_STATE[id];
+  if (!s) return;
+  const lines = Object.assign({}, s.lines);
+  if (mode === 'same') delete lines[line];
+  else if (mode === 'none') lines[line] = { mode: 'none' };
+  else if (!lines[line] || lines[line].mode !== 'swap') lines[line] = { mode: 'swap', manual: '', flags: {} };
+  if (Object.keys(lines).length) s.lines = lines; else delete s.lines;
+  renderSlots(); updateSlotSummary();
+}
+function slotLineText(id, line, text) {
+  const s = MEAL_SLOT_STATE[id];
+  if (!s) return;
+  s.lines = Object.assign({}, s.lines, { [line]: doorMakeLineVersion(text) || { mode: 'swap', manual: '', flags: {} } });
+  renderSlots(); updateSlotSummary();
+}
 function renderSlotCard(def, ns) {
   // ns = 'slot' (Edit Menu) or 'sm-slot' (Special Meal)
   const state = ns === 'slot' ? MEAL_SLOT_STATE[def.id] : SM_SLOT_STATE[def.id];
@@ -18534,6 +18685,7 @@ function renderSlotCard(def, ns) {
     ${showAsHtml}
     ${_slotLinkSuggestionHTML(def, state, fn)}
     ${chipHtml}
+    ${ns === 'slot' && hasValue && DOOR_LINE_SIDE_IDS.indexOf(def.id) >= 0 ? _slotLinesHTML(def.id) : ''}
     ${qpHtml}
   </div>`;
 }
@@ -18964,6 +19116,8 @@ function _finishMenuSave(name, veg, flags) {
   if (!overlay[week][day]) overlay[week][day] = {};
   overlay[week][day][period]              = name;
   overlay[week][day][period + '_veg']     = veg;
+  const _halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;   // W3b: the halal line's own sides, as a full line the plating sheet uses whole
+  if (_halalLine) overlay[week][day][period + '_halal'] = _halalLine;
   doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
   overlay[week][day][period + '_softAlt'] = buildSoftAlt();
   overlay[week][day][period + '_altMeals'] = buildAltMeals();
@@ -19137,6 +19291,7 @@ function openMenuEdit(week, day, period) {
     const rotFlags = dayData[period + '_flags'];
     if (rotFlags && MEAL_SLOT_STATE['main']) MEAL_SLOT_STATE['main'].flags = {...rotFlags};
   }
+  if (period !== 'breakfast') { try { doorReadInLineVersions(dayData, period); } catch (e) { console.warn('[W3b] line read-in:', e); } }
 
   // Pre-populate alternative meals
   const initSoftAlt = (existing && existing.softAlt) ? existing.softAlt : (dayData[period + '_softAlt'] || '');
@@ -19469,7 +19624,7 @@ function doorRunOnSlots(state, defs) {
   const out = [];
   (defs || []).forEach(def => {
     const st = state && state[def.id];
-    if (!st || def.manual) return;
+    if (!st || def.manual || def.list) return;   // W3b: a line's "also gets" slot is a list by design
     const text = st.displayText || st.recipeName || st.manual || '';
     if (!text || !DOOR_RUNON_RE.test(text)) return;
     if (st.recipeName && text === st.recipeName) return;
