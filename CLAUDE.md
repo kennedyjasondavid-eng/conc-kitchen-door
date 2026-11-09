@@ -68,6 +68,9 @@ Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 she
 - **Gate:** `rex_week_import_gate` 13 (red on `main`). Suite 813/814, 1 skipped.
 - **Not remembered:** a "This week only" pick (a dated swap keeps no slot links).
 
+## Recent (2026-11-08) — DOOR's shared flow-validity block is pinned (F4 readers prep, test only)
+`tests/house_flow_block_pin_gate.mjs` pins a sha256 of the `HOUSE_TESTABLE_CORE flow-validity` block (209 lines, LF-normalized). EXPO and HUB will copy the block byte for byte and pin the same digest (F4 + D1, in EXPO's queue after U1). A change to the block here must change their copies and all three digests in one change set. Seam: `conc-kitchen-house/HOUSE_PROVEN_SEAMS.md` row 11. A one-space mutant inside the block fails the check.
+
 ## Recent (2026-11-08) — Edit Menu doesn't trust slots that are behind the menu text (`v31-standard.59`)
 Jason, 2026-11-08: "Fix the 3 and add a guard". The W3b check found meals whose saved `_slots` named other dishes than their menu text, from text edits made outside Edit Menu. Saving one would have rewritten its regular line: Wk2 FRI lunch's slots held only "Beef Chili", so Cornbread and Sautéed Cabbage would have gone. The six such meals were fixed in #174 (menu data).
 - **The guard.** `doorSlotsMatchText(slots, text)` compares the regular dishes: extras (Event Name), main, starch, vegside and xtra against the text. Commas, "&" and "—" split dishes, a repeat counts once, and case and punctuation don't count.
