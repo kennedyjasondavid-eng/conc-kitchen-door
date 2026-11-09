@@ -78,7 +78,10 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - **EXPO** reads the vegan line's text (`_veg`), not DOOR's side slots, so it needs no change.
 - **Rex's import** writes the swap or extra when Rex's vegan line differs from the regular sides, instead of copying the shared ones.
 - **Existing meals.** On opening, Edit Menu reads the 9 meals' current vegan lines into swaps and extras, so the first save keeps them.
-- **Calls for Jason:** the model (C+, or separate vegan side slots, or the vegan line as free text); whether the halal line gets the same now; and what the meal editor shows.
+- **Ruled (Jason, 2026-11-08):**
+  1. **Model: per-side line versions (C+).** Each shared side gets an optional "On the vegan line:" and "On the halal line:" (a different recipe or dish, or not served), plus "also gets" extras per line.
+  2. **Vegan and halal together.** The same shape serves both lines: `vegan` and `halal` versions on each side slot, and `vegextras` / `halalextras`. The halal plate's text (`_halal`) and allergens (`buildHalalAltFlags`) follow it as the vegan line's do.
+  3. **Existing meals are read in on open.** Edit Menu turns a meal's current vegan or halal line into versions and extras when it opens, so the first save keeps them. No bulk data change.
 
 **W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.** *(built 2026-11-08, `v31-standard.57`)*
 - The report asks that a stale tab show a banner and still send; 4 saves sat silently until a reload.
