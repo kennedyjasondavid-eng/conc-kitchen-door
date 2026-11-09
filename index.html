@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.59';
-const DOOR_BUILD_DATE = '2026-11-08';
+const DOOR_APP_VERSION = 'v31-standard.60';
+const DOOR_BUILD_DATE = '2026-11-09';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -5232,6 +5232,7 @@ const DOOR_INLINE_HANDLER_ALLOWLIST = {
   removeAnaphRoom: true,
   removeRefusal: true,
   slotSelect: true,
+  slotRenameShown: true,
   smSlotSelect: true,
   slotSaveManual: true,
   smSlotSaveManual: true
@@ -17798,6 +17799,15 @@ const MEAL_SLOT_DEFS = [
 ];
 
 let MEAL_SLOT_STATE = {};
+// W3e (2026-11-09, Wk3 SUN dinner published as "Bolo"): the slot boxes keep what a person typed apart from what is saved.
+// _slotRenderDepth: while the cards are being redrawn, the old box is taken off the page and the browser fires its blur;
+// that blur is the redraw, not the person leaving the box, so slotAutoSave ignores it (it carried the half-typed words
+// over a recipe picked a moment before). SLOT_OFFERED: the recipe names the list last offered, per slot. SLOT_HELD: words
+// a box holds that were not saved (the start of an offered name, or a new name typed over a linked recipe), shown on the
+// card and asked about at Save.
+let _slotRenderDepth = 0;
+let SLOT_OFFERED = {};
+let SLOT_HELD = {};
 // D1 (2026-09-20): did the meal currently open in Edit Menu arrive from a saved `_slots`
 // snapshot, or was it re-parsed from the menu text? DOOR only writes `_slots` when a meal
 // is re-saved here, so a meal imported from the workbook and never re-saved has none —
@@ -17810,6 +17820,7 @@ let _lastTestPd = null;
 
 function initSlotState() {
   MEAL_SLOT_STATE = {};
+  SLOT_OFFERED = {}; SLOT_HELD = {};
   MEAL_SLOT_DEFS.forEach(d => { MEAL_SLOT_STATE[d.id] = null; });
   ALT_MEALS = [{text:'', type:'plain', flags:{}}];
   ALT_MEALS_NONE = false;
@@ -18034,7 +18045,7 @@ function doorLinkFlags(recipe, current) {
   DOOR_NON_CODEX_TICKS.forEach(k => { if (prev[k] === true) f[k] = true; });
   const words = ' ' + [current && current.manual, current && current.displayText, recipe && recipe.recipeName].filter(Boolean).join(' ').toLowerCase() + ' ';
   if (/mushroom/.test(words)) f.hasMushroom = true;
-  if (/beans?|chickpea|lentil/.test(words.replace(/green beans?/g, ''))) f.hasBeans = true;
+  if (/\bbeans?\b|chickpea|lentil/.test(words.replace(/green beans?/g, ''))) f.hasBeans = true;
   return f;
 }
 function hubAllergenToFlags(allergens) {
@@ -18048,6 +18059,8 @@ function hubAllergenToFlags(allergens) {
 function renderSlots() {
   const container = document.getElementById(testMealActive ? 'tm-slot-panel' : 'mc-slot-panel');
   if (!container) return;
+  _slotRenderDepth++;
+  try {
   container.innerHTML = MEAL_SLOT_DEFS.map(def => {
     // v30: Hidden slots only show when toggled visible or have content
     if (def.hidden) {
@@ -18059,6 +18072,7 @@ function renderSlots() {
     }
     return renderSlotCard(def, 'slot');
   }).join('') + (isHubLoaded() ? '<datalist id="door-recipe-names">' + DOOR_RECIPE_DATA.map(r => '<option value="' + _escAttr(r.recipeName) + '">').join('') + '</datalist>' : '');
+  } finally { _slotRenderDepth--; }
   renderAltMealsSection();
 }
 let _noPorkAltVisible = false;
@@ -18647,7 +18661,9 @@ function renderSlotCard(def, ns) {
   // cheese at this kitchen).
   const chipHtml = hasValue ? slotManualFlagRow(def.id, state.flags, ns) : '';
 
-  const currentVal = hasValue ? (state.recipeName || state.manual || '') : '';
+  // W3e: words the box holds that were not saved stay in the box, with a note saying what was kept and why.
+  const heldTyped = (ns === 'slot' && typeof SLOT_HELD !== 'undefined') ? SLOT_HELD[def.id] : null;
+  const currentVal = heldTyped ? heldTyped.typed : (hasValue ? (state.recipeName || state.manual || '') : '');
   const matchBadge = hasValue && state.recipeName
     ? `<span style="font-size:10px;padding:1px 6px;background:#d1fae5;color:#065f46;border-radius:8px;font-weight:600;margin-left:6px;">✓ recipe matched</span>`
     : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:#92400e;border-radius:8px;font-weight:600;margin-left:6px;" title="No CODEX recipe linked. Allergen flags here are manual — verify they're complete. Type to search CODEX, click a suggestion to link.">⚠ unlinked (manual)</span>` : '');
@@ -18662,7 +18678,7 @@ function renderSlotCard(def, ns) {
         <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Shown on menu as <span style="font-style:italic;">(allergens stay linked to “${escapeHtml(state.recipeName)}”)</span></label>
         <input type="text" id="slot-showas-${_escAttr(def.id)}" value="${_escAttr(state.displayText || state.recipeName)}"
           oninput="${_escAttr('slotSetDisplayText(' + _jsArgLiteral(def.id) + ',this.value)')}"
-          style="width:100%;padding:4px 8px;border:1px dashed var(--border);border-radius:6px;font-size:12px;box-sizing:border-box;">
+          style="width:100%;padding:4px 8px;border:${heldTyped && heldTyped.kind === 'rename' ? '2px solid #d97706' : '1px dashed var(--border)'};border-radius:6px;font-size:12px;box-sizing:border-box;">
         <div id="slot-routewarn-${_escAttr(def.id)}" style="margin-top:3px;">${_slotRouteWarnHTML(def.id)}</div>
       </div>`
     : '';
@@ -18682,12 +18698,29 @@ function renderSlotCard(def, ns) {
         onkeydown="${_escAttr(fn + 'Key(event,' + _jsArgLiteral(def.id) + ')')}">
       <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
     </div>
+    ${heldTyped ? doorSlotHeldNoteHTML(def.id, heldTyped, state) : ''}
     ${showAsHtml}
     ${_slotLinkSuggestionHTML(def, state, fn)}
     ${chipHtml}
     ${ns === 'slot' && hasValue && DOOR_LINE_SIDE_IDS.indexOf(def.id) >= 0 ? _slotLinesHTML(def.id) : ''}
     ${qpHtml}
   </div>`;
+}
+
+// W3e (2026-11-09): the note under a slot box whose words were not saved. Names the words, what is saved instead, and the
+// two ways on: pick the recipe (or show the words on the menu), or press Enter to keep the words as typed.
+function doorSlotHeldNoteHTML(slotId, h, state) {
+  const saved = state ? (state.displayText || state.recipeName || state.manual || '') : '';
+  const keeps = saved ? 'Still saved: “' + escapeHtml(saved) + '”.' : 'Nothing is saved in this box yet.';
+  const btn = (label, call, args) => `<button onmousedown="event.preventDefault()" onclick="${_escJsAttrCall(call, args)}" class="btn btn-ghost btn-sm" style="font-size:11px;margin:4px 6px 0 0;">${label}</button>`;
+  const body = h.kind === 'rename'
+    ? `“${escapeHtml(h.typed)}” is not saved: this box picks the recipe. To change what the menu prints, use “Shown on menu as” below; the recipe and its allergens stay linked. ${keeps}<br>`
+      + btn('Show “' + escapeHtml(h.typed) + '” on the menu', 'slotRenameShown', [slotId, h.typed])
+      + '<span style="color:var(--muted);">or press Enter in the box to unlink the recipe and keep your words.</span>'
+    : `“${escapeHtml(h.typed)}” is not saved: it is the start of “${escapeHtml(h.recipe)}”. ${keeps}<br>`
+      + btn('Link “' + escapeHtml(h.recipe) + '”', 'slotSelect', [slotId, h.recipe])
+      + '<span style="color:var(--muted);">or press Enter in the box to keep your words as typed.</span>';
+  return `<div class="slot-held-note" role="status" style="margin-top:6px;padding:6px 8px;border-radius:6px;background:var(--amber-pale);color:#92400e;font-size:11px;line-height:1.45;">⚠ ${body}</div>`;
 }
 
 function slotAllergenPills(flags) {
@@ -18901,25 +18934,92 @@ function doorAsk(opts) {
 // newMain }; list is empty when the main is the same dish. flags: the meal as it will be saved; slotFlags: what the
 // slots name (recipes, names, tags); detected: meat flags read from the new slot text.
 function doorCarriedTicks(editKey, flags, slotFlags, detected) {
-  const none = { list: [], oldMain: '', newMain: '' };
+  const none = { list: [], dropped: [], sameDish: false, oldMain: '', newMain: '' };
   const parts = String(editKey || '').split('-');
   if (parts.length !== 3) return none;
   const [week, day, period] = parts;
   const saved = (((typeof getMenuData === 'function' ? getMenuData() : {}) || {})[week] || {})[day] || {};
   const st = s => (s ? (s.displayText || s.recipeName || s.manual || '') : '');
-  const oldMain = st((saved[period + '_slots'] || {}).main) || saved[period + '_mainItem'] || String(saved[period] || '').split(',')[0];
-  const newMain = st((typeof MEAL_SLOT_STATE !== 'undefined' && MEAL_SLOT_STATE) ? MEAL_SLOT_STATE.main : null);
+  const oldSlot = (saved[period + '_slots'] || {}).main || null;
+  const newSlot = (typeof MEAL_SLOT_STATE !== 'undefined' && MEAL_SLOT_STATE) ? MEAL_SLOT_STATE.main : null;
+  const oldMain = st(oldSlot) || saved[period + '_mainItem'] || String(saved[period] || '').split(',')[0];
+  const newMain = st(newSlot);
   const norm = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  if (!oldMain || !newMain || norm(oldMain) === norm(newMain)) return none;
+  if (!oldMain || !newMain) return none;
+  // W3e (2026-11-09): linking the main to a recipe is a change too, even under the same words (the link replaces the
+  // slot ticks with the recipe ticks, and the meal boxes follow the slot).
+  const textSame = norm(oldMain) === norm(newMain);
+  const linkChanged = !!newSlot && ((oldSlot && oldSlot.recipeName) || '') !== (newSlot.recipeName || '');
+  if (textSame && !linkChanged) return none;
   const savedFlags = saved[period + '_flags'] || {};
   const list = Object.keys(savedFlags).filter(k => savedFlags[k] === true && flags[k] && !(slotFlags || {})[k] &&
     (detected || []).indexOf(k) < 0 && k !== 'isCarb' && k !== 'halalCertifiedMeat').sort();
-  return { list, oldMain: String(oldMain).trim(), newMain: String(newMain).trim() };
+  // W3e: the ticks the saved meal has that this save would already take off (Wk3 SUN dinner: linking "Bolognese Pasta"
+  // to the Bolognese Sauce recipe took Gluten, Beef and Carb-swap off with no question).
+  const dropped = Object.keys(savedFlags).filter(k => savedFlags[k] === true && !flags[k] && k !== 'halalCertifiedMeat').sort();
+  // W3e lean: the same dish when the two names share a real word ("Bolognese Pasta" / "Bolognese Sauce" / "Beef
+  // Bolognese"). Words that only say how it is made or served do not count.
+  const GENERIC = new Set(['and', 'the', 'with', 'for', 'vegan', 'veg', 'vegetarian', 'sauce', 'pasta', 'rice', 'style', 'plain',
+    'roast', 'roasted', 'baked', 'grilled', 'fried', 'house', 'homemade', 'fresh', 'mixed', 'seasonal', 'side', 'dish', 'meal']);
+  const words = t => norm(t).split(' ').map(w => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w))
+    .filter(w => w.length > 2 && !GENERIC.has(w));
+  const ow = words(oldMain);
+  const sameDish = textSame || words(newMain).some(w => ow.indexOf(w) >= 0);
+  return { list, dropped, sameDish, oldMain: String(oldMain).trim(), newMain: String(newMain).trim() };
+}
+// W3e (2026-11-09): the Save question about the warnings a changed main would take off. Each is named. Going back saves
+// nothing; the primary button is Keep them for the same dish, Take them off for a different one (W3a).
+function doorTicksQuestion(c, ticks) {
+  const label = k => { const f = (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).find(x => x.key === k); return f ? f.label : k; };
+  const head = 'The main changed from “' + c.oldMain + '” to “' + c.newMain + '”.';
+  if (c.sameDish) return {
+    title: 'Keep the meal’s warnings?',
+    lines: [head, 'They read as the same dish, so these warnings stay on the meal unless you take them off:'],
+    items: ticks.map(label),
+    cancelLabel: 'Go back', altLabel: 'Take them off', goLabel: 'Keep them'
+  };
+  return {
+    title: 'Take off the old dish’s warnings?',
+    lines: [head, 'Nothing on the new plate names these warnings, so they look like the old dish’s. Saving takes off:'],
+    items: ticks.map(label),
+    cancelLabel: 'Go back', altLabel: 'Keep them', goLabel: 'Take them off'
+  };
+}
+// W3e (2026-11-09): the Save question for a box whose words were not saved (see doorSlotHoldTyped). Going back is the
+// default; go takes the recipe (or shows the words on the menu with the recipe kept); alt keeps the words as typed.
+function doorSlotHeldQuestion(id, h) {
+  const def = (typeof MEAL_SLOT_DEFS !== 'undefined' ? MEAL_SLOT_DEFS : []).find(d => d.id === id);
+  const box = (def ? def.label : id) + ' box';
+  if (h.kind === 'rename') return {
+    title: 'Change what the menu prints?',
+    lines: ['The ' + box + ' says “' + h.typed + '”, but it is linked to the recipe “' + h.recipe + '”.',
+      'The words the menu prints go in “Shown on menu as”. The recipe and its allergens stay linked.'],
+    cancelLabel: 'Go back', altLabel: 'Unlink the recipe, keep the words', goLabel: 'Show “' + h.typed + '” on the menu'
+  };
+  return {
+    title: 'Finish the dish name?',
+    lines: ['The ' + box + ' says “' + h.typed + '”, the start of “' + h.recipe + '”.',
+      'DOOR does not save half a name as the dish.'],
+    cancelLabel: 'Go back', altLabel: 'Save “' + h.typed + '” as typed', goLabel: 'Link “' + h.recipe + '”'
+  };
 }
 async function saveMenuEdit() {
   if (!mcMenuEditKey) return;
   if (!guardStandardMenuWrite('Edit Menu')) return;
   _commitLiveSlotInputs();   // save reads MEAL_SLOT_STATE — take whatever is in the boxes right now
+  // W3e (2026-11-09): words a box holds that were not saved are asked about here, one box at a time, never saved
+  // silently. Going back saves nothing.
+  const _heldKey = mcMenuEditKey;
+  for (const id of Object.keys(SLOT_HELD)) {
+    const h = SLOT_HELD[id];
+    if (!h) continue;
+    const ask = doorSlotHeldQuestion(id, h);
+    const ans = await doorAsk(ask);
+    if (mcMenuEditKey !== _heldKey) return;
+    if (!ans) return;
+    if (h.kind === 'half') { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotSelect(id, h.recipe); }
+    else { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotRenameShown(id, h.typed); }
+  }
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   const editKey = mcMenuEditKey;
@@ -18993,17 +19093,16 @@ async function saveMenuEdit() {
   // W3a (2026-11-08, Week 3 post-mortem): ticks follow the dish. When the main changes, a warning only the old dish
   // gave (nothing on the new plate names it, by recipe, slot or name) is asked about once; taking it off is the default.
   const _carried = doorCarriedTicks(editKey, flags, slotFlags, [...mainProteins, ...altProteins, ...noPorkProteins].map(m => m.flag));
-  if (_carried.list.length) {
-    const label = k => { const f = FLAG_DEFS.find(x => x.key === k); return f ? f.label : k; };
-    const takeOff = await doorAsk({
-      title: 'Take off the old dish’s warnings?',
-      lines: ['The main changed from “' + _carried.oldMain + '” to “' + _carried.newMain + '”.',
-        'Nothing on the new plate names these warnings, so they look like the old dish’s:'],
-      items: _carried.list.map(label),
-      cancelLabel: 'Keep them', goLabel: 'Take them off'
-    });
+  // W3e (2026-11-09): the question names every warning this save would take off, the ones the new recipe already took
+  // off included. When the two mains share a word (the same dish, linked or renamed) keeping them is the default.
+  const _offTicks = [...new Set([..._carried.list, ...(_carried.dropped || [])])].sort();
+  if (_offTicks.length) {
+    const ask = doorTicksQuestion(_carried, _offTicks);
+    const ans = await doorAsk(ask);
     if (mcMenuEditKey !== editKey) return;
-    if (takeOff) _carried.list.forEach(k => { flags[k] = false; });
+    if (!ans) return;
+    const takeOff = _carried.sameDish ? ans === 'alt' : ans === true;
+    _offTicks.forEach(k => { flags[k] = !takeOff; });
   }
 
   // Halal cert question is about the Main Alt protein specifically:
@@ -19595,7 +19694,9 @@ function initSmSlotState() {
 function renderSmSlots() {
   const container = document.getElementById('sm-slot-panel');
   if (!container) return;
-  container.innerHTML = MEAL_SLOT_DEFS.map(def => renderSlotCard(def, 'sm-slot')).join('');
+  _slotRenderDepth++;   // W3e: the blur a redraw fires is not a commit (see slotAutoSave)
+  try { container.innerHTML = MEAL_SLOT_DEFS.map(def => renderSlotCard(def, 'sm-slot')).join(''); }
+  finally { _slotRenderDepth--; }
 }
 
 // V7 (2026-10-07, Jason: "follow your leans, go ahead with 2, 3, 4 and 5"): binding a dish to its
@@ -19723,8 +19824,18 @@ function slotSearch(slotId, query) {
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
   const results = doorRankedRecipeMatches(def, q, 6);   // V7: best match first
+  if (typeof SLOT_OFFERED !== 'undefined') SLOT_OFFERED[slotId] = results.map(r => r.recipeName);
+  // W3e: on a linked slot, new words in this box are usually a new name for the same dish. Say where that goes first.
+  const cur = MEAL_SLOT_STATE[slotId];
+  const renameRow = (cur && cur.recipeName && q && doorSlotIsRename(query, cur))
+    ? `<div class="slot-rename-hint" onmousedown="event.preventDefault();${_escJsAttrCall('slotRenameShown', [slotId, String(query).trim()])}"
+        style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;background:var(--amber-pale);color:#92400e;"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity=''">
+        Renaming the dish? Show “${escapeHtml(String(query).trim())}” on the menu (“Shown on menu as”). The recipe “${escapeHtml(cur.recipeName)}” and its allergens stay linked.
+      </div>`
+    : '';
   if (!results.length && !q) { dd.style.display = 'none'; return; }
-  dd.innerHTML = results.length
+  dd.innerHTML = renameRow + (results.length
     ? results.map(r => {
         const hilite = highlightHtml(r.recipeName, q);
         return `<div onmousedown="event.preventDefault();${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}"
@@ -19734,8 +19845,44 @@ function slotSearch(slotId, query) {
           <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
         </div>`;
       }).join('')
-    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "' + escapeHtml(query) + '" manually (no allergen data)</span></div>';
+    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "' + escapeHtml(query) + '" manually (no allergen data)</span></div>');
   dd.style.display = 'block';
+}
+
+// W3e (2026-11-09): new words typed in the search box of a linked slot, that are not the recipe or the shown name.
+function doorSlotIsRename(val, current) {
+  const v = String(val || '').trim().toLowerCase();
+  if (!v || !current || !current.recipeName) return false;
+  return v !== current.recipeName.toLowerCase() && v !== String(current.displayText || '').toLowerCase();
+}
+// W3e: what a slot box holds that must not be saved as typed text without a word from the person. Returns null (save
+// it as usual) or { kind, typed, recipe }: kind 'half' when the words are the start of a recipe the list offered or of
+// the linked recipe (Wk3 SUN dinner: "Bolo" saved as the dish while "Bolognese Sauce" was being picked); kind 'rename'
+// when other words were typed over a linked recipe, whose new name belongs in "Shown on menu as".
+function doorSlotHoldTyped(val, current, offered) {
+  const v = String(val || '').trim();
+  if (!v) return null;
+  const lv = v.toLowerCase();
+  const startOf = n => { const ln = String(n || '').toLowerCase(); return ln.length > lv.length && ln.startsWith(lv); };
+  const linked = current && current.recipeName ? current.recipeName : '';
+  if (linked && (startOf(linked) || startOf(current.displayText))) return { kind: 'half', typed: v, recipe: linked };
+  const half = (offered || []).find(startOf);
+  if (half) return { kind: 'half', typed: v, recipe: half };
+  if (linked && doorSlotIsRename(v, current)) return { kind: 'rename', typed: v, recipe: linked };
+  return null;
+}
+// W3e: show other words on the menu for a linked slot; the recipe and its allergens stay.
+function slotRenameShown(slotId, val) {
+  const s = MEAL_SLOT_STATE[slotId];
+  if (typeof SLOT_HELD !== 'undefined') delete SLOT_HELD[slotId];
+  const dd = document.getElementById('slot-dd-' + slotId);
+  if (dd) dd.style.display = 'none';
+  if (s && s.recipeName) {
+    val = String(val || '').trim();
+    if (!val || val === s.recipeName) delete s.displayText; else s.displayText = val;
+  }
+  renderSlots();
+  updateSlotSummary();
 }
 
 function slotSelect(slotId, recipeName) {
@@ -19758,6 +19905,7 @@ function slotSelect(slotId, recipeName) {
   // rename-survival step (id + published previousNames) drops onto with no rework.
   if (recipe.recipeId) next.recipeId = String(recipe.recipeId);
   MEAL_SLOT_STATE[slotId] = next;
+  if (typeof SLOT_HELD !== 'undefined') delete SLOT_HELD[slotId];   // W3e: a pick is a commit
   const dd = document.getElementById('slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   renderSlots();
@@ -19766,6 +19914,7 @@ function slotSelect(slotId, recipeName) {
 
 function slotClear(slotId) {
   MEAL_SLOT_STATE[slotId] = null;
+  if (typeof SLOT_HELD !== 'undefined') delete SLOT_HELD[slotId];
   SLOT_FLAGS_EXPANDED.delete('slot:' + slotId);
   renderSlots();
   updateSlotSummary();
@@ -19811,7 +19960,11 @@ function _commitLiveSmSlotInputs() {
   pending.forEach(p => smSlotAutoSave(p[0], p[1]));
 }
 
-function slotAutoSave(slotId, val) {
+function slotAutoSave(slotId, val, how) {
+  // W3e (2026-11-09): a blur fired while the cards are redrawn (the box is being replaced) is not a commit. slotSelect
+  // redraws the cards, the browser blurs the old box on its way out, and that box still held "Bolo": the half-typed
+  // words were saved over the recipe just picked, with the recipe allergens left on them.
+  if (typeof _slotRenderDepth !== 'undefined' && _slotRenderDepth > 0) return;
   val = (val || '').trim();
   const dd = document.getElementById('slot-dd-' + slotId);
   // Commit the typed text. A dropdown ROW click keeps input focus (mousedown-preventDefault),
@@ -19819,10 +19972,13 @@ function slotAutoSave(slotId, val) {
   // and the operator's exact text must be kept (never forced onto a partial CODEX match). Hide
   // any open dropdown and fall through to the exact-match-or-manual commit below.
   if (dd) dd.style.display = 'none';
-  if (!val) { MEAL_SLOT_STATE[slotId] = null; renderSlots(); updateSlotSummary(); return; }
+  const held = typeof SLOT_HELD !== 'undefined' ? SLOT_HELD : null;
+  if (!val) { MEAL_SLOT_STATE[slotId] = null; if (held) delete held[slotId]; renderSlots(); updateSlotSummary(); return; }
   const current = MEAL_SLOT_STATE[slotId];
   // Don't overwrite a recipe-linked entry with the same name
-  if (current && current.recipeName && current.recipeName === val) return;
+  if (current && current.recipeName && current.recipeName === val) { if (held && held[slotId]) { delete held[slotId]; renderSlots(); } return; }
+  // W3e: the box showing the linked slot's own shown name is no change either.
+  if (current && current.recipeName && current.displayText && current.displayText.toLowerCase() === val.toLowerCase()) { if (held && held[slotId]) { delete held[slotId]; renderSlots(); } return; }
   // Try to match against DOOR_RECIPE_DATA — EXACT name only. Partial/fuzzy
   // match was removed because it silently substituted recipes the user didn't
   // intend (typing "Couscous" → "Herbed Couscous" with its allergens). To
@@ -19843,13 +19999,21 @@ function slotAutoSave(slotId, val) {
     if (match.recipeId) next.recipeId = String(match.recipeId);                      // phase-2: store the stable id (published for HUB deep-links)
     MEAL_SLOT_STATE[slotId] = next;
   } else {
+    // W3e: the start of a recipe the list offered, or new words over a linked recipe, is not saved as the dish on a
+    // blur or at Save. The last saved value stays, the box keeps the words, the card says why, and Save asks.
+    // Enter in the box (how === 'enter') is the person saying "these words, as typed".
+    const hold = (how !== 'enter' && held && typeof doorSlotHoldTyped === 'function')
+      ? doorSlotHoldTyped(val, current, (typeof SLOT_OFFERED !== 'undefined' ? SLOT_OFFERED[slotId] : null)) : null;
+    if (hold) { held[slotId] = hold; renderSlots(); updateSlotSummary(); return; }
     MEAL_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
   }
+  if (held) delete held[slotId];
   renderSlots();
   updateSlotSummary();
 }
 
 function smSlotAutoSave(slotId, val) {
+  if (typeof _slotRenderDepth !== 'undefined' && _slotRenderDepth > 0) return;   // W3e: a redraw blur is not a commit
   val = (val || '').trim();
   const dd = document.getElementById('sm-slot-dd-' + slotId);
   // Commit the typed text — a row click keeps focus (mousedown-preventDefault), so only a
@@ -19939,7 +20103,7 @@ function slotKey(e, slotId) {
     e.preventDefault();
     if (dd) dd.style.display = 'none';
     const inp = document.getElementById('slot-search-' + slotId);
-    if (inp) slotAutoSave(slotId, inp.value.trim());
+    if (inp) slotAutoSave(slotId, inp.value.trim(), 'enter');   // W3e: Enter keeps the words as typed
   }
 }
 
@@ -19952,6 +20116,7 @@ function slotSaveManual(slotId, val) {
   const dd = document.getElementById('slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   MEAL_SLOT_STATE[slotId] = { manual: val };
+  if (typeof SLOT_HELD !== 'undefined') delete SLOT_HELD[slotId];
   renderSlots();
   updateSlotSummary();
 }

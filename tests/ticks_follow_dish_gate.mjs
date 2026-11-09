@@ -93,7 +93,10 @@ test('Edit Menu: Save asks once, defaulting to take them off, then re-checks the
   const save = fnBlock('saveMenuEdit');
   const at = save.indexOf('doorCarriedTicks(editKey');
   assert.ok(at > 0, 'Save looks for carried ticks');
-  assert.match(save.slice(at, at + 1000), /goLabel: 'Take them off'[\s\S]{0,200}if \(mcMenuEditKey !== editKey\) return;[\s\S]{0,80}if \(takeOff\)/);
+  // 2026-11-09 (W3e): the question moved to doorTicksQuestion and names every tick Save would take off; a different
+  // dish still defaults to Take them off (the same dish defaults to Keep them: w3e_slot_commit_ticks_gate 5).
+  assert.match(save.slice(at, at + 1200), /await doorAsk\(ask\);\s*if \(mcMenuEditKey !== editKey\) return;[\s\S]{0,120}const takeOff = _carried\.sameDish \? ans === 'alt' : ans === true;/);
+  assert.match(fnBlock('doorTicksQuestion'), /title: 'Take off the old dish’s warnings\?'[\s\S]{0,250}cancelLabel: 'Go back', altLabel: 'Keep them', goLabel: 'Take them off'/);
 });
 
 test('linking a slot keeps the Mushroom and Beans ticks CODEX has no family for', () => {
