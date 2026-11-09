@@ -48,6 +48,29 @@ DOOR's side is built and switched off. What's left is to switch it on and let EX
 - **F3b and F5 wait until F4 has run for about a week.** Then Jason decides on scaled recipe quantities with real counts in front of him. F5 is checked through F4's tests; it is built separately only if a mismatch shows.
 - **To confirm:** no DOOR publish has reached GitHub since 2026-11-06 10:15. That may be F6 skipping unchanged saves. The first real change after reconnecting should land as a commit.
 
+### F4 readers: design pass (2026-11-08; calls pending, not built)
+EXPO #565 (F3a) merged, so R4 is unblocked.
+
+**Where DOOR's counts reach staff today:**
+- **EXPO, PULL quantities** (`generatePullSteps`): the Regular, Halal and Vegan section counts times the portion. They print on the board and on HUB's cards.
+  - `loadRoutingFromDOOR` keeps its cached copy **however old**. With no copy, every PULL silently uses **172**.
+  - The frozen-stock order sheet has the same 172 fallback.
+- **HUB, recipe links** (`&portions=N`, from `_components`) and the **frozen-stock counts**. HUB already refuses routing older than 7 days (`ROUTING_STALE`): the link opens unscaled, and frozen stock says "count not available".
+
+**Proposed reader (lean):**
+1. **One shared block.** DOOR's `HOUSE_TESTABLE_CORE flow-validity` (about 210 lines) is copied byte for byte into EXPO and HUB. A contract check in each repo keeps the three copies identical, like the EXPO↔HUB required-key pair. Port the seam; don't reimplement it.
+2. **A coherent set or nothing.** Counts are accepted only from a complete set: equal receipts on the menu, registry and routing, digests that check, and the right site and calendar. A newer publication sequence, once seen, retires older counts at once. Until F4 is switched on, DOOR writes no receipts, so readers keep today's behaviour plus the age bound in (3).
+3. **One age bound for both apps: 7 days**, HUB's existing one. EXPO adopts it, so its cache can no longer serve counts of any age.
+4. **What staff see when counts aren't current:** a call for Jason (below).
+5. **Then switch F4 on:** a separate small DOOR PR fills `DOOR_FLOW_ACTIVATION_EPOCH` / `_BASE`.
+
+**S3, the quiet-computer alarm (proposed):**
+- DOOR can't send a check-in without a commit on GitHub, and F6 rightly skips unchanged saves. So the signal is the age of DOOR's last publication, read by EXPO and HUB.
+- The operations level (ruled 2026-11-07) is a quiet supervisor line: "DOOR hasn't sent new counts since Tue". Where Jason's note goes is a call.
+- Residents change most days, so a gap of 48 hours or more is worth a look.
+
+**Calls for Jason:** what a PULL card shows when counts aren't current; the alarm's threshold and where Jason's note goes; and the order of EXPO and HUB.
+
 ### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; placed, not built)
 Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covers placing them, not building. These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
 
