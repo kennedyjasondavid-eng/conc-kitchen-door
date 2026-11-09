@@ -6127,12 +6127,12 @@
         "hasNightshades": true,
         "hasBeans": false
       },
-      "dinner": "Bolognese Sauce, Peas & Carrots",
-      "dinner_veg": "Vegan Bolognese Pasta, Peas & Carrots",
-      "dinner_mainItem": "Bolognese Sauce",
-      "dinner_sides": "Peas & Carrots",
+      "dinner": "Beef Bolognese, Pasta, Peas & Carrots",
+      "dinner_veg": "Vegan Bolognese, Pasta, Peas & Carrots",
+      "dinner_mainItem": "Beef Bolognese",
+      "dinner_sides": "Pasta, Peas & Carrots",
       "dinner_flags": {
-        "hasGluten": false,
+        "hasGluten": true,
         "hasDairy": false,
         "hasEgg": false,
         "hasFish": false,
@@ -6144,12 +6144,12 @@
         "hasShellfish": false,
         "hasSulphites": false,
         "hasPork": false,
-        "hasBeef": false,
+        "hasBeef": true,
         "hasChicken": false,
         "hasTurkey": false,
         "isSpicy": false,
-        "isCarb": false,
-        "halalCertifiedMeat": false,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
         "hasBeans": false,
         "hasMushroom": false,
@@ -6199,7 +6199,8 @@
             "hasBrassicas": false,
             "hasCorn": false
           },
-          "recipeId": "bolognese-sauce"
+          "recipeId": "bolognese-sauce",
+          "displayText": "Beef Bolognese"
         },
         "veganalt": {
           "recipeName": "Vegan Bolognese",
@@ -6230,8 +6231,13 @@
             "hasBrassicas": false,
             "hasCorn": true
           },
-          "recipeId": "vegan-bolognese",
-          "displayText": "Vegan Bolognese Pasta"
+          "recipeId": "vegan-bolognese"
+        },
+        "starch": {
+          "manual": "Pasta",
+          "flags": {
+            "hasGluten": true
+          }
         },
         "vegside": {
           "manual": "Peas & Carrots",
@@ -6240,7 +6246,7 @@
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_lunch": "gluten, egg, mustard",
-      "allergens_dinner": "",
+      "allergens_dinner": "gluten, beef",
       "lunch_gfAlt": "NO MAYO Coronation chicken salad, GF BREAD, Seasonal soup or salad",
       "lunch_noEggAlt": "NO MAYO Coronation chicken salad sandwich, Salad or Seasonal Soup",
       "lunch_altMeals": [
@@ -8584,7 +8590,7 @@
       "1|SUNDAY": 1792415770014,
       "2|THURSDAY": 1794186589141,
       "3|FRIDAY": 1794168729668,
-      "3|SUNDAY": 1794227709225,
+      "3|SUNDAY": 1794227850191,
       "4|TUESDAY": 1792415770014,
       "4|THURSDAY": 1792415770014,
       "4|SATURDAY": 1792681340848,

@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-09T12:35:27.156Z",
+    "exported": "2026-11-09T12:37:48.689Z",
     "version": 32
   },
   "menu": {
@@ -3557,12 +3557,12 @@
           "hasNightshades": true,
           "hasBeans": false
         },
-        "dinner": "Bolognese Sauce, Peas & Carrots",
-        "dinner_veg": "Vegan Bolognese Pasta, Peas & Carrots",
-        "dinner_mainItem": "Bolognese Sauce",
-        "dinner_sides": "Peas & Carrots",
+        "dinner": "Beef Bolognese, Pasta, Peas & Carrots",
+        "dinner_veg": "Vegan Bolognese, Pasta, Peas & Carrots",
+        "dinner_mainItem": "Beef Bolognese",
+        "dinner_sides": "Pasta, Peas & Carrots",
         "dinner_flags": {
-          "hasGluten": false,
+          "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
@@ -3574,12 +3574,12 @@
           "hasShellfish": false,
           "hasSulphites": false,
           "hasPork": false,
-          "hasBeef": false,
+          "hasBeef": true,
           "hasChicken": false,
           "hasTurkey": false,
           "isSpicy": false,
-          "isCarb": false,
-          "halalCertifiedMeat": false,
+          "isCarb": true,
+          "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
           "hasBeans": false,
           "hasMushroom": false,
@@ -3629,7 +3629,8 @@
               "hasBrassicas": false,
               "hasCorn": false
             },
-            "recipeId": "bolognese-sauce"
+            "recipeId": "bolognese-sauce",
+            "displayText": "Beef Bolognese"
           },
           "veganalt": {
             "recipeName": "Vegan Bolognese",
@@ -3660,8 +3661,13 @@
               "hasBrassicas": false,
               "hasCorn": true
             },
-            "recipeId": "vegan-bolognese",
-            "displayText": "Vegan Bolognese Pasta"
+            "recipeId": "vegan-bolognese"
+          },
+          "starch": {
+            "manual": "Pasta",
+            "flags": {
+              "hasGluten": true
+            }
           },
           "vegside": {
             "manual": "Peas & Carrots",
@@ -3670,7 +3676,7 @@
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
         "allergens_lunch": "gluten, egg, mustard",
-        "allergens_dinner": "",
+        "allergens_dinner": "gluten, beef",
         "lunch_gfAlt": "NO MAYO Coronation chicken salad, GF BREAD, Seasonal soup or salad",
         "lunch_noEggAlt": "NO MAYO Coronation chicken salad sandwich, Salad or Seasonal Soup",
         "lunch_altMeals": [
