@@ -69,7 +69,24 @@ EXPO #565 (F3a) merged, so R4 is unblocked.
 - The operations level (ruled 2026-11-07) is a quiet supervisor line: "DOOR hasn't sent new counts since Tue". Where Jason's note goes is a call.
 - Residents change most days, so a gap of 48 hours or more is worth a look.
 
-**Calls for Jason:** what a PULL card shows when counts aren't current; the alarm's threshold and where Jason's note goes; and the order of EXPO and HUB.
+**More readers (from the EXPO walkthrough session, 2026-11-08):** besides PULL and the frozen order sheet, EXPO reads `_routingByMeal` in:
+- `applyRoutingDrivenQty`: rewrites row quantities from routing, falling back to `RECIPE_DB.qty`. It reaches the most cards.
+- `_localInputDigest`: the build-input stamp. An age rule changes when the board reads as "not yet published".
+- `updateModeBadge`: display only.
+
+HUB's `FROZEN_SERVES` carries no quantities, because HUB multiplies by its own routing, so HUB needs its own reader.
+
+**Alignment:**
+- Fold F4's reader together with EXPO plan D1 (DOOR and HUB read `sites.json` for sites and counts; HUB says when DOOR's counts didn't load).
+- The copied flow-validity block becomes a row in `conc-kitchen-house/HOUSE_PROVEN_SEAMS.md`, kept identical by a check in each repo.
+
+**Ruled (Jason, 2026-11-08):**
+1. **Counts that aren't current.** Within 7 days, the last coherent counts are used quietly. Past that, or once a newer publication replaces them, cards keep a number marked "estimate: DOOR's counts are from <date>". 172 is used only when nothing is left, and is marked as such too. This covers PULL, `applyRoutingDrivenQty` rows and the frozen order sheet.
+2. **Quiet-computer alarm: 48 hours** with no new DOOR publication.
+   - HUB shows supervisors one quiet line ("DOOR hasn't sent new counts since Tue").
+   - EXPO's "What the board needs" shows Jason a row naming the computer that last sent, and when.
+   - No email or messaging.
+3. **EXPO first, then HUB, then switch F4 on.** EXPO's build takes its turn in EXPO's one-writer queue (EXPO_IN_APP_ACTION_PLAN_2026-11-08.md §1). The walkthrough session's lean is right after U1, and Jason decides the slot.
 
 ### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; placed, not built)
 Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covers placing them, not building. These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
