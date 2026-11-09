@@ -86,7 +86,9 @@ HUB's `FROZEN_SERVES` carries no quantities, because HUB multiplies by its own r
    - HUB shows supervisors one quiet line ("DOOR hasn't sent new counts since Tue").
    - EXPO's "What the board needs" shows Jason a row naming the computer that last sent, and when.
    - No email or messaging.
-3. **EXPO first, then HUB, then switch F4 on.** EXPO's build takes its turn in EXPO's one-writer queue (EXPO_IN_APP_ACTION_PLAN_2026-11-08.md §1). The walkthrough session's lean is right after U1, and Jason decides the slot.
+3. **EXPO first, then HUB, then switch F4 on.** EXPO's build takes its turn in EXPO's one-writer queue (EXPO_IN_APP_ACTION_PLAN_2026-11-08.md §1). Jason ruled the slot 2026-11-08: **after U1**. EXPO's order is G1 → R5 → U1 → **F4 + D1** → P1 → G3 → G6 → G4 → R3. HUB waits for EXPO's reader.
+   - Nothing touches EXPO's `index.html` until the walkthrough session says U1 has merged and gives the base commit.
+   - Prep done meanwhile: DOOR pins the block's digest (`tests/house_flow_block_pin_gate.mjs`), and the seam is HOUSE_PROVEN_SEAMS row 11.
 
 ### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; placed, not built)
 Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covers placing them, not building. These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
