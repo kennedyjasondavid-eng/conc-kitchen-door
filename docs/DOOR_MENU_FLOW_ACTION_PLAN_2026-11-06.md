@@ -55,6 +55,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - When a meal's main changes (Rex's week-sheet import, Edit Menu), recompute its ticks from the linked recipes. Show before and after for one confirm.
 - Never carry the old dish's ticks. On Week 3, leftover Pork ticks made EXPO invent "Halal Chicken" dishes.
 - Keep ticks that come from the dish's name (like Mushroom) when linking.
+- C1-1 (2026-11-08, `v31-standard.58`): CODEX now writes Mushroom and Beans families; DOOR maps them to the same ticks. The name rule above stays for hand-typed dishes.
 - Builds on `doorEmptyDishParts` / `doorSetMealFlags` (`.42`) and `doorRexBuildMeal`.
 - Check: a main swapped from a pork dish to a non-pork dish leaves no Pork tick, and EXPO's halal line isn't invented.
 

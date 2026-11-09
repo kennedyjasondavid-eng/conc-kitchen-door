@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-08) — CODEX's Mushroom and Beans labels set their ticks (C1-1, `v31-standard.58`)
+Jason, 2026-11-08: "go ahead with C1-1 Mushroom and Beans families" (CODEX's R3 plan; Week 3 post-mortem log 4). CODEX's paired edition writes `Mushroom (…)` and `Beans (…)` on its recipes.
+- `HUB_ALLERGEN_MAP` gains `Mushroom`, `Mushrooms` → `hasMushroom` and `Beans` → `hasBeans`, so a linked recipe sets the ticks No Mushroom / No Beans residents are warned by. Without it, the new labels would be reported as unmapped and set nothing.
+- W3a's `DOOR_NON_CODEX_TICKS` stays: it keeps a tick the slot or its words carry when the recipe's labels don't (an older feed, a hand-typed dish). It only ever adds a warning.
+- **Merge before CODEX's edition.** On today's feed nothing changes.
+- **Gate:** `recipe_attach_allergen_norm_gate` gains one check (red on `main`). Suite: 822 of 829 pass, 4 skipped; the 3 that fail read the home-dir CODEX clone, 694 commits behind, and fail the same on `main`. Beside current CODEX, those gates pass 37/37.
+
 ## Recent (2026-11-08) — Rex's week sheet links a dish the menu has linked before (`v31-standard.54`)
 Jason, 2026-11-08: "remember and reuse dish links". Found running the Week 3 sheet: "Chicken a la King" never links to the Library's Garden a la King on its own, and an unlinked dish loses its recipe's allergens.
 - **The memory is DOOR's menu.** `doorRexKnownLinks(menu)` reads every slot that links a recipe, by the words it shows (`displayText`, else the recipe name); a slot holding a whole line is skipped, and a name linked to two recipes is left out. `doorRexRecipeFor(piece, recipes, accept, known)` uses it after an exact name match (Rex's one-letter slips forgiven, as `doorRexSameDish` reads them), only for a recipe that fits the slot and is still in CODEX's list. `doorRexWeekCtx` passes `known` from `getMenuData()`. No new store; CODEX's `recipe_aliases.json` is not read (hand-curated, feed recipes only, with stand-in entries).
