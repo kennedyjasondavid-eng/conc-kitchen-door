@@ -1107,6 +1107,7 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
       }
     },
     MEAL_SLOT_DEFS: [{ id: 'main', cats: ['protein'], streams: ['regular'] }],
+    MEAL_SLOT_STATE: {},   // 2026-11-09 (W3e): slotSearch reads the slot, to point a linked slot new words to "Shown on menu as"
     DOOR_RECIPE_DATA: [{
       recipeName: '<img src=x onerror=alert(1)> Soup',
       category: 'protein',

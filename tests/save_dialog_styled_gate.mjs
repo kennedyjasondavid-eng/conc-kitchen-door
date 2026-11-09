@@ -71,7 +71,8 @@ test('1. saveMenuEdit asks through doorAsk — no browser confirm() left in Save
   assert.match(save, /^async function saveMenuEdit\(/, 'Save waits for the answer');
   assert.ok(!/(^|[^.\w$])confirm\s*\(/.test(code(save)), 'no confirm() in saveMenuEdit');
   // 2026-11-08 (W3a): a third question, "Take off the old dish's warnings?", asked when the main changed.
-  assert.equal((save.match(/await doorAsk\(/g) || []).length, 3, 'all three questions use doorAsk');
+  // 2026-11-09 (W3e): a fourth, first: words a slot box holds that were not saved ("Bolo"), one box at a time.
+  assert.equal((save.match(/await doorAsk\(/g) || []).length, 4, 'all four questions use doorAsk');
   const runOn = save.indexOf('doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS)');
   assert.ok(runOn > 0 && runOn < save.indexOf('buildAltMeals()'), 'the run-on question still comes first');
 });
