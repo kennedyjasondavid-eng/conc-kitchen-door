@@ -1,5 +1,6 @@
 // Frozen F6 actual-browser harness. Git and anonymous delivery are independent.
 import {chromium} from 'playwright';
+import { preActivationHtmlPath } from '../helpers/pre_activation_html.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {dirname,resolve} from 'node:path';
@@ -12,7 +13,9 @@ export const NOW='2026-11-04T12:00:00Z',PUBLIC=['meal_swaps.json','meal_swaps_re
 export const FAMILIES=['menu_current.json','menu_overlay.json','registry_summary.json','routing_by_meal.json','door_state.json'];
 export const isDeliveryPublic=url=>{const u=new URL(url,'https://fixture.github.io/door/');return u.origin==='https://fixture.github.io'&&u.pathname.startsWith('/door/')&&PUBLIC.includes(u.pathname.split('/').pop());};
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-const file=pathToFileURL(process.env.HOUSE_FLOW_HTML||resolve(root,'index.html')).href;
+// 2026-11-09 (F4 on): this contract checks pre-activation rules, so by default it runs on a copy with the activation
+// constants blanked (tests/helpers/pre_activation_html.mjs). Activated publishing: tests/f4_activated_publish_gate.mjs.
+const file=pathToFileURL(process.env.HOUSE_FLOW_HTML||preActivationHtmlPath()).href;
 export const html=readFileSync(new URL(file),'utf8'),sourceHash=createHash('sha256').update(html).digest('hex');
 export function fixture({legacy=false}={}) {
   const i=inputs();i.registry.residents=i.registry.residents.map(r=>({...r,section:'Regular',restrictions:[],allergenFlags:[],accommodations:[],preferences:[],avoidances:[],_tierMigrated:true}));
