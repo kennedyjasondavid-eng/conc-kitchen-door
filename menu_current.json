@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-09T15:40:20.008Z",
+    "exported": "2026-11-09T17:47:23.813Z",
     "version": 32,
     "flow": {
       "calendar": {
@@ -15,14 +15,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:470e031699bc890d138e71b3da8bb06b404f3f86e37b072a44564b839b8ac290",
-        "recipe": "sha256:8714ff456485f936f341d29b6163f7b37526577de870a69f532cd1f754773466",
+        "menu": "sha256:25015350d4aa2ae5fad0117fbab5fbe50cfc555c57d8c2b75413daeaa20c51dc",
+        "recipe": "sha256:ce872eaecc42d87481310ca4e3da3d87d1eb6ce74fe479028c96a892023e7ce9",
         "registry": "sha256:104264d4ddca52acf0b50e7adb07810be8faa9c8e7432901eb3f7fb152b2eae8"
       },
-      "inputRevision": "sha256:2411313b39cd333755b7e95066f56ef98be822e5c0077a1395be59e299da0e4a",
+      "inputRevision": "sha256:fcb043a709344925b617b6cc8dbcdff75b4e34144f6fd7a680d3e9f598b1d828",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 1
+        "sequence": 2
       },
       "schema": 1
     }
@@ -5427,7 +5427,7 @@
           "hasBeans": false
         },
         "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
-        "dinner_veg": "White Chilli Pasta Casserole, Broccoli",
+        "dinner_veg": "Vegan White Chilli Pasta Casserole, Broccoli",
         "dinner_mainItem": "White Chilli Chicken Pasta Casserole",
         "dinner_sides": "Broccoli",
         "dinner_flags": {
@@ -5523,7 +5523,7 @@
             }
           },
           "veganalt": {
-            "recipeName": "White Chicken & Chickpea Chili",
+            "recipeName": "Vegan White Chili",
             "flags": {
               "hasGluten": true,
               "hasDairy": false,
@@ -5549,10 +5549,10 @@
               "hasCoconut": false,
               "hasNightshades": true,
               "hasBrassicas": false,
-              "hasCorn": false
+              "hasCorn": true
             },
-            "recipeId": "white-chicken-and-chickpea-chili",
-            "displayText": "White Chilli Pasta Casserole"
+            "recipeId": "vegan-white-chili",
+            "displayText": "Vegan White Chilli Pasta Casserole"
           },
           "vegside": {
             "manual": "Broccoli",
@@ -5642,7 +5642,11 @@
         "lunch_softAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
         "lunch_altMealsNone": false,
         "dinner_gfAlt": "Plain Chicken Leg, Rice, Broccoli",
-        "dinner_diabeticAlt": "White Chili Chicken Pasta, Broccoli, Pasta, Whole wheat"
+        "dinner_diabeticAlt": "White Chili Chicken Pasta, Broccoli, Pasta, Whole wheat",
+        "dinner_noDairyAlt": "",
+        "dinner_noEggAlt": "",
+        "dinner_blandAlt": "",
+        "dinner_anaphAlt": ""
       },
       "MONDAY": {
         "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
