@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.61';
+const DOOR_APP_VERSION = 'v31-standard.62';
 const DOOR_BUILD_DATE = '2026-11-09';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11460,9 +11460,13 @@ function houseFlowResolve(state,service,now) {
 }
 function houseFlowSnapshot(state) { return {schema:1,highest:state.highest && houseFlowCopy(state.highest),conflict:state.conflict === true,observedAt:state.accepted ? state.accepted.observedAt : null}; }
 /* HOUSE_TESTABLE_CORE_END flow-validity */
-// Empty until compatible readers are served and the operator-led writer cutover is complete.
-const DOOR_FLOW_ACTIVATION_EPOCH = '';
-const DOOR_FLOW_ACTIVATION_BASE = '';
+// F4 switched on (v31-standard.62, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
+// read receipts (estimates past 7 days or once superseded). The writer cutover is the F1 reconnect of 2026-11-06/07 (R2;
+// Jason, 2026-11-09: "pretty sure that is the cutover, not 100% but I have a feeling it's not critical").
+// _BASE is DOOR main at activation: the first activated publish may start sequence 1 only when its first-parent walk
+// reaches this commit with no earlier receipt (doorFlowPreviousReceipt). Never change these two once receipts exist.
+const DOOR_FLOW_ACTIVATION_EPOCH = 'rexdale-f4-2026-11-09';
+const DOOR_FLOW_ACTIVATION_BASE = 'd6d4cabd3a2545b895ef7806caa4e1616da03e45';
 async function doorFlowPreviousReceipt(inputs,creds) {
   const current = (inputs.revision.data['menu_current.json'] || {})._meta || {};
   const remembered = localStorage.getItem('concDoorFlowPublication');
@@ -11502,6 +11506,18 @@ async function doorFlowPreviousReceipt(inputs,creds) {
     throw new Error('The current publication epoch is inconsistent. Work remains pending.');
   }
   const read = path => doorPublishReadJSON(creds,path);
+  // v31-standard.62 (F4 switch-on review, P1). The first activated publish proves no receipt was ever written since
+  // the activation base. The walk below stops after 32 commits, and main takes about two commits per publish, so a base
+  // left behind by a busy day would have held every publish (resident list included) until a code change. When this
+  // computer remembers nothing and the head has no receipt and no counter, two reads prove it at any distance: the head
+  // is at or after the base, and the counter file has never existed. Anything else falls through to the walk.
+  if (!remembered && DOOR_FLOW_ACTIVATION_EPOCH && DOOR_FLOW_ACTIVATION_BASE && !current.flow) {
+    const cmp = await read('/compare/' + DOOR_FLOW_ACTIVATION_BASE + '...' + inputs.revision.head);
+    if (cmp && (cmp.status === 'ahead' || cmp.status === 'identical')) {
+      const counterHistory = await read('/commits?sha=' + encodeURIComponent(inputs.revision.head) + '&path=door_flow_publication.json&per_page=1');
+      if (Array.isArray(counterHistory) && counterHistory.length === 0) return null;
+    }
+  }
   let head = inputs.revision.head;
   for (let n = 0; head && n < 32; n++) {
     const commit = await read('/git/commits/' + head);
@@ -11646,8 +11662,12 @@ async function doorFlowStampCandidate(inputs,artifacts,creds) {
   receipt.publication = houseFlowCopy(publication);
   flow.inputRevision = receipt.inputRevision;
   artifacts['routing_by_meal.json'].flow = flow;
+  // v31-standard.62 (F4 switched on): every stamped file names its site. menu_overlay.json never carried one, and the
+  // delivery check (doorDeliveryFlow) requires it on the private files, so the first activated publish would have
+  // committed and then waited on its confirmation for ever.
+  const flowSite = artifacts['menu_current.json']._meta.site;
   ['menu_current.json','menu_overlay.json','routing_by_meal.json','registry_summary.json','door_state.json'].forEach(name => {
-    artifacts[name]._meta = Object.assign({},artifacts[name]._meta,{flow:houseFlowCopy(receipt)});
+    artifacts[name]._meta = Object.assign({},artifacts[name]._meta,{site:flowSite,flow:houseFlowCopy(receipt)});
   });
   artifacts['door_flow_publication.json'] = {_meta:{site:artifacts['menu_current.json']._meta.site},schema:1,flow:houseFlowCopy(receipt)};
   return {epoch:publication.epoch,sequence:publication.sequence + 1};

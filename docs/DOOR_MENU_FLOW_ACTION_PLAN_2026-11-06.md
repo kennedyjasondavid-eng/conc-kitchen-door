@@ -13,7 +13,7 @@ Normal menu edits should be saved once and reach EXPO's production schedule, HUB
 | C1 | Two jobs per ordinary publish | DOOR #153 |
 | C2a | Ordinary menu edits need no test changes | DOOR #154 |
 | F1 | Menu changes publish as one set; a failed read can't wipe removals | DOOR #155, **not switched on** (waits for the credential cutover) |
-| F4, DOOR side | Counts carry a publication stamp | DOOR #156, **off** (`DOOR_FLOW_ACTIVATION_EPOCH` / `_BASE` are empty) |
+| F4, DOOR side | Counts carry a publication stamp | DOOR #156; **switched on** in #181 (`v31-standard.62`, epoch `rexdale-f4-2026-11-09`, base `d6d4cab`), after the readers (EXPO #580 + #581, HUB #58 + #59) |
 | C2b | Data-only saves skip the browser checks | DOOR #157 |
 | F6 | No duplicate publishes; DOOR tracks delivery | DOOR #158 |
 | F2 | A swapped meal reaches production whole | EXPO #564, HUB #56 |

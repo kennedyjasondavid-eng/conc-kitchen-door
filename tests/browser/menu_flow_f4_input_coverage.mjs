@@ -1,6 +1,7 @@
 // Independent F4 producer input-coverage supplement; frozen separately. Existing Playwright runtime only; no live credentials/network.
 // All requests are intercepted. Operational repository files are never written.
 import { chromium } from 'playwright';
+import { preActivationHtmlPath } from '../helpers/pre_activation_html.mjs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -10,7 +11,9 @@ import { initialRemote } from '../helpers/door_publish_transaction_box.mjs';
 import { clone, inputs, receipt, digest } from '../fixtures/menu_flow_f4_cases.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const NOW='2026-11-04T12:00:00Z', KEY='2026-11-06-dinner';
-const FILE=pathToFileURL(process.env.HOUSE_FLOW_HTML||resolve(root,'index.html')).href;
+// 2026-11-09 (F4 on): this contract checks pre-activation rules, so by default it runs on a copy with the activation
+// constants blanked (tests/helpers/pre_activation_html.mjs). Activated publishing: tests/f4_activated_publish_gate.mjs.
+const FILE=pathToFileURL(process.env.HOUSE_FLOW_HTML||preActivationHtmlPath()).href;
 const html=readFileSync(new URL(FILE),'utf8');
 console.log('F4 producer source SHA256 '+createHash('sha256').update(html).digest('hex'));
 let pass=0,fail=0;

@@ -265,7 +265,10 @@ function loadPublishFlowHarness(options = {}) {
   const deliveryActions = { style: {}, querySelector: () => deliveryLink };
   const timers = new Map();
   const deliveryReads = [];
-  let transportHead = 'pinned-test-head';
+  // 2026-11-09 (F4 switched on, v31-standard.62): the pinned head is DOOR_FLOW_ACTIVATION_BASE when the page sets one,
+  // so this publish is the first after activation (doorFlowPreviousReceipt reads that commit and starts sequence 1).
+  const activationBase = (html.match(/const DOOR_FLOW_ACTIVATION_BASE = '([0-9a-f]{40})';/) || [])[1] || '';
+  let transportHead = activationBase || 'pinned-test-head';
   let timerId = 0;
   const pushed = [];
   const syncBars = [];
@@ -296,8 +299,17 @@ function loadPublishFlowHarness(options = {}) {
     clearTimeout(id) { timers.delete(id); },
     async fetch(url, init = {}) {
       assert.equal(init.method || 'GET', 'GET', 'delivery verification stays read-only');
+      if (activationBase && String(url) === 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/compare/' + activationBase + '...' + activationBase) {
+        return { ok: true, status: 200, json: async () => ({ status: 'identical' }) };
+      }
+      if (activationBase && String(url).startsWith('https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/commits?sha=' + activationBase + '&path=door_flow_publication.json')) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      if (activationBase && String(url) === 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/git/commits/' + activationBase) {
+        return { ok: true, status: 200, json: async () => ({ sha: activationBase, tree: { sha: activationBase + '-tree' }, parents: [] }) };
+      }
       if (String(url).startsWith('https://api.github.com/')) {
-        assert.equal(String(url), 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/git/ref/heads/main', 'the publish UI fixture only serves the final authoritative ref read');
+        assert.equal(String(url), 'https://api.github.com/repos/kennedyjasondavid-eng/conc-kitchen-door/git/ref/heads/main', 'the publish UI fixture only serves the final authoritative ref read and, once F4 is on, the activation base commit');
         return { ok: true, status: 200, json: async () => ({ object: { sha: transportHead } }) };
       }
       deliveryReads.push(String(url));
@@ -1907,6 +1919,8 @@ test('publish flow shim reports committed pending until delivery is observed', a
     'routing_by_meal.json',
     'door_state.json',
     'menu_overlay.json',
+    // 2026-11-09 (F4 switched on, v31-standard.62): DOOR's publication counter rides in the same commit
+    'door_flow_publication.json',
     'custom_tag_rules.json',
     'learned_nr.json',
     'meal_swaps.json',
@@ -2967,9 +2981,9 @@ test('D1: the publish path stages the whole artifact set into ONE atomic call', 
   assert.equal(harness.atomicCalls.length, 1, 'one publish = one atomic call = one commit');
   assert.deepEqual(harness.atomicCalls[0].paths, [
     'menu_current.json', 'registry_summary.json', 'routing_by_meal.json', 'door_state.json',
-    'menu_overlay.json', 'custom_tag_rules.json', 'learned_nr.json', 'meal_swaps.json',
+    'menu_overlay.json', 'door_flow_publication.json', 'custom_tag_rules.json', 'learned_nr.json', 'meal_swaps.json',
     'meal_swaps_reverted.json', 'special_meals.json', 'special_meals_removed.json', 'recent_log.json'
-  ], 'all twelve artifacts go in the single commit (2026-10-18: + the swap revert and special-meal removal lists)');
+  ], 'all thirteen artifacts go in the single commit (2026-10-18: + the swap revert and special-meal removal lists; 2026-11-09, F4 on: + DOOR\'s publication counter)');
 
   // The per-file loop is what produced 10 commits; it must not come back.
   const html = readText('index.html');
