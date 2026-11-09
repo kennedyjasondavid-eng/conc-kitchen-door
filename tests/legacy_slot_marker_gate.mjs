@@ -75,6 +75,7 @@ function ctx(dayData) {
   vm.runInContext([
     fnBlock('_restoreSlotSnapshot'),
     fnBlock('doorLegacySlotNoticeHTML'),
+    fnBlock('doorSlotsMatchText'),   // 2026-11-08: openMenuEdit skips slots behind the menu text (this fixture's match)
     fnBlock('openMenuEdit'),
   ].join('\n\n'), c, { filename: 'index.html#d1', timeout: 1000 });
   return c;
