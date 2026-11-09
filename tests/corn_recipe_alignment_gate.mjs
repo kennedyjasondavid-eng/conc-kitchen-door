@@ -148,9 +148,22 @@ test('offline fallback names remain unique',()=>{
 });
 // 2026-11-07: "the paired CODEX feed is the canonical source…" compared DOOR with whichever CODEX copy sat beside it, so it
 // failed on every CODEX change (Jason: make it an advisory report). See tests/advisory/codex_offline_drift.mjs.
-test('all eight vegan-only meals read Corn online and on a fresh offline tablet, with no regular tick',()=>{
+// Re-pinned 2026-11-09 (v31-standard.61, bare side words; Jason: "spin up a session for #2"). The Oct 22 receipt gave
+// W1 and W2 SUN dinner Corn from "Vegan Baked Pasta", but neither meal ever served it: their vegan lines were then, and
+// are now, "Mushroom Stroganoff, Pasta" and "Vegan Sausage and Vegetable Pasta, Pasta". The bare word "Pasta" matched
+// Vegan Baked Pasta by name, the bug this build fixes. Neither meal is checked for Corn any more; the other six keep
+// the original check. W1 SUN must now read none. W2 SUN is not asserted here: in this fixture 21-record source Vegan
+// Sausage is absent, so its full name still shares two words with Vegan Baked Pasta; on the whole CODEX feed it reads
+// no Corn (tests/bare_side_word_gate.mjs check 2). The frozen fixture is unchanged.
+const NOT_SERVED=new Set(['1|SUNDAY|dinner','2|SUNDAY|dinner']);
+test('the six vegan-only Corn meals read Corn online and on a fresh offline tablet, with no regular tick; W1 SUN dinner reads none',()=>{
   const online=R.engine(bounded,F.source,REG).out,offline=R.engine(bounded,null,REG).out;
-  for(const t of F.vegan) {
+  assert.equal(F.vegan.filter(t=>NOT_SERVED.has(key(t))).length,2,'both re-pinned meals are in the frozen list');
+  for(const t of F.vegan.filter(t=>key(t)==='1|SUNDAY|dinner')) {
+    assert.ok(!hasToken(online[key(t)].veg,'CORN'),key(t)+' online: no Corn from a bare "Pasta"');
+    assert.ok(!hasToken(offline[key(t)].veg,'CORN'),key(t)+' offline: no Corn from a bare "Pasta"');
+  }
+  for(const t of F.vegan.filter(t=>!NOT_SERVED.has(key(t)))) {
     assert.equal(bounded[t.wk][t.day][t.period+'_flags'].hasCorn,false,key(t)+' regular tick');
     assert.ok(hasToken(online[key(t)].veg,'CORN'),key(t)+' online');
     assert.ok(hasToken(offline[key(t)].veg,'CORN'),key(t)+' offline');

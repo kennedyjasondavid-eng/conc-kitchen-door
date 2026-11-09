@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.61';
+const DOOR_APP_VERSION = 'v31-standard.62';
 const DOOR_BUILD_DATE = '2026-11-09';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11460,7 +11460,7 @@ function houseFlowResolve(state,service,now) {
 }
 function houseFlowSnapshot(state) { return {schema:1,highest:state.highest && houseFlowCopy(state.highest),conflict:state.conflict === true,observedAt:state.accepted ? state.accepted.observedAt : null}; }
 /* HOUSE_TESTABLE_CORE_END flow-validity */
-// F4 switched on (v31-standard.61, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
+// F4 switched on (v31-standard.62, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
 // read receipts (estimates past 7 days or once superseded). The writer cutover is the F1 reconnect of 2026-11-06/07 (R2;
 // Jason, 2026-11-09: "pretty sure that is the cutover, not 100% but I have a feeling it's not critical").
 // _BASE is DOOR main at activation: the first activated publish may start sequence 1 only when its first-parent walk
@@ -11506,7 +11506,7 @@ async function doorFlowPreviousReceipt(inputs,creds) {
     throw new Error('The current publication epoch is inconsistent. Work remains pending.');
   }
   const read = path => doorPublishReadJSON(creds,path);
-  // v31-standard.61 (F4 switch-on review, P1). The first activated publish proves no receipt was ever written since
+  // v31-standard.62 (F4 switch-on review, P1). The first activated publish proves no receipt was ever written since
   // the activation base. The walk below stops after 32 commits, and main takes about two commits per publish, so a base
   // left behind by a busy day would have held every publish (resident list included) until a code change. When this
   // computer remembers nothing and the head has no receipt and no counter, two reads prove it at any distance: the head
@@ -11662,7 +11662,7 @@ async function doorFlowStampCandidate(inputs,artifacts,creds) {
   receipt.publication = houseFlowCopy(publication);
   flow.inputRevision = receipt.inputRevision;
   artifacts['routing_by_meal.json'].flow = flow;
-  // v31-standard.61 (F4 switched on): every stamped file names its site. menu_overlay.json never carried one, and the
+  // v31-standard.62 (F4 switched on): every stamped file names its site. menu_overlay.json never carried one, and the
   // delivery check (doorDeliveryFlow) requires it on the private files, so the first activated publish would have
   // committed and then waited on its confirmation for ever.
   const flowSite = artifacts['menu_current.json']._meta.site;
@@ -18370,10 +18370,21 @@ function getVegAltAllergenStr(mealVeg) {
   const normalize = s => s.toLowerCase().replace(/['']/g,"'").replace(/\s+/g,' ').trim();
   const sigWords = s => s.split(/\W+/).filter(w => w.length > 3);
   const allergenSet = new Set();
+  // A bare side word (one significant word: Pasta, Rice, Fruit) names that side only.
+  // It matches a recipe of the same name (or its plural), never a longer dish that
+  // contains the word: Pasta is not Vegan Baked Pasta, Rice is not Mushroom Fried Rice
+  // (Jason, 2026-11-09). The same side: equal, or one is the plural of the other.
+  const sameSide = (piece, rn) => rn === piece || rn === piece + 's' || rn === piece + 'es'
+    || piece === rn + 's' || piece === rn + 'es';
   mealVeg.split(',').map(c => normalize(c)).forEach(comp => {
     let best = null, bestScore = 0;
+    const bare = sigWords(comp).length <= 1;
     veganRecipes.forEach(r => {
       const rn = normalize(r.recipeName);
+      if (bare) {
+        if (sameSide(comp, rn) && rn.length > bestScore) { bestScore = rn.length; best = r; }
+        return;
+      }
       if (rn === comp || rn.includes(comp) || comp.includes(rn)) {
         const score = Math.max(rn.length, comp.length);
         if (score > bestScore) { bestScore = score; best = r; }

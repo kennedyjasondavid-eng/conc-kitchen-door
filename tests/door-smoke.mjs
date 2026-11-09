@@ -265,7 +265,7 @@ function loadPublishFlowHarness(options = {}) {
   const deliveryActions = { style: {}, querySelector: () => deliveryLink };
   const timers = new Map();
   const deliveryReads = [];
-  // 2026-11-09 (F4 switched on, v31-standard.61): the pinned head is DOOR_FLOW_ACTIVATION_BASE when the page sets one,
+  // 2026-11-09 (F4 switched on, v31-standard.62): the pinned head is DOOR_FLOW_ACTIVATION_BASE when the page sets one,
   // so this publish is the first after activation (doorFlowPreviousReceipt reads that commit and starts sequence 1).
   const activationBase = (html.match(/const DOOR_FLOW_ACTIVATION_BASE = '([0-9a-f]{40})';/) || [])[1] || '';
   let transportHead = activationBase || 'pinned-test-head';
@@ -1919,7 +1919,7 @@ test('publish flow shim reports committed pending until delivery is observed', a
     'routing_by_meal.json',
     'door_state.json',
     'menu_overlay.json',
-    // 2026-11-09 (F4 switched on, v31-standard.61): DOOR's publication counter rides in the same commit
+    // 2026-11-09 (F4 switched on, v31-standard.62): DOOR's publication counter rides in the same commit
     'door_flow_publication.json',
     'custom_tag_rules.json',
     'learned_nr.json',

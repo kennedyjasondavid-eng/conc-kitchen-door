@@ -78,7 +78,7 @@ const method = name => extractor.extractFunctionBlock(html.replace(new RegExp(' 
 
 // Contents GETs may be pinned to any existing immutable revision. Trees/blobs do
 // not change visible files; only an accepted ref update (or Contents PUT) does.
-// 2026-11-09 (F4 switched on, v31-standard.61): the fixture's first commit is DOOR_FLOW_ACTIVATION_BASE when the page
+// 2026-11-09 (F4 switched on, v31-standard.62): the fixture's first commit is DOOR_FLOW_ACTIVATION_BASE when the page
 // sets one, so a publish here is the first publish after activation (the walk in doorFlowPreviousReceipt reaches the
 // base and starts sequence 1), as it is in the kitchen. A starting set that already carries receipts is a later commit.
 // Before activation the base is empty and nothing changes.

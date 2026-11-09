@@ -1,4 +1,4 @@
-// 2026-11-09 (F4 switched on, v31-standard.61). EXPO's in-app plan F4 + D1; this repo's
+// 2026-11-09 (F4 switched on, v31-standard.62). EXPO's in-app plan F4 + D1; this repo's
 // docs/DOOR_MENU_FLOW_ACTION_PLAN_2026-11-06.md, "F4 readers: design pass" step 5. The readers are served (EXPO #580,
 // HUB #58), so DOOR now writes publication receipts. Prevents: the activation values being blanked or set to something
 // the producer and the readers can't accept, and _BASE naming a commit that isn't on this branch (the first activated

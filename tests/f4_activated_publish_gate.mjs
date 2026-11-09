@@ -1,4 +1,4 @@
-// 2026-11-09 (F4 switched on, v31-standard.61). The publish as it runs in the kitchen once F4 is on, through DOOR's real
+// 2026-11-09 (F4 switched on, v31-standard.62). The publish as it runs in the kitchen once F4 is on, through DOOR's real
 // publisher in the F1 publish box (tests/helpers/door_publish_transaction_box.mjs). The F4/F6 browser contracts keep
 // checking the pre-activation rules on a copy with the activation constants blanked (tests/helpers/pre_activation_html.mjs).
 //   1. the first publish after activation: its walk reaches DOOR_FLOW_ACTIVATION_BASE and starts sequence 1 in the epoch;

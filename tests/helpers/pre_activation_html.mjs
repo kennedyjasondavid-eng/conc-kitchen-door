@@ -1,4 +1,4 @@
-// tests/helpers/pre_activation_html.mjs — 2026-11-09 (F4 switched on, v31-standard.61).
+// tests/helpers/pre_activation_html.mjs — 2026-11-09 (F4 switched on, v31-standard.62).
 // DOOR's F4/F6 browser contracts were written before activation and check the producer's pre-activation (legacy)
 // rules: a legacy receipt is uncertified, a remembered occurrence can't move backward, a seeded epoch at sequence 40
 // recovers from history. Since F4 is on, they run on a copy of index.html with DOOR_FLOW_ACTIVATION_EPOCH / _BASE
