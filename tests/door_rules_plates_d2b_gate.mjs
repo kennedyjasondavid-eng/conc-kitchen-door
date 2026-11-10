@@ -120,6 +120,13 @@ test('allowed and refused kinds: only more protective additions, never halal, me
   assert.ok(chk({ kind: 'trigger', section: 'no_fish', flag: 'hasSesame' }).ok);
   assert.ok(chk({ kind: 'tag', section: 'no_fish', tag: 'No Sesame', flag: 'hasSesame' }).ok);
   assert.ok(chk({ kind: 'tag', section: 'gf', tag: 'No Sesame', flag: '' }).ok);
+  // Jason, 2026-11-10: a mark-limited restriction only joins a plate served from the vegan plate
+  const marked = chk({ kind: 'tag', section: 'gf', tag: 'No Sesame', flag: 'hasSesame' });
+  assert.equal(marked.code, 'marked-plate');
+  assert.match(marked.why, /vegan plate/);
+  for (const section of ['no_fish', 'no_dairy', 'no_beef']) assert.ok(chk({ kind: 'tag', section, tag: 'No Sesame', flag: 'hasSesame' }).ok, section);
+  // and a hand-written one is ignored where the rules are read
+  assert.equal(c.doorPlatesActive([{ kind: 'tag', section: 'gf', tag: 'No Sesame', flag: 'hasSesame', by: 'Jason', at: T0 }], A).length, 0);
   assert.ok(chk({ kind: 'note', flag: 'hasCorn', tag: 'No Soy', note: 'no corn/soy' }).ok);
   // plain words
   assert.equal(c.doorPlateSays({ kind: 'tag', section: 'no_fish', tag: 'No Sesame', flag: 'hasSesame' }),

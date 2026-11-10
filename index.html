@@ -17906,6 +17906,7 @@ function doorPlatesActive(plates, allowed) {
     const sec = (A.routingRules || []).find(x => x.key === r.section) || {};
     if (r.kind === 'trigger' && (sec.triggers || []).indexOf(r.flag) >= 0) return false;
     if (r.kind === 'tag' && (sec.tags || []).indexOf(r.tag) >= 0) return false;
+    if (r.kind === 'tag' && r.flag && sec.mergeInto !== 'vegan') return false;
     if (r.kind === 'note' && (A.conflictMap || []).some(c => c.mealFlag === r.flag && c.residentTag === r.tag)) return false;
     return true;
   });
@@ -17961,6 +17962,9 @@ function doorPlateCheck(plates, rec, ctx) {
   const sec = (A.routingRules || []).find(x => x.key === r.section) || {};
   if (r.kind === 'trigger' && (sec.triggers || []).indexOf(r.flag) >= 0) return bad('built-in', 'DOOR already makes this plate on those meals.');
   if (r.kind === 'tag' && (sec.tags || []).indexOf(r.tag) >= 0) return bad('built-in', 'DOOR already seats that restriction on this plate.');
+  // Jason, 2026-11-10 ("follow your leans on all three"): a restriction that joins only on meals with a mark goes to a
+  // plate that is the vegan plate (No Fish / Shellfish, No Dairy, No Beef), never one the kitchen may not make that day.
+  if (r.kind === 'tag' && r.flag && sec.mergeInto !== 'vegan') return bad('marked-plate', 'On meals with a mark, a restriction can only join a plate served from the vegan plate (No Fish / Shellfish, No Dairy or No Beef). The Gluten Free plate takes a restriction only whenever it is made.');
   if (r.kind === 'note' && (A.conflictMap || []).some(x => x.mealFlag === r.flag && x.residentTag === r.tag)) return bad('built-in', 'DOOR already notes that restriction on those meals.');
   const clean = doorPlatesClean([Object.assign({}, r, { by: 'x', at: '2000-01-01T00:00:00.000Z' })])[0];
   if (!clean) return bad('kind', 'That rule is not complete.');
