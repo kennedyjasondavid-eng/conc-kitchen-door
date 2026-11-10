@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.65';
+const DOOR_APP_VERSION = 'v31-standard.66';
 const DOOR_BUILD_DATE = '2026-11-10';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -14467,6 +14467,11 @@ function computeSections(mealFlags, registry) {
       .map(r => r.key)
   );
 
+  // D2b (2026-11-10): plate rules a lead added in Settings (Allergen and routing rules). null with none, so nothing
+  // below changes. An added rule only ever seats a resident the built-in rules leave on the regular plate.
+  const _plates = typeof doorPlateRulesInForce === 'function' ? doorPlateRulesInForce() : null;
+  const shownKeys = new Set(activeKeys);
+
   // Build section pools
   const pools = {};
   ROUTING_RULES.forEach(r => { pools[r.key] = []; });
@@ -14481,14 +14486,19 @@ function computeSections(mealFlags, registry) {
       if (rule.tags.some(t => residentTags.includes(t) &&
           (!rule.tagTriggers || !rule.tagTriggers[t] || rule.tagTriggers[t].some(f => mealFlags[f])))) { assigned = rule; break; }
     }
-    pools[(assigned || ROUTING_RULES[ROUTING_RULES.length-1]).key].push(resident);
+    let key = (assigned || ROUTING_RULES[ROUTING_RULES.length-1]).key;
+    if (key === 'regular' && _plates) {
+      const added = doorPlateFallbackKey(ROUTING_RULES, activeKeys, mealFlags, residentTags, _plates);
+      if (added) { key = added; shownKeys.add(added); }
+    }
+    pools[key].push(resident);
   });
 
   // Handle mergeInto — move residents from merged section into target pool
   // No Dairy keeps its own plate when the meal has a dairy-free version of the main (2026-10-19).
   const keepsOwnPlate = (rule) => rule.key === 'no_dairy' && !!(mealFlags && mealFlags._noDairyAlt);
   ROUTING_RULES.forEach(rule => {
-    if (rule.mergeInto && !keepsOwnPlate(rule) && activeKeys.has(rule.key) && pools[rule.key].length > 0) {
+    if (rule.mergeInto && !keepsOwnPlate(rule) && shownKeys.has(rule.key) && pools[rule.key].length > 0) {
       pools[rule.mergeInto].push(...pools[rule.key]);
       pools[rule.key] = [];
     }
@@ -14547,7 +14557,7 @@ function computeSections(mealFlags, registry) {
   // Build ordered result — skip empty non-always sections and merged-away sections
   const result = [];
   ROUTING_RULES.forEach(rule => {
-    if (!activeKeys.has(rule.key)) return;
+    if (!shownKeys.has(rule.key)) return;
     if (rule.mergeInto && !keepsOwnPlate(rule)) return; // these residents now in target pool
     if (rule.key !== 'regular' && pools[rule.key].length === 0) return;
     const entry = { rule, residents: pools[rule.key] };
@@ -15490,7 +15500,8 @@ const CONFLICT_MAP = [
 
 function getIngredientConflicts(mealFlags, residents) {
   const results = [];
-  CONFLICT_MAP.forEach(rule => {
+  // D2b (2026-11-10): plus the line notes a lead added in Settings (only ever more words on the sheet).
+  (typeof doorConflictRows === 'function' ? doorConflictRows() : CONFLICT_MAP).forEach(rule => {
     if (!mealFlags[rule.mealFlag]) return;
     const affected = residents.filter(r => (r.tags||[]).includes(rule.residentTag));
     if (affected.length) results.push({ ...rule, residents: affected });
@@ -15530,7 +15541,7 @@ function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
   const key = section && section.rule ? section.rule.key : '';
   const notes = [];
   if (tags.includes('Soft Meals') && key !== 'soft' && !(key === 'halal' && f.hasPork && !(f._altMeals && f._altMeals.length))) notes.push('soft');
-  CONFLICT_MAP.forEach(rule => {
+  (typeof doorConflictRows === 'function' ? doorConflictRows() : CONFLICT_MAP).forEach(rule => {
     if ((f[rule.mealFlag] || plate[rule.mealFlag]) && tags.includes(rule.residentTag) && !notes.includes(rule.note)) notes.push(rule.note);
   });
   const base = hasCarbAccommodation(r) ? 'extra veg less starch' : '';
@@ -17508,7 +17519,7 @@ function doorRulesUnknown(src, known) {
   });
   return out;
 }
-var DOOR_RULES_TOP_KEYS = ['_meta', 'leads', 'additions', 'log', '_foreign', '_foreignLeads', '_foreignLog', '_metaExtra'];
+var DOOR_RULES_TOP_KEYS = ['_meta', 'leads', 'additions', 'log', '_foreign', '_foreignLeads', '_foreignLog', '_metaExtra', 'plates', '_foreignPlates'];   // plates: D2b
 var DOOR_RULES_META_KEYS = ['version', 'exported', 'site'];
 // A file's version (1 when it says none). Anything but the number DOOR_RULES_VERSION (a newer DOOR, or a version
 // that isn't a number: true, "1") is refused (third review P3-d).
@@ -17547,12 +17558,16 @@ function doorRulesClean(raw) {
   srcLog.forEach(r => { if (!logOk(r) && r !== undefined) foreignLog.push(copy(r)); });
   const log = srcLog.filter(logOk)
     .map(r => {
-      const o = Object.assign(doorRulesUnknown(r, ['at', 'by', 'what', 'word', 'target', 'name', 'list']),
+      const o = Object.assign(doorRulesUnknown(r, ['at', 'by', 'what', 'word', 'target', 'name', 'list', 'kind', 'section', 'flag', 'tag', 'note']),
         { at: r.at, by: String(r.by).slice(0, 60), what: String(r.what).slice(0, 40) });
-      ['word', 'target', 'name', 'list'].forEach(k => { if (typeof r[k] === 'string') o[k] = r[k].slice(0, 60); });
+      ['word', 'target', 'name', 'list', 'kind', 'section', 'flag', 'tag', 'note'].forEach(k => { if (typeof r[k] === 'string') o[k] = r[k].slice(0, 60); });
       return o;
     });
-  const out = Object.assign(doorRulesUnknown(src, DOOR_RULES_TOP_KEYS), { leads, additions, log });
+  // D2b (2026-11-10): the plate rules, read like the words; a record this build can't read rides in _foreignPlates.
+  const plateSplit = doorPlatesSplit(src.plates);
+  const foreignPlates = carried('_foreignPlates').concat(plateSplit.foreign);
+  const out = Object.assign(doorRulesUnknown(src, DOOR_RULES_TOP_KEYS), { leads, additions, log, plates: plateSplit.plates });
+  if (foreignPlates.length) out._foreignPlates = foreignPlates;
   if (foreign.length) out._foreign = foreign;
   if (foreignLeads.length) out._foreignLeads = foreignLeads;
   if (foreignLog.length) out._foreignLog = foreignLog;
@@ -17583,18 +17598,19 @@ function doorRulesMerge(a, b, nowMs, opts) {
     if (!cur || doorRulesBeats(r, cur, nowMs, cur.on && !r.on)) leads[k] = r;
   });
   const seen = new Set();
-  const logKey = e => [e.at, e.by, e.what, e.list || '', e.word || '', e.name || '', e.target || ''].join('|');
+  const logKey = e => [e.at, e.by, e.what, e.list || '', e.word || '', e.name || '', e.target || '', e.kind || '', e.section || '', e.flag || '', e.tag || ''].join('|');
   const log = A.log.concat(B.log).filter(e => {
     const k = logKey(e);
     if (seen.has(k)) return false; seen.add(k); return true;
   }).sort((x, y) => { const t = doorRulesTimeCmp(y.at, x.at); if (t) return t; const a = logKey(x), b = logKey(y); return a < b ? 1 : a > b ? -1 : 0; }).slice(0, DOOR_RULES_LOG_MAX);
   const byKey = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
-  const unknownOf = s => { const o = {}; doorRulesExtraKeys(s).forEach(k => { o[k] = s[k]; }); ['_foreign', '_foreignLeads', '_foreignLog', '_metaExtra'].forEach(k => { if (s[k]) o[k] = s[k]; }); return o; };
+  const unknownOf = s => { const o = {}; doorRulesExtraKeys(s).forEach(k => { o[k] = s[k]; }); ['_foreign', '_foreignLeads', '_foreignLog', '_foreignPlates', '_metaExtra'].forEach(k => { if (s[k]) o[k] = s[k]; }); return o; };
   const carried = kitchen ? unknownOf(B) : Object.assign({}, unknownOf(B), unknownOf(A));
   return Object.assign(carried, {
     leads: Object.keys(leads).sort(byKey).map(k => leads[k]),
     additions: Object.keys(adds).sort(byKey).map(k => adds[k]),
-    log
+    log,
+    plates: doorPlatesMerge(A.plates, B.plates, nowMs)
   });
 }
 // The words in force on one list. allowed (optional): the targets DOOR knows for it; anything else is ignored, so a
@@ -17615,7 +17631,8 @@ function doorRulesLeadNames(rules) {
 // The active records (words in force and leads on), as keys: 'list|word' and 'lead|name'.
 function doorRulesActiveKeys(rules) {
   const r = doorRulesMerge(rules, {});
-  return r.additions.filter(x => !x.takenBack).map(x => doorRulesKey(x)).concat(r.leads.filter(x => x.on).map(x => 'lead|' + doorRulesNormName(x.name)));
+  return r.additions.filter(x => !x.takenBack).map(x => doorRulesKey(x)).concat(r.leads.filter(x => x.on).map(x => 'lead|' + doorRulesNormName(x.name)),
+    r.plates.filter(x => !x.takenBack).map(x => 'plate|' + doorPlateKey(x)));   // plate rules: D2b
 }
 // The kitchen copy's active records a send would drop (second review N2). A drop is allowed only when the record that
 // replaces it is one of this computer's own unsent changes (unsent: [{ key, at }]). → the dropped keys.
@@ -17625,14 +17642,15 @@ function doorRulesDrops(kitchen, staged, unsent) {
   const own = new Set((unsent || []).map(u => u.key + '@' + u.at));
   return K.filter(k => {
     if (S.has(k)) return false;
-    const rec = k.indexOf('lead|') === 0 ? st.leads.find(x => 'lead|' + doorRulesNormName(x.name) === k) : st.additions.find(x => doorRulesKey(x) === k);
+    const rec = k.indexOf('lead|') === 0 ? st.leads.find(x => 'lead|' + doorRulesNormName(x.name) === k)
+      : k.indexOf('plate|') === 0 ? st.plates.find(x => 'plate|' + doorPlateKey(x) === k) : st.additions.find(x => doorRulesKey(x) === k);
     return !(rec && own.has(k + '@' + rec.at));
   });
 }
 // Records stamped more than a day ahead of this clock (a computer has the wrong date).
 function doorRulesSkewedCount(rules, nowMs) {
   const r = doorRulesClean(rules);
-  return r.additions.concat(r.leads).filter(x => doorRulesSkewed(x.at, nowMs)).length;
+  return r.additions.concat(r.leads, r.plates).filter(x => doorRulesSkewed(x.at, nowMs)).length;
 }
 // Who may edit: a sending connection key AND a name on the leads list; only Jason changes the leads list. This guards
 // against mistakes; the connection key is the real lock. inp: { hasSendingKey, operator, rules } →
@@ -17728,16 +17746,16 @@ function doorRulesSetLead(rules, name, on, by, at, nowMs) {
 }
 function doorRulesLastChangeAt(rules) {
   const r = doorRulesClean(rules);
-  return r.additions.concat(r.leads).reduce((m, x) => (doorRulesTimeCmp(x.at, m) > 0 ? x.at : m), '');
+  return r.additions.concat(r.leads, r.plates).reduce((m, x) => (doorRulesTimeCmp(x.at, m) > 0 ? x.at : m), '');
 }
 // Records this build can't read and carries as they are (fourth review P3-1).
 function doorRulesCarriedCount(rules) {
   const r = doorRulesClean(rules);
-  return (r._foreign || []).length + (r._foreignLeads || []).length + (r._foreignLog || []).length;
+  return (r._foreign || []).length + (r._foreignLeads || []).length + (r._foreignLog || []).length + (r._foreignPlates || []).length;
 }
 function doorRulesHasContent(rules) {
   const r = doorRulesClean(rules);
-  return !!(r.additions.length || r.leads.length || doorRulesExtraKeys(r).length || r._foreign || r._foreignLeads || r._foreignLog || r._metaExtra);
+  return !!(r.additions.length || r.leads.length || r.plates.length || doorRulesExtraKeys(r).length || r._foreign || r._foreignLeads || r._foreignLog || r._foreignPlates || r._metaExtra);
 }
 // The published file, with everything this build doesn't know put back where it was. exported is the newest change,
 // not the send time, so an unchanged file reads unchanged.
@@ -17749,6 +17767,7 @@ function doorRulesFile(rules, site) {
   file.leads = r.leads.concat(r._foreignLeads || []);
   file.additions = r.additions.concat(r._foreign || []);
   file.log = r.log.concat(r._foreignLog || []);
+  file.plates = r.plates.concat(r._foreignPlates || []);   // D2b; version stays 1 (additive)
   return file;
 }
 // The dialog line for an addition.
@@ -17797,6 +17816,173 @@ function doorRulesSeatMoves(before, after) {
   const blocked = moves.filter(m => m.to === 'Regular' || m.to === 'no plate' || (m.from !== 'Regular' && m.to !== 'Anaphylactic Alternative'));
   return { moves, blocked };
 }
+// ── D2b: plate rules a lead can add, protection-only (2026-11-10) ────────────────────────────────────────────────────
+// Jason, 2026-11-10: "go ahead with D2b". Three kinds, each only ever more protective (call 13: these rules touch
+// anaphylaxis compliance): a meal flag opens a protective plate (trigger), a restriction joins one (tag, optionally only
+// on meals marked with a flag), or a plating-line note for a pair DOOR doesn't note yet (note, amber). An added trigger
+// or tag only seats a resident the built-in rules leave on the regular plate (doorPlateFallbackKey), so it can never
+// take anyone off a plate DOOR already gives them; doorPlateProve checks that on the real engine before an add. Never
+// in reach: removing anything, priorities, mergeInto, labels, the halal plate and its pork-day merges, the meat flags,
+// always-on plates, anaphylactic containment. Records live in door_rules.json beside D2a's words (plates[]).
+function doorPlateKinds() { return ['trigger', 'tag', 'note']; }   // a function: read before this block runs at load
+var DOOR_PLATE_MEAT_FLAGS = ['hasPork', 'hasBeef', 'hasChicken', 'hasTurkey'];
+var DOOR_PLATE_NOT_SECTIONS = ['vegan', 'halal', 'no_processed', 'diabetic', 'bland', 'soft', 'no_egg', 'regular'];
+// The plates a rule may add to: not always made, opened by meal flags, no per-tag flags of their own, and none that
+// decides Halal, a pork-day merge, or a plate the kitchen's alternatives open (diabetic, bland, soft).
+function doorPlateSectionsAllowed(routingRules) {
+  return (routingRules || []).filter(r => r && !r.always && Array.isArray(r.triggers) && !r.tagTriggers
+    && DOOR_PLATE_NOT_SECTIONS.indexOf(r.key) < 0).map(r => r.key);
+}
+function doorPlateFlagsAllowed(flagKeys) {
+  return (flagKeys || []).filter(k => (/^has[A-Z]/.test(k) || k === 'isSpicy') && DOOR_PLATE_MEAT_FLAGS.indexOf(k) < 0);
+}
+// A restriction that names something to keep off the plate: a "No …" tag, GF or Lactose Intolerant. Never No Pork
+// (it decides the halal plate), never a plate-choosing tag (Halal, Vegan, Vegetarian, Diabetic, Low Carb, Soft Meals, Other).
+function doorPlateTagsAllowed(labels) {
+  return (labels || []).filter(l => typeof l === 'string' && (/^No [A-Z]/.test(l) || l === 'GF' || l === 'Lactose Intolerant') && l !== 'No Pork');
+}
+// A new record's time: D2a's rule (doorRulesNextAt): now, or 1 ms after the record it replaces, unclamped.
+function doorPlateStamp(nowMs, curAt) { return doorRulesNextAt(curAt || '', nowMs); }
+function doorPlateNoteProblem(note) {
+  const n = String(note == null ? '' : note).trim().replace(/\s+/g, ' ');
+  if (n.length < 3 || n.length > 40) return 'length';
+  return /^[A-Za-z][A-Za-z ,'’\/-]*[A-Za-z]$/.test(n) ? '' : 'characters';
+}
+function doorPlateKey(r) {
+  if (!r) return '';
+  if (r.kind === 'trigger') return 'trigger|' + r.section + '|' + r.flag;
+  if (r.kind === 'tag') return 'tag|' + r.section + '|' + r.tag + '|' + (r.flag || '');
+  if (r.kind === 'note') return 'note|' + r.flag + '|' + r.tag;
+  return '';
+}
+// The plate records this build can read (fields it doesn't know kept on the record), and those it can't, carried
+// verbatim (_foreignPlates), as D2a carries words: a record is never dropped, and never for its time.
+var DOOR_PLATE_FIELDS = ['kind', 'section', 'tag', 'flag', 'note', 'by', 'at', 'takenBack'];
+function doorPlateReadable(r) {
+  const str = (x, max) => typeof x === 'string' && x.length > 0 && x.length <= (max || 40);
+  return !!(r && typeof r === 'object' && doorPlateKinds().indexOf(r.kind) >= 0 && typeof r.by === 'string' && doorRulesIsTime(r.at)
+    && (r.kind === 'note' ? str(r.flag) && str(r.tag) && typeof r.note === 'string' && !doorPlateNoteProblem(r.note)
+      : str(r.section) && (r.kind === 'trigger' ? str(r.flag) : str(r.tag) && (r.flag === undefined || r.flag === '' || str(r.flag)))));
+}
+function doorPlateRead(r) {
+  const o = Object.assign(doorRulesUnknown(r, DOOR_PLATE_FIELDS), { kind: r.kind });
+  if (r.kind !== 'note') o.section = r.section;
+  if (r.kind !== 'trigger') o.tag = r.tag;
+  o.flag = r.flag || '';
+  if (r.kind === 'note') o.note = String(r.note).trim().replace(/\s+/g, ' ');
+  o.by = String(r.by).slice(0, 60); o.at = r.at;
+  if (r.takenBack === true) o.takenBack = true;
+  return o;
+}
+function doorPlatesSplit(raw) {
+  const plates = [], foreign = [];
+  (Array.isArray(raw) ? raw : []).forEach(r => {
+    if (r === undefined) return;
+    if (doorPlateReadable(r)) plates.push(doorPlateRead(r)); else foreign.push(JSON.parse(JSON.stringify(r)));
+  });
+  return { plates, foreign };
+}
+function doorPlatesClean(raw) { return doorPlatesSplit(raw).plates; }
+// Per rule the newer record wins; on a tie an added rule beats a take-back (it only adds protection).
+// Ordered by raw time (doorRulesBeats), as D2a orders its words.
+function doorPlatesMerge(a, b, nowMs) {
+  const by = {};
+  doorPlatesClean(a).concat(doorPlatesClean(b)).forEach(r => {
+    const k = doorPlateKey(r), cur = by[k];
+    if (!cur || doorRulesBeats(r, cur, nowMs, cur.takenBack && !r.takenBack)) by[k] = r;
+  });
+  return Object.keys(by).sort().map(k => by[k]);
+}
+// The rules in force. allowed (optional): { sections, flags, tags, routingRules, conflictMap } — anything outside it,
+// or a pair DOOR already has built in, is ignored, so a hand-written file can never reach past protection-only.
+function doorPlatesActive(plates, allowed) {
+  const A = allowed;
+  return doorPlatesClean(plates).filter(r => {
+    if (r.takenBack) return false;
+    if (!A) return true;
+    if (r.kind !== 'note' && (A.sections || []).indexOf(r.section) < 0) return false;
+    if (r.flag && (A.flags || []).indexOf(r.flag) < 0) return false;
+    if (r.kind !== 'trigger' && (A.tags || []).indexOf(r.tag) < 0) return false;
+    const sec = (A.routingRules || []).find(x => x.key === r.section) || {};
+    if (r.kind === 'trigger' && (sec.triggers || []).indexOf(r.flag) >= 0) return false;
+    if (r.kind === 'tag' && (sec.tags || []).indexOf(r.tag) >= 0) return false;
+    if (r.kind === 'tag' && r.flag && sec.mergeInto !== 'vegan') return false;
+    if (r.kind === 'note' && (A.conflictMap || []).some(c => c.mealFlag === r.flag && c.residentTag === r.tag)) return false;
+    return true;
+  });
+}
+// The rules as the engine reads them: { triggers: {section: [flag]}, tags: {section: [{tag, flag}]}, notes: [row] }.
+function doorPlatesCompile(active) {
+  const out = { triggers: {}, tags: {}, notes: [] };
+  (active || []).forEach(r => {
+    if (r.kind === 'trigger') (out.triggers[r.section] = out.triggers[r.section] || []).push(r.flag);
+    else if (r.kind === 'tag') (out.tags[r.section] = out.tags[r.section] || []).push({ tag: r.tag, flag: r.flag || '' });
+    else out.notes.push({ mealFlag: r.flag, residentTag: r.tag, label: r.tag, note: r.note, severity: 'amber', added: true });
+  });
+  return out;
+}
+// The plate an added rule gives a resident the built-in rules left on the regular plate, or ''. Highest priority first.
+function doorPlateFallbackKey(routingRules, activeKeys, f, residentTags, compiled) {
+  const meal = f || {}, tags = residentTags || [], P = compiled || {};
+  for (const rule of routingRules || []) {
+    if (rule.key === 'regular') continue;
+    const opened = activeKeys.has(rule.key) || ((P.triggers || {})[rule.key] || []).some(fl => meal[fl]);
+    if (opened && !activeKeys.has(rule.key) && (rule.tags || []).some(t => tags.indexOf(t) >= 0)) return rule.key;
+    const hit = ((P.tags || {})[rule.key] || []).some(a => tags.indexOf(a.tag) >= 0 && (a.flag ? !!meal[a.flag] : opened));
+    if (hit) return rule.key;
+  }
+  return '';
+}
+// The proof: before and after are [{meal, who, key}] in the same order (key = the plate the resident sits on; 'regular'
+// for the regular plate). Each must be the same plate, or the regular plate before and a protective one after.
+function doorPlateProve(before, after) {
+  const bad = [], moved = [];
+  const n = Math.max((before || []).length, (after || []).length);
+  for (let i = 0; i < n; i++) {
+    const b = before[i], a = after[i];
+    if (!b || !a || b.meal !== a.meal || b.who !== a.who) { bad.push({ meal: (b || a || {}).meal, who: (b || a || {}).who, from: b && b.key, to: a && a.key }); continue; }
+    if (b.key === a.key) continue;
+    if (b.key === 'regular' && a.key !== 'regular') moved.push({ meal: b.meal, who: b.who, from: b.key, to: a.key, real: !!b.real });
+    else bad.push({ meal: b.meal, who: b.who, from: b.key, to: a.key, real: !!b.real });
+  }
+  return { ok: bad.length === 0, bad, moved };
+}
+// May this rule be added? ctx: { allowed (as doorPlatesActive), prove(rec) → { ok, bad, moved } }.
+function doorPlateCheck(plates, rec, ctx) {
+  const c = ctx || {}, A = c.allowed || {};
+  const bad = (code, why) => ({ ok: false, code, why });
+  const r = rec || {};
+  if (doorPlateKinds().indexOf(r.kind) < 0) return bad('kind', 'A plate rule can only open a plate, add a restriction to one, or add a note.');
+  if (r.kind !== 'note' && (A.sections || []).indexOf(r.section) < 0) return bad('section', 'Pick a plate from the list (the halal, vegan, soft, diabetic, bland and no egg plates change only in code).');
+  if (r.kind === 'trigger' && !r.flag) return bad('flag', 'Pick what the meal is marked.');
+  if (r.kind === 'note' && !r.flag) return bad('flag', 'Pick what the meal is marked.');
+  if (r.flag && (A.flags || []).indexOf(r.flag) < 0) return bad('flag', 'Pick a meal mark from the list (the meat marks change only in code).');
+  if (r.kind !== 'trigger' && (A.tags || []).indexOf(r.tag) < 0) return bad('tag', 'Pick a “No …” restriction, GF or Lactose Intolerant from the list.');
+  if (r.kind === 'note') { const p = doorPlateNoteProblem(r.note); if (p) return bad('note', 'A note is 3 to 40 letters (spaces, commas, a slash, a hyphen or an apostrophe between).'); }
+  const sec = (A.routingRules || []).find(x => x.key === r.section) || {};
+  if (r.kind === 'trigger' && (sec.triggers || []).indexOf(r.flag) >= 0) return bad('built-in', 'DOOR already makes this plate on those meals.');
+  if (r.kind === 'tag' && (sec.tags || []).indexOf(r.tag) >= 0) return bad('built-in', 'DOOR already seats that restriction on this plate.');
+  // Jason, 2026-11-10 ("follow your leans on all three"): a restriction that joins only on meals with a mark goes to a
+  // plate that is the vegan plate (No Fish / Shellfish, No Dairy, No Beef), never one the kitchen may not make that day.
+  if (r.kind === 'tag' && r.flag && sec.mergeInto !== 'vegan') return bad('marked-plate', 'On meals with a mark, a restriction can only join a plate served from the vegan plate (No Fish / Shellfish, No Dairy or No Beef). The Gluten Free plate takes a restriction only whenever it is made.');
+  if (r.kind === 'note' && (A.conflictMap || []).some(x => x.mealFlag === r.flag && x.residentTag === r.tag)) return bad('built-in', 'DOOR already notes that restriction on those meals.');
+  const clean = doorPlatesClean([Object.assign({}, r, { by: 'x', at: '2000-01-01T00:00:00.000Z' })])[0];
+  if (!clean) return bad('kind', 'That rule is not complete.');
+  if (doorPlatesActive(plates).some(x => doorPlateKey(x) === doorPlateKey(clean))) return bad('added', 'That rule is already added.');
+  const proof = typeof c.prove === 'function' ? c.prove(clean) : null;
+  if (!proof) return bad('proof', 'DOOR could not check this rule against the menu, so it is not added.');
+  if (!proof.ok) return Object.assign(bad('proof', 'DOOR would move someone off a plate they get today, so this rule is not added. It needs a code change.'), { proof });
+  return { ok: true, rec: clean, proof };
+}
+function doorPlatesAdd(plates, rec) {
+  const cur = doorPlatesClean(plates).find(x => doorPlateKey(x) === doorPlateKey(rec));
+  return doorPlatesMerge(plates, [Object.assign(cur ? doorRulesUnknown(cur, DOOR_PLATE_FIELDS) : {}, rec, { takenBack: undefined })]);
+}
+function doorPlatesTakeBack(plates, key, by, at) {
+  const cur = doorPlatesClean(plates).find(x => doorPlateKey(x) === key);
+  if (!cur || cur.takenBack) return null;
+  return doorPlatesMerge(plates, [Object.assign({}, cur, { by, at, takenBack: true })]);
+}
 /* DOOR_TESTABLE_CORE_END door-rules */
 
 // The shell: this computer's copy, the four readers' hooks, the kitchen file, and the Settings page.
@@ -17825,6 +18011,7 @@ function loadDoorRules() {
 function saveDoorRules(rules) {
   _doorRulesCache = doorRulesClean(rules);
   _doorRulesCompiled = null;
+  _doorPlatesCompiled = null;
   const json = JSON.stringify(_doorRulesCache);
   return typeof doorSetItemSafe === 'function' ? doorSetItemSafe(DOOR_RULES_KEY, json) : (localStorage.setItem(DOOR_RULES_KEY, json), true);
 }
@@ -18048,7 +18235,8 @@ function doorRulesNotSent() { return doorRulesUnsent().length > 0; }
 function doorRulesNoteSent(file) {
   if (!file || typeof file !== 'object') return;
   const f = doorRulesMerge(file, {});
-  const has = new Set(f.additions.map(x => doorRulesKey(x) + '@' + x.at).concat(f.leads.map(x => 'lead|' + doorRulesNormName(x.name) + '@' + x.at)));
+  const has = new Set(f.additions.map(x => doorRulesKey(x) + '@' + x.at).concat(f.leads.map(x => 'lead|' + doorRulesNormName(x.name) + '@' + x.at),
+    f.plates.map(x => 'plate|' + doorPlateKey(x) + '@' + x.at)));
   const left = doorRulesUnsent().filter(x => !has.has(x.key + '@' + x.at));
   try { localStorage.setItem(DOOR_RULES_UNSENT_KEY, JSON.stringify(left)); } catch (e) {}
 }
@@ -18305,11 +18493,14 @@ function doorRulesUndoText(u) {
   if (u.kind === 'add') return 'Undo: take back “' + u.word + '”';
   if (u.kind === 'takeBack') return 'Undo: add “' + u.word + '” back';
   if (u.kind === 'lead') return 'Undo: ' + (u.on ? 'take ' + u.name + ' off the leads list' : 'put ' + u.name + ' back on the leads list');
+  if (u.kind === 'plateAdd') return 'Undo: take back the plate rule just added';
+  if (u.kind === 'plateTakeBack') return 'Undo: put the plate rule back';
   return '';
 }
 function doorRulesUndoStillLatest(u, rules) {
   const r = doorRulesClean(rules);
   if (u.kind === 'lead') { const cur = doorRulesMerge(r, {}).leads.find(x => doorRulesNormName(x.name) === doorRulesNormName(u.name)); return !!cur && cur.at === u.at; }
+  if (u.kind === 'plateAdd' || u.kind === 'plateTakeBack') { const cur = doorRulesMerge(r, {}).plates.find(x => doorPlateKey(x) === u.key); return !!cur && cur.at === u.at; }
   const cur = r.additions.find(x => x.list === u.list && x.word === u.word); return !!cur && cur.at === u.at;
 }
 async function doorRulesUndo() {
@@ -18321,6 +18512,26 @@ async function doorRulesUndo() {
   if (!doorRulesUndoStillLatest(u, rules)) { doorRulesSetUndo(null); doorRulesChanged('Nothing to undo: it has changed since.'); return; }
   const by = getOperatorName();
   let at, took, still = [];
+  if (u.kind === 'plateAdd' || u.kind === 'plateTakeBack') {
+    // D2b: the plate rule just added is taken back, or the one just taken back is checked again and put back.
+    const cur = rules.plates.find(x => doorPlateKey(x) === u.key);
+    const pat = doorRulesNextAt(cur && cur.at);
+    let plates = null;
+    if (u.kind === 'plateAdd') plates = doorPlatesTakeBack(rules.plates, u.key, by, pat);
+    else {
+      const chk = doorPlateCheck(rules.plates, u.rec, { allowed: doorPlateAllowedHere(), prove: doorPlateProveHere });
+      if (!chk.ok) { doorRulesSetUndo(null); doorRulesChanged(chk.why); return; }
+      plates = doorPlatesAdd(rules.plates, Object.assign({}, chk.rec, { by, at: pat }));
+    }
+    const rec = cur || u.rec || {};
+    if (plates) saveDoorRules(Object.assign({}, rules, { plates, log: [{ at: pat, by, what: u.kind === 'plateAdd' ? 'plate rule taken back' : 'plate rule added', kind: rec.kind || '', section: rec.section || '', flag: rec.flag || '', tag: rec.tag || '', note: rec.note || '' }].concat(rules.log) }));
+    const now = loadDoorRules().plates.find(x => doorPlateKey(x) === u.key);
+    if (!plates || !now || now.at !== pat) { doorRulesChanged('It did not take: a newer record is on this computer. Nothing changed.'); return; }
+    doorRulesNoteOwn('plate|' + u.key, pat);
+    doorRulesSetUndo(null);
+    doorRulesChanged('Undone. It goes to the kitchen with the next send.');
+    return;
+  }
   if (u.kind === 'add') {
     // Undoing an add is a take-back: what the word already marked stays marked (second review N8).
     still = doorRulesTakeBackImpact(u.list, u.word, u.target).meals;
@@ -18389,7 +18600,7 @@ function doorRulesPlateRulesHTML() {
     '<li>' + escapeHtml(c.residentTag) + ' on a meal with ' + escapeHtml(fl(c.mealFlag)) + ': the line says “' + escapeHtml(c.note) + '”' + (c.severity === 'red' ? ' (in red)' : '') + '.</li>').join('');
   return '<div style="font-size:12px;line-height:1.6;"><div style="font-weight:600;margin:4px 0;">Which plate a resident gets</div><ul style="margin:0 0 8px;padding-left:18px;">' + rows
     + '<li><b>Regular</b>: everyone else.</li></ul><div style="font-weight:600;margin:4px 0;">What the plating line says</div><ul style="margin:0;padding-left:18px;">' + notes + '</ul>'
-    + '<div class="form-hint">Read-only here. A change to the plate rules is a code change for now.</div></div>';
+    + '<div class="form-hint">Built in (read-only). A lead can add a rule below that only ever protects more; removing or changing a built-in rule is a code change.</div></div>';
 }
 function renderDoorRulesPage() {
   const body = typeof document !== 'undefined' && document.getElementById ? document.getElementById('door-rules-body') : null;
@@ -18452,9 +18663,278 @@ function renderDoorRulesPage() {
   const log = rules.log.slice(0, 12);
   h += '<details style="border-top:1px solid var(--border);padding:8px 0;"><summary style="cursor:pointer;font-weight:600;font-size:13px;">Changes</summary><ul id="door-rules-log" style="font-size:12px;margin:6px 0;padding-left:18px;">'
     + (log.length ? log.map(e => '<li>' + escapeHtml(when(e.at)) + ' · ' + escapeHtml(e.by) + ' ' + escapeHtml(e.what) + ' '
-      + escapeHtml(e.word ? '“' + e.word + '” (' + (doorRulesHasList(e.list) ? DOOR_RULES_LISTS[e.list].label : 'a word list') + ', ' + doorRulesTargetLabel(e.list, e.target) + ')' : (e.name || '')) + '</li>').join('') : '<li>None yet.</li>') + '</ul></details>';
-  h += '<details style="border-top:1px solid var(--border);padding:8px 0;"><summary style="cursor:pointer;font-weight:600;font-size:13px;">Plate rules (read-only)</summary>' + doorRulesPlateRulesHTML() + '</details>';
+      + escapeHtml(e.word ? '“' + e.word + '” (' + (doorRulesHasList(e.list) ? DOOR_RULES_LISTS[e.list].label : 'a word list') + ', ' + doorRulesTargetLabel(e.list, e.target) + ')' : e.kind && (e.flag || e.tag) ? '(' + doorPlateSays(e) + ')' : (e.name || '')) + '</li>').join('') : '<li>None yet.</li>') + '</ul></details>';
+  h += '<details style="border-top:1px solid var(--border);padding:8px 0;"><summary style="cursor:pointer;font-weight:600;font-size:13px;">Plate rules</summary>' + doorRulesPlateRulesHTML() + doorPlateRulesEditHTML(who, rules) + '</details>';
   body.innerHTML = h;
+}
+
+// ── D2b shell: the plate rules in force, the proof on this computer's menu and list, and the Settings forms ──────────
+var _doorPlatesCompiled = null;
+var _doorPlatesOverride;   // a plates list to read instead of this computer's (the proof's before and after)
+function doorPlateAllowedHere() {
+  const labels = typeof TAG_LABELS_MAP !== 'undefined' ? Object.keys(TAG_LABELS_MAP).map(k => TAG_LABELS_MAP[k]) : [];
+  return {
+    sections: doorPlateSectionsAllowed(typeof ROUTING_RULES !== 'undefined' ? ROUTING_RULES : []),
+    flags: doorPlateFlagsAllowed(typeof emptyMealFlags === 'function' ? Object.keys(emptyMealFlags()) : []),
+    tags: doorPlateTagsAllowed(labels),
+    routingRules: typeof ROUTING_RULES !== 'undefined' ? ROUTING_RULES : [],
+    conflictMap: typeof CONFLICT_MAP !== 'undefined' ? CONFLICT_MAP : []
+  };
+}
+// The added plate rules as computeSections reads them, or null when there are none (then nothing changes).
+function doorPlateRulesInForce() {
+  try {
+    const over = _doorPlatesOverride !== undefined;
+    if (over && _doorPlatesOverride && _doorPlatesOverride.compiled) return _doorPlatesOverride.compiled.value;   // a trial compiles once
+    if (!over && _doorPlatesCompiled) return _doorPlatesCompiled.value;
+    const plates = over ? _doorPlatesOverride.plates : (loadDoorRules().plates || []);
+    const active = doorPlatesActive(plates, doorPlateAllowedHere());
+    const value = active.length ? doorPlatesCompile(active) : null;
+    if (over) _doorPlatesOverride.compiled = { value }; else _doorPlatesCompiled = { value };
+    return value;
+  } catch (e) { _doorPlatesCompiled = null; return null; }
+}
+// CONFLICT_MAP and the added notes after it (the sheet notes and Generate's conflict list read this).
+function doorConflictRows() {
+  const P = doorPlateRulesInForce();
+  return P && P.notes.length ? CONFLICT_MAP.concat(P.notes) : CONFLICT_MAP;
+}
+function doorPlateWith(plates, fn) {
+  const was = _doorPlatesOverride;
+  _doorPlatesOverride = plates && plates.trial ? plates : { trial: true, plates: plates || [] };
+  try { return fn(); } finally { _doorPlatesOverride = was; }
+}
+function doorPlateSectionLabel(key) {
+  if (key === 'anaph') return 'Anaphylactic Alternative';
+  if (key === '_nopork') return 'No Pork';
+  const r = ROUTING_RULES.find(x => x.key === key);
+  return r ? r.label : key;
+}
+// Where a section's residents eat (the plate's name for the sentences).
+function doorPlatePlateName(key) {
+  const r = ROUTING_RULES.find(x => x.key === key) || {};
+  if (key === 'no_dairy') return 'the vegan plate (the dairy-free main when the kitchen makes one)';
+  if (r.mergeInto) return 'the ' + doorPlateSectionLabel(r.mergeInto).split(' / ')[0].toLowerCase() + ' plate';
+  return 'the ' + (r.label || key) + ' plate';
+}
+function doorPlateFlagLabel(k) { const f = (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).find(x => x.key === k); return f ? f.label : k; }
+function doorPlateSays(r) {
+  const flag = r.flag ? doorPlateFlagLabel(r.flag) : '';
+  if (r.kind === 'trigger') {
+    const sec = ROUTING_RULES.find(x => x.key === r.section) || {};
+    return 'On meals marked ' + flag + ', ' + (sec.tags || []).join(', ') + ' residents who would otherwise get the regular plate will get ' + doorPlatePlateName(r.section) + '.';
+  }
+  if (r.kind === 'tag') return (r.flag ? 'On meals marked ' + flag + ', ' : 'Whenever DOOR makes the ' + doorPlateSectionLabel(r.section) + ' plate, ')
+    + r.tag + ' residents who would otherwise get the regular plate will get ' + doorPlatePlateName(r.section) + '.';
+  if (r.kind === 'note') return 'On meals marked ' + flag + ', the plating line of ' + r.tag + ' residents will say “' + r.note + '”.';
+  return '';
+}
+function doorPlateMealName(wk, day, period) { return 'Wk' + wk + ' ' + String(day).slice(0, 3) + ' ' + period; }
+// The proof on this computer: every published meal (and each with the rule's flag on, and each flag alone) for every
+// made-up resident with one or two of DOOR's tags, plus this computer's resident list on the published meals. Each
+// must keep its plate or move from the regular plate to a protective one. No names or rooms leave this function.
+function doorPlateProveHere(rec) {
+  const curPlates = loadDoorRules().plates || [];
+  const nowIso = doorRulesNextAt('');
+  // Each side compiles once for the whole proof (the trial carries its compiled rules, as D2a's trial word does).
+  const current = { trial: true, plates: curPlates };
+  const next = { trial: true, plates: doorPlatesAdd(curPlates, Object.assign({}, rec, { by: 'proof', at: nowIso })) };
+  const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const meals = [];
+  ['1', '2', '3', '4'].forEach(wk => days.forEach(day => ['breakfast', 'lunch', 'dinner'].forEach(period => {
+    let pd = null;
+    try { pd = doorPlateWith(current, () => computePlatingData(period, wk, day)); } catch (e) { pd = null; }
+    if (pd && pd.mealFlags) meals.push({ wk, day, period, name: doorPlateMealName(wk, day, period), flags: Object.assign({}, pd.mealFlags) });
+  })));
+  const flagKeys = Object.keys(emptyMealFlags());
+  const probe = meals.map(m => ({ name: m.name, flags: m.flags }));
+  if (rec.flag) meals.forEach(m => probe.push({ name: m.name + ' (if marked ' + doorPlateFlagLabel(rec.flag) + ')', flags: Object.assign({}, m.flags, { [rec.flag]: true }) }));
+  flagKeys.forEach(k => {
+    const f = {}; f[k] = true;
+    probe.push({ name: 'a meal marked ' + doorPlateFlagLabel(k), flags: f });
+    if (rec.flag && rec.flag !== k) { const g = Object.assign({}, f); g[rec.flag] = true; probe.push({ name: 'a meal marked ' + doorPlateFlagLabel(k) + ' and ' + doorPlateFlagLabel(rec.flag), flags: g }); }
+  });
+  // Review P3-1 (2026-11-10): made-up meals with the kitchen's alternatives, alone, in pairs and all together, each
+  // with and without pork, Spicy and the rule's own mark. The pork-day merges, the bland, diabetic and dairy-free plates,
+  // the soft plate and the no-egg merge only show on such meals. computeSections reads a meal's marks and fields, not
+  // whether it is breakfast, lunch or dinner, so these stand for all three (the published pass covers each by name).
+  const kitchen = [['_blandAlt', 'a bland plate'], ['_diabeticAlt', 'a diabetic plate'], ['_noDairyAlt', 'a dairy-free main'],
+    ['_altMeals', 'a soft plate'], ['noPorkAlt', 'a no-pork plate'], ['_vegAltSafe', 'an egg-free vegan plate'], ['_altMealsNone', 'no soft plate needed']];
+  const kVal = k => k === '_altMeals' ? [{ type: 'soft', name: 'Soft plate', flags: {} }] : (k === '_vegAltSafe' || k === '_altMealsNone') ? true : 'Alternative';
+  const kSets = [[]];
+  kitchen.forEach((a, i) => { kSets.push([a]); kitchen.slice(i + 1).forEach(b => kSets.push([a, b])); });
+  kSets.push(kitchen.slice());
+  const bases = [[], ['hasPork'], ['isSpicy'], ['hasPork', 'isSpicy']];
+  const marks = rec.flag ? [[], [rec.flag]] : [[]];
+  kSets.forEach(ks => bases.forEach(bs => marks.forEach(ms => {
+    const f = {};
+    bs.concat(ms).forEach(k => { f[k] = true; });
+    ks.forEach(([k]) => { f[k] = kVal(k); });
+    const words = bs.concat(ms).map(doorPlateFlagLabel).concat(ks.map(x => x[1]));
+    probe.push({ name: 'a made-up meal' + (words.length ? ' with ' + words.join(', ') : ''), flags: f, madeUp: true });
+  })));
+  const labels = Object.keys(TAG_LABELS_MAP).map(k => TAG_LABELS_MAP[k]);
+  const people = [];
+  labels.forEach((a, i) => { people.push([a]); labels.slice(i + 1).forEach(b => people.push([a, b])); });
+  const synth = people.map((t, i) => ({ room: String(9000 + i), tags: t, section: 'Regular', rawRestriction: '', isAnaph: false }));
+  const seat = (plates, flags) => doorPlateWith(plates, () => {
+    const at = {};
+    computeSections(Object.assign({}, flags), synth).forEach(s => s.residents.forEach(r => { at[r.room] = s.rule.key; }));
+    return at;
+  });
+  const noteSet = (plates, flags, tags) => doorPlateWith(plates, () => doorConflictRows().filter(c => flags[c.mealFlag] && tags.indexOf(c.residentTag) >= 0).map(c => c.note));
+  const before = [], after = [], lostNotes = [];
+  probe.forEach(m => {
+    const b = seat(current, m.flags), a = seat(next, m.flags);
+    synth.forEach(r => {
+      const who = 'a resident with ' + r.tags.join(' and ');
+      before.push({ meal: m.name, who, key: b[r.room] || 'regular' });
+      after.push({ meal: m.name, who, key: a[r.room] || 'regular' });
+      if (rec.kind === 'note') {
+        const nb = noteSet(current, m.flags, r.tags), na = noteSet(next, m.flags, r.tags);
+        if (nb.some(x => na.indexOf(x) < 0)) lostNotes.push({ meal: m.name, who, from: 'a note', to: 'no note' });
+      }
+    });
+  });
+  // This computer's resident list, through the plating engine (anaphylactic containment included).
+  const seatReal = (plates, m) => doorPlateWith(plates, () => {
+    const at = {};
+    const pd = computePlatingData(m.period, m.wk, m.day);
+    if (!pd) return at;
+    (pd.anaphSect || []).forEach(r => { at[r.room] = 'anaph'; });
+    pd.sections.forEach(s => s.residents.forEach(r => { at[r.room] = s.rule.key; }));
+    return at;
+  });
+  const reg = typeof REGISTRY_LIST !== 'undefined' && Array.isArray(REGISTRY_LIST) ? REGISTRY_LIST : [];
+  meals.forEach(m => {
+    let b = {}, a = {};
+    try { b = seatReal(current, m); a = seatReal(next, m); } catch (e) { return; }
+    reg.forEach((r, i) => {
+      const who = 'a resident on this computer’s list';
+      before.push({ meal: m.name, who: who + ' #' + i, key: b[r.room] || 'regular', real: true });
+      after.push({ meal: m.name, who: who + ' #' + i, key: a[r.room] || 'regular', real: true });
+    });
+  });
+  const proof = doorPlateProve(before, after);
+  if (lostNotes.length) { proof.ok = false; proof.bad = proof.bad.concat(lostNotes); }
+  // What was checked (the gate reads it): every published meal by period, and the made-up meals.
+  proof.checked = { published: meals.length, periods: Array.from(new Set(meals.map(m => m.period))).sort(), madeUp: probe.filter(m => m.madeUp).length, residents: synth.length, list: reg.length };
+  return proof;
+}
+// Who moves today, from this computer's list: counts per meal and plate, never names or rooms.
+function doorPlateMoverLines(proof) {
+  const by = {};
+  (proof && proof.moved || []).filter(m => m.real).forEach(m => {
+    const k = m.meal + '|' + m.to;
+    by[k] = (by[k] || 0) + 1;
+  });
+  return Object.keys(by).map(k => { const [meal, to] = k.split('|'); const n = by[k]; return meal + ': ' + n + ' resident' + (n === 1 ? '' : 's') + ' → ' + doorPlateSectionLabel(to); });
+}
+function doorPlateBadLine(b) {
+  return (b.who || '').replace(/ #\d+$/, '') + ' would move from ' + doorPlateSectionLabel(b.from || 'regular') + ' to ' + doorPlateSectionLabel(b.to || 'regular') + ' on ' + b.meal + '.';
+}
+function doorPlateFormRec(kind) {
+  const v = id => { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+  if (kind === 'trigger') return { kind, section: v('door-plate-trigger-section'), flag: v('door-plate-trigger-flag') };
+  if (kind === 'tag') return { kind, section: v('door-plate-tag-section'), tag: v('door-plate-tag-tag'), flag: v('door-plate-tag-flag') };
+  return { kind: 'note', flag: v('door-plate-note-flag'), tag: v('door-plate-note-tag'), note: v('door-plate-note-text') };
+}
+function doorPlateMsg(text) { const el = document.getElementById('door-plate-msg'); if (el) el.textContent = text || ''; }
+const DOOR_PLATE_ROUTING_NOTE = 'An added plate rule changes the plating sheets and the counts in routing_by_meal.json, which EXPO and HUB read. The counts change at the next send to the kitchen, stamped as usual; EXPO and HUB need no change (they read counts, not rules).';
+async function doorPlatesAddRule(kind) {
+  let who = doorRulesWhoHere();
+  if (!who.canEdit) { doorPlateMsg(who.why); return; }
+  const rec = doorPlateFormRec(kind);
+  const ctx = { allowed: doorPlateAllowedHere(), prove: doorPlateProveHere };
+  doorPlateMsg('Checking every meal…');
+  await new Promise(r => setTimeout(r, 30));   // let the line paint before the check runs
+  let chk = doorPlateCheck(loadDoorRules().plates, rec, ctx);
+  if (!chk.ok) {
+    if (chk.proof && chk.proof.bad.length) doorPlateMsg('Not added: it would move residents off a plate that protects them (' + chk.proof.bad.slice(0, 3).map(doorPlateBadLine).join(' ') + '). A change like this is Jason’s, in code.');
+    else doorPlateMsg(chk.why);
+    return;
+  }
+  doorPlateMsg('');
+  const movers = doorPlateMoverLines(chk.proof);
+  const ok = await doorAsk({
+    title: 'Add this plate rule?',
+    lines: [doorPlateSays(chk.rec),
+      movers.length ? 'On the current menu, residents on this computer’s list who move from the regular plate:' : (kind === 'note' ? 'No one changes plate; the note is added to their line.' : 'No one on this computer’s list moves on the current menu; it applies when a meal or a resident fits.'),
+      'It only adds: no one leaves a plate DOOR gives them today. ' + (kind === 'note' ? '' : DOOR_PLATE_ROUTING_NOTE),
+      'It goes to the other DOOR computers with the next send to the kitchen.'],
+    items: movers.slice(0, 12).concat(movers.length > 12 ? ['… and ' + (movers.length - 12) + ' more meals'] : []),
+    cancelLabel: 'Go back', goLabel: 'Add the rule'
+  });
+  if (!ok) return;
+  who = doorRulesWhoHere();
+  if (!who.canEdit) { doorPlateMsg(who.why); return; }
+  chk = doorPlateCheck(loadDoorRules().plates, rec, ctx);   // again: the kitchen copy may have arrived meanwhile
+  if (!chk.ok) { doorPlateMsg(chk.why); return; }
+  const rules = loadDoorRules();
+  const key = doorPlateKey(chk.rec);
+  const cur = (rules.plates || []).find(x => doorPlateKey(x) === key);
+  const at = doorRulesNextAt(cur && cur.at), by = getOperatorName();
+  const next = Object.assign({}, rules, { plates: doorPlatesAdd(rules.plates, Object.assign({}, chk.rec, { by, at })) });
+  next.log = [{ at, by, what: 'plate rule added', kind: chk.rec.kind, section: chk.rec.section || '', flag: chk.rec.flag || '', tag: chk.rec.tag || '', note: chk.rec.note || '' }].concat(rules.log || []);
+  if (!saveDoorRules(next)) { doorPlateMsg('This computer could not save it (storage is full).'); return; }
+  if (!doorPlatesActive(loadDoorRules().plates).some(x => doorPlateKey(x) === key && x.at === at)) { doorPlateMsg('It did not take: a newer record for this rule is on this computer. Nothing changed.'); return; }
+  doorRulesNoteOwn('plate|' + key, at);
+  doorRulesSetUndo({ kind: 'plateAdd', key, at });
+  doorRulesChanged('Added the plate rule. It goes to the kitchen with the next send.');
+}
+async function doorPlatesTakeBackRule(key) {
+  const who = doorRulesWhoHere();
+  if (!who.canEdit) { doorPlateMsg(who.why); return; }
+  const cur = doorPlatesActive(loadDoorRules().plates).find(x => doorPlateKey(x) === key);
+  if (!cur) return;
+  const ok = await doorAsk({
+    title: 'Take back this plate rule?',
+    lines: [doorPlateSays(cur), 'DOOR goes back to its built-in plate rules for this. Residents this rule seated go back to the plate DOOR gave them before, on this computer now and on the plating sheets from now on.',
+      'The routing_by_meal.json the kitchen already has (and EXPO’s and HUB’s counts from it) keeps this rule until the next send to the kitchen. Plating sheets already printed keep it too.'],
+    cancelLabel: 'Go back', goLabel: 'Take it back'
+  });
+  if (!ok || !doorRulesWhoHere().canEdit) return;
+  const rules = loadDoorRules();
+  const now = (rules.plates || []).find(x => doorPlateKey(x) === key);
+  const at = doorRulesNextAt(now && now.at), by = getOperatorName();
+  const plates = doorPlatesTakeBack(rules.plates, key, by, at);
+  if (!plates) { doorPlateMsg('That rule has already been taken back.'); return; }
+  const next = Object.assign({}, rules, { plates });
+  next.log = [{ at, by, what: 'plate rule taken back', kind: cur.kind, section: cur.section || '', flag: cur.flag || '', tag: cur.tag || '', note: cur.note || '' }].concat(rules.log || []);
+  saveDoorRules(next);
+  const after = loadDoorRules().plates.find(x => doorPlateKey(x) === key);
+  if (!after || !after.takenBack || after.at !== at) { doorPlateMsg('It did not take: a newer record for this rule is on this computer. Nothing changed.'); return; }
+  doorRulesNoteOwn('plate|' + key, at);
+  doorRulesSetUndo({ kind: 'plateTakeBack', key, at, rec: cur });
+  doorRulesChanged('Took back the plate rule. It goes to the kitchen with the next send.');
+}
+// The forms (leads only) and the added rules (everyone sees them).
+function doorPlateRulesEditHTML(who, rules) {
+  const A = doorPlateAllowedHere();
+  const active = doorPlatesActive((rules && rules.plates) || [], A);
+  let h = '<div style="font-size:12px;line-height:1.6;margin-top:8px;"><div style="font-weight:600;margin:4px 0;">Added plate rules</div>';
+  h += active.length ? '<ul style="margin:0 0 8px;padding-left:18px;">' + active.map(r => '<li>' + escapeHtml(doorPlateSays(r)) + ' <span style="color:var(--muted);">' + escapeHtml(r.by) + '</span>'
+    + (who.canEdit ? ' <button class="btn btn-ghost btn-sm" data-key="' + _escAttr(doorPlateKey(r)) + '" onclick="doorPlatesTakeBackRule(this.dataset.key)">Take back</button>' : '') + '</li>').join('') + '</ul>'
+    : '<div class="form-hint">None yet.</div>';
+  h += '<div class="form-hint">' + escapeHtml(DOOR_PLATE_ROUTING_NOTE) + '</div>';
+  h += '<div class="form-hint" id="door-plate-section-note">Added plate rules change plating and routing, not the section stored on a resident.</div>';
+  if (who.canEdit) {
+    const opt = (vals, lab, first) => (first ? '<option value="">' + escapeHtml(first) + '</option>' : '') + vals.map(v => '<option value="' + _escAttr(v) + '">' + escapeHtml(lab(v)) + '</option>').join('');
+    const secs = opt(A.sections, k => doorPlateSectionLabel(k), 'plate…');
+    const flags = opt(A.flags, doorPlateFlagLabel, 'meals marked…');
+    const tags = opt(A.tags, t => t, 'restriction…');
+    const row = (inner, kind, label) => '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;">' + inner + '<button class="btn btn-ghost btn-sm" onclick="doorPlatesAddRule(\'' + kind + '\')">' + label + '</button></div>';
+    h += '<div style="font-weight:600;margin:8px 0 2px;">A meal mark opens a plate</div>'
+      + row('<select id="door-plate-trigger-flag" style="font-size:12px;">' + flags + '</select><select id="door-plate-trigger-section" style="font-size:12px;">' + secs + '</select>', 'trigger', 'Add…');
+    h += '<div style="font-weight:600;margin:8px 0 2px;">A restriction joins a plate</div>'
+      + row('<select id="door-plate-tag-tag" style="font-size:12px;">' + tags + '</select><select id="door-plate-tag-section" style="font-size:12px;">' + secs + '</select><select id="door-plate-tag-flag" style="font-size:12px;">'
+        + opt(A.flags, f => 'on meals marked ' + doorPlateFlagLabel(f), 'whenever the plate is made') + '</select>', 'tag', 'Add…');
+    h += '<div style="font-weight:600;margin:8px 0 2px;">A note on the plating line</div>'
+      + row('<select id="door-plate-note-flag" style="font-size:12px;">' + flags + '</select><select id="door-plate-note-tag" style="font-size:12px;">' + tags + '</select><input type="text" id="door-plate-note-text" maxlength="40" placeholder="note, e.g. no sesame" style="font-size:12px;max-width:160px;">', 'note', 'Add…');
+    h += '<div class="form-hint">Every rule is checked against every meal first: an added rule only seats residents who would otherwise get the regular plate, and DOOR refuses one that would move anyone off a plate they get today.</div>';
+  }
+  h += '<div id="door-plate-msg" role="status" style="font-size:12px;color:#b45309;"></div></div>';
+  return h;
 }
 // The recipes a dish can link: a main, the vegan dish, a side (any side slot's recipes, or a salad, soup, dessert).
 // W3c (2026-11-08, Week 3 log 2): after the closest suggestions, every recipe that fits the dish's role, A–Z. A select

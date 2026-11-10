@@ -359,22 +359,23 @@ test('two computers merge per word and per lead, newest wins; no record is dropp
 
 test('a D2a computer never changes what it doesn\'t know, and refuses a newer file (second review N1)', () => {
   const c = box();
+  // Re-pinned 2026-11-10 (D2b): `plates` is a field this build now reads, so the stand-in unknown field is `laterField`.
   const P1 = [{ id: 'p', v: 1 }], P2 = [{ id: 'p', v: 2 }];
   const w = (word, at, extra) => Object.assign({ list: 'menuName', word, target: 'hasShellfish', by: 'Fiona', at }, extra || {});
   // q3: a tie of stamps used to keep this computer's P1 over the kitchen's P2. The kitchen copy now always decides.
-  const k0 = { _meta: { version: 1, exported: '2026-11-10T09:00:00.000Z', site: 'rexdale' }, leads: [], additions: [], log: [], plates: P1 };
+  const k0 = { _meta: { version: 1, exported: '2026-11-10T09:00:00.000Z', site: 'rexdale' }, leads: [], additions: [], log: [], laterField: P1 };
   let A = c.doorRulesMerge({}, k0, undefined, { kitchen: true });
   A = c.doorRulesAdd(A, w('geoduck', '2026-11-10T10:05:00.000Z'));
   const k1 = plain(c.doorRulesFile(A, 'rexdale'));
-  assert.deepEqual(k1.plates, P1);
+  assert.deepEqual(k1.laterField, P1);
   A = c.doorRulesMerge(A, k1, undefined, { kitchen: true });
-  const k2 = { ...k1, plates: P2, _meta: { ...k1._meta, exported: '2026-11-10T10:05:00.000Z' } };
+  const k2 = { ...k1, laterField: P2, _meta: { ...k1._meta, exported: '2026-11-10T10:05:00.000Z' } };
   A = c.doorRulesMerge(A, k2, undefined, { kitchen: true });
-  assert.deepEqual(plain(A.plates), P2, 'the kitchen copy wins a tie');
-  assert.deepEqual(plain(c.doorRulesFile(A, 'rexdale').plates), P2, 'and is what this computer republishes');
-  const k3 = { ...k2 }; delete k3.plates;
-  assert.equal(plain(c.doorRulesMerge(A, k3, undefined, { kitchen: true })).plates, undefined, 'a field the kitchen dropped stays dropped');
-  assert.deepEqual(plain(c.doorRulesMerge(A, { leads: [] }).plates), P2, 'before any kitchen read this computer keeps what it holds');
+  assert.deepEqual(plain(A.laterField), P2, 'the kitchen copy wins a tie');
+  assert.deepEqual(plain(c.doorRulesFile(A, 'rexdale').laterField), P2, 'and is what this computer republishes');
+  const k3 = { ...k2 }; delete k3.laterField;
+  assert.equal(plain(c.doorRulesMerge(A, k3, undefined, { kitchen: true })).laterField, undefined, 'a field the kitchen dropped stays dropped');
+  assert.deepEqual(plain(c.doorRulesMerge(A, { leads: [] }).laterField), P2, 'before any kitchen read this computer keeps what it holds');
   // fields inside records, _meta fields and additions on an unknown list ride along untouched
   const k4 = { _meta: { version: 1, exported: '2026-11-10T10:00:00.000Z', site: 'rexdale', schema: 'x', plateRev: 7 },
     additions: [w('cockle', '2026-11-10T10:00:00.000Z', { note: 'D2b field' }), { list: 'plateRule', word: 'abc', target: 'x', by: 'Jason', at: '2026-11-10T10:00:00.000Z', shape: { any: 1 } }],
@@ -405,7 +406,7 @@ test('a D2a computer never changes what it doesn\'t know, and refuses a newer fi
   assert.deepEqual(staged5.leads, k5.leads, 'leads this build cannot read ride along');
   assert.deepEqual(staged5.log, k5.log);
   assert.deepEqual(plain(C5.doorRulesActive(C5.loadDoorRules(), 'menuName').map(x => x.word)), ['geoduck'], 'and are never read');
-  s.doorApplyRemoteRules({ _meta: { version: 2, exported: '2026-11-10T12:00:00.000Z' }, additions: [w('geoduck', '2026-11-10T12:00:00.000Z')], leads: [], log: [], plates: P2 });
+  s.doorApplyRemoteRules({ _meta: { version: 2, exported: '2026-11-10T12:00:00.000Z' }, additions: [w('geoduck', '2026-11-10T12:00:00.000Z')], leads: [], log: [], laterField: P2 });
   assert.deepEqual(plain(s.doorRulesActive(s.loadDoorRules(), 'menuName').map(x => x.word)), ['abalone'], 'not merged');
   assert.equal(plain(s.doorRulesKitchenState()).reason, 'newer');
   assert.match(fn('renderDoorRulesPage'), /from a newer DOOR \(version/);
@@ -428,7 +429,8 @@ test('every shown string is escaped: words, names, the log and the import line (
   assert.doesNotMatch(out, /<img/);
   assert.match(out, /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.doesNotMatch(out, /undefined/, 'an odd list name reads as "a word list"');
-  assert.match(out, /Plate rules \(read-only\)/);
+  // Re-pinned 2026-11-10 (D2b): the plate rules section is editable for leads, so its heading drops "(read-only)".
+  assert.match(out, /Plate rules<\/summary>/);
   const imp = c.doorRulesAddedReadsHTML([{ word: 'celiac', tag: 'glutenFree', by: evil, at: T }]);
   assert.doesNotMatch(imp, /<img/);
 });
