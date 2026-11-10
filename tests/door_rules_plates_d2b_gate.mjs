@@ -29,7 +29,8 @@ const RESIDENTS = [
 ].map((tags, i) => ({ room: String(101 + i), tags, section: 'Regular', rawRestriction: '', isAnaph: false, allergenFlags: [], restrictions: tags }));
 
 function box(opts = {}) {
-  const src = opts.mutate ? opts.mutate(html) : html;
+  const base = opts.src || html;
+  const src = opts.mutate ? opts.mutate(base) : base;
   const fn = (n) => fnIn(src, n), fnOpt = (n) => fnOptIn(src, n);
   const store = Object.assign({}, opts.store || {});
   const asked = [];
@@ -282,10 +283,16 @@ test('two computers merge per rule, newest wins; times are canonical and never i
   assert.deepEqual(out(c.doorPlatesActive(ab)).map((r) => r.kind), ['note'], 'the newer take-back wins');
   const tie = c.doorPlatesMerge(a, [Object.assign({}, a[0], { takenBack: true })]);
   assert.equal(c.doorPlatesActive(tie).length, 1, 'a tie keeps the rule (it only protects)');
-  // times
-  const far = new Date(Date.now() + 86400000).toISOString();
-  assert.equal(c.doorPlatesClean([Object.assign({}, a[0], { at: far })]).length, 0, 'a future time is refused');
-  for (const at of ['2026-11-09T09:00:00Z', '2026-11-09T09:00:00.000+00:00', '9999-12-31T00:00:00.000Z', '2026-02-30T00:00:00.000Z', '2026-11-09']) assert.equal(c.doorPlatesClean([Object.assign({}, a[0], { at })]).length, 0, at);
+  // times (D2a's rule, folded 2026-11-10): canonical times only order a merge, by raw value; a record is never dropped for
+  // its time, and one this build can't read is carried verbatim (_foreignPlates) into the next send
+  const far = new Date(Date.now() + 3 * 86400000).toISOString();
+  assert.equal(c.doorPlatesClean([Object.assign({}, a[0], { at: far })]).length, 1, 'a future time is kept (and shown as skewed)');
+  for (const at of ['2026-11-09T09:00:00Z', '2026-11-09T09:00:00.000+00:00', '2026-02-30T00:00:00.000Z', '2026-11-09']) {
+    const bad = Object.assign({}, a[0], { at });
+    assert.equal(c.doorPlatesClean([bad]).length, 0, at);
+    const file = out(c.doorRulesFile(c.doorRulesMerge({}, { plates: [bad] }, undefined, { kitchen: true }), 'rexdale'));
+    assert.deepEqual(file.plates, [bad], 'carried verbatim: ' + at);
+  }
   assert.equal(c.doorPlateStamp(Date.parse(T0), T1), '2026-11-09T10:00:00.001Z');
   assert.equal(c.doorPlateStamp(Date.parse(T1), T0), T1);
   // the file: plates beside the words, merged by the D2a merge; an unchanged file reads unchanged
@@ -299,4 +306,63 @@ test('two computers merge per rule, newest wins; times are canonical and never i
   assert.equal(s.doorPlatesActive(s.loadDoorRules().plates).length, 1);
   assert.ok(s.doorPlateRulesInForce().notes.length === 1);
   assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(6[6-9]|[7-9]\d)/);
+});
+
+// The page as a D2a-only computer runs it: today's page with its door-rules block swapped for the block at b7f0b89 (D2a,
+// before plate rules), kept byte for byte in tests/fixtures/door_rules_d2a_b7f0b89.js.
+function d2aHtml() {
+  const block = fs.readFileSync(new URL('./fixtures/door_rules_d2a_b7f0b89.js', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
+  const old = block.slice(block.indexOf(CORE_S)).replace(/\n$/, '');
+  const a = html.indexOf(CORE_S), b = html.indexOf('\n// The recipes a dish can link', a);
+  return html.slice(0, a) + old + html.slice(b);
+}
+
+test('a D2a-only computer carries plates through a merge and a publish; a D2b computer reads them back', () => {
+  const old = d2aHtml();
+  assert.ok(!old.includes('function doorPlatesMerge('), 'the old page has no plate rules');
+  const d2b = box();
+  const rule = { kind: 'tag', section: 'no_fish', tag: 'No Sesame', flag: 'hasSesame', by: 'Jason', at: T0, extra: { keep: 1 } };
+  const kitchen = out(d2b.doorRulesFile(d2b.doorRulesMerge({}, { plates: [rule] }), 'rexdale'));
+  assert.equal(kitchen._meta.version, 1, 'plates are additive: the version stays 1');
+  // the D2a computer merges the kitchen copy, adds a word of its own, and stages its send
+  const d2a = box({ src: old, store: {} });
+  d2a.doorApplyRemoteRules(kitchen);
+  const mine = d2a.doorRulesAdd(d2a.loadDoorRules(), { list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'Jason', at: T1 });
+  d2a.saveDoorRules(mine);
+  const staged = out(d2a.doorRulesFile(d2a.loadDoorRules(), 'rexdale'));
+  assert.deepEqual(staged.plates, kitchen.plates, 'plates ride along verbatim');
+  assert.equal(staged._meta.version, 1);
+  // the send drops nothing the kitchen has (the check a D2b computer runs on it too)
+  assert.deepEqual(out(d2b.doorRulesDrops(kitchen, staged, [])), []);
+  assert.deepEqual(out(d2a.doorRulesDrops(kitchen, staged, [])), []);
+  // and a D2b computer reading what the D2a computer sent has the plate rule in force, its extra field kept
+  const back = box();
+  back.doorApplyRemoteRules(staged);
+  assert.equal(back.doorPlatesActive(back.loadDoorRules().plates).length, 1);
+  assert.deepEqual(out(back.loadDoorRules().plates[0].extra), { keep: 1 });
+  assert.ok(back.doorPlateRulesInForce().tags.no_fish.length === 1);
+  // a D2b send that would drop the kitchen plate rule is caught
+  assert.deepEqual(out(back.doorRulesDrops(kitchen, { plates: [] }, [])), ['plate|tag|no_fish|No Sesame|hasSesame']);
+});
+
+test('a plate rule taken back over a fast-clock record still wins at merges an hour and a day later', () => {
+  const c = box();
+  const now = Date.parse('2026-11-10T10:00:00.000Z');
+  const fast = new Date(now + 2 * 86400000).toISOString();   // a computer two days ahead added it
+  const added = [{ kind: 'trigger', section: 'no_fish', flag: 'hasSesame', by: 'Fiona', at: fast }];
+  const key = c.doorPlateKey(added[0]);
+  const at = c.doorPlateStamp(now, fast);
+  assert.ok(Date.parse(at) > Date.parse(fast), 'the take-back is stamped after the record it replaces');
+  const back = c.doorPlatesTakeBack(added, key, 'Jason', at);
+  for (const later of [now + 3600000, now + 86400000]) {
+    for (const [x, y] of [[added, back], [back, added]]) {
+      const m = c.doorRulesMerge({ plates: x }, { plates: y }, later);
+      assert.equal(c.doorPlatesActive(m.plates).length, 0, 'taken back at ' + new Date(later).toISOString());
+      const k = c.doorRulesMerge({ plates: x }, { plates: y }, later, { kitchen: true });
+      assert.equal(c.doorPlatesActive(k.plates).length, 0, 'kitchen merge at ' + new Date(later).toISOString());
+    }
+  }
+  // put back later, it wins again
+  const again = c.doorPlatesAdd(back, Object.assign({}, added[0], { by: 'Jason', at: c.doorPlateStamp(now + 3600000, at) }));
+  assert.equal(c.doorPlatesActive(c.doorRulesMerge({ plates: back }, { plates: again }, now + 86400000).plates).length, 1);
 });
