@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.62';
-const DOOR_BUILD_DATE = '2026-11-09';
+const DOOR_APP_VERSION = 'v31-standard.63';
+const DOOR_BUILD_DATE = '2026-11-10';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -949,11 +949,9 @@ function updateCODEXBadge() {
   </div>
   <div style="padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,0.08);">
     <select id="site-dropdown" onchange="selectSite(this.value)" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:6px 8px;cursor:pointer;appearance:auto;">
-      <option value="rexdale" style="background:#1a3a2a;color:#fff;">Rexdale</option>
-      <option value="lansdowne" style="background:#1a3a2a;color:#fff;">Lansdowne</option>
-      <option value="bloor" style="background:#1a3a2a;color:#fff;">Bloor</option>
     </select>
     <div id="site-sub-label" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:5px;line-height:1.4;"></div>
+    <div id="site-registry-note" style="display:none;font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;line-height:1.4;"></div>
   </div>
   <div class="sidebar-date">
     <div class="sidebar-date-label">Today</div>
@@ -1741,6 +1739,7 @@ function updateCODEXBadge() {
                   <span style="font-size:14px;font-weight:600;color:var(--forest-mid);" id="settings-site-label">Rexdale</span>
                   <button class="btn btn-ghost btn-sm" onclick="changeSite()">Switch Site</button>
                 </div>
+                <div id="settings-site-note" style="display:none;font-size:12px;color:var(--muted);margin-top:4px;"></div>
               </div>
               <div class="form-group mb-12">
                 <label>Current menu week override</label>
@@ -2234,12 +2233,78 @@ function updateCODEXBadge() {
 // ============================================================
 // SITE CONFIGURATION
 // ============================================================
+// D1 (2026-11-10): which sites there are, their names and whether they are in use come from the HOUSE site registry
+// (conc-kitchen-house/sites.json, schema 1, contract SITES.md). It is read like any HOUSE feed: live, then the copy
+// kept on this computer, then the copy built in below. A live file of another schema version is refused out loud
+// and the built-in copy is used. SITE_CONFIGS keeps only what DOOR alone knows about a site (its SharePoint paths),
+// under the registry key. No resident count is typed anywhere here: the count is the resident list.
+/* DOOR_TESTABLE_CORE_START house-sites */
+const DOOR_HOUSE_SITES_URL = 'https://kennedyjasondavid-eng.github.io/conc-kitchen-house/sites.json';
+const DOOR_HOUSE_SITES_CACHE_KEY = 'door_house_sites_cache';
+// The registry as of 2026-10-31 (shared facts only; counts are never stored in it).
+const DOOR_BUILTIN_HOUSE_SITES = {
+  _meta: { schemaVersion: 1, owner: 'conc-kitchen-house', contract: 'SITES.md', generated: '2026-10-31' },
+  sites: [
+    { key: 'bloor', name: 'Bloor', aliases: ['854 bloor', '854', 'bloor_shelter'], kitchen: true, served: true, status: 'active', cookedBy: ['bloor'] },
+    { key: 'rexdale', name: 'Rexdale', aliases: ['rex'], kitchen: true, served: true, status: 'active', cookedBy: ['bloor', 'rexdale'] },
+    { key: 'lansdowne', name: 'Lansdowne', aliases: ['lan'], kitchen: true, served: true, status: 'active', cookedBy: ['lansdowne'] },
+    { key: '1011-lansdowne', name: '1011 Lansdowne', aliases: ['1011'], kitchen: false, served: true, status: 'active', cookedBy: ['lansdowne'] },
+    { key: 'roncy', name: 'Roncesvalles', aliases: ['roncesvalles'], kitchen: false, served: true, status: 'active', cookedBy: ['lansdowne'] },
+    { key: 'gcnc', name: 'George Chuvalo Neighbourhood Centre', aliases: ['gc', 'george-chuvalo'], kitchen: true, served: false, status: 'paused', cookedBy: [] },
+    { key: 'warming-centre', name: 'Winter warming centre', aliases: ['warming centre', 'warming center'], kitchen: false, served: true, status: 'active', open: [{ from: '2026-11-15', to: '2027-04-15' }], cookedBy: ['lansdowne'] }
+  ]
+};
+function doorHouseSitesUsable(j) { return !!(j && j._meta && j._meta.schemaVersion === 1 && Array.isArray(j.sites)); }
+// live: the parsed live file, or undefined when it could not be reached. kept: this computer copy, or null.
+function doorChooseHouseSites(live, kept) {
+  if (doorHouseSitesUsable(live)) return { reg: live, source: 'live', note: '' };
+  if (live !== undefined) {
+    const v = live && live._meta ? live._meta.schemaVersion : undefined;
+    const note = v === undefined || v === null
+      ? 'The HOUSE site registry names no version; DOOR reads version 1, so it shows its own list of sites.'
+      : 'The HOUSE site registry is version ' + String(v) + '; DOOR reads version 1, so it shows its own list of sites.';
+    return { reg: DOOR_BUILTIN_HOUSE_SITES, source: 'built-in', note };
+  }
+  if (doorHouseSitesUsable(kept)) return { reg: kept, source: 'kept', note: '' };
+  return { reg: DOOR_BUILTIN_HOUSE_SITES, source: 'built-in', note: '' };
+}
+// A site by its key or any alias, without case (SITES.md).
+function doorHouseSiteFor(reg, code) {
+  const c = String(code == null ? '' : code).trim().toLowerCase();
+  if (!c || !reg || !Array.isArray(reg.sites)) return null;
+  return reg.sites.find(s => s && (String(s.key || '').toLowerCase() === c ||
+    (Array.isArray(s.aliases) && s.aliases.some(a => String(a).toLowerCase() === c)))) || null;
+}
+// The site picker: each site DOOR has details for, in DOOR order, offered when the registry has it served and
+// active. A site the registry pauses, retires or leaves out is offered only while it is the selected one.
+function doorSitePickerOptions(reg, details, selectedKey) {
+  const out = [];
+  Object.keys(details || {}).forEach(function(key) {
+    const s = doorHouseSiteFor(reg, key);
+    if (s && s.served && s.status === 'active') out.push({ key, name: String(s.name || key), status: 'active' });
+    else if (key === selectedKey) out.push({ key, name: s ? String(s.name || key) : key, status: s ? String(s.status || 'unknown') : 'missing' });
+  });
+  return out;
+}
+// The selected site: the registry name and status beside DOOR details. It carries no id on purpose: the
+// published files read currentSite.id and fall back to rexdale, and this change must not move them.
+function doorSiteRecord(reg, details, key) {
+  const d = details && details[key];
+  if (!d) return null;
+  const s = doorHouseSiteFor(reg, key);
+  const name = s && s.name ? String(s.name) : key;
+  return Object.assign({ key, name, label: 'CONC ' + name, status: s ? String(s.status || 'unknown') : 'missing', served: !!(s && s.served) }, d);
+}
+function doorSiteStatusNote(site) {
+  if (!site || (site.status === 'active' && site.served)) return '';
+  if (site.status === 'missing') return site.name + ' is not in the HOUSE site registry.';
+  if (site.status === 'active') return site.name + ' is not a site served meals in the HOUSE site registry.';
+  return site.name + ' is ' + site.status + ' in the HOUSE site registry.';
+}
+/* DOOR_TESTABLE_CORE_END house-sites */
+
 const SITE_CONFIGS = {
   rexdale: {
-    name: 'Rexdale',
-    label: 'CONC Rexdale',
-    sub: 'Rexdale Shelter · 181 residents',
-    residentCount: 181,
     spPlating:  '/sites/Kitchen/Shared Documents/Current Updates/',
     spRegistry: '/sites/Kitchen/Shared Documents/Rexdale/Registry/Registry.xlsx',
     spMeallog:  '/sites/Kitchen/Shared Documents/Rexdale/Meal Logs/Meal_Log.xlsx',
@@ -2247,10 +2312,6 @@ const SITE_CONFIGS = {
     spMenu:     '/sites/Kitchen/Shared Documents/Bloor/Menus/4_week_rotation-CURRENT.xlsx',
   },
   lansdowne: {
-    name: 'Lansdowne',
-    label: 'CONC Lansdowne',
-    sub: 'Lansdowne · 40 residents + Roncy 30 (+ warming centre 20, winter)',
-    residentCount: 40,
     spPlating:  '/sites/Kitchen/Shared Documents/Lansdowne/Plating Sheets/',
     spRegistry: '/sites/Kitchen/Shared Documents/Lansdowne/Registry/Registry.xlsx',
     spMeallog:  '/sites/Kitchen/Shared Documents/Lansdowne/Meal Logs/Meal_Log.xlsx',
@@ -2258,10 +2319,6 @@ const SITE_CONFIGS = {
     spMenu:     '/sites/Kitchen/Shared Documents/Bloor/Menus/4_week_rotation-CURRENT.xlsx',
   },
   bloor: {
-    name: 'Bloor',
-    label: 'CONC Bloor',
-    sub: 'Bloor Shelter · 30 residents',
-    residentCount: 30,
     spPlating:  '/sites/Kitchen/Shared Documents/Bloor/Plating Sheets/',
     spRegistry: '/sites/Kitchen/Shared Documents/Bloor/Registry/Registry.xlsx',
     spMeallog:  '/sites/Kitchen/Shared Documents/Bloor/Meal Logs/Meal_Log.xlsx',
@@ -2271,10 +2328,83 @@ const SITE_CONFIGS = {
 };
 
 let currentSite = null;
+let _doorHouseSites = null, _doorHouseSitesSource = 'built-in', _doorHouseSitesNote = '';
+let _doorSiteShownCount;
+
+function doorHouseSitesNow() {
+  if (_doorHouseSites) return _doorHouseSites;
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(DOOR_HOUSE_SITES_CACHE_KEY) || 'null'); } catch (e) {}
+  const pick = doorChooseHouseSites(undefined, kept);
+  _doorHouseSites = pick.reg; _doorHouseSitesSource = pick.source;
+  return pick.reg;
+}
+
+// Live read: cache-busted and no-store (HOUSE_PROVEN_SEAMS row 2); the kept copy through doorSetItemSafe (row 1).
+async function loadHouseSites() {
+  let live;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(DOOR_HOUSE_SITES_URL + '?_=' + Date.now(), { cache: 'no-store', signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) { try { live = await res.json(); } catch (e) { live = null; } }
+  } catch (e) {
+    console.info('[DOOR] HOUSE site registry not reachable (' + ((e && e.message) || e) + '), using this computer copy');
+  }
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(DOOR_HOUSE_SITES_CACHE_KEY) || 'null'); } catch (e) {}
+  const pick = doorChooseHouseSites(live, kept);
+  _doorHouseSites = pick.reg; _doorHouseSitesSource = pick.source; _doorHouseSitesNote = pick.note;
+  if (pick.source === 'live') doorSetItemSafe(DOOR_HOUSE_SITES_CACHE_KEY, JSON.stringify(live));
+  if (pick.note) console.warn('[DOOR] ' + pick.note);
+  doorRefreshSites();
+  return pick.source;
+}
+
+function doorRenderSitePicker() {
+  const sel = document.getElementById('site-dropdown');
+  if (!sel) return;
+  const chosen = currentSite ? currentSite.key : null;
+  const opts = doorSitePickerOptions(doorHouseSitesNow(), SITE_CONFIGS, chosen);
+  sel.textContent = '';
+  opts.forEach(function(o) {
+    const opt = document.createElement('option');
+    opt.value = o.key;
+    opt.textContent = o.status === 'active' ? o.name : o.name + ' (' + (o.status === 'missing' ? 'not in the site registry' : o.status) + ')';
+    opt.style.background = '#1a3a2a'; opt.style.color = '#fff';
+    sel.appendChild(opt);
+  });
+  if (chosen) sel.value = chosen;
+}
+
+// One quiet line under the site, in the sidebar and in Settings: a refused registry, or a selected site the
+// registry does not list as served and active.
+function doorShowSiteNotes() {
+  const text = [_doorHouseSitesNote, doorSiteStatusNote(currentSite)].filter(Boolean).join(' ');
+  ['site-registry-note', 'settings-site-note'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = text ? '' : 'none';
+  });
+}
+
+function doorRefreshSites() {
+  if (!currentSite) return;
+  const rec = doorSiteRecord(doorHouseSitesNow(), SITE_CONFIGS, currentSite.key);
+  if (rec) currentSite = rec;
+  doorRenderSitePicker();
+  updateResidentCountDisplays(_doorSiteShownCount);
+  const settingsSiteLabel = document.getElementById('settings-site-label');
+  if (settingsSiteLabel) settingsSiteLabel.textContent = currentSite.name;
+  doorShowSiteNotes();
+}
 
 function updateResidentCountDisplays(liveCount) {
   if (!currentSite) return;
-  const isRexdale = currentSite === SITE_CONFIGS.rexdale;
+  _doorSiteShownCount = liveCount;
+  const isRexdale = currentSite.key === 'rexdale';
   const hasLiveCount = isRexdale && Number.isInteger(liveCount) && liveCount >= 0;
   // 2026-11-07: no resident list yet shows "—", never the site's planning number (Rexdale read "181" on a computer with no list).
   const count = hasLiveCount ? liveCount : '—';
@@ -2295,12 +2425,13 @@ function updateResidentCountDisplays(liveCount) {
 }
 
 function selectSite(siteKey) {
-  currentSite = SITE_CONFIGS[siteKey];
+  const rec = doorSiteRecord(doorHouseSitesNow(), SITE_CONFIGS, siteKey);
+  if (!rec) return;
+  currentSite = rec;
   localStorage.setItem('conc_selected_site', siteKey);
 
-  // Update sidebar dropdown
-  const sel = document.getElementById('site-dropdown');
-  if (sel) sel.value = siteKey;
+  // The sidebar picker is built from the registry each time (a paused site stays while it is selected)
+  doorRenderSitePicker();
 
   // Use the configured count until the live registry has loaded. renderRegistry()
   // replaces Rexdale's placeholder with the real local registry count.
@@ -2322,6 +2453,7 @@ function selectSite(siteKey) {
   // Update settings site label if visible
   const settingsSiteLabel = document.getElementById('settings-site-label');
   if (settingsSiteLabel) settingsSiteLabel.textContent = currentSite.name;
+  doorShowSiteNotes();
 }
 
 function initSiteSelector() {
@@ -2339,6 +2471,7 @@ function initSiteSelector() {
 
   const saved = getSelectedSite();
   selectSite(saved && SITE_CONFIGS[saved] ? saved : 'rexdale');
+  loadHouseSites();
 }
 
 function changeSite() {

@@ -18,7 +18,10 @@ function displays(liveCount) {
   const label = el();
   const c = { document: { getElementById: (id) => els[id] || null, querySelector: () => label } };
   vm.createContext(c);
-  vm.runInContext(block('const SITE_CONFIGS = {') + ';\nvar currentSite = SITE_CONFIGS.rexdale;\n' + block('function updateResidentCountDisplays(liveCount)') +
+  // Re-pinned 2026-11-10 (D1): SITE_CONFIGS keeps only DOOR details; the site name comes from the HOUSE site
+  // registry, so the selected site is built the way selectSite builds it (key, registry name, DOOR details).
+  const core = html.slice(html.indexOf('/* DOOR_TESTABLE_CORE_START house-sites */'), html.indexOf('/* DOOR_TESTABLE_CORE_END house-sites */'));
+  vm.runInContext(core + '\n' + block('const SITE_CONFIGS = {') + ';\nvar _doorSiteShownCount;\nvar currentSite = doorSiteRecord(DOOR_BUILTIN_HOUSE_SITES, SITE_CONFIGS, "rexdale");\n' + block('function updateResidentCountDisplays(liveCount)') +
     '\nupdateResidentCountDisplays(' + JSON.stringify(liveCount) + ');', c);
   return els;
 }

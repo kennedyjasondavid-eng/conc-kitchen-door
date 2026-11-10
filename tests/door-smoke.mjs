@@ -2196,9 +2196,11 @@ test('Rexdale sidebar resident count is refreshed from the complete live registr
     ['preview-total-badge', { textContent: '' }]
   ]);
   const totalLabel = { textContent: '' };
-  const rexdale = { name: 'Rexdale', sub: 'Rexdale Shelter · configured', residentCount: 181 };
+  // Re-pinned 2026-11-10 (D1): the selected site carries its registry key and name; no typed count.
+  const rexdale = { key: 'rexdale', name: 'Rexdale' };
   const context = {
     Number,
+    _doorSiteShownCount: undefined,
     SITE_CONFIGS: { rexdale },
     currentSite: rexdale,
     document: {
