@@ -12095,8 +12095,11 @@ function doorDeliveryRender() {
     record.served ? 'Previously verified — check delivery for current confirmation.' : 'Committed — kitchen delivery pending.';
   const color=served&&!pending?'var(--forest)':'var(--muted)';
   const status=document.getElementById('gh-status');
-  if (status) { status.textContent=text;status.style.color=color; }
-  updateSyncBar(text,color);
+  // D2a (third review P3-c): a refused or blocked kitchen rules file is named where the publish result shows.
+  const rulesLine=typeof doorRulesBlockedLine==='function'?doorRulesBlockedLine():'';
+  const shown=rulesLine?text+' · '+rulesLine:text;
+  if (status) { status.textContent=shown;status.style.color=color; }
+  updateSyncBar(shown,color);
   let actions=document.getElementById('door-delivery-actions');
   if (!actions && status) {
     actions=document.createElement('span');actions.id='door-delivery-actions';actions.style.cssText='display:inline-flex;gap:10px;align-items:center;margin-left:8px';
@@ -12861,7 +12864,8 @@ async function _doPublishToGitHub(manual) {
       if (overlayAdvisoryMsg) {
         const msg = 'Published with advisory — reload and republish menu/routing · ' + timeStr;
         console.warn('[DOOR publish]', msg);
-        const staffMsg = 'Committed — but the menu changed after today’s sheets were made. Reload this page and Generate again so the kitchen has the current version.';
+        const _rulesLine = typeof doorRulesBlockedLine === 'function' ? doorRulesBlockedLine() : '';
+        const staffMsg = 'Committed — but the menu changed after today’s sheets were made. Reload this page and Generate again so the kitchen has the current version.' + (_rulesLine ? ' ' + _rulesLine : '');
         if(statusEl){ statusEl.textContent=staffMsg; statusEl.style.color='#d97706'; }
         updateSyncBar(staffMsg, '#d97706');
         if(manual) showToast(staffMsg);
@@ -17422,8 +17426,10 @@ async function doorPushRexAnswers() {
 // take-back says what stays marked.
 // Second review fold (2026-11-10): this build never changes what it doesn't know (unknown fields come verbatim from
 // the kitchen copy; a newer file version is refused); a record is never dropped for its time (times only order a
-// merge, clamped, and a skewed clock is shown); a send never has fewer words than the kitchen copy unless this
-// computer took them back; the dry run covers breakfast and says what it could not check.
+// merge by their raw value, and a skewed clock is shown); a send never has fewer words than the kitchen copy unless
+// this computer took them back; the dry run covers breakfast and says what it could not check. Third review fold: a
+// change is stamped 1 ms after the record it replaces, unclamped, so it stays ahead of it at any later merge; a record
+// this build can't read is carried verbatim; the version must be the number 1.
 /* DOOR_TESTABLE_CORE_START door-rules */
 var DOOR_RULES_FILE = 'door_rules.json';
 var DOOR_RULES_VERSION = 1;          // the door_rules.json version this build reads; a newer file is refused
@@ -17459,7 +17465,7 @@ function doorRulesWordRegex(word) {
 }
 function doorRulesKey(rec) { return rec.list + '|' + doorRulesNormWord(rec.word); }
 // A canonical ISO time, as toISOString writes it. A time is never a reason to drop a record (second review N2): it
-// only orders a merge, clamped to a day ahead of this clock (doorRulesOrderMs), and a skewed one is shown.
+// only orders a merge, by its raw value, and a skewed one is shown on the page.
 function doorRulesIsTime(t) {
   if (typeof t !== 'string') return false;
   const ms = Date.parse(t);
@@ -17467,29 +17473,21 @@ function doorRulesIsTime(t) {
   try { return new Date(ms).toISOString() === t; } catch (e) { return false; }
 }
 function doorRulesNowMs(nowMs) { return Number.isFinite(nowMs) ? nowMs : Date.now(); }
-// The clamp: a day ahead of this clock, rounded up to the hour, so a change stamped at it a moment ago still orders
-// level with a skewed record (and beats it) when the merge runs.
-function doorRulesCapMs(nowMs) { return Math.ceil((doorRulesNowMs(nowMs) + DOOR_RULES_FUTURE_MS) / 3600000) * 3600000; }
-function doorRulesOrderMs(t, nowMs) { return Math.min(Date.parse(t), doorRulesCapMs(nowMs)); }
-function doorRulesSkewed(t, nowMs) { return Date.parse(t) > doorRulesCapMs(nowMs); }
-// Does record r beat cur? The later clamped time wins; at the same clamped time a record inside the window beats a
-// skewed one, then the later raw time, then the tie rule (tiePrefersR).
+// Stamped more than a day ahead of this clock: a computer has the wrong date (shown on the page, never dropped).
+function doorRulesSkewed(t, nowMs) { return Date.parse(t) > doorRulesNowMs(nowMs) + DOOR_RULES_FUTURE_MS; }
+// Does record r beat cur? The later raw time wins, then the tie rule (tiePrefersR). Third review NEW-1: a clamp that
+// moves with the clock let a skewed record overtake the change that replaced it an hour later; a raw order never does.
 function doorRulesBeats(r, cur, nowMs, tiePrefersR) {
-  const a = doorRulesOrderMs(r.at, nowMs), b = doorRulesOrderMs(cur.at, nowMs);
+  const a = Date.parse(r.at), b = Date.parse(cur.at);
   if (a !== b) return a > b;
-  const rs = doorRulesSkewed(r.at, nowMs), cs = doorRulesSkewed(cur.at, nowMs);
-  if (rs !== cs) return !rs;
-  if (r.at !== cur.at) return r.at > cur.at;
   return !!tiePrefersR;
 }
-// The time for a change to a record last stamped prevAt: now, or just after prevAt (clamped to a day ahead) if this
-// clock is behind it, so the change orders after it.
+// The time for a change to a record last stamped prevAt: now, or 1 ms after prevAt (unclamped) if this clock is behind
+// it, so the change orders after the record it replaces wherever and whenever the merge runs.
 function doorRulesNextAt(prevAt, nowMs) {
-  const now = doorRulesNowMs(nowMs), cap = doorRulesCapMs(now);
+  const now = doorRulesNowMs(nowMs);
   const prev = Date.parse(prevAt || '');
-  if (!Number.isFinite(prev)) return new Date(now).toISOString();
-  const p = Math.min(prev, cap);
-  return new Date(p >= now ? Math.min(p + 1, cap) : now).toISOString();
+  return new Date(Number.isFinite(prev) && prev >= now ? prev + 1 : now).toISOString();
 }
 // Fields this build doesn't know, inside a record or at the top level, are carried as they are (second review N1).
 var DOOR_RULES_NOT_COPIED = ['__proto__', 'constructor', 'prototype'];
@@ -17501,36 +17499,44 @@ function doorRulesUnknown(src, known) {
   });
   return out;
 }
-var DOOR_RULES_TOP_KEYS = ['_meta', 'leads', 'additions', 'log', '_foreign', '_metaExtra'];
+var DOOR_RULES_TOP_KEYS = ['_meta', 'leads', 'additions', 'log', '_foreign', '_foreignLeads', '_foreignLog', '_metaExtra'];
 var DOOR_RULES_META_KEYS = ['version', 'exported', 'site'];
-// A file's version (1 when it says none). A version above DOOR_RULES_VERSION is from a newer DOOR: refused.
+// A file's version (1 when it says none). Anything but the number DOOR_RULES_VERSION (a newer DOOR, or a version
+// that isn't a number: true, "1") is refused (third review P3-d).
 function doorRulesFileVersion(raw) {
   const v = raw && raw._meta && raw._meta.version;
-  return v === undefined || v === null ? 1 : Number(v);
+  return v === undefined || v === null ? 1 : v;
 }
-function doorRulesNewerFile(raw) { const v = doorRulesFileVersion(raw); return !(v <= DOOR_RULES_VERSION); }
-// Only well-formed records are read. A leads record counts only when Jason made it. Unknown fields ride along: in a
-// record (kept on it), on an addition to a list this build doesn't know (_foreign, never read), in _meta (_metaExtra)
-// and at the top level (kept as they are).
+function doorRulesNewerFile(raw) { return doorRulesFileVersion(raw) !== DOOR_RULES_VERSION; }
+// Only well-formed records are read. A leads record counts only when Jason made it. Everything else rides along
+// verbatim and is never read: a record this build can't read (an addition on a list it doesn't know, a word with a
+// digit, a non-canonical time: _foreign; a lead or log record likewise: _foreignLeads, _foreignLog; third review
+// P3-a), unknown fields inside a record (kept on it), in _meta (_metaExtra) and at the top level.
 function doorRulesClean(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
-  const additions = [], foreign = Array.isArray(src._foreign) ? JSON.parse(JSON.stringify(src._foreign)) : [];
+  const copy = v => JSON.parse(JSON.stringify(v));
+  const carried = k => (Array.isArray(src[k]) ? copy(src[k]) : []);
+  const additions = [], foreign = carried('_foreign'), foreignLeads = carried('_foreignLeads'), foreignLog = carried('_foreignLog');
   (Array.isArray(src.additions) ? src.additions : []).forEach(r => {
-    if (!r || typeof r !== 'object') return;
-    if (typeof r.list === 'string' && !doorRulesHasList(r.list)) { foreign.push(JSON.parse(JSON.stringify(r))); return; }
+    if (!r || typeof r !== 'object') { if (r !== undefined) foreign.push(copy(r)); return; }
     if (doorRulesWordProblem(r.list, r.word) || typeof r.target !== 'string' || !r.target || r.target.length > 40
-      || typeof r.by !== 'string' || !doorRulesIsTime(r.at)) return;
+      || typeof r.by !== 'string' || !doorRulesIsTime(r.at)) { foreign.push(copy(r)); return; }
     const o = Object.assign(doorRulesUnknown(r, ['list', 'word', 'target', 'by', 'at', 'takenBack']),
       { list: r.list, word: doorRulesNormWord(r.word), target: r.target, by: String(r.by).slice(0, 60), at: r.at });
     if (r.takenBack === true) o.takenBack = true;
     additions.push(o);
   });
-  const leads = (Array.isArray(src.leads) ? src.leads : []).filter(r => r && typeof r === 'object'
+  const leadOk = r => r && typeof r === 'object'
     && typeof r.name === 'string' && doorRulesNormName(r.name) && doorRulesNormName(r.name).length <= 60
-    && typeof r.on === 'boolean' && doorRulesNormName(r.by) === doorRulesNormName(DOOR_RULES_OWNER) && doorRulesIsTime(r.at))
+    && typeof r.on === 'boolean' && doorRulesNormName(r.by) === doorRulesNormName(DOOR_RULES_OWNER) && doorRulesIsTime(r.at);
+  const srcLeads = Array.isArray(src.leads) ? src.leads : [];
+  srcLeads.forEach(r => { if (!leadOk(r) && r !== undefined) foreignLeads.push(copy(r)); });
+  const leads = srcLeads.filter(leadOk)
     .map(r => Object.assign(doorRulesUnknown(r, ['name', 'on', 'by', 'at']), { name: r.name.trim().replace(/\s+/g, ' '), on: r.on, by: r.by, at: r.at }));
-  const log = (Array.isArray(src.log) ? src.log : []).filter(r => r && typeof r === 'object' && doorRulesIsTime(r.at)
-    && typeof r.by === 'string' && typeof r.what === 'string')
+  const logOk = r => r && typeof r === 'object' && doorRulesIsTime(r.at) && typeof r.by === 'string' && typeof r.what === 'string';
+  const srcLog = Array.isArray(src.log) ? src.log : [];
+  srcLog.forEach(r => { if (!logOk(r) && r !== undefined) foreignLog.push(copy(r)); });
+  const log = srcLog.filter(logOk)
     .map(r => {
       const o = Object.assign(doorRulesUnknown(r, ['at', 'by', 'what', 'word', 'target', 'name', 'list']),
         { at: r.at, by: String(r.by).slice(0, 60), what: String(r.what).slice(0, 40) });
@@ -17539,6 +17545,8 @@ function doorRulesClean(raw) {
     });
   const out = Object.assign(doorRulesUnknown(src, DOOR_RULES_TOP_KEYS), { leads, additions, log });
   if (foreign.length) out._foreign = foreign;
+  if (foreignLeads.length) out._foreignLeads = foreignLeads;
+  if (foreignLog.length) out._foreignLog = foreignLog;
   const metaExtra = Object.assign({}, src._metaExtra && typeof src._metaExtra === 'object' ? doorRulesUnknown(src._metaExtra, []) : {},
     src._meta && typeof src._meta === 'object' ? doorRulesUnknown(src._meta, DOOR_RULES_META_KEYS) : {});
   if (Object.keys(metaExtra).length) out._metaExtra = metaExtra;
@@ -17572,7 +17580,7 @@ function doorRulesMerge(a, b, nowMs, opts) {
     if (seen.has(k)) return false; seen.add(k); return true;
   }).sort((x, y) => { const a = logKey(x), b = logKey(y); return a < b ? 1 : a > b ? -1 : 0; }).slice(0, DOOR_RULES_LOG_MAX);
   const byKey = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
-  const unknownOf = s => { const o = {}; doorRulesExtraKeys(s).forEach(k => { o[k] = s[k]; }); if (s._foreign) o._foreign = s._foreign; if (s._metaExtra) o._metaExtra = s._metaExtra; return o; };
+  const unknownOf = s => { const o = {}; doorRulesExtraKeys(s).forEach(k => { o[k] = s[k]; }); ['_foreign', '_foreignLeads', '_foreignLog', '_metaExtra'].forEach(k => { if (s[k]) o[k] = s[k]; }); return o; };
   const carried = kitchen ? unknownOf(B) : Object.assign({}, unknownOf(B), unknownOf(A));
   return Object.assign(carried, {
     leads: Object.keys(leads).sort(byKey).map(k => leads[k]),
@@ -17715,7 +17723,7 @@ function doorRulesLastChangeAt(rules) {
 }
 function doorRulesHasContent(rules) {
   const r = doorRulesClean(rules);
-  return !!(r.additions.length || r.leads.length || doorRulesExtraKeys(r).length || r._foreign || r._metaExtra);
+  return !!(r.additions.length || r.leads.length || doorRulesExtraKeys(r).length || r._foreign || r._foreignLeads || r._foreignLog || r._metaExtra);
 }
 // The published file, with everything this build doesn't know put back where it was. exported is the newest change,
 // not the send time, so an unchanged file reads unchanged.
@@ -17724,9 +17732,9 @@ function doorRulesFile(rules, site) {
   const file = {};
   doorRulesExtraKeys(r).forEach(k => { file[k] = r[k]; });
   file._meta = Object.assign({}, r._metaExtra || {}, { version: DOOR_RULES_VERSION, exported: doorRulesLastChangeAt(r) || null, site: site || 'rexdale' });
-  file.leads = r.leads;
+  file.leads = r.leads.concat(r._foreignLeads || []);
   file.additions = r.additions.concat(r._foreign || []);
-  file.log = r.log;
+  file.log = r.log.concat(r._foreignLog || []);
   return file;
 }
 // The dialog line for an addition.
@@ -17854,13 +17862,16 @@ function doorRulesCompiledFor(list) {
         } else recs = doorRulesActive(rules, l, doorRulesTargetsFor(l));
         compiled[l] = recs.map(r => ({ word: r.word, target: r.target, by: r.by, at: r.at, re: doorRulesWordRegex(r.word) }));
       });
-      if (_doorRulesTrial && compiled[_doorRulesTrial.list]) {
-        const t = _doorRulesTrial;
-        compiled[t.list] = compiled[t.list].concat([{ word: t.word, target: t.target, by: '', at: '', re: doorRulesWordRegex(t.word) }]);
-      }
     }
     _doorRulesCompileError = '';
-    return _doorRulesCompiled[list] || [];
+    const base = _doorRulesCompiled[list] || [];
+    // A dry run's trial word rides on top of the compiled words, so a trial never recompiles (third review P3-e).
+    const t = _doorRulesTrial;
+    if (t && t.list === list) {
+      if (!t.compiled) t.compiled = { word: t.word, target: t.target, by: '', at: '', re: doorRulesWordRegex(t.word) };
+      return base.concat([t.compiled]);
+    }
+    return base;
   } catch (e) {
     // Never swallowed (second review N8): the page says the added words are off, and the console has why.
     _doorRulesCompiled = null;
@@ -17995,6 +18006,14 @@ async function doorPublishMergeRules(creds, revision) {
   doorRulesSetKitchenState(null);
   return true;
 }
+// One line for wherever a publish result shows (third review P3-c), or '' when the kitchen copy merged.
+function doorRulesBlockedLine() {
+  const ks = doorRulesKitchenState();
+  if (ks.reason === 'newer') return 'This computer’s allergen words weren’t sent: the kitchen’s rules file is from a newer DOOR. Reload DOOR.';
+  if (ks.reason === 'unreadable') return 'This computer’s allergen words weren’t sent: the kitchen’s rules file can’t be read. Ask Jason.';
+  if (ks.reason === 'drops') return 'This computer’s allergen words weren’t sent: its copy would drop words the kitchen has. Ask Jason.';
+  return '';
+}
 function doorRulesKitchenState() { try { const s = JSON.parse(localStorage.getItem(DOOR_RULES_STATE_KEY) || 'null'); return s && typeof s === 'object' ? s : {}; } catch (e) { return {}; } }
 function doorRulesSetKitchenState(s) { try { if (s) localStorage.setItem(DOOR_RULES_STATE_KEY, JSON.stringify(Object.assign({ at: new Date().toISOString() }, s))); else localStorage.removeItem(DOOR_RULES_STATE_KEY); } catch (e) {} }
 function doorRulesRepaint() { if (typeof document !== 'undefined' && document.getElementById && document.getElementById('door-rules-body')) { try { renderDoorRulesPage(); } catch (e) {} } }
@@ -18073,7 +18092,8 @@ function doorRulesImportText(r) {
 // → { moves, blocked, checked, unseen } (counts only), or { error } when the check cannot run.
 function doorRulesDryRun(list, word, target) {
   if (list !== 'menuName' && list !== 'restriction') return { moves: [], blocked: [], checked: 0, unseen: 0 };
-  const trial = (fn) => { _doorRulesTrial = { list, word: doorRulesNormWord(word), target }; _doorRulesCompiled = null; try { return fn(); } finally { _doorRulesTrial = null; _doorRulesCompiled = null; } };
+  const trialWord = { list, word: doorRulesNormWord(word), target };
+  const trial = (fn) => { _doorRulesTrial = trialWord; try { return fn(); } finally { _doorRulesTrial = null; } };
   try {
     if (list === 'menuName') {
       const before = doorRulesSeatsByMeal();
@@ -18114,8 +18134,9 @@ function doorRulesDryRun(list, word, target) {
     return Object.assign(doorRulesSeatMoves(before, after), { checked, unseen, label });
   } catch (e) { return { error: (e && e.message) || String(e) }; }
 }
-// The DOOR dishes (menu pieces and recipe names) a Rex spelling would make "the same" as each other, and the ones its
-// target names (second review N5). → { names: [dish names with the target word], merges: [[a, b], …] }.
+// The DOOR dishes (menu pieces and recipe names) that name a Rex spelling's target, for the question (second review N5).
+// A spelling can't make two DOOR dishes the same: its word is on no DOOR dish (doorRulesBuiltIn refuses a menu or
+// recipe word), so the tighter distance rule is the protection (third review P3-b). → { names }.
 function doorRulesRexDishes(word, target) {
   const dishes = new Set();
   const menu = (typeof getMenuData === 'function' ? getMenuData() : null) || {};
@@ -18129,18 +18150,8 @@ function doorRulesRexDishes(word, target) {
   const w = doorRulesNormWord(word), t = doorRulesNormWord(target);
   _doorRulesSuspend++;
   let cands;
-  try { cands = Array.from(dishes).filter(d => { const tk = doorRexTokens(d); return tk.indexOf(t) >= 0 || tk.indexOf(w) >= 0; }); } finally { _doorRulesSuspend--; }
-  const names = cands.filter(d => { _doorRulesSuspend++; try { return doorRexTokens(d).indexOf(t) >= 0; } finally { _doorRulesSuspend--; } });
-  const merges = [];
-  const same = (a, b) => doorRexSameDish(a, b);
-  for (let i = 0; i < cands.length; i++) for (let j = i + 1; j < cands.length; j++) {
-    let was; _doorRulesSuspend++; try { was = same(cands[i], cands[j]); } finally { _doorRulesSuspend--; }
-    if (was) continue;
-    _doorRulesTrial = { list: 'rexSpelling', word: w, target: t }; _doorRulesCompiled = null;
-    let now; try { now = same(cands[i], cands[j]); } finally { _doorRulesTrial = null; _doorRulesCompiled = null; }
-    if (now) merges.push([cands[i], cands[j]]);
-  }
-  return { names: names.sort().slice(0, 12), merges };
+  try { cands = Array.from(dishes).filter(d => doorRexTokens(d).indexOf(t) >= 0); } finally { _doorRulesSuspend--; }
+  return { names: cands.sort().slice(0, 12) };
 }
 function doorRulesMovesLines(moves) {
   return moves.slice(0, 12).map(m => m.meal + ': ' + m.n + ' resident' + (m.n === 1 ? '' : 's') + ' from ' + m.from + ' to ' + m.to)
@@ -18180,7 +18191,6 @@ async function doorRulesAddWord(list) {
   if (list === 'workbookAllergen') lines.push('Not checked: it is read at the next menu workbook import, and the workbook’s allergen rows aren’t kept, so nothing can be checked now.');
   if (list === 'rexSpelling') {
     const rd = doorRulesRexDishes(chk.word, chk.target);
-    if (rd.merges.length) { doorRulesMsg(list, 'Not added: it would make different dishes the same (' + rd.merges.slice(0, 4).map(m => m[0] + ' and ' + m[1]).join('; ') + ').'); return; }
     lines.push(rd.names.length ? 'Rex’s dishes naming “' + chk.word + '” will match these DOOR dishes:' : 'No DOOR dish names “' + chk.target + '” today.');
     items = rd.names;
   }

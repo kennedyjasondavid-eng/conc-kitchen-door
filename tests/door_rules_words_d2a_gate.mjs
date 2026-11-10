@@ -324,7 +324,26 @@ test('two computers merge per word and per lead, newest wins; no record is dropp
   assert.equal(c.doorRulesActive(c.doorRulesMerge(back, fast, now), 'menuName').length, 0);
   assert.equal(c.doorRulesNextAt('2026-11-10T13:00:00.000Z', now), '2026-11-10T13:00:00.001Z');
   assert.equal(c.doorRulesNextAt('2026-11-10T11:00:00.000Z', now), '2026-11-10T12:00:00.000Z');
-  assert.equal(c.doorRulesNextAt('9999-01-01T00:00:00.000Z', now), '2026-11-11T12:00:00.000Z', 'clamped to a day ahead');
+  assert.equal(c.doorRulesNextAt('9999-01-01T00:00:00.000Z', now), '9999-01-01T00:00:00.001Z', 'just after the record it replaces, unclamped');
+  // third review NEW-1 (q8): a change that replaced a fast-clock record stays ahead of it at any later merge, on any
+  // computer, an hour, a day or a week on. Both ways: a take-back over a fast add, a re-add over a fast take-back.
+  const H = 3600000, base = Date.parse('2026-11-10T12:20:00.000Z');
+  const g8 = (at, takenBack) => ({ additions: [Object.assign({ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'F', at }, takenBack ? { takenBack: true } : {})] });
+  const fastAt = '2026-11-20T09:00:00.000Z';
+  const tbAt = c.doorRulesNextAt(fastAt, base), reAt = c.doorRulesNextAt(fastAt, base);
+  for (const dt of [0, 0.5 * H, 1 * H, 3 * H, 25 * H, 24 * 7 * H]) {
+    for (const [x, y] of [[g8(tbAt, true), g8(fastAt)], [g8(fastAt), g8(tbAt, true)]]) {
+      assert.equal(c.doorRulesActive(c.doorRulesMerge(x, y, base + dt), 'menuName').length, 0, 'take-back holds at +' + dt / H + ' h');
+      assert.equal(c.doorRulesActive(c.doorRulesMerge(x, y, base + dt, { kitchen: true }), 'menuName').length, 0, 'kitchen merge, +' + dt / H + ' h');
+    }
+    for (const [x, y] of [[g8(reAt), g8(fastAt, true)], [g8(fastAt, true), g8(reAt)]]) {
+      assert.equal(c.doorRulesActive(c.doorRulesMerge(x, y, base + dt), 'menuName').length, 1, 're-add holds at +' + dt / H + ' h');
+    }
+  }
+  const holder = c.doorRulesMerge(g8(fastAt, true), { _meta: { version: 1 }, ...g8(reAt), leads: [], log: [] }, base + 3 * H, { kitchen: true });
+  assert.deepEqual(plain(c.doorRulesDrops({ _meta: { version: 1 }, ...g8(reAt), leads: [], log: [] }, holder, [])), [], 'a computer holding the fast take-back keeps the re-add');
+  assert.equal(c.doorRulesSkewed(fastAt, base), true, 'the skew is still shown');
+  assert.doesNotMatch(core(), /doorRulesCapMs|doorRulesOrderMs/, 'no clamped order');
   for (const f of ['doorRulesAddWord', 'doorRulesTakeBackWord', 'doorRulesAddLead', 'doorRulesRemoveLead']) {
     assert.match(fn(f), /doorRulesStampFor\(/, f + ' stamps after the record it changes');
     assert.match(fn(f), /It did not take/, f + ' says when it did not take');
@@ -374,6 +393,18 @@ test('a D2a computer never changes what it doesn\'t know, and refuses a newer fi
   const s = box({ store: { concDoorRules: JSON.stringify(c.doorRulesAdd({}, w('abalone', '2026-11-10T08:00:00.000Z'))) } });
   assert.equal(c.doorRulesNewerFile({ _meta: { version: 2 } }), true);
   assert.equal(c.doorRulesNewerFile({ _meta: { version: 1 } }) || c.doorRulesNewerFile({}), false);
+  for (const v of [true, '1', '2', 1.5, 0, -1, 'abc', [1], {}]) assert.equal(c.doorRulesNewerFile({ _meta: { version: v } }), true, 'refused: ' + JSON.stringify(v));
+  // third review P3-a (q3b): records this build can't read are carried verbatim, never dropped from the send
+  const k5 = { _meta: { version: 1, exported: T, site: 'rexdale' }, leads: [{ name: 'Joan', on: true, by: 'Fiona', at: T }, 'x'], log: [{ at: 'bad', by: 'J', what: 'y' }],
+    additions: [w('geoduck', '2026-11-10T10:00:00.000Z'), { list: 'menuName', word: 'crab-o-rama 2', target: 'hasShellfish', by: 'Jason', at: '2026-11-10T10:00:00.000Z' },
+      { list: 'menuName', word: 'cockle', target: 'hasShellfish', by: 'Jason', at: '2026-11-10T10:00:00Z' }] };
+  const C5 = box(); C5.doorApplyRemoteRules(k5);
+  const staged5 = plain(C5.doorRulesFile(C5.loadDoorRules(), 'rexdale'));
+  assert.equal(staged5.additions.length, 3, 'the kitchen holds 3 and the send holds 3');
+  assert.deepEqual(staged5.additions.slice(1), k5.additions.slice(1), 'verbatim');
+  assert.deepEqual(staged5.leads, k5.leads, 'leads this build cannot read ride along');
+  assert.deepEqual(staged5.log, k5.log);
+  assert.deepEqual(plain(C5.doorRulesActive(C5.loadDoorRules(), 'menuName').map(x => x.word)), ['geoduck'], 'and are never read');
   s.doorApplyRemoteRules({ _meta: { version: 2, exported: '2026-11-10T12:00:00.000Z' }, additions: [w('geoduck', '2026-11-10T12:00:00.000Z')], leads: [], log: [], plates: P2 });
   assert.deepEqual(plain(s.doorRulesActive(s.loadDoorRules(), 'menuName').map(x => x.word)), ['abalone'], 'not merged');
   assert.equal(plain(s.doorRulesKitchenState()).reason, 'newer');
@@ -541,4 +572,27 @@ test('permission is asked again after every question, Undo checks it took, and t
   assert.match(u, /doorRulesTakeBackImpact\(u\.list, u\.word, u\.target\)\.meals/);
   assert.match(u, /doorRulesShowStillMarked\(/);
   assert.match(u, /if \(!took\)/);
+  // third review P3-c: the kitchen-state line also shows where a publish result shows
+  m3.c.doorRulesSetKitchenState({ reason: 'newer', version: 2 });
+  assert.match(m3.c.doorRulesBlockedLine(), /weren’t sent: the kitchen’s rules file is from a newer DOOR/);
+  m3.c.doorRulesSetKitchenState(null);
+  assert.equal(m3.c.doorRulesBlockedLine(), '');
+  assert.match(fn('doorDeliveryRender'), /doorRulesBlockedLine\(\)/);
+  // third review P3-b: no dead "different dishes the same" refusal; the dish list stays
+  assert.doesNotMatch(html, /would make different dishes the same/);
+  assert.match(fn('doorRulesAddWord'), /will match these DOOR dishes/);
+});
+
+test('one dry run compiles the added words once, not once per trial (third review P3-e)', () => {
+  const c = box(withAdds([{ list: 'restriction', word: 'coeliac', target: 'glutenFree' }]));
+  c.getMenuData = () => ({ '1': { MONDAY: { lunch: 'Bread' } } });
+  c.computePlatingData = () => ({ mealFlags: { hasGluten: true }, anaphSect: [], sections: [] });
+  vm.runInContext("for (let i = 0; i < 40; i++) REGISTRY_LIST.push({ room: 'R' + i, tags: [], rawRestriction: 'No Pork, Celiac ' + i })", c);
+  const real = c.loadDoorRules; let loads = 0;
+  c.loadDoorRules = () => { loads++; return real(); };
+  c.doorRulesCompiledFor('restriction');
+  const before = loads;
+  const dry = plain(c.doorRulesDryRun('restriction', 'celiac', 'glutenFree'));
+  assert.equal(dry.checked, 40);
+  assert.ok(loads - before <= 2, 'compiled ' + (loads - before) + ' times for 40 residents');
 });
