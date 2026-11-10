@@ -8,8 +8,8 @@
 #   - meal_swaps.json, meal_swaps_reverted.json, special_meals.json, special_meals_removed.json — EXPO's dated
 #     meals.
 # Never served: the resident files (door_state.json, recent_log.json, learned_nr.json), the editor files DOOR reads
-# through the repository (menu_overlay.json, change_log.json, rex_week_answers.json, custom_tag_rules.json), docs,
-# tests and notes. tests/pages_served_privacy_gate.mjs holds this list to that rule.
+# through the repository (menu_overlay.json, change_log.json, rex_week_answers.json, custom_tag_rules.json, door_rules.json),
+# docs, tests and notes. tests/pages_served_privacy_gate.mjs holds this list to that rule.
 #
 # Ported from HUB's deploy.yml (the HOUSE allowlist pattern; CODEX's build-pages.mjs is the other instance). As
 # there, the deploy is ungated: DOOR's tests run in door-tests.yml, and a red test must never freeze the files EXPO
