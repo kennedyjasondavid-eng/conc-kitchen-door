@@ -12095,11 +12095,14 @@ function doorDeliveryRender() {
     record.served ? 'Previously verified — check delivery for current confirmation.' : 'Committed — kitchen delivery pending.';
   const color=served&&!pending?'var(--forest)':'var(--muted)';
   const status=document.getElementById('gh-status');
-  // D2a (third review P3-c): a refused or blocked kitchen rules file is named where the publish result shows.
+  // D2a (third review P3-c, fourth review P3-2): a refused or blocked kitchen rules file is named where the publish
+  // result shows, in amber, in a line of its own beside the delivery status (never inside its green text).
   const rulesLine=typeof doorRulesBlockedLine==='function'?doorRulesBlockedLine():'';
-  const shown=rulesLine?text+' · '+rulesLine:text;
-  if (status) { status.textContent=shown;status.style.color=color; }
-  updateSyncBar(shown,color);
+  if (status) { status.textContent=text;status.style.color=color; }
+  let rulesEl=document.getElementById('door-rules-publish-line');
+  if (rulesLine && !rulesEl && status) { rulesEl=document.createElement('span');rulesEl.id='door-rules-publish-line';rulesEl.style.cssText='display:block;font-size:12px;color:#92400e;margin-top:4px';status.after(rulesEl); }
+  if (rulesEl) { rulesEl.textContent=rulesLine;rulesEl.hidden=!rulesLine; }
+  updateSyncBar(rulesLine?text+' · '+rulesLine:text,rulesLine?'#92400e':color);
   let actions=document.getElementById('door-delivery-actions');
   if (!actions && status) {
     actions=document.createElement('span');actions.id='door-delivery-actions';actions.style.cssText='display:inline-flex;gap:10px;align-items:center;margin-left:8px';
@@ -17484,11 +17487,17 @@ function doorRulesBeats(r, cur, nowMs, tiePrefersR) {
 }
 // The time for a change to a record last stamped prevAt: now, or 1 ms after prevAt (unclamped) if this clock is behind
 // it, so the change orders after the record it replaces wherever and whenever the merge runs.
+// Never throws (fourth review P3-3): at the largest date a JavaScript time can hold it stays there, so the change ties
+// with the record it replaces, and the action's own check says "It did not take" when the tie rule keeps the record.
+var DOOR_RULES_MAX_MS = 8.64e15;
 function doorRulesNextAt(prevAt, nowMs) {
   const now = doorRulesNowMs(nowMs);
   const prev = Date.parse(prevAt || '');
-  return new Date(Number.isFinite(prev) && prev >= now ? prev + 1 : now).toISOString();
+  const ms = Number.isFinite(prev) && prev >= now ? Math.min(prev + 1, DOOR_RULES_MAX_MS) : Math.min(now, DOOR_RULES_MAX_MS);
+  return new Date(ms).toISOString();
 }
+// Compare two canonical times by their value, not their text ("+010000-…" sorts before "2026-…" as text).
+function doorRulesTimeCmp(a, b) { const x = Date.parse(a || ''), y = Date.parse(b || ''); return (Number.isFinite(x) ? x : -Infinity) - (Number.isFinite(y) ? y : -Infinity); }
 // Fields this build doesn't know, inside a record or at the top level, are carried as they are (second review N1).
 var DOOR_RULES_NOT_COPIED = ['__proto__', 'constructor', 'prototype'];
 function doorRulesUnknown(src, known) {
@@ -17578,7 +17587,7 @@ function doorRulesMerge(a, b, nowMs, opts) {
   const log = A.log.concat(B.log).filter(e => {
     const k = logKey(e);
     if (seen.has(k)) return false; seen.add(k); return true;
-  }).sort((x, y) => { const a = logKey(x), b = logKey(y); return a < b ? 1 : a > b ? -1 : 0; }).slice(0, DOOR_RULES_LOG_MAX);
+  }).sort((x, y) => { const t = doorRulesTimeCmp(y.at, x.at); if (t) return t; const a = logKey(x), b = logKey(y); return a < b ? 1 : a > b ? -1 : 0; }).slice(0, DOOR_RULES_LOG_MAX);
   const byKey = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
   const unknownOf = s => { const o = {}; doorRulesExtraKeys(s).forEach(k => { o[k] = s[k]; }); ['_foreign', '_foreignLeads', '_foreignLog', '_metaExtra'].forEach(k => { if (s[k]) o[k] = s[k]; }); return o; };
   const carried = kitchen ? unknownOf(B) : Object.assign({}, unknownOf(B), unknownOf(A));
@@ -17719,7 +17728,12 @@ function doorRulesSetLead(rules, name, on, by, at, nowMs) {
 }
 function doorRulesLastChangeAt(rules) {
   const r = doorRulesClean(rules);
-  return r.additions.concat(r.leads).reduce((m, x) => (x.at > m ? x.at : m), '');
+  return r.additions.concat(r.leads).reduce((m, x) => (doorRulesTimeCmp(x.at, m) > 0 ? x.at : m), '');
+}
+// Records this build can't read and carries as they are (fourth review P3-1).
+function doorRulesCarriedCount(rules) {
+  const r = doorRulesClean(rules);
+  return (r._foreign || []).length + (r._foreignLeads || []).length + (r._foreignLog || []).length;
 }
 function doorRulesHasContent(rules) {
   const r = doorRulesClean(rules);
@@ -18007,12 +18021,17 @@ async function doorPublishMergeRules(creds, revision) {
   return true;
 }
 // One line for wherever a publish result shows (third review P3-c), or '' when the kitchen copy merged.
+// Fourth review P3-2: it says only what is true. With changes of its own waiting it says they weren't sent;
+// otherwise that the kitchen's file can't be updated from here.
 function doorRulesBlockedLine() {
   const ks = doorRulesKitchenState();
-  if (ks.reason === 'newer') return 'This computer’s allergen words weren’t sent: the kitchen’s rules file is from a newer DOOR. Reload DOOR.';
-  if (ks.reason === 'unreadable') return 'This computer’s allergen words weren’t sent: the kitchen’s rules file can’t be read. Ask Jason.';
-  if (ks.reason === 'drops') return 'This computer’s allergen words weren’t sent: its copy would drop words the kitchen has. Ask Jason.';
-  return '';
+  const why = ks.reason === 'newer' ? 'the kitchen’s rules file is from a newer DOOR. Reload DOOR.'
+    : ks.reason === 'unreadable' ? 'the kitchen’s rules file can’t be read. Ask Jason.'
+    : ks.reason === 'drops' ? 'this computer’s copy would drop words the kitchen has. Ask Jason.' : '';
+  if (!why) return '';
+  const n = doorRulesUnsent().length;
+  return n ? 'This computer’s ' + n + ' allergen-word change' + (n === 1 ? '' : 's') + ' weren’t sent: ' + why
+    : 'The kitchen’s allergen-word file can’t be updated from this computer: ' + why;
 }
 function doorRulesKitchenState() { try { const s = JSON.parse(localStorage.getItem(DOOR_RULES_STATE_KEY) || 'null'); return s && typeof s === 'object' ? s : {}; } catch (e) { return {}; } }
 function doorRulesSetKitchenState(s) { try { if (s) localStorage.setItem(DOOR_RULES_STATE_KEY, JSON.stringify(Object.assign({ at: new Date().toISOString() }, s))); else localStorage.removeItem(DOOR_RULES_STATE_KEY); } catch (e) {} }
@@ -18387,6 +18406,8 @@ function renderDoorRulesPage() {
   else if (ks.reason === 'unreadable') line('door-rules-blocked', 'The kitchen’s rules file can’t be read, so nothing from this computer is sent. Ask Jason.');
   else if (ks.reason === 'drops') line('door-rules-blocked', 'The kitchen’s rules file has words or leads this computer’s copy would drop (' + (ks.keys || []).join(', ') + '), so nothing from this computer is sent. Ask Jason.');
   else if (doorRulesNotSent()) line('door-rules-pending', 'Not sent yet: ' + doorRulesUnsent().length + ' change' + (doorRulesUnsent().length === 1 ? '' : 's') + ' made on this computer. They go to the kitchen and the other DOOR computers with the next send.');
+  const carried = doorRulesCarriedCount(rules);
+  if (carried) line('door-rules-carried', carried + ' record' + (carried === 1 ? '' : 's') + ' this DOOR can’t read ' + (carried === 1 ? 'is' : 'are') + ' kept as ' + (carried === 1 ? 'it is' : 'they are') + ' (from a newer DOOR or a hand edit). They are not read here.');
   const skew = doorRulesSkewedCount(rules);
   if (skew) line('door-rules-skew', skew + ' record' + (skew === 1 ? ' is' : 's are') + ' stamped more than a day ahead of this computer’s clock: a computer has the wrong date. They are kept; check the clocks.');
   doorRulesCompiledFor('menuName');

@@ -583,6 +583,40 @@ test('permission is asked again after every question, Undo checks it took, and t
   assert.match(fn('doorRulesAddWord'), /will match these DOOR dishes/);
 });
 
+test('fourth review: carried records are counted on the page, the publish line is amber and true, the largest date never throws', () => {
+  const els = {};
+  const c = box({ operator: 'Jason', auth: { getSavedToken: () => 'k', isViewingKey: () => false, isExpired: () => false } });
+  c.document = { getElementById: (id) => (els[id] = els[id] || { innerHTML: '', textContent: '', value: '' }), querySelectorAll: () => [] };
+  // P3-1: one line counts every carried kind
+  c.doorApplyRemoteRules({ _meta: { version: 1 }, log: [{ at: 'bad', by: 'J', what: 'x' }], leads: [{ name: 'Joan', on: true, by: 'Fiona', at: T }],
+    additions: [{ list: 'menuName', word: 'cockle', target: 'hasShellfish', by: 'J', at: '2026-11-10T10:00:00Z' }, { list: 'plateRule', word: 'p', target: 'x', by: 'J', at: T }] });
+  assert.equal(c.doorRulesCarriedCount(c.loadDoorRules()), 4);
+  vm.runInContext('renderDoorRulesPage()', c);
+  assert.match(els['door-rules-body'].innerHTML, /4 records this DOOR can’t read are kept as they are/);
+  // P3-2: true wording with and without changes of its own; its own amber line beside the delivery status
+  c.doorRulesSetKitchenState({ reason: 'unreadable' });
+  assert.match(c.doorRulesBlockedLine(), /^The kitchen’s allergen-word file can’t be updated from this computer: /);
+  c.doorRulesNoteOwn('menuName|geoduck', T);
+  assert.match(c.doorRulesBlockedLine(), /^This computer’s 1 allergen-word change weren’t sent: /);
+  const dr = fn('doorDeliveryRender');
+  assert.match(dr, /status\.textContent=text;/, 'the delivery text stays as it is');
+  assert.match(dr, /door-rules-publish-line/);
+  assert.match(dr, /color:#92400e/);
+  assert.doesNotMatch(dr, /status\.textContent=shown/);
+  // P3-3: the largest date never throws; the tie rule decides, and the actions say when it did not take
+  const MAX = '+275760-09-13T00:00:00.000Z';
+  assert.equal(c.doorRulesNextAt(MAX), MAX);
+  const atMax = { additions: [{ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'J', at: MAX }] };
+  const back = c.doorRulesTakeBack(atMax, 'menuName', 'geoduck', 'Jason', c.doorRulesNextAt(MAX));
+  assert.equal(c.doorRulesActive(back, 'menuName').length, 1, 'a tie keeps the word');
+  assert.match(fn('doorRulesTakeBackWord'), /It did not take/);
+  // the two sorts compare times, not text
+  const late = '+010000-01-01T00:00:00.000Z';
+  assert.equal(c.doorRulesLastChangeAt({ additions: [{ list: 'menuName', word: 'abalone', target: 'hasShellfish', by: 'J', at: late }, { list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'J', at: T }] }), late);
+  const lg = plain(c.doorRulesMerge({ log: [{ at: T, by: 'J', what: 'a' }] }, { log: [{ at: late, by: 'J', what: 'b' }] }).log);
+  assert.equal(lg[0].at, late, 'newest first by time');
+});
+
 test('one dry run compiles the added words once, not once per trial (third review P3-e)', () => {
   const c = box(withAdds([{ list: 'restriction', word: 'coeliac', target: 'glutenFree' }]));
   c.getMenuData = () => ({ '1': { MONDAY: { lunch: 'Bread' } } });
