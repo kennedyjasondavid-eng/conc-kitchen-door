@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.63';
+const DOOR_APP_VERSION = 'v31-standard.64';
 const DOOR_BUILD_DATE = '2026-11-10';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -20761,6 +20761,27 @@ const IMPORT_FUZZY_VOCAB = [
   ['no fried food','noFriedFood'], ['no turkey','noTurkey'], ['no processed food','noProcessedFood'], ['lactose intolerant','lactoIntolerant'], ['lactose free','lactoIntolerant'], ['low fat','lowFat'], ['low potassium','lowPotassium'], ['no potassium','lowPotassium'], ['no nightshades','noNightshades'], ['no brassicas','noBrassicas'], ['no beans','noBeans'], ['no corn','noCorn'], ['no cruciferous','noBrassicas'],
 ];
 
+// The fuzzy reader (2026-11-10): the tag a leftover word is a typo of, or null. The word and each vocabulary entry are
+// split into a lead ("no" or "low", or none) and the word after it; the leads must be the same, and the distance is
+// taken on the words alone. A joining word left after an earlier "No" ("No Pork or Beef", "and Beef", "nor Fish")
+// leads as "no". A word of 5 to 7 letters may be one edit away, a word of 8 or more two; a word under 5 letters must
+// be spelled exactly (meat and wheat, beer and beef, peas and beans are different foods). One best entry only: a tie
+// between two tags is not a reading.
+function importFuzzyTag(low) {
+  const split = (s) => { const m = /^(no|low|or|and|nor)\s+(.+)$/.exec(String(s).trim()); return m ? [/^(or|and|nor)$/.test(m[1]) ? 'no' : m[1], m[2]] : ['', String(s).trim()]; };
+  const [lead, word] = split(low);
+  const allowed = word.length >= 8 ? 2 : word.length >= 5 ? 1 : 0;
+  let best = null, bestDist = 99, tie = false;
+  IMPORT_FUZZY_VOCAB.forEach(([vocab, tag]) => {
+    const [vLead, vWord] = split(vocab);
+    if (vLead !== lead || Math.abs(vWord.length - word.length) > allowed) return;
+    const dist = importLevenshtein(word, vWord);
+    if (dist < bestDist) { bestDist = dist; best = tag; tie = false; }
+    else if (dist === bestDist && tag !== best) tie = true;
+  });
+  return best && !tie && bestDist <= allowed ? best : null;
+}
+
 // ─── Comma-separated negation propagation (P4 v26) ─────────────────────────
 // "No Popcorn, Corn, Nuts, Coconuts" → "No Popcorn, No Corn, No Nuts, No Coconuts"
 // Handles the common pattern where "No" prefixes a list but only appears on the first item.
@@ -20923,17 +20944,11 @@ function normalizeRestriction(raw) {
     // Too short to fuzzy-match, but never dropped (2026-10-18): this returned before the word was recorded, so "GF"
     // was read as nothing and nobody was asked. An unknown short code is a question like any other unmatched word.
     if (low.length < 3) { if (/[a-z]/.test(low) && !IMPORT_SHORT_NOISE_RE.test(low)) unmatched.push(tok); return; }
-    let best = null, bestDist = 99;
-    IMPORT_FUZZY_VOCAB.forEach(([vocab, tag]) => {
-      // Only fuzzy-match if lengths are similar
-      if (Math.abs(vocab.length - low.length) > 3) return;
-      const dist = importLevenshtein(low, vocab);
-      if (dist < bestDist) { bestDist = dist; best = tag; }
-    });
-    if (best && bestDist <= 2) {
-      tags[best] = true;
-      return;
-    }
+    // A near spelling is read silently only when it is plainly a typo of the same word (2026-11-10): the edit distance
+    // is measured on the word after its "No" or "Low", never across the whole phrase, and a short word must be spelled
+    // exactly. Before, "No meat" read as "No wheat" (Gluten Free) and nobody was asked; "No Peas" read as No Beans.
+    // Anything less sure is asked about like any other word DOOR cannot read.
+    if (importFuzzyTag(low)) { tags[importFuzzyTag(low)] = true; return; }
     // P6: a BARE noun (no "No"/qualifier of its own — e.g. "Coconut" after "Halal /") is
     // only on the sheet because it is a problem. If "No <noun>" matches a rule it is a
     // known restriction → inferred silently. If it matches nothing → ambiguous → ask.
