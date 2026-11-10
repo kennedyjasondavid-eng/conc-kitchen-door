@@ -211,10 +211,13 @@ test('the readers honour an addition: plating, the line notes, the routing file 
     const movedVegan = RESIDENTS.filter((r) => a[r.room] === 'vegan' && b[r.room] !== 'vegan').length;
     assert.equal((ra.routing[wk][day][p]['Vegan / Vegetarian'] || 0) - (rb.routing[wk][day][p]['Vegan / Vegetarian'] || 0), movedVegan, wk + day + p);
   });
-  // the import guess
-  assert.equal(c.R.importSectionForTags({ noCorn: true }), 'Gluten Free');
-  assert.equal(plain.R.importSectionForTags({ noCorn: true }), 'Regular');
-  assert.equal(c.R.importSectionForTags({ halal: true, noCorn: true }), 'Halal', 'never ahead of a plate-choosing tag');
+  // the import guess reads only the built-in rules (review P3-2, 2026-11-10): an added rule never changes the section
+  // stored on a resident (labels, the registry and registry_summary.json counts), only plating and routing
+  const keys = vm.runInContext('Object.keys(TAG_LABELS_MAP)', c);
+  const combos = [{}];
+  keys.forEach((a, i) => { combos.push({ [a]: true }); keys.slice(i + 1).forEach((b) => combos.push({ [a]: true, [b]: true })); });
+  for (const t of combos) assert.equal(c.R.importSectionForTags(t), plain.R.importSectionForTags(t), JSON.stringify(t));
+  assert.equal(c.R.importSectionForTags({ noCorn: true }), 'Regular', 'No Corn joined Gluten Free, and the stored section stays Regular');
   // a hand-written file cannot reach past protection-only: these are ignored where the rules are read
   const forged = box(withPlates([{ kind: 'trigger', section: 'halal', flag: 'hasSesame' }, { kind: 'trigger', section: 'no_fish', flag: 'hasPork' },
     { kind: 'tag', section: 'vegan', tag: 'No Sesame', flag: '' }, { kind: 'tag', section: 'gf', tag: 'Halal', flag: '' }, { kind: 'removeTrigger', section: 'no_fish', flag: 'hasFish' }]));
@@ -365,4 +368,33 @@ test('a plate rule taken back over a fast-clock record still wins at merges an h
   // put back later, it wins again
   const again = c.doorPlatesAdd(back, Object.assign({}, added[0], { by: 'Jason', at: c.doorPlateStamp(now + 3600000, at) }));
   assert.equal(c.doorPlatesActive(c.doorRulesMerge({ plates: back }, { plates: again }, now + 86400000).plates).length, 1);
+});
+
+test('the proof covers every meal of the day and the kitchen alternatives (review P3-1): mutants me and ma are refused', () => {
+  const rec = { kind: 'trigger', section: 'gf', flag: 'hasSesame' };
+  const c = box();
+  const r = c.doorPlateCheck([], rec, { allowed: c.doorPlateAllowedHere(), prove: c.doorPlateProveHere });
+  assert.ok(r.ok, r.why);
+  const ck = out(r.proof.checked);
+  assert.equal(ck.published, 84, 'every published breakfast, lunch and dinner');
+  assert.deepEqual(ck.periods, ['breakfast', 'dinner', 'lunch']);
+  assert.ok(ck.madeUp >= 200, 'made-up meals with the kitchen alternatives: ' + ck.madeUp);
+  // a rule that moves someone at breakfast: the No Beef plate opens on egg meals (every breakfast egg dish), and the made-up list has a No Beef resident
+  const egg = c.doorPlateCheck([], { kind: 'trigger', section: 'no_beef', flag: 'hasEgg' }, { allowed: c.doorPlateAllowedHere(), prove: c.doorPlateProveHere });
+  assert.ok(egg.ok, egg.why);
+  assert.ok(egg.proof.moved.some((m) => m.real && / breakfast$/.test(m.meal)), 'a breakfast move is seen');
+  // mutant me: the pork-day bland merge reads a Gluten Free plate a rule opened (a No Spicy resident would move bland → GF)
+  const me = (src) => src.replace("if (pools['bland'] && pools['gf'] && pools['bland'].length && activeKeys.has('gf')) {", "if (pools['bland'] && pools['gf'] && pools['bland'].length && shownKeys.has('gf')) {");
+  assert.notEqual(me(html), html, 'mutant me applied');
+  const cm = box({ mutate: me });
+  const rm = cm.doorPlateCheck([], rec, { allowed: cm.doorPlateAllowedHere(), prove: cm.doorPlateProveHere });
+  assert.equal(rm.ok, false, 'me is refused');
+  assert.ok(rm.proof.bad.some((b) => b.from === 'bland' && b.to === 'gf'), 'bland → GF on a made-up meal');
+  // mutant ma: the proof reads lunch only
+  const ma = (src) => src.replace("['1', '2', '3', '4'].forEach(wk => days.forEach(day => ['breakfast', 'lunch', 'dinner'].forEach(period => {", "['1', '2', '3', '4'].forEach(wk => days.forEach(day => ['lunch'].forEach(period => {");
+  assert.notEqual(ma(html), html, 'mutant ma applied');
+  const ca = box({ mutate: ma });
+  const ra = ca.doorPlateCheck([], { kind: 'trigger', section: 'no_beef', flag: 'hasEgg' }, { allowed: ca.doorPlateAllowedHere(), prove: ca.doorPlateProveHere });
+  assert.ok(!ra.ok || out(ra.proof.checked).published !== 84 || !ra.proof.moved.some((m) => m.real && / breakfast$/.test(m.meal)));
+  assert.notEqual(out(ra.proof.checked).published, 84, 'ma checks fewer meals');
 });

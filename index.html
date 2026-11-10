@@ -18699,16 +18699,6 @@ function doorConflictRows() {
   const P = doorPlateRulesInForce();
   return P && P.notes.length ? CONFLICT_MAP.concat(P.notes) : CONFLICT_MAP;
 }
-// The import's section guess: a restriction added to the Gluten Free or No Dairy plate reads as that plate.
-function doorPlateImportGuess(tags) {
-  const P = doorPlateRulesInForce();
-  if (!P || !tags) return '';
-  const keyOf = {};
-  Object.keys(TAG_LABELS_MAP).forEach(k => { keyOf[TAG_LABELS_MAP[k]] = k; });
-  const guess = { gf: 'Gluten Free', no_dairy: 'No Dairy' };
-  for (const sec of ['gf', 'no_dairy']) if (((P.tags || {})[sec] || []).some(a => tags[keyOf[a.tag]])) return guess[sec];
-  return '';
-}
 function doorPlateWith(plates, fn) {
   const was = _doorPlatesOverride;
   _doorPlatesOverride = plates && plates.trial ? plates : { trial: true, plates: plates || [] };
@@ -18764,6 +18754,25 @@ function doorPlateProveHere(rec) {
     probe.push({ name: 'a meal marked ' + doorPlateFlagLabel(k), flags: f });
     if (rec.flag && rec.flag !== k) { const g = Object.assign({}, f); g[rec.flag] = true; probe.push({ name: 'a meal marked ' + doorPlateFlagLabel(k) + ' and ' + doorPlateFlagLabel(rec.flag), flags: g }); }
   });
+  // Review P3-1 (2026-11-10): made-up meals with the kitchen's alternatives, alone, in pairs and all together, each
+  // with and without pork, Spicy and the rule's own mark. The pork-day merges, the bland, diabetic and dairy-free plates,
+  // the soft plate and the no-egg merge only show on such meals. computeSections reads a meal's marks and fields, not
+  // whether it is breakfast, lunch or dinner, so these stand for all three (the published pass covers each by name).
+  const kitchen = [['_blandAlt', 'a bland plate'], ['_diabeticAlt', 'a diabetic plate'], ['_noDairyAlt', 'a dairy-free main'],
+    ['_altMeals', 'a soft plate'], ['noPorkAlt', 'a no-pork plate'], ['_vegAltSafe', 'an egg-free vegan plate'], ['_altMealsNone', 'no soft plate needed']];
+  const kVal = k => k === '_altMeals' ? [{ type: 'soft', name: 'Soft plate', flags: {} }] : (k === '_vegAltSafe' || k === '_altMealsNone') ? true : 'Alternative';
+  const kSets = [[]];
+  kitchen.forEach((a, i) => { kSets.push([a]); kitchen.slice(i + 1).forEach(b => kSets.push([a, b])); });
+  kSets.push(kitchen.slice());
+  const bases = [[], ['hasPork'], ['isSpicy'], ['hasPork', 'isSpicy']];
+  const marks = rec.flag ? [[], [rec.flag]] : [[]];
+  kSets.forEach(ks => bases.forEach(bs => marks.forEach(ms => {
+    const f = {};
+    bs.concat(ms).forEach(k => { f[k] = true; });
+    ks.forEach(([k]) => { f[k] = kVal(k); });
+    const words = bs.concat(ms).map(doorPlateFlagLabel).concat(ks.map(x => x[1]));
+    probe.push({ name: 'a made-up meal' + (words.length ? ' with ' + words.join(', ') : ''), flags: f, madeUp: true });
+  })));
   const labels = Object.keys(TAG_LABELS_MAP).map(k => TAG_LABELS_MAP[k]);
   const people = [];
   labels.forEach((a, i) => { people.push([a]); labels.slice(i + 1).forEach(b => people.push([a, b])); });
@@ -18808,6 +18817,8 @@ function doorPlateProveHere(rec) {
   });
   const proof = doorPlateProve(before, after);
   if (lostNotes.length) { proof.ok = false; proof.bad = proof.bad.concat(lostNotes); }
+  // What was checked (the gate reads it): every published meal by period, and the made-up meals.
+  proof.checked = { published: meals.length, periods: Array.from(new Set(meals.map(m => m.period))).sort(), madeUp: probe.filter(m => m.madeUp).length, residents: synth.length, list: reg.length };
   return proof;
 }
 // Who moves today, from this computer's list: counts per meal and plate, never names or rooms.
@@ -18906,6 +18917,7 @@ function doorPlateRulesEditHTML(who, rules) {
     + (who.canEdit ? ' <button class="btn btn-ghost btn-sm" data-key="' + _escAttr(doorPlateKey(r)) + '" onclick="doorPlatesTakeBackRule(this.dataset.key)">Take back</button>' : '') + '</li>').join('') + '</ul>'
     : '<div class="form-hint">None yet.</div>';
   h += '<div class="form-hint">' + escapeHtml(DOOR_PLATE_ROUTING_NOTE) + '</div>';
+  h += '<div class="form-hint" id="door-plate-section-note">Added plate rules change plating and routing, not the section stored on a resident.</div>';
   if (who.canEdit) {
     const opt = (vals, lab, first) => (first ? '<option value="">' + escapeHtml(first) + '</option>' : '') + vals.map(v => '<option value="' + _escAttr(v) + '">' + escapeHtml(lab(v)) + '</option>').join('');
     const secs = opt(A.sections, k => doorPlateSectionLabel(k), 'plate…');
@@ -22571,9 +22583,6 @@ function importSectionForTags(tags) {
   if (tags.glutenFree) return 'Gluten Free';
   if (tags.noDairy || tags.lactoIntolerant) return 'No Dairy';
   if (tags.diabetic || tags.lowCarb) return 'Diabetic';
-  // D2b (2026-11-10): a restriction a lead added to the Gluten Free or No Dairy plate reads as that plate here too.
-  const added = typeof doorPlateImportGuess === 'function' ? doorPlateImportGuess(tags) : '';
-  if (added) return added;
   if (tags.noPork) return 'Regular';  // folds into Halal on pork days via routing, not section
   return 'Regular';
 }
