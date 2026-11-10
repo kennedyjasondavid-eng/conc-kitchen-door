@@ -2261,8 +2261,10 @@ function doorChooseHouseSites(live, kept) {
   if (live !== undefined) {
     const v = live && live._meta ? live._meta.schemaVersion : undefined;
     const note = v === undefined || v === null
-      ? 'The HOUSE site registry names no version; DOOR reads version 1, so it shows its own list of sites.'
-      : 'The HOUSE site registry is version ' + String(v) + '; DOOR reads version 1, so it shows its own list of sites.';
+      ? 'The HOUSE site registry names no version; DOOR reads version 1, so it shows the list it already has.'
+      : 'The HOUSE site registry is version ' + String(v) + '; DOOR reads version 1, so it shows the list it already has.';
+    // Refused live: this computer kept copy (a good version 1) first, then the built-in copy, as the contract orders them.
+    if (doorHouseSitesUsable(kept)) return { reg: kept, source: 'kept', note };
     return { reg: DOOR_BUILTIN_HOUSE_SITES, source: 'built-in', note };
   }
   if (doorHouseSitesUsable(kept)) return { reg: kept, source: 'kept', note: '' };

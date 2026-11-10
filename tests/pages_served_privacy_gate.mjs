@@ -102,6 +102,10 @@ test('5. the served data files hold no resident field', () => {
     const walk = (v, at) => {
       if (!v || typeof v !== 'object') return;
       for (const [k, x] of Object.entries(v)) {
+        // 2026-11-10 (D1, re-pinned): F4's flow.recipes block (DOOR #156, switched on in #181) carries each recipe's
+        // allergenFlags, recipe data CODEX already publishes, not a resident's. That one key under a recipe record is
+        // skipped; every other resident key is still refused there, and allergenFlags anywhere else still is.
+        if (k === 'allergenFlags' && /^\$\.flow\.recipes\.[^.]+$/.test(at)) { walk(x, at + '.' + k); continue; }
         if (RESIDENT_KEYS.has(k)) hits.push(at + '.' + k);
         walk(x, at + '.' + (Array.isArray(v) ? '[]' : k));
       }

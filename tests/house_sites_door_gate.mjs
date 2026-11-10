@@ -45,14 +45,18 @@ test('1. reader order: live, then the kept copy, then the built-in copy; another
   p = R.doorChooseHouseSites(undefined, null);
   assert.equal(p.source, 'built-in'); assert.equal(p.reg, R.DOOR_BUILTIN_HOUSE_SITES); assert.equal(p.note, '');
   const v2 = reg(r => { r._meta.schemaVersion = 2; });
+  // A refused live file falls back as the contract orders: the kept copy, then the built-in one, saying so either way.
   p = R.doorChooseHouseSites(v2, kept);
-  assert.equal(p.source, 'built-in', 'a version 2 file is refused, and the built-in copy is used');
-  assert.equal(p.reg, R.DOOR_BUILTIN_HOUSE_SITES);
+  assert.equal(p.source, 'kept', 'a version 2 file is refused, and the kept copy is used');
+  assert.equal(p.reg, kept);
   assert.match(p.note, /version 2; DOOR reads version 1/);
-  p = R.doorChooseHouseSites(reg(r => { delete r._meta.schemaVersion; }), kept);
+  p = R.doorChooseHouseSites(v2, null);
+  assert.equal(p.source, 'built-in', 'with no kept copy, the built-in copy is used');
+  assert.equal(p.reg, R.DOOR_BUILTIN_HOUSE_SITES); assert.match(p.note, /version 2; DOOR reads version 1/);
+  p = R.doorChooseHouseSites(reg(r => { delete r._meta.schemaVersion; }), null);
   assert.equal(p.source, 'built-in'); assert.match(p.note, /names no version/);
   p = R.doorChooseHouseSites(null, kept); // a live answer that was not JSON
-  assert.equal(p.source, 'built-in'); assert.ok(p.note);
+  assert.equal(p.source, 'kept'); assert.ok(p.note);
   assert.equal(R.doorChooseHouseSites(undefined, v2).source, 'built-in', 'a kept copy of another version is not used');
   // The loader: cache-busted, no-store, kept through the quota-safe writer, and run at start-up.
   const load = fnBody('loadHouseSites');
