@@ -6,7 +6,11 @@
 // local store, and the real publisher in the F1 publish box. No resident data: every resident here is made up.
 // Authored to fail on da57f2a (no door-rules block). Review fold (2026-11-10, FIX FIRST): Rex spellings re-checked at
 // read time and built-ins first (mutant m1), take-back of published flags, the plate dry run, restriction words stay
-// questions, a 409 retry keeps another computer's words, canonical times, escaping of every shown string.
+// questions, a 409 retry keeps another computer's words, canonical times, escaping of every shown string. Second review
+// fold (2026-11-10, FIX FIRST): unknown fields verbatim from the kitchen and a newer file refused (N1), no record dropped
+// for its time and no send with fewer words than the kitchen (N2), the dry run on every meal and honest about what it
+// can't see (N3), mutants md/mg/mt/mx (N4), tighter Rex spellings (N5), own unsent changes only (N6), the kitchen-state
+// line (N7), Undo and compile errors (N8), y -> ies plurals.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -92,6 +96,11 @@ test('add-only rules: built-in, duplicate, unknown or reducing target, odd chara
   }
   assert.equal(c.doorRulesCheck({}, 'rexSpelling', 'shrimp', 'chicken', rexCtx).code, 'spelling', 'shrimp → chicken is no slip');
   assert.equal(c.doorRulesCheck({}, 'rexSpelling', 'tofuu', 'tofu', rexCtx).code, 'spelling', 'tofu names soy');
+  // second review N5: two letters apart in a short word, or another first letter, is another dish
+  rexCtx.targets = rexCtx.targets.concat(['kofta', 'salad', 'tikka', 'biryani']);
+  for (const [w, t] of [['korma', 'kofta'], ['satay', 'salad'], ['zikka', 'tikka']]) assert.equal(c.doorRulesCheck({}, 'rexSpelling', w, t, rexCtx).code, 'spelling', w + ' → ' + t);
+  assert.ok(c.doorRulesNearSpelling('tika', 'tikka') && !c.doorRulesNearSpelling('korma', 'kofta') && !c.doorRulesNearSpelling('satay', 'salad'));
+  assert.ok(c.doorRulesNearSpelling('turmerik', 'turmeric') && !c.doorRulesNearSpelling('burmeric', 'turmeric'));
   assert.ok(!chk('rexSpelling', 'tilapia', 'yogurt').ok, 'not a slip');
   assert.equal(chk('rexSpelling', 'tilapia', 'yogurt').code, 'spelling');
   assert.equal(chk('rexSpelling', 'lasagnia', 'caribbean').code, 'spelling', 'far apart');
@@ -127,6 +136,8 @@ test('an added word is read by each list\'s real reader, only ever adds, and nev
   assert.equal(read.dinner_flags.hasShellfish, false, 'a word on the vegan line alone never sets a meal flag (P2-2)');
   assert.equal(menu['1'].MONDAY.lunch_flags.hasShellfish, false, 'the source is not mutated');
   assert.ok(!on(a.buildSlotFlags('', 'Mungeoduckery')).includes('hasShellfish'), 'whole words only');
+  const ies = c.doorRulesWordRegex('anchovy');
+  assert.ok(ies.test('Anchovies, Olives') && ies.test('anchovy') && !ies.test('anchovys x') === true, 'y → ies');
   // workbook allergen rows
   assert.deepEqual(on(a.allergenStrToFlags('gluten, Pine Nuts', a.emptyMealFlags())), ['hasGluten', 'hasTreeNuts']);
   assert.deepEqual(on(p.allergenStrToFlags('gluten, Pine Nuts', p.emptyMealFlags())), ['hasGluten']);
@@ -196,7 +207,8 @@ test('a take-back stops the word from now on, and names the meals it already mar
   assert.match(tb, /doorRulesTakeBackImpact\(list, w, cur\.target\)/);
   assert.match(tb, /items: imp\.meals\.map\(doorRulesMealLabel\)/);
   assert.match(tb, /keep it until someone unticks it in Edit Menu/);
-  assert.match(tb, /#menu-config\/edit\//);
+  assert.match(tb, /doorRulesShowStillMarked\(list, label, imp\.meals\)/);
+  assert.match(fn('doorRulesShowStillMarked'), /#menu-config\/edit\//);
   assert.equal(c.doorRulesMealLabel(marked[0]), 'Wk2 TUE lunch');
   assert.doesNotMatch(html, /returns DOOR to its built-in words/, 'the old promise is gone');
 });
@@ -230,7 +242,7 @@ test('Add dry-runs the plates: a word that moves a resident off a protecting pla
   assert.ok(add.indexOf('doorRulesDryRun(') < add.indexOf('await doorAsk('));
   assert.match(add, /if \(dry\.error\)/);
   assert.match(add, /if \(dry\.blocked\.length\)/);
-  assert.match(add, /items: doorRulesMovesLines\(dry\.moves\)/);
+  assert.match(add, /let items = doorRulesMovesLines\(dry\.moves\)/);
   assert.match(fn('doorRulesSeatsByMeal'), /computePlatingData\(p, wk, day\)/);
 });
 
@@ -277,7 +289,7 @@ test('who may edit: a sending key and a name on the leads list; only Jason chang
   assert.match(fn('renderDoorRulesPage'), /guards against mistakes; the connection key is the real lock/);
 });
 
-test('two computers merge per word and per lead, newest wins; times are canonical and never far ahead (P2-5)', () => {
+test('two computers merge per word and per lead, newest wins; no record is dropped for its time (P2-5, N2)', () => {
   const c = box();
   const A = c.doorRulesAdd({}, { list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'Fiona', at: T });
   const B0 = c.doorRulesAdd({}, { list: 'workbookAllergen', word: 'pine nut', target: 'hasTreeNuts', by: 'Jason', at: T });
@@ -290,16 +302,29 @@ test('two computers merge per word and per lead, newest wins; times are canonica
   const tie = c.doorRulesMerge({ additions: [{ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'J', at: T, takenBack: true }] },
     { additions: [{ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'J', at: T }] });
   assert.equal(c.doorRulesActive(tie, 'menuName').length, 1, 'a tie keeps the word');
-  // times: a "9999-" record, one a week ahead, and a non-canonical one are refused; one ahead by an hour is kept
+  // times (second review N2): a non-canonical time is not well formed; a time far ahead is kept and only clamped for
+  // ordering. A slow clock keeps every kitchen word, a fast one's words are kept by everyone, and a change made
+  // after a skewed record still takes.
   const now = Date.parse('2026-11-10T12:00:00.000Z');
-  const rec = (at) => ({ additions: [{ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'J', at }] });
-  for (const at of ['9999-01-01T00:00:00.000Z', '2026-11-17T12:00:00.000Z', '2026-11-10T12:00:00Z', '2026-11-10T12:00:00.000Zjunk', '2026-11-10']) {
-    assert.equal(c.doorRulesClean(rec(at), now).additions.length, 0, at);
-  }
-  assert.equal(c.doorRulesClean(rec('2026-11-10T13:00:00.000Z'), now).additions.length, 1);
-  // a change written on a clock behind the record lands just after it, so it takes
+  const rec = (at, extra) => ({ additions: [Object.assign({ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'J', at }, extra || {})] });
+  for (const at of ['2026-11-10T12:00:00Z', '2026-11-10T12:00:00.000Zjunk', '2026-11-10']) assert.equal(c.doorRulesClean(rec(at)).additions.length, 0, at);
+  for (const at of ['9999-01-01T00:00:00.000Z', '2026-11-17T12:00:00.000Z', '2026-11-10T13:00:00.000Z']) assert.equal(c.doorRulesClean(rec(at)).additions.length, 1, at);
+  const kitchenQ = { _meta: { version: 1, exported: '2026-11-10T12:00:00.000Z', site: 'rexdale' },
+    leads: [{ name: 'Fiona', on: true, by: 'Jason', at: '2026-11-01T12:00:00.000Z' }],
+    additions: [{ list: 'menuName', word: 'abalone', target: 'hasShellfish', by: 'Jason', at: '2026-11-01T12:00:00.000Z' },
+      { list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'Fiona', at: '2026-11-10T12:00:00.000Z' }], log: [] };
+  const slow = Date.parse('2026-11-08T09:00:00.000Z');
+  const slowCopy = c.doorRulesMerge({}, kitchenQ, slow, { kitchen: true });
+  assert.deepEqual(plain(c.doorRulesActive(slowCopy, 'menuName').map(r => r.word)), ['abalone', 'geoduck'], 'a slow clock drops nothing (q4/q6)');
+  assert.deepEqual(plain(c.doorRulesDrops(kitchenQ, slowCopy, [])), [], 'and would send nothing fewer');
+  assert.equal(c.doorRulesSkewedCount(kitchenQ, slow), 1, 'the skew is counted for the page');
+  const fast = rec('9999-01-01T00:00:00.000Z');
+  const back = c.doorRulesTakeBack(fast, 'menuName', 'geoduck', 'Jason', c.doorRulesNextAt('9999-01-01T00:00:00.000Z', now), now);
+  assert.equal(c.doorRulesActive(c.doorRulesMerge(fast, back, now), 'menuName').length, 0, 'a take-back after a fast-clock record takes');
+  assert.equal(c.doorRulesActive(c.doorRulesMerge(back, fast, now), 'menuName').length, 0);
   assert.equal(c.doorRulesNextAt('2026-11-10T13:00:00.000Z', now), '2026-11-10T13:00:00.001Z');
   assert.equal(c.doorRulesNextAt('2026-11-10T11:00:00.000Z', now), '2026-11-10T12:00:00.000Z');
+  assert.equal(c.doorRulesNextAt('9999-01-01T00:00:00.000Z', now), '2026-11-11T12:00:00.000Z', 'clamped to a day ahead');
   for (const f of ['doorRulesAddWord', 'doorRulesTakeBackWord', 'doorRulesAddLead', 'doorRulesRemoveLead']) {
     assert.match(fn(f), /doorRulesStampFor\(/, f + ' stamps after the record it changes');
     assert.match(fn(f), /It did not take/, f + ' says when it did not take');
@@ -313,27 +338,47 @@ test('two computers merge per word and per lead, newest wins; times are canonica
   assert.equal(JSON.stringify(c.doorRulesFile(c.doorRulesMerge(ba, {}), 'rexdale')), JSON.stringify(f));
 });
 
-test('fields a later DOOR writes (D2b plates) pass through a merge and a publish untouched', () => {
+test('a D2a computer never changes what it doesn\'t know, and refuses a newer file (second review N1)', () => {
   const c = box();
-  const plates = [{ id: 'p1', anything: { nested: [1, 2] } }];
-  const kitchen = { _meta: { version: 1, exported: T2, site: 'rexdale' }, leads: [], additions: [], log: [], plates };
-  const local = c.doorRulesAdd({}, { list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'Jason', at: T });
-  for (const merged of [c.doorRulesMerge(local, kitchen), c.doorRulesMerge(kitchen, local)]) {
-    assert.deepEqual(plain(merged.plates), plates, 'kept as it is');
-    const file = c.doorRulesFile(merged, 'rexdale');
-    assert.deepEqual(plain(file.plates), plates, 'and published');
-    assert.equal(file._meta.exported, T2, 'the file is not stamped older than the field it carries');
-    assert.deepEqual(plain(c.doorRulesActive(file, 'menuName').map(r => r.word)), ['geoduck']);
-  }
-  // this computer's copy keeps it, and a newer copy of the field wins
-  const s = box();
-  s.doorApplyRemoteRules(kitchen);
-  assert.deepEqual(plain(s.loadDoorRules().plates), plates);
-  const newer = { ...kitchen, _meta: { ...kitchen._meta, exported: '2026-11-10T14:00:00.000Z' }, plates: [{ id: 'p2' }] };
-  assert.deepEqual(plain(c.doorRulesMerge(kitchen, newer).plates), [{ id: 'p2' }]);
-  assert.deepEqual(plain(c.doorRulesMerge(newer, kitchen).plates), [{ id: 'p2' }]);
-  assert.ok(c.doorRulesHasContent({ plates }), 'a file with only plates is still sent');
+  const P1 = [{ id: 'p', v: 1 }], P2 = [{ id: 'p', v: 2 }];
+  const w = (word, at, extra) => Object.assign({ list: 'menuName', word, target: 'hasShellfish', by: 'Fiona', at }, extra || {});
+  // q3: a tie of stamps used to keep this computer's P1 over the kitchen's P2. The kitchen copy now always decides.
+  const k0 = { _meta: { version: 1, exported: '2026-11-10T09:00:00.000Z', site: 'rexdale' }, leads: [], additions: [], log: [], plates: P1 };
+  let A = c.doorRulesMerge({}, k0, undefined, { kitchen: true });
+  A = c.doorRulesAdd(A, w('geoduck', '2026-11-10T10:05:00.000Z'));
+  const k1 = plain(c.doorRulesFile(A, 'rexdale'));
+  assert.deepEqual(k1.plates, P1);
+  A = c.doorRulesMerge(A, k1, undefined, { kitchen: true });
+  const k2 = { ...k1, plates: P2, _meta: { ...k1._meta, exported: '2026-11-10T10:05:00.000Z' } };
+  A = c.doorRulesMerge(A, k2, undefined, { kitchen: true });
+  assert.deepEqual(plain(A.plates), P2, 'the kitchen copy wins a tie');
+  assert.deepEqual(plain(c.doorRulesFile(A, 'rexdale').plates), P2, 'and is what this computer republishes');
+  const k3 = { ...k2 }; delete k3.plates;
+  assert.equal(plain(c.doorRulesMerge(A, k3, undefined, { kitchen: true })).plates, undefined, 'a field the kitchen dropped stays dropped');
+  assert.deepEqual(plain(c.doorRulesMerge(A, { leads: [] }).plates), P2, 'before any kitchen read this computer keeps what it holds');
+  // fields inside records, _meta fields and additions on an unknown list ride along untouched
+  const k4 = { _meta: { version: 1, exported: '2026-11-10T10:00:00.000Z', site: 'rexdale', schema: 'x', plateRev: 7 },
+    additions: [w('cockle', '2026-11-10T10:00:00.000Z', { note: 'D2b field' }), { list: 'plateRule', word: 'abc', target: 'x', by: 'Jason', at: '2026-11-10T10:00:00.000Z', shape: { any: 1 } }],
+    leads: [{ name: 'Fiona', on: true, by: 'Jason', at: '2026-11-10T10:00:00.000Z', canEditPlates: true }],
+    log: [{ at: '2026-11-10T10:00:00.000Z', by: 'Jason', what: 'plate edited', list: 'plateRule', extra: [1] }] };
+  const f4 = plain(c.doorRulesFile(c.doorRulesMerge({}, k4, undefined, { kitchen: true }), 'rexdale'));
+  assert.equal(f4._meta.schema, 'x'); assert.equal(f4._meta.plateRev, 7);
+  assert.equal(f4.additions.find(x => x.word === 'cockle').note, 'D2b field');
+  assert.deepEqual(f4.additions.find(x => x.list === 'plateRule'), k4.additions[1], 'an unknown list, verbatim');
+  assert.equal(f4.leads[0].canEditPlates, true);
+  assert.deepEqual(f4.log[0].extra, [1]); assert.equal(f4.log[0].list, 'plateRule');
+  const tb = c.doorRulesTakeBack(c.doorRulesMerge({}, k4, undefined, { kitchen: true }), 'menuName', 'cockle', 'Jason', '2026-11-10T11:00:00.000Z');
+  assert.equal(tb.additions.find(x => x.word === 'cockle').note, 'D2b field', 'a take-back keeps the record\'s own fields');
   assert.equal(Object.getPrototypeOf(c.doorRulesClean(JSON.parse('{"__proto__": {"x": 1}}'))).x, undefined, 'no prototype field');
+  // a newer file version: refused out loud, not merged, and this computer keeps its copy
+  const s = box({ store: { concDoorRules: JSON.stringify(c.doorRulesAdd({}, w('abalone', '2026-11-10T08:00:00.000Z'))) } });
+  assert.equal(c.doorRulesNewerFile({ _meta: { version: 2 } }), true);
+  assert.equal(c.doorRulesNewerFile({ _meta: { version: 1 } }) || c.doorRulesNewerFile({}), false);
+  s.doorApplyRemoteRules({ _meta: { version: 2, exported: '2026-11-10T12:00:00.000Z' }, additions: [w('geoduck', '2026-11-10T12:00:00.000Z')], leads: [], log: [], plates: P2 });
+  assert.deepEqual(plain(s.doorRulesActive(s.loadDoorRules(), 'menuName').map(x => x.word)), ['abalone'], 'not merged');
+  assert.equal(plain(s.doorRulesKitchenState()).reason, 'newer');
+  assert.match(fn('renderDoorRulesPage'), /from a newer DOOR \(version/);
+  assert.match(fn('doorPublishMergeRules'), /if \(doorRulesNewerFile\(value\)\) \{.*return false; \}/, 'never republished over');
 });
 
 test('every shown string is escaped: words, names, the log and the import line (P2-6, P3)', () => {
@@ -375,7 +420,8 @@ test('door_rules.json is a kitchen file merged at the publish revision: a 409 re
   const rec = (word, by, at) => ({ list: 'menuName', word, target: 'hasShellfish', by, at });
   const kitchenA = { _meta: { version: 1, exported: T, site: 'rexdale' }, leads: [], additions: [rec('abalone', 'Fiona', '2026-11-04T10:00:00.000Z')], log: [] };
   const remote = new ApplyingRemote(initialRemote({ 'door_rules.json': kitchenA }));
-  const pb = publishBox({ remote, storage: { concDoorRules: JSON.stringify({ additions: [rec('geoduck', 'Jason', '2026-11-04T11:00:00.000Z')], leads: [], log: [] }) } });
+  const pb = publishBox({ remote, storage: { concDoorRules: JSON.stringify({ additions: [rec('geoduck', 'Jason', '2026-11-04T11:00:00.000Z')], leads: [], log: [] }),
+    concDoorRulesUnsent: JSON.stringify([{ key: 'menuName|geoduck', at: '2026-11-04T11:00:00.000Z' }]) } });
   vm.runInContext(rulesSource(), pb.c, { filename: 'index.html#d2a-rules', timeout: 5000 });
   remote.beforePatch = (r) => {
     const cur = r.files['door_rules.json'];
@@ -386,6 +432,113 @@ test('door_rules.json is a kitchen file merged at the publish revision: a 409 re
   assert.ok(result && result.ok, 'published: ' + JSON.stringify(result && (result.error ? String(result.error) : result)));
   const words = remote.files['door_rules.json'].additions.map(x => x.word).sort();
   assert.deepEqual(words, ['abalone', 'cockle', 'geoduck'], 'the retry re-read the kitchen copy and kept the other computer\'s word');
-  assert.equal(pb.storage.concDoorRulesSentAt, '2026-11-04T11:30:00.000Z', 'marked sent after the commit that carried the merged file');
+  assert.deepEqual(JSON.parse(pb.storage.concDoorRulesUnsent || '[]'), [], 'this computer\'s change counts as sent after the commit that carried it');
   assert.ok(!remote.requests.some(q => q.method === 'GET' && q.route === '/contents/door_rules.json' && !q.ref), 'no read outside the publish revision');
+});
+
+test('a publish never overwrites a kitchen copy it couldn\'t read, never marks sent before its commit, and never drops kitchen words (N2, N4: md, mg)', async () => {
+  const { publishBox, initialRemote, ApplyingRemote } = await import('./helpers/door_publish_transaction_box.mjs');
+  const rec = (word, by, at, extra) => Object.assign({ list: 'menuName', word, target: 'hasShellfish', by, at }, extra || {});
+  const kitchen = { _meta: { version: 1, exported: '2026-11-04T10:00:00.000Z', site: 'rexdale' }, leads: [], additions: [rec('abalone', 'Fiona', '2026-11-04T10:00:00.000Z')], log: [] };
+  const mine = { additions: [rec('geoduck', 'Jason', '2026-11-04T11:00:00.000Z')], leads: [], log: [] };
+  const unsent = JSON.stringify([{ key: 'menuName|geoduck', at: '2026-11-04T11:00:00.000Z' }]);
+  const run = async (setup, storage) => {
+    const remote = new ApplyingRemote(initialRemote({ 'door_rules.json': kitchen }));
+    const pb = publishBox({ remote, storage: Object.assign({ concDoorRules: JSON.stringify(mine), concDoorRulesUnsent: unsent }, storage || {}) });
+    vm.runInContext(rulesSource(), pb.c, { filename: 'index.html#d2a-rules', timeout: 5000 });
+    if (setup) setup(remote);
+    const result = await pb.publish(); await pb.flush();
+    return { remote, pb, result };
+  };
+  // md: the kitchen copy can't be read at the revision. Nothing of this computer's rules is staged, and the page says why.
+  const md = await run(r => { r.failures.set('door_rules.json', '500'); });
+  assert.deepEqual(md.remote.files['door_rules.json'], kitchen, 'the kitchen copy is untouched');
+  assert.equal(JSON.parse(md.pb.storage.concDoorRulesKitchenState).reason, 'unreadable');
+  assert.deepEqual(JSON.parse(md.pb.storage.concDoorRulesUnsent), JSON.parse(unsent), 'still not sent');
+  // mg: every ref update is refused, so the publish fails. Nothing counts as sent.
+  const mg = await run(r => { const again = (x) => { x.externalUpdate({ 'menu_overlay.json': { _meta: { standardCutover: 1 } } }); x.beforePatch = again; }; r.beforePatch = again; });
+  assert.ok(!(mg.result && mg.result.ok), 'the publish failed');
+  assert.deepEqual(JSON.parse(mg.pb.storage.concDoorRulesUnsent), JSON.parse(unsent), 'not marked sent before a commit landed');
+  // a copy that would drop a kitchen word it didn't take back itself: refused, kitchen untouched
+  const other = { additions: [rec('abalone', 'Joan', '2026-11-04T10:30:00.000Z', { takenBack: true })], leads: [], log: [] };
+  const drop = await run(null, { concDoorRules: JSON.stringify(other), concDoorRulesUnsent: '[]' });
+  assert.deepEqual(drop.remote.files['door_rules.json'], kitchen);
+  assert.equal(JSON.parse(drop.pb.storage.concDoorRulesKitchenState).reason, 'drops');
+  // the same take-back made on this computer goes out
+  const own = await run(null, { concDoorRules: JSON.stringify(other), concDoorRulesUnsent: JSON.stringify([{ key: 'menuName|abalone', at: '2026-11-04T10:30:00.000Z' }]) });
+  assert.equal(own.remote.files['door_rules.json'].additions.find(x => x.word === 'abalone').takenBack, true);
+});
+
+test('the dry run covers every meal, a lost plate refuses, and a restriction word says what it can\'t see (N3, N4: mt)', () => {
+  const c = box();
+  const menu = { '1': { MONDAY: { breakfast: 'Eggs', lunch: 'Soup', dinner: 'Stew' } } };
+  c.getMenuData = () => menu;
+  const seen = [];
+  c.computePlatingData = (p) => { seen.push(p); const trial = !!vm.runInContext('_doorRulesTrial', c);
+    const label = trial && p === 'breakfast' ? 'Regular' : 'Gluten Free';
+    return { mealFlags: {}, anaphSect: [], sections: [{ rule: label === 'Regular' ? { key: 'regular' } : { key: 'gf', label }, residents: [{ room: 'T1' }] }] }; };
+  const dry = plain(c.doorRulesDryRun('menuName', 'geoduck', 'hasShellfish'));
+  assert.ok(['breakfast', 'lunch', 'dinner'].every(p => seen.includes(p)), 'breakfast, lunch and dinner are checked');
+  assert.equal(dry.checked, 3);
+  assert.deepEqual(dry.blocked, [{ meal: 'Wk1 MON breakfast', from: 'Gluten Free', to: 'Regular', n: 1 }], 'a breakfast move is caught');
+  assert.equal(c.doorRulesSeatMoves({ m: { a: 'Gluten Free' } }, { m: {} }).blocked.length, 1, 'a seat before and none after refuses');
+  assert.equal(c.doorRulesSeatMoves({ m: { a: 'Regular' } }, { m: {} }).blocked.length, 1, 'even from Regular');
+  // restriction words: read as the import would; a record holding only DOOR\'s labels is counted as unseen
+  const r = box(); r.getMenuData = () => ({ '1': { MONDAY: { lunch: 'Bread' } } });
+  r.computePlatingData = () => ({ mealFlags: { hasGluten: true }, anaphSect: [], sections: [] });
+  vm.runInContext("REGISTRY_LIST.push({ room: '901', tags: ['No Pork'], rawRestriction: 'No Pork, Celiac' }, { room: '902', tags: ['No Pork'], rawRestriction: 'No Pork' }, { room: '903', tags: [], rawRestriction: 'Regular' })", r);
+  const rd = plain(r.doorRulesDryRun('restriction', 'celiac', 'glutenFree'));
+  assert.equal(rd.checked, 1); assert.equal(rd.unseen, 2);
+  assert.deepEqual(rd.moves.map(m => m.meal + ':' + m.from + '>' + m.to + ':' + m.n), ['Wk1 MON breakfast:Regular>Gluten Free:1', 'Wk1 MON dinner:Regular>Gluten Free:1', 'Wk1 MON lunch:Regular>Gluten Free:1']);
+  assert.equal(rd.blocked.length, 0, 'Regular → Gluten Free is more protection');
+  const add = fn('doorRulesAddWord');
+  assert.match(add, /Not checked: ' \+ dry\.unseen/);
+  assert.match(add, /Not checked: dishes added to the menu later/);
+  assert.match(add, /Not checked: it is read at the next menu workbook import/);
+  assert.doesNotMatch(add, /No resident’s plate changes on today’s menu and resident list/);
+});
+
+test('permission is asked again after every question, Undo checks it took, and the page says what is off (N4: mx, N6, N7, N8)', async () => {
+  const mk = (opts) => {
+    const els = {};
+    const c = box(Object.assign({ operator: 'Fiona', auth: { getSavedToken: () => 'k', isViewingKey: () => false, isExpired: () => false } }, opts));
+    c.document = { getElementById: (id) => (els[id] = els[id] || { innerHTML: '', textContent: '', value: '' }), querySelectorAll: () => [] };
+    c.getMenuData = () => ({ '1': { MONDAY: { lunch: 'Geoduck Soup', lunch_flags: { hasShellfish: true } } } });
+    return { c, els };
+  };
+  const leads = [{ name: 'Fiona', on: true, by: 'Jason', at: T }];
+  // mx: the key is lost while the take-back question is open
+  const { c } = mk(withAdds([{ list: 'menuName', word: 'geoduck', target: 'hasShellfish' }], leads));
+  c.doorAsk = async () => { c.PublishAuth = { getSavedToken: () => '', isViewingKey: () => false, isExpired: () => false }; return true; };
+  await c.doorRulesTakeBackWord('menuName', 'geoduck');
+  assert.equal(c.doorRulesActive(c.loadDoorRules(), 'menuName').length, 1, 'not taken back without a sending key');
+  // and the add question: the name leaves the leads list while it is open
+  const m2 = mk(withAdds([], leads));
+  m2.els['door-rules-word-menuName'] = { value: 'geoduck' }; m2.els['door-rules-target-menuName'] = { value: 'hasShellfish' };
+  m2.c.computePlatingData = () => null;
+  m2.c.doorAsk = async () => { m2.c.getOperatorName = () => 'Joan'; return true; };
+  await m2.c.doorRulesAddWord('menuName');
+  assert.equal(m2.c.doorRulesActive(m2.c.loadDoorRules(), 'menuName').length, 0, 'not added by a name off the list');
+  // N6: a change pulled from the kitchen is not "not sent"
+  const m3 = mk({});
+  m3.c.doorApplyRemoteRules({ _meta: { version: 1 }, leads: [], log: [], additions: [{ list: 'menuName', word: 'geoduck', target: 'hasShellfish', by: 'Joan', at: T }] });
+  assert.equal(m3.c.doorRulesNotSent(), false);
+  m3.c.doorRulesNoteOwn('menuName|abalone', T2);
+  assert.equal(m3.c.doorRulesNotSent(), true);
+  // N7: the kitchen copy couldn\'t be read
+  m3.c.doorRulesSetKitchenState({ reason: 'unreadable' });
+  vm.runInContext('renderDoorRulesPage()', m3.c);
+  assert.match(m3.els['door-rules-body'].innerHTML, /rules file can’t be read, so nothing from this computer is sent/);
+  // N8: a compile error is shown, not swallowed
+  const m4 = mk({});
+  m4.c.console = { warn() {}, log() {} };
+  m4.c.loadDoorRules = () => { throw new Error('boom'); };
+  assert.deepEqual(plain(m4.c.doorRulesCompiledFor('menuName')), []);
+  assert.equal(vm.runInContext('_doorRulesCompileError', m4.c), 'boom');
+  assert.match(fn('renderDoorRulesPage'), /Added words are off on this computer/);
+  // Undo of an add names the meals that stay marked, and checks it took
+  const u = fn('doorRulesUndo');
+  assert.match(u, /doorRulesTakeBackImpact\(u\.list, u\.word, u\.target\)\.meals/);
+  assert.match(u, /doorRulesShowStillMarked\(/);
+  assert.match(u, /if \(!took\)/);
 });
