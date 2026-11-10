@@ -182,7 +182,9 @@ test('(b) without a key: each public feed comes from DOOR\'s Pages, derived from
 // ── (c) kitchen files without a key ─────────────────────────────────────────────────────────────────────────────────
 test('(c) without a key: a kitchen file uses the raw address while the fallback is on; noKey with no fetch otherwise', async () => {
   const kitchenFiles = vm.runInContext('DOOR_KITCHEN_FILES', readerBox({ answer: () => res(200, {}) }).ctx);
-  assert.deepEqual([...kitchenFiles].sort(), ['change_log.json', 'custom_tag_rules.json', 'door_state.json', 'learned_nr.json',
+  // Re-pinned 2026-11-10 (D2a, v31-standard.64): door_rules.json (the added allergen words and the leads list) is a
+  // kitchen file, read like rex_week_answers.json and never served on Pages.
+  assert.deepEqual([...kitchenFiles].sort(), ['change_log.json', 'custom_tag_rules.json', 'door_rules.json', 'door_state.json', 'learned_nr.json',
     'menu_overlay.json', 'recent_log.json', 'rex_week_answers.json'].sort());
   const raw = readerBox({ answer: () => res(200, MADE_UP_STATE) });
   const r = await raw.read('door_state.json');

@@ -1845,6 +1845,12 @@ function updateCODEXBadge() {
         </div>
 
       </div>
+
+      <!-- ALLERGEN AND ROUTING RULES (D2a, 2026-11-10): word lists, add-only, named leads; plate rules read-only -->
+      <div class="card door-rules-card" id="door-rules-card" style="margin-top:16px;">
+        <div class="card-header"><span style="font-size:15px;">&#x25C7;</span><h2>Allergen and routing rules</h2></div>
+        <div class="card-body" id="door-rules-body"></div>
+      </div>
     </div>
   </div>
 
@@ -8666,6 +8672,7 @@ async function pullSecondaryState(repo) {
     ['meal_swaps.json',      d => doorApplyRemoteSwaps(d, null)],
     ['special_meals.json',   d => doorApplyRemoteSpecials(d, null)],
     ['rex_week_answers.json', d => doorApplyRemoteRexAnswers(d)],   // "Keep DOOR's" answers (2026-10-29)
+    ['door_rules.json',      d => doorApplyRemoteRules(d)],         // the added words and the leads list (D2a, 2026-11-10)
     ['menu_overlay.json',    d => {
       const local = JSON.parse(localStorage.getItem('concMenuBase') || '{}');
       const mergeResult = doorMergeMenuOverlayWithCloud(local, d);
@@ -10296,7 +10303,7 @@ PublishAuth.migrateLegacyState();
 const DOOR_PUBLIC_FEEDS = Object.freeze(['menu_current.json', 'routing_by_meal.json', 'registry_summary.json',
   'meal_swaps.json', 'meal_swaps_reverted.json', 'special_meals.json', 'special_meals_removed.json']);
 const DOOR_KITCHEN_FILES = Object.freeze(['door_state.json', 'recent_log.json', 'learned_nr.json', 'menu_overlay.json',
-  'change_log.json', 'rex_week_answers.json', 'custom_tag_rules.json']);
+  'change_log.json', 'rex_week_answers.json', 'custom_tag_rules.json', 'door_rules.json']);
 const DOOR_PUBLIC_RAW_FALLBACK = true; // until the repository is private; remove in phase 5
 const DOOR_KITCHEN_READ_TIMEOUT_MS = 8000;
 const DOOR_VIEWING_KEY_COPY = 'This computer can view the kitchen’s lists but not send changes (viewing key).';
@@ -10440,6 +10447,7 @@ function loadSettings() {
   PublishAuth.migrateLegacyState();
   PublishAuth.renderStatus();
   doorRenderKitchenListReadLine(); // the rehearsal switch and the last read of the resident list (2026-11-01)
+  try { renderDoorRulesPage(); } catch (e) { console.warn('[DOOR] rules page:', e); } // D2a (2026-11-10)
 }
 
 function saveSettings() {
@@ -12692,6 +12700,10 @@ async function _doPublishToGitHub(manual) {
     return { skipped:true, reason:'viewing_key', message:'viewing key — this computer can view but not send' };
   }
   if(statusEl){ statusEl.textContent='Sending to the kitchen\u2026'; statusEl.style.color='var(--forest-mid)'; }
+  // D2a (2026-11-10): the kitchen's added words merged in before anything is built, so a computer that hasn't synced
+  // since a lead added a word still marks the menu with it (an added word only adds a flag).
+  if (typeof doorPullRules === 'function') { try { await doorPullRules(); } catch (e) {} }
+  let _rulesSentAt = '';
   // D1: artifacts are STAGED here and pushed as ONE commit below (see
   // ghPushFilesAtomic). They used to go out as one Contents-API commit each, so a
   // crash mid-publish shipped a mutually-inconsistent artifact set and every CI
@@ -12791,6 +12803,14 @@ async function _doPublishToGitHub(manual) {
     // "Keep DOOR's" answers on Rex's week sheet (2026-10-29), merged with the kitchen's first. Never empty: a
     // computer that never answered sends nothing.
     { const _rexA = await doorPullRexAnswers(); if (Object.keys(_rexA).length) _push('rex_week_answers.json', JSON.stringify(_rexA,null,2)); }
+    // The added words and the leads list (D2a, 2026-11-10), as pulled above. Never empty: a kitchen with none sends nothing.
+    if (typeof loadDoorRules === 'function') {
+      const _rules = loadDoorRules();
+      if (doorRulesHasContent(_rules)) {
+        _push(DOOR_RULES_FILE, JSON.stringify(doorRulesFile(_rules, (typeof currentSite !== 'undefined' && currentSite && currentSite.id) || 'rexdale'),null,2));
+        _rulesSentAt = doorRulesLastChangeAt(_rules);
+      }
+    }
     const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
     _push('recent_log.json', JSON.stringify(_logToSync,null,2));
     // One commit for the complete candidate; any blocked dependency holds it all.
@@ -12826,6 +12846,7 @@ async function _doPublishToGitHub(manual) {
       // banner can tell "work exists only here" from "published", and clear any
       // earlier recorded skip — a real publish is the only thing that clears it.
       knownCommittedSha=_atomic.commitSha;
+      if (_rulesSentAt && typeof doorRulesNoteSent === 'function') { doorRulesNoteSent(_rulesSentAt); try { renderDoorRulesPage(); } catch (e) {} }
       try { localStorage.setItem('concLastPublishOk', new Date().toISOString()); localStorage.removeItem('concLastPublishSkip'); } catch(e) {}
       const committedFiles=Object.fromEntries(_staged.map(file=>[file.path,(_atomic.unchanged||_atomic.recovered)?revision.data[file.path]:JSON.parse(file.content)]));
       await doorDeliveryCommitted(creds,committedFiles,_atomic.commitSha,!!(_atomic.unchanged||_atomic.recovered),()=>doorPublishAcknowledge(inputs,_atomic.commitSha));
@@ -14922,7 +14943,7 @@ let _doorMenuUsedBakedFallback = false;
 const DOOR_BRASSICA_RE = /brocc|brocol|cauliflower|cabbage|\bkale\b|collard|brussel|bok ?ch(oy|oi)|\bnapp?a\b|slaw\b|kohlrabi|rapini|\bgomen\b/i;
 
 // The menu as read (Menu Config, plating, routing, publish) carries hasBrassicas on any meal whose dish text names a
-// brassica, whatever the stored flag says — the stored flags came from imports that never set it. Additive only:
+// brassica (and, since D2a, any flag a dish word added in Settings names), whatever the stored flag says — the stored flags came from imports that never set it. Additive only:
 // never clears a flag. Days are copied, never mutated (the base may be MENU_DATA or shared app state).
 function doorApplyTextDetectedFlags(menu) {
   if (!menu || typeof menu !== 'object') return menu;
@@ -14937,11 +14958,16 @@ function doorApplyTextDetectedFlags(menu) {
       let copy = null;
       ['breakfast','lunch','dinner'].forEach(meal => {
         const text = [d[meal], d[meal + '_veg'], d[meal + '_sides']].filter(x => typeof x === 'string').join(' , ');
-        if (!DOOR_BRASSICA_RE.test(text)) return;
+        // D2a (2026-11-10): dish words a lead added in Settings (Allergen and routing rules) mark the meal the same way.
+        const wanted = (DOOR_BRASSICA_RE.test(text) ? ['hasBrassicas'] : [])
+          .concat(typeof doorRulesTextTargets === 'function' ? doorRulesTextTargets('menuName', text) : []);
         const flags = d[meal + '_flags'];
-        if (flags && flags.hasBrassicas) return;
+        const missing = wanted.filter(k => !(flags && flags[k]));
+        if (!missing.length) return;
         if (!copy) copy = { ...d };
-        copy[meal + '_flags'] = { ...(flags || emptyMealFlags()), hasBrassicas: true };
+        const next = { ...(flags || emptyMealFlags()) };
+        missing.forEach(k => { next[k] = true; });
+        copy[meal + '_flags'] = next;
       });
       out[wk][dayName] = copy || d;
     });
@@ -16514,6 +16540,8 @@ function allergenStrToFlags(allergenStr, flags) {
       if (t && ALLERGEN_FLAG_MAP[t]) flags[ALLERGEN_FLAG_MAP[t]] = true;
     });
   });
+  // D2a (2026-11-10): words a lead added in Settings (Allergen and routing rules). Only ever adds a flag.
+  if (typeof doorRulesTextTargets === 'function') doorRulesTextTargets('workbookAllergen', s).forEach(k => { flags[k] = true; });
   return flags;
 }
 
@@ -16547,6 +16575,8 @@ function nameDetectFlags(mealText, flags) {
   // Brassicas (2026-10-04): every brassica meal had hasBrassicas false — nothing read it from the dish text, so a
   // No Brassicas resident was never flagged. Additive only, like the allergens above.
   if (typeof DOOR_BRASSICA_RE !== 'undefined' && DOOR_BRASSICA_RE.test(m)) flags.hasBrassicas = true;
+  // D2a (2026-11-10): dish words a lead added in Settings (Allergen and routing rules). Only ever adds a flag.
+  if (typeof doorRulesTextTargets === 'function') doorRulesTextTargets('menuName', m).forEach(k => { flags[k] = true; });
   if (/\bbread\b|\bbun\b|\bbuns\b|\bpasta\b|noodle|\bnaan\b|\bwrap\b|tortilla|breaded|\bflour\b|couscous|biscuit|\bpizza\b|lasagn|\bmac\b|pancake|\bbagel|\broll\b|\bsub\b|dumpling|spring roll|\bgyro\b|\bpita\b|\bgnocchi\b|\bwedges\b/.test(m)) flags.hasGluten = true;
   return flags;
 }
@@ -16883,11 +16913,14 @@ function doorRexLev1(a, b) {
 }
 function doorRexToken(w) {
   if (REX_SYN[w]) return REX_SYN[w];
+  // D2a (2026-11-10): a spelling a lead added in Settings (Allergen and routing rules); never a built-in word.
+  const added = typeof doorRulesRexSpelling === 'function' ? doorRulesRexSpelling(w) : '';
+  if (added) return added;
   if (w.length >= 6) for (const k in REX_SYN) if (k.length >= 6 && doorRexLev1(w, k)) return REX_SYN[k];
   if (w.length > 3 && /oes$/.test(w)) w = w.slice(0, -2);
   else if (w.length > 3 && /ies$/.test(w)) w = w.slice(0, -3) + 'y';
   else if (w.length > 3 && /[^s]s$/.test(w)) w = w.slice(0, -1);
-  return REX_SYN[w] || w;
+  return REX_SYN[w] || (typeof doorRulesRexSpelling === 'function' ? doorRulesRexSpelling(w) : '') || w;
 }
 function doorRexTokens(text) {
   return String(text || '').toLowerCase().replace(/['’`]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ')
@@ -17365,6 +17398,550 @@ async function doorPushRexAnswers() {
   const merged = await doorPullRexAnswers();
   if (!Object.keys(merged).length) return;
   try { PublishAuth.sidePublish(REX_WEEK_ANSWERS_FILE, JSON.stringify(merged, null, 2), 'Rex week answers', true); } catch (e) {}
+}
+
+// ── D2a: DOOR's allergen word lists, add-only, edited in the app by named leads (2026-11-10) ───────────────────────
+// Jason, 2026-11-10: "go ahead" with D2 (EXPO in-app plan §4 Phase 4, call 13: "Jason and named leads only. These rules
+// touch anaphylaxis compliance; a wrong word is a safety event"). A lead can ADD a word to one of four lists; an added
+// word can only make DOOR mark a meal, read a restriction or read a spelling it didn't before. A built-in word is never
+// removed or changed here (a code change). Plate rules (ROUTING_RULES, CONFLICT_MAP) show read-only beside them (D2b
+// edits them later). The additions and the leads list are one kitchen file, door_rules.json, shared like
+// rex_week_answers.json: per item the newer record wins, and a take-back is a dated record, never a delete.
+/* DOOR_TESTABLE_CORE_START door-rules */
+var DOOR_RULES_FILE = 'door_rules.json';
+var DOOR_RULES_OWNER = 'Jason';   // the only name that changes the leads list
+var DOOR_RULES_LISTS = {
+  menuName:         { label: 'Dish names on the menu', kind: 'flag', reads: 'a menu dish name', says: 'Menus naming “{w}” will be marked {t}.' },
+  workbookAllergen: { label: 'Allergen rows in the menu workbook', kind: 'flag', reads: 'a menu workbook allergen row', says: 'A menu workbook allergen row naming “{w}” will read as {t}.' },
+  restriction:      { label: 'Restrictions on the resident list', kind: 'tag', reads: 'a resident list restriction', says: 'A restriction naming “{w}” on the resident list will read as {t}.' },
+  rexSpelling:      { label: 'Spellings on Rex’s week sheet', kind: 'spelling', reads: 'a word on Rex’s week sheet', says: 'On Rex’s week sheet, “{w}” will read as “{t}”.' }
+};
+var DOOR_RULES_LOG_MAX = 200;
+function doorRulesNormName(n) { return String(n == null ? '' : n).trim().replace(/\s+/g, ' ').toLowerCase(); }
+function doorRulesNormWord(w) { return String(w == null ? '' : w).replace(/[’‘`]/g, "'").trim().replace(/\s+/g, ' ').toLowerCase(); }
+// '' when the word is plain enough to add, else why not. Letters, spaces, a hyphen or an apostrophe between letters;
+// 3 to 40 characters. Rex's spellings are one word of letters (the sheet is read word by word).
+function doorRulesWordProblem(list, word) {
+  if (!Object.prototype.hasOwnProperty.call(DOOR_RULES_LISTS, list)) return 'list';
+  const w = doorRulesNormWord(word);
+  if (!w) return 'empty';
+  if (w.length < 3 || w.length > 40) return 'length';
+  if (list === 'rexSpelling') return /^[a-z]+$/.test(w) ? '' : 'characters';
+  return /^[a-z]+(?:[ '-][a-z]+)*$/.test(w) ? '' : 'characters';
+}
+// The word as DOOR matches it: whole words, any case, a space or hyphen alike. Built from the word, never from a
+// pattern a person typed (only letters reach it).
+function doorRulesWordRegex(word) {
+  const w = doorRulesNormWord(word);
+  const src = w.split('').map(ch => ch === ' ' || ch === '-' ? '[\\s-]+' : ch === "'" ? "['’]?" : ch).join('');
+  return new RegExp('(?:^|[^a-z0-9])' + src + '(?![a-z0-9])', 'i');
+}
+function doorRulesKey(rec) { return rec.list + '|' + doorRulesNormWord(rec.word); }
+function doorRulesIsTime(t) { return typeof t === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(t); }
+// Only well-formed records survive a read or a merge. A leads record counts only when Jason made it.
+function doorRulesClean(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const additions = (Array.isArray(src.additions) ? src.additions : []).filter(r => r && typeof r === 'object'
+    && !doorRulesWordProblem(r.list, r.word) && typeof r.target === 'string' && r.target && r.target.length <= 40
+    && typeof r.by === 'string' && doorRulesIsTime(r.at))
+    .map(r => {
+      const o = { list: r.list, word: doorRulesNormWord(r.word), target: r.target, by: String(r.by).slice(0, 60), at: r.at };
+      if (r.takenBack === true) o.takenBack = true;
+      return o;
+    });
+  const leads = (Array.isArray(src.leads) ? src.leads : []).filter(r => r && typeof r === 'object'
+    && typeof r.name === 'string' && doorRulesNormName(r.name) && doorRulesNormName(r.name).length <= 60
+    && typeof r.on === 'boolean' && doorRulesNormName(r.by) === doorRulesNormName(DOOR_RULES_OWNER) && doorRulesIsTime(r.at))
+    .map(r => ({ name: r.name.trim().replace(/\s+/g, ' '), on: r.on, by: r.by, at: r.at }));
+  const log = (Array.isArray(src.log) ? src.log : []).filter(r => r && typeof r === 'object' && doorRulesIsTime(r.at)
+    && typeof r.by === 'string' && typeof r.what === 'string')
+    .map(r => {
+      const o = { at: r.at, by: String(r.by).slice(0, 60), what: String(r.what).slice(0, 40) };
+      ['list', 'word', 'target', 'name'].forEach(k => { if (typeof r[k] === 'string') o[k] = r[k].slice(0, 60); });
+      return o;
+    });
+  return { leads, additions, log };
+}
+// Two computers' copies → one. Per word (list + word) and per lead name the newer record wins; on a tie an added word
+// beats a take-back (it only adds a warning). The log is the union, newest first.
+function doorRulesMerge(a, b) {
+  const A = doorRulesClean(a), B = doorRulesClean(b);
+  const adds = {};
+  A.additions.concat(B.additions).forEach(r => {
+    const k = doorRulesKey(r), cur = adds[k];
+    if (!cur || r.at > cur.at || (r.at === cur.at && cur.takenBack && !r.takenBack)) adds[k] = r;
+  });
+  const leads = {};
+  A.leads.concat(B.leads).forEach(r => {
+    const k = doorRulesNormName(r.name), cur = leads[k];
+    if (!cur || r.at > cur.at || (r.at === cur.at && !cur.on && r.on)) leads[k] = r;
+  });
+  const seen = new Set();
+  const logKey = e => [e.at, e.by, e.what, e.list || '', e.word || '', e.name || '', e.target || ''].join('|');
+  const log = A.log.concat(B.log).filter(e => {
+    const k = logKey(e);
+    if (seen.has(k)) return false; seen.add(k); return true;
+  }).sort((x, y) => { const a = logKey(x), b = logKey(y); return a < b ? 1 : a > b ? -1 : 0; }).slice(0, DOOR_RULES_LOG_MAX);
+  const byKey = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
+  return {
+    leads: Object.keys(leads).sort(byKey).map(k => leads[k]),
+    additions: Object.keys(adds).sort(byKey).map(k => adds[k]),
+    log
+  };
+}
+// The words in force on one list. allowed (optional): the targets DOOR knows for it; anything else is ignored, so a
+// hand-written file can never point a word at a flag that takes protection away.
+function doorRulesActive(rules, list, allowed) {
+  return doorRulesClean(rules).additions.filter(r => r.list === list && !r.takenBack && (!allowed || allowed.indexOf(r.target) >= 0));
+}
+function doorRulesIsLead(rules, name) {
+  const n = doorRulesNormName(name);
+  if (!n) return false;
+  if (n === doorRulesNormName(DOOR_RULES_OWNER)) return true;
+  const rec = doorRulesClean(rules).leads.filter(r => doorRulesNormName(r.name) === n).sort((x, y) => (x.at < y.at ? 1 : -1))[0];
+  return !!(rec && rec.on);
+}
+function doorRulesLeadNames(rules) {
+  return [DOOR_RULES_OWNER].concat(doorRulesClean(rules).leads.filter(r => r.on && doorRulesNormName(r.name) !== doorRulesNormName(DOOR_RULES_OWNER)).map(r => r.name));
+}
+// Who may edit: a sending connection key AND a name on the leads list; only Jason changes the leads list.
+// inp: { hasSendingKey, operator, rules } → { canEdit, canEditLeads, why }.
+function doorRulesWho(inp) {
+  const o = inp || {};
+  const name = String(o.operator || '').trim();
+  const no = (why) => ({ canEdit: false, canEditLeads: false, why });
+  if (!o.hasSendingKey) return no('Read-only on this computer: it has no sending connection key.');
+  if (!name) return no('Read-only on this computer: type your name in Settings (Your name). Only the leads below can add words.');
+  if (!doorRulesIsLead(o.rules, name)) return no('Read-only for ' + name + ': that name is not on the leads list. Jason can add it.');
+  return { canEdit: true, canEditLeads: doorRulesNormName(name) === doorRulesNormName(DOOR_RULES_OWNER), why: '' };
+}
+// May this word be added? ctx: { targets: [...known targets for the list], builtIn(list, word) → '' or what DOOR already
+// reads it as }. → { ok:true, word, target } | { ok:false, code, why }.
+function doorRulesCheck(rules, list, word, target, ctx) {
+  const c = ctx || {};
+  const bad = (code, why) => ({ ok: false, code, why });
+  const problem = doorRulesWordProblem(list, word);
+  if (problem === 'list') return bad('list', 'DOOR has no such word list.');
+  if (problem === 'empty') return bad('empty', 'Type a word first.');
+  if (problem === 'length') return bad('length', 'A word is 3 to 40 letters long.');
+  if (problem === 'characters') return bad('characters', list === 'rexSpelling'
+    ? 'A spelling is one word of letters only.'
+    : 'Use letters, spaces, a hyphen or an apostrophe only.');
+  const w = doorRulesNormWord(word);
+  const t = typeof target === 'string' ? target : '';
+  const already = typeof c.builtIn === 'function' ? c.builtIn(list, w) : '';
+  if (already) return bad('built-in', 'DOOR already reads “' + w + '” (' + already + '). A built-in word changes only in code.');
+  if (!t || !(c.targets || []).some(x => x === t)) return bad('target', list === 'rexSpelling'
+    ? 'Pick a word DOOR already uses on its menu or recipes.'
+    : 'Pick what the word means from the list.');
+  if (list === 'rexSpelling' && w === t) return bad('same', 'The spelling and the word it reads as are the same.');
+  const active = doorRulesActive(rules, list);
+  if (active.some(r => r.word === w)) return bad('added', '“' + w + '” is already added to this list.');
+  if (list === 'rexSpelling' && active.some(r => r.word === t)) return bad('chain', '“' + t + '” is itself an added spelling. Pick the word it reads as.');
+  if (list === 'rexSpelling' && active.some(r => r.target === w)) return bad('chain', 'Another added spelling reads as “' + w + '”.');
+  return { ok: true, word: w, target: t };
+}
+function doorRulesAdd(rules, rec) {
+  const r = doorRulesClean(rules);
+  const add = { list: rec.list, word: doorRulesNormWord(rec.word), target: rec.target, by: rec.by, at: rec.at };
+  return doorRulesMerge(r, { additions: [add], log: [{ at: rec.at, by: rec.by, what: 'added', list: add.list, word: add.word, target: add.target }] });
+}
+function doorRulesTakeBack(rules, list, word, by, at) {
+  const r = doorRulesClean(rules);
+  const w = doorRulesNormWord(word);
+  const cur = r.additions.find(x => x.list === list && x.word === w);
+  if (!cur || cur.takenBack) return r;
+  return doorRulesMerge(r, { additions: [{ list, word: w, target: cur.target, by, at, takenBack: true }],
+    log: [{ at, by, what: 'took back', list, word: w, target: cur.target }] });
+}
+function doorRulesSetLead(rules, name, on, by, at) {
+  return doorRulesMerge(doorRulesClean(rules), { leads: [{ name, on: !!on, by, at }],
+    log: [{ at, by, what: on ? 'lead added' : 'lead removed', name: String(name).trim() }] });
+}
+function doorRulesLastChangeAt(rules) {
+  const r = doorRulesClean(rules);
+  return r.additions.concat(r.leads).reduce((m, x) => (x.at > m ? x.at : m), '');
+}
+function doorRulesHasContent(rules) { const r = doorRulesClean(rules); return !!(r.additions.length || r.leads.length); }
+// The published file. exported is the newest change, not the send time, so an unchanged file reads unchanged.
+function doorRulesFile(rules, site) {
+  const r = doorRulesClean(rules);
+  return { _meta: { version: 1, exported: doorRulesLastChangeAt(r) || null, site: site || 'rexdale' }, leads: r.leads, additions: r.additions, log: r.log };
+}
+// The dialog line for an addition.
+function doorRulesSays(list, word, targetLabel) {
+  const L = DOOR_RULES_LISTS[list];
+  return L ? L.says.replace('{w}', doorRulesNormWord(word)).replace('{t}', targetLabel) : '';
+}
+/* DOOR_TESTABLE_CORE_END door-rules */
+
+// The shell: this computer's copy, the four readers' hooks, the kitchen file, and the Settings page.
+var DOOR_RULES_KEY = 'concDoorRules';
+var DOOR_RULES_SENT_KEY = 'concDoorRulesSentAt';
+var DOOR_RULES_UNDO_KEY = 'concDoorRulesUndo';
+var _doorRulesCache = null;
+var _doorRulesCompiled = null;
+var _doorRulesSuspend = 0;   // > 0 while DOOR asks what its built-in words read
+// Tags a restriction word may add: allergens, sensitivities and preferences. Not the plate-choosing words (halal,
+// vegan, vegetarian, diabetic, low carb, soft) and not "other": those choose a plate rather than add a warning.
+var DOOR_RULES_NOT_TAG_TARGETS = ['halal', 'vegan', 'vegetarian', 'diabetic', 'lowCarb', 'softMeals', 'other'];
+function loadDoorRules() {
+  if (_doorRulesCache) return _doorRulesCache;
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(DOOR_RULES_KEY) || 'null'); } catch (e) { raw = null; }
+  _doorRulesCache = doorRulesClean(raw);
+  return _doorRulesCache;
+}
+function saveDoorRules(rules) {
+  _doorRulesCache = doorRulesClean(rules);
+  _doorRulesCompiled = null;
+  const json = JSON.stringify(_doorRulesCache);
+  return typeof doorSetItemSafe === 'function' ? doorSetItemSafe(DOOR_RULES_KEY, json) : (localStorage.setItem(DOOR_RULES_KEY, json), true);
+}
+function doorRulesTargetsFor(list) {
+  const L = DOOR_RULES_LISTS[list];
+  if (!L) return [];
+  if (L.kind === 'flag') return Object.keys(emptyMealFlags()).filter(k => /^has/.test(k) || k === 'isSpicy');
+  if (L.kind === 'tag') return Object.keys(TAG_LABELS_MAP).filter(k => DOOR_RULES_NOT_TAG_TARGETS.indexOf(k) < 0);
+  return Array.from(doorRulesRexWords()).sort();
+}
+function doorRulesTargetLabel(list, t) {
+  const L = DOOR_RULES_LISTS[list] || {};
+  if (L.kind === 'flag') { const f = (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).find(x => x.key === t); return f ? f.label : t; }
+  if (L.kind === 'tag') return (typeof TAG_LABELS_MAP !== 'undefined' && TAG_LABELS_MAP[t]) || t;
+  return t;
+}
+// The words in force, compiled once per change. Empty while DOOR asks what its built-in words read.
+function doorRulesCompiledFor(list) {
+  if (_doorRulesSuspend > 0) return [];
+  try {
+    if (!_doorRulesCompiled) {
+      _doorRulesCompiled = {};
+      const rules = loadDoorRules();
+      Object.keys(DOOR_RULES_LISTS).forEach(l => {
+        const allowed = DOOR_RULES_LISTS[l].kind === 'spelling' ? null : doorRulesTargetsFor(l);
+        _doorRulesCompiled[l] = doorRulesActive(rules, l, allowed).map(r => ({ word: r.word, target: r.target, re: doorRulesWordRegex(r.word) }));
+      });
+    }
+    return _doorRulesCompiled[list] || [];
+  } catch (e) { _doorRulesCompiled = null; return []; }
+}
+// Menu dish names and workbook allergen rows: the flags the added words name in this text.
+function doorRulesTextTargets(list, text) {
+  const act = doorRulesCompiledFor(list);
+  if (!act.length || !text) return [];
+  const s = String(text), out = [];
+  act.forEach(a => { if (a.re.test(s) && out.indexOf(a.target) < 0) out.push(a.target); });
+  return out;
+}
+// Resident restrictions: an added word adds its tag, and a leftover word it reads (with or without "No") is no longer
+// asked about. Never removes a tag.
+function doorRulesRestrictionRead(text, tags, unmatched) {
+  const act = doorRulesCompiledFor('restriction');
+  if (!act.length) return;
+  act.forEach(a => { if (a.re.test(String(text || ''))) tags[a.target] = true; });
+  if (!Array.isArray(unmatched)) return;
+  for (let i = unmatched.length - 1; i >= 0; i--) {
+    const t = doorRulesNormWord(String(unmatched[i]).replace(/^\s*no\s+/i, ''));
+    if (act.some(a => a.word === t)) unmatched.splice(i, 1);
+  }
+}
+// Rex's spellings: the word an added spelling reads as, or ''.
+function doorRulesRexSpelling(w) {
+  if (!w) return '';
+  const hit = doorRulesCompiledFor('rexSpelling').find(a => a.word === w);
+  return hit ? hit.target : '';
+}
+// The words DOOR's menu and recipe names use, as Rex's sheet is read (a spelling reads as one of these).
+function doorRulesRexWords() {
+  const set = new Set(Object.keys(REX_SYN).map(k => REX_SYN[k]));
+  _doorRulesSuspend++;
+  try {
+    const add = s => { if (typeof s === 'string' && s) doorRexTokens(s).forEach(t => { if (/^[a-z]{3,}$/.test(t)) set.add(t); }); };
+    const menu = (typeof getMenuData === 'function' ? getMenuData() : null) || {};
+    Object.keys(menu).forEach(wk => {
+      const days = menu[wk];
+      if (wk === '_meta' || !days || typeof days !== 'object') return;
+      Object.keys(days).forEach(day => {
+        const d = days[day] || {};
+        ['breakfast', 'lunch', 'dinner'].forEach(p => [d[p], d[p + '_veg'], d[p + '_sides']].forEach(add));
+      });
+    });
+    (typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA) ? DOOR_RECIPE_DATA : []).forEach(r => add(r && r.recipeName));
+  } catch (e) {} finally { _doorRulesSuspend--; }
+  return set;
+}
+// What DOOR's built-in words already read this word as, or ''. Asked with the added words switched off.
+function doorRulesBuiltIn(list, word) {
+  const w = doorRulesNormWord(word);
+  const flagNames = f => Object.keys(f).filter(k => f[k] && (/^has/.test(k) || k === 'isSpicy')).map(k => doorRulesTargetLabel('menuName', k));
+  _doorRulesSuspend++;
+  try {
+    if (list === 'menuName') { const on = flagNames(nameDetectFlags(w, emptyMealFlags())); return on.length ? 'as ' + on.join(', ') : ''; }
+    if (list === 'workbookAllergen') { const on = flagNames(allergenStrToFlags(w, emptyMealFlags())); return on.length ? 'as ' + on.join(', ') : ''; }
+    if (list === 'restriction') {
+      for (const s of [w, 'No ' + w]) {
+        const r = normalizeRestriction(s);
+        const on = Object.keys(r.tags || {}).filter(k => r.tags[k]).map(k => doorRulesTargetLabel('restriction', k));
+        if (on.length) return 'as ' + on.join(', ');
+      }
+      return '';
+    }
+    if (list === 'rexSpelling') {
+      if (REX_SYN[w]) return 'as “' + REX_SYN[w] + '”';
+      if (Object.keys(REX_SYN).some(k => REX_SYN[k] === w)) return 'as a word of its own';
+      if (REX_STOP.has(w)) return 'as a joining word';
+      if (REX_DISH_TYPES.has(w) || REX_MODIFIERS.has(w)) return 'as a word of its own';
+      const tok = doorRexToken(w);
+      if (tok !== w) return 'as “' + tok + '”';
+      if (doorRulesRexWords().has(w)) return 'as a word on its menu or recipes';
+      return '';
+    }
+    return '';
+  } catch (e) { return 'DOOR could not check it'; } finally { _doorRulesSuspend--; }
+}
+function doorRulesHasSendingKey() {
+  try { return !!PublishAuth.getSavedToken() && !PublishAuth.isViewingKey() && !PublishAuth.isExpired(); } catch (e) { return false; }
+}
+function doorRulesWhoHere() {
+  return doorRulesWho({ hasSendingKey: doorRulesHasSendingKey(), operator: (typeof getOperatorName === 'function' ? getOperatorName() : ''), rules: loadDoorRules() });
+}
+// The kitchen copy merged into this computer's: at boot, at each sync and before a send.
+function doorApplyRemoteRules(remote) {
+  if (!remote || typeof remote !== 'object') return loadDoorRules();
+  const merged = doorRulesMerge(loadDoorRules(), remote);
+  saveDoorRules(merged);
+  if (typeof document !== 'undefined' && document.getElementById && document.getElementById('door-rules-body')) { try { renderDoorRulesPage(); } catch (e) {} }
+  return merged;
+}
+async function doorPullRules() {
+  try {
+    const repo = (typeof PublishAuth !== 'undefined' && PublishAuth.getRepo && PublishAuth.getRepo()) || 'kennedyjasondavid-eng/conc-kitchen-door';
+    const r = await doorReadKitchenFile(DOOR_RULES_FILE, { repo, timeoutMs: 6000 });
+    if (r.ok) return doorApplyRemoteRules(r.data);
+  } catch (e) {}
+  return loadDoorRules();
+}
+function doorRulesNotSent() {
+  let sent = '';
+  try { sent = localStorage.getItem(DOOR_RULES_SENT_KEY) || ''; } catch (e) {}
+  const last = doorRulesLastChangeAt(loadDoorRules());
+  return !!last && last > sent;
+}
+function doorRulesNoteSent(at) { if (at) { try { localStorage.setItem(DOOR_RULES_SENT_KEY, at); } catch (e) {} } }
+function doorRulesNow() { return new Date().toISOString(); }
+function doorRulesSetUndo(u) { try { if (u) localStorage.setItem(DOOR_RULES_UNDO_KEY, JSON.stringify(u)); else localStorage.removeItem(DOOR_RULES_UNDO_KEY); } catch (e) {} }
+function doorRulesGetUndo() { try { const u = JSON.parse(localStorage.getItem(DOOR_RULES_UNDO_KEY) || 'null'); return u && typeof u === 'object' ? u : null; } catch (e) { return null; } }
+function doorRulesChanged(msg) {
+  if (typeof showToast === 'function' && msg) showToast(msg);
+  try { renderDoorRulesPage(); } catch (e) {}
+  if (typeof renderMenuConfig === 'function') { try { renderMenuConfig(); } catch (e) {} }
+}
+function doorRulesMsg(list, text) {
+  const el = document.getElementById('door-rules-msg-' + list);
+  if (el) el.textContent = text || '';
+}
+async function doorRulesAddWord(list) {
+  if (!DOOR_RULES_LISTS[list]) return;
+  let who = doorRulesWhoHere();
+  if (!who.canEdit) { doorRulesMsg(list, who.why); return; }
+  const wordEl = document.getElementById('door-rules-word-' + list), targetEl = document.getElementById('door-rules-target-' + list);
+  const word = wordEl ? wordEl.value : '';
+  let target = targetEl ? targetEl.value : '';
+  if (list === 'rexSpelling') target = doorRulesNormWord(target);
+  const ctx = { targets: doorRulesTargetsFor(list), builtIn: doorRulesBuiltIn };
+  let chk = doorRulesCheck(loadDoorRules(), list, word, target, ctx);
+  if (!chk.ok) { doorRulesMsg(list, chk.why); return; }
+  const label = doorRulesTargetLabel(list, chk.target);
+  const ok = await doorAsk({
+    title: 'Add “' + chk.word + '”?',
+    lines: [DOOR_RULES_LISTS[list].label + '.', doorRulesSays(list, chk.word, label),
+      'It only adds: nothing DOOR reads today is taken away. It goes to the other DOOR computers with the next send to the kitchen.'],
+    cancelLabel: 'Go back', goLabel: 'Add the word'
+  });
+  if (!ok) return;
+  // Read again after the question: the kitchen copy may have arrived while it was open.
+  who = doorRulesWhoHere();
+  if (!who.canEdit) { doorRulesMsg(list, who.why); return; }
+  chk = doorRulesCheck(loadDoorRules(), list, word, target, ctx);
+  if (!chk.ok) { doorRulesMsg(list, chk.why); return; }
+  const by = getOperatorName(), at = doorRulesNow();
+  if (!saveDoorRules(doorRulesAdd(loadDoorRules(), { list, word: chk.word, target: chk.target, by, at }))) { doorRulesMsg(list, 'This computer could not save it (storage is full).'); return; }
+  doorRulesSetUndo({ kind: 'add', list, word: chk.word, target: chk.target, at });
+  if (wordEl) wordEl.value = '';
+  doorRulesChanged('Added “' + chk.word + '”. It goes to the kitchen with the next send.');
+}
+async function doorRulesTakeBackWord(list, word) {
+  const who = doorRulesWhoHere();
+  if (!who.canEdit) { doorRulesMsg(list, who.why); return; }
+  const w = doorRulesNormWord(word);
+  const cur = doorRulesActive(loadDoorRules(), list).find(r => r.word === w);
+  if (!cur) return;
+  const ok = await doorAsk({
+    title: 'Take back “' + w + '”?',
+    lines: ['DOOR goes back to its built-in words for this: ' + DOOR_RULES_LISTS[list].reads + ' naming “' + w + '” no longer reads as ' + doorRulesTargetLabel(list, cur.target) + ' because of this word.',
+      'Check that nothing on the menu or the resident list still needs it.'],
+    cancelLabel: 'Go back', goLabel: 'Take it back'
+  });
+  if (!ok || !doorRulesWhoHere().canEdit) return;
+  const at = doorRulesNow();
+  saveDoorRules(doorRulesTakeBack(loadDoorRules(), list, w, getOperatorName(), at));
+  doorRulesSetUndo({ kind: 'takeBack', list, word: w, target: cur.target, at });
+  doorRulesChanged('Took back “' + w + '”. It goes to the kitchen with the next send.');
+}
+async function doorRulesAddLead() {
+  const who = doorRulesWhoHere();
+  const msg = (t) => { const el = document.getElementById('door-rules-msg-leads'); if (el) el.textContent = t || ''; };
+  if (!who.canEditLeads) { msg('Only Jason changes the leads list.'); return; }
+  const el = document.getElementById('door-rules-lead-name');
+  const name = el ? String(el.value || '').trim().replace(/\s+/g, ' ') : '';
+  if (!/^[A-Za-z][A-Za-z .'-]{0,39}$/.test(name)) { msg('Type the name as that person types it in Settings (letters only).'); return; }
+  if (doorRulesIsLead(loadDoorRules(), name)) { msg(name + ' is already a lead.'); return; }
+  const ok = await doorAsk({ title: 'Add ' + name + ' as a lead?', lines: [name + ' will be able to add words on a computer with a sending connection key and the name ' + name + ' in Settings.'], cancelLabel: 'Go back', goLabel: 'Add the lead' });
+  if (!ok || !doorRulesWhoHere().canEditLeads) return;
+  const at = doorRulesNow();
+  saveDoorRules(doorRulesSetLead(loadDoorRules(), name, true, getOperatorName(), at));
+  doorRulesSetUndo({ kind: 'lead', name, on: true, at });
+  if (el) el.value = '';
+  doorRulesChanged(name + ' is a lead. It goes to the kitchen with the next send.');
+}
+async function doorRulesRemoveLead(name) {
+  if (!doorRulesWhoHere().canEditLeads || doorRulesNormName(name) === doorRulesNormName(DOOR_RULES_OWNER)) return;
+  const ok = await doorAsk({ title: 'Take ' + name + ' off the leads list?', lines: ['Words ' + name + ' added stay. ' + name + ' can no longer add or take back words.'], cancelLabel: 'Go back', goLabel: 'Take off' });
+  if (!ok || !doorRulesWhoHere().canEditLeads) return;
+  const at = doorRulesNow();
+  saveDoorRules(doorRulesSetLead(loadDoorRules(), name, false, getOperatorName(), at));
+  doorRulesSetUndo({ kind: 'lead', name, on: false, at });
+  doorRulesChanged(name + ' is off the leads list. It goes to the kitchen with the next send.');
+}
+// One Undo: the last add, take-back or lead change made on this computer, while nothing newer replaced it.
+function doorRulesUndoText(u) {
+  if (!u) return '';
+  if (u.kind === 'add') return 'Undo: take back “' + u.word + '”';
+  if (u.kind === 'takeBack') return 'Undo: add “' + u.word + '” back';
+  if (u.kind === 'lead') return 'Undo: ' + (u.on ? 'take ' + u.name + ' off the leads list' : 'put ' + u.name + ' back on the leads list');
+  return '';
+}
+function doorRulesUndoStillLatest(u, rules) {
+  const r = doorRulesClean(rules);
+  if (u.kind === 'lead') { const cur = r.leads.find(x => doorRulesNormName(x.name) === doorRulesNormName(u.name)); return !!cur && cur.at === u.at; }
+  const cur = r.additions.find(x => x.list === u.list && x.word === u.word); return !!cur && cur.at === u.at;
+}
+async function doorRulesUndo() {
+  const u = doorRulesGetUndo();
+  if (!u) return;
+  const who = doorRulesWhoHere();
+  if (u.kind === 'lead' ? !who.canEditLeads : !who.canEdit) { if (typeof showToast === 'function') showToast(who.why || 'Only Jason changes the leads list.'); return; }
+  const rules = loadDoorRules();
+  if (!doorRulesUndoStillLatest(u, rules)) { doorRulesSetUndo(null); doorRulesChanged('Nothing to undo: it has changed since.'); return; }
+  const by = getOperatorName(), at = doorRulesNow();
+  if (u.kind === 'add') saveDoorRules(doorRulesTakeBack(rules, u.list, u.word, by, at));
+  else if (u.kind === 'takeBack') {
+    const chk = doorRulesCheck(rules, u.list, u.word, u.target, { targets: doorRulesTargetsFor(u.list), builtIn: doorRulesBuiltIn });
+    if (!chk.ok) { doorRulesSetUndo(null); doorRulesChanged(chk.why); return; }
+    saveDoorRules(doorRulesAdd(rules, { list: u.list, word: u.word, target: u.target, by, at }));
+  } else if (u.kind === 'lead') saveDoorRules(doorRulesSetLead(rules, u.name, !u.on, by, at));
+  doorRulesSetUndo(null);
+  doorRulesChanged('Undone. It goes to the kitchen with the next send.');
+}
+// Try a word or a line against a list: what DOOR reads, built-in and added.
+function doorRulesTry(list) {
+  const el = document.getElementById('door-rules-try-' + list), out = document.getElementById('door-rules-tryout-' + list);
+  if (!el || !out) return;
+  const text = String(el.value || '');
+  let read = [];
+  try {
+    if (list === 'menuName') { const f = nameDetectFlags(text, emptyMealFlags()); read = Object.keys(f).filter(k => f[k]).map(k => doorRulesTargetLabel(list, k)); }
+    else if (list === 'workbookAllergen') { const f = allergenStrToFlags(text, emptyMealFlags()); read = Object.keys(f).filter(k => f[k]).map(k => doorRulesTargetLabel(list, k)); }
+    else if (list === 'restriction') { const r = normalizeRestriction(text); read = Object.keys(r.tags || {}).filter(k => r.tags[k]).map(k => doorRulesTargetLabel(list, k)); if ((r.unmatched || []).length) read.push('asks about: ' + r.unmatched.join(', ')); }
+    else if (list === 'rexSpelling') read = doorRexTokens(text);
+  } catch (e) { read = []; }
+  out.textContent = text.trim() ? (read.length ? 'DOOR reads: ' + read.join(' · ') : 'DOOR reads nothing here.') : '';
+}
+// Built-in words, read-only, in plain words from the tables themselves.
+function doorRulesBuiltInHTML(list) {
+  const group = (pairs) => {
+    const by = {};
+    pairs.forEach(([w, t]) => { (by[t] = by[t] || []).push(w); });
+    return Object.keys(by).sort().map(t => '<div><b>' + escapeHtml(t) + ':</b> ' + escapeHtml(by[t].join(', ')) + '</div>').join('');
+  };
+  if (list === 'workbookAllergen') return group(Object.keys(ALLERGEN_FLAG_MAP).map(w => [w, doorRulesTargetLabel(list, ALLERGEN_FLAG_MAP[w])])
+    .concat(Object.keys(ALLERGEN_PHRASE_MAP).map(w => [w, doorRulesTargetLabel(list, ALLERGEN_PHRASE_MAP[w])])));
+  if (list === 'restriction') return group(IMPORT_FUZZY_VOCAB.map(([w, t]) => [w, doorRulesTargetLabel(list, t)]))
+    + '<div class="form-hint">DOOR also reads these with small spelling slips, GF and DF, and a tree nut named by its kind.</div>';
+  if (list === 'rexSpelling') return '<div>' + escapeHtml(Object.keys(REX_SYN).map(k => k + ' → ' + REX_SYN[k]).join(' · ')) + '</div>'
+    + '<div class="form-hint">Plurals and one-letter slips in long words are read too.</div>';
+  return '<div class="form-hint">The dish-name checks are patterns in DOOR’s code (for example shrimp, tofu, cheese, broccoli, bread). Try a dish name below to see what DOOR reads.</div>';
+}
+// The plate rules, read-only, from ROUTING_RULES and CONFLICT_MAP themselves (D2b edits them later).
+function doorRulesPlateRulesHTML() {
+  const fl = k => doorRulesTargetLabel('menuName', k);
+  const rows = (typeof ROUTING_RULES !== 'undefined' ? ROUTING_RULES : []).filter(r => r.key !== 'regular').map(r => {
+    const who = (r.tags || []).join(' or ');
+    let when = r.always ? 'at every meal' : 'when the meal has ' + (r.triggers || []).map(fl).join(' or ');
+    const only = r.tagTriggers ? Object.keys(r.tagTriggers).map(t => t + ' only when the meal has ' + r.tagTriggers[t].map(fl).join(' or ')).join('; ') : '';
+    const into = r.mergeInto ? ' (served from the ' + ((ROUTING_RULES.find(x => x.key === r.mergeInto) || {}).label || r.mergeInto) + ' plate)' : '';
+    return '<li><b>' + escapeHtml(r.label) + '</b>' + escapeHtml(into) + ': residents with ' + escapeHtml(who) + ', ' + escapeHtml(when) + (only ? ' (' + escapeHtml(only) + ')' : '') + '.</li>';
+  }).join('');
+  const notes = (typeof CONFLICT_MAP !== 'undefined' ? CONFLICT_MAP : []).map(c =>
+    '<li>' + escapeHtml(c.residentTag) + ' on a meal with ' + escapeHtml(fl(c.mealFlag)) + ': the line says “' + escapeHtml(c.note) + '”' + (c.severity === 'red' ? ' (in red)' : '') + '.</li>').join('');
+  return '<div style="font-size:12px;line-height:1.6;"><div style="font-weight:600;margin:4px 0;">Which plate a resident gets</div><ul style="margin:0 0 8px;padding-left:18px;">' + rows
+    + '<li><b>Regular</b>: everyone else.</li></ul><div style="font-weight:600;margin:4px 0;">What the plating line says</div><ul style="margin:0;padding-left:18px;">' + notes + '</ul>'
+    + '<div class="form-hint">Read-only here. A change to the plate rules is a code change for now.</div></div>';
+}
+function renderDoorRulesPage() {
+  const body = typeof document !== 'undefined' && document.getElementById ? document.getElementById('door-rules-body') : null;
+  if (!body) return;
+  const rules = loadDoorRules(), who = doorRulesWhoHere();
+  const when = t => { try { return new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return t; } };
+  let h = '';
+  h += '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;">Words DOOR reads as an allergen, a restriction or a spelling. A lead can add a word; an added word only adds a warning or reads a spelling. Taking one back returns DOOR to its built-in words. Built-in words change only in code.</div>';
+  h += '<div id="door-rules-who" style="font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;' + (who.canEdit ? 'color:var(--forest);' : 'color:#92400e;') + '">'
+    + escapeHtml(who.canEdit ? 'You can add words here as ' + getOperatorName() + (who.canEditLeads ? ', and change the leads list.' : ', a lead.') : who.why) + '</div>';
+  if (doorRulesNotSent()) h += '<div id="door-rules-pending" style="font-size:12px;color:#92400e;margin-bottom:10px;">Not sent yet: the latest change is on this computer only. It goes to the kitchen and the other DOOR computers with the next send.</div>';
+  const u = doorRulesGetUndo();
+  if (u && doorRulesUndoStillLatest(u, rules) && (u.kind === 'lead' ? who.canEditLeads : who.canEdit)) {
+    h += '<div style="margin-bottom:10px;"><button class="btn btn-ghost btn-sm" id="door-rules-undo" onclick="doorRulesUndo()">' + escapeHtml(doorRulesUndoText(u)) + '</button></div>';
+  }
+  Object.keys(DOOR_RULES_LISTS).forEach(list => {
+    const L = DOOR_RULES_LISTS[list];
+    const added = doorRulesActive(rules, list);
+    h += '<details class="door-rules-list" data-list="' + _escAttr(list) + '" style="border-top:1px solid var(--border);padding:8px 0;"><summary style="cursor:pointer;font-weight:600;font-size:13px;">'
+      + escapeHtml(L.label) + ' <span style="font-weight:400;color:var(--muted);">· ' + added.length + ' added</span></summary>';
+    h += '<div style="font-size:12px;margin:8px 0;"><div style="font-weight:600;margin-bottom:4px;">Built in (read-only)</div>' + doorRulesBuiltInHTML(list) + '</div>';
+    h += '<div style="font-size:12px;margin:8px 0;"><div style="font-weight:600;margin-bottom:4px;">Added</div>';
+    h += added.length ? '<table style="width:100%;font-size:12px;border-collapse:collapse;"><tbody>' + added.map(r =>
+      '<tr><td style="padding:2px 6px 2px 0;">“' + escapeHtml(r.word) + '”</td><td style="padding:2px 6px;">→ ' + escapeHtml(doorRulesTargetLabel(list, r.target)) + '</td><td style="padding:2px 6px;color:var(--muted);">'
+      + escapeHtml(r.by) + ', ' + escapeHtml(when(r.at)) + '</td><td style="text-align:right;">'
+      + (who.canEdit ? '<button class="btn btn-ghost btn-sm" data-list="' + _escAttr(list) + '" data-word="' + _escAttr(r.word) + '" onclick="doorRulesTakeBackWord(this.dataset.list,this.dataset.word)">Take back</button>' : '')
+      + '</td></tr>').join('') + '</tbody></table>' : '<div class="form-hint">None yet.</div>';
+    h += '</div>';
+    if (who.canEdit) {
+      const targets = doorRulesTargetsFor(list);
+      const pick = L.kind === 'spelling'
+        ? '<input type="text" id="door-rules-target-' + list + '" placeholder="reads as (a word DOOR uses)" style="font-size:12px;max-width:180px;">'
+        : '<select id="door-rules-target-' + list + '" style="font-size:12px;"><option value="">reads as…</option>' + targets.map(t => '<option value="' + _escAttr(t) + '">' + escapeHtml(doorRulesTargetLabel(list, t)) + '</option>').join('') + '</select>';
+      h += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;"><input type="text" id="door-rules-word-' + list + '" maxlength="40" placeholder="' + (L.kind === 'spelling' ? 'Rex’s spelling' : 'word') + '" style="font-size:12px;max-width:180px;">'
+        + pick + '<button class="btn btn-ghost btn-sm" onclick="doorRulesAddWord(\'' + list + '\')">Add…</button></div>';
+    }
+    h += '<div id="door-rules-msg-' + list + '" role="status" style="font-size:12px;color:#b45309;"></div>';
+    h += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;"><input type="text" id="door-rules-try-' + list + '" placeholder="Try ' + escapeHtml(L.reads) + '" oninput="doorRulesTry(\'' + list + '\')" style="font-size:12px;max-width:260px;"><span id="door-rules-tryout-' + list + '" style="font-size:12px;color:var(--muted);"></span></div>';
+    h += '</details>';
+  });
+  // The leads list: Jason changes it.
+  h += '<div style="border-top:1px solid var(--border);padding:8px 0;"><div style="font-weight:600;font-size:13px;margin-bottom:4px;">Leads</div><div style="font-size:12px;">'
+    + doorRulesLeadNames(rules).map(n => escapeHtml(n) + (who.canEditLeads && doorRulesNormName(n) !== doorRulesNormName(DOOR_RULES_OWNER)
+      ? ' <button class="btn btn-ghost btn-sm" data-name="' + _escAttr(n) + '" onclick="doorRulesRemoveLead(this.dataset.name)">Take off</button>' : '')).join(' · ')
+    + '</div><div class="form-hint" style="font-size:11px;">Only Jason changes this list. A lead edits on a computer with a sending connection key and that name in Settings.</div>';
+  if (who.canEditLeads) h += '<div style="display:flex;gap:6px;margin-top:6px;"><input type="text" id="door-rules-lead-name" maxlength="40" placeholder="Name" style="font-size:12px;max-width:180px;"><button class="btn btn-ghost btn-sm" onclick="doorRulesAddLead()">Add lead…</button></div>';
+  h += '<div id="door-rules-msg-leads" role="status" style="font-size:12px;color:#b45309;"></div></div>';
+  // Who changed what, newest first.
+  const log = rules.log.slice(0, 12);
+  h += '<details style="border-top:1px solid var(--border);padding:8px 0;"><summary style="cursor:pointer;font-weight:600;font-size:13px;">Changes</summary><ul style="font-size:12px;margin:6px 0;padding-left:18px;">'
+    + (log.length ? log.map(e => '<li>' + escapeHtml(when(e.at)) + ' · ' + escapeHtml(e.by) + ' ' + escapeHtml(e.what) + ' '
+      + escapeHtml(e.word ? '“' + e.word + '” (' + (DOOR_RULES_LISTS[e.list] ? DOOR_RULES_LISTS[e.list].label : e.list) + ', ' + doorRulesTargetLabel(e.list, e.target) + ')' : (e.name || '')) + '</li>').join('') : '<li>None yet.</li>') + '</ul></details>';
+  h += '<details style="border-top:1px solid var(--border);padding:8px 0;"><summary style="cursor:pointer;font-weight:600;font-size:13px;">Plate rules (read-only)</summary>' + doorRulesPlateRulesHTML() + '</details>';
+  body.innerHTML = h;
 }
 // The recipes a dish can link: a main, the vegan dish, a side (any side slot's recipes, or a salad, soup, dessert).
 // W3c (2026-11-08, Week 3 log 2): after the closest suggestions, every recipe that fits the dish's role, A–Z. A select
@@ -20963,6 +21540,9 @@ function normalizeRestriction(raw) {
     unmatched.push(tok);
   });
 
+  // D2a (2026-11-10): words a lead added in Settings (Allergen and routing rules), read after the built-in passes and
+  // never in their place: an added word only adds a tag, and a leftover word it reads is no longer asked about.
+  if (typeof doorRulesRestrictionRead === 'function') doorRulesRestrictionRead(expanded, tags, unmatched);
   // P6: an implied/bare noun that is still unmatched is a question, not a restriction.
   const _unmatchedLow = new Set(unmatched.map(u => u.toLowerCase().trim()));
   const ambiguous = [];
@@ -22300,6 +22880,7 @@ initDynamic();
       .then(rev=>read('meal_swaps.json').then(d=>doorApplyRemoteSwaps(d, rev)))
       .catch(()=>{});
     read('rex_week_answers.json').then(d=>{ if(d) doorApplyRemoteRexAnswers(d); }).catch(()=>{});
+    read('door_rules.json').then(d=>{ if(d) doorApplyRemoteRules(d); }).catch(()=>{});   // D2a (2026-11-10)
     read('special_meals_removed.json')
       .then(rem=>read('special_meals.json').then(d=>doorApplyRemoteSpecials(d, rem)))
       .catch(()=>{});
