@@ -7072,18 +7072,18 @@
         "hasSulphites": true,
         "hasPork": true,
         "hasBeef": false,
-        "hasChicken": false,
+        "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": true,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": true,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": true
       },
       "allergens_lunch": "soy, sulphites, beef",
       "allergens_dinner": "dairy, sulphites, pork",
@@ -7237,6 +7237,36 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
+            "isSpicy": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": true,
+            "hasNightshades": true,
+            "hasBeans": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false
+          }
+        },
+        "mainalt": {
+          "manual": "Tandoori Chicken",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
             "isSpicy": false,
             "hasProcessedMeat": false,
             "hasCoconut": false,
@@ -7272,34 +7302,6 @@
             "hasBrassicas": false,
             "hasCorn": false,
             "hasNightshades": true,
-            "hasBeans": false
-          }
-        },
-        "mainalt": {
-          "manual": "Tandoori Chicken",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "hasProcessedMeat": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
             "hasBeans": false
           }
         },
@@ -7528,7 +7530,13 @@
         "at": "2026-11-11T18:51:18.160Z",
         "by": "JK",
         "how": "Rex’s week sheet"
-      }
+      },
+      "dinner_gfAlt": "",
+      "dinner_diabeticAlt": "",
+      "dinner_noDairyAlt": "",
+      "dinner_noEggAlt": "",
+      "dinner_blandAlt": "",
+      "dinner_anaphAlt": ""
     },
     "THURSDAY": {
       "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, roll",
@@ -8171,18 +8179,18 @@
         "hasSulphites": true,
         "hasPork": true,
         "hasBeef": false,
-        "hasChicken": false,
+        "hasChicken": true,
         "hasTurkey": false,
         "isSpicy": true,
         "isCarb": true,
-        "halalCertifiedMeat": false,
+        "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": false
       },
       "dinner": "Kimchi Chicken Fried Rice",
       "dinner_veg": "Kimchi Fried Rice",
@@ -8289,7 +8297,7 @@
         "main": {
           "recipeName": "Pork Al Pastor",
           "flags": {
-            "hasGluten": false,
+            "hasGluten": true,
             "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
@@ -8311,10 +8319,44 @@
             "hasBrassicas": false,
             "hasCorn": false,
             "hasNightshades": true,
-            "hasBeans": false
+            "hasBeans": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false
           },
           "recipeId": "pork-al-pastor",
           "displayText": "Pork Tacos Al Pastor"
+        },
+        "mainalt": {
+          "recipeName": "Chicken Al Pastor",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "recipeId": "chicken-al-pastor",
+          "displayText": "Halal chicken al pastor"
         },
         "veganalt": {
           "recipeName": "Vegan Taco (al pastor)",
@@ -8345,34 +8387,6 @@
           },
           "recipeId": "vegan-taco-al-pastor",
           "displayText": "Vegetarian Tacos"
-        },
-        "mainalt": {
-          "manual": "Halal chicken al pastor",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": true,
-            "hasBeef": false,
-            "hasChicken": true,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "hasProcessedMeat": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false
-          }
         },
         "vegside": {
           "recipeName": "Peas and Carrot",
@@ -9617,7 +9631,7 @@
       "2|THURSDAY": 1794186589141,
       "3|FRIDAY": 1794168729668,
       "3|SUNDAY": 1794227850191,
-      "4|TUESDAY": 1794423507548,
+      "4|TUESDAY": 1794423595009,
       "4|THURSDAY": 1794423078192,
       "4|SATURDAY": 1792681340848,
       "1|SATURDAY": 1792681340848,
@@ -9625,7 +9639,7 @@
       "2|WEDNESDAY": 1792681340848,
       "2|MONDAY": 1792667375478,
       "2|TUESDAY": 1793374204326,
-      "4|FRIDAY": 1794423078192,
+      "4|FRIDAY": 1794423567091,
       "4|SUNDAY": 1794246433303,
       "4|WEDNESDAY": 1794423078192,
       "2|FRIDAY": 1794186589141,
@@ -9650,14 +9664,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:5e78e6717194d85dce150a84c23b0962b97c1289acbd5fd868c279cb2781baca",
+        "menu": "sha256:d1d70959a2829273ac99d9f8d99c46668105c9d64d76712ba798062ffa2ad581",
         "recipe": "sha256:1607108a208b961075d27402bbd106388c37222a13d9c900c7a720699ac6450a",
         "registry": "sha256:0cfbacede9bc3cf30548bde964390de3ec7c99dbc9a72f95c3c4884b87a0093c"
       },
-      "inputRevision": "sha256:8671524e246c7962df6f4933f450187a63e6855681575abce6ff183aa6ff7dc3",
+      "inputRevision": "sha256:b62945006eac66ab3fd6c1668df543e1e20b5b806005f9f6f9a997e77d2ffd04",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 7
+        "sequence": 8
       },
       "schema": 1
     }
