@@ -20,6 +20,7 @@ Normal menu edits should be saved once and reach EXPO's production schedule, HUB
 | F3a, HUB side | Tasks keep exact recipe identity | HUB #57 |
 | F3a, EXPO side | Scheduled work bound to exact recipe facts; unsafe saved choices reviewed | EXPO #565 (merged 2026-11-08, `d0663f7`) |
 | F3a follow-up, HUB | Recipe links by recipe ID; a card warns only when its recipe is gone; HUB reads CODEX's Library | HUB #61 |
+| Week 3 post-mortem, W3a–W3e | Ticks follow the dish; Edit Menu and import fixes; a loud stale tab; per-line sides; a picked recipe stays picked (details under "Week 3 post-mortem items") | DOOR #167, #168, #169, #170, #173, #174, #175, #179 |
 
 **2026-11-08, Rex's week sheet remembers dish links (`v31-standard.54`, PR pending).** Jason: "remember and reuse dish links". A dish name DOOR's menu already links to a recipe is linked again on the next sheet, with that recipe's allergens; the review says where the link came from and it can still be changed. DOOR's menu is the only memory (a saved slot keeps the menu's words and the recipe); CODEX's `recipe_aliases.json` was not used (hand-curated, add-only, feed recipes only, and two entries are stand-ins that would give the wrong allergens). A link must still fit the slot, and a name linked to two recipes is asked. Rex's spellings "Carribean" and "Morrocan" join the spelling list. Week 3 (Nov 8–14) sheet against the live menu: no dish is linked from memory yet (all 15 new names are new); Wk3 TUE dinner now matches DOOR instead of asking. A "This week only" pick is a dated swap, which keeps no link, so it isn't remembered. Gate: `rex_week_import_gate` 13 (red on `main`); suite 813/814, 1 skipped.
 
@@ -73,10 +74,10 @@ EXPO #565 (F3a) merged, so R4 is unblocked.
 
 **Calls for Jason:** what a PULL card shows when counts aren't current; the alarm's threshold and where Jason's note goes; and the order of EXPO and HUB.
 
-### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; placed, not built)
-Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covers placing them, not building. These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
+### Week 3 post-mortem items (from the EXPO walkthrough session, 2026-11-08; all built and merged 2026-11-08 to 11-09)
+Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive friction log `Week3_Setup_Friction_Notes_2026-11-08.md`. EXPO records the same items as its slice D3 (EXPO #575). Jason, 2026-11-08: "Proceed, with your leans". That covered placing them; Jason then gave the go to build each, and all five, W3e included, are merged (updated 2026-11-11). These come from real kitchen use, so they go ahead of the F4 readers, which are blocked on EXPO #565 anyway.
 
-**W3a. Allergen ticks follow the dish** *(built 2026-11-08, `v31-standard.55`)* (post-mortem rec. 4; log 3, 4). *Food safety; first.*
+**W3a. Allergen ticks follow the dish** *(built 2026-11-08, `v31-standard.55`, DOOR #167; menu-data follow-up #168 cleared the old dishes' ticks left on two Week 3 Thursday main slots)* (post-mortem rec. 4; log 3, 4). *Food safety; first.*
 - When a meal's main changes (Rex's week-sheet import, Edit Menu), recompute its ticks from the linked recipes. Show before and after for one confirm.
 - Never carry the old dish's ticks. On Week 3, leftover Pork ticks made EXPO invent "Halal Chicken" dishes.
 - Keep ticks that come from the dish's name (like Mushroom) when linking.
@@ -84,13 +85,13 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - Builds on `doorEmptyDishParts` / `doorSetMealFlags` (`.42`) and `doorRexBuildMeal`.
 - Check: a main swapped from a pork dish to a non-pork dish leaves no Pork tick, and EXPO's halal line isn't invented.
 
-**W3c. Small Edit Menu and import fixes, one PR:** *(built 2026-11-08, `v31-standard.56`)*
+**W3c. Small Edit Menu and import fixes, one PR:** *(built 2026-11-08, `v31-standard.56`, DOOR #169)*
 - (3, log 2) The import review searches every recipe, not only its top 5.
 - (4, log 6) The slot search box clears on focus, and the whole result row is clickable.
 - (5, log 7) Linking a recipe keeps the menu's words: `displayText`, as in `.29`'s links.
 - (7, log 9) The halal-certification question names its dish and where the halal claim comes from.
 
-**W3b. Per-line sides in Edit Menu** (log 5). *Built 2026-11-08, `v31-standard.58`.* *Design pass 2026-11-08; calls below.*
+**W3b. Per-line sides in Edit Menu** (log 5). *Built 2026-11-08, `v31-standard.58`, DOOR #173; follow-ups #174 (menu data: six meals' slots match their menu text again) and #175 (`v31-standard.59`: Edit Menu doesn't trust slots that are behind the menu text).* *Design pass 2026-11-08; calls below.*
 - **What happens today.** Edit Menu's Save rebuilds the vegan line as the vegan main plus the regular line's sides (`buildVegAlt` = veganalt + starch + vegside + xtra). The vegan plate's allergens come from the same slots (`buildVegAltFlags`).
 - **How big it is.** 9 of the 55 published lunches and dinners name different vegan sides (measured 2026-11-08), and saving any of them in Edit Menu silently overwrites that. Two patterns:
   - a vegan **swap** for a shared side: Cornbread → Vegan Cornbread, Sautéed Cabbage → no butter, Buttered Green Beans → Green Beans;
@@ -109,7 +110,7 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
   2. **Vegan and halal together.** The same shape serves both lines: `vegan` and `halal` versions on each side slot, and `vegextras` / `halalextras`. The halal plate's text (`_halal`) and allergens (`buildHalalAltFlags`) follow it as the vegan line's do.
   3. **Existing meals are read in on open.** Edit Menu turns a meal's current vegan or halal line into versions and extras when it opens, so the first save keeps them. No bulk data change.
 
-**W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.** *(built 2026-11-08, `v31-standard.57`)*
+**W3d. Stale tab (log 8): ruled 2026-11-08, "follow your leans" (Jason, relayed by the EXPO walkthrough session). Keep the stop and make it loud, as below.** *(built 2026-11-08, `v31-standard.57`, DOOR #170)* **Not yet checked in a real browser** (2026-11-11): the out-of-date bar and the self-reload are covered by `tests/stale_tab_loud_gate.mjs` only; the built-in browser couldn't open the local file when it was built.
 - The report asks that a stale tab show a banner and still send; 4 saves sat silently until a reload.
 - But a stale tab runs the old page code, and DOOR deliberately stops old code sending (`stale-tab` skip). F1 relies on that: old code must not write.
 - Lean: keep the stop, and make it impossible to miss:
@@ -118,7 +119,13 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
   - the page reloads by itself when no edit is open.
 - This fits "loud when it breaks". The report's version would send from old code.
 
-**Order:** W3a → W3c → W3d → W3b. Building waits for Jason's go. Then the F4 readers once EXPO #565 lands.
+**W3e. A picked recipe stays picked** *(built 2026-11-09, `v31-standard.60`, DOOR #179)* (found on Wk3 SUN dinner, 2026-11-09, after W3c).
+- Picking a recipe from the slot list redrew the cards, the box's blur saved its old half-typed words ("Bolo") over the pick, and the old ticks stayed. A blur during a redraw is now ignored.
+- Half-typed words that start a recipe the list offered are held, not saved, with a note under the box; Save asks about each held box. Renaming a linked dish points to "Shown on menu as" instead of unlinking it.
+- The warnings question also fires when the main is newly linked, and names every tick Save would take off.
+- Gate `tests/w3e_slot_commit_ticks_gate.mjs` (6); browser check `tests/browser/w3e_slot_pick.mjs`, not in CI.
+
+**Order (as built):** W3a → W3c → W3d → W3b, then W3e. The F4 readers followed (EXPO #565 merged 2026-11-08).
 
 ### Next slice: catch the break (spec, 2026-11-07; not built)
 Jason's goal for this line: DOOR isn't flaky, user edits never break the flow to EXPO, and the checks support rather than obstruct. HOUSE working rules ("silent when it works, loud when it breaks"; "checks support, never obstruct") are in the HOUSE ledger.
