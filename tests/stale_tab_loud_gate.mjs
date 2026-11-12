@@ -50,3 +50,45 @@ test('detection starts the watch; a reload is marked so it can\'t loop, and the 
   assert.match(fnBlock('doorStaleReloadNow'), /sessionStorage\.setItem\('door_auto_reload_for', _doorStaleStamp/);
   assert.match(html, /doorOutboxDrain\('boot'\)/, 'what waited is sent after the reload');
 });
+
+// 2026-11-12: a redeploy is not a new version. GitHub Pages gives the same page a new ETag on every deploy, and each DOOR
+// publish commits to this repository, which redeploys it — so the ETag check called the tab out of date after its own
+// publish and held its sends (twice on 2026-11-11, v31-standard.66 on both sides). The stamp is now the page's content.
+test('the page stamp is its content: the same page is the same stamp, CRLF counts as LF, no text is no stamp', () => {
+  const { doorPageStamp: ps, doorTabStaleVerdict: v } = load('doorPageStamp', 'doorTabStaleVerdict');
+  assert.match(ps('<html>a</html>'), /^c:[0-9a-f]{8}-\d+$/);
+  assert.equal(ps('<html>a</html>'), ps('<html>a</html>'));
+  assert.notEqual(ps('<html>a</html>'), ps('<html>b</html>'));
+  assert.equal(ps('x\r\ny'), ps('x\ny'));
+  assert.equal(ps(''), ''); assert.equal(ps(null), '');
+  assert.equal(v(ps('a'), ps('a')).stale, false);
+  assert.equal(v(ps('a'), ps('b')).stale, true);
+});
+
+test('a redeploy of the same page (new ETag, same content) is not stale; new content is', async () => {
+  const check = fnBlock('checkForFreshDoorVersion');
+  assert.doesNotMatch(check, /const stamp = r\.headers\.get\('etag'\)/, 'the ETag is never the stamp');
+  let etag = '"E1"', page = '<html>door v1</html>', heads = 0, gets = 0, banners = 0;
+  const c = {
+    sessionStorage: { getItem: () => null, removeItem() {} }, localStorage: { setItem() {} },
+    location: { protocol: 'https:', pathname: '/conc-kitchen-door/' }, console: { log() {} }, Date,
+    fetch: (url, o) => { const head = o && o.method === 'HEAD'; head ? heads++ : gets++;
+      return Promise.resolve({ ok: true, headers: { get: k => (k === 'etag' ? etag : null) }, text: () => Promise.resolve(page) }); },
+    showStaleVersionBanner: () => { banners++; }, doorStaleAutoReloadWatch() {},
+  };
+  vm.createContext(c);
+  vm.runInContext("var _doorTabStale = false, _doorStaleStamp = '', _doorBootHtmlStamp = null, _doorFreshLastEtag = '', _doorFreshLastStamp = '';\n" +
+    fnBlock('doorPageStamp') + '\n' + fnBlock('doorTabStaleVerdict') + '\n' + check +
+    '\nthis.run = () => checkForFreshDoorVersion(); this.st = () => ({ stale: _doorTabStale, anchor: _doorBootHtmlStamp });', c);
+  const tick = () => new Promise(r => setTimeout(r, 20));
+  c.run(); await tick();
+  assert.equal(c.st().stale, false); assert.match(c.st().anchor, /^c:/, 'the tab anchors to the content stamp');
+  c.run(); await tick();
+  assert.equal(gets, 1, 'the same ETag again: no second read of the page');
+  etag = '"E2-redeployed"'; c.run(); await tick();
+  assert.equal(c.st().stale, false, 'a redeploy of the same page is not a new version');
+  assert.equal(banners, 0, 'no bar for a redeploy');
+  etag = '"E3"'; page = '<html>door v2</html>'; c.run(); await tick();
+  assert.equal(c.st().stale, true, 'new content is a new version');
+  assert.equal(banners, 1, 'the bar shows for a new version');
+});
