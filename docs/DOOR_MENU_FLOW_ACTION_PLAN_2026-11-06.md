@@ -125,6 +125,8 @@ Source: the Claude Doc "Week 3 New-Menu Setup — Post-Mortem" and the OneDrive 
 - The warnings question also fires when the main is newly linked, and names every tick Save would take off.
 - Gate `tests/w3e_slot_commit_ticks_gate.mjs` (6); browser check `tests/browser/w3e_slot_pick.mjs`, not in CI.
 
+**Week 4 setup fixes, 2026-11-12 (`v31-standard.68`; Jason: "Clean up any remaining DOOR: fix menu-import gaps from Week 4 setup work").** From `Week4_Setup_Friction_Notes_2026-11-11.md` (OneDrive). Food safety first: in Rex's week review the "Take off" boxes start ticked only when every new dish on the regular plate is linked to a CODEX recipe; with an unlinked dish nothing starts ticked and the review says why (log 6: lasagna offered Dairy, tortilla tacos Gluten and Nightshades). A dish name now carries what it plainly holds (tacos, tortillas, lasagna, pasta, bread: Gluten; lasagna, cheese, tzatziki: Dairy; al pastor, tandoori, BBQ, cajun, jerk: Nightshades). The halal plate never inherits Pork from a dish name (log 11). The packaging row is not breakfast (log 4). "Curry and Rice" reads as "Curry, Rice" (log 5). The tab the workbook was saved on is read first and the review names it, in both uploads (log 1). Edit Menu: an unticked Spicy stays off (log 14); the whole "No matches" row is the button and, on a linked slot, says it unlinks (logs 13, 16). Gate `tests/rex_import_safety_gate.mjs` (7; red on main).
+
 **Order (as built):** W3a → W3c → W3d → W3b, then W3e. The F4 readers followed (EXPO #565 merged 2026-11-08).
 
 ### Next slice: catch the break (spec, 2026-11-07; not built)

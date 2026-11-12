@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.67';
+const DOOR_APP_VERSION = 'v31-standard.68';
 const DOOR_BUILD_DATE = '2026-11-10';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -16879,6 +16879,8 @@ function doorReadRexWeekRows(rows) {
       cont = null;
     } else if (L === '') {
       if (!cells.some(Boolean)) { cont = null; continue; }
+      // 2026-11-12 (Week 4 setup log 4): the packaging row ("12 x 12 Thermfoil & Labels", "Small Square") is not food.
+      if (typeof isPackagingRow === 'function' && isPackagingRow(cells)) { cont = null; continue; }
       if (cont === 'breakfast') REX_DAYS.forEach((d, i) => {
         days[d].breakfast.reg = add(days[d].breakfast.reg, cells[i]);
         days[d].breakfast.veg = add(days[d].breakfast.veg, cells[i]);
@@ -16988,7 +16990,9 @@ function doorRexKind(piece) {
 }
 function doorRexPieces(text) {
   const out = [];
-  String(text || '').split(',').forEach(p => {
+  // 2026-11-12 (Week 4 setup log 5): "Beef Massaman Curry and Rice" is "Beef Massaman Curry, Rice" (a sauced main served
+  // with a plain starch), not a new dish.
+  String(text || '').replace(/\b(curry|stew|chil+i|stir ?fry|masala|korma|vindaloo|teriyaki|massaman|gravy)\s+(?:and|&|with)\s+(rice|naan|roti|noodles|potatoes|bread)\b/gi, '$1, $2').split(',').forEach(p => {
     const c = p.replace(/\s+/g, ' ').replace(/^[\s.;:-]+|[\s.;:-]+$/g, '').trim();
     if (c && !out.some(o => doorRexSameDish(o, c, true) && doorRexTokens(o).join(' ') === doorRexTokens(c).join(' '))) out.push(c);
   });
@@ -17140,6 +17144,12 @@ function doorRexPieceFlags(piece, recipe, toFlags) {
   if (/mushroom/.test(s)) f.hasMushroom = true;
   if (/\btomato|\beggplant|\bbell pepper|\bpaprika|\bchil(i|li)\b|\bjalape|(?<!sweet )\bpotato/.test(s)) f.hasNightshades = true;
   if (/\bbeans?\b|chickpea|lentil|\bdhal\b|\bdal\b/.test(s.replace(/green beans?/g, ''))) f.hasBeans = true;   // as DOOR reads green beans
+  // 2026-11-12 (Week 4 setup log 6): what a dish's own name plainly carries, so the review never offers to take it off
+  // the plate when no recipe is linked yet (Wk4: lasagna offered Dairy, tortilla tacos Gluten and Nightshades).
+  if (/\btacos?\b|\btortillas?\b|burrito|quesadilla|\bwraps?\b|lasagn|\bpasta\b|noodle|\bnaan\b|\bbuns?\b|\bbread\b|sandwich|\bpitas?\b|\bsubs?\b|biscuit|pancake|\bbagels?\b|\brolls?\b|\btoast\b|panko|breaded|\bpie\b|dumpling|couscous/.test(s) &&
+    !/gluten[- ]free|\bgf\b|corn tortilla|rice noodle/.test(s)) f.hasGluten = true;
+  if (/lasagn|cheese|alfredo|\bmac\b|tzatziki|cream sauce|creamy|butter chicken|paneer|\braita\b/.test(s) && !/vegan|dairy[- ]free|\bdf\b/.test(s)) f.hasDairy = true;
+  if (/al pastor|chipotle|salsa|tandoori|\bbbq\b|barbe?cue|marinara|bolognese|lasagn|cajun|\bjerk\b|piri piri/.test(s)) f.hasNightshades = true;
   delete f.isCarb; delete f.halalCertifiedMeat;
   return f;
 }
@@ -17214,7 +17224,12 @@ function doorPlanRexWeek(rex, doorWeek, ctx) {
       plan.removeFlags = Object.keys(oldFlags).filter(k => oldFlags[k] && k !== 'isCarb' && k !== 'halalCertifiedMeat' && !newFlags[k] && !keepFlags[k] && (mainGone || goneFlags[k])).sort();
       // W3a (2026-11-08, Jason: ticks follow the dish): when the main changed, the old main's warnings come off by
       // default (shown before → after; untick to keep one). Otherwise they stay unless ticked, as before.
-      plan.removeDefault = !!mainGone;
+      // 2026-11-12 (Week 4 setup log 6): only when every new dish on the regular plate is linked to a CODEX recipe (or
+      // is a plain staple or steamed veg). A new dish with no recipe yet can carry what the old one did (Wk4: Beef
+      // lasagna kept Dairy, tortilla tacos kept Gluten), so then nothing starts ticked and the review says why.
+      plan.unlinkedNew = reg.diffs.filter(x => (x.status === 'changed' || x.status === 'added') &&
+        !(x.role === 'side' && (x.kind === 'veg' || doorRexIsStaple(x.rex)))).some(x => { const rr = recipeOf(x.rex, x.role === 'main' ? 'main' : 'side'); return !(rr.exact || rr.same); });
+      plan.removeDefault = !!mainGone && !plan.unlinkedNew;
       plan.beforeFlags = Object.keys(oldFlags).filter(k => oldFlags[k] === true && k !== 'isCarb' && k !== 'halalCertifiedMeat').sort();
       // A dish that has no CODEX recipe: the review offers the closest ones, or ticks by hand.
       if (period !== 'breakfast') [['reg', reg, 'main'], ['veg', veg, 'veganalt']].forEach(([ln, line, mainRole]) => line.diffs.forEach(x => {
@@ -17320,6 +17335,9 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
   const newSlot = (ln, piece, role) => {
     const r = linkFor(ln, piece, role);
     const f = pieceFlags(ln, piece, role);
+    // 2026-11-12 (Week 4 setup log 11): the halal plate never inherits Pork from a dish name ("Halal chicken al pastor"
+    // read as pork from "al pastor"); only a word that names pork itself keeps it, so a real mistake still shows.
+    if (ln === 'halal' && !/\b(pork|ham|bacon|prosciutto|chorizo|pepperoni)\b/i.test(piece)) f.hasPork = false;
     if (r) { const s = { recipeName: r.recipeName, flags: f }; if (r.recipeId) s.recipeId = String(r.recipeId); if (piece !== r.recipeName) s.displayText = piece; return s; }
     return { manual: piece, flags: f };
   };
@@ -18969,6 +18987,11 @@ function doorRexResidentsFor(flagKey) {
 }
 function doorRexFlagLabel(k) { const f = FLAG_DEFS.find(x => x.key === k); return f ? f.label : k; }
 
+// Pure. The tabs to try, in order: the one the workbook was saved on first, then the rest as they are.
+function doorRexSheetOrder(names, active) {
+  const list = Array.isArray(names) ? names.slice() : [];
+  return active && list.indexOf(active) > 0 ? [active].concat(list.filter(n => n !== active)) : list;
+}
 function triggerRexWeekUpload() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -18980,10 +19003,14 @@ function triggerRexWeekUpload() {
     reader.onload = evt => {
       try {
         const wb = XLSX.read(evt.target.result, { type: 'array' });
+        // 2026-11-12 (Week 4 setup log 1): the tab the workbook was saved on comes first (the new Week 4 was on
+        // "Week 4 Kitchen (Mod)", after the old "Week 4 Kitchen" and four other weeks); the review names the tab read.
+        const views = wb.Workbook && wb.Workbook.Views;
+        const active = views && views[0] && wb.SheetNames[Number(views[0].activeTab) || 0];
         let rex = null;
-        for (const n of wb.SheetNames) {
+        for (const n of doorRexSheetOrder(wb.SheetNames, active)) {
           const r = doorReadRexWeekRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' }));
-          if (r && r.week) { rex = r; break; }
+          if (r && r.week) { rex = r; rex.sheetName = n; rex.sheetCount = wb.SheetNames.length; break; }
         }
         if (!rex) { alert('DOOR couldn’t read this as Rex’s week sheet. It looks for "WEEK 1"–"WEEK 4" over SUNDAY…SATURDAY, then BREAKFAST, LUNCH and DINNER rows.'); return; }
         // Another computer's "Keep DOOR's" answers first, so this one doesn't ask them again.
@@ -19034,7 +19061,9 @@ function doorRexFlagsList(keys) { return keys.map(doorRexFlagLabel).join(', '); 
 function doorRexRemovalsHTML(m) {
   if (!m.removeFlags.length) return '';
   const on = !!m.removeDefault;
-  let head = 'Only a dish that left named these. Tick to take one off; unticked, DOOR keeps the warning.';
+  let head = m.unlinkedNew && m.mainChanged
+    ? 'A new dish here has no CODEX recipe yet, so DOOR can’t tell what it carries. Tick only what is really gone from the plate; unticked, DOOR keeps the warning.'
+    : 'Only a dish that left named these. Tick to take one off; unticked, DOOR keeps the warning.';
   if (on) {
     const after = (m.beforeFlags || []).filter(k => m.removeFlags.indexOf(k) < 0).concat(m.addFlags || []);
     head = 'The main changed, and nothing on the new plate names these, so they come off. Untick one to keep it.' +
@@ -19143,7 +19172,8 @@ function doorRenderRexWeekReview() {
   overlay.innerHTML = '<div class="modal-box" style="max-width:780px;width:96%;max-height:90vh;display:flex;flex-direction:column;">' +
     '<div class="modal-header"><h2>Rex’s week sheet — Week ' + R.rex.week + '</h2></div>' +
     '<div class="modal-body" style="padding:14px 18px;overflow-y:auto;flex:1;">' +
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + escapeHtml(R.fileName || '') + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + escapeHtml(R.fileName || '') +
+      (R.rex.sheetName && R.rex.sheetCount > 1 ? ' · read from the tab “' + escapeHtml(R.rex.sheetName) + '” (' + R.rex.sheetCount + ' tabs in the file)' : '') + '</div>' +
     '<div style="font-size:12px;margin-bottom:8px;"><label>Week of <select id="rex-week-start" class="form-input" style="font-size:12px;padding:3px 6px;display:inline-block;width:auto;">' +
     R.cands.map(c => '<option value="' + c + '"' + (c === R.start ? ' selected' : '') + '>' + escapeHtml(formatShortDate(new Date(c + 'T12:00:00'))) + '</option>').join('') +
     '</select></label> <span style="color:var(--muted);">' + escapeHtml(dates) + (R.dateNote ? ' · ' + escapeHtml(R.dateNote) : '') + '</span></div>' +
@@ -19268,7 +19298,12 @@ async function doorSaveRexWeek() {
 // parseMenuFromSheetRows. Returns { menu, divergences, sheetsUsed }.
 function parseMenuWorkbook(wb) {
   const rowsFor = name => XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:'' });
-  const findSheet = (wk, kind) => wb.SheetNames.find(n => new RegExp('Week\\s*' + wk + '\\s*' + kind, 'i').test(n));
+  // 2026-11-12 (Week 4 setup log 1): when two tabs match ("Week 4 Kitchen" and "Week 4 Kitchen (Mod)"), the tab the
+  // workbook was saved on wins; otherwise the first, as before.
+  const views = wb.Workbook && wb.Workbook.Views;
+  const active = views && views[0] && wb.SheetNames[Number(views[0].activeTab) || 0];
+  const findSheet = (wk, kind) => { const re = new RegExp('Week\\s*' + wk + '\\s*' + kind, 'i');
+    return active && re.test(active) ? active : wb.SheetNames.find(n => re.test(n)); };
   const sheets = {};
   for (let wk = 1; wk <= 4; wk++) {
     const kName = findSheet(wk, 'Kitchen');
@@ -20201,7 +20236,9 @@ function updateSlotSummary() {
     if (!cb) return;
     const wasOn = !!_LAST_SLOT_FLAGS[f.key];
     const isOn  = !!slotFlags[f.key];
-    if (isOn && !cb.checked) {
+    // 2026-11-12 (Week 4 setup log 14): a meal-level flag (Spicy, Carb-swap…) has no pill on a slot, so a slot that
+    // carries it can't be told otherwise; a box unticked by hand stays off unless a slot newly brings the flag.
+    if (isOn && !cb.checked && !(f.mealLevel && wasOn)) {
       // Slot newly contributes this flag → auto-check global.
       cb.checked = true; cb.parentElement.style.background = f.color + '10';
     } else if (wasOn && !isOn && cb.checked) {
@@ -21581,7 +21618,9 @@ function slotSearch(slotId, query) {
           <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
         </div>`;
       }).join('')
-    : '<div style="padding:10px 12px;font-size:12px;color:var(--muted);">No matches — <span onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">Add "' + escapeHtml(query) + '" manually (no allergen data)</span></div>');
+    // 2026-11-12 (Week 4 setup log 13, 16): the whole row is the button, and on a linked slot it says it unlinks.
+    : '<div onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" style="padding:10px 12px;font-size:12px;color:var(--muted);cursor:pointer;" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">No matches — ' +
+      (cur && cur.recipeName ? 'unlink “' + escapeHtml(cur.recipeName) + '” and use "' + escapeHtml(query) + '" (no allergen data; tick them by hand)' : 'Add "' + escapeHtml(query) + '" manually (no allergen data)') + '</div>');
   dd.style.display = 'block';
 }
 
