@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.69';
+const DOOR_APP_VERSION = 'v31-standard.70';
 const DOOR_BUILD_DATE = '2026-11-13';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -17485,14 +17485,59 @@ function doorUploadReadCheck(o) {
   } else if (o.kind === 'rex' && fileStart && weeks[0].start && fileStart !== weeks[0].start) {
     warnings.push('The file name says the week of ' + fileDates + ', but this review is set to ' + weeks[0].dates + '.');
   }
-  if (o.kind === 'rotation' && read.length < 4) {
-    warnings.push('This file holds only ' + doorWeeksPhrase(read) + '. Applying it replaces the whole 4-week rotation with what this file holds. To change one week, use Rex’s week sheet instead.');
-  }
+  // 2026-11-13 (Jason: "Can we have DOOR ask on a 1 week upload which week and then merge it thusly?"): a file with
+  // fewer than 4 weeks no longer replaces the rotation. The review asks which rotation week each of its weeks is, and
+  // Apply replaces only those (doorMergeUploadWeeks). Said plainly, not as a warning: it is what will happen.
+  const notice = o.kind === 'rotation' && read.length < 4 ? doorUploadPartialSentence(read, o.assign) : '';
   if (o.kind === 'rotation' && fileWeek && read.length > 1 && read.indexOf(fileWeek) >= 0) {
     warnings.push('The file name says Week ' + fileWeek + ', but this file holds ' + doorWeeksPhrase(read) + ', and applying it replaces all of them.');
   }
   const title = weeks.length === 1 ? 'Week ' + weeks[0].week + (weeks[0].dates ? ' · ' + weeks[0].dates : '') : doorWeeksPhrase(read);
-  return { title, weeks, warnings };
+  return { title, weeks, warnings, notice };
+}
+// ── A menu upload with fewer than 4 weeks replaces only its weeks (2026-11-13) ──────────────────────────────────────
+// assign: { "<file week>": <rotation week 1–4> }; a file week not named goes to the rotation week of the same number.
+// → { ok, targets: { fileWeek: rotWeek }, replaced: [rot weeks, sorted], kept: [rot weeks], error? }
+function doorUploadAssignCheck(fileWeeks, assign) {
+  const targets = {};
+  const seen = {};
+  let error = '';
+  (fileWeeks || []).map(String).forEach(fw => {
+    const v = assign && assign[fw] != null ? Number(assign[fw]) : Number(fw);
+    if (!(v >= 1 && v <= 4 && Math.floor(v) === v)) { error = error || 'Week ' + fw + ' in this file has no rotation week picked.'; return; }
+    if (seen[v]) { error = error || 'Two weeks in this file are set to rotation Week ' + v + '. Pick a different week for one of them.'; return; }
+    seen[v] = fw; targets[fw] = v;
+  });
+  const replaced = Object.keys(seen).map(Number).sort((a, b) => a - b);
+  const kept = [1, 2, 3, 4].filter(w => replaced.indexOf(w) < 0);
+  return { ok: !error && replaced.length > 0, targets, replaced, kept, error };
+}
+// The plain sentence the review shows for such a file: "Apply replaces Week 4 only; Weeks 1–3 stay as they are."
+function doorUploadPartialSentence(fileWeeks, assign) {
+  const c = doorUploadAssignCheck(fileWeeks, assign);
+  if (!c.ok) return c.error;
+  const moved = Object.keys(c.targets).filter(fw => Number(fw) !== c.targets[fw]);
+  const head = moved.length
+    ? moved.map(fw => 'Week ' + fw + ' in this file goes in as rotation Week ' + c.targets[fw]).join('; ') + '. '
+    : '';
+  const tail = c.kept.length ? '; ' + doorWeeksPhrase(c.kept) + (c.kept.length > 1 ? ' stay' : ' stays') + ' as ' + (c.kept.length > 1 ? 'they are' : 'it is') + '.' : '.';
+  return head + 'Apply replaces ' + doorWeeksPhrase(c.replaced) + ' only' + tail;
+}
+// Pure. The file's weeks laid over the current base as the rotation weeks they are assigned to. Every other week, and
+// any key that isn't a week, is the base's own copy, untouched. Never mutates its inputs.
+function doorMergeUploadWeeks(base, fileMenu, assign) {
+  const c = doorUploadAssignCheck(Object.keys(fileMenu || {}).filter(k => /^[1-4]$/.test(k)), assign);
+  if (!c.ok) return { error: c.error || 'This file holds no week to apply.' };
+  if (!base || typeof base !== 'object') return { error: 'This computer has no full menu to merge into yet.' };
+  const menu = JSON.parse(JSON.stringify(base));
+  Object.keys(c.targets).forEach(fw => { menu[String(c.targets[fw])] = JSON.parse(JSON.stringify(fileMenu[fw])); });
+  return { menu, replaced: c.replaced, kept: c.kept, targets: c.targets };
+}
+// Pure. The menu overlay without the days of the given weeks (their edits were on the meals the upload replaced).
+function doorOverlayWithoutWeeks(overlay, weeks) {
+  const out = JSON.parse(JSON.stringify(overlay || {}));
+  (weeks || []).forEach(w => { delete out[String(w)]; });
+  return out;
 }
 /* DOOR_TESTABLE_CORE_END rex-week */
 
@@ -19477,6 +19522,56 @@ function triggerMenuUpload() {
   input.click();
 }
 
+// 2026-11-13 (Jason: "Can we have DOOR ask on a 1 week upload which week and then merge it thusly?"). A file with fewer
+// than 4 weeks asks which rotation week each of its weeks is (the week the banner read, pre-picked) and replaces only
+// those; a 4-week file replaces the rotation as before.
+function doorUploadWeekPickerHTML(fileWeeks) {
+  const opts = fw => [1, 2, 3, 4].map(w => '<option value="' + w + '"' + (String(w) === String(fw) ? ' selected' : '') + '>Week ' + w + '</option>').join('');
+  return '<div class="door-upload-week-picker" style="border:2px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:10px 14px;margin-bottom:12px;">' +
+    '<div style="font-size:14px;font-weight:700;margin-bottom:6px;">Which rotation week is this?</div>' +
+    fileWeeks.map(fw => '<label style="display:block;font-size:14px;margin-top:4px;text-transform:none;letter-spacing:normal;font-weight:400;color:inherit;">' + (fileWeeks.length > 1 ? 'Week ' + fw + ' in this file goes in as ' : 'This file’s week goes in as ') +
+      '<select class="door-upload-target" data-file-week="' + fw + '" onchange="doorUploadWeekPickerChanged(this)" style="font-size:14px;font-weight:700;width:auto;display:inline-block;padding:4px 8px;">' + opts(fw) + '</select></label>').join('') +
+    '<div id="menu-upload-picker-line" style="font-size:14px;font-weight:600;margin-top:8px;">' + escapeHtml(doorUploadPartialSentence(fileWeeks, {})) + '</div></div>';
+}
+function doorUploadPickedWeeks(root, fileWeeks) {
+  const assign = {};
+  (fileWeeks || []).forEach(fw => {
+    const sel = root && root.querySelector('select.door-upload-target[data-file-week="' + fw + '"]');
+    assign[fw] = sel ? Number(sel.value) : Number(fw);
+  });
+  return assign;
+}
+function doorUploadWeekPickerChanged(el) {
+  const modal = document.getElementById('menu-upload-modal');
+  if (!modal) return;
+  const fileWeeks = Array.from(modal.querySelectorAll('select.door-upload-target')).map(s => s.getAttribute('data-file-week'));
+  const assign = doorUploadPickedWeeks(modal, fileWeeks);
+  const c = doorUploadAssignCheck(fileWeeks, assign);
+  const line = doorUploadPartialSentence(fileWeeks, assign);
+  ['menu-upload-picker-line', 'menu-upload-partial-line'].forEach(id => { const n = document.getElementById(id); if (n) { n.textContent = line; n.style.color = c.ok ? '' : '#991b1b'; } });
+  const btn = document.getElementById('menu-upload-confirm-btn');
+  if (btn) btn.disabled = !c.ok;
+}
+// Writes an applied upload. assign null (a 4-week file): the file is the new base and every edit is cleared, as before.
+// assign set: only the assigned weeks are replaced in this computer's base (concUploadedMenu), only their overlay days
+// are cleared, and every other week stays byte for byte. -> { ok, partial, replaced, kept, error }
+function doorApplyMenuUpload(fileMenu, assign) {
+  if (!assign) {
+    saveUploadedMenu(fileMenu);
+    // Clear the base overlay (individual permanent changes no longer apply to old slots)
+    saveMenuBaseOverlay({});
+    return { ok: true, partial: false, replaced: [1, 2, 3, 4], kept: [] };
+  }
+  const base = loadUploadedMenu();
+  // Never merge into the baked rotation: that would save the old menu as this computer's current weeks and hide D3's
+  // "running on the built-in menu" warning. Said, not done.
+  if (!base) return { ok: false, error: 'This computer doesn’t have the kitchen’s full menu yet, so there is nothing to merge one week into. Reload DOOR while online (or upload the full 4-week workbook), then try again.' };
+  const m = doorMergeUploadWeeks(base, fileMenu, assign);
+  if (m.error) return { ok: false, error: m.error };
+  saveUploadedMenu(m.menu);
+  saveMenuBaseOverlay(doorOverlayWithoutWeeks(loadMenuBaseOverlay(), m.replaced));
+  return { ok: true, partial: true, replaced: m.replaced, kept: m.kept };
+}
 function showMenuUploadReview(parseResult, filename) {
   const menu = parseResult.menu || {};
   const divergences = parseResult.divergences || [];
@@ -19487,8 +19582,10 @@ function showMenuUploadReview(parseResult, filename) {
   // Per-week summary + sheet provenance + allergen coverage.
   let totalMeals = 0, totalVeg = 0, totalAllergens = 0, totalNoAllerg = 0;
   const summary = [];
+  const fileWeeks = Object.keys(menu).filter(wk => /^[1-4]$/.test(wk)).sort();
+  const partial = fileWeeks.length < 4;   // 2026-11-13: replaces only its weeks, asked below
   ['1','2','3','4'].forEach(wk => {
-    if (!menu[wk]) { summary.push(`<div style="color:var(--muted);">Week ${wk}: not found</div>`); return; }
+    if (!menu[wk]) { if (!partial) summary.push(`<div style="color:var(--muted);">Week ${wk}: not found</div>`); return; }
     let wkMeals = 0, wkVeg = 0, wkAll = 0, wkNoAll = 0;
     DAYS_UPLOAD.forEach(day => {
       const d = menu[wk][day] || {};
@@ -19532,7 +19629,8 @@ function showMenuUploadReview(parseResult, filename) {
   }
 
   // Preview: first week lunch + dinner (regular + veg).
-  const sampleWk = menu['1'] || menu[Object.keys(menu)[0]];
+  const sampleKey = menu['1'] ? '1' : fileWeeks[0];
+  const sampleWk = menu[sampleKey];
   let sampleHtml = '';
   if (sampleWk) {
     const previewDays = DAYS_UPLOAD.slice(0, 4);
@@ -19561,14 +19659,18 @@ function showMenuUploadReview(parseResult, filename) {
     <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Upload New Menu Rotation</div>
     ${doorUploadReadHTML(doorUploadReadCheck({ kind: 'rotation', fileName: filename, today: doorRexLocalKey(new Date()),
       weeks: Object.keys(menu).map(wk => ({ week: Number(wk), tabs: (parseResult.tabs || {})[wk] || [] })) }), filename)}
+    ${partial ? doorUploadWeekPickerHTML(fileWeeks) : ''}
     <div style="margin-bottom:12px;">${summary.join('')}</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Totals: ${totalMeals} meals, ${totalVeg} veg alternatives, ${totalAllergens} with allergen flags. Allergens are the union of the Intake sheet's list and the dishes' own names (never under-flags).</div>
     ${noAllergWarn}
     ${divHtml}
-    <div style="font-size:13px;font-weight:600;margin-top:16px;margin-bottom:4px;">Week 1 Preview</div>
+    <div style="font-size:13px;font-weight:600;margin-top:16px;margin-bottom:4px;">Week ${escapeHtml(sampleKey || '')} Preview</div>
     ${sampleHtml}
     <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-top:16px;font-size:12px;">
-      <strong style="color:#92400e;">This will replace the current 4-week rotation.</strong> The previous rotation is preserved in the hardcoded fallback. Any individual slot edits (Make Permanent) will be cleared. Active swaps are not affected.
+      ${partial
+        ? `<strong style="color:#92400e;" id="menu-upload-partial-line">${escapeHtml(doorUploadPartialSentence(fileWeeks, {}))}</strong> Edits on the replaced week (Make Permanent, Edit Menu) are cleared; the other weeks keep theirs. Active swaps are not affected.`
+        : `<strong style="color:#92400e;">This will replace the current 4-week rotation.</strong> The previous rotation is preserved in the hardcoded fallback. Any individual slot edits (Make Permanent) will be cleared. Active swaps are not affected.`}
+      <div style="margin-top:6px;">Apply changes this computer’s menu. Press <strong>⇪ Publish</strong> afterwards to send it to the kitchen, so EXPO and HUB plan from it.</div>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('menu-upload-modal').remove()">Cancel</button>
@@ -19585,13 +19687,15 @@ function showMenuUploadReview(parseResult, filename) {
       if (sel) picks[dv.wk + '-' + dv.day + '-' + dv.period] = sel.value;
     });
     const finalMenu = applyMenuPicks(menu, divergences, picks);
-    saveUploadedMenu(finalMenu);
-    // Clear the base overlay (individual permanent changes no longer apply to old slots)
-    saveMenuBaseOverlay({});
+    const assign = partial ? doorUploadPickedWeeks(modal, fileWeeks) : null;
+    const res = doorApplyMenuUpload(finalMenu, assign);
+    if (!res.ok) { alert(res.error); return; }
     const intakePicks = Object.values(picks).filter(v => v === 'intake').length;
-    logMenuEvent('menu_permanent', 'Uploaded new 4-week rotation from ' + filename + ' (' + totalMeals + ' meals'
+    logMenuEvent('menu_permanent', (res.partial
+        ? 'Uploaded ' + doorWeeksPhrase(res.replaced) + ' from ' + filename + ' (' + doorWeeksPhrase(res.kept) + ' kept'
+        : 'Uploaded new 4-week rotation from ' + filename + ' (' + totalMeals + ' meals')
       + (divergences.length ? ', ' + intakePicks + '/' + divergences.length + ' slots set to Intake text' : '') + ')');
-    showToast('New menu rotation applied.');
+    showToast(res.partial ? doorWeeksPhrase(res.replaced) + ' replaced; the other weeks are unchanged. Press ⇪ Publish to send it.' : 'New menu rotation applied.');
     modal.remove();
     renderMenuConfig();
     if (typeof renderTodayMealContext === 'function') renderTodayMealContext();

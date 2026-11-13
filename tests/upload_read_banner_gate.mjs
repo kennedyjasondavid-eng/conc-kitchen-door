@@ -113,8 +113,10 @@ test('Menu Config upload: names each week\'s tabs and dates; a one-tab copy says
   // The one-tab copy, picked by mistake in Menu Config.
   const c1 = rotationCheck('Week 4 Kitchen (Mod) only.xlsx', parseWb(wb(['Week 4 Kitchen (Mod)'])));
   assert.equal(c1.title, 'Week 4 · Nov 15 – Nov 21');
-  assert.equal(c1.warnings.length, 1);
-  assert.match(c1.warnings[0], /holds only Week 4\. Applying it replaces the whole 4-week rotation/);
+  // Re-pinned 2026-11-13 (v31-standard.70, Jason: "ask on a 1 week upload which week and then merge it"): a one-week
+  // file no longer replaces the rotation, so it isn't a warning; the review says what Apply does.
+  assert.deepEqual(c1.warnings, []);
+  assert.equal(c1.notice, 'Apply replaces Week 4 only; Weeks 1–3 stay as they are.');
   // A file named for Week 4 that holds a Week 1 tab.
   const c1b = rotationCheck('Week 4 15 Nov - 21 Nov.xlsx', parseWb(wb(['Week 1 Kitchen'])));
   assert.match(c1b.warnings[0], /file name says Week 4, but DOOR read Week 1 from the tab “Week 1 Kitchen”/);
@@ -148,5 +150,6 @@ test('both reviews show it at the top, in large type, escaped, and a warning nev
 });
 
 test('the build stamp moved', () => {
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.69';/);
+  // Re-pinned 2026-11-13: .69 or later (v31-standard.70 merges a one-week upload).
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(69|[7-9]\d)';/);
 });
