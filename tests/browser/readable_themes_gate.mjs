@@ -58,7 +58,7 @@ const show = (s) => async (p) => p.evaluate((s) => showScreen(s), s);
 // Each state names the element that proves it opened.
 const STATES = [
   ['enter (with the not-connected banner)', show('enter'), '#screen-enter'],
-  ['review (allergen conflicts)', show('review'), '#screen-review'],
+  ['review (allergen conflicts, Needs Review list)', show('review'), '#screen-review'],
   ['plating sheet', show('plating'), '#screen-plating .ps-table'],
   ['registry', show('registry'), '#screen-registry'],
   ['compliance', show('compliance'), '#screen-compliance'],
@@ -68,6 +68,9 @@ const STATES = [
   ['settings', show('settings'), '#screen-settings'],
   ['menu config', show('menu-config'), '#screen-menu-config'],
   ['edit menu (Wk2 TUE lunch)', async (p) => p.evaluate(() => { showScreen('menu-config'); location.hash = '#menu-config/edit/2/TUESDAY/lunch'; window.dispatchEvent(new HashChangeEvent('hashchange')); }), '#mc-menu-edit-panel', 10000],
+  // Independent review fold (2026-11-13): the states the first census did not open.
+  ['custom report: week-ahead allergen conflicts', async (p) => p.evaluate(() => { showScreen('custom-reports'); checkedBoxes['cr_type'] = 'menu_conflict'; runCustomReport(); }), '#cr-output'],
+  ['registry editor on an anaphylactic room', async (p) => p.evaluate(() => { showScreen('registry'); const r = REGISTRY_LIST.find((x) => doorIsAnaphResident(x)); openRegistryEditor(r.room); }), '#ce-anaph-tags'],
   ['DOOR question dialog', async (p) => p.evaluate(() => { showScreen('enter'); doorAsk({ title: 'Undo Generate?', lines: ['This puts the resident list back as it was before this Generate.'], items: ['Room 101a: Regular'], goLabel: 'Undo Generate', cancelLabel: 'Go back', altLabel: 'Send older list' }); }), '.door-ask .modal-box', 500],
 ];
 
@@ -83,6 +86,9 @@ async function open(browser, theme, width) {
     localStorage.setItem('concRegistryState', JSON.stringify({ residents: state.residents, anaphRooms: state.anaphRooms }));
     localStorage.setItem('conc-door-anaph', JSON.stringify(state.anaphRooms));
     localStorage.setItem('concAltFlagSweepV1', '1');
+    // Review fold: a Needs Review list with an open row, a resolved row and a skipped row (made-up words, real rooms).
+    localStorage.setItem('concUnresolvedNR', JSON.stringify([{ room: '510', text: 'no beans pls', ambiguous: ['Beans'] }, { room: '616', text: 'likes stuff' }, { room: '805', text: 'skip me' }]));
+    localStorage.setItem('concNRResolutions', JSON.stringify({ '616': [{ action: 'map', value: 'noDairy' }], '805': [{ action: 'skip' }] }));
     if (theme === 'dark') localStorage.setItem('kdo-dark', '1');
     // Reports draws charts from a CDN script; offline, a stand-in lets the rest of the screen draw (canvas text is not measured).
     window.Chart = function () { return { destroy() {}, update() {} }; };
@@ -111,7 +117,8 @@ for (const width of [1280, 390]) {
       ok(`${name}: every text piece reads at AA (${theme}, ${width}px; ${total} measured)`, miss.length === 0,
         { misses: miss.length, first: miss.slice(0, 8) });
       await page.keyboard.press('Escape').catch(() => {});
-      await page.evaluate(() => document.querySelectorAll('.modal-overlay').forEach((m) => { m.style.display = 'none'; })).catch(() => {});
+      // close what this state opened (a DOOR question goes; an app dialog loses its open class, as its Close does)
+      await page.evaluate(() => { document.querySelectorAll('.door-ask').forEach((m) => m.remove()); document.querySelectorAll('.modal-overlay.open').forEach((m) => m.classList.remove('open')); }).catch(() => {});
     }
     totals[`${theme} ${width}`] = `${misses} of ${measured}`;
     ok(`no page errors (${theme}, ${width}px)`, errors.length === 0, errors.slice(0, 3));
@@ -127,7 +134,9 @@ for (const width of [1280, 390]) {
     await page.emulateMedia({ media: 'print' });
     const s = await page.evaluate(() => {
       const q = (sel) => { const e = document.querySelector(sel); if (!e) return null; const c = getComputedStyle(e); return c.backgroundColor + ' / ' + c.color; };
-      return { title: q('.ps-title'), meal: q('.ps-meal'), allergen: q('.ps-allergen'), hdr: q('.ps-sect-hdr'), total: q('.ps-total-val'), cell: q('.ps-table td:not([class])'), body: getComputedStyle(document.body).backgroundColor };
+      // review fold: the grid lines too (every cell border on the sheet, joined)
+      const borders = [...document.querySelectorAll('.ps-table td, .ps-table th')].map((e) => getComputedStyle(e).borderTopColor);
+      return { borders: [...new Set(borders)].sort().join(' | '), title: q('.ps-title'), meal: q('.ps-meal'), allergen: q('.ps-allergen'), hdr: q('.ps-sect-hdr'), total: q('.ps-total-val'), cell: q('.ps-table td:not([class])'), body: getComputedStyle(document.body).backgroundColor };
     });
     await page.close(); return s;
   };

@@ -83,10 +83,13 @@ test('4 a dark-mode print gets the paper palette', () => {
     void dv;
   }
   assert.deepEqual(missing, [], 'every dark colour prints as its light value (dark-only partners fall back)');
-  const screen = block(/@media screen\s*\{([\s\S]*?)\n\s*\}\n/);
+  // every screen-only block (review fold, 2026-11-13: the dark table grid lines are screen-only too)
+  const screen = [...CSS.matchAll(/@media screen\s*\{([\s\S]*?)\n\s*\}\n/g)].map((m) => m[1]).join('\n');
   for (const cls of ['.ps-title', '.ps-meal', '.ps-allergen', '.ps-sect-hdr', '.ps-total-val', '.ps-anaph-row', '.ps-notes-row'])
     assert.ok(screen.includes(`[data-theme="dark"] ${cls}`), `the dark ${cls} colour is screen-only`);
-  const outside = CSS.replace(screen, '');
+  assert.ok(/\[data-theme="dark"\] table th \{ border-color:#272d35; \}/.test(screen), 'the dark table grid lines are screen-only');
+  let outside = CSS; for (const m of CSS.matchAll(/@media screen\s*\{([\s\S]*?)\n\s*\}\n/g)) outside = outside.replace(m[0], '');
+  assert.ok(!/\[data-theme="dark"\] table t[dh][^{]*\{[^}]*border-color/.test(outside), 'no dark table grid line outside the screen blocks');
   assert.ok(!/\[data-theme="dark"\] \.ps-(title|meal|allergen|sect-hdr|total-val)/.test(outside), 'no dark sheet colour outside the screen block');
 });
 
@@ -114,8 +117,8 @@ test('6 every allergen and section colour gets a readable chip and badge in both
     const f = ctx.doorFill(c); const w = cr('#ffffff', f); if (w < 4.5) low.push({ c, fill: f, white: w });
   }
   assert.deepEqual(low, []);
-  assert.equal(ctx.doorTextOnFill('#eab308'), '#1a1a1a', 'dark text on a light fill');
-  assert.equal(ctx.doorTextOnFill('#1b4332'), '#fff', 'white text on a dark fill');
+  // review fold (2026-11-13): doorTextOnFill was never called and is gone; a fill white reads on is doorFill
+  assert.equal(typeof ctx.doorTextOnFill, 'undefined');
 });
 
 test('7 the connection box still turns its border red for an error colour', () => {

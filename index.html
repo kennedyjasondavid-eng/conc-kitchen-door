@@ -87,8 +87,10 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
   [data-theme="dark"] .toggle::after { background:#b8bfc7; }
   [data-theme="dark"] .toggle.on { background:#337a52; }
   [data-theme="dark"] .toggle.on::after { background:#fff; }
-  [data-theme="dark"] table td,
-  [data-theme="dark"] table th { border-color:#272d35; }
+  @media screen {
+    [data-theme="dark"] table td,
+    [data-theme="dark"] table th { border-color:#272d35; }
+  }
   [data-theme="dark"] .changes-table tbody tr:hover { background:#1b3a2a; }
   [data-theme="dark"] .toolbar { background:#1c2026; border-color:#272d35; }
   [data-theme="dark"] .tag-vegan { background:#152e22; color:#52a877; border-color:#2d6a4f; }
@@ -733,7 +735,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.72';
+const DOOR_APP_VERSION = 'v31-standard.73';
 const DOOR_BUILD_DATE = '2026-11-13';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -6122,7 +6124,7 @@ function openChangeEditor(idx) {
   // Build checkbox grids from queue tags
   const tags = c.tags || {};
   buildCECheckboxes('ce-restrictions', ROUTING_TAGS, tags, '#dcfce7', '#166534');
-  buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
+  buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#b91c1c');
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
   document.getElementById('ce-anaph').checked = !!c.isAnaph;
@@ -6156,7 +6158,7 @@ function openRegistryEditor(room) {
     if ((r.tags || []).includes(label)) tags[key] = true;
   });
   buildCECheckboxes('ce-restrictions', ROUTING_TAGS, tags, '#dcfce7', '#166534');
-  buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#dc2626');
+  buildCECheckboxes('ce-allergens', ALLERGEN_TAGS, tags, '#fef2f2', '#b91c1c');
   buildCECheckboxes('ce-accommodations', ACCOMMODATION_TAGS, tags, '#fef3c7', '#92400e');
 
   document.getElementById('ce-anaph').checked = doorIsAnaphResident(r);
@@ -6175,7 +6177,7 @@ function buildCECheckboxes(containerId, tagSet, currentTags, bgActive, colorActi
   const container = document.getElementById(containerId);
   const dk = document.documentElement.getAttribute('data-theme')==='dark';
   const DK_BG = {'#dcfce7':'#1a2a20','#fef2f2':'#2a1a1a','#fef3c7':'#2a2520'};
-  const DK_CLR = {'#166534':'#6ee7b7','#dc2626':'#f87171','#92400e':'#d4a040'};
+  const DK_CLR = {'#166534':'#6ee7b7','#dc2626':'#f87171','#b91c1c':'#f87171','#92400e':'#d4a040'};
   const bg = dk ? (DK_BG[bgActive]||'#21262d') : bgActive;
   const clr = dk ? (DK_CLR[colorActive]||colorActive) : colorActive;
   const offBd = dk ? '#3a4250' : '#d1d5db';
@@ -6248,7 +6250,7 @@ function populateAnaphTags(record) {
 
   container.innerHTML = allergenKeys.map(({key, label}) => {
     const checked = existingAnaphTags.has(key) ? 'checked' : '';
-    return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? '#dc2626' : '#fca5a5'};background:${checked ? '#fef2f2' : 'transparent'};color:${checked ? '#dc2626' : '#b91c1c'};">
+    return `<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid ${checked ? '#dc2626' : '#fca5a5'};background:${checked ? 'var(--danger-faint, #fef2f2)' : 'transparent'};color:var(--danger-ink, #b91c1c);">
       <input type="checkbox" class="ce-anaph-tag" data-key="${key}" ${checked} style="accent-color:#dc2626;"> ${label}
     </label>`;
   }).join('');
@@ -7256,15 +7258,15 @@ function buildReview() {
         const decisions = Array.isArray(res) ? res : [res];
         const badgesHtml = decisions.map(d => {
           if (d.action === 'skip') return `<span style="background:var(--neutral-faint, #e2e8f0);color:var(--text-2, #475569);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">Not applicable</span>`;
-          if (d.action === 'note') return `<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">&#x270E; Note</span>`;
+          if (d.action === 'note') return `<span style="background:var(--info-faint, #dbeafe);color:var(--blue-text);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">&#x270E; Note</span>`;
           return `<span style="background:var(--ok-faint, #dcfce7);color:var(--ok-ink, #166534);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;">→ ${escapeHtml(TAG_LABELS_MAP[d.value]||d.value)}</span>`;
         }).join('');
         const allSkip = decisions.every(d => d.action === 'skip');
         return `<div style="background:${allSkip?'var(--neutral-faint, #f1f5f9)':'var(--ok-faint, #f0fdf4)'};border:1px solid ${allSkip?'#e2e8f0':'#86efac'};border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:12px;">
-          <div style="font-family:monospace;font-size:16px;font-weight:700;color:${allSkip?'#475569':'#166534'};min-width:48px;">${escapeHtml(r.room)}</div>
-          <div style="flex:1;font-size:11px;color:var(--text-2, #64748b);font-style:italic;">"${escapeHtml(r.text)}"</div>
+          <div style="font-family:monospace;font-size:16px;font-weight:700;color:${allSkip?'var(--text-2, #475569)':'var(--ok-ink, #166534)'};min-width:48px;">${escapeHtml(r.room)}</div>
+          <div style="flex:1;font-size:11px;color:var(--text-2, #475569);font-style:italic;">"${escapeHtml(r.text)}"</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${badgesHtml}
-            <button onclick="${_escJsAttrCall('nrUndoReview', [r.room])}" style="font-size:10px;color:var(--text-3, #94a3b8);background:none;border:none;cursor:pointer;padding:0;margin-left:4px;" title="Undo">✕</button>
+            <button onclick="${_escJsAttrCall('nrUndoReview', [r.room])}" style="font-size:10px;color:var(--text-2, #475569);background:none;border:none;cursor:pointer;padding:0;margin-left:4px;" title="Undo">✕</button>
           </div>
         </div>`;
       }
@@ -7278,7 +7280,7 @@ function buildReview() {
             : (TAG_LABELS_MAP[d.value] || d.value);
           return `<span style="background:#fde68a;color:#78350f;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
             ${escapeHtml(lbl)}
-            <button onclick="${_escJsAttrCall('nrRemovePending', [r.room, Number(di)])}" style="background:none;border:none;cursor:pointer;color:var(--warn-ink, #92400e);font-size:10px;padding:0;line-height:1;">✕</button>
+            <button onclick="${_escJsAttrCall('nrRemovePending', [r.room, Number(di)])}" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:10px;padding:0;line-height:1;">✕</button>
           </span>`;
         }).join('')
       }</div>` : '';
@@ -13654,9 +13656,9 @@ function runCustomReport() {
             ${c.conflicts.map(x => `
               <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:${x.severity==='red'?'var(--red-pale)':'var(--amber-pale)'};
                 border:1px solid ${x.severity==='red'?'#fca5a5':'#fcd34d'};border-radius:6px;margin-bottom:6px;font-size:13px;">
-                <span style="font-weight:700;color:${x.severity==='red'?'var(--red)':'#92400e'};">${x.severity==='red'?'⚠':'!'}</span>
+                <span style="font-weight:700;color:${x.severity==='red'?'var(--red-text)':'var(--warn-ink, #92400e)'};">${x.severity==='red'?'⚠':'!'}</span>
                 <div>
-                  <div style="font-weight:600;color:${x.severity==='red'?'var(--red)':'#92400e'};">${escapeHtml(x.type)} &mdash; ${x.residents} resident${x.residents!==1?'s':''}</div>
+                  <div style="font-weight:600;color:${x.severity==='red'?'var(--red-text)':'var(--warn-ink, #92400e)'};">${escapeHtml(x.type)} &mdash; ${x.residents} resident${x.residents!==1?'s':''}</div>
                   <div style="color:var(--muted);font-size:12px;">Rooms: ${escapeHtml(x.rooms)}${x.residents>4?' + more':''}</div>
                 </div>
               </div>`).join('')}
@@ -15501,7 +15503,7 @@ const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // Readable themes (2026-11-13): the one owner for text drawn in an allergen or section colour. A chip gets a solid
 // tint of its colour over this theme surface (so the cell or panel behind it does not change what it reads on) and
 // an ink of the same hue moved toward black (light) or white (dark) until it reads at 4.8:1 on that tint. A filled
-// badge gets white or near-black text, whichever reads better. Light and dark use the same colours from FLAG_DEFS
+// badge gets the colour darkened until white text reads on it (doorFill). Light and dark use the same colours from FLAG_DEFS
 // and SECTION_COLOR_MAP; only the shade moves.
 function doorThemeDark() {
   return typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
@@ -15531,10 +15533,6 @@ function doorColourChip(hex, dark) {
   let ink = c;
   for (let i = 0; i < 40 && doorContrast(ink, bg) < 4.8; i++) ink = doorMix(ink, toward, 0.08);
   return { bg: doorRgbHex(bg), ink: doorRgbHex(ink), border: doorRgbHex(doorMix(surface, c, isDark ? 0.55 : 0.6)) };
-}
-function doorTextOnFill(hex) {
-  const c = doorHexRgb(hex);
-  return doorContrast([255, 255, 255], c) >= doorContrast([26, 26, 26], c) ? '#fff' : '#1a1a1a';
 }
 // A filled badge or pill with white text: the colour, darkened just enough for white to read at 4.6:1.
 function doorFill(hex) {
