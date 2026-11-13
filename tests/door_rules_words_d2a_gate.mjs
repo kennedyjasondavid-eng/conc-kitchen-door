@@ -603,7 +603,8 @@ test('fourth review: carried records are counted on the page, the publish line i
   const dr = fn('doorDeliveryRender');
   assert.match(dr, /status\.textContent=text;/, 'the delivery text stays as it is');
   assert.match(dr, /door-rules-publish-line/);
-  assert.match(dr, /color:#92400e/);
+  // Re-pinned 2026-11-13 (readable themes, v31-standard.72): the amber ink is theme-aware, the light amber unchanged.
+  assert.match(dr, /color:var\(--warn-ink, #92400e\)/);
   assert.doesNotMatch(dr, /status\.textContent=shown/);
   // P3-3: the largest date never throws; the tie rule decides, and the actions say when it did not take
   const MAX = '+275760-09-13T00:00:00.000Z';

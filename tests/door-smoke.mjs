@@ -1942,7 +1942,9 @@ test('publish flow shim reports committed pending until delivery is observed', a
   harness.context.doorDeliverySave({ ...receipt, served: { observedAt: new Date().toISOString() } });
   harness.context.doorDeliveryRender();
   assert.match(harness.statusEl.textContent, /Available to the kitchen ✓/);
-  assert.equal(harness.statusEl.style.color, 'var(--forest)');
+  // Re-pinned 2026-11-13 (readable themes, v31-standard.72): the sync bar and publish status keep their meaning (green sent,
+  // red not sent), named by the theme-aware colours: green var(--forest-text), red var(--danger-ink, #b91c1c).
+  assert.equal(harness.statusEl.style.color, 'var(--forest-text)');
 });
 
 test('publish flow shim builds menu and routing from pre-merged cloud overlay', async () => {
@@ -2013,9 +2015,9 @@ test('publish flow shim keeps a held transaction red when overlay days are merge
   assert.equal(result.skipped, true);
   assert.equal(result.reason, 'blocked');
   assert.match(harness.statusEl.textContent, /kitchen update is pending/);
-  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.equal(harness.statusEl.style.color, 'var(--danger-ink, #b91c1c)');
   assert.match(lastSync.message, /kitchen update is pending/);
-  assert.equal(lastSync.color, '#dc2626');
+  assert.equal(lastSync.color, 'var(--danger-ink, #b91c1c)');
   // L11104: a blocked publish must NOT persist the cloud-merged overlay locally,
   // so concMenuBase stays at the pre-publish value (not ahead of what published).
   assert.equal(JSON.parse(harness.storage.concMenuBase)['1'].TUESDAY, undefined, 'a blocked publish must not advance concMenuBase to the merged overlay');
@@ -2041,8 +2043,8 @@ test('F1 structural gate: a manual send cannot override an invalid artifact', as
   assert.equal(harness.pushed.length, 0, 'invalid artifacts remain local and pending');
   assert.doesNotMatch(harness.statusEl.textContent, /Sent to the kitchen ✓/);
   assert.match(harness.statusEl.textContent, /data check found a problem/i);
-  assert.equal(harness.statusEl.style.color, '#dc2626');
-  assert.notEqual(lastSync.color, 'var(--forest)');
+  assert.equal(harness.statusEl.style.color, 'var(--danger-ink, #b91c1c)');
+  assert.notEqual(lastSync.color, 'var(--forest-text)');
 });
 
 test('F1 preflight: a blocked candidate never announces that it was sent', async () => {
@@ -2117,8 +2119,8 @@ test('publishAndSync renders a degraded (Stop-flagged) auto-publish RED, not gre
   h.context.publishAndSync('generate');
   await new Promise((r) => setTimeout(r, 10));
   const last = h.syncBars.at(-1);
-  assert.notEqual(last.color, 'var(--forest)', 'a degraded auto-publish must not paint the sync bar green');
-  assert.equal(last.color, '#dc2626');
+  assert.notEqual(last.color, 'var(--forest-text)', 'a degraded auto-publish must not paint the sync bar green');
+  assert.equal(last.color, 'var(--danger-ink, #b91c1c)');
   assert.match(last.message, /data check flagged/i);
 });
 
@@ -2136,7 +2138,7 @@ test('publishAndSync paints freshly observed delivery green', async () => {
     served: { observedAt: new Date().toISOString() }, consumed: null
   } });
   await h.context.publishAndSync('generate');
-  assert.equal(h.syncBars.at(-1).color, 'var(--forest)');
+  assert.equal(h.syncBars.at(-1).color, 'var(--forest-text)');
   assert.match(h.syncBars.at(-1).message, /Available to the kitchen ✓/);
 });
 
@@ -2230,7 +2232,7 @@ test('publish flow shim routes builder failures through visible publish failure 
   );
 
   assert.match(harness.statusEl.textContent, /Couldn.t send to the kitchen/);
-  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.equal(harness.statusEl.style.color, 'var(--danger-ink, #b91c1c)');
   assert.ok(harness.toasts.some((message) => /Couldn.t send to the kitchen/i.test(message)));
 });
 
@@ -2282,7 +2284,7 @@ test('publish flow shim surfaces missing credentials before pushing', async () =
   assert.ok(harness.rememberedFailures.some((message) => /GitHub token/i.test(message)));
   assert.ok(harness.toasts.some((message) => /connected to the kitchen/i.test(message)));
   assert.match(harness.statusEl.textContent, /Not sent — this computer isn.t connected/);
-  assert.equal(harness.statusEl.style.color, '#dc2626');
+  assert.equal(harness.statusEl.style.color, 'var(--danger-ink, #b91c1c)');
 });
 
 test('published JSON snapshots are parseable and carry metadata', () => {

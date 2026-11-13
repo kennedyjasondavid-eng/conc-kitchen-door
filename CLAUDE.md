@@ -53,6 +53,41 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-13) — readable in both themes; a dark-mode print is a paper print (`v31-standard.72`)
+Jason, 2026-11-13: "please run a full review of dark mode colors. Align with other HOUSE apps that have had similar reviews based on current standards", then "OK, please implement these changes" on the review's three leans (CODEX's palette, a white page in any theme, both themes in one pass). The measure is CODEX C7's (conc-recipe-hub, 2026-10-18): every visible text piece against WCAG AA (4.5:1, 3:1 for large text).
+- **Measured on `main` `4a9c337`:** 12 screens and states, light and dark, 1280 and 390 px, about 4,000 text pieces each: dark 903 misses, light 870. Now 0 in all four.
+  - The worst were safety text: Review's allergen conflict alerts (2.2:1 in dark), the Registry's "⚠ Allergens" lines (2.0:1), and the small print in the anaphylactic and moderate-allergy boxes.
+  - The Registry's Edit buttons were 1.5:1 in dark; "no service note" was 1.6:1 in light.
+- **The dark palette is CODEX's ruled one** (K14, K15): greys `--ink-mid` #a3aab2 and `--muted` #8b939c; one text green #52a877 (`--forest-text`, `--forest-mid-text`, `--mint`, `--forest-light`). The forest fills keep white text, and the mint button is a forest fill with white text in dark. No mint is drawn in dark.
+- **New colour names:**
+  - `--forest-text` and `--forest-mid-text`: every place that drew the brand greens as text.
+  - `--amber-text`, `--red-text` and `--blue-text`: the amber, red and blue tokens used as ink.
+  - `--card`, `--bg`, `--bg-soft`, `--warm`, `--fg` and `--accent-light`: six names screens used that DOOR never defined, so those panels fell back to white in dark.
+- **Fixed light-theme colours written inline** (`color:#92400e`, `background:#fef3c7`, about 380 places) became `var(--partner, original)`. The partners (`--warn-ink`, `--danger-ink`, `--ok-ink`, `--info-ink`, `--violet-ink`, `--cyan-ink`, `--text-1`/`-2`/`-3` and their `-faint` panels, `--surface-alt`) are defined only in the dark block. Light renders the original colour, and print windows (separate documents) fall back to it too.
+  - Where a light colour failed on white, its fallback moved to the nearest passing shade of the same hue: #d97706 → #b45309, #16a34a → #15803d, #2563eb → #1d4ed8, #dc2626 → #b91c1c, #ccc → #6b7280.
+  - The plating sheet's own rules (`.ps-*`), the existing dark rules and `dk ?` branches were left alone, and so was any block on a fixed bright fill.
+- **One owner for colour-coded chips** (above `FLAG_DEFS`):
+  - `doorColourChip(hex, dark)` gives a solid tint of the colour over the theme's surface and an ink of the same hue at 4.8:1 on it.
+  - `doorFill(hex)` gives a fill white reads on; `doorTextOnFill(hex)` picks white or near-black.
+  - They are used by the allergen pills, the Menu Config and Edit Flags chips, the four section previews, the custom-report pills and the soft, swap and special badges. `FLAG_DEFS` and `SECTION_COLOR_MAP` are unchanged.
+- **Print:** an `@media print` block puts every dark colour back to its light value (the dark-only partners to `initial`, so they fall back). The dark plating-sheet colours sit inside `@media screen`, so a sheet printed from a dark-mode computer is the paper sheet.
+- **Also changed:**
+  - The saved theme is applied in `<head>` (no light flash, as CODEX and HUB do).
+  - The sidebar's faint labels and the CODEX badge read in both themes; the compliance badge and Import button are fills white reads on.
+  - The not-connected banner is a dark panel in dark.
+  - Sync-bar and status colours set from JavaScript use the same names. The connection box's red border now recognises the new error colour (`_isError`), which the rename would otherwise have broken.
+- **Gates:**
+  - `tests/readable_themes_static_gate.mjs` (7, node lane), red 7/7 on `main`: the palette, ink contrast on every dark panel, every colour name defined, the print reset, the theme in `<head>`, every allergen and section colour in both themes, the error border.
+  - `tests/browser/readable_themes_gate.mjs` (112, in CI's browser step): the census, every state opening, no page errors, and the plating sheet under print media from dark mode equal to light. Red 55/112 on `main`. It skips disabled buttons (WCAG exempts inactive controls) and stands in for Chart.js offline.
+  - Re-pinned with dated notes: `door-smoke` (the sync-bar and status colour names, same meaning) and `door_rules_words_d2a_gate` (the amber ink).
+- **Results:**
+  - Suite 920 → 927 pass, 1 skipped. The CI browser contracts pass 17/17.
+  - The staff walkthrough is 41/51, the same 10 as `main` (pinned to Oct 18 data).
+- **Not covered:**
+  - Screens the census does not open (collapsed sections, rarer dialogs and flows) were swept by pattern, not measured.
+  - Chart.js canvas text is not measured.
+  - Switching theme without a reload leaves chips and banners drawn by code in the old theme's shades until the screen redraws.
+
 ## Recent (2026-11-13) — a replaced week stays replaced on every DOOR computer (`v31-standard.71`)
 Jason, 2026-11-13: "yes go ahead", on the gap #192 left. Apply cleared a replaced week's Edit Menu days only on the computer that uploaded; the overlay merge had no take-back, so another computer still holding those days added them back at its next send.
 - **The record.** Apply stamps each replaced week in the shared overlay: `menu_overlay.json` `_meta.weekReplacedAt["<week>"]` (ms), for a one-week file its week, for a 4-week file all four (`doorOverlayWithoutWeeks(overlay, weeks, now)`, rex-week core).
