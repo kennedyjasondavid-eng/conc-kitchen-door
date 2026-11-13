@@ -53,6 +53,33 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-13) — the readable-themes review, folded (`v31-standard.73`)
+Jason, 2026-11-13: "sure run that review", then "yes complete the work, open and merge PR as needed". An independent review of #194 said FIX: no broken function and no warning that lost its red. Its findings:
+- **New in #194 (dark):** a resolved Needs Review row's room number (2.0:1), and the ✕ on a pending Needs Review chip, which sits on a fixed yellow fill (1.6:1).
+- **Missed by #194's census:**
+  - the week-ahead allergen conflict report (Custom Reports): its amber lines were 2.2:1 in dark, its red lines 3.95:1 in light;
+  - the anaphylactic tags and allergen chips in the resident editor (red on pale pink, 4.4:1 in light).
+- **Print:** the dark table grid lines printed on a dark-mode computer's plating sheet.
+- **Unused code:** `doorTextOnFill` was never called.
+
+**Fixed:**
+- Those texts take the theme names; the chip's ✕ keeps a fixed dark amber on its fixed fill.
+- The resident editor's allergen chips use #b91c1c (`DK_CLR` maps it to the dark red).
+- The dark table grid lines are inside `@media screen`.
+- `doorTextOnFill` is gone.
+- A note badge on Needs Review uses the theme's blue.
+
+**Gates:**
+- `tests/browser/readable_themes_gate.mjs` grows to 129 checks, red 13/129 on `313b9d5`:
+  - a Needs Review list (open, resolved and skipped rows);
+  - the week-ahead conflict report run;
+  - the resident editor on an anaphylactic room;
+  - the print check also compares every grid line.
+- Its cleanup between states now closes dialogs instead of hiding them for good. The old cleanup kept the resident editor from opening.
+- `readable_themes_static_gate` re-pinned (dated, red 2/7 on `313b9d5`): the helper is gone, and every `@media screen` block is read.
+
+**Results:** census 0 misses in both themes at both widths, about 6,000 text pieces each. Suite 927 pass, 1 skipped. CI browser contracts 18/18, with `menu_flow_f6_delivery` flaky locally as on `main`.
+
 ## Recent (2026-11-13) — readable in both themes; a dark-mode print is a paper print (`v31-standard.72`)
 Jason, 2026-11-13: "please run a full review of dark mode colors. Align with other HOUSE apps that have had similar reviews based on current standards", then "OK, please implement these changes" on the review's three leans (CODEX's palette, a white page in any theme, both themes in one pass). The measure is CODEX C7's (conc-recipe-hub, 2026-10-18): every visible text piece against WCAG AA (4.5:1, 3:1 for large text).
 - **Measured on `main` `4a9c337`:** 12 screens and states, light and dark, 1280 and 390 px, about 4,000 text pieces each: dark 903 misses, light 870. Now 0 in all four.
