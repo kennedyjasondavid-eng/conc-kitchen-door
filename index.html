@@ -692,7 +692,7 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.70';
+const DOOR_APP_VERSION = 'v31-standard.71';
 const DOOR_BUILD_DATE = '2026-11-13';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11128,7 +11128,33 @@ function doorNormalizeMenuOverlay(overlay) {
     if (weekKey === '_meta' || !doorIsPlainObject(source[weekKey])) return;
     normalized[weekKey] = doorCloneJSON(source[weekKey]);
   });
-  return normalized;
+  return doorOverlayApplyTakeBacks(normalized);
+}
+
+// v31-standard.71 (2026-11-13): a menu upload that replaces a week takes that week's Edit Menu days back on every DOOR
+// computer. Apply stamps _meta.weekReplacedAt["<week>"] (ms); the merge keeps the newest stamp per week, and a day of
+// that week whose own edit stamp (_meta.dayEditedAt) is not later is dropped, with its stamp. So another computer that
+// still holds the old days can't send them back, while an edit made after the upload still counts. Pure.
+function doorOverlayWeekReplacedAt(overlay, weekKey) {
+  const m = doorIsPlainObject(overlay) && doorIsPlainObject(overlay._meta) ? overlay._meta.weekReplacedAt : null;
+  const v = doorIsPlainObject(m) ? Number(m[weekKey]) : NaN;
+  return isFinite(v) && v > 0 ? v : 0;
+}
+function doorOverlayApplyTakeBacks(overlay) {
+  if (!doorIsPlainObject(overlay) || !doorIsPlainObject(overlay._meta) || !doorIsPlainObject(overlay._meta.weekReplacedAt)) return overlay;
+  const stamps = doorIsPlainObject(overlay._meta.dayEditedAt) ? overlay._meta.dayEditedAt : null;
+  Object.keys(overlay).forEach(function(weekKey) {
+    if (weekKey === '_meta' || !doorIsPlainObject(overlay[weekKey])) return;
+    const at = doorOverlayWeekReplacedAt(overlay, weekKey);
+    if (!at) return;
+    Object.keys(overlay[weekKey]).forEach(function(dayKey) {
+      if (doorOverlayDayStamp(overlay, weekKey, dayKey) > at) return;
+      delete overlay[weekKey][dayKey];
+      if (stamps) delete stamps[weekKey + '|' + dayKey];
+    });
+    if (!Object.keys(overlay[weekKey]).length) delete overlay[weekKey];
+  });
+  return overlay;
 }
 
 // Each real menu edit stamps its day in _meta.dayEditedAt["<week>|<DAY>"] (ms). When a
@@ -11153,7 +11179,8 @@ function doorStampOverlayEdits(prevOverlay, nextOverlay, now) {
     if (weekKey === '_meta' || !doorIsPlainObject(next[weekKey])) return;
     Object.keys(next[weekKey]).forEach(function(dayKey) {
       const before = doorIsPlainObject(prev[weekKey]) ? prev[weekKey][dayKey] : undefined;
-      if (JSON.stringify(before) !== JSON.stringify(next[weekKey][dayKey])) stamps[weekKey + '|' + dayKey] = now;
+      // An edit to a replaced week is always stamped after the replacement (a computer with a slow clock included).
+      if (JSON.stringify(before) !== JSON.stringify(next[weekKey][dayKey])) stamps[weekKey + '|' + dayKey] = Math.max(now, doorOverlayWeekReplacedAt(next, weekKey) + 1);
     });
   });
   next._meta.dayEditedAt = stamps;
@@ -11180,6 +11207,14 @@ function doorMergeMenuOverlayWithCloud(localOverlay, cloudOverlay) {
   merged._meta = Object.assign({}, cloud._meta || {}, local._meta || {}, {
     standardCutover: DOOR_STANDARD_MENU_CUTOVER
   });
+  // The newest replacement of each week, from either side (v31-standard.71).
+  const replaced = {};
+  [cloud, local].forEach(function(side) {
+    const m = side._meta && doorIsPlainObject(side._meta.weekReplacedAt) ? side._meta.weekReplacedAt : {};
+    Object.keys(m).forEach(function(k) { const v = doorOverlayWeekReplacedAt(side, k); if (v && !(replaced[k] >= v)) replaced[k] = v; });
+  });
+  if (Object.keys(replaced).length) merged._meta.weekReplacedAt = replaced;
+  else delete merged._meta.weekReplacedAt;
 
   Object.keys(cloud).forEach(function(weekKey) {
     if (weekKey === '_meta') return;
@@ -11198,6 +11233,7 @@ function doorMergeMenuOverlayWithCloud(localOverlay, cloudOverlay) {
   });
   if (Object.keys(stamps).length) merged._meta.dayEditedAt = stamps;
   else delete merged._meta.dayEditedAt;
+  doorOverlayApplyTakeBacks(merged);
 
   return {
     merged: merged,
@@ -14813,8 +14849,9 @@ function saveMenuBaseOverlay(obj, opts) {
   // A real edit stamps the days it changed so the newest edit wins on every device
   // (doorMergeMenuOverlayWithCloud). An automatic tidy-up (opts.noStamp) never stamps —
   // it must not make an old copy look like a fresh edit.
-  let normalized = doorNormalizeMenuOverlay(obj);
-  if (!(opts && opts.noStamp)) normalized = doorStampOverlayEdits(loadMenuBaseOverlay(), normalized, Date.now());
+  // Stamped before it is normalized (v31-standard.71): normalizing drops a replaced week's unstamped days, and a new
+  // edit is unstamped until here.
+  const normalized = doorNormalizeMenuOverlay((opts && opts.noStamp) ? obj : doorStampOverlayEdits(loadMenuBaseOverlay(), obj, Date.now()));
   localStorage.setItem('concMenuBase', JSON.stringify(normalized));
   // Push to GitHub so other devices get the updated menu overlay immediately
   try {
@@ -17534,9 +17571,17 @@ function doorMergeUploadWeeks(base, fileMenu, assign) {
   return { menu, replaced: c.replaced, kept: c.kept, targets: c.targets };
 }
 // Pure. The menu overlay without the days of the given weeks (their edits were on the meals the upload replaced).
-function doorOverlayWithoutWeeks(overlay, weeks) {
+// With now (ms), each week is also stamped as replaced (_meta.weekReplacedAt), so the merge takes those days back on
+// every computer, not only this one (v31-standard.71).
+function doorOverlayWithoutWeeks(overlay, weeks, now) {
   const out = JSON.parse(JSON.stringify(overlay || {}));
   (weeks || []).forEach(w => { delete out[String(w)]; });
+  if (now) {
+    if (!out._meta || typeof out._meta !== 'object' || Array.isArray(out._meta)) out._meta = {};
+    const m = out._meta.weekReplacedAt && typeof out._meta.weekReplacedAt === 'object' ? out._meta.weekReplacedAt : {};
+    (weeks || []).forEach(w => { m[String(w)] = Math.max(Number(m[String(w)]) || 0, now); });
+    out._meta.weekReplacedAt = m;
+  }
   return out;
 }
 /* DOOR_TESTABLE_CORE_END rex-week */
@@ -19558,8 +19603,9 @@ function doorUploadWeekPickerChanged(el) {
 function doorApplyMenuUpload(fileMenu, assign) {
   if (!assign) {
     saveUploadedMenu(fileMenu);
-    // Clear the base overlay (individual permanent changes no longer apply to old slots)
-    saveMenuBaseOverlay({});
+    // Clear the base overlay (individual permanent changes no longer apply to old slots), on every computer: the four
+    // weeks are stamped as replaced (v31-standard.71).
+    saveMenuBaseOverlay(doorOverlayWithoutWeeks({}, [1, 2, 3, 4], Date.now()));
     return { ok: true, partial: false, replaced: [1, 2, 3, 4], kept: [] };
   }
   const base = loadUploadedMenu();
@@ -19569,7 +19615,7 @@ function doorApplyMenuUpload(fileMenu, assign) {
   const m = doorMergeUploadWeeks(base, fileMenu, assign);
   if (m.error) return { ok: false, error: m.error };
   saveUploadedMenu(m.menu);
-  saveMenuBaseOverlay(doorOverlayWithoutWeeks(loadMenuBaseOverlay(), m.replaced));
+  saveMenuBaseOverlay(doorOverlayWithoutWeeks(loadMenuBaseOverlay(), m.replaced, Date.now()));
   return { ok: true, partial: true, replaced: m.replaced, kept: m.kept };
 }
 function showMenuUploadReview(parseResult, filename) {

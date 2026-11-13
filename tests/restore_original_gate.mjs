@@ -321,5 +321,7 @@ test('6. the copy stays DOOR\'s: not in menu_current.json, no publish stop, edit
   // A workbook import starts fresh: the overlay goes, copies and all.
   // Re-pinned 2026-11-13 (v31-standard.70): the write moved into doorApplyMenuUpload. A 4-week workbook still clears the
   // whole overlay; a one-week file clears only its week's days (tests/one_week_upload_merge_gate.mjs).
-  assert.match(html, /saveUploadedMenu\(fileMenu\);\s*\n\s*\/\/ Clear the base overlay[^\n]*\n\s*saveMenuBaseOverlay\(\{\}\);/);
+  // Re-pinned 2026-11-13 (v31-standard.71): the cleared overlay now also stamps all four weeks as replaced, so every
+  // computer drops its copies (upload_week_takeback_gate); the overlay still holds no meal, so no copy survives.
+  assert.match(html, /saveUploadedMenu\(fileMenu\);\s*\n\s*\/\/ Clear the base overlay[^\n]*\n[^\n]*\n\s*saveMenuBaseOverlay\(doorOverlayWithoutWeeks\(\{\}, \[1, 2, 3, 4\], Date\.now\(\)\)\);/);
 });

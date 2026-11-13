@@ -116,7 +116,11 @@ test('a one-week file applied as Week 4 changes only Week 4; Weeks 1–3 stay by
   const ov = JSON.parse(S._store.concMenuBase);
   assert.deepEqual(ov['2'], { MONDAY: { lunch: 'Edited W2 lunch' } });
   assert.equal(ov['4'], undefined);
-  assert.deepEqual(ov._meta, { standardCutover: 'x' });
+  // Re-pinned 2026-11-13 (v31-standard.71): Week 4 is also stamped as replaced, so other computers drop their copies of
+  // its edits (upload_week_takeback_gate).
+  assert.deepEqual(Object.keys(ov._meta).sort(), ['standardCutover', 'weekReplacedAt']);
+  assert.equal(ov._meta.standardCutover, 'x');
+  assert.deepEqual(Object.keys(ov._meta.weekReplacedAt), ['4']);
 });
 
 test('the week can be changed: a file\'s Week 4 put in as Week 2 replaces Week 2 only', () => {
@@ -143,7 +147,12 @@ test('a 4-week file still replaces all four and clears every edit', () => {
   assert.equal(res.ok, true); assert.equal(res.partial, false);
   assert.equal(S._store.concUploadedMenu, JSON.stringify(file.menu));
   for (const wk of ['1', '2', '3', '4']) assert.match(JSON.parse(S._store.concUploadedMenu)[wk].MONDAY.dinner, /^New W/);
-  assert.deepEqual(out(S.overlaySaves), [{}]);
+  // Re-pinned 2026-11-13 (v31-standard.71): no meal is kept, and all four weeks are stamped as replaced.
+  const saves = out(S.overlaySaves);
+  assert.equal(saves.length, 1);
+  assert.deepEqual(Object.keys(saves[0]), ['_meta']);
+  assert.deepEqual(Object.keys(saves[0]._meta), ['weekReplacedAt']);
+  assert.deepEqual(Object.keys(saves[0]._meta.weekReplacedAt), ['1', '2', '3', '4']);
 });
 
 test('no full menu on this computer: a one-week file is refused out loud, nothing written', () => {
