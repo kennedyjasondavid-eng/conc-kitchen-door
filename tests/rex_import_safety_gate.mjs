@@ -114,7 +114,10 @@ test('the tab the workbook was saved on is read first, and named', () => {
   const up = fnBlock('triggerRexWeekUpload');
   assert.match(up, /doorRexSheetOrder\(wb\.SheetNames, active\)/);
   assert.match(up, /rex\.sheetName = n/);
-  assert.match(fnBlock('doorRenderRexWeekReview'), /read from the tab “/, 'the review names the tab');
+  // Re-pinned 2026-11-13 (upload_read_banner_gate, Week 4 log 3): the tab line moved into the large banner at the top
+  // of the review (doorUploadReadHTML), which names the tab read on every upload, not only a many-tab one.
+  assert.match(fnBlock('doorRenderRexWeekReview'), /tabs: \[R\.rex\.sheetName\]/, 'the review names the tab');
+  assert.match(fnBlock('doorUploadReadHTML'), /Read from the ' \+ tabs\(/, 'in so many words');
   assert.match(fnBlock('parseMenuWorkbook'), /active && re\.test\(active\) \? active :/, 'Menu Config upload prefers the saved-on tab too');
 });
 
