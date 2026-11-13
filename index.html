@@ -692,8 +692,8 @@
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.68';
-const DOOR_BUILD_DATE = '2026-11-10';
+const DOOR_APP_VERSION = 'v31-standard.69';
+const DOOR_BUILD_DATE = '2026-11-13';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -17407,6 +17407,93 @@ function doorMergeRexAnswers(a, b) {
   }));
   return out;
 }
+// ── What an upload read (Week 4 setup log 3, 2026-11-13) ──
+// Two near-identical files (the 4-week workbook and a one-tab copy) sat side by side, and the wrong pick opened a
+// plausible Week 1 review with nothing to say it was the wrong week. Both uploads now say, in large type, the week, its
+// Sunday–Saturday dates and the tab they read, and warn (never block) when the file name names another week or date.
+// Pure: dates are 'YYYY-MM-DD' keys, read as calendar days (UTC arithmetic, no time zone).
+const DOOR_CYCLE_ANCHOR = '2026-06-07';   // Sunday, Week 1 (EXPO's HUB_CYCLE_START; the HOUSE ledger's _cycleStart)
+const DOOR_DAY_MS = 86400000;
+function doorKeyToUTC(key) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key || ''));
+  return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : NaN;
+}
+function doorKeyFromUTC(t) {
+  const d = new Date(t);
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+}
+function doorKeyShortLabel(key) {
+  const t = doorKeyToUTC(key);
+  if (isNaN(t)) return '';
+  const d = new Date(t);
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()] + ' ' + d.getUTCDate();
+}
+// The rotation week (1–4) of a date key, from the cycle anchor.
+function doorCycleWeekOfKey(key) {
+  const t = doorKeyToUTC(key);
+  if (isNaN(t)) return null;
+  const sun = t - new Date(t).getUTCDay() * DOOR_DAY_MS;
+  const w = Math.round((sun - doorKeyToUTC(DOOR_CYCLE_ANCHOR)) / (7 * DOOR_DAY_MS));
+  return ((w % 4) + 4) % 4 + 1;
+}
+// A rotation week's Sunday–Saturday: this week when today is in it, else the next one ahead.
+function doorCycleWeekDates(week, todayKey) {
+  const t = doorKeyToUTC(todayKey);
+  if (isNaN(t)) return null;
+  const sun = t - new Date(t).getUTCDay() * DOOR_DAY_MS;
+  for (let i = 0; i < 4; i++) {
+    const s = doorKeyFromUTC(sun + i * 7 * DOOR_DAY_MS);
+    if (doorCycleWeekOfKey(s) === Number(week)) return { start: s, end: doorKeyFromUTC(doorKeyToUTC(s) + 6 * DOOR_DAY_MS) };
+  }
+  return null;
+}
+// The week a file name names ("Week 4 18 Oct - 24 Oct.xlsx", "Wk1 menu.xlsx"), or null. "4_week_rotation" names none.
+function doorFileNameWeek(name) {
+  const m = String(name || '').replace(/[_]+/g, ' ').match(/(?:^|[^a-z])(?:week|wk)\s*[-#]?\s*([1-4])(?![0-9])/i);
+  return m ? Number(m[1]) : null;
+}
+function doorWeeksPhrase(list) {
+  const w = list.slice().sort((a, b) => a - b);
+  if (w.length === 1) return 'Week ' + w[0];
+  const run = w.every((x, i) => !i || x === w[i - 1] + 1);
+  return 'Weeks ' + (run && w.length > 2 ? w[0] + '–' + w[w.length - 1] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1]);
+}
+// o: { kind: 'rex' | 'rotation', fileName, today, weeks: [{ week, tabs: [..], start? }], reviewStart? }
+// → { title, weeks: [{ week, start, end, dates, tabs }], warnings: [plain sentences] }
+function doorUploadReadCheck(o) {
+  o = o || {};
+  const weeks = (o.weeks || []).filter(w => w && w.week >= 1 && w.week <= 4).map(w => {
+    const start = w.start && !isNaN(doorKeyToUTC(w.start)) ? w.start : ((doorCycleWeekDates(w.week, o.today) || {}).start || '');
+    const end = start ? doorKeyFromUTC(doorKeyToUTC(start) + 6 * DOOR_DAY_MS) : '';
+    return { week: Number(w.week), start, end, dates: start ? doorKeyShortLabel(start) + ' – ' + doorKeyShortLabel(end) : '', tabs: (w.tabs || []).filter(Boolean) };
+  }).sort((a, b) => a.week - b.week);
+  const read = weeks.map(w => w.week);
+  const warnings = [];
+  const fileWeek = doorFileNameWeek(o.fileName);
+  const fileStart = typeof doorRexWeekStartFromName === 'function' ? doorRexWeekStartFromName(o.fileName, o.today ? new Date(doorKeyToUTC(o.today) + DOOR_DAY_MS / 2) : new Date()) : '';
+  const fileStartWeek = fileStart ? doorCycleWeekOfKey(fileStart) : null;
+  const fileDates = fileStart ? doorKeyShortLabel(fileStart) + ' – ' + doorKeyShortLabel(doorKeyFromUTC(doorKeyToUTC(fileStart) + 6 * DOOR_DAY_MS)) : '';
+  const tabOf = w => w && w.tabs.length ? ' from the tab “' + w.tabs[0] + '”' : '';
+  if (!read.length) return { title: '', weeks, warnings };
+  if (fileWeek && read.indexOf(fileWeek) < 0) {
+    warnings.push(read.length === 1
+      ? 'The file name says Week ' + fileWeek + ', but DOOR read Week ' + read[0] + tabOf(weeks[0]) + '. Check you picked the right file.'
+      : 'The file name says Week ' + fileWeek + ', but DOOR found no Week ' + fileWeek + ' tab in it (it read ' + doorWeeksPhrase(read) + '). Check you picked the right file.');
+  }
+  if (fileStart && read.indexOf(fileStartWeek) < 0) {
+    warnings.push('The file name says the week of ' + fileDates + ', which is Week ' + fileStartWeek + ' in DOOR’s cycle, but DOOR read ' + doorWeeksPhrase(read) + '. Check you picked the right file.');
+  } else if (o.kind === 'rex' && fileStart && weeks[0].start && fileStart !== weeks[0].start) {
+    warnings.push('The file name says the week of ' + fileDates + ', but this review is set to ' + weeks[0].dates + '.');
+  }
+  if (o.kind === 'rotation' && read.length < 4) {
+    warnings.push('This file holds only ' + doorWeeksPhrase(read) + '. Applying it replaces the whole 4-week rotation with what this file holds. To change one week, use Rex’s week sheet instead.');
+  }
+  if (o.kind === 'rotation' && fileWeek && read.length > 1 && read.indexOf(fileWeek) >= 0) {
+    warnings.push('The file name says Week ' + fileWeek + ', but this file holds ' + doorWeeksPhrase(read) + ', and applying it replaces all of them.');
+  }
+  const title = weeks.length === 1 ? 'Week ' + weeks[0].week + (weeks[0].dates ? ' · ' + weeks[0].dates : '') : doorWeeksPhrase(read);
+  return { title, weeks, warnings };
+}
 /* DOOR_TESTABLE_CORE_END rex-week */
 
 // ── Rex's week sheet: the Menu Config upload, review and save (2026-10-29) ─────────────────────────────────────────
@@ -18992,6 +19079,21 @@ function doorRexSheetOrder(names, active) {
   const list = Array.isArray(names) ? names.slice() : [];
   return active && list.indexOf(active) > 0 ? [active].concat(list.filter(n => n !== active)) : list;
 }
+// The week, dates and tab an upload read, in large type at the top of its review, with any mismatch warnings
+// (doorUploadReadCheck; Week 4 setup log 3). A warning never blocks: it asks the reader to check the file.
+function doorUploadReadHTML(check, fileName, note) {
+  if (!check || !check.weeks || !check.weeks.length) return '';
+  const many = check.weeks.length > 1;
+  const tabs = w => w.tabs.length ? (w.tabs.length > 1 ? 'tabs ' : 'tab ') + w.tabs.map(t => '“' + escapeHtml(t) + '”').join(' and ') : 'no tab name';
+  const body = many
+    ? check.weeks.map(w => '<div style="font-size:14px;margin-top:3px;"><strong>Week ' + w.week + '</strong> · ' + escapeHtml(w.dates) + ' · read from the ' + tabs(w) + '</div>').join('')
+    : '<div style="font-size:14px;margin-top:3px;">Read from the ' + tabs(check.weeks[0]) + (note ? ' · ' + escapeHtml(note) : '') + '</div>';
+  const warn = (check.warnings || []).map(t => '<div class="door-upload-warning" role="alert" style="background:#fee2e2;border:2px solid #ef4444;color:#991b1b;border-radius:8px;padding:8px 12px;margin-top:8px;font-size:14px;font-weight:600;">⚠ ' + escapeHtml(t) + '</div>').join('');
+  return '<div class="door-upload-read" style="margin-bottom:12px;">' +
+    '<div style="border:2px solid ' + (warn ? '#ef4444' : 'var(--border)') + ';border-radius:8px;padding:10px 14px;">' +
+    '<div class="door-upload-read-title" style="font-size:24px;font-weight:800;line-height:1.2;">' + escapeHtml(check.title) + '</div>' + body +
+    '<div style="font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all;">File: ' + escapeHtml(fileName || '') + (many ? ' · dates are each week’s next turn in the rotation' : '') + '</div></div>' + warn + '</div>';
+}
 function triggerRexWeekUpload() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -19172,8 +19274,9 @@ function doorRenderRexWeekReview() {
   overlay.innerHTML = '<div class="modal-box" style="max-width:780px;width:96%;max-height:90vh;display:flex;flex-direction:column;">' +
     '<div class="modal-header"><h2>Rex’s week sheet — Week ' + R.rex.week + '</h2></div>' +
     '<div class="modal-body" style="padding:14px 18px;overflow-y:auto;flex:1;">' +
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">' + escapeHtml(R.fileName || '') +
-      (R.rex.sheetName && R.rex.sheetCount > 1 ? ' · read from the tab “' + escapeHtml(R.rex.sheetName) + '” (' + R.rex.sheetCount + ' tabs in the file)' : '') + '</div>' +
+    doorUploadReadHTML(doorUploadReadCheck({ kind: 'rex', fileName: R.fileName, today: doorRexLocalKey(new Date()),
+      weeks: [{ week: R.rex.week, start: R.start, tabs: [R.rex.sheetName] }] }), R.fileName,
+      R.rex.sheetCount > 1 ? R.rex.sheetCount + ' tabs in the file' : '') +
     '<div style="font-size:12px;margin-bottom:8px;"><label>Week of <select id="rex-week-start" class="form-input" style="font-size:12px;padding:3px 6px;display:inline-block;width:auto;">' +
     R.cands.map(c => '<option value="' + c + '"' + (c === R.start ? ' selected' : '') + '>' + escapeHtml(formatShortDate(new Date(c + 'T12:00:00'))) + '</option>').join('') +
     '</select></label> <span style="color:var(--muted);">' + escapeHtml(dates) + (R.dateNote ? ' · ' + escapeHtml(R.dateNote) : '') + '</span></div>' +
@@ -19305,6 +19408,7 @@ function parseMenuWorkbook(wb) {
   const findSheet = (wk, kind) => { const re = new RegExp('Week\\s*' + wk + '\\s*' + kind, 'i');
     return active && re.test(active) ? active : wb.SheetNames.find(n => re.test(n)); };
   const sheets = {};
+  const tabs = {};   // the tabs each week was read from, for the review (Week 4 setup log 3)
   for (let wk = 1; wk <= 4; wk++) {
     const kName = findSheet(wk, 'Kitchen');
     const iName = findSheet(wk, 'Intake');
@@ -19317,8 +19421,12 @@ function parseMenuWorkbook(wb) {
       kitchen: kName ? rowsFor(kName) : (genericName ? rowsFor(genericName) : null),
       intake:  iName ? rowsFor(iName) : null
     };
+    tabs[String(wk)] = [kName || genericName, iName].filter(Boolean);
   }
-  return parseMenuFromSheetRows(sheets);
+  const parsed = parseMenuFromSheetRows(sheets);
+  parsed.tabs = {};
+  Object.keys(parsed.menu || {}).forEach(wk => { parsed.tabs[wk] = tabs[wk] || []; });
+  return parsed;
 }
 
 // Menu Config "⇪ Publish" button. Runs the same manual publish as Settings'
@@ -19450,8 +19558,9 @@ function showMenuUploadReview(parseResult, filename) {
   modal.id = 'menu-upload-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
   modal.innerHTML = `<div style="background:var(--paper);border-radius:12px;padding:24px;max-width:640px;width:95%;max-height:88vh;overflow-y:auto;">
-    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">Upload New Menu Rotation</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${escapeHtml(filename)}</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Upload New Menu Rotation</div>
+    ${doorUploadReadHTML(doorUploadReadCheck({ kind: 'rotation', fileName: filename, today: doorRexLocalKey(new Date()),
+      weeks: Object.keys(menu).map(wk => ({ week: Number(wk), tabs: (parseResult.tabs || {})[wk] || [] })) }), filename)}
     <div style="margin-bottom:12px;">${summary.join('')}</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Totals: ${totalMeals} meals, ${totalVeg} veg alternatives, ${totalAllergens} with allergen flags. Allergens are the union of the Intake sheet's list and the dishes' own names (never under-flags).</div>
     ${noAllergWarn}
