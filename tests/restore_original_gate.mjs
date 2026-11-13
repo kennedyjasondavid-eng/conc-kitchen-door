@@ -319,5 +319,7 @@ test('6. the copy stays DOOR\'s: not in menu_current.json, no publish stop, edit
   for (let i = 0; i < 12; i++) lb.appendChangeLog({ type: 'permanent_edit', week: W, day: D, period: P, oldName: 'a', newName: 'b', before: { '': 'x' + i } });
   assert.deepEqual(L.log.map((e) => !!e.before), [...Array(10).fill(true), false, false]);
   // A workbook import starts fresh: the overlay goes, copies and all.
-  assert.match(html, /saveUploadedMenu\(finalMenu\);\s*\n\s*\/\/ Clear the base overlay[^\n]*\n\s*saveMenuBaseOverlay\(\{\}\);/);
+  // Re-pinned 2026-11-13 (v31-standard.70): the write moved into doorApplyMenuUpload. A 4-week workbook still clears the
+  // whole overlay; a one-week file clears only its week's days (tests/one_week_upload_merge_gate.mjs).
+  assert.match(html, /saveUploadedMenu\(fileMenu\);\s*\n\s*\/\/ Clear the base overlay[^\n]*\n\s*saveMenuBaseOverlay\(\{\}\);/);
 });
