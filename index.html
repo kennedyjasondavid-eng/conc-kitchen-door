@@ -11,7 +11,7 @@
 // The saved theme is applied before the page draws, so a dark-mode computer does not flash the light page (CODEX and HUB do the same).
 try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}
 </script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900;1000&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --forest: #1b4332; --forest-mid: #2d6a4f; --forest-light: #40916c;
@@ -786,7 +786,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     .sidebar-brand .brand-icon img { width: 56px !important; height: 56px !important; }
     .sidebar-brand .brand-name { display: flex; flex-direction: column; height: 56px; white-space: nowrap; }
     .sidebar-brand .brand-kitchen { font-size: 16px; font-weight: 600; line-height: 20px; }
-    .sidebar-brand .brand-door { font-size: 34px; font-weight: 900; line-height: 36px; letter-spacing: -0.8px; }
+    .sidebar-brand .brand-door { font-size: 36px; font-weight: 1000; -webkit-text-stroke: .018em currentColor; line-height: 36px; letter-spacing: -.035em; }
     .sidebar-brand .brand-dot { display: inline-block; width: 7px; height: 7px; margin-left: 3px; border-radius: 50%; background: var(--mint); }
     .sidebar-brand .brand-sub { margin-left: 0; margin-top: 6px; }
   }
