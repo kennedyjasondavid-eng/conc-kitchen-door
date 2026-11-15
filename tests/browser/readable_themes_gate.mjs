@@ -127,6 +127,37 @@ for (const width of [1280, 820, 390, 320]) {
   }
 }
 
+// 2026-11-15: live switching must match a fresh boot, without replacing a form or losing typed values.
+for (const width of [1280, 390]) {
+  const { page } = await open(browser, 'light', width);
+  await page.evaluate(() => showScreen('enter')); await page.clock.runFor(2500);
+  await page.locator('#room-number').fill('614a');
+  const capture = () => [...document.querySelectorAll('.daily-update-start, .daily-update-title, .daily-update-import, .daily-update-manual, .daily-update-sub')].map(e => {
+    const c = getComputedStyle(e); return [c.backgroundColor, c.color, c.borderColor];
+  });
+  const light = await page.evaluate(capture);
+  ok(`daily update panel found (${width}px)`, light.length === 5);
+  await page.evaluate(() => { window._dailyPromptBeforeToggle = document.getElementById('daily-import-prompt').firstElementChild; toggleDarkMode(); });
+  const switchedDark = await page.evaluate(capture);
+  const { page: freshDark } = await open(browser, 'dark', width);
+  ok(`live dark equals freshly opened dark (${width}px)`, JSON.stringify(switchedDark) === JSON.stringify(await freshDark.evaluate(capture)));
+  ok(`dark toggle changes the panel colours (${width}px)`, JSON.stringify(switchedDark) !== JSON.stringify(light));
+  await freshDark.close();
+  await page.evaluate(() => toggleDarkMode());
+  ok(`live light restores panel colours (${width}px)`, JSON.stringify(await page.evaluate(capture)) === JSON.stringify(light));
+  ok(`theme switches preserve typed room and form node (${width}px)`, await page.evaluate(() => document.getElementById('room-number').value === '614a' && document.getElementById('daily-import-prompt').firstElementChild === window._dailyPromptBeforeToggle));
+  if (width === 390) {
+    await page.locator('#mobile-menu-btn').click();
+    ok('open phone drawer: logo and toggle do not overlap, toggle stays on screen', await page.evaluate(() => {
+      const logo = document.querySelector('.brand-icon img').getBoundingClientRect(), toggle = document.getElementById('mobile-menu-btn').getBoundingClientRect();
+      return document.body.classList.contains('nav-open') && toggle.left >= logo.right && toggle.right <= innerWidth;
+    }));
+    await page.locator('#mobile-menu-btn').click();
+    ok('phone drawer can still close with its toggle', await page.evaluate(() => !document.body.classList.contains('nav-open')));
+  }
+  await page.close();
+}
+
 // The print check: from a dark-mode page, the plating sheet prints the light sheet.
 {
   const sheet = async (theme) => {

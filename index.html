@@ -778,6 +778,32 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     :root:not([data-theme="dark"]) .anaph-left { min-width: 0; }
     :root:not([data-theme="dark"]) .cb-label { overflow-wrap: anywhere; }
   }
+  /* Jason's selected branding size (2026-11-15): keep the 220px sidebar, add 20px to its header. */
+  @media screen {
+    .sidebar-brand { padding: 20px 14px 16px; }
+    .sidebar-brand .brand-logo { gap: 8px; }
+    .sidebar-brand .brand-icon { width: 48px; height: 48px; }
+    .sidebar-brand .brand-icon img { width: 48px !important; height: 48px !important; }
+    .sidebar-brand .brand-name { font-size: 20px; white-space: nowrap; letter-spacing: -0.2px; }
+    .sidebar-brand .brand-sub { margin-left: 0; margin-top: 6px; }
+  }
+  @media screen and (max-width: 768px) {
+    body.nav-open #mobile-menu-btn { left: calc(var(--sidebar-w) + 11px); }
+  }
+  /* The daily-entry prompt follows a theme toggle without rebuilding its form. */
+  .daily-update-start { background: #fef3c7; border: 1px solid #f59e0b; }
+  .daily-update-title, .daily-update-manual, .daily-update-sub { color: #92400e; }
+  .daily-update-import { background: #b45309; color: #fff; }
+  .daily-update-manual { background: #fff; border: 1px solid #fcd34d; }
+  @media screen {
+    :root:not([data-theme="dark"]) .daily-update-start { background: var(--warn-faint, #fef3c7); }
+    :root:not([data-theme="dark"]) .daily-update-manual { background: var(--surface-alt, #fff); }
+    [data-theme="dark"] .daily-update-start { background: #2a2520; border-color: #5c4d30; }
+    [data-theme="dark"] .daily-update-title, [data-theme="dark"] .daily-update-manual { color: #d4a040; }
+    [data-theme="dark"] .daily-update-import { background: #8a6d20; }
+    [data-theme="dark"] .daily-update-manual { background: #2a2520; border-color: #5c4d30; }
+    [data-theme="dark"] .daily-update-sub { color: #c9a46a; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1028,7 +1054,7 @@ function updateCODEXBadge() {
 </head>
 <body>
 
-<button id="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
+<button id="mobile-menu-btn" aria-label="Toggle navigation" onclick="toggleMobileNav()">☰</button>
 <div class="mobile-overlay" onclick="closeMobileNav()"></div>
 
 <div id="app-shell" style="display:flex;min-height:100vh;">
@@ -8707,24 +8733,16 @@ function updateDailyImportPrompt() {
       `<button class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;" onclick="openUploadDialog()">Re-import</button>` +
       `</div>${statusLine}</div>`;
   } else {
-    const _dk = document.documentElement.getAttribute('data-theme')==='dark';
-    const _bg = _dk ? '#2a2520' : '#fef3c7';
-    const _bd = _dk ? '#5c4d30' : '#f59e0b';
-    const _title = _dk ? '#d4a040' : '#92400e';
-    const _btnBg = _dk ? '#8a6d20' : '#b45309';
-    const _btn2Bg = _dk ? '#2a2520' : '#fff';
-    const _btn2Bd = _dk ? '#5c4d30' : '#fcd34d';
-    const _sub = _dk ? '#c9a46a' : '#92400e';
-    el.innerHTML = _staleBanner + _firstRun + _deviceBanner + `<div style="padding:14px 16px;background:${_bg};border:1px solid ${_bd};border-radius:8px;">` +
+    el.innerHTML = _staleBanner + _firstRun + _deviceBanner + `<div class="daily-update-start" style="padding:14px 16px;border-radius:8px;">` +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">` +
       `<span style="font-size:18px">&#x2261;</span>` +
-      `<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:${_title};">Start today's update</div></div>` +
+      `<div style="flex:1;"><div class="daily-update-title" style="font-weight:700;font-size:14px;">Start today's update</div></div>` +
       `</div>` +
       `<div style="display:flex;gap:10px;">` +
-      `<button class="btn btn-sm" style="background:${_btnBg};color:#fff;flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">&#x2191; Import Daily Meal List</button>` +
-      `<button class="btn btn-sm" style="background:${_btn2Bg};color:${_title};border:1px solid ${_btn2Bd};flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">&#x270E; Enter Changes Manually</button>` +
+      `<button class="btn btn-sm daily-update-import" style="flex:1;padding:8px 12px;font-size:13px;" onclick="openUploadDialog()">&#x2191; Import Daily Meal List</button>` +
+      `<button class="btn btn-sm daily-update-manual" style="flex:1;padding:8px 12px;font-size:13px;" onclick="document.getElementById('room-number').focus()">&#x270E; Enter Changes Manually</button>` +
       `</div>` +
-      `<div style="font-size:11px;color:${_sub};margin-top:8px;">Import today's meal list to add changes automatically, or enter changes below.</div>` +
+      `<div class="daily-update-sub" style="font-size:11px;margin-top:8px;">Import today's meal list to add changes automatically, or enter changes below.</div>` +
       `</div>`;
   }
 }
