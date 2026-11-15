@@ -53,6 +53,11 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent / decision (2026-11-15) — stacked HOUSE wordmark
+Jason requested Kitchen above a heavier DOOR with a green dot, using his CODEX example, and a slightly larger logo aligned with the two-line title. The screen header now pairs a 56 px logo with a 56 px text block: Kitchen 16 px over DOOR 34 px / weight 900, tightly tracked, with a small decorative green dot. The existing DM Sans request includes weight 900. Sidebar width stays 220 px; header height is 123 px (8 px more than the previous 48 px logo header). The mobile navigation toggle remains beside the open drawer, clear of the logo. Both themes retain their existing brand colours; print and operational data are unchanged.
+
+**Validation:** Node suite 927 pass, 1 skipped; browser theme/contrast/print and mobile drawer gate 261/261; branding geometry 10/10 across desktop, tablet, phone, narrow phone and short landscape in both themes. Offline Chromium uses the fallback font; the final layout has spare horizontal room for the existing DM Sans family.
+
 ## Recent (2026-11-15) — daily update prompt follows a live theme switch
 Jason reported that "Start today's update" stayed light after switching to dark until a refresh. Its renderer chose fixed inline colours from the theme at render time. The prompt now uses CSS classes, with dark screen rules and Warm paper light tokens, so its colours follow `data-theme` immediately. Switching themes does not rerender the prompt or recreate typed connection/name/room fields. Button actions, copy and routing/data behaviour stay intact.
 
