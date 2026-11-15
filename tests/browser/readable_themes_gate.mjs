@@ -136,14 +136,18 @@ for (const width of [1280, 390]) {
     const c = getComputedStyle(e); return [c.backgroundColor, c.color, c.borderColor];
   });
   const light = await page.evaluate(capture);
+  const logoFilter = () => getComputedStyle(document.querySelector('.brand-icon img')).filter;
+  const lightLogo = await page.evaluate(logoFilter);
   ok(`daily update panel found (${width}px)`, light.length === 5);
   await page.evaluate(() => { window._dailyPromptBeforeToggle = document.getElementById('daily-import-prompt').firstElementChild; toggleDarkMode(); });
   const switchedDark = await page.evaluate(capture);
+  const darkLogo = await page.evaluate(logoFilter);
   const { page: freshDark } = await open(browser, 'dark', width);
   ok(`live dark equals freshly opened dark (${width}px)`, JSON.stringify(switchedDark) === JSON.stringify(await freshDark.evaluate(capture)));
   ok(`dark toggle changes the panel colours (${width}px)`, JSON.stringify(switchedDark) !== JSON.stringify(light));
   await freshDark.close();
   await page.evaluate(() => toggleDarkMode());
+  ok(`logo backgrounds follow light/dark/light immediately (${width}px)`, lightLogo === 'none' && darkLogo === 'invert(1)' && await page.evaluate(logoFilter) === 'none');
   ok(`live light restores panel colours (${width}px)`, JSON.stringify(await page.evaluate(capture)) === JSON.stringify(light));
   ok(`theme switches preserve typed room and form node (${width}px)`, await page.evaluate(() => document.getElementById('room-number').value === '614a' && document.getElementById('daily-import-prompt').firstElementChild === window._dailyPromptBeforeToggle));
   if (width === 390) {
