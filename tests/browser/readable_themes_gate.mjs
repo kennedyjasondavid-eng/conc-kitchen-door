@@ -146,6 +146,15 @@ for (const width of [1280, 390]) {
   await page.evaluate(() => toggleDarkMode());
   ok(`live light restores panel colours (${width}px)`, JSON.stringify(await page.evaluate(capture)) === JSON.stringify(light));
   ok(`theme switches preserve typed room and form node (${width}px)`, await page.evaluate(() => document.getElementById('room-number').value === '614a' && document.getElementById('daily-import-prompt').firstElementChild === window._dailyPromptBeforeToggle));
+  if (width === 390) {
+    await page.locator('#mobile-menu-btn').click();
+    ok('open phone drawer: logo and toggle do not overlap, toggle stays on screen', await page.evaluate(() => {
+      const logo = document.querySelector('.brand-icon img').getBoundingClientRect(), toggle = document.getElementById('mobile-menu-btn').getBoundingClientRect();
+      return document.body.classList.contains('nav-open') && toggle.left >= logo.right && toggle.right <= innerWidth;
+    }));
+    await page.locator('#mobile-menu-btn').click();
+    ok('phone drawer can still close with its toggle', await page.evaluate(() => !document.body.classList.contains('nav-open')));
+  }
   await page.close();
 }
 

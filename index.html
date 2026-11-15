@@ -787,6 +787,9 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     .sidebar-brand .brand-name { font-size: 20px; white-space: nowrap; letter-spacing: -0.2px; }
     .sidebar-brand .brand-sub { margin-left: 0; margin-top: 6px; }
   }
+  @media screen and (max-width: 768px) {
+    body.nav-open #mobile-menu-btn { left: calc(var(--sidebar-w) + 11px); }
+  }
   /* The daily-entry prompt follows a theme toggle without rebuilding its form. */
   .daily-update-start { background: #fef3c7; border: 1px solid #f59e0b; }
   .daily-update-title, .daily-update-manual, .daily-update-sub { color: #92400e; }
@@ -1051,7 +1054,7 @@ function updateCODEXBadge() {
 </head>
 <body>
 
-<button id="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
+<button id="mobile-menu-btn" aria-label="Toggle navigation" onclick="toggleMobileNav()">☰</button>
 <div class="mobile-overlay" onclick="closeMobileNav()"></div>
 
 <div id="app-shell" style="display:flex;min-height:100vh;">
