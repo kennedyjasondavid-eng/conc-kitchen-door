@@ -101,7 +101,8 @@ async function open(browser, theme, width) {
 
 const browser = await chromium.launch();
 const totals = {}; const DUMP = process.env.READABLE_DUMP ? [] : null;  // READABLE_DUMP=<file>: every miss, for fixing
-for (const width of [1280, 390]) {
+// Warm paper acceptance (2026-11-15): tablet and narrow-phone reflow too.
+for (const width of [1280, 820, 390, 320]) {
   for (const theme of ['light', 'dark']) {
     const { page, errors } = await open(browser, theme, width);
     ok(`theme ${theme} applied (${width}px)`,

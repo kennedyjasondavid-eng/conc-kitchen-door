@@ -53,6 +53,15 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent / decision (2026-11-15) — Warm paper light screens
+Jason approved the desktop/mobile before-and-after previews and asked to finish checks and prepare the PR. The light screen palette uses a warm canvas (#EAE7DF), paper panels (#F5F2EA), inset fields (#FBF9F4), green-grey hover (#E4E8DE), three paper inks (#29332D / #48534D / #5B665F), quiet dividers (#D5D2C7) and separate control boundaries (#7D857C). Existing brand fills and safety/route colours keep their meanings; green and amber status text uses the existing deeper inks where paper needs more contrast.
+
+**Ownership:** the change is confined to light `@media screen` CSS in `index.html`. Base/print tokens and all dark rules remain intact. Markup, scripts, embedded records and output templates are unchanged; no feed, schema, menu, resident or routing file changes. The existing readable-themes browser gate now covers 1280, 820, 390 and 320 px. Tablet content can scroll within its available width; primary compact/touch controls have 44 px targets, stronger keyboard focus and readable placeholders.
+
+**Validation:** Node suite 927 pass, 1 skipped; readable-themes census 249/249 (zero text contrast misses in either theme at all four widths, including dialogs, anaphylactic editor, menu tools and print); 17 publisher browser contracts pass. Local baseline comparisons: 30/30, every visible element's colours/borders/type/dimensions across the 14 dark states at desktop/phone plus both themes' printed plating sheets. Responsive/focus checks: 30/30 across 820×900, 390×860, 320×700, 844×390 and 640×450. Browser checks used the existing sibling Playwright installation, with no runtime dependency added.
+
+**Limits:** this is offline Chromium verification with Chart.js stubbed as in the established census; live connection credentials, canvas text, physical touch hardware and printer hardware were not exercised. Wide operational tables retain local horizontal scrolling. Existing safety toggles retain their established dimensions. Cross-app release status remains owned by the HOUSE ledger; this entry records only DOOR's local theme decision and validation.
+
 ## Recent (2026-11-13) — the readable-themes review, folded (`v31-standard.73`)
 Jason, 2026-11-13: "sure run that review", then "yes complete the work, open and merge PR as needed". An independent review of #194 said FIX: no broken function and no warning that lost its red. Its findings:
 - **New in #194 (dark):** a resolved Needs Review row's room number (2.0:1), and the ✕ on a pending Needs Review chip, which sits on a fixed yellow fill (1.6:1).
