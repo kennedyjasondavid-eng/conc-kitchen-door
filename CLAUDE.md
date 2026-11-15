@@ -53,6 +53,11 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-15) — daily update prompt follows a live theme switch
+Jason reported that "Start today's update" stayed light after switching to dark until a refresh. Its renderer chose fixed inline colours from the theme at render time. The prompt now uses CSS classes, with dark screen rules and Warm paper light tokens, so its colours follow `data-theme` immediately. Switching themes does not rerender the prompt or recreate typed connection/name/room fields. Button actions, copy and routing/data behaviour stay intact.
+
+**Checks:** Node suite 927 pass, 1 skipped. Browser readable-themes gate 259/259: the existing four-width, two-theme contrast/print census plus ten new assertions at desktop and phone for panel presence, live dark matching a fresh dark boot, both switch directions and typed room/form-node preservation. The logo sizing comparison is a separate preview, not part of this fix.
+
 ## Recent / decision (2026-11-15) — Warm paper light screens
 Jason approved the desktop/mobile before-and-after previews and asked to finish checks and prepare the PR. The light screen palette uses a warm canvas (#EAE7DF), paper panels (#F5F2EA), inset fields (#FBF9F4), green-grey hover (#E4E8DE), three paper inks (#29332D / #48534D / #5B665F), quiet dividers (#D5D2C7) and separate control boundaries (#7D857C). Existing brand fills and safety/route colours keep their meanings; green and amber status text uses the existing deeper inks where paper needs more contrast.
 
