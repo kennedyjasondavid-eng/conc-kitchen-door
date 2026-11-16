@@ -22,7 +22,10 @@ const state = json('door_state.json');
 function ctxFor(residents, rooms) {
   const c = { REGISTRY_LIST: residents, anaphRooms: rooms };
   vm.createContext(c);
-  vm.runInContext(fnOpt('doorIsAnaphResident') + fn('buildRegistrySummaryJSON'), c, { filename: 'index.html#anaph-flag', timeout: 2000 });
+  // Re-pinned 2026-11-16 (DC18, v31-standard.74): the summary also publishes the anaphylactic trigger flags, so the
+  // context carries the tag -> flag map and the per-resident scoping they are built from.
+  vm.runInContext(between('const TAG_LABELS_MAP = {', '\n};\n') + '\n};\n' + between('const ANAPH_TAG_TO_MEAL_FLAG = {', '\n};\n') + '\n};\n' +
+    fn('anaphTagMealFlags') + fn('getAnaphDisplayAllergens') + fnOpt('doorIsAnaphResident') + fnOpt('doorAnaphTriggerSummary') + fn('buildRegistrySummaryJSON'), c, { filename: 'index.html#anaph-flag', timeout: 2000 });
   return c;
 }
 
