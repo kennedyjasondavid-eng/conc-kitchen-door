@@ -815,7 +815,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.73';
+const DOOR_APP_VERSION = 'v31-standard.74';
 const DOOR_BUILD_DATE = '2026-11-13';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -10698,6 +10698,34 @@ function buildStateJSON() {
   };
 }
 
+// EXPO's anaphylactic check reads anaphylactic_trigger_flags (meal flag names) and anaphylactic_trigger_tags (labels) from
+// this file. DOOR never wrote them, so in production EXPO's check read no anaphylactic resident at all (EXPO field test,
+// DC18; Jason, 2026-11-16: "Open both pairs now"). They are the union, over every anaphylactic resident, of the same
+// per-resident scoping the lockout acts on (getAnaphDisplayAllergens: anaphTags when set), each mapped through
+// anaphTagMealFlags. Counts and flag names only: no room, no resident, so the file stays safe to serve.
+function doorAnaphTriggerSummary(list) {
+  const flags = new Set(), tags = new Set();
+  // DC18 coverage (2026-11-16): count the anaphylactic residents whose every allergen became a meal flag, so EXPO can
+  // tell a complete list from one that left a resident out (an allergen DOOR has no flag for, such as No Oats, or
+  // no allergen recorded at all). A count only: no room, no resident. Where the allergen-tag rule is not loaded,
+  // every label must map (the strict side: EXPO keeps its warning).
+  const isAllergen = typeof doorIsAnaphAllergenTag === 'function' ? doorIsAnaphAllergenTag : () => true;
+  let mapped = 0;
+  (list || []).forEach(r => {
+    if (!doorIsAnaphResident(r)) return;
+    let some = false, all = true;
+    getAnaphDisplayAllergens(r).forEach(label => {
+      const fl = anaphTagMealFlags(label);
+      if (!fl.length) { if (isAllergen(label)) all = false; return; }
+      some = true;
+      tags.add(label);
+      fl.forEach(f => flags.add(f));
+    });
+    if (some && all) mapped++;
+  });
+  return { flags: [...flags].sort(), tags: [...tags].sort(), mapped };
+}
+
 function buildRegistrySummaryJSON() {
   const sc={}, tc={};
   let ac=0, mc=0;
@@ -10707,11 +10735,15 @@ function buildRegistrySummaryJSON() {
     if(doorIsAnaphResident(r)) ac++;
     if(r.isModerate) mc++;
   });
+  const anaph = doorAnaphTriggerSummary(REGISTRY_LIST);
   return {
     _meta: { source:'KitchenDOOR', site:(typeof currentSite!=='undefined'&&currentSite.id)||'rexdale', exported:new Date().toISOString(), version:30 },
     headcounts: { total:REGISTRY_LIST.length, regular:sc['Regular']||0, halal:sc['Halal']||0, vegan:sc['Vegan / Vegetarian']||0, diabetic:sc['Diabetic']||0, glutenFree:sc['Gluten Free']||0, noDairy:sc['No Dairy']||0 },
     tagDistribution: tc,
-    flags: { anaphylactic:ac, moderate:mc }
+    flags: { anaphylactic:ac, moderate:mc },
+    anaphylactic_trigger_flags: anaph.flags,
+    anaphylactic_trigger_tags: anaph.tags,
+    anaphylactic_residents_mapped: anaph.mapped
   };
 }
 
