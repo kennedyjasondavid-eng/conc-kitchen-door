@@ -10705,16 +10705,25 @@ function buildStateJSON() {
 // anaphTagMealFlags. Counts and flag names only: no room, no resident, so the file stays safe to serve.
 function doorAnaphTriggerSummary(list) {
   const flags = new Set(), tags = new Set();
+  // DC18 coverage (2026-11-16): count the anaphylactic residents whose every allergen became a meal flag, so EXPO can
+  // tell a complete list from one that left a resident out (an allergen DOOR has no flag for, such as No Oats, or
+  // no allergen recorded at all). A count only: no room, no resident. Where the allergen-tag rule is not loaded,
+  // every label must map (the strict side: EXPO keeps its warning).
+  const isAllergen = typeof doorIsAnaphAllergenTag === 'function' ? doorIsAnaphAllergenTag : () => true;
+  let mapped = 0;
   (list || []).forEach(r => {
     if (!doorIsAnaphResident(r)) return;
+    let some = false, all = true;
     getAnaphDisplayAllergens(r).forEach(label => {
       const fl = anaphTagMealFlags(label);
-      if (!fl.length) return;
+      if (!fl.length) { if (isAllergen(label)) all = false; return; }
+      some = true;
       tags.add(label);
       fl.forEach(f => flags.add(f));
     });
+    if (some && all) mapped++;
   });
-  return { flags: [...flags].sort(), tags: [...tags].sort() };
+  return { flags: [...flags].sort(), tags: [...tags].sort(), mapped };
 }
 
 function buildRegistrySummaryJSON() {
@@ -10733,7 +10742,8 @@ function buildRegistrySummaryJSON() {
     tagDistribution: tc,
     flags: { anaphylactic:ac, moderate:mc },
     anaphylactic_trigger_flags: anaph.flags,
-    anaphylactic_trigger_tags: anaph.tags
+    anaphylactic_trigger_tags: anaph.tags,
+    anaphylactic_residents_mapped: anaph.mapped
   };
 }
 

@@ -9,7 +9,9 @@
 //   2  each flag is one the lockout itself contains on (anaphTagMealFlags), and a resident not anaphylactic adds nothing;
 //   3  anaphTags scope it (a resident anaphylactic to Tree Nuts only publishes hasTreeNuts, not every allergen tag);
 //   4  no room or resident field rides along (the file is served on Pages);
-//   5  today's published resident list gives a non-empty set (the four listed rooms have allergens recorded).
+//   5  today's published resident list gives a non-empty set (the four listed rooms have allergens recorded);
+//   6  anaphylactic_residents_mapped counts the anaphylactic residents whose every allergen became a meal flag, so EXPO
+//      can tell a complete list from one that left a resident out (No Oats has no flag; no allergen recorded at all).
 // Authored to fail on main 54b6c75 (v31-standard.73).
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,6 +28,7 @@ function ctxFor(residents, rooms) {
   const c = { REGISTRY_LIST: residents, anaphRooms: rooms };
   vm.createContext(c);
   vm.runInContext(between('const TAG_LABELS_MAP = {', '\n};\n') + '\n};\n' + between('const ANAPH_TAG_TO_MEAL_FLAG = {', '\n};\n') + '\n};\n' +
+    between('const ALLERGEN_TAGS = new Set([', '\n]);\n') + '\n]);\n' + 'const ANAPH_ROUTING_ALLERGEN_TAGS = ' + between('const ANAPH_ROUTING_ALLERGEN_TAGS = ', ';\n').slice('const ANAPH_ROUTING_ALLERGEN_TAGS = '.length) + ';\n' + fn('doorIsAnaphAllergenTag') +
     fn('anaphTagMealFlags') + fn('getAnaphDisplayAllergens') + fnOpt('doorIsAnaphResident') + fnOpt('doorAnaphTriggerSummary') + fn('buildRegistrySummaryJSON') +
     ';this.__map = ANAPH_TAG_TO_MEAL_FLAG; this.__labels = TAG_LABELS_MAP;', c, { filename: 'index.html#dc18', timeout: 2000 });
   return c;
@@ -75,4 +78,21 @@ test('5 today\'s resident list publishes the trigger flags of its anaphylactic r
   for (const r of anaph) for (const l of c.getAnaphDisplayAllergens(r)) for (const f of c.anaphTagMealFlags(l)) want.add(f);
   assert.deepEqual(JSON.parse(JSON.stringify(s.anaphylactic_trigger_flags)), [...want].sort());
   assert.ok(s.anaphylactic_trigger_flags.length > 0, 'today\'s anaphylactic residents have allergens recorded');
+  assert.equal(s.anaphylactic_residents_mapped, s.flags.anaphylactic, 'every anaphylactic resident today has every allergen as a meal flag');
+});
+
+test('6 anaphylactic_residents_mapped counts only residents whose every allergen became a meal flag', () => {
+  const residents = [
+    { room: 'case_a', tags: ['No Peanuts', 'No Pork', 'Halal'], isAnaph: true },               // mapped: No Pork is not an allergen
+    { room: 'case_b', tags: ['No Oats', 'No Peanuts'], anaphTags: ['noOats', 'noPeanuts'], isAnaph: true }, // oats has no flag
+    { room: 'case_c', tags: ['Regular'], isAnaph: true },                                      // no allergen recorded
+    { room: 'case_d', tags: ['No Sesame'], isAnaph: false },                                   // not anaphylactic
+    { room: 'case_e', tags: ['No Coconut'], anaphTags: ['noCoconut'], isAnaph: true },        // mapped
+  ];
+  const s = ctxFor(residents, []).buildRegistrySummaryJSON();
+  assert.equal(s.flags.anaphylactic, 4);
+  assert.equal(s.anaphylactic_residents_mapped, 2);
+  assert.ok(Number.isInteger(s.anaphylactic_residents_mapped));
+  // The union still carries what is known, so EXPO can check those meals.
+  assert.deepEqual(JSON.parse(JSON.stringify(s.anaphylactic_trigger_flags)), ['hasCoconut', 'hasPeanuts']);
 });
