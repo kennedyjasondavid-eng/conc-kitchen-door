@@ -552,7 +552,7 @@ function noticeBox({ last, rehearsal = true, readAt, key = '', list }) {
     doorAsk: async (o) => { asked.push(o); return ctx.__answer; }, __answer: false,
   };
   vm.createContext(ctx);
-  vm.runInContext(readerSrc() + '\n' + fnBlock('doorNoResidentListNoticeHTML') + '\n' + fnBlock('doorAskGenerateWithoutKitchenList'), ctx);
+  vm.runInContext(readerSrc() + '\n' + (fnBlock('doorIcon') + '\n' + fnBlock('doorNoResidentListNoticeHTML')) + '\n' + fnBlock('doorAskGenerateWithoutKitchenList'), ctx);
   return { ctx, asked, notice: () => ctx.doorNoResidentListNoticeHTML() };
 }
 const T12 = () => [R('T01', ['Regular']), R('T02', ['No Pork'])];

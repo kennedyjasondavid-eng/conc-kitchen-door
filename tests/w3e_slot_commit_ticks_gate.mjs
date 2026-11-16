@@ -120,7 +120,7 @@ test('4. the card says what was not saved and why; Save asks about it, and going
   const c = { DOOR_INLINE_HANDLER_ALLOWLIST: { slotSelect: true, slotRenameShown: true } };
   vm.createContext(c);   // the page own escapers: escapeHtml for text, _escJsAttrCall for the inline handlers
   vm.runInContext([fnBlock('doorText'), fnBlock('escapeHtml'), fnBlock('_escAttr'), fnBlock('_jsStringLiteral'), fnBlock('_jsArgLiteral'), fnBlock('_escJsAttrCall'),
-    fnBlock('doorSlotHeldNoteHTML'), 'this.f = doorSlotHeldNoteHTML;'].join('\n'), c);
+    (fnBlock('doorIcon') + '\n' + fnBlock('doorSlotHeldNoteHTML')), 'this.f = doorSlotHeldNoteHTML;'].join('\n'), c);
   const half = c.f('main', { kind: 'half', typed: 'Bolo', recipe: 'Bolognese Sauce' }, WK3_SUN_MAIN);
   assert.match(half, /“Bolo” is not saved: it is the start of “Bolognese Sauce”\. Still saved: “Bolognese Pasta”\./);
   assert.match(half, /Link “Bolognese Sauce”/);

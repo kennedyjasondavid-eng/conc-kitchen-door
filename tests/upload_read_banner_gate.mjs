@@ -130,13 +130,13 @@ test('both reviews show it at the top, in large type, escaped, and a warning nev
   assert.ok(!C.err, String(C.err));
   const ctx = { escapeHtml: s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') };
   vm.createContext(ctx);
-  vm.runInContext(fnBlock('doorUploadReadHTML') + '\nthis.f = doorUploadReadHTML;', ctx);
+  vm.runInContext((fnBlock('doorIcon') + '\n' + fnBlock('doorUploadReadHTML')) + '\nthis.f = doorUploadReadHTML;', ctx);
   const check = C.doorUploadReadCheck({ kind: 'rex', fileName: 'Week 4 <b>.xlsx', today: TODAY, weeks: [{ week: 1, tabs: ['<img src=x>'] }] });
   const h = ctx.f(check, 'Week 4 <b>.xlsx', '3 tabs in the file');
   assert.match(h, /font-size:24px;font-weight:800;[^>]*>Week 1 · Nov 22 – Nov 28</, 'the week and dates in large type');
   assert.match(h, /Read from the tab “&lt;img src=x&gt;”/, 'the tab, escaped');
   assert.ok(!/<img|<b>/.test(h), 'nothing from the file is markup');
-  assert.match(h, /class="door-upload-warning" role="alert"[^>]*>⚠ The file name says Week 4/);
+  assert.match(h, /class="door-upload-warning" role="alert"[^>]*>[\s\S]*?<\/svg> The file name says Week 4/);
   const rex = fnBlock('doorRenderRexWeekReview');
   const body = rex.indexOf('class="modal-body"');
   assert.ok(body > 0 && rex.indexOf("doorUploadReadHTML(doorUploadReadCheck({ kind: 'rex'") > body, 'Rex\'s review opens with it');

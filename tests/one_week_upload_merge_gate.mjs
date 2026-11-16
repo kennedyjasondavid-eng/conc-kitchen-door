@@ -184,7 +184,7 @@ test('the review asks which week (pre-picked to the week read), says what Apply 
   assert.match(up, /\$\{partial \? doorUploadWeekPickerHTML\(fileWeeks\) : ''\}/, 'the picker, only for a partial file');
   assert.match(up, /const assign = partial \? doorUploadPickedWeeks\(modal, fileWeeks\) : null;\s*const res = doorApplyMenuUpload\(finalMenu, assign\);/, 'Apply merges a partial file');
   assert.match(up, /This will replace the current 4-week rotation\./, 'a 4-week file reads as before');
-  assert.match(up, /Press <strong>⇪ Publish<\/strong> afterwards to send it to the kitchen/);
+  assert.match(up, /Press <strong>Send to kitchen<\/strong> afterwards to send it to the kitchen/);
   assert.ok(!/saveUploadedMenu\(finalMenu\)/.test(up), 'Apply no longer writes the file as the whole base itself');
   const ctx = { escapeHtml: s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;') };
   vm.createContext(ctx);
