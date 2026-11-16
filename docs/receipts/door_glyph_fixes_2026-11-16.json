@@ -1,0 +1,196 @@
+{
+  "asOf": "2026-11-16",
+  "baseCommit": "5bcba1bb6fd81a73ee977b6f8e951dfb173115bd",
+  "appSourceSha256": "2c9b7d34d1a0ea1998d5fca77a94f4ada59f4e98bc9ab52c8110363c77c11f81",
+  "inputSha256": {
+    "door_state.json": "e783bb4bc785dca4331742d2246d5b6b113aed5adfe44ef0b29f5d48963c20fc",
+    "menu_current.json": "f6eaf4fe487057205c76aaa268af00776b7bf5c9451213a0362f9011087dbd59",
+    "menu_overlay.json": "bac21f5627f639b79d68206e9e0531649fe58986a27cd2eaf8ad793d33d2a6c4",
+    "learned_nr.json": "ed09ca2dcb727aea08dca7ea187bc89d29f602395a98055197ca7adbec9b0721",
+    "recent_log.json": "6e9b728eb9fc6156d8f0d760277986e92b44715f320438fd69667b3c4bd2e987"
+  },
+  "scope": "Glyph fixes and explicit review-tag selection; no workbook or operational-data edit.",
+  "verification": {
+    "nodeSuite": {
+      "tests": 934,
+      "passed": 933,
+      "failed": 0,
+      "skipped": 1
+    },
+    "themeBrowser": {
+      "checks": 263,
+      "passed": 263,
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "widths": [
+        1280,
+        820,
+        390,
+        320
+      ],
+      "network": "HTTP(S) blocked; file://"
+    },
+    "lastCopyChangeChecks": {
+      "tests": 151,
+      "passed": 151,
+      "failed": 0
+    },
+    "focusedBrowser": {
+      "states": [
+        {
+          "screen": "enter",
+          "icons": 26,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "review",
+          "icons": 39,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "plating",
+          "icons": 21,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "registry",
+          "icons": 204,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "compliance",
+          "icons": 72,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "leftover",
+          "icons": 19,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "reports",
+          "icons": 20,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "custom-reports",
+          "icons": 33,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "settings",
+          "icons": 31,
+          "badSvg": 0,
+          "leakedMarkup": false
+        },
+        {
+          "screen": "menu-config",
+          "icons": 46,
+          "badSvg": 0,
+          "leakedMarkup": false
+        }
+      ],
+      "changeLog": {
+        "text": "2026-11-16 09:00 a.m. Permanent editWk 1 Monday lunch — \"<svg onload=alert(1)>\" → \"Audit meal\" (audit)",
+        "svg": 1,
+        "injected": 0
+      },
+      "sourceCellDiagnostic": {
+        "unlearned": {
+          "rawTags": {
+            "softMeals": true,
+            "noPork": true,
+            "noSpicy": true
+          },
+          "correctedTags": {
+            "softMeals": true,
+            "noPork": true,
+            "noSpicy": true
+          }
+        },
+        "withLearned": {
+          "rawTags": {
+            "softMeals": true,
+            "noPork": true,
+            "noSpicy": true,
+            "halal": true
+          },
+          "correctedTags": {
+            "softMeals": true,
+            "noPork": true,
+            "noSpicy": true,
+            "halal": true
+          }
+        },
+        "rawUnmatched": [
+          "No sp+B4:B23icy Meals",
+          "No Sauce -Vegetables with Chicken or Fish for dinner",
+          "lunch"
+        ],
+        "correctedUnmatched": [
+          "No Sauce -Vegetables with Chicken or Fish for dinner",
+          "lunch"
+        ]
+      },
+      "printHasAnaphylacticText": true,
+      "errors": []
+    },
+    "explicitTagSelection": {
+      "smokeTestsPassed": 130,
+      "browserChecks": [
+        "Blank initial choice",
+        "Add with no tag rejected and not persisted",
+        "Explicit Halal choice accepted",
+        "Choice resets after Add",
+        "Service note and Not applicable remain available"
+      ],
+      "pageErrors": 0
+    }
+  },
+  "separateDiagnosis": {
+    "sourceFile": "C:\\Users\\Jason\\Downloads\\Meal List - Nov 17th 2026.xlsx",
+    "sourceSha256": "2f7f01c2b06703949a3904b2b15f069f728d647603322a59df0d7847e3ec5673",
+    "sheet": "Aug 20th 2026",
+    "roomCell": "A59",
+    "restrictionCell": "C59",
+    "cellIsFormula": false,
+    "fragment": "No sp+B4:B23icy Meals",
+    "learnedTag": "halal",
+    "normalizedWithoutLearned": {
+      "rawTags": {
+        "softMeals": true,
+        "noPork": true,
+        "noSpicy": true
+      },
+      "correctedTags": {
+        "softMeals": true,
+        "noPork": true,
+        "noSpicy": true
+      }
+    },
+    "normalizedWithLearned": {
+      "rawTags": {
+        "softMeals": true,
+        "noPork": true,
+        "noSpicy": true,
+        "halal": true
+      },
+      "correctedTags": {
+        "softMeals": true,
+        "noPork": true,
+        "noSpicy": true,
+        "halal": true
+      }
+    }
+  }
+}

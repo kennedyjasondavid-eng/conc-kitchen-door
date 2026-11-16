@@ -89,7 +89,7 @@ test('guard #3 banner renders the unmapped labels and hides when none', () => {
     _hubUnmappedLabels: new Set(),
   };
   vm.createContext(ctx);
-  vm.runInContext(fnBlock('renderUnmappedAllergenBanner'), ctx, { timeout: 1000 });
+  vm.runInContext((fnBlock('doorIcon') + '\n' + fnBlock('renderUnmappedAllergenBanner')), ctx, { timeout: 1000 });
   ctx.renderUnmappedAllergenBanner();
   assert.equal(el.style.display, 'none', 'no unmapped labels → banner hidden');
   ctx._hubUnmappedLabels.add('lupin');
@@ -104,6 +104,6 @@ test('source locks: _detectInSlot reads displayText; the banner is wired', () =>
   // Test-Meal preview parity: its detector reads the display too, so the sandbox matches save
   assertContains(fnBlock('generateTestPlating'), 's.displayText', 'the Test-Meal detector scans the display for save-parity');
   // banner reads the S0.5 surface and is called in the menu render flow
-  assertContains(fnBlock('renderUnmappedAllergenBanner'), '_hubUnmappedLabels', 'banner reads the unmapped-label surface');
+  assertContains((fnBlock('doorIcon') + '\n' + fnBlock('renderUnmappedAllergenBanner')), '_hubUnmappedLabels', 'banner reads the unmapped-label surface');
   assertContains(html, 'renderUnmappedAllergenBanner();', 'banner is invoked in the render flow');
 });

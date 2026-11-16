@@ -77,7 +77,7 @@ test('2. a bland plate only on a spicy meal where the kitchen makes one; otherwi
   assert.equal(c.doorSectionAllergenStr({ rule: section('bland') }, { allergenStr: 'SPICY, GLUTEN', ctx: { blandAlt: PLAIN } }), null);
   assert.equal(regularLine(['No Spicy'], { isSpicy: true }), 'No Spicy', 'the Regular notes name it');
   assert.equal(regularLine(['Halal', 'No Spicy'], { isSpicy: true, hasPeanuts: true }), 'No Spicy', 'only what the meal sets off');
-  assert.equal(regularLine(['No Spicy', 'No Peanuts'], { isSpicy: true, hasPeanuts: true }), '⚠ No Peanuts · No Spicy');
+  assert.equal(regularLine(['No Spicy', 'No Peanuts'], { isSpicy: true, hasPeanuts: true }), 'Warning: No Peanuts · No Spicy');
 });
 
 test('3. no soft plate on a meal marked "no soft alternative needed"; a pork meal with none still seats soft residents on the halal plate', () => {

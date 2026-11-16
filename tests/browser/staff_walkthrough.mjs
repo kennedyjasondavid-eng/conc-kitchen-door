@@ -86,7 +86,7 @@ for (const width of [1280, 390]) {
   const rowNote = (html, room) => { const m = html.match(new RegExp('<td>[^<]*</td><td>' + room + '</td><td>([^<]*)</td>')); return m ? m[1] : null; };
   let h = await plate(1, 'MONDAY', 'dinner', `${width}_2_plating_wk1_mon_dinner.png`);
   check(w + ' Wk1 MON dinner: the anaphylactic alert names 213', /ANAPHYLACTIC ALERT[^<]*213/.test(h));
-  check(w + ' Wk1 MON dinner: 213 on the Anaphylactic Alternative, marked', /<td>213<\/td><td>⚠ ANAPHYLACTIC<\/td>/.test(h));
+  check(w + ' Wk1 MON dinner: 213 on the Anaphylactic Alternative, marked', /<td>213<\/td><td><svg\b[^>]*class="door-icon"[\s\S]*?<\/svg> ANAPHYLACTIC<\/td>/.test(h));
   check(w + ' Wk1 MON dinner: 709 (Soft Meals) on another plate says "soft"', /\bsoft\b/.test(rowNote(h, '709') || ''), rowNote(h, '709'));
   h = await plate(1, 'TUESDAY', 'dinner', `${width}_3_plating_wk1_tue_dinner.png`);
   check(w + ' Wk1 TUE dinner (Pork Carnitas, now Spicy): 310b on Bland', /Bland[\s\S]*?<td>310b<\/td>/.test(h));
