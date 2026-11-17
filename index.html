@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.88';
+const DOOR_APP_VERSION = 'v31-standard.89';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -12901,6 +12901,186 @@ function houseFlowResolve(state,service,now) {
 }
 function houseFlowSnapshot(state) { return {schema:1,highest:state.highest && houseFlowCopy(state.highest),conflict:state.conflict === true,observedAt:state.accepted ? state.accepted.observedAt : null}; }
 /* HOUSE_TESTABLE_CORE_END flow-validity */
+/* HOUSE_TESTABLE_CORE_START serving-protocol-v1 */
+// Inactive public aggregate carrier. No source, clinical, transport or commit authority.
+function houseServingV1Fail(reason) { throw {houseServingReason:reason}; }
+function houseServingV1Reject(reason) { return {ok:false,reason}; }
+function houseServingV1Object(v) {
+  if(v===null||typeof v!=='object'||Array.isArray(v))return false;
+  const proto=Object.getPrototypeOf(v);if(proto===null)return true;
+  if(Object.getPrototypeOf(proto)!==null)return false;
+  const constructor=Object.getOwnPropertyDescriptor(proto,'constructor');
+  if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function')return false;
+  const fn=constructor.value,ownProto=Object.getOwnPropertyDescriptor(fn,'prototype'),name=Object.getOwnPropertyDescriptor(fn,'name');
+  return !!(ownProto&&ownProto.value===proto&&name&&name.value==='Object'&&/\[native code\]/.test(Function.prototype.toString.call(fn)));
+}
+function houseServingV1Exact(v,keys,optional) {
+  if (!houseServingV1Object(v)) return false;
+  const names=Object.keys(v),allowed=keys.concat(optional||[]);
+  return keys.every(k=>Object.hasOwn(v,k)) && names.every(k=>allowed.includes(k));
+}
+function houseServingV1Unicode(s) { return typeof s==='string' && !/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(s); }
+function houseServingV1JSON(value) {
+  const seen=new Set();
+  function check(v) {
+    if(v===null||typeof v==='boolean')return;
+    if(typeof v==='string'){if(!houseServingV1Unicode(v))houseServingV1Fail('invalid-material');return;}
+    if(typeof v==='number'){if(!Number.isFinite(v))houseServingV1Fail('invalid-material');return;}
+    if(!v||typeof v!=='object'||seen.has(v))houseServingV1Fail('invalid-material');
+    const desc=Object.getOwnPropertyDescriptors(v),names=Reflect.ownKeys(desc);
+    if(names.some(k=>typeof k!=='string'||(!Object.hasOwn(desc[k],'value'))))houseServingV1Fail('invalid-material');
+    if(!Array.isArray(v)&&!houseServingV1Object(v))houseServingV1Fail('invalid-material');
+    seen.add(v);
+    if(Array.isArray(v)){
+      if(names.length!==v.length+1||!Object.hasOwn(desc,'length'))houseServingV1Fail('invalid-material');
+      for(let i=0;i<v.length;i++){if(!Object.hasOwn(desc,String(i)))houseServingV1Fail('invalid-material');check(desc[i].value);}
+    }else for(const k of names){if(!desc[k].enumerable||!houseServingV1Unicode(k)||['__proto__','prototype','constructor'].includes(k))houseServingV1Fail('invalid-material');check(desc[k].value);}
+    seen.delete(v);
+  }
+  check(value);return houseFlowCopy(value);
+}
+function houseServingV1Text(v,max) { return typeof v==='string' && houseServingV1Unicode(v) && v.length>0 && v.trim()===v && !/[\x00-\x1f\x7f]/.test(v) && new TextEncoder().encode(v).length<=max; }
+function houseServingV1Count(v) { return Number.isSafeInteger(v)&&v>=0; }
+function houseServingV1Hash(v) { return typeof v==='string'&&/^sha256:[a-f0-9]{64}$/.test(v); }
+function houseServingV1Id(v) { return typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v); }
+function houseServingV1Ref(v) { return houseServingV1Exact(v,['schema','generationId','privateCommit','operationId','publicInputWitness'])&&v.schema===1&&houseServingV1Id(v.generationId)&&houseServingV1Id(v.operationId)&&typeof v.privateCommit==='string'&&/^[a-f0-9]{40}$/.test(v.privateCommit)&&houseServingV1Hash(v.publicInputWitness); }
+function houseServingV1NumberMap(v) { return houseServingV1Object(v)&&Object.entries(v).every(([k,n])=>houseServingV1Text(k,500)&&!['__proto__','constructor','prototype','_components'].includes(k)&&houseServingV1Count(n)); }
+function houseServingV1Token(v) { return typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(v); }
+function houseServingV1RecipeId(v) { return houseServingV1Text(v,200)&&!/[\s/\\]/.test(v); }
+function houseServingV1Role(v) { return typeof v==='string'&&/^[a-z][a-z0-9_-]{0,47}$/.test(v); }
+function houseServingV1Resolution(r) {
+  const fields=['schema','state','expectedResidents','ordinaryResolved','ordinaryUnresolved','separateResidents','separateDefinitionState','quantitiesComplete','definitionRevision','catalogueRevision'];
+  if(!houseServingV1Exact(r,fields)||r.schema!==1||!['complete','incomplete','unavailable'].includes(r.state)||typeof r.quantitiesComplete!=='boolean'||!['not-required','named','missing'].includes(r.separateDefinitionState)||!houseServingV1Token(r.definitionRevision)||!(r.catalogueRevision==='unresolved'||/^codex:sha256:[a-f0-9]{64}$/.test(r.catalogueRevision)))return false;
+  const counts=['expectedResidents','ordinaryResolved','ordinaryUnresolved','separateResidents'];
+  if(counts.every(k=>r[k]===null))return r.state==='unavailable'&&!r.quantitiesComplete;
+  if(!counts.every(k=>houseServingV1Count(r[k]))||r.ordinaryResolved+r.ordinaryUnresolved+r.separateResidents!==r.expectedResidents||(r.separateResidents===0)!==(r.separateDefinitionState==='not-required'))return false;
+  if(r.state==='complete'&&(r.ordinaryUnresolved!==0||r.separateDefinitionState==='missing'))return false;
+  return r.state==='complete'||!r.quantitiesComplete;
+}
+function houseServingV1Material(m) {
+  const need=(v)=>{if(!v)houseServingV1Fail('invalid-material');};
+  const days=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],meals=['breakfast','lunch','dinner'];
+  need(houseServingV1Exact(m,['schema','protocol','site','releaseBinding','calendar','registry','rotation','dated','datedDecisions','recipes'])&&m.schema===1&&m.protocol==='door-serving-v1'&&houseServingV1Text(m.site,100)&&/^[a-z][a-z0-9-]{0,99}$/.test(m.site));
+  need(houseServingV1Exact(m.releaseBinding,['generationId','operationId'])&&houseServingV1Id(m.releaseBinding.generationId)&&houseServingV1Id(m.releaseBinding.operationId));
+  need(houseServingV1Exact(m.calendar,['mode','cycleStart','cycleWeeks','weekStartsOn','zone'])&&houseFlowCalendarValid(m.calendar));
+  need(houseServingV1Exact(m.registry,['summary','headcounts'])&&houseServingV1Exact(m.registry.summary,['total','active','anaphylactic'])&&houseServingV1Exact(m.registry.headcounts,['regular','halal','vegan','diabetic','glutenFree','noDairy','soft']));
+  const summary=m.registry.summary;need(Object.values(summary).every(houseServingV1Count)&&summary.active<=summary.total&&summary.anaphylactic<=summary.active&&Object.values(m.registry.headcounts).every(n=>houseServingV1Count(n)&&n<=summary.active));
+  need(Array.isArray(m.recipes)&&Array.isArray(m.rotation)&&m.rotation.length===84&&Array.isArray(m.dated)&&Array.isArray(m.datedDecisions));
+  const recipes=new Map();let lastId='';
+  const flags=['hasGluten','hasDairy','hasEgg','hasFish','hasPeanuts','hasSoy','hasTreeNuts','hasSesame','hasMustard','hasShellfish','hasSulphites','hasPork','hasBeef','hasChicken','hasTurkey','isSpicy','isCarb','halalCertifiedMeat','hasProcessedMeat','hasBeans','hasMushroom','hasCoconut','hasNightshades','hasBrassicas','hasCorn'];
+  for(const r of m.recipes){need(houseServingV1Exact(r,['recipeId','canonicalName','sourceFingerprint','catalogueRevision','allergenState','allergenFlags','portionBasis'])&&houseServingV1RecipeId(r.recipeId)&&r.recipeId>lastId&&houseServingV1Text(r.canonicalName,500));lastId=r.recipeId;
+    const f=r.sourceFingerprint;need(houseServingV1Exact(f,['kind','value'])&&(f.kind==='unresolved'?f.value===null:['codex-content','public-projection'].includes(f.kind)&&typeof f.value==='string'&&/^[a-f0-9]{64}$/.test(f.value)));
+    need(r.catalogueRevision===null||(houseServingV1Exact(r.catalogueRevision,['kind','value'])&&r.catalogueRevision.kind==='codex-public-snapshot'&&houseServingV1Hash(r.catalogueRevision.value)));
+    need(r.allergenState==='unknown'?r.allergenFlags===null:r.allergenState==='known'&&houseServingV1Object(r.allergenFlags)&&Object.entries(r.allergenFlags).every(([k,v])=>flags.includes(k)&&v===true));
+    need(r.portionBasis===null||(houseServingV1Exact(r.portionBasis,['servings','unit'])&&typeof r.portionBasis.servings==='number'&&Number.isFinite(r.portionBasis.servings)&&r.portionBasis.servings>0&&r.portionBasis.servings<=1000000&&r.portionBasis.unit==='standard-serving'));recipes.set(r.recipeId,r);
+  }
+  function service(s,dated,index){
+    need(houseServingV1Exact(s,['key','menu','components','unresolvedComponents','coverage','demand','sectionCounts','resolution'].concat(dated?['kind','week','day']:[]),['componentAllocations']));
+    if(!dated){const w=1+Math.floor(index/21),d=days[Math.floor(index%21/3)],meal=meals[index%3];need(s.key===w+'|'+d+'|'+meal);}else{
+      const match=/^(\d{4}-\d{2}-\d{2})\|(lunch|dinner)$/.exec(s.key);need(match&&houseFlowCivilDay(match[1])!==null&&['swap','special'].includes(s.kind));
+      const offset=((houseFlowCivilDay(match[1])-houseFlowCivilDay(m.calendar.cycleStart))%28+28)%28;need(s.week===Math.floor(offset/7)+1&&s.day===days[offset%7]);
+    }
+    need(houseServingV1Exact(s.menu,['regular','vegan','halal'])&&Object.values(s.menu).every(v=>houseServingV1Text(v,8000)&&v.length<=2000));
+    need(Array.isArray(s.components)&&Array.isArray(s.unresolvedComponents)&&houseServingV1Exact(s.coverage,['ordinary'])&&['complete','incomplete','unknown'].includes(s.coverage.ordinary)&&houseServingV1Resolution(s.resolution)&&houseServingV1NumberMap(s.sectionCounts)&&Object.keys(s.sectionCounts).length>0);
+    const r=s.resolution;need(r.expectedResidents===null||r.expectedResidents<=summary.active);
+    need(Object.values(s.sectionCounts).every(n=>n<=summary.active));
+    need(houseServingV1Exact(s.demand,['unit','allocations','standardPortions','reason'])&&s.demand.unit==='recipients'&&['known','unavailable'].includes(s.demand.allocations)&&['eligible','unavailable'].includes(s.demand.standardPortions)&&['verified-standard','qualitative-portion','missing-portion-basis','nonstandard-size','unresolved-component','allocation-unavailable'].includes(s.demand.reason));
+    if(s.coverage.ordinary==='complete')need(r.ordinaryUnresolved===0);
+    const ids=new Set(),names=new Set();
+    for(const c of s.components){need(houseServingV1Exact(c,['recipeId','name','role'])&&houseServingV1RecipeId(c.recipeId)&&houseServingV1Text(c.name,500)&&houseServingV1Role(c.role));const found=recipes.get(c.recipeId);need(found&&found.canonicalName===c.name);if(r.state==='complete'){need(!ids.has(c.recipeId)&&!names.has(c.name.toLowerCase())&&found.sourceFingerprint.kind!=='unresolved'&&found.catalogueRevision&&r.catalogueRevision==='codex:'+found.catalogueRevision.value);}ids.add(c.recipeId);names.add(c.name.toLowerCase());}
+    for(const u of s.unresolvedComponents)need(houseServingV1Exact(u,['name','role','reason'])&&houseServingV1Text(u.name,500)&&houseServingV1Role(u.role)&&['manual-unlinked','missing-recipe','ambiguous-identity','missing-source-fingerprint'].includes(u.reason));
+    if(s.unresolvedComponents.length)need(r.state!=='complete'&&s.coverage.ordinary!=='complete'&&s.demand.reason==='unresolved-component');
+    if(r.state==='complete'){need((r.ordinaryResolved===0||s.components.length>0)&&s.coverage.ordinary==='complete'&&s.demand.allocations==='known'&&Object.hasOwn(s,'componentAllocations')&&houseServingV1NumberMap(s.componentAllocations));need(Object.keys(s.componentAllocations).length===ids.size&&Object.entries(s.componentAllocations).every(([id,n])=>ids.has(id)&&n<=r.ordinaryResolved));}
+    else need(!Object.hasOwn(s,'componentAllocations')&&s.demand.allocations==='unavailable'&&s.demand.standardPortions==='unavailable');
+    if(s.demand.standardPortions==='eligible')need(r.state==='complete'&&r.quantitiesComplete&&s.demand.reason==='verified-standard'&&s.components.every(c=>recipes.get(c.recipeId).portionBasis!==null));
+    else need(s.demand.reason!=='verified-standard');
+  }
+  m.rotation.forEach((s,i)=>service(s,false,i));let lastDated='';const dated=new Map();
+  for(const s of m.dated){service(s,true);const sort=s.key.replace('|lunch','|0').replace('|dinner','|1');need(sort>lastDated);lastDated=sort;dated.set(s.key,s);}
+  const active=new Set(),decisions=new Set();let lastDecision='';
+  for(const d of m.datedDecisions){need(houseServingV1Exact(d,['date','meal','kind','state','revision'])&&houseFlowCivilDay(d.date)!==null&&['lunch','dinner'].includes(d.meal)&&['swap','special'].includes(d.kind)&&['active','removed'].includes(d.state)&&houseServingV1Token(d.revision));const key=d.date+'|'+d.meal,unique=key+'|'+d.kind,sort=d.date+'|'+(d.meal==='lunch'?'0':'1')+'|'+d.kind;need(!decisions.has(unique)&&sort>lastDecision);decisions.add(unique);lastDecision=sort;if(d.state==='active'){need(!active.has(key)&&dated.has(key)&&dated.get(key).kind===d.kind);active.add(key);}}
+  need(active.size===dated.size&&[...dated.keys()].every(k=>active.has(k)));
+  return m;
+}
+function houseServingV1Inputs(m) {
+  const base={schema:1,protocol:m.protocol,site:m.site,releaseBinding:m.releaseBinding};
+  const pick=(s,keys)=>Object.fromEntries(keys.filter(k=>Object.hasOwn(s,k)).map(k=>[k,s[k]]));
+  return {site:m.site,menu:{...base,rotation:m.rotation.map(s=>pick(s,['key','menu','components','unresolvedComponents'])),dated:m.dated.map(s=>pick(s,['key','kind','week','day','menu','components','unresolvedComponents']))},dated:{...base,decisions:m.datedDecisions},registry:{...base,registry:m.registry,rotation:m.rotation.map(s=>pick(s,['key','sectionCounts','resolution','coverage','demand','componentAllocations'])),dated:m.dated.map(s=>pick(s,['key','sectionCounts','resolution','coverage','demand','componentAllocations']))},recipe:{...base,records:m.recipes},calendar:m.calendar};
+}
+function houseServingV1Wire(v) { return new TextEncoder().encode(houseFlowCanonical(v)+'\n'); }
+async function houseServingV1Seal(bytes) { const hash=await crypto.subtle.digest('SHA-256',bytes);return 'sha256:'+Array.from(new Uint8Array(hash),n=>n.toString(16).padStart(2,'0')).join(''); }
+function houseServingV1Reason(e) { return e&&['invalid-material','bounds-exceeded','malformed-pointer','unsupported-protocol','seal-mismatch','mixed-frame','invalid-input','unavailable'].includes(e.houseServingReason)?e.houseServingReason:'invalid-input'; }
+async function houseServingV1Prepare(material) {
+  try{const m=houseServingV1Material(houseServingV1JSON(material));if(houseServingV1Wire(m).length>8*1024*1024)houseServingV1Fail('bounds-exceeded');const basis=await houseFlowDigest(m),flowBase=await houseFlowReceipt(houseServingV1Inputs(m));return {ok:true,prepared:{material:m,publicProjectionBasisDigest:basis,publicInputWitness:flowBase.inputRevision,flowBase}};}catch(e){return houseServingV1Reject(houseServingV1Reason(e));}
+}
+function houseServingV1Publication(p) { return houseServingV1Exact(p,['epoch','sequence'])&&houseServingV1Id(p.epoch)&&Number.isSafeInteger(p.sequence)&&p.sequence>0; }
+function houseServingV1Path(p) { return 'protocol-v1/releases/'+p.epoch+'/'+p.sequence+'/frame.json'; }
+async function doorServingV1Build(prepared,generationRef,publication) {
+  try{const p=houseServingV1JSON(prepared),r=houseServingV1JSON(generationRef),pub=houseServingV1JSON(publication);if(!houseServingV1Exact(p,['material','publicProjectionBasisDigest','publicInputWitness','flowBase'])||!houseServingV1Ref(r)||!houseServingV1Publication(pub))houseServingV1Fail('invalid-input');const check=await houseServingV1Prepare(p.material);if(!check.ok||houseFlowCanonical(check.prepared)!==houseFlowCanonical(p)||r.generationId!==p.material.releaseBinding.generationId||r.operationId!==p.material.releaseBinding.operationId||r.publicInputWitness!==p.publicInputWitness)houseServingV1Fail('invalid-input');
+    const frame={schema:1,protocol:'door-serving-v1',site:p.material.site,generationRef:r,flow:{...p.flowBase,publication:pub},material:p.material},bytes=houseServingV1Wire(frame);if(bytes.length>8*1024*1024)houseServingV1Fail('bounds-exceeded');const pointer={schema:1,protocol:'door-serving-v1',site:frame.site,generationRef:houseFlowCopy(r),flow:houseFlowCopy(frame.flow),frame:{path:houseServingV1Path(pub),sha256:await houseServingV1Seal(bytes)}},pointerBytes=houseServingV1Wire(pointer);if(pointerBytes.length>16*1024)houseServingV1Fail('bounds-exceeded');return {ok:true,pointer,frameBytes:new Uint8Array(bytes),files:[{path:pointer.frame.path,bytes:new Uint8Array(bytes)},{path:'protocol-v1/publication.json',bytes:new Uint8Array(pointerBytes)}]};
+  }catch(e){return houseServingV1Reject(houseServingV1Reason(e));}
+}
+function houseServingV1Flow(flow) { return houseServingV1Exact(flow,['schema','inputRevision','components','calendar','publication'])&&houseServingV1Exact(flow.components,['menu','dated','registry','recipe','calendar'])&&houseServingV1Publication(flow.publication)&&houseServingV1Exact(flow.calendar,['mode','cycleStart','cycleWeeks','weekStartsOn','zone'])&&houseFlowReceiptValid(flow); }
+function houseServingV1Pointer(p,opts) { return houseServingV1Exact(p,['schema','protocol','site','generationRef','flow','frame'])&&p.schema===1&&p.protocol==='door-serving-v1'&&houseServingV1Text(p.site,100)&&/^[a-z][a-z0-9-]{0,99}$/.test(p.site)&&p.site===opts.site&&houseServingV1Ref(p.generationRef)&&houseServingV1Flow(p.flow)&&p.generationRef.publicInputWitness===p.flow.inputRevision&&houseServingV1Exact(p.frame,['path','sha256'])&&p.frame.path===houseServingV1Path(p.flow.publication)&&p.frame.path===opts.expectedPath&&houseServingV1Hash(p.frame.sha256); }
+function houseServingV1Projection(frame) {
+  return {schema:1,generationRef:houseFlowCopy(frame.generationRef),registrySummary:houseFlowCopy(frame.material.registry.summary),services:frame.material.rotation.concat(frame.material.dated).map(s=>{const out={key:s.key,menu:houseFlowCopy(s.menu),components:houseFlowCopy(s.components),sectionCounts:houseFlowCopy(s.sectionCounts),resolution:{...s.resolution,inputRevision:frame.flow.inputRevision}};if(s.resolution.state==='complete')out.componentAllocations=houseFlowCopy(s.componentAllocations);return out;})};
+}
+function houseServingV1Routing(frame) {
+  const out={schema:1,rotation:{},dated:{}};for(const s of frame.material.rotation.concat(frame.material.dated)){
+    const slot=s.demand.standardPortions==='eligible'?{status:'valid',counts:{...s.sectionCounts,_components:{...s.componentAllocations}}}:{status:'unavailable',reason:s.demand.reason};
+    const p=s.key.split('|');if(p.length===3){out.rotation[p[0]]||={};out.rotation[p[0]][p[1]]||={};out.rotation[p[0]][p[1]][p[2]]=slot;}else{out.dated[p[0]]||={};out.dated[p[0]][p[1]]={...slot,week:s.week,day:s.day,kind:s.kind};}
+  }return out;
+}
+async function houseServingV1Validate(pointer,frameBytes,options) {
+  let observation=null;try{const p=houseServingV1JSON(pointer),opts=houseServingV1JSON(options);if(!(frameBytes instanceof Uint8Array))houseServingV1Fail('invalid-input');const bytes=new Uint8Array(frameBytes);if(!houseServingV1Exact(opts,['site','expectedPath']))houseServingV1Fail('invalid-input');if(p.protocol!=='door-serving-v1')houseServingV1Fail('unsupported-protocol');if(houseServingV1Wire(p).length>16*1024)houseServingV1Fail('bounds-exceeded');if(!houseServingV1Pointer(p,opts))houseServingV1Fail('malformed-pointer');observation={pointer:houseFlowCopy(p)};if(bytes.length>8*1024*1024)houseServingV1Fail('bounds-exceeded');if(await houseServingV1Seal(bytes)!==p.frame.sha256)houseServingV1Fail('seal-mismatch');let frame;try{frame=houseServingV1JSON(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)));}catch(_){houseServingV1Fail('mixed-frame');}
+    const canonicalBytes=houseServingV1Wire(frame);if(canonicalBytes.length!==bytes.length||!bytes.every((byte,index)=>byte===canonicalBytes[index]))houseServingV1Fail('mixed-frame');
+    if(!houseServingV1Exact(frame,['schema','protocol','site','generationRef','flow','material'])||frame.schema!==1||frame.protocol!==p.protocol||frame.site!==p.site||houseFlowCanonical(frame.generationRef)!==houseFlowCanonical(p.generationRef)||houseFlowCanonical(frame.flow)!==houseFlowCanonical(p.flow))houseServingV1Fail('mixed-frame');
+    const prepared=await houseServingV1Prepare(frame.material);if(!prepared.ok||frame.material.site!==p.site||frame.material.releaseBinding.generationId!==p.generationRef.generationId||frame.material.releaseBinding.operationId!==p.generationRef.operationId||prepared.prepared.publicInputWitness!==p.flow.inputRevision||houseFlowCanonical({...prepared.prepared.flowBase,publication:p.flow.publication})!==houseFlowCanonical(p.flow))houseServingV1Fail('mixed-frame');
+    const projection=houseServingV1Projection(frame),routing=houseServingV1Routing(frame);if(!houseFlowRoutingValid(routing))houseServingV1Fail('mixed-frame');return {ok:true,value:{pointer:p,frame,projection,publicProjectionBasisDigest:prepared.prepared.publicProjectionBasisDigest,routing}};
+  }catch(e){const rejected=houseServingV1Reject(houseServingV1Reason(e));if(observation)rejected.observation=observation;return rejected;}
+}
+function houseServingV1CreateState(options) {
+  try{const opts=houseServingV1JSON(options);if(!houseServingV1Exact(opts,['site','maxAgeMs'],['snapshot'])||!houseServingV1Text(opts.site,100)||!Number.isFinite(opts.maxAgeMs)||opts.maxAgeMs<=0)houseServingV1Fail('invalid-input');const fresh={schema:1,protocol:'door-serving-v1',site:opts.site,maxAgeMs:Math.min(opts.maxAgeMs,7*86400000),generation:0,highest:null,conflict:false,accepted:null,liveHold:null,needsCacheValidation:false};const invalid=()=>({...fresh,needsCacheValidation:true,liveHold:{attempt:0,reason:'invalid-input',observedAt:0}});if(!Object.hasOwn(opts,'snapshot'))return fresh;const s=opts.snapshot;if(!houseServingV1Exact(s,Object.keys(fresh))||s.schema!==1||s.protocol!==fresh.protocol||s.site!==fresh.site||s.maxAgeMs!==fresh.maxAgeMs||!houseServingV1Count(s.generation)||typeof s.conflict!=='boolean')return invalid();
+    if(s.highest!==null&&(!houseServingV1Exact(s.highest,['pointer'])||!houseServingV1Pointer(s.highest.pointer,{site:s.site,expectedPath:houseServingV1Path(s.highest.pointer.flow.publication)})))return invalid();
+    if(s.liveHold!==null&&(!houseServingV1Exact(s.liveHold,['attempt','reason','observedAt'])||!houseServingV1Count(s.liveHold.attempt)||!houseServingV1Text(s.liveHold.reason,100)||!Number.isFinite(s.liveHold.observedAt)))return invalid();
+    if(s.accepted!==null&&(!houseServingV1Exact(s.accepted,['validation','observedAt'])||!s.accepted.validation||s.accepted.validation.ok!==true||!Number.isFinite(s.accepted.observedAt)))return invalid();
+    s.needsCacheValidation=true;return s;
+  }catch(_){return {schema:1,protocol:'door-serving-v1',site:'invalid',maxAgeMs:1,generation:0,highest:null,conflict:false,accepted:null,liveHold:{attempt:0,reason:'invalid-input',observedAt:0},needsCacheValidation:true};}
+}
+function houseServingV1Begin(state) { const s=houseServingV1JSON(state);if(!houseServingV1Count(s.generation)||s.generation===Number.MAX_SAFE_INTEGER)houseServingV1Fail('invalid-input');s.generation++;return {state:s,attempt:s.generation}; }
+function houseServingV1Identity(p) { return houseFlowCanonical(p); }
+function houseServingV1ObservePointer(s,p,source) {
+  const old=s.highest&&s.highest.pointer,pub=p.flow.publication;
+  if(!old){if(source==='live'||!s.liveHold){s.highest={pointer:houseFlowCopy(p)};return true;}return false;}
+  const prev=old.flow.publication;
+  if(pub.epoch!==prev.epoch){if(source==='live')s.conflict=true;return false;}
+  if(pub.sequence<prev.sequence)return false;
+  if(pub.sequence===prev.sequence){if(houseServingV1Identity(p)!==houseServingV1Identity(old)){if(source==='live')s.conflict=true;return false;}return !s.conflict;}
+  if(source!=='live')return false;
+  s.highest={pointer:houseFlowCopy(p)};s.conflict=false;return true;
+}
+async function houseServingV1Promote(state,attempt,outcome,context) {
+  let s,ctx;try{s=houseServingV1JSON(state);ctx=houseServingV1JSON(context);const o=houseServingV1JSON(outcome);const result=reason=>({state:s,result:{ok:false,reason}});if(attempt!==s.generation)return result('superseded-attempt');if(!houseServingV1Exact(ctx,['source','now','observedAt'])||!['live','cache'].includes(ctx.source)||!Number.isFinite(ctx.now)||!Number.isFinite(ctx.observedAt)||ctx.observedAt>ctx.now)return result('invalid-input');
+    if(houseServingV1Exact(o,['kind','reason'])&&o.kind==='fetch-unavailable'&&['network','timeout','http-unavailable'].includes(o.reason))return result(o.reason);
+    if(!houseServingV1Exact(o,['kind','validation'])||o.kind!=='frame')return result('invalid-input');let v=o.validation;
+    if(v&&v.ok===true){if(houseServingV1Exact(v,['ok','value'])&&v.value&&v.value.pointer&&v.value.frame&&v.value.pointer.frame){const p=v.value.pointer;v=await houseServingV1Validate(p,houseServingV1Wire(v.value.frame),{site:s.site,expectedPath:p.frame.path});}else v=houseServingV1Reject('invalid-input');}
+    if(!v||v.ok!==true){const allowed=['invalid-material','bounds-exceeded','malformed-pointer','unsupported-protocol','seal-mismatch','mixed-frame','invalid-input','unavailable'],reason=v&&allowed.includes(v.reason)?v.reason:'invalid-input';if(ctx.source==='live'){
+      try{if(houseServingV1Exact(v.observation,['pointer'])){const p=v.observation.pointer;if(houseServingV1Wire(p).length<=16*1024&&p&&p.flow&&p.flow.publication&&houseServingV1Pointer(p,{site:s.site,expectedPath:houseServingV1Path(p.flow.publication)}))houseServingV1ObservePointer(s,p,'live');}}catch(_){}
+      s.liveHold={attempt,reason,observedAt:ctx.observedAt};}return result(reason);}
+    const p=v.value.pointer,allowed=houseServingV1ObservePointer(s,p,ctx.source);
+    if(!allowed){if(ctx.source==='live')s.liveHold={attempt,reason:'superseded-flow',observedAt:ctx.observedAt};return result('superseded-flow');}
+    if(ctx.source==='cache'&&s.liveHold)return result('live-hold');
+    let observedAt=ctx.observedAt;if(ctx.source==='cache'&&s.accepted&&houseServingV1Identity(s.accepted.validation.value.pointer)===houseServingV1Identity(p))observedAt=s.accepted.observedAt;
+    if(ctx.now-observedAt>s.maxAgeMs)return result('expired-flow');
+    s.accepted={validation:v,observedAt};s.needsCacheValidation=false;if(ctx.source==='live')s.liveHold=null;return {state:s,result:{ok:true,status:'released-copy'}};
+  }catch(_){if(s&&attempt===s.generation&&ctx&&ctx.source==='live'&&Number.isFinite(ctx.observedAt))s.liveHold={attempt,reason:'invalid-input',observedAt:ctx.observedAt};return {state:s||state,result:{ok:false,reason:'invalid-input'}};}
+}
+function houseServingV1Resolve(state,service,now,options) {
+  const unavailable=reason=>({status:'unavailable',reason,counts:null});
+  try{const s=houseServingV1JSON(state),opts=houseServingV1JSON(options);if(!houseServingV1Exact(opts,['purpose'])||!['headcount','component-demand','production-scaling'].includes(opts.purpose))return unavailable('purpose-required');if(s.liveHold)return unavailable('live-hold');if(s.needsCacheValidation)return unavailable('cache-validation-required');if(s.conflict||!s.accepted||!s.highest)return unavailable('unverified-flow');const v=s.accepted.validation;if(!v.ok||houseServingV1Identity(v.value.pointer)!==houseServingV1Identity(s.highest.pointer))return unavailable('superseded-flow');if(!Number.isFinite(now)||now<s.accepted.observedAt||now-s.accepted.observedAt>s.maxAgeMs)return unavailable('expired-flow');const found=v.value.frame.material.rotation.concat(v.value.frame.material.dated).find(x=>x.key===service);if(!found)return unavailable('service-unavailable');let counts,unit='recipients';if(opts.purpose==='headcount')counts=found.sectionCounts;else if(opts.purpose==='component-demand'){if(found.resolution.state!=='complete'||found.demand.allocations!=='known')return unavailable(found.demand.reason);counts=found.componentAllocations;}else{if(found.demand.standardPortions!=='eligible')return unavailable(found.demand.reason);counts={...found.sectionCounts,_components:found.componentAllocations};unit='standard-portions';}return {status:'valid',reason:'released-copy',counts:houseFlowCopy(counts),unit,observedAt:s.accepted.observedAt,publication:houseFlowCopy(v.value.pointer.flow.publication),inputRevision:v.value.pointer.flow.inputRevision};}catch(_){return unavailable('invalid-input');}
+}
+/* HOUSE_TESTABLE_CORE_END serving-protocol-v1 */
+
 // F4 switched on (v31-standard.62, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
 // read receipts (estimates past 7 days or once superseded). The writer cutover is the F1 reconnect of 2026-11-06/07 (R2;
 // Jason, 2026-11-09: "pretty sure that is the cutover, not 100% but I have a feeling it's not critical").
