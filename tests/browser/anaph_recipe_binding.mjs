@@ -152,7 +152,12 @@ try {
  // A resident edit on the remote after this tablet opened cannot be replaced by this menu change.
  const race=await h.boot(clone(files),{storage});await prepare(race);
  const updated=clone(files['door_state.json']);updated.residents[0].serviceNote='Synthetic newer resident instruction';
- updated._meta.registryModifiedAt=new Date(Date.parse(CLOCK)+60000).toISOString();updated._meta.exported=updated._meta.registryModifiedAt;
+ // Gate-author clock amendment 2026-11-17: the current registry can be newer than this historical scenario clock.
+ // Make the injected edit genuinely newer than the tablet's authoritative baseline; keep the product assertions intact.
+ const baselineRegistryAt=Date.parse(files['door_state.json']._meta.registryModifiedAt||files['door_state.json']._meta.exported);
+ assert.ok(Number.isFinite(baselineRegistryAt),'Fixture registry authority timestamp must be valid');
+ updated._meta.registryModifiedAt=new Date(Math.max(Date.parse(CLOCK),baselineRegistryAt)+60000).toISOString();updated._meta.exported=updated._meta.registryModifiedAt;
+ assert.ok(Date.parse(updated._meta.registryModifiedAt)>baselineRegistryAt,'Injected concurrent resident edit must actually be newer than the baseline');
  race.remote.externalUpdate({'door_state.json':updated});await race.publish();
  check('concurrent newer resident instruction survives menu publication',race.remote.files['door_state.json'].residents[0].serviceNote==='Synthetic newer resident instruction');
  check('concurrent publication retains all six names',bindings.every(x=>race.remote.files['menu_current.json'].menu[x.week][x.day].dinner_anaphAlt===x.recipeName));
