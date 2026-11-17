@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.85';
+const DOOR_APP_VERSION = 'v31-standard.86';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -12091,6 +12091,481 @@ async function doorPrivateBootstrapV1Recover(operation,observation,config) {
   return result('superseded',false,true);
 }
 /* DOOR_TESTABLE_CORE_END private-bootstrap-v1 */
+/* DOOR_TESTABLE_CORE_START private-git-transport-v1 */
+// Inactive transport: trusted injected capabilities only; no default connection or caller.
+function doorPrivateGitV1Fail(code) { throw {doorPrivateGitCode:code}; }
+function doorPrivateGitV1WellFormed(s) {
+  for (let i=0;i<s.length;i++) { const n=s.charCodeAt(i); if(n>=0xd800&&n<=0xdbff) {const next=s.charCodeAt(++i);if(!(next>=0xdc00&&next<=0xdfff))return false;} else if(n>=0xdc00&&n<=0xdfff)return false; } return true;
+}
+function doorPrivateGitV1Frame(value,active) {
+  if(value===null||typeof value==='boolean')return value;
+  if(typeof value==='string'){if(!doorPrivateGitV1WellFormed(value))doorPrivateGitV1Fail('invalid-input');return value;}
+  if(typeof value==='number'){if(!Number.isFinite(value))doorPrivateGitV1Fail('invalid-input');return value;}
+  if(typeof value!=='object')doorPrivateGitV1Fail('invalid-input');
+  active=active||new Set();if(active.has(value))doorPrivateGitV1Fail('invalid-input');active.add(value);
+  const array=Array.isArray(value),proto=Object.getPrototypeOf(value);
+  if(!array&&proto!==null&&Object.getOwnPropertyDescriptor(proto,'constructor')?.value?.name!=='Object')doorPrivateGitV1Fail('invalid-input');
+  const keys=Reflect.ownKeys(value);if(keys.some(k=>typeof k!=='string'))doorPrivateGitV1Fail('invalid-input');
+  const result=array?[]:{};
+  if(array&&(keys.length!==value.length+1||!keys.includes('length')))doorPrivateGitV1Fail('invalid-input');
+  for(const key of keys){if(array&&key==='length')continue;
+    const d=Object.getOwnPropertyDescriptor(value,key);if(!d||!Object.hasOwn(d,'value')||!d.enumerable||!doorPrivateGitV1WellFormed(key))doorPrivateGitV1Fail('invalid-input');
+    if(array&&(!/^(0|[1-9][0-9]*)$/.test(key)||Number(key)>=value.length))doorPrivateGitV1Fail('invalid-input');
+    Object.defineProperty(result,key,{value:doorPrivateGitV1Frame(d.value,active),enumerable:true,writable:true,configurable:true});
+  }
+  active.delete(value);return result;
+}
+function doorPrivateGitV1Keys(value,keys) {return doorPrivateV1Object(value)&&Object.keys(value).length===keys.length&&keys.every(k=>Object.hasOwn(value,k));}
+function doorPrivateGitV1JSON(text,limit) {
+  if(typeof text!=='string'||!doorPrivateGitV1WellFormed(text))doorPrivateGitV1Fail('invalid-input');
+  if(new TextEncoder().encode(text).length>limit)doorPrivateGitV1Fail('bounds-exceeded');
+  try{return doorPrivateGitV1Frame(JSON.parse(text));}catch(_){doorPrivateGitV1Fail('invalid-input');}
+}
+async function doorPrivateGitV1Digest(text) {
+  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+  return 'sha256:'+Array.from(new Uint8Array(bytes),n=>n.toString(16).padStart(2,'0')).join('');
+}
+function doorPrivateGitV1Base64(text) {
+  const bytes=new TextEncoder().encode(text),parts=[];
+  for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode.apply(null,bytes.subarray(i,i+32768)));
+  return btoa(parts.join(''));
+}
+function doorPrivateGitTransportV1Create(rawConfig,capabilities) {
+  let config,request,getCredential,deriveProjectionBasis;
+  try{
+    config=doorPrivateGitV1Frame(rawConfig);
+    if(!doorPrivateGitV1Keys(config,['schema','privateRepository','publicRepositoryId'])||config.schema!==1||
+      !doorPrivateGitV1Keys(config.privateRepository,['id','owner','name','branch']))return {ok:false,code:'config'};
+    const r=config.privateRepository;
+    if(!Number.isSafeInteger(r.id)||r.id<=0||!Number.isSafeInteger(config.publicRepositoryId)||config.publicRepositoryId<=0||r.id===config.publicRepositoryId)return {ok:false,code:'config'};
+    for(const key of ['owner','name','branch'])if(typeof r[key]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(r[key])||r[key].includes('..')||r[key].endsWith('.')||r[key].endsWith('.lock'))return {ok:false,code:'config'};
+    if(doorPrivateV1Commit(r.branch)||r.branch.startsWith('refs'))return {ok:false,code:'config'};
+    if(!doorPrivateGitV1Keys(capabilities,['request','getCredential','deriveProjectionBasis']))return {ok:false,code:'capability'};
+    for(const key of Object.keys(capabilities))if(typeof Object.getOwnPropertyDescriptor(capabilities,key)?.value!=='function')return {ok:false,code:'capability'};
+    request=capabilities.request;getCredential=capabilities.getCredential;deriveProjectionBasis=capabilities.deriveProjectionBasis;
+  }catch(_){return {ok:false,code:'config'};}
+  const fixed=config.privateRepository,fullName=fixed.owner+'/'+fixed.name,root='https://api.github.com/repos/'+fullName;
+  const K=1024,M=K*K,manifestKeys=['schema','generationId','operationId','parentAcceptedGenerationId','intent','privateFiles','publicInputWitness','publicProjectionBasisDigest','createdAt'];
+  const publicCodes=new Set(['invalid-input','unavailable','repository-mismatch','conflict','generation-exists','config','capability','credential-unavailable','basis-unavailable','package-invalid','bounds-exceeded']);
+  const failure=(error,session,operation)=>session?.posted?{ok:false,code:'private-unconfirmed',operation:doorPrivateGitV1Frame(operation)}:{ok:false,code:publicCodes.has(error?.doorPrivateGitCode)?error.doorPrivateGitCode:'unavailable'};
+  function pointer(p){return doorPrivateGitV1Keys(p,['schema','generationId','operationId','parentAcceptedGenerationId'])&&doorPrivateBootstrapV1Pointer(p);}
+  async function basis(files,generationId,operationId){
+    let value;try{value=await deriveProjectionBasis(doorPrivateGitV1Frame({generationId,operationId,files}));}catch(_){doorPrivateGitV1Fail('basis-unavailable');}
+    if(!doorPrivateV1Hash(value))doorPrivateGitV1Fail('basis-unavailable');return value;
+  }
+  async function validateManifest(text,files,identity){
+    const manifest=doorPrivateGitV1JSON(text,64*K);
+    if(!doorPrivateGitV1Keys(manifest,manifestKeys)||manifest.schema!==1||manifest.intent!=='accepted-edit'||!doorPrivateV1Id(manifest.generationId)||!doorPrivateV1Id(manifest.operationId)||
+      !(manifest.parentAcceptedGenerationId===null||doorPrivateV1Id(manifest.parentAcceptedGenerationId))||manifest.parentAcceptedGenerationId===manifest.generationId||
+      !doorPrivateV1Hash(manifest.publicInputWitness)||!doorPrivateV1Hash(manifest.publicProjectionBasisDigest)||typeof manifest.createdAt!=='string'||!Number.isFinite(Date.parse(manifest.createdAt))||
+      !doorPrivateGitV1Keys(files,['registry.json','menu.json'])||!Array.isArray(manifest.privateFiles)||manifest.privateFiles.length!==2)doorPrivateGitV1Fail('package-invalid');
+    if(identity&&(manifest.generationId!==identity.generationId||manifest.operationId!==identity.operationId||manifest.publicInputWitness!==identity.publicInputWitness||
+      manifest.publicProjectionBasisDigest!==identity.publicProjectionBasisDigest||manifest.parentAcceptedGenerationId!==(identity.parentAccepted?.generationId||null)))doorPrivateGitV1Fail('package-invalid');
+    const seen=new Set();
+    for(const item of manifest.privateFiles){
+      if(!doorPrivateGitV1Keys(item,['path','sha256'])||!['registry.json','menu.json'].includes(item.path)||seen.has(item.path)||!doorPrivateV1Hash(item.sha256))doorPrivateGitV1Fail('package-invalid');seen.add(item.path);
+      if(!doorPrivateV1Object(doorPrivateGitV1JSON(files[item.path],4*M)))doorPrivateGitV1Fail('invalid-input');
+    }
+    for(const item of manifest.privateFiles)if(await doorPrivateGitV1Digest(files[item.path])!==item.sha256)doorPrivateGitV1Fail('package-invalid');
+    const expected=await basis(files,manifest.generationId,manifest.operationId);
+    if(expected!==manifest.publicProjectionBasisDigest)doorPrivateGitV1Fail('package-invalid');
+    return {manifest,expected};
+  }
+  async function session(){
+    let credential;try{credential=await getCredential({repositoryId:fixed.id,permission:'contents-write'});}catch(_){doorPrivateGitV1Fail('credential-unavailable');}
+    if(typeof credential!=='string'||!credential.length||credential.length>2000||credential.trim()!==credential||/[\x00-\x1f\x7f]/.test(credential))doorPrivateGitV1Fail('credential-unavailable');
+    const s={posted:false,count:0,wire:0,trees:new Map()};
+    s.json=async(url,limit,body)=>{
+      if(++s.count>96)doorPrivateGitV1Fail('bounds-exceeded');
+      const headers={Accept:'application/vnd.github+json',Authorization:'Bearer '+credential,'X-GitHub-Api-Version':'2022-11-28'};
+      if(body!==undefined)headers['Content-Type']='application/json';
+      const req={url,method:body===undefined?'GET':'POST',headers,timeoutMs:15000,maxResponseBytes:limit,redirect:'error'};
+      if(body!==undefined){req.body=JSON.stringify(body);s.posted=true;}
+      const response=await request(req);
+      if(!response||response.status!==200||response.url!==url||response.redirected!==false||!(response.bytes instanceof Uint8Array))doorPrivateGitV1Fail('unavailable');
+      s.wire+=response.bytes.byteLength;if(response.bytes.byteLength>limit||s.wire>24*M)doorPrivateGitV1Fail('bounds-exceeded');
+      let text;try{text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(response.bytes);}catch(_){doorPrivateGitV1Fail('unavailable');}
+      return doorPrivateGitV1JSON(text,limit);
+    };
+    s.repository=async()=>{
+      const r=await s.json(root,M);
+      if(r.id!==fixed.id||r.full_name!==fullName||r.private!==true||r.permissions?.push!==true)doorPrivateGitV1Fail('repository-mismatch');
+      return {id:fixed.id,visibility:'private',permissions:{push:true}};
+    };
+    s.commit=async sha=>{
+      if(!doorPrivateV1Commit(sha))doorPrivateGitV1Fail('package-invalid');
+      const c=await s.json(root+'/git/commits/'+sha,M);
+      if(c.sha!==sha||!doorPrivateV1Commit(c.tree?.sha)||!Array.isArray(c.parents)||c.parents.length>100||c.parents.some(p=>!doorPrivateV1Commit(p?.sha)))doorPrivateGitV1Fail('package-invalid');
+      return c;
+    };
+    s.tree=async sha=>{
+      if(s.trees.has(sha))return s.trees.get(sha);
+      if(!doorPrivateV1Commit(sha))doorPrivateGitV1Fail('package-invalid');
+      const t=await s.json(root+'/git/trees/'+sha,2*M);
+      if(t.sha!==sha||t.truncated!==false||!Array.isArray(t.tree)||t.tree.length>10000)doorPrivateGitV1Fail('package-invalid');
+      const names=new Set();for(const e of t.tree){
+        if(!e||typeof e.path!=='string'||!e.path.length||e.path.length>255||/[\/\\\x00-\x1f\x7f]/.test(e.path)||['.','..'].includes(e.path)||names.has(e.path)||!doorPrivateV1Commit(e.sha)||
+          !(e.type==='tree'&&e.mode==='040000'||e.type==='blob'&&e.mode==='100644'&&Number.isSafeInteger(e.size)&&e.size>=0))doorPrivateGitV1Fail('package-invalid');names.add(e.path);
+      }s.trees.set(sha,t.tree);return t.tree;
+    };
+    s.child=async(treeId,name,kind,optional=false)=>{
+      const entries=await s.tree(treeId),e=entries.find(e=>e.path===name);
+      if(!e){if(optional)return null;doorPrivateGitV1Fail('package-invalid');}
+      if(e.type!==kind)doorPrivateGitV1Fail('package-invalid');return e;
+    };
+    s.blob=async(e,limit)=>{
+      if(e.size>limit)doorPrivateGitV1Fail('bounds-exceeded');
+      const b=await s.json(root+'/git/blobs/'+e.sha,6*M);
+      if(b.sha!==e.sha||b.encoding!=='base64'||typeof b.content!=='string'||!Number.isSafeInteger(b.size)||b.size<0||b.size!==e.size||b.size>limit)doorPrivateGitV1Fail('package-invalid');
+      const encoded=b.content.replace(/\r?\n/g,'');
+      const padding=encoded.endsWith('==')?2:encoded.endsWith('=')?1:0;
+      if(encoded.length%4!==0||!/^[A-Za-z0-9+/]*$/.test(encoded.slice(0,encoded.length-padding)))doorPrivateGitV1Fail('package-invalid');
+      let binary;try{binary=atob(encoded);}catch(_){doorPrivateGitV1Fail('package-invalid');}
+      if(binary.length!==b.size||btoa(binary)!==encoded)doorPrivateGitV1Fail('package-invalid');
+      const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+      try{return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch(_){doorPrivateGitV1Fail('package-invalid');}
+    };
+    s.authority=async head=>{
+      const commit=await s.commit(head),entry=await s.child(commit.tree.sha,'accepted.json','blob',true);
+      if(!entry)return {commit,pointer:null,text:null};
+      const text=await s.blob(entry,16*K),p=doorPrivateGitV1JSON(text,16*K);
+      if(!pointer(p))doorPrivateGitV1Fail('package-invalid');return {commit,pointer:p,text};
+    };
+    s.head=async()=>{
+      const r=await s.json(root+'/git/ref/heads/'+fixed.branch,M);
+      if(r.ref!=='refs/heads/'+fixed.branch||r.object?.type!=='commit'||!doorPrivateV1Commit(r.object?.sha))doorPrivateGitV1Fail('package-invalid');return r.object.sha;
+    };
+    s.package=async(repository,head,authority,reference)=>{
+      if(!authority.pointer)doorPrivateGitV1Fail('package-invalid');
+      const p=authority.pointer,generations=await s.child(authority.commit.tree.sha,'generations','tree'),generation=await s.child(generations.sha,p.generationId,'tree');
+      const entries=await s.tree(generation.sha);
+      if(entries.length!==3||!['manifest.json','registry.json','menu.json'].every(n=>entries.some(e=>e.path===n&&e.type==='blob')))doorPrivateGitV1Fail('package-invalid');
+      const text=await s.blob(entries.find(e=>e.path==='manifest.json'),64*K),files={};
+      for(const name of ['registry.json','menu.json'])files[name]=await s.blob(entries.find(e=>e.path===name),4*M);
+      const checked=await validateManifest(text,files),manifest=checked.manifest;
+      if(manifest.generationId!==p.generationId||manifest.operationId!==p.operationId||manifest.parentAcceptedGenerationId!==p.parentAcceptedGenerationId)doorPrivateGitV1Fail('package-invalid');
+      const pin={schema:1,generationId:p.generationId,operationId:p.operationId,privateCommit:head,publicInputWitness:manifest.publicInputWitness};
+      if(reference&&!doorPrivateV1SameRef(reference,pin))doorPrivateGitV1Fail('package-invalid');
+      const bundle={repository,commit:head,accepted:p,manifest,files};
+      if(!(await doorPrivateV1ValidatePackage(pin,bundle,{repositoryId:fixed.id,publicProjectionBasisDigest:checked.expected})).ok)doorPrivateGitV1Fail('package-invalid');
+      return {bundle,pin,manifestText:text,expected:checked.expected};
+    };
+    return s;
+  }
+  async function observePrivate(){let s;try{
+    s=await session();const repository=await s.repository(),head=await s.head(),authority=await s.authority(head);
+    const accepted={status:authority.pointer?'present':'absent',source:'authenticated-git-tree',path:'accepted.json',atCommit:head};
+    const frame={schema:1,repository,head,accepted};
+    if(authority.pointer){accepted.value=authority.pointer;const loaded=await s.package(repository,head,authority);frame.package=loaded.bundle;frame.expectedProjectionBasisDigest=loaded.expected;}
+    return {ok:true,frame:doorPrivateGitV1Frame(frame)};
+  }catch(e){return failure(e,s);}}
+  async function readPackage(rawReference){let s;try{
+    const reference=doorPrivateGitV1Frame(rawReference);
+    if(!doorPrivateGitV1Keys(reference,['schema','generationId','operationId','privateCommit','publicInputWitness'])||!doorPrivateV1Ref(reference))doorPrivateGitV1Fail('invalid-input');
+    s=await session();const repository=await s.repository(),authority=await s.authority(reference.privateCommit),loaded=await s.package(repository,reference.privateCommit,authority,reference);
+    return {ok:true,package:doorPrivateGitV1Frame(loaded.bundle),expectedProjectionBasisDigest:loaded.expected};
+  }catch(e){return failure(e,s);}}
+  async function acceptPrivate(raw){let s,operation;try{
+    const input=doorPrivateGitV1Frame(raw);
+    if(!doorPrivateGitV1Keys(input,['operation','manifestText','files']))doorPrivateGitV1Fail('invalid-input');operation=input.operation;
+    const bootstrapConfig={schema:1,privateRepositoryId:fixed.id,publicRepositoryId:config.publicRepositoryId};
+    const opKeys=['schema','repositoryIds','generationId','operationId','publicInputWitness','publicProjectionBasisDigest','expectedPrivateHead','expectedPublicHead','parentAccepted','expectedServing','phase'];
+    const refKeys=['schema','generationId','operationId','privateCommit','publicInputWitness'];
+    if(!doorPrivateGitV1Keys(operation,opKeys)||!doorPrivateGitV1Keys(operation.repositoryIds,['private','public'])||
+      operation.parentAccepted!==null&&!doorPrivateGitV1Keys(operation.parentAccepted,refKeys)||
+      operation.expectedServing!==null&&!doorPrivateGitV1Keys(operation.expectedServing,refKeys)||
+      !doorPrivateBootstrapV1Operation(operation,bootstrapConfig)||!['prepared','private-unconfirmed'].includes(operation.phase))doorPrivateGitV1Fail('invalid-input');
+    const checked=await validateManifest(input.manifestText,input.files,operation);
+    const pointerValue={schema:1,generationId:operation.generationId,operationId:operation.operationId,parentAcceptedGenerationId:operation.parentAccepted?.generationId||null};
+    const pointerText=JSON.stringify(pointerValue);
+    s=await session();const repository=await s.repository(),head=await s.head();
+    if(head!==operation.expectedPrivateHead)doorPrivateGitV1Fail('conflict');
+    const authority=await s.authority(head);
+    let parent=null;if(authority.pointer)parent=(await s.package(repository,head,authority)).pin;
+    if(!doorPrivateBootstrapV1Same(parent,operation.parentAccepted))doorPrivateGitV1Fail('conflict');
+    const generations=await s.child(authority.commit.tree.sha,'generations','tree',true);
+    if(generations&&(await s.tree(generations.sha)).some(e=>e.path===operation.generationId))doorPrivateGitV1Fail('generation-exists');
+    const prefix='generations/'+operation.generationId+'/';
+    const additions=[{path:prefix+'manifest.json',contents:doorPrivateGitV1Base64(input.manifestText)},...['registry.json','menu.json'].map(name=>({path:prefix+name,contents:doorPrivateGitV1Base64(input.files[name])})),{path:'accepted.json',contents:doorPrivateGitV1Base64(pointerText)}];
+    const query='mutation DoorAcceptPrivate($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){clientMutationId commit{oid repository{databaseId nameWithOwner} parents(first:2){totalCount nodes{oid}}} ref{name prefix repository{databaseId nameWithOwner} target{oid}}}}';
+    const response=await s.json('https://api.github.com/graphql',M,{query,variables:{input:{branch:{repositoryNameWithOwner:fullName,branchName:fixed.branch},expectedHeadOid:head,fileChanges:{additions},message:{headline:'Accept private DOOR generation'},clientMutationId:operation.operationId}}});
+    const ack=response.data?.createCommitOnBranch,c=ack?.commit,ref=ack?.ref,repoOK=r=>r?.databaseId===fixed.id&&r?.nameWithOwner===fullName;
+    if(Object.hasOwn(response,'errors')&&(!Array.isArray(response.errors)||response.errors.length>0)||!ack||ack.clientMutationId!==operation.operationId||!doorPrivateV1Commit(c?.oid)||c.oid===head||!repoOK(c.repository)||c.parents?.totalCount!==1||c.parents?.nodes?.length!==1||c.parents.nodes[0]?.oid!==head||!repoOK(ref?.repository)||ref.name!==fixed.branch||ref.prefix!=='refs/heads/'||ref.target?.oid!==c.oid)doorPrivateGitV1Fail('unavailable');
+    const readback=await s.authority(c.oid),pin=doorPrivateBootstrapV1Target(operation,c.oid),loaded=await s.package(repository,c.oid,readback,pin);
+    if(readback.commit.parents.length!==1||readback.commit.parents[0].sha!==head||readback.text!==pointerText||loaded.manifestText!==input.manifestText||loaded.expected!==checked.expected||['registry.json','menu.json'].some(name=>loaded.bundle.files[name]!==input.files[name]))doorPrivateGitV1Fail('package-invalid');
+    const confirmedRepository=await s.repository();
+    const receipt={kind:'authenticated-git-cas-commit',repository:confirmedRepository,commit:{sha:c.oid,parents:[head]},refUpdate:{before:head,after:c.oid,compareAndSwap:true}};
+    return {ok:true,kind:'private-accepted-at-commit',event:{type:'private-accepted',operationId:operation.operationId,receipt,package:doorPrivateGitV1Frame(loaded.bundle)},operation:doorPrivateGitV1Frame(operation)};
+  }catch(e){return failure(e,s,operation);}}
+  return {ok:true,transport:{observePrivate,readPackage,acceptPrivate}};
+}
+/* DOOR_TESTABLE_CORE_END private-git-transport-v1 */
+
+
+/* DOOR_TESTABLE_CORE_START private-episode-v1 */
+// Inactive PRIVATE working-state kernel. No callers, I/O, ID generation or serving admission.
+var DOOR_EPISODE_ID_FIELDS = ['episodeId','residentEpisodeId','occupancyId','residentId','id'];
+function doorEpisodeReject(code) { return {ok:false,code:code}; }
+function doorEpisodeObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+function doorEpisodeOwn(v,k) { return Object.prototype.hasOwnProperty.call(v,k); }
+function doorEpisodeText(v) { return typeof v === 'string' && v.trim().length > 0; }
+function doorEpisodeId(v) { return typeof v === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v); }
+function doorEpisodeDigest(v) { return typeof v === 'string' && /^sha256:[a-f0-9]{64}$/.test(v); }
+function doorEpisodeRevision(v) { return Number.isSafeInteger(v) && v > 0; }
+function doorEpisodeUnicode(text) {
+  for (var i=0;i<text.length;i++) {
+    var n=text.charCodeAt(i);
+    if (n>=0xD800 && n<=0xDBFF) {
+      var next=text.charCodeAt(++i);
+      if (!(next>=0xDC00 && next<=0xDFFF)) return false;
+    } else if (n>=0xDC00 && n<=0xDFFF) return false;
+  }
+  return true;
+}
+function doorEpisodePlainPrototype(value,array) {
+  var proto=Object.getPrototypeOf(value);
+  if (!array && proto===null) return true;
+  if (!proto) return false;
+  var constructor=Object.getOwnPropertyDescriptor(proto,'constructor');
+  if (!constructor || !doorEpisodeOwn(constructor,'value') || typeof constructor.value!=='function') return false;
+  var nativeText=Function.prototype.toString.call(constructor.value);
+  if (nativeText!==(array?'function Array() { [native code] }':'function Object() { [native code] }')) return false;
+  var parent=Object.getPrototypeOf(proto);
+  if (array) {
+    if (!parent || Object.getPrototypeOf(parent)!==null) return false;
+  } else if (parent!==null) return false;
+  // Even inherited hooks are not JSON input authority. Inspect descriptors, never call them.
+  for (var p=proto;p;p=Object.getPrototypeOf(p)) if (Object.getOwnPropertyDescriptor(p,'toJSON')) return false;
+  return true;
+}
+function doorEpisodeFiniteJSON(value,ancestors) {
+  if (value===null || typeof value==='boolean') return true;
+  if (typeof value==='string') return doorEpisodeUnicode(value);
+  if (typeof value==='number') return Number.isFinite(value);
+  if (typeof value!=='object') return false;
+  var array=Array.isArray(value);
+  if (!doorEpisodePlainPrototype(value,array) || ancestors.has(value)) return false;
+  var keys=Reflect.ownKeys(value),descriptors=Object.getOwnPropertyDescriptors(value);
+  if (keys.some(function(k) { return typeof k!=='string' || !doorEpisodeUnicode(k); })) return false;
+  if (array) {
+    var length=descriptors.length;
+    if (!length || !doorEpisodeOwn(length,'value') || !Number.isSafeInteger(length.value) || length.value<0 || keys.length!==length.value+1) return false;
+    for (var a=0;a<length.value;a++) if (!doorEpisodeOwn(descriptors,String(a))) return false;
+  }
+  ancestors.add(value);
+  for (var i=0;i<keys.length;i++) {
+    var key=keys[i],d=descriptors[key];
+    if (array && key==='length') continue;
+    if (!d || !doorEpisodeOwn(d,'value') || !d.enumerable || !doorEpisodeFiniteJSON(d.value,ancestors)) { ancestors.delete(value);return false; }
+  }
+  ancestors.delete(value);
+  return true;
+}
+function doorEpisodeClone(value) {
+  if (value===null || typeof value!=='object') return value;
+  if (Array.isArray(value)) { var array=[];for (var i=0;i<value.length;i++) array.push(doorEpisodeClone(Object.getOwnPropertyDescriptor(value,String(i)).value));return array; }
+  var copy={};
+  Object.keys(value).forEach(function(k) { Object.defineProperty(copy,k,{value:doorEpisodeClone(Object.getOwnPropertyDescriptor(value,k).value),enumerable:true,writable:true,configurable:true}); });
+  return copy;
+}
+function doorEpisodeCapture(values) {
+  try { return doorEpisodeFiniteJSON(values,new Set()) ? doorEpisodeClone(values) : null; } catch (_) { return null; }
+}
+function doorEpisodeCanonical(value) {
+  if (value===null || typeof value!=='object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '['+value.map(doorEpisodeCanonical).join(',')+']';
+  return '{'+Object.keys(value).sort().map(function(k) { return JSON.stringify(k)+':'+doorEpisodeCanonical(value[k]); }).join(',')+'}';
+}
+async function doorEpisodeHash(value) {
+  var bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(doorEpisodeCanonical(value)));
+  return 'sha256:'+Array.from(new Uint8Array(bytes),function(n) { return n.toString(16).padStart(2,'0'); }).join('');
+}
+function doorEpisodeConfig(config) { return doorEpisodeObject(config) && config.schema===1 && Number.isSafeInteger(config.privateRepositoryId) && config.privateRepositoryId>0; }
+function doorEpisodeRoom(value) { return doorEpisodeText(value)?value.trim().toLowerCase():null; }
+function doorEpisodeLease(value) { return doorEpisodeObject(value) && doorEpisodeId(value.sourceId) && doorEpisodeText(value.revision) && doorEpisodeDigest(value.digest); }
+function doorEpisodeLeaseCopy(v) { return {sourceId:v.sourceId,revision:v.revision,digest:v.digest}; }
+function doorEpisodeLeaseSame(a,b) { return doorEpisodeLease(a) && doorEpisodeLease(b) && a.sourceId===b.sourceId && a.revision===b.revision && a.digest===b.digest; }
+function doorEpisodeHasIdentity(row) { return DOOR_EPISODE_ID_FIELDS.some(function(k) { return doorEpisodeOwn(row,k); }); }
+function doorEpisodeSource(source,config) {
+  if (!doorEpisodeConfig(config) || !doorEpisodeObject(source) || source.schema!==1 || source.privateRepositoryId!==config.privateRepositoryId || !doorEpisodeLease(source.lease)) return false;
+  var s=source.snapshot;
+  if (!doorEpisodeObject(s) || s.schema!==1 || !['residents','anaphRooms','queue','reservedEpisodeIds'].every(function(k) { return Array.isArray(s[k]); }) || s.queue.length) return false;
+  var rooms=new Set(),reserved=new Set();
+  for (var i=0;i<s.residents.length;i++) {
+    var row=s.residents[i],room=doorEpisodeObject(row)&&doorEpisodeRoom(row.room);
+    if (!room || rooms.has(room) || doorEpisodeHasIdentity(row)) return false;
+    rooms.add(room);
+  }
+  for (var j=0;j<s.reservedEpisodeIds.length;j++) {
+    var id=s.reservedEpisodeIds[j];if (!doorEpisodeId(id) || reserved.has(id)) return false;reserved.add(id);
+  }
+  return true;
+}
+function doorEpisodeAssignments(assignments,source) {
+  if (!Array.isArray(assignments) || assignments.length!==source.snapshot.residents.length) return null;
+  var rows=new Set(),ids=new Set(),reserved=new Set(source.snapshot.reservedEpisodeIds),copy=[];
+  for (var i=0;i<assignments.length;i++) {
+    var a=assignments[i];
+    if (!doorEpisodeObject(a) || !Number.isSafeInteger(a.sourceRow) || a.sourceRow<0 || a.sourceRow>=assignments.length || rows.has(a.sourceRow) || !doorEpisodeId(a.episodeId) || ids.has(a.episodeId) || reserved.has(a.episodeId)) return null;
+    rows.add(a.sourceRow);ids.add(a.episodeId);copy.push({sourceRow:a.sourceRow,episodeId:a.episodeId});
+  }
+  return copy;
+}
+function doorEpisodePlanSemantic(plan) {
+  return {schema:1,privateRepositoryId:plan.privateRepositoryId,operationId:plan.operationId,source:doorEpisodeLeaseCopy(plan.source),assignments:plan.assignments.map(function(a) { return {sourceRow:a.sourceRow,episodeId:a.episodeId}; })};
+}
+async function doorEpisodeVerifyPlan(plan,source,config) {
+  if (!doorEpisodeSource(source,config) || !doorEpisodeObject(plan) || plan.schema!==1 || plan.privateRepositoryId!==config.privateRepositoryId || !doorEpisodeId(plan.operationId) || !doorEpisodeLeaseSame(plan.source,source.lease) || !doorEpisodeDigest(plan.planDigest)) return null;
+  var assignments=doorEpisodeAssignments(plan.assignments,source);if (!assignments) return null;
+  if (await doorEpisodeHash(source.snapshot)!==source.lease.digest) return null;
+  var semantic=doorEpisodePlanSemantic({privateRepositoryId:plan.privateRepositoryId,operationId:plan.operationId,source:plan.source,assignments:assignments});
+  if (await doorEpisodeHash(semantic)!==plan.planDigest) return null;
+  return Object.assign(semantic,{planDigest:plan.planDigest});
+}
+async function doorPrivateEpisodeV1Plan(source,candidate,config) {
+  var frame=doorEpisodeCapture([source,candidate,config]);if (!frame) return doorEpisodeReject('invalid-json');
+  source=frame[0];candidate=frame[1];config=frame[2];
+  try {
+    if (!doorEpisodeSource(source,config) || !doorEpisodeObject(candidate) || candidate.schema!==1 || !doorEpisodeId(candidate.operationId) || !doorEpisodeLeaseSame(candidate.expectedLease,source.lease)) return doorEpisodeReject('source-or-candidate');
+    var assignments=doorEpisodeAssignments(candidate.assignments,source);if (!assignments) return doorEpisodeReject('assignments');
+    if (await doorEpisodeHash(source.snapshot)!==source.lease.digest) return doorEpisodeReject('source-digest');
+    var plan={schema:1,privateRepositoryId:config.privateRepositoryId,operationId:candidate.operationId,source:doorEpisodeLeaseCopy(source.lease),assignments:assignments};
+    plan.planDigest=await doorEpisodeHash(plan);return {ok:true,plan:plan};
+  } catch (_) { return doorEpisodeReject('plan-unavailable'); }
+}
+async function doorPrivateEpisodeV1Check(plan,currentSource,config) {
+  var frame=doorEpisodeCapture([plan,currentSource,config]);if (!frame) return doorEpisodeReject('invalid-json');
+  try { return await doorEpisodeVerifyPlan(frame[0],frame[1],frame[2]) ? {ok:true,status:'current-plan'} : doorEpisodeReject('stale-or-invalid-plan'); }
+  catch (_) { return doorEpisodeReject('check-unavailable'); }
+}
+async function doorPrivateEpisodeV1Initialize(plan,currentSource,config) {
+  var frame=doorEpisodeCapture([plan,currentSource,config]);if (!frame) return doorEpisodeReject('invalid-json');
+  plan=frame[0];currentSource=frame[1];config=frame[2];
+  try {
+    var verified=await doorEpisodeVerifyPlan(plan,currentSource,config);if (!verified) return doorEpisodeReject('stale-or-invalid-plan');
+    var byRow=new Map(verified.assignments.map(function(a) { return [a.sourceRow,a.episodeId]; }));
+    var records=currentSource.snapshot.residents.map(function(row,i) { return {episodeId:byRow.get(i),revision:1,resident:doorEpisodeClone(row)}; });
+    var reserved=currentSource.snapshot.reservedEpisodeIds.slice();records.forEach(function(r) { reserved.push(r.episodeId); });
+    return {ok:true,state:{schema:1,privateRepositoryId:config.privateRepositoryId,epochId:verified.operationId,revision:1,source:doorEpisodeLeaseCopy(verified.source),records:records,closed:[],history:[],reservedEpisodeIds:reserved,operations:[],sidecars:{anaphRooms:doorEpisodeClone(currentSource.snapshot.anaphRooms)},requiresServingRevalidation:true}};
+  } catch (_) { return doorEpisodeReject('initialize-unavailable'); }
+}
+function doorEpisodeKeys(object,allowed,required) {
+  return doorEpisodeObject(object) && Object.keys(object).every(function(k) { return allowed.includes(k); }) && required.every(function(k) { return doorEpisodeOwn(object,k); });
+}
+function doorEpisodeResident(resident) { return doorEpisodeObject(resident) && !!doorEpisodeRoom(resident.room) && !doorEpisodeHasIdentity(resident); }
+function doorEpisodeState(state,config) {
+  var keys=['schema','privateRepositoryId','epochId','revision','source','records','closed','history','reservedEpisodeIds','operations','sidecars','requiresServingRevalidation'];
+  if (!doorEpisodeConfig(config) || !doorEpisodeKeys(state,keys,keys) || state.schema!==1 || state.privateRepositoryId!==config.privateRepositoryId || !doorEpisodeId(state.epochId) || !doorEpisodeRevision(state.revision) || !doorEpisodeLease(state.source) || state.requiresServingRevalidation!==true || !['records','closed','history','reservedEpisodeIds','operations'].every(function(k) { return Array.isArray(state[k]); }) || !doorEpisodeKeys(state.sidecars,['anaphRooms'],['anaphRooms']) || !Array.isArray(state.sidecars.anaphRooms)) return false;
+  var reserved=new Set(),active=new Map(),closed=new Map(),rooms=new Set(),operations=new Set(),history=new Set();
+  for (var i=0;i<state.reservedEpisodeIds.length;i++) { var id=state.reservedEpisodeIds[i];if (!doorEpisodeId(id)||reserved.has(id)) return false;reserved.add(id); }
+  for (var j=0;j<state.records.length;j++) {
+    var r=state.records[j],room=r&&r.resident&&doorEpisodeRoom(r.resident.room);
+    if (!doorEpisodeKeys(r,['episodeId','revision','resident'],['episodeId','revision','resident']) || !doorEpisodeId(r.episodeId) || !doorEpisodeRevision(r.revision) || !doorEpisodeResident(r.resident) || !reserved.has(r.episodeId) || active.has(r.episodeId) || rooms.has(room)) return false;
+    active.set(r.episodeId,r);rooms.add(room);
+  }
+  for (var k=0;k<state.operations.length;k++) {
+    var op=state.operations[k];if (!doorEpisodeKeys(op,['operationId','intentDigest'],['operationId','intentDigest']) || !doorEpisodeId(op.operationId) || !doorEpisodeDigest(op.intentDigest) || operations.has(op.operationId)) return false;operations.add(op.operationId);
+  }
+  if (state.operations.length!==state.revision-1) return false;
+  for (var q=0;q<state.closed.length;q++) {
+    var c=state.closed[q];if (!doorEpisodeKeys(c,['episodeId','revision','resident','closingOperationId'],['episodeId','revision','resident','closingOperationId']) || !doorEpisodeId(c.episodeId) || !doorEpisodeRevision(c.revision) || !doorEpisodeResident(c.resident) || !reserved.has(c.episodeId) || active.has(c.episodeId) || closed.has(c.episodeId) || !operations.has(c.closingOperationId)) return false;closed.set(c.episodeId,c);
+  }
+  for (var n=0;n<state.history.length;n++) {
+    var h=state.history[n],owner=h&&(active.get(h.episodeId)||closed.get(h.episodeId)),key=h&&h.episodeId+'|'+h.recordRevision;
+    if (!doorEpisodeKeys(h,['episodeId','recordRevision','resident','operationId'],['episodeId','recordRevision','resident','operationId']) || !owner || !doorEpisodeRevision(h.recordRevision) || !doorEpisodeResident(h.resident) || history.has(key) || !operations.has(h.operationId) || (active.has(h.episodeId)?h.recordRevision>=owner.revision:h.recordRevision>owner.revision)) return false;history.add(key);
+  }
+  return true;
+}
+function doorEpisodeProtected(key,restore) {
+  return ['__proto__','constructor','prototype','room','_history'].concat(DOOR_EPISODE_ID_FIELDS).includes(key) || (restore && key==='serviceInstructions');
+}
+function doorEpisodeIntent(value,batch) {
+  if (!doorEpisodeObject(value) || typeof value.type!=='string') return null;
+  var common=batch?[]:['schema','operationId','expectedEpochId','expectedStateRevision'];
+  var type=value.type,fields={edit:['episodeId','expectedEpisodeRevision','patch'],move:['moves'],intake:['newEpisodeId','resident'],discharge:['episodeId','expectedEpisodeRevision'],'restore-active':['episodeId','expectedEpisodeRevision','targetHistoryRevision','fields'],queue:['actions'],import:['actions']}[type];
+  if (!Array.isArray(fields) || (batch && (type==='queue'||type==='import')) || !doorEpisodeKeys(value,common.concat(['type'],fields),common.concat(['type'],fields))) return null;
+  var out={type:type};
+  if (['edit','discharge','restore-active'].includes(type)) {
+    if (!doorEpisodeId(value.episodeId)||!doorEpisodeRevision(value.expectedEpisodeRevision)) return null;
+    out.episodeId=value.episodeId;out.expectedEpisodeRevision=value.expectedEpisodeRevision;
+  }
+  if (type==='edit') {
+    var patch=value.patch;
+    if (!doorEpisodeKeys(patch,['set','remove'],['set','remove']) || !doorEpisodeObject(patch.set) || !Array.isArray(patch.remove)) return null;
+    var keys=Object.keys(patch.set),removed=new Set();
+    if (keys.some(function(k) { return doorEpisodeProtected(k,false); })) return null;
+    for (var i=0;i<patch.remove.length;i++) { var key=patch.remove[i];if (typeof key!=='string'||doorEpisodeProtected(key,false)||removed.has(key)||doorEpisodeOwn(patch.set,key)) return null;removed.add(key); }
+    out.patch={set:doorEpisodeClone(patch.set),remove:patch.remove.slice()};
+  } else if (type==='move') {
+    if (!Array.isArray(value.moves)||!value.moves.length) return null;var moved=new Set();out.moves=[];
+    for (var m=0;m<value.moves.length;m++) { var move=value.moves[m];
+      if (!doorEpisodeKeys(move,['episodeId','expectedEpisodeRevision','toRoom'],['episodeId','expectedEpisodeRevision','toRoom']) || !doorEpisodeId(move.episodeId)||!doorEpisodeRevision(move.expectedEpisodeRevision)||!doorEpisodeRoom(move.toRoom)||moved.has(move.episodeId)) return null;
+      moved.add(move.episodeId);out.moves.push({episodeId:move.episodeId,expectedEpisodeRevision:move.expectedEpisodeRevision,toRoom:move.toRoom});
+    }
+  } else if (type==='intake') {
+    if (!doorEpisodeId(value.newEpisodeId)||!doorEpisodeResident(value.resident)||doorEpisodeOwn(value.resident,'_history')) return null;
+    out.newEpisodeId=value.newEpisodeId;out.resident=doorEpisodeClone(value.resident);
+  } else if (type==='restore-active') {
+    if (!doorEpisodeRevision(value.targetHistoryRevision)||!Array.isArray(value.fields)||!value.fields.length) return null;
+    var selected=new Set();for (var f=0;f<value.fields.length;f++) { var field=value.fields[f];if (typeof field!=='string'||doorEpisodeProtected(field,true)||selected.has(field)) return null;selected.add(field); }
+    out.targetHistoryRevision=value.targetHistoryRevision;out.fields=value.fields.slice();
+  } else if (type==='queue'||type==='import') {
+    if (!Array.isArray(value.actions)||!value.actions.length) return null;out.actions=[];
+    for (var a=0;a<value.actions.length;a++) { var action=doorEpisodeIntent(value.actions[a],true);if (!action) return null;out.actions.push(action); }
+  }
+  return out;
+}
+function doorEpisodeRecord(state,id,revision) { var r=state.records.find(function(row) { return row.episodeId===id; });return r&&r.revision===revision?r:null; }
+function doorEpisodeArchive(state,record,operationId) { state.history.push({episodeId:record.episodeId,recordRevision:record.revision,resident:doorEpisodeClone(record.resident),operationId:operationId}); }
+function doorEpisodeApplyIntent(state,intent,operationId) {
+  var type=intent.type;
+  if (type==='queue'||type==='import') { for (var a=0;a<intent.actions.length;a++) if (!doorEpisodeApplyIntent(state,intent.actions[a],operationId)) return false;return true; }
+  if (type==='intake') {
+    if (state.reservedEpisodeIds.includes(intent.newEpisodeId)||state.records.some(function(r) { return doorEpisodeRoom(r.resident.room)===doorEpisodeRoom(intent.resident.room); })) return false;
+    state.records.push({episodeId:intent.newEpisodeId,revision:1,resident:doorEpisodeClone(intent.resident)});state.reservedEpisodeIds.push(intent.newEpisodeId);return true;
+  }
+  if (type==='move') {
+    var records=[];
+    for (var m=0;m<intent.moves.length;m++) { var move=intent.moves[m],r=doorEpisodeRecord(state,move.episodeId,move.expectedEpisodeRevision);if (!r||!Number.isSafeInteger(r.revision+1)) return false;records.push(r); }
+    var destinations=new Map(intent.moves.map(function(m) { return [m.episodeId,m.toRoom]; })),rooms=new Set();
+    for (var i=0;i<state.records.length;i++) { var row=state.records[i],room=doorEpisodeRoom(destinations.has(row.episodeId)?destinations.get(row.episodeId):row.resident.room);if (rooms.has(room)) return false;rooms.add(room); }
+    records.forEach(function(record,index) { doorEpisodeArchive(state,record,operationId);record.resident.room=intent.moves[index].toRoom;record.revision++; });return true;
+  }
+  var record=doorEpisodeRecord(state,intent.episodeId,intent.expectedEpisodeRevision);if (!record) return false;
+  if (type==='discharge') {
+    doorEpisodeArchive(state,record,operationId);state.records=state.records.filter(function(r) { return r!==record; });
+    state.closed.push({episodeId:record.episodeId,revision:record.revision,resident:doorEpisodeClone(record.resident),closingOperationId:operationId});return true;
+  }
+  if (!Number.isSafeInteger(record.revision+1)) return false;
+  if (type==='restore-active') {
+    var history=state.history.find(function(h) { return h.episodeId===record.episodeId && h.recordRevision===intent.targetHistoryRevision; });
+    if (!history || !intent.fields.every(function(k) { return doorEpisodeOwn(history.resident,k); })) return false;
+    doorEpisodeArchive(state,record,operationId);intent.fields.forEach(function(k) { Object.defineProperty(record.resident,k,{value:doorEpisodeClone(history.resident[k]),enumerable:true,writable:true,configurable:true}); });
+  } else if (type==='edit') {
+    doorEpisodeArchive(state,record,operationId);Object.keys(intent.patch.set).forEach(function(k) { Object.defineProperty(record.resident,k,{value:doorEpisodeClone(intent.patch.set[k]),enumerable:true,writable:true,configurable:true}); });
+    intent.patch.remove.forEach(function(k) { delete record.resident[k]; });
+  } else return false;
+  record.revision++;return true;
+}
+async function doorPrivateEpisodeV1Reduce(state,event,config) {
+  var frame=doorEpisodeCapture([state,event,config]);if (!frame) return doorEpisodeReject('invalid-json');
+  state=frame[0];event=frame[1];config=frame[2];
+  try {
+    if (!doorEpisodeState(state,config) || !doorEpisodeObject(event) || event.schema!==1 || !doorEpisodeId(event.operationId) || event.expectedEpochId!==state.epochId || !doorEpisodeRevision(event.expectedStateRevision)) return doorEpisodeReject('state-or-context');
+    var intent=doorEpisodeIntent(event,false);if (!intent) return doorEpisodeReject('unsupported-intent');
+    var completeIntent=Object.assign({schema:1,operationId:event.operationId,expectedEpochId:event.expectedEpochId},intent);
+    var intentDigest=await doorEpisodeHash({privateRepositoryId:config.privateRepositoryId,epochId:state.epochId,operationId:event.operationId,intent:completeIntent});
+    var prior=state.operations.find(function(op) { return op.operationId===event.operationId; });
+    if (prior) return prior.intentDigest===intentDigest ? {ok:true,state:state,replayed:true,requiresServingRevalidation:true} : doorEpisodeReject('operation-conflict');
+    if (event.expectedStateRevision!==state.revision || !Number.isSafeInteger(state.revision+1)) return doorEpisodeReject('stale-state');
+    if (!doorEpisodeApplyIntent(state,intent,event.operationId)) return doorEpisodeReject('stale-or-conflicting-target');
+    state.revision++;state.operations.push({operationId:event.operationId,intentDigest:intentDigest});state.requiresServingRevalidation=true;
+    if (!doorEpisodeState(state,config)) return doorEpisodeReject('invalid-result');
+    return {ok:true,state:state,replayed:false,requiresServingRevalidation:true};
+  } catch (_) { return doorEpisodeReject('reduce-unavailable'); }
+}
+/* DOOR_TESTABLE_CORE_END private-episode-v1 */
+
 
 /* DOOR_TESTABLE_CORE_START publish-transaction */
 // F1: one immutable read/build/write boundary, using HOUSE seams 1 and 5.
