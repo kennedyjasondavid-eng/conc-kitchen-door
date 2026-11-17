@@ -1,0 +1,54 @@
+{
+  "baseline": "908f487f8379d78d4c57accb9d16d87f24291b80",
+  "asOf": "2026-11-17T11:02:19.805Z",
+  "sourceSha256": "8aed5afebecb71a0e2f047277d44cda3539bffe6d55f163a3092f32e1831af32",
+  "checks": 26,
+  "recipeMode": "Full served canonical catalogue and base recipe feed",
+  "worksheetMode": "Real pinned XLSX library",
+  "unchangedSavedServices": 84,
+  "unchangedCurrentData": true,
+  "codex": {
+    "schemaVersion": 1,
+    "asOf": "2026-11-17T08:59:14.000Z",
+    "sources": {
+      "main": "50d974a1b88438410aa97a01a5b5b51789544eae",
+      "sharedLibrary": "a1757a3fcd99df56c6e3f4100f03964b47f437db"
+    },
+    "sharedLibrary": {
+      "path": "library_public.json",
+      "sha256": "be0620184d07e86fad7c57a2b77afca34eeeed88167737a5daf6f28615de2677",
+      "schemaVersion": 1
+    }
+  },
+  "scope": "Opt-in lunch/dinner editor choices; current saved sheets, registry and mealflow preserved; no breakfast activation",
+  "unchangedOperationalJson": [
+    "change_log.json",
+    "custom_tag_rules.json",
+    "door_flow_publication.json",
+    "door_state.json",
+    "learned_nr.json",
+    "meal_swaps.json",
+    "meal_swaps_reverted.json",
+    "menu_current.json",
+    "menu_overlay.json",
+    "menu_reno.json",
+    "menu_v31_allergen_confirmations.json",
+    "recent_log.json",
+    "registry_summary.json",
+    "rex_week_answers.json",
+    "routing_by_meal.json",
+    "special_meals.json",
+    "special_meals_removed.json"
+  ],
+  "nodeTests": {
+    "passed": 976,
+    "skipped": 1
+  },
+  "browserWorkflowGates": 21,
+  "reviews": {
+    "foodData": "PASS",
+    "releaseFeed": "PASS"
+  },
+  "recipeChanges": "None: six existing canonical component recipes supply nine optional plates",
+  "baseRecipeFeedSha256": "00ec45ad4443453a3e25a3976069edd396af673265a3c6021b63f3fcfd952aeb"
+}

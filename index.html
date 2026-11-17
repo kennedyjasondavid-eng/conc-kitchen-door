@@ -851,8 +851,8 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.77';
-const DOOR_BUILD_DATE = '2026-11-16';
+const DOOR_APP_VERSION = 'v31-standard.78';
+const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -2192,8 +2192,8 @@ function updateCODEXBadge() {
           <div id="mc-alt-meals" style="margin-top:10px;"></div>
           <!-- The kitchen's alternatives (2026-10-19, the plating review): the dish each plate gets. -->
           <div id="mc-kitchen-alts" style="margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:8px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--forest-mid-text);margin-bottom:4px;">Alternatives the kitchen makes</div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">The dish each plate gets. Leave a box empty when the kitchen makes no such plate: diabetics then eat the regular plate ("extra veg less starch"), No Dairy residents the vegan plate, and No Spicy residents the regular plate, noted "No Spicy".</div>
+            <div id="mc-kitchen-alts-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--forest-mid-text);margin-bottom:4px;">Alternatives the kitchen makes</div>
+            <div id="mc-kitchen-alts-help" style="font-size:11px;color:var(--muted);margin-bottom:8px;">The dish each plate gets. Leave a box empty when the kitchen makes no such plate: diabetics then eat the regular plate ("extra veg less starch"), No Dairy residents the vegan plate, and No Spicy residents the regular plate, noted "No Spicy".</div>
             <div id="mc-kitchen-alt-fields" style="display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 8px;align-items:center;font-size:12px;"></div>
           </div>
           <div class="amber-panel" style="margin-top:14px;padding:12px;background:var(--warn-faint, #fefce8);border:1px solid #fde68a;border-radius:8px;">
@@ -10901,15 +10901,16 @@ function buildRoutingByMealJSON() {
               // modified_main / bland_alt sections eat the main meal's
               // components; getAltMeal appends a display suffix that
               // would corrupt the last component name.
-              const mealStr = (at === 'modified_main' || at === 'diabetic_alt' || (at === 'bland_alt' && !pd.ctx.blandAlt))
+              const optedIn = typeof doorTurnkeySectionAllocations === 'function' ? doorTurnkeySectionAllocations(s,pd) : null;
+              const mealStr = ((at === 'modified_main' || at === 'diabetic_alt' || (at === 'bland_alt' && !pd.ctx.blandAlt))
                 ? pd.ctx.mealName
-                : getAltMeal(at, pd.ctx);
-              doorSplitDishes(mealStr).forEach(c => {
+                : getAltMeal(at, pd.ctx));
+              (optedIn || [{text:mealStr,count:s.residents.length}]).forEach(allocation => doorSplitDishes(allocation.text).forEach(c => {
                 const name = c.trim();
                 if (!name || name.includes('[')) return; // skip supervisor placeholders
                 const canon = compKey[name.toLowerCase()] || (compKey[name.toLowerCase()] = name);
-                comp[canon] = (comp[canon] || 0) + s.residents.length;
-              });
+                comp[canon] = (comp[canon] || 0) + allocation.count;
+              }));
             });
             if (Object.keys(comp).length) result[wk][day][period]._components = comp;
           }
@@ -11992,14 +11993,15 @@ function doorFlowRoutingSlot(inputs,week,day,meal,date) {
       if (section.residents.length > 0 || section.rule.key === 'regular') counts[section.rule.label] = section.residents.length;
       if (!section.residents.length) return;
       const type = section.rule.altType;
-      const text = type === 'modified_main' || type === 'diabetic_alt' || (type === 'bland_alt' && !pd.ctx.blandAlt)
-        ? pd.ctx.mealName : getAltMeal(type,pd.ctx);
-      doorSplitDishes(text).forEach(raw => {
+      const optedIn = typeof doorTurnkeySectionAllocations === 'function' ? doorTurnkeySectionAllocations(section,pd) : null;
+      const text = (type === 'modified_main' || type === 'diabetic_alt' || (type === 'bland_alt' && !pd.ctx.blandAlt)
+        ? pd.ctx.mealName : getAltMeal(type,pd.ctx));
+      (optedIn || [{text,count:section.residents.length}]).forEach(allocation => doorSplitDishes(allocation.text).forEach(raw => {
         const name = raw.trim();
         if (!name || name.includes('[')) return;
         const canonical = names[name.toLowerCase()] || (names[name.toLowerCase()] = name);
-        components[canonical] = (components[canonical] || 0) + section.residents.length;
-      });
+        components[canonical] = (components[canonical] || 0) + allocation.count;
+      }));
     });
     if (pd.anaphSect.length) counts['Anaphylactic Alternative'] = pd.anaphSect.length;
     counts._components = components;
@@ -14649,6 +14651,183 @@ async function doorTellNoSavedOriginal(week, day, period, opts) {
     location.hash = '#menu-config/edit/' + week + '/' + day + '/' + period;
   }
 }
+// Plain-plate roster: references only. Recipe facts continue to come from CODEX.
+function doorTurnkeyPlateParts(text) {
+  // Exact opt-in descriptions only. No inference from "plain", no substring or fuzzy recipe matching.
+  for (const protein of ['Plain Chicken Leg','Plain Basa','Plain Tofu'])
+    for (const starch of ['Plain Rice (No Added Salt)','Plain Roasted Yams',null]) {
+      const parts = [protein,starch,'Plain Carrot and Zucchini'].filter(Boolean);
+      if (text === parts.join(', ')) return parts;
+    }
+  return null;
+}
+function doorTurnkeySectionPlate(s, pd) {
+  if (pd.periodLabel === 'Breakfast') return null;
+  const text = getAltMeal(s.rule.altType,pd.ctx);
+  return doorTurnkeyPlateParts(text) ? text : null;
+}
+function doorTurnkeySectionAllocations(s, pd) {
+  if (pd.periodLabel === 'Breakfast') return null;
+  const alts = pd.ctx.altMeals || [];
+  if (s.rule.key === 'soft' && alts.length > 1 && alts.some(a => doorTurnkeyPlateParts(a.text))) {
+    const counts = new Map();
+    for (const resident of s.residents) {
+      const type = (resident.tags || []).includes('Soft Meals') ? 'soft' : 'plain';
+      const chosen = alts.find(a => a.type === type) || alts[0];
+      counts.set(chosen.text,(counts.get(chosen.text) || 0)+1);
+    }
+    return Array.from(counts,([text,count]) => ({text,count}));
+  }
+  const text = doorTurnkeySectionPlate(s,pd);
+  return text ? [{text,count:s.residents.length}] : null;
+}
+function doorPlainPlateRoster() {
+  const proteins = [['chicken','plain-chicken-leg'],['basa','plain-basa'],['tofu','plain-tofu']];
+  const starches = [['rice','plain-rice-no-added-salt'],['yams','plain-roasted-yams'],['no-starch',null]];
+  const records = typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : [];
+  return proteins.flatMap(([protein,pid]) => starches.map(([starch,sid]) => {
+    const ids = [pid,sid,'plain-carrot-and-zucchini'].filter(Boolean);
+    const recipes = ids.map(id => { const found = records.filter(r => r.recipeId === id); return found.length === 1 ? found[0] : null; });
+    const text = recipes.every(Boolean) ? recipes.map(r => r.recipeName).join(', ') : '';
+    const facts = text ? doorNamedPlateFacts(text) : {known:false};
+    return {id:protein+'-'+starch,label:protein.charAt(0).toUpperCase()+protein.slice(1)+' + '+(sid?starch:'no starch')+' + carrot/zucchini',
+      text,recipeIds:ids,available:!!facts.known && !!doorTurnkeyPlateParts(text),flags:facts.flags || {}};
+  }));
+}
+function doorNamedPlateFacts(text) {
+  const flags = {}, recipes = [], missing = [];
+  const exact = s => String(s || '').trim().replace(/\s+/g,' ').toLowerCase();
+  const parts = doorSplitDishes(text);
+  if (!parts.length) return {known:false,flags,recipes,missing:['Unnamed plate']};
+  for (const part of parts) {
+    const matches = (typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : []).filter(r => exact(r.recipeName) === exact(part));
+    const recipe = matches.length === 1 ? matches[0] : null;
+    if (!recipe || !recipe.recipeId || DOOR_RECIPE_DATA.filter(r => r.recipeId === recipe.recipeId).length !== 1 ||
+        !Array.isArray(recipe.allergens) || !recipe.allergens.length || recipe.allergens.some(a => typeof a !== 'string' || !a.trim()) || _hubAllergenResolve(recipe.allergens).unknown.size) {
+      missing.push(part); continue;
+    }
+    Object.entries(hubAllergenToFlags(recipe.allergens)).forEach(([k,v]) => { if (v) flags[k] = true; });
+    // Positive protein warnings only, as for the main meal's smart defaults. Never infer a free-from claim.
+    for (const [word,key] of [['chicken','hasChicken'],['turkey','hasTurkey'],['basa','hasFish'],['fish','hasFish'],['pork','hasPork'],['beef','hasBeef']])
+      if (new RegExp('\\b'+word+'\\b','i').test(recipe.recipeName)) flags[key] = true;
+    recipes.push({recipeId:recipe.recipeId,recipeName:recipe.recipeName});
+  }
+  return {known:missing.length === 0,flags,recipes,missing};
+}
+function doorPlainPlatePickerHTML(target) {
+  const options = doorPlainPlateRoster();
+  return '<select aria-label="Choose a plain plate for '+_escAttr(typeof target === 'number' ? 'alternative '+(target+1) : DOOR_KITCHEN_ALT_LABELS[target] || target)+'" class="form-input" style="font-size:11px;max-width:100%;margin:2px 0 6px;" onchange="doorUsePlainPlate('+_escAttr(_jsArgLiteral(target))+',this.value);this.value=\'\';">' +
+    '<option value="">Choose a plain plate…</option>' + options.map(p => '<option value="'+_escAttr(p.id)+'"'+(p.available?'':' disabled')+'>'+escapeHtml(p.label+(p.available?'':' — recipe unavailable'))+'</option>').join('')+'</select>';
+}
+function doorUsePlainPlate(target, id) {
+  if (!testMealActive && (!mcMenuEditKey || /-breakfast$/.test(mcMenuEditKey))) return false;
+  const plate = doorPlainPlateRoster().find(p => p.id === id && p.available);
+  if (!plate) return false;
+  const issue = document.getElementById('door-alt-save-issue');
+  if (issue) { issue.textContent = ''; issue.style.display = 'none'; }
+  if (typeof target === 'number') {
+    if (!ALT_MEALS[target]) return false;
+    if (!_doorPlainChoiceTargets.has(target)) _doorPlainChoiceTargets.set(target,ALT_MEALS[target].text || '');
+    ALT_MEALS[target] = {...ALT_MEALS[target],text:plate.text,flags:{...plate.flags}};
+    ALT_MEALS_NONE = false;
+    renderAltMealsSection();
+  } else {
+    const input = document.getElementById('mc-kalt-'+target);
+    if (!input) return false;
+    if (!_doorPlainChoiceTargets.has(target)) _doorPlainChoiceTargets.set(target,input.value);
+    input.value = plate.text;
+  }
+  updateSlotSummary();
+  return true;
+}
+function doorAltOptionsEnabled() {
+  return testMealActive || !!(mcMenuEditKey && !/-breakfast$/.test(mcMenuEditKey));
+}
+function doorAltEditorOutcomes(flags, values, altMeals, registry = REGISTRY_LIST, rooms) {
+  const entries = altMeals.map((meal,index) => ({meal,index})).filter(e => e.meal.text);
+  const choices = entries.map(e => e.meal);
+  const f = {...flags,_altMeals:choices};
+  if (values.diabeticAlt) f._diabeticAlt = values.diabeticAlt;
+  if (values.noDairyAlt) f._noDairyAlt = values.noDairyAlt;
+  if (values.blandAlt) f._blandAlt = values.blandAlt;
+  if (values.noPorkAlt) f.noPorkAlt = values.noPorkAlt;
+  const excluded = getAnaphConflictRooms(f,{},registry,rooms);
+  const sections = computeSections(f,registry.filter(r => !excluded.has(r.room)));
+  const keys = {gfAlt:'gf',diabeticAlt:'diabetic',noDairyAlt:'no_dairy',noEggAlt:'no_egg',blandAlt:'bland',anaphAlt:'anaph'};
+  const outcomes = [];
+  const add = (target,text,residents,explanation) => {
+    const facts = text ? doorNamedPlateFacts(text) : {known:false,flags:{},missing:[]};
+    const conflicts = [];
+    if (facts.known) for (const r of residents) {
+      const reasons = checkResidentMealConflicts(facts.flags,r).map(c => c.tag);
+      if ((r.tags || []).some(t => t === 'Vegan' || t === 'Vegetarian') &&
+          Object.keys(facts.flags).some(k => /^has(Pork|Beef|Chicken|Turkey|Fish|Shellfish)$/.test(k) && facts.flags[k])) reasons.push('Vegetarian / Vegan');
+      if (/no\s+rice\s*\/?\s*pasta/i.test(r.serviceNote || '') && /\b(rice|pasta)\b/i.test(text)) reasons.push('No Rice / Pasta instruction');
+      if (reasons.length) conflicts.push({room:r.room,reasons:[...new Set(reasons)]});
+    }
+    outcomes.push({target,text,residents:residents.map(r => ({room:r.room,note:r.serviceNote || ''})),explanation,facts,conflicts});
+  };
+  for (const [target,key] of Object.entries(keys)) {
+    const residents = key === 'anaph' ? registry.filter(r => excluded.has(r.room)) : (sections.find(s => s.rule.key === key) || {residents:[]}).residents;
+    add(target,values[target] || '',residents,key === 'anaph' ? 'Separate preparation and the existing anaphylactic checks still apply.' : 'Other requirements can place a resident in another section.');
+  }
+  const soft = (sections.find(s => s.rule.key === 'soft') || {residents:[]}).residents;
+  const nonProcessed = (sections.find(s => s.rule.key === 'no_processed') || {residents:[]}).residents;
+  const controlling = choices.find(a => a.type === 'soft') || choices[0];
+  entries.forEach(({meal:a,index:i}) => add(i,a.text || '',soft.filter(r => {
+    if (choices.length === 1) return true;
+    const pick = choices.find(a => a.type === ((r.tags || []).includes('Soft Meals') ? 'soft' : 'plain')) || choices[0];
+    return pick === a;
+  }).concat(a === controlling ? nonProcessed : []),'A plain or soft label does not define a clinical texture.'+
+    (a === controlling && nonProcessed.length ? ' This row also supplies the non-processed plate.' : '')));
+  return outcomes;
+}
+function doorTurnkeyAltLabel(alt) {
+  if (!alt || !doorTurnkeyPlateParts(alt.text)) return null;
+  const facts = doorNamedPlateFacts(alt.text);
+  return facts.known ? flagsToAllergenStr(facts.flags).toUpperCase() || 'NONE LISTED IN CODEX — CHECK INGREDIENT LABELS' : 'UNVERIFIED — CHECK CODEX RECIPE FACTS';
+}
+function doorCheckNewPlainChoices(flags) {
+  if (!doorAltOptionsEnabled() || !_doorPlainChoiceTargets.size) return true;
+  const veg = buildVegAltFlags();
+  const f = {...flags,_altMealsNone:ALT_MEALS_NONE,_vegAltSafe:!veg.hasEgg && !veg.hasMustard};
+  const values = {...doorKitchenAltInputValues(),noPorkAlt:buildNoPorkAlt()};
+  const issues = doorAltEditorOutcomes(f,values,ALT_MEALS).filter(o =>
+    _doorPlainChoiceTargets.has(o.target) && o.text !== _doorPlainChoiceTargets.get(o.target) && doorTurnkeyPlateParts(o.text))
+    .flatMap(o => !o.facts.known ? ['Recipe facts are unavailable for '+o.text] :
+      o.conflicts.map(c => 'Room '+c.room+': '+c.reasons.join(', ')));
+  const el = document.getElementById('door-alt-save-issue');
+  if (el) {
+    el.textContent = issues.length ? 'Not saved — review the new alternative: '+issues.join('; ')+'. Choose a compatible plate or review the resident instructions.' : '';
+    el.style.display = issues.length ? 'block' : 'none';
+    if (issues.length) { el.focus(); el.scrollIntoView({block:'nearest'}); }
+  }
+  if (issues.length && !el) showToast('Not saved — '+issues.join('; '));
+  return !issues.length;
+}
+function doorRenderAltEditorFeedback(flags) {
+  if (!doorAltOptionsEnabled()) return;
+  const values = testMealActive ? {} : {...doorKitchenAltInputValues(),noPorkAlt:buildNoPorkAlt()};
+  const outcomes = doorAltEditorOutcomes(flags,values,ALT_MEALS);
+  for (const o of outcomes) {
+    const el = document.getElementById('door-alt-feedback-'+o.target);
+    if (!el) continue;
+    const rooms = o.residents.map(r => r.room).join(', ');
+    let h = '<div style="font-size:11px;line-height:1.5;color:var(--muted);">';
+    const scope = {gfAlt:'Gluten-free plate when the main contains gluten.',diabeticAlt:'Diabetic / Low Carb plate.',noDairyAlt:'No Dairy / Lactose Intolerant plate when the main contains dairy.',noEggAlt:'No Eggs / No Mustard plate when the matching ingredient is present.',blandAlt:'No Spicy / Bland Diet plate on spicy meals.',anaphAlt:'Separate anaphylactic plate, including affected roommates.'};
+    h += (scope[o.target] ? escapeHtml(scope[o.target])+'<br>' : 'Used by the existing soft/plain section.<br>');
+    h += '<strong>Draft routing: '+o.residents.length+' resident'+(o.residents.length === 1 ? '' : 's')+'</strong>'+(rooms ? ' — '+escapeHtml(rooms) : '')+'. '+escapeHtml(o.explanation);
+    if (o.text) {
+      if (doorTurnkeyPlateParts(o.text)) h += '<div><strong>Plate: '+escapeHtml(o.text)+'</strong></div>';
+      h += '<br>'+ (o.facts.known ? 'CODEX declarations: '+escapeHtml(flagsToAllergenStr(o.facts.flags) || 'none listed')+'.' : 'Recipe facts need review: '+escapeHtml(o.facts.missing.join('; '))+'.');
+      h += ' Check ingredient labels and every resident instruction before use.';
+    } else h += '<br>No replacement entered; existing fallback behavior applies.';
+    for (const c of o.conflicts) h += '<div style="color:var(--danger-ink, #b91c1c);font-weight:600;">Check room '+escapeHtml(c.room)+': '+escapeHtml(c.reasons.join(', '))+'.</div>';
+    const notes = o.residents.filter(r => r.note);
+    if (notes.length) h += '<details><summary>Resident preparation instructions</summary>'+notes.map(r => '<div>'+escapeHtml(r.room)+': '+escapeHtml(r.note)+'</div>').join('')+'</details>';
+    el.innerHTML = h+'</div>';
+  }
+}
 function doorKitchenAlternatives(dayData, period) {
   const out = {};
   DOOR_KITCHEN_ALT_FIELDS.forEach(k => { const v = dayData && dayData[period + '_' + k]; out[k] = typeof v === 'string' ? v.trim() : ''; });
@@ -14670,9 +14849,16 @@ const DOOR_KITCHEN_ALT_LABELS = { gfAlt: 'Gluten free', diabeticAlt: 'Diabetic',
 function doorFillKitchenAltInputs(dayData, period) {
   const box = document.getElementById('mc-kitchen-alt-fields');
   if (!box) return;
+  const title = document.getElementById('mc-kitchen-alts-title'),help = document.getElementById('mc-kitchen-alts-help');
+  if (title) title.textContent = period === 'breakfast' ? 'Alternatives the kitchen makes' : 'Restriction-specific plates';
+  if (help) help.textContent = period === 'breakfast'
+    ? 'The dish each plate gets. Leave a box empty when the kitchen makes no such plate: diabetics then eat the regular plate ("extra veg less starch"), No Dairy residents the vegan plate, and No Spicy residents the regular plate, noted "No Spicy".'
+    : 'Assign a complete plate to an existing requirement group. Type your own plate or choose a CODEX option. Draft feedback shows recipients and checks; nothing applies until Save Edit. Leaving a box empty keeps the existing fallback.';
   box.innerHTML = Object.keys(DOOR_KITCHEN_ALT_LABELS).map(k =>
     '<label for="mc-kalt-' + k + '">' + escapeHtml(DOOR_KITCHEN_ALT_LABELS[k]) + '</label>' +
-    '<input id="mc-kalt-' + k + '" class="form-input" style="font-size:12px;padding:5px 8px;" oninput="updateSlotSummary()" value="' + _escAttr((dayData && dayData[period + '_' + k]) || '') + '">').join('');
+    '<div style="min-width:0;"><input id="mc-kalt-' + k + '" class="form-input" style="width:100%;box-sizing:border-box;min-width:0;font-size:12px;padding:5px 8px;" oninput="updateSlotSummary()" value="' + _escAttr((dayData && dayData[period + '_' + k]) || '') + '">'+
+    (period !== 'breakfast' ? doorPlainPlatePickerHTML(k)+'<div id="door-alt-feedback-'+k+'"></div>' : '')+'</div>').join('')+
+    (period !== 'breakfast' ? '<div id="door-alt-save-issue" role="alert" tabindex="-1" style="display:none;grid-column:1/-1;color:var(--danger-ink, #b91c1c);font-weight:600;font-size:12px;"></div>' : '');
 }
 // The editor's preview opens the plates the sheet will (2026-10-19): the kitchen's alternatives and "none needed".
 function doorEditorPlateFlags(flags) {
@@ -15855,6 +16041,11 @@ function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
 // another dish, so it says nothing rather than the main's allergens.
 function doorSectionAllergenStr(s, pd) {
   const { allergenStr, vegAllergenStr, ctx } = pd;
+  const optedIn = typeof doorTurnkeySectionPlate === 'function' ? doorTurnkeySectionPlate(s,pd) : null;
+  if (optedIn) {
+    const facts = doorNamedPlateFacts(optedIn);
+    return facts.known ? flagsToAllergenStr(facts.flags).toUpperCase() || 'NONE LISTED IN CODEX — CHECK INGREDIENT LABELS' : 'UNVERIFIED — CHECK CODEX RECIPE FACTS';
+  }
   const at = s.rule.altType;
   if (at === 'modified_main') {
     if (s.rule.key === 'no_egg') {
@@ -20105,6 +20296,7 @@ let _testPlaygroundFlags = {};
 let _lastTestPd = null;
 
 function initSlotState() {
+  _doorPlainChoiceTargets.clear();
   MEAL_SLOT_STATE = {};
   SLOT_OFFERED = {}; SLOT_HELD = {};
   MEAL_SLOT_DEFS.forEach(d => { MEAL_SLOT_STATE[d.id] = null; });
@@ -20117,6 +20309,7 @@ let ALT_MEALS = [{text:'', type:'plain', flags:{}}];
 // Explicit "no soft/plain alternative required" state — set when the main meal
 // already covers every dietary need and no separate alt is appropriate.
 let ALT_MEALS_NONE = false;
+const _doorPlainChoiceTargets = new Map();
 const ALT_FLAGS_EXPANDED = new Set();
 const ALT_MEAL_QP = ['Plain Chicken Leg, Plain Rice & Stir-fried Veg','Baked Basa, Plain Rice & Stir-fried Veg',
   'Plain English Muffin, Scrambled Eggs, DF Yoghurt & Fruit','Plain Chicken Leg','Plain Basa',
@@ -20141,6 +20334,9 @@ function setAltMealsNone(v) {
 function removeAltMeal(idx) {
   if (ALT_MEALS.length <= 1) return;
   ALT_MEALS.splice(idx, 1);
+  const tracked = Array.from(_doorPlainChoiceTargets);
+  _doorPlainChoiceTargets.clear();
+  tracked.forEach(([target,before]) => { if (target !== idx) _doorPlainChoiceTargets.set(typeof target === 'number' && target > idx ? target-1 : target,before); });
   ALT_FLAGS_EXPANDED.delete(idx);
   renderAltMealsSection();
   updateSlotSummary();
@@ -20188,7 +20384,7 @@ function renderAltMealsSection() {
   let h = '<div class="amber-panel" style="padding:12px;background:var(--warn-faint, #fefce8);border:1px solid #fde68a;border-radius:8px;">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
   h += '<div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--warn-ink, #92400e);">';
-  h += (doorIcon('warning') + ' Alternative Meals</div>');
+  h += (doorIcon('warning') + (doorAltOptionsEnabled() ? ' Plain / Soft Alternatives</div>' : ' Alternative Meals</div>'));
   if (!hasAny && !ALT_MEALS_NONE) h += '<span style="font-size:10px;font-weight:600;color:var(--danger-ink, #b91c1c);background:var(--danger-faint, #fee2e2);padding:1px 6px;border-radius:4px;">REQUIRED</span>';
   if (ALT_MEALS_NONE) h += '<span style="font-size:10px;font-weight:600;color:var(--ok-ink, #166534);background:var(--ok-faint, #dcfce7);padding:1px 6px;border-radius:4px;">NONE REQUIRED</span>';
   h += '</div>';
@@ -20200,6 +20396,7 @@ function renderAltMealsSection() {
     return;
   }
   h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
+  if (doorAltOptionsEnabled()) h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Optional CODEX plates: choose chicken, basa or tofu with rice, yams or no starch. Carrot/zucchini is included. Choosing a plate changes this draft only; Save Edit applies it. Keep all resident preparation instructions.</div>';
   ALT_MEALS.forEach((alt, i) => {
     const af = alt.flags || {};
     const activeCount = FLAG_DEFS.filter(fd => af[fd.key]).length;
@@ -20216,6 +20413,7 @@ function renderAltMealsSection() {
     h += '<button onclick="toggleAltMealFlagsPanel('+i+')" title="Set allergens for this alternative" style="font-size:10px;padding:3px 8px;border:1px solid '+(activeCount?'#fecaca':'#d6d3d1')+';border-radius:5px;background:'+restrBg+';color:'+restrColor+';font-weight:600;cursor:pointer;white-space:nowrap;">'+restrLabel+'</button>';
     if (ALT_MEALS.length > 1) h += '<button onclick="removeAltMeal('+i+(')" style="background:none;border:none;color:var(--danger-ink, #b91c1c);cursor:pointer;font-size:14px;padding:2px 4px;" title="Remove">' + doorIcon('close') + '</button>');
     h += '</div>';
+    if (doorAltOptionsEnabled()) h += doorPlainPlatePickerHTML(i)+'<div id="door-alt-feedback-'+i+'" style="margin-bottom:8px;"></div>';
     if (expanded) {
       h += '<div style="margin:0 0 8px 66px;padding:8px;background:var(--warn-faint, #fffbeb);border:1px solid #fde68a;border-radius:6px;">';
       h += '<div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--warn-ink, #92400e);margin-bottom:4px;font-weight:700;">Allergens for this alternative — click to toggle</div>';
@@ -20231,7 +20429,7 @@ function renderAltMealsSection() {
     }
   });
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px;">';
-  ALT_MEAL_QP.forEach(qp => {
+  (doorAltOptionsEnabled() ? [] : ALT_MEAL_QP).forEach(qp => {
     const targetIdx = ALT_MEALS.length - 1;
     h += '<button onclick="'+_escAttr('setAltMealQP(' + _jsArgLiteral(targetIdx) + ',' + _jsArgLiteral(qp) + ')')+'" style="font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--cream);cursor:pointer;white-space:nowrap;color:var(--muted);">'+escapeHtml(qp)+'</button>';
   });
@@ -20788,6 +20986,7 @@ function updateSlotSummary() {
   const prevId = testMealActive ? 'tm-section-preview' : 'mc-menu-edit-preview';
   const prev = document.getElementById(prevId);
   if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
+  if (typeof doorRenderAltEditorFeedback === 'function') doorRenderAltEditorFeedback(flags);
   const name = buildMealName();
   const veg = buildVegAlt();
   const softAlt = buildSoftAlt();
@@ -21499,6 +21698,7 @@ function _finishMenuSave(name, veg, flags) {
   // Re-check after the async halal-certification prompt: source state could
   // have changed while the dialog was open.
   if (!guardStandardMenuWrite('Edit Menu')) return;
+  if (typeof doorCheckNewPlainChoices === 'function' && !doorCheckNewPlainChoices(flags)) return;
 
   const vegFlags = buildVegAltFlags();
   const vegAllergens = flagsToAllergenStr(vegFlags);
@@ -25459,12 +25659,14 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     s.residents.forEach(r => {
       const isDiab = hasCarbAccommodation(r);
       const bg = isDiab ? '92D050' : null;
-      const lineNote = doorSectionLineNotes(r, s, mealFlags, sectionAllergenStr);
+      let lineNote = doorSectionLineNotes(r, s, mealFlags, sectionAllergenStr);
       let altNote = '';
       if (hasMultiAlts) {
         const isSoft = (r.tags||[]).includes('Soft Meals');
         const pick = ctx.altMeals.find(a => isSoft ? a.type==='soft' : a.type==='plain') || ctx.altMeals[0];
-        const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
+        const liveLabel = typeof doorTurnkeyAltLabel === 'function' ? doorTurnkeyAltLabel(pick) : null;
+        const pickStr = liveLabel === null ? (pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '') : liveLabel;
+        if (liveLabel !== null) lineNote = doorSectionLineNotes(r, s, mealFlags, pickStr);
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
       const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
@@ -26136,12 +26338,14 @@ function buildPlatingHtml(pd, isTest) {
     const hasMultiAlts = s.rule.key === 'soft' && ctx.altMeals && ctx.altMeals.length > 1;
     res.forEach(r => {
       const isDiab  = hasCarbAccommodation(r);
-      const lineNote = doorSectionLineNotes(r, s, mealFlags, sectionAllergenStr);
+      let lineNote = doorSectionLineNotes(r, s, mealFlags, sectionAllergenStr);
       let altNote = '';
       if (hasMultiAlts) {
         const isSoft = (r.tags||[]).includes('Soft Meals');
         const pick = ctx.altMeals.find(a => isSoft ? a.type==='soft' : a.type==='plain') || ctx.altMeals[0];
-        const pickStr = pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '';
+        const liveLabel = typeof doorTurnkeyAltLabel === 'function' ? doorTurnkeyAltLabel(pick) : null;
+        const pickStr = liveLabel === null ? (pick && pick.flags ? flagsToAllergenStr(pick.flags).toUpperCase() : '') : liveLabel;
+        if (liveLabel !== null) lineNote = doorSectionLineNotes(r, s, mealFlags, pickStr);
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
       const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
