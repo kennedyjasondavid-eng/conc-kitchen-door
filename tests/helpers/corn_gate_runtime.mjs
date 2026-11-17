@@ -34,7 +34,7 @@ function publishMenu(weeks, overlay, ticks) {
 function engine(weeks, feed, registry = [], anaphRooms = []) {
   const state = {residents: registry, anaphRooms};
   const TAG_LABELS = html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0];
-  const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: feed || null,
+  const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: feed || null, _doorRecipeBase:feed || null,
     getMenuData: () => weeks, loadSpecialMeals: () => ({}), loadMealSwaps: () => ({}) };
   vm.createContext(c);
   vm.runInContext([

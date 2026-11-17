@@ -188,7 +188,7 @@ test('a fresh tablet\'s one-time sweep takes none of the ticks off (they ride on
 // over every published meal with the published residents. feed: CODEX's list, or the baked list DOOR falls back to.
 function engine(weeks, feed) {
   const TAG_LABELS = html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0];
-  const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: feed || null,
+  const c = { console, REGISTRY_LIST: state.residents.map((r) => ({ ...r })), anaphRooms: [...state.anaphRooms], DOOR_RECIPE_DATA: feed || null, _doorRecipeBase:feed || null,
     getMenuData: () => weeks, loadSpecialMeals: () => ({}), loadMealSwaps: () => ({}) };
   vm.createContext(c);
   vm.runInContext([
