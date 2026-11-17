@@ -25012,6 +25012,122 @@ const A = { // alignment presets
 // ── P2 v26: Shared plating data computation ──────────────────────────────────
 // Single source of truth for both preview and xlsx generation.
 // Eliminates divergence between renderPlatingPreview and buildDaySheet.
+// Inactive B1 foundation. No menu/registry adapter or output activation is installed.
+// Ingredient assessments belong to the supplied canonical recipe snapshot, never a plate label.
+function doorBreakfastVariantBasis(variant) {
+  return JSON.stringify({components:variant.components, preparation:variant.preparation});
+}
+function doorResolveBreakfastPlate(request, variants, catalogue, preferredVariantId = null) {
+  const copy = value => JSON.parse(JSON.stringify(value));
+  const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
+  const text = value => typeof value === 'string' && value.trim().length > 0;
+  const list = value => Array.isArray(value) && value.every(text);
+  const unique = values => new Set(values).size === values.length;
+  const fail = reason => ({status:'unresolved',service:request && text(request.service) ? request.service : null,
+    residentKey:request && text(request.residentKey) ? request.residentKey : null,reasons:[reason],candidates:[]});
+  if (!request || !text(request.service) || !text(request.residentKey) ||
+      !['standard-pool','separate'].includes(request.anaphylacticDisposition)) return fail('invalid-resident-input');
+  // The existing conflict/roommate engine owns separation. This function cannot clear it.
+  if (request.anaphylacticDisposition === 'separate') return {
+    status:'separate',service:request.service,residentKey:request.residentKey,reasons:['existing-anaphylactic-separation'],candidates:[]};
+  if (!request.requirementSource || request.requirementSource.complete !== true || !text(request.requirementSource.revision) ||
+      !Array.isArray(request.requirements) || !unique(request.requirements.map(r => r && r.id)) ||
+      request.requirements.some(r => !r || !text(r.id) || !text(r.revision) ||
+        !['ingredient','component','preparation','portion'].includes(r.kind) ||
+        (r.kind === 'component' && !text(r.role)))) return fail('invalid-or-incomplete-requirements');
+  if (!Array.isArray(variants) || !unique(variants.map(v => v && v.id)) || !catalogue || !text(catalogue.revision) ||
+      !Array.isArray(catalogue.recipes) || !unique(catalogue.recipes.map(r => r && r.recipeId))) return fail('invalid-catalogue-or-variants');
+  const requirements = [...request.requirements].sort((a,b) => compare(a.id,b.id));
+  const recipes = new Map(catalogue.recipes.map(r => [r && r.recipeId,r]));
+  const results = [];
+  for (const v of [...variants].sort((a,b) => compare(String(a && a.id),String(b && b.id)))) {
+    if (!v || !text(v.id) || !text(v.service)) return fail('invalid-variant');
+    if (v.service !== request.service) continue;
+    const reasons = [];
+    if (!['standard-suitable','replacement','unresolved'].includes(v.state) ||
+        !Array.isArray(v.components) || !v.components.length || !unique(v.components.map(c => c && c.id)) ||
+        !list(v.preparation) || !list(v.sources) || !v.sources.length || !Array.isArray(v.assessments) ||
+        !unique(v.assessments.map(a => a && a.requirementId))) return fail('invalid-variant');
+    for (const c of v.components) {
+      if (!c || !text(c.id) || !text(c.role) || !text(c.recipeId) || !text(c.name) || !text(c.fingerprint) ||
+          !(c.portion === null || (c.portion && Number.isFinite(c.portion.amount) && c.portion.amount > 0 && text(c.portion.unit))))
+        return fail('invalid-component');
+      const recipe = recipes.get(c.recipeId);
+      if (!recipe || recipe.fingerprint !== c.fingerprint || recipe.name !== c.name ||
+          !list(recipe.sources) || !recipe.sources.length) reasons.push('stale-or-unknown-component:' + c.id);
+    }
+    for (const a of v.assessments) {
+      const r = requirements.find(r => r.id === (a && a.requirementId));
+      if (!a || !r || !['preparation','portion'].includes(r.kind) ||
+          !['covered','conflict','unknown'].includes(a.status) || !list(a.sources) || !a.sources.length)
+        return fail('invalid-plate-assessment');
+    }
+    if (v.state === 'unresolved') reasons.push('variant-unresolved');
+    for (const r of requirements) {
+      if (r.kind === 'preparation' || r.kind === 'portion') {
+        const a = v.assessments.find(a => a.requirementId === r.id);
+        if (!a || a.requirementRevision !== r.revision || a.basis !== doorBreakfastVariantBasis(v)) reasons.push('missing-or-stale-evidence:' + r.id);
+        else if (a.status !== 'covered') reasons.push(a.status + ':' + r.id);
+      } else {
+        const components = v.components.filter(c => r.kind === 'ingredient' || c.role === r.role);
+        if (!components.length) reasons.push('missing-component-role:' + r.id);
+        for (const c of components) {
+          const recipe = recipes.get(c.recipeId);
+          const a = recipe && recipe.requirements && Object.prototype.hasOwnProperty.call(recipe.requirements,r.id) && recipe.requirements[r.id];
+          if (!a || a.requirementRevision !== r.revision || !['covered','conflict','unknown'].includes(a.status) ||
+              !list(a.sources) || !a.sources.length) reasons.push('missing-or-stale-evidence:' + r.id + ':' + c.id);
+          else if (a.status !== 'covered') reasons.push(a.status + ':' + r.id + ':' + c.id);
+        }
+      }
+    }
+    results.push({id:v.id,reasons:[...new Set(reasons)].sort(),variant:v});
+  }
+  const eligible = results.filter(r => !r.reasons.length);
+  if (preferredVariantId !== null && (!text(preferredVariantId) || !eligible.some(r => r.id === preferredVariantId)))
+    return {...fail('preferred-variant-ineligible'),candidates:results.map(({id,reasons}) => ({id,reasons}))};
+  const selected = preferredVariantId === null ? (eligible.length === 1 ? eligible[0] : null) : eligible.find(r => r.id === preferredVariantId);
+  const candidates = results.map(({id,reasons}) => ({id,reasons}));
+  if (!selected) return {...fail(eligible.length > 1 ? 'ambiguous-compatible-variants' : 'no-compatible-variant'),candidates};
+  return copy({status:'resolved',service:request.service,residentKey:request.residentKey,variantId:selected.id,
+    state:selected.variant.state,components:selected.variant.components,preparation:selected.variant.preparation,
+    sources:selected.variant.sources,requirementSource:request.requirementSource,catalogueRevision:catalogue.revision,
+    reasons:[],candidates});
+}
+function doorAggregateBreakfastPlates(assignments, expectedResidentKeys) {
+  const compare = (a,b) => a < b ? -1 : a > b ? 1 : 0;
+  // This is a candidate aggregate only. Activation must supply the complete roster, not a filtered subset.
+  const out = {complete:true,quantitiesComplete:true,allocations:[],unresolved:[],separate:[],reasons:[]};
+  if (!Array.isArray(expectedResidentKeys) || expectedResidentKeys.some(k => typeof k !== 'string' || !k.trim()) ||
+      new Set(expectedResidentKeys).size !== expectedResidentKeys.length || !Array.isArray(assignments) ||
+      assignments.length !== expectedResidentKeys.length || assignments.some(a => !a || !expectedResidentKeys.includes(a.residentKey)) || assignments.some(a => !a || typeof a.residentKey !== 'string' || !a.residentKey ||
+      typeof a.service !== 'string' || !a.service || !['resolved','unresolved','separate'].includes(a.status)) ||
+      new Set(assignments.map(a => a.residentKey)).size !== assignments.length || new Set(assignments.map(a => a.service)).size > 1)
+    return {...out,complete:false,quantitiesComplete:false,reasons:['invalid-or-duplicate-assignments']};
+  const groups = new Map();
+  for (const a of [...assignments].sort((a,b) => compare(a.residentKey,b.residentKey))) {
+    if (a.status === 'separate') { out.separate.push(a.residentKey); continue; }
+    if (a.status !== 'resolved') { out.unresolved.push(a.residentKey); out.complete = false; out.quantitiesComplete = false; continue; }
+    if (!Array.isArray(a.components) || !a.components.length || !Array.isArray(a.preparation) ||
+        new Set(a.components.map(c => c && c.id)).size !== a.components.length || a.preparation.some(s => typeof s !== 'string'))
+      return {...out,complete:false,quantitiesComplete:false,allocations:[],reasons:['invalid-resolved-assignment']};
+    for (const c of a.components) {
+      if (!c || !['id','recipeId','name','fingerprint','role'].every(k => typeof c[k] === 'string' && c[k].trim()) ||
+          !(c.portion === null || (c.portion && Number.isFinite(c.portion.amount) && c.portion.amount > 0 && typeof c.portion.unit === 'string' && c.portion.unit.trim())))
+        return {...out,complete:false,quantitiesComplete:false,allocations:[],reasons:['invalid-resolved-assignment']};
+      const key = JSON.stringify([c.recipeId,c.name,c.fingerprint,c.role,
+        c.portion === null ? null : [c.portion.amount,c.portion.unit],a.preparation]);
+      if (!groups.has(key)) groups.set(key,{recipeId:c.recipeId,name:c.name,fingerprint:c.fingerprint,role:c.role,
+        portion:c.portion === null ? null : {amount:c.portion.amount,unit:c.portion.unit},preparation:[...a.preparation],allocations:0,residents:[],quantityTotal:c.portion === null ? null : 0});
+      const group = groups.get(key); group.allocations++;
+      if (!group.residents.includes(a.residentKey)) group.residents.push(a.residentKey);
+      if (c.portion === null) out.quantitiesComplete = false;
+      else { group.quantityTotal += c.portion.amount; if (!Number.isFinite(group.quantityTotal)) return {...out,complete:false,quantitiesComplete:false,allocations:[],reasons:['quantity-overflow']}; }
+    }
+  }
+  out.allocations = [...groups].sort(([a],[b]) => compare(a,b)).map(([,v]) => v);
+  return out;
+}
+
 function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, rooms) {
   const dayLabel = dayName.charAt(0) + dayName.slice(1).toLowerCase();
   const wkData = getMenuData()[String(weekNum)];
