@@ -1,0 +1,13 @@
+# Inactive public receiving I/O
+
+`houseServingV1PublicIOCreate({site:'rexdale'}, {fetch,AbortController,setTimeout,clearTimeout})` captures only explicit native capabilities and returns fetchSites/fetchReleased. Constructor/import performs no I/O; no default capabilities, credentials, private kernel, cache, app state or production callers are supplied.
+
+fetchSites reads the fixed HOUSE sites.json, capped at256KiB, and returns detached finite JSON. It does not select the site, certify its capability or enable a mode. The actual app's selected-row owner retains that responsibility and its no-downgrade latch.
+
+fetchReleased reads the fixed DOOR publication pointer, its strictly derived immutable frame, and the pointer again. Pointer caps are16KiB each; frame cap8MiB. All three reads, streaming and cryptographic validation share one15-second deadline and controller. Caps apply before retaining an excessive chunk; no unbounded text/json/body read is used. Fetch omits credentials/referrers, rejects redirects and uses no-store/CORS. Native decoded bytes, not compressed transfer sizes, are sealed. Cleanup cancels/releases without waiting on a stuck cancellation; late completions cannot initiate another request.
+
+Success returns the whole shared Validate outcome only when both strict pointers agree canonically. Different strict pointers return a held failure with bounded previousPointer/pointer observations in read order. The receiver validates BOTH before using either:3→2 retains high-water3,3→4 raises4 while held, same-occurrence different seal becomes conflict. An invalid second pointer cannot leak private fields; the first strict observation remains. No observed authority is admitted merely because the network request succeeded.
+
+Genuine transport failure before any usable authority may be fetch-unavailable. Malformed/unsupported200, bad metadata, byte bounds or a failure after a strict pointer become validation failures; they cannot excuse an old-cache recovery. No anonymous404 establishes authenticated absence. The helper never calls Begin/Promote/Resolve or installs counts. Actual owners must pass the complete outcome and compare their CURRENT attempt after every await before state/cache/menu/hold/output side effects.
+
+Synthetic stream, deadline, privacy and pointer tests establish implementation behavior, not real browser delivery, source authentication, latest private state or kitchen receipt. Selected capability, actual five receiving-app entry/production/report/export tests, intended-device observation and DOOR private serving eligibility remain separate activation gates. No source file or constructor presence switches mode.
