@@ -201,7 +201,8 @@ test('8. Edit Menu edits the alternatives: filled when a meal opens, read by the
   const box = { set innerHTML(h) { this._h = h; for (const mt of h.matchAll(/<input id="(mc-kalt-[a-zA-Z]+)"[^>]*value="([^"]*)">/g)) inputs[mt[1]] = { value: mt[2] }; }, get innerHTML() { return this._h; } };
   const e = vm.createContext({ document: { getElementById: (id) => (id === 'mc-kitchen-alt-fields' ? box : inputs[id] || null) },
     escapeHtml: (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
-    _escAttr: (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'), testMealActive: false, ALT_MEALS_NONE: true });
+    _escAttr: (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'),
+    doorPlainPlatePickerHTML: () => '', testMealActive: false, ALT_MEALS_NONE: true });
   vm.runInContext([html.match(/const DOOR_KITCHEN_ALT_LABELS = \{[^\n]*\};/)[0], fn('doorFillKitchenAltInputs'), fn('doorKitchenAltInputValues'),
     fn('doorEditorPlateFlags')].join('\n'), e);
   e.doorFillKitchenAltInputs({ lunch_diabeticAlt: 'WW Wrap "x"><img src=x>', lunch_gfAlt: 'GF bun' }, 'lunch');
@@ -234,5 +235,5 @@ test('9. a swap or a permanent change drops the old dish’s alternatives; a pla
   assert.deepEqual(out(c.doorSplitDishes('Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans), Rice')),
     ['Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans)', 'Rice']);
   assert.deepEqual(out(c.doorSplitDishes('Jerk Chicken, Rice and Beans,  Cabbage Stirfry')), ['Jerk Chicken', 'Rice and Beans', 'Cabbage Stirfry']);
-  assert.match(fn('buildRoutingByMealJSON'), /doorSplitDishes\(mealStr\)\.forEach/, 'the routing file’s dishes use it');
+  assert.match(fn('buildRoutingByMealJSON'), /doorSplitDishes\(allocation\.text\)\.forEach/, 'the routing file’s allocated dishes use it');
 });

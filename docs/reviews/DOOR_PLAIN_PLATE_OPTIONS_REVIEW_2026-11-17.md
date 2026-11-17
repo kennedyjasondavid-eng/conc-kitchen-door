@@ -1,0 +1,26 @@
+# Opt-in plain-plate options review
+
+Baseline: merged DOOR `908f487f8379d78d4c57accb9d16d87f24291b80`. Client date November 17, 2026, America/New_York. The [receipt](../receipts/door_plain_plate_options_2026-11-17.json) records the exact application SHA-256, served CODEX provenance and unchanged operational files. The [action plan](../DOOR_PLATING_RECONCILIATION_ACTION_PLAN_2026-11-16.md) owns current decisions; the [option guide](../DOOR_PLAIN_PLATE_OPTIONS_2026-11-17.md) explains use and limits.
+
+## Accepted scope
+
+Jason explicitly required current sheets/mealflow to stay unchanged, while making future supervisor choices more intuitive. The editor offers nine optional chicken/basa/tofu × rice/yams/no-starch combinations, each with carrot/zucchini, from six existing canonical CODEX components. There is no recipe migration, current meal/registry edit, new private/public field or consumer schema change. Breakfast options/activation stay out of scope. Permission to open and merge necessary PRs was explicit.
+
+All controls start blank and change a draft only when selected. Existing manual text and requirement fields remain. Draft feedback identifies ordinary/anaphylactic recipients, non-processed recipients of the controlling shared row, positive recipe conflicts and recorded preparation notes. A changed explicit choice is rechecked before save; known conflicts or missing current recipe facts prevent writes and preserve the draft. Existing untouched definitions and manual paths retain their behavior.
+
+Exact new roster descriptions alone receive paired current-fact labeling and actual component allocation in both legacy routing and F4. Mixed plain/soft rows count the plate each resident actually receives. No fuzzy matching, generic “plain” inference, shared-side append or automatic ingredient/texture approval is added. Existing descriptions retain their previous behavior. If a canonical rename no longer fits the supported exact composition, that new picker option is disabled rather than silently changing its interpretation.
+
+## Independent implementation review
+
+**Food/data — PASS** (`plating_plan_food_review`). Initial review identified that a new basa choice could be saved for 613a's No Fish requirement despite correct inline feedback. The save-time guard was added, scoped to changed explicit selections, and the reviewer rechecked it and reran all 11 focused tests. No further food/data blocker remained. This is acceptance of optional configuration behavior, not individual ingredient/preparation approval.
+
+**Release/feed — PASS** (`plating_plan_release_review`). Initial review identified stale mixed-row labels and missing non-processed recipients in draft feedback. Both were fixed with shared current-fact row labeling and controlling-row recipient accounting. The reviewer reran 11 focused tests and checked the changed-target save guard, legacy/F4 allocation boundary and baseline-preservation scope; no remaining concrete blocker.
+
+## Verification
+
+- **Current baseline:** all 84 HTML sheet previews, actual worksheet cells/styles, section memberships and anaphylactic/roommate roles match the prior application. Menu, registry/import data and legacy routing match. Normal coherent publication, including F4, produces identical files before any selection. The same comparison passes with recipe data unavailable.
+- **Opt-in behavior:** 26 actual-browser checks pass using the full served canonical catalogue and real pinned XLSX library. They cover blank selection, no autosave, cancellation, unchanged breakfast controls, the 613a fish-conflict rejection with no saved change, compatible save/reopen/publication/replay and preservation of all resident/anaphylactic records. All nine plates across seven supported section types export actual components consistently through legacy routing and F4. Mixed rows, unavailable current facts and the actual 614b non-processed save/replay path are covered.
+- **Regression:** 976 Node tests pass with one existing skip. All 21 workflow browser gates pass locally. Focused options tests cover missing/duplicate/unknown/renamed recipes, exact-match boundaries, independent requirement fields, sparse row indices, controlling-row recipients and rechecking facts at save. No source workbook was changed. Real worksheet construction was compared; native Excel acceptance is not claimed for this editor-only release.
+- **Visual:** the new restriction-specific editor, routed recipients, recipe declarations and blocked-save message were inspected in light/dark rendered browser screenshots. A theme-toggle regression preserves the unsaved selection and conflict feedback. The existing light/dark/print gate also passes. New styles use the established theme variables and input controls.
+
+The fixture is a frozen test-only CODEX subset, not an app fallback or second ingredient authority. No additional CODEX entries were necessary: the six existing component recipes already provide ingredients and preparation instructions. Production timings, measured yields, nutrition, clinical texture and halal procurement are not invented. No EXPO job or schedule is created by this release. Current audit discrepancies remain untouched under Jason's revised baseline instruction.

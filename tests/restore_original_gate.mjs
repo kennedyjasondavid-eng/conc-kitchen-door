@@ -81,7 +81,7 @@ function makeBox(store, answers = []) {
   const el = (id) => (els[id] || (els[id] = { id, value: '', checked: false, style: {}, textContent: '' }));
   const box = {
     console, document: { getElementById: el }, location: { hash: '' }, setTimeout() {},
-    mcEditKey: W + '-' + D + '-' + P, mcMenuEditKey: W + '-' + D + '-' + P, mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
+    mcEditKey: W + '-' + D + '-' + P, mcMenuEditKey: W + '-' + D + '-' + P, testMealActive:false, _doorPlainChoiceTargets:new Map(), mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
     MENU_DATA: {}, loadUploadedMenu: () => out(store.base), DOOR_SCHEMA_VERSIONS: { menu_current: 32 },
     getMenuData: () => mergedOf(store), guardStandardMenuWrite: () => true,
     doorAsk: async (o) => { store.asked.push(out(o)); return answers.length ? answers.shift() : true; },
