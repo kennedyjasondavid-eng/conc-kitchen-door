@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.81';
+const DOOR_APP_VERSION = 'v31-standard.82';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -10134,6 +10134,11 @@ function exportComplianceXlsx() {
 // NAV
 // ============================================================
 function showScreen(name, navEl) {
+  if (name !== 'menu-config' && typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) {
+    doorMenuDraftLeave(() => showScreen(name, navEl));
+    return;
+  }
+  if (name !== 'menu-config' && typeof _doorMenuDraftBaseline !== 'undefined' && _doorMenuDraftBaseline) closeMenuEdit(true);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
@@ -20224,6 +20229,7 @@ function getMenuEdit(week, day, period) {
 }
 
 async function goHome() {
+  if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => goHome()); return; }
   // Edit Menu mode is a modal session — warn before leaving
   if (editMenuMode) {
     if (!(await doorAsk({ title: 'Leave Edit Menu', lines: ['Edit Menu mode is on. Leave it and go home?', 'Menu edits you already saved are kept.'], goLabel: 'Leave', cancelLabel: 'Stay' }))) return;
@@ -21090,6 +21096,7 @@ document.addEventListener('click', function(e) {
 });
 
 function toggleEditMenuMode() {
+  if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => toggleEditMenuMode()); return; }
   editMenuMode = !editMenuMode;
   const btn = document.getElementById('mc-edit-menu-btn');
   const banner = document.getElementById('mc-edit-menu-banner');
@@ -21553,6 +21560,8 @@ function doorSlotHeldQuestion(id, h) {
 }
 async function saveMenuEdit() {
   if (!mcMenuEditKey) return;
+  // A reopened editor can have the same service key but a different draft.
+  const editSession = typeof _doorMenuDraftBaseline !== 'undefined' ? _doorMenuDraftBaseline : null;
   if (!guardStandardMenuWrite('Edit Menu')) return;
   _commitLiveSlotInputs();   // save reads MEAL_SLOT_STATE — take whatever is in the boxes right now
   // W3e (2026-11-09): words a box holds that were not saved are asked about here, one box at a time, never saved
@@ -21565,6 +21574,7 @@ async function saveMenuEdit() {
     const ans = await doorAsk(ask);
     if (mcMenuEditKey !== _heldKey) return;
     if (!ans) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
     if (h.kind === 'half') { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotSelect(id, h.recipe); }
     else { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotRenameShown(id, h.typed); }
   }
@@ -21581,6 +21591,8 @@ async function saveMenuEdit() {
       items: _runOn.map(r => r.label + ': "' + r.text + '"'),
       cancelLabel: 'Go back and split them', goLabel: 'Save as it is'
     });
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
     if (!ok) return;
   }
   // Require an explicit decision on soft/plain alternatives: either at least one
@@ -21593,12 +21605,15 @@ async function saveMenuEdit() {
         'Confirm that no resident requires a soft or plain alternative for this meal — the standard meal already covers every dietary need.'],
       cancelLabel: 'Go back and add one', goLabel: 'Save with “none required”'
     });
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
     if (!ok) return;
     ALT_MEALS_NONE = true;
     renderAltMealsSection();
   }
   // The questions wait for an answer, so the editor could have closed or moved to another meal meanwhile.
   if (mcMenuEditKey !== editKey) return;
+  if (editSession && _doorMenuDraftBaseline !== editSession) return;
   const veg  = buildVegAlt();
   const slotFlags = buildUnionFlags();
   const flags = { ...slotFlags };
@@ -21648,6 +21663,7 @@ async function saveMenuEdit() {
     const ask = doorTicksQuestion(_carried, _offTicks);
     const ans = await doorAsk(ask);
     if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
     if (!ans) return;
     const takeOff = _carried.sameDish ? ans === 'alt' : ans === true;
     _offTicks.forEach(k => { flags[k] = !takeOff; });
@@ -21678,21 +21694,23 @@ async function saveMenuEdit() {
       from: _askSlot.recipeName ? 'the ' + _askSlot.recipeName + ' recipe' + (_askSlot.displayText ? ' and the menu’s words' : '') : 'the menu’s words'
     };
     const askAbout = hasPorkInMain ? altMeatProteins : mainMeatProteins;
-    _showHalalCertDialog(askAbout.join(' & '), hasPorkInMain, slotBreakdown, (isHalal) => {
-      flags.halalCertifiedMeat = isHalal;
-      _finishMenuSave(name, veg, flags);
+    return new Promise(resolve => {
+      _showHalalCertDialog(askAbout.join(' & '), hasPorkInMain, slotBreakdown, (isHalal) => {
+        if (mcMenuEditKey !== editKey || (editSession && _doorMenuDraftBaseline !== editSession)) { resolve(false); return; }
+        flags.halalCertifiedMeat = isHalal;
+        resolve(_finishMenuSave(name, veg, flags));
+      }, () => resolve(false));
     });
-    return;
   }
   // ── end P0 ──
-  _finishMenuSave(name, veg, flags);
+  return _finishMenuSave(name, veg, flags);
 }
 
 // v30: Custom YES/NO dialog for halal certification — per-slot context
-function _showHalalCertDialog(proteins, hasPorkInMain, slotBreakdown, callback) {
+function _showHalalCertDialog(proteins, hasPorkInMain, slotBreakdown, callback, cancelled) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay open';
-  overlay.onclick = (ev) => { if (ev.target === overlay) { overlay.remove(); } };
+  overlay.onclick = (ev) => { if (ev.target === overlay) { overlay.remove(); if (cancelled) cancelled(); } };
 
   // Build slot breakdown display
   const slots = [];
@@ -21791,11 +21809,12 @@ function _finishMenuSave(name, veg, flags) {
 
   appendChangeLog({ type: 'permanent_edit', week, day, period, oldName: origName, newName: name, flags,
     before: noted.before, afterSig: noted.afterSig, first: noted.first });
-  closeMenuEdit();
+  closeMenuEdit(true);
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
   showToast("Saved permanently to rotation");
   publishAndSync('menu edit saved');
+  return true;
 }
 
 async function revertMenuEdit() {
@@ -21831,11 +21850,48 @@ async function revertMenuEdit() {
     ? { type: 'revert', week, day, period, oldName: done.before[''] || currentName, newName: done.kept.meal[''] || origName,
         before: done.before, original: done.kept, afterSig: doorMealSig(done.kept.meal) }
     : { type: 'revert', week, day, period, oldName: currentName, newName: origName });
-  closeMenuEdit();
+  closeMenuEdit(true);
   renderMenuConfig();
   if (done) publishAndSync('menu meal reset');
 }
-function closeMenuEdit() {
+// Draft protection belongs to the editor, not the saved menu or publication state.
+var _doorMenuDraftBaseline = null;
+var _doorMenuDraftLeavePending = false;
+function doorMenuDraftSignature() {
+  const panel = document.getElementById('mc-menu-edit-panel');
+  if (!panel) return '';
+  const fields = Array.from(panel.querySelectorAll('input,select,textarea')).map(e => [
+    e.id || e.getAttribute('data-slot-line') || e.getAttribute('data-slot-line-text') || e.name || '',
+    e.type === 'checkbox' || e.type === 'radio' ? e.checked : e.value
+  ]);
+  const sorted = value => Array.isArray(value) ? value.map(sorted) : value && typeof value === 'object'
+    ? Object.fromEntries(Object.keys(value).sort().map(k => [k, sorted(value[k])])) : value;
+  return JSON.stringify(sorted({slots:MEAL_SLOT_STATE, held:SLOT_HELD, alternatives:ALT_MEALS, none:ALT_MEALS_NONE, fields}));
+}
+function doorMenuDraftIsDirty() {
+  return !!(_doorMenuDraftBaseline && mcMenuEditKey === _doorMenuDraftBaseline.key &&
+    doorMenuDraftSignature() !== _doorMenuDraftBaseline.signature);
+}
+async function doorMenuDraftLeave(next) {
+  if (_doorMenuDraftLeavePending) return;
+  if (!doorMenuDraftIsDirty()) { closeMenuEdit(true); next(); return; }
+  _doorMenuDraftLeavePending = true;
+  try {
+    const answer = await doorAsk({title:'Save menu changes?',
+      lines:['This meal has changes that have not been saved.'],
+      cancelLabel:'Stay and keep editing', altLabel:'Discard changes', goLabel:'Save changes'});
+    if (!answer) return;
+    if (answer === 'alt') { closeMenuEdit(true); next(); return; }
+    const saved = await saveMenuEdit();
+    if (saved === true) next();
+  } finally { _doorMenuDraftLeavePending = false; }
+}
+window.addEventListener('beforeunload', event => {
+  if (doorMenuDraftIsDirty()) { event.preventDefault(); event.returnValue = ''; }
+});
+function closeMenuEdit(savedOrDiscarded) {
+  if (!savedOrDiscarded && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => closeMenuEdit(true)); return; }
+  _doorMenuDraftBaseline = null;
   const panel = document.getElementById('mc-menu-edit-panel');
   if (panel) panel.style.display = 'none';
   mcMenuEditKey = null;
@@ -21898,6 +21954,7 @@ function doorSlotsMatchText(slots, text) {
   return true;
 }
 function openMenuEdit(week, day, period) {
+  if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => openMenuEdit(week, day, period)); return; }
   if (testMealActive) closeTestMeal();
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
@@ -21996,6 +22053,7 @@ function openMenuEdit(week, day, period) {
   // last meal's slot state.
   _LAST_SLOT_FLAGS = {};
   updateSlotSummary();
+  if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
   setTimeout(() => { const s = document.getElementById('slot-search-main'); if (s) s.focus(); }, 80);
 }
 
@@ -26488,6 +26546,7 @@ function renderPlatingPreview() {
 // ============================================================
 
 function openTestMeal() {
+  if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => openTestMeal()); return; }
   closeMenuEdit();
   closeMealEdit();
   if (editMenuMode) toggleEditMenuMode();

@@ -62,6 +62,23 @@ try {
  check('all saved sheets and routing also remain identical with recipe data unavailable',JSON.stringify(missingOld)===JSON.stringify(missingNew));
  for(const b of [old.b,current.b])await b.page.evaluate(()=>{DOOR_RECIPE_DATA=window.__savedOptionRecipes;delete window.__savedOptionRecipes;});
  const page=current.b.page;
+ // Gate-author interaction amendment (2026-11-17): Close now protects a dirty draft.
+ // Restore the real dialog (the conflict-save probe stubs doorAsk), choose Discard,
+ // and wait for closure before the original unchanged-sheet/reopen assertions.
+ await page.evaluate(()=>{window.__plainOptionsRealDoorAsk=doorAsk;});
+ const closeDiscardingDraft=async()=>{
+  await page.evaluate(()=>{window.__plainOptionsPriorDoorAsk=doorAsk;doorAsk=window.__plainOptionsRealDoorAsk;closeMenuEdit();});
+  try {
+   const question=page.locator('.door-ask');
+   if(await question.count()){
+    assert.match(await question.innerText(),/Save menu changes/,'Close should offer the dirty-draft decision');
+    await question.getByRole('button',{name:'Discard changes',exact:true}).click();
+   }
+   await page.locator('#mc-menu-edit-panel').waitFor({state:'hidden'});
+  } finally {
+   await page.evaluate(()=>{doorAsk=window.__plainOptionsPriorDoorAsk;});
+  }
+ };
  await page.evaluate(()=>{showScreen('menu-config');openMenuEdit(1,'MONDAY','lunch');});
  const closedBefore=await page.evaluate(()=>JSON.stringify({overlay:loadMenuBaseOverlay(),registry:buildStateJSON().residents}));
  const options=page.locator('select[aria-label="Choose a plain plate for Gluten free"]');
@@ -83,20 +100,20 @@ try {
  }
  await page.evaluate(()=>toggleDarkMode());
  if(process.env.PLAIN_ALT_SCREEN_DIR)await page.locator('#mc-kitchen-alts').screenshot({path:path.join(process.env.PLAIN_ALT_SCREEN_DIR,'restriction-alternatives.png'),style:'.topbar, .topbar * { visibility:hidden !important; }'});
- await page.evaluate(()=>closeMenuEdit());
+ await closeDiscardingDraft();
  check('cancel leaves every saved sheet and flow input unchanged',JSON.stringify((await snapshot(current.b)).sheets)===JSON.stringify(after.sheets));
  await page.evaluate(()=>openMenuEdit(1,'MONDAY','lunch'));
  check('reopen retains the saved original plate after cancellation',!(await page.locator('#mc-kalt-gfAlt').inputValue()).includes('Plain Basa'));
- await page.evaluate(()=>closeMenuEdit());
+ await closeDiscardingDraft();
  await page.evaluate(()=>openMenuEdit(1,'MONDAY','breakfast'));
  check('breakfast editor has no new plain-plate choices',await page.locator('select[aria-label^="Choose a plain plate"]').count()===0);
- await page.evaluate(()=>closeMenuEdit());
+ await closeDiscardingDraft();
  await page.evaluate(()=>{openMenuEdit(1,'MONDAY','lunch');doorUsePlainPlate('gfAlt','chicken-yams');doorAsk=async()=>true;});
  await page.evaluate(()=>saveMenuEdit());
  check('normal Save Edit persists the explicitly selected complete plate',await page.evaluate(()=>getMenuData()['1'].MONDAY.lunch_gfAlt)==='Plain Chicken Leg, Plain Roasted Yams, Plain Carrot and Zucchini');
  await page.evaluate(()=>openMenuEdit(1,'MONDAY','lunch'));
  check('saved selection survives editor reopen',await page.locator('#mc-kalt-gfAlt').inputValue()==='Plain Chicken Leg, Plain Roasted Yams, Plain Carrot and Zucchini');
- await page.evaluate(()=>closeMenuEdit());
+ await closeDiscardingDraft();
  await current.b.publish();const candidate=structuredClone(current.b.remote.files);
  check('opt-in publication preserves every resident and anaphylactic record',JSON.stringify(candidate['door_state.json'].residents)===JSON.stringify(files['door_state.json'].residents)&&JSON.stringify(candidate['door_state.json'].anaphRooms)===JSON.stringify(files['door_state.json'].anaphRooms));
  const replay=await current.h.boot(candidate,{storage});
