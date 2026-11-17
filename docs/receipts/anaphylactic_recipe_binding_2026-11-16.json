@@ -1,0 +1,607 @@
+{
+  "asOf": "11/16/2026 8:20:36 PM",
+  "generatedAt": "2026-11-17T01:43:56.270Z",
+  "sourceCodeSha256": "caaf26c33f5af7c2cfc05a0e1119e35b5962d347958de136ca872c4e6180e6c2",
+  "source": "actual coherent publisher; isolated mocked transport",
+  "codex": {
+    "schemaVersion": 1,
+    "asOf": "2026-11-17T00:13:29.000Z",
+    "sources": {
+      "main": "7a1afc9d984ff56ca3f148d91195320f3819b367",
+      "sharedLibrary": "a1757a3fcd99df56c6e3f4100f03964b47f437db"
+    },
+    "sharedLibrary": {
+      "path": "library_public.json",
+      "sha256": "be0620184d07e86fad7c57a2b77afca34eeeed88167737a5daf6f28615de2677",
+      "schemaVersion": 1
+    }
+  },
+  "bindings": [
+    {
+      "decision": "A01",
+      "week": 1,
+      "day": "MONDAY",
+      "period": "dinner",
+      "recipeId": "plain-chicken-leg-with-rice-and-vegetables",
+      "recipeName": "Plain Chicken Leg with Rice and Vegetables",
+      "recipeFingerprint": "783a21c9c1b19ce70d8ac12b01527ee80e22152080b51de5ca6e990189586740",
+      "declaredAllergens": [
+        "Nightshades (Bell Peppers \u00e2\u20ac\u201d Plain Stir-fried Vegetables)",
+        "Beans (Green Beans \u00e2\u20ac\u201d Plain Stir-fried Vegetables)"
+      ],
+      "declaredFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "mainTriggerFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": true,
+        "hasTreeNuts": true,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": true,
+        "hasBrassicas": true,
+        "hasCorn": false,
+        "_blandAlt": "Roast Chicken Leg, Cabbage & Carrot Stirfry, Plain Rice and Green Peas",
+        "_altMealsNone": true,
+        "_vegAltSafe": true,
+        "_altMeals": []
+      },
+      "recipients": [
+        {
+          "room": "213",
+          "role": "anaphylactic",
+          "tags": [
+            "Soft Meals",
+            "No Tree Nuts",
+            "No Corn",
+            "No Coconut"
+          ],
+          "serviceNote": "No Popcorn",
+          "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut"
+        }
+      ],
+      "preparation": "Separate preparation and current resident texture/instructions still apply; matching is not approval"
+    },
+    {
+      "decision": "A02",
+      "week": 1,
+      "day": "WEDNESDAY",
+      "period": "dinner",
+      "recipeId": "plain-chicken-leg-with-rice-and-vegetables",
+      "recipeName": "Plain Chicken Leg with Rice and Vegetables",
+      "recipeFingerprint": "783a21c9c1b19ce70d8ac12b01527ee80e22152080b51de5ca6e990189586740",
+      "declaredAllergens": [
+        "Nightshades (Bell Peppers \u00e2\u20ac\u201d Plain Stir-fried Vegetables)",
+        "Beans (Green Beans \u00e2\u20ac\u201d Plain Stir-fried Vegetables)"
+      ],
+      "declaredFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "mainTriggerFlags": {
+        "hasGluten": true,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": true,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false,
+        "_altMealsNone": true,
+        "_vegAltSafe": true,
+        "_altMeals": []
+      },
+      "recipients": [
+        {
+          "room": "213",
+          "role": "anaphylactic",
+          "tags": [
+            "Soft Meals",
+            "No Tree Nuts",
+            "No Corn",
+            "No Coconut"
+          ],
+          "serviceNote": "No Popcorn",
+          "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut"
+        }
+      ],
+      "preparation": "Separate preparation and current resident texture/instructions still apply; matching is not approval"
+    },
+    {
+      "decision": "A03",
+      "week": 1,
+      "day": "FRIDAY",
+      "period": "dinner",
+      "recipeId": "plain-chicken-leg-with-rice-and-vegetables",
+      "recipeName": "Plain Chicken Leg with Rice and Vegetables",
+      "recipeFingerprint": "783a21c9c1b19ce70d8ac12b01527ee80e22152080b51de5ca6e990189586740",
+      "declaredAllergens": [
+        "Nightshades (Bell Peppers \u00e2\u20ac\u201d Plain Stir-fried Vegetables)",
+        "Beans (Green Beans \u00e2\u20ac\u201d Plain Stir-fried Vegetables)"
+      ],
+      "declaredFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "mainTriggerFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": true,
+        "hasTreeNuts": true,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasCoconut": true,
+        "hasMushroom": false,
+        "hasBrassicas": false,
+        "hasCorn": true,
+        "hasNightshades": false,
+        "hasBeans": false,
+        "_vegAltSafe": true,
+        "_altMeals": []
+      },
+      "recipients": [
+        {
+          "room": "213",
+          "role": "anaphylactic",
+          "tags": [
+            "Soft Meals",
+            "No Tree Nuts",
+            "No Corn",
+            "No Coconut"
+          ],
+          "serviceNote": "No Popcorn",
+          "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut"
+        }
+      ],
+      "preparation": "Separate preparation and current resident texture/instructions still apply; matching is not approval"
+    },
+    {
+      "decision": "A04",
+      "week": 2,
+      "day": "WEDNESDAY",
+      "period": "dinner",
+      "recipeId": "plain-basa-with-rice-and-vegetables",
+      "recipeName": "Plain Basa with Rice and Vegetables",
+      "recipeFingerprint": "3348882ebdc4c08b826560c8771a710535e64150915ef53fdb5674ac8ca350d2",
+      "declaredAllergens": [
+        "Fish (Basa)",
+        "Nightshades (Bell Peppers \u00e2\u20ac\u201d Plain Stir-fried Vegetables)",
+        "Beans (Green Beans \u00e2\u20ac\u201d Plain Stir-fried Vegetables)"
+      ],
+      "declaredFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": true,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "mainTriggerFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": true,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasCoconut": true,
+        "hasMushroom": false,
+        "hasBrassicas": false,
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false,
+        "_altMealsNone": true,
+        "_vegAltSafe": true,
+        "_altMeals": []
+      },
+      "recipients": [
+        {
+          "room": "213",
+          "role": "anaphylactic",
+          "tags": [
+            "Soft Meals",
+            "No Tree Nuts",
+            "No Corn",
+            "No Coconut"
+          ],
+          "serviceNote": "No Popcorn",
+          "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut"
+        }
+      ],
+      "preparation": "Separate preparation and current resident texture/instructions still apply; matching is not approval"
+    },
+    {
+      "decision": "A05",
+      "week": 3,
+      "day": "THURSDAY",
+      "period": "dinner",
+      "recipeId": "plain-chicken-leg-with-rice-and-vegetables",
+      "recipeName": "Plain Chicken Leg with Rice and Vegetables",
+      "recipeFingerprint": "783a21c9c1b19ce70d8ac12b01527ee80e22152080b51de5ca6e990189586740",
+      "declaredAllergens": [
+        "Nightshades (Bell Peppers \u00e2\u20ac\u201d Plain Stir-fried Vegetables)",
+        "Beans (Green Beans \u00e2\u20ac\u201d Plain Stir-fried Vegetables)"
+      ],
+      "declaredFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "mainTriggerFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": true,
+        "hasBeef": false,
+        "hasChicken": true,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": true,
+        "hasBrassicas": true,
+        "hasCorn": false,
+        "_vegAltSafe": true,
+        "_altMeals": []
+      },
+      "recipients": [
+        {
+          "room": "213",
+          "role": "anaphylactic",
+          "tags": [
+            "Soft Meals",
+            "No Tree Nuts",
+            "No Corn",
+            "No Coconut"
+          ],
+          "serviceNote": "No Popcorn",
+          "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut"
+        }
+      ],
+      "preparation": "Separate preparation and current resident texture/instructions still apply; matching is not approval"
+    },
+    {
+      "decision": "A06",
+      "week": 4,
+      "day": "MONDAY",
+      "period": "dinner",
+      "recipeId": "plain-basa-with-rice-and-vegetables",
+      "recipeName": "Plain Basa with Rice and Vegetables",
+      "recipeFingerprint": "3348882ebdc4c08b826560c8771a710535e64150915ef53fdb5674ac8ca350d2",
+      "declaredAllergens": [
+        "Fish (Basa)",
+        "Nightshades (Bell Peppers \u00e2\u20ac\u201d Plain Stir-fried Vegetables)",
+        "Beans (Green Beans \u00e2\u20ac\u201d Plain Stir-fried Vegetables)"
+      ],
+      "declaredFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": true,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": true,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "mainTriggerFlags": {
+        "hasGluten": false,
+        "hasDairy": false,
+        "hasEgg": false,
+        "hasFish": true,
+        "hasPeanuts": false,
+        "hasSoy": true,
+        "hasTreeNuts": true,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": true,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": true,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": true,
+        "hasNightshades": true,
+        "hasBrassicas": false,
+        "hasCorn": true,
+        "_vegAltSafe": true,
+        "_altMeals": [
+          {
+            "text": "Marinated Fish,Plain Rice, Stirfry Veg (No Beans)",
+            "type": "soft",
+            "flags": {
+              "hasFish": true
+            }
+          }
+        ]
+      },
+      "recipients": [
+        {
+          "room": "213",
+          "role": "anaphylactic",
+          "tags": [
+            "Soft Meals",
+            "No Tree Nuts",
+            "No Corn",
+            "No Coconut"
+          ],
+          "serviceNote": "No Popcorn",
+          "rawRestriction": "Soft Meals, No Tree Nuts, No Corn, No Coconut"
+        }
+      ],
+      "preparation": "Separate preparation and current resident texture/instructions still apply; matching is not approval"
+    }
+  ],
+  "checks": 26,
+  "changedFiles": [
+    "door_flow_publication.json",
+    "door_state.json",
+    "menu_current.json",
+    "menu_overlay.json",
+    "registry_summary.json",
+    "routing_by_meal.json"
+  ],
+  "plates": [
+    {
+      "decision": "A01",
+      "meal": "Plain Chicken Leg with Rice and Vegetables",
+      "rooms": [
+        "213"
+      ],
+      "state": "named"
+    },
+    {
+      "decision": "A02",
+      "meal": "Plain Chicken Leg with Rice and Vegetables",
+      "rooms": [
+        "213"
+      ],
+      "state": "named"
+    },
+    {
+      "decision": "A03",
+      "meal": "Plain Chicken Leg with Rice and Vegetables",
+      "rooms": [
+        "213"
+      ],
+      "state": "named"
+    },
+    {
+      "decision": "A04",
+      "meal": "Plain Basa with Rice and Vegetables",
+      "rooms": [
+        "213"
+      ],
+      "state": "named"
+    },
+    {
+      "decision": "A05",
+      "meal": "Plain Chicken Leg with Rice and Vegetables",
+      "rooms": [
+        "213"
+      ],
+      "state": "named"
+    },
+    {
+      "decision": "A06",
+      "meal": "Plain Basa with Rice and Vegetables",
+      "rooms": [
+        "213"
+      ],
+      "state": "named"
+    }
+  ],
+  "codeBaseline": "28d7a726aa0f777d6caaa1900490f919b637067d",
+  "semantics": "Existing alternative fields contain canonical dish text, with stable recipe IDs/fingerprints as audit evidence; no new persisted binding or approval field.",
+  "unrelatedRouting": "Section counts, components and existing flow rotations unchanged; normal publisher adds 15 canonical recipe records.",
+  "residentChanges": "All residents, flags and import provenance preserved. 301a/1007 breakfast instructions remain in the review matrix pending migration.",
+  "reviews": {
+    "foodData": "PASS",
+    "releaseDesign": "PASS",
+    "scope": "Six naming assignments and B0 diagnosis/source coverage, not individualized preparation approval or B1/B2 migration"
+  }
+}

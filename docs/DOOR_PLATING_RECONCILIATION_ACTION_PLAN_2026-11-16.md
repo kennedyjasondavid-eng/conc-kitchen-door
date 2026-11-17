@@ -1,6 +1,6 @@
 # DOOR plating reconciliation action plan
 
-**Status:** Independently reviewed: food/data PASS; release/feed PASS. A1 implementation is in candidate review; remaining meal/resident decisions and acceptance gates are tracked below. **Owner:** this file owns this DOOR workstream's actions, decisions and completion state. Jason owns meal choices and resident instructions; the implementing agent owns code, reproducible verification and release evidence. Cross-app release/status facts remain in HOUSE_STATUS_LEDGER.md; producer contracts remain with their existing owners.
+**Status:** Independently reviewed: food/data PASS; release/feed PASS. A1 merged in PR #203. The six A2 naming assignments and B0 breakfast matrix are independently reviewed candidates; B1/B2 migration and remaining gates are tracked below. **Owner:** this file owns this DOOR workstream's actions, decisions and completion state. Jason owns meal choices and resident instructions; the implementing agent owns code, reproducible verification and release evidence. Cross-app release/status facts remain in HOUSE_STATUS_LEDGER.md; producer contracts remain with their existing owners.
 
 Requested November 16, 2026: prioritize the manual-plating comparison findings, starting with anaphylactic alternatives and breakfast, identify decisions needed from Jason, and submit the plan for agentic review. The current manual plating sheets are authority for what staff serve (Jason, November 16). Their absent separate-plate definitions remain gaps; the agent must not infer a missing dish from a recipient list. Planning and review do not alter the registry, menu, learned answers or manual workbooks.
 
@@ -8,7 +8,7 @@ Requested November 16, 2026: prioritize the manual-plating comparison findings, 
 
 Baseline: [comparison report](reviews/DOOR_MANUAL_PLATING_COMPARISON_2026-11-16.md), [source mapping and hashes](receipts/door_manual_plating_comparison_2026-11-16.json), and [comparison workbook](../outputs/door-manual-plating-20261116/DOOR_manual_plating_comparison_2026-11-16.xlsx). Audit code baseline: `eb13cd078e5fa8b949ab887f39125348308f213d`. Counts below are frozen audit findings, not permanent test constants. Re-fetch main and compare all input hashes before implementing a slice; refresh only affected evidence when a source changes.
 
-The 171 room identities match all ten manual masters. The evidence covers 84 rotation slots from 71 visible meal tabs. Jason chose visible tabs matching the current rotation, with ambiguous duplicates flagged; 54 alternate/hidden tabs were excluded. Week 4 Sunday breakfast protein remains provisional. Unlisted manual residents were inferred standard, which does not prove what staff served. Recipe/allergen facts come from CODEX, not copied manual CONTAINS rows.
+The 171 room identities match all ten manual masters. The evidence covers 84 rotation slots from 71 visible meal tabs. Jason chose visible tabs matching the current rotation, with ambiguous duplicates flagged; 54 alternate/hidden tabs were excluded. The selected shared Week 2/4 Sunday tab specifies chicken deli; the earlier protein ambiguity is resolved by the manual authority rule. Unlisted manual residents were inferred standard, which does not prove what staff served. Recipe/allergen facts come from CODEX, not copied manual CONTAINS rows.
 
 **Authority clarification during implementation:** Jason confirmed that the current manual plating sheets are what is served and are an authority. Use an unambiguous selected current manual meal/plate as the intended operation when DOOR disagrees. The B/M identifiers below remain traceability references; do not ask Jason to choose the same manual plate again merely because DOOR differs. Ask only about missing definitions, ambiguous duplicates, product/ingredient facts and recipient requirements that the evidence cannot establish. Authority over the served plate does not clear anaphylactic flags, waive ingredient checks, prove a clinical texture level, or turn excluded/older tabs into current instructions.
 
@@ -205,10 +205,10 @@ Use the A/B/M/R identifiers above so Jason can answer briefly. Append the exact 
 | Slice | State | Blocking decisions | Evidence |
 | --- | --- | --- | --- |
 | A0 | Ready for design preparation | Runtime approval semantics require its reviewed ownership/storage/binding/invalidation design; contract changes are paired | Pending design receipt |
-| A1 | Implemented candidate; independent reviews PASS | Native Excel/staff-viewer acceptance pending; no deployed release claimed | [A1 receipt](reviews/DOOR_ANAPHYLACTIC_OUTPUT_SAFEGUARDS_2026-11-16.md) |
-| A2 | Default meal choices received; recipes added to CODEX | Bind exact recipes and verify full requirements, preparation and supplier facts; recheck legacy named alternatives | [Recipe publication receipt](receipts/codex_plain_alternatives_publication_2026-11-16.json) |
-| B0 | Ready for representation preparation | Bind approved variants to B/R answers; design proof required before migration | Pending design receipt |
-| B1–B2 | Needs breakfast choices and B0 proof | B01–B07 and applicable R decisions | Pending |
+| A1 | Merged in PR #203 | Historical output acceptance is not expanded into ingredient/preparation approval | [A1 receipt](reviews/DOOR_ANAPHYLACTIC_OUTPUT_SAFEGUARDS_2026-11-16.md) |
+| A2 | Six canonical naming assignments prepared; independent reviews PASS | Individualized compatibility, preparation/product checks and four legacy definitions remain separate | [Binding receipt](receipts/anaphylactic_recipe_binding_2026-11-16.json) |
+| B0 | Matrix and representation proof prepared; independent reviews PASS | Existing fields fail combined requirements; concrete resolved-plate representation/consumer design required before migration | [B0 matrix/design](DOOR_BREAKFAST_MATRIX_AND_REPRESENTATION_2026-11-16.md) |
+| B1–B2 | Gated on representation and ingredient facts | Selected manual dishes accepted; resolve product facts/ambiguous assignments and implement all secondary requirements | [Breakfast matrix](DOOR_BREAKFAST_MATRIX_AND_REPRESENTATION_2026-11-16.md) |
 | C | Needs meal choices | M01–M08 and applicable R decisions | Pending |
 | D | Needs resident confirmations | R01–R12 | Pending |
 | E | Proposed | M09; R10/R11 before final portion counts | Pending |
@@ -225,4 +225,16 @@ Both reviewers passed the revised plan with no remaining plan blockers. The [dat
 
 Jason authorized Chicken Leg for missing non-vegetarian allergy plates, basa when the main meal is fish, with plain rice and stir-fry vegetables. Any existing plain/other alternative meeting every relevant restriction may be used instead. The six initial defaults are A01/A02/A03/A05 chicken leg and A04/A06 basa. Existing named manual alternatives remain authoritative; this is not a blanket overwrite. Jason also authorized creating and adding the plain recipes to CODEX. Recipe/product facts, preparation, texture and compatibility evidence remain the A2 completion gate. See the A1 receipt for the exact decisions and candidate verification.
 
-The CODEX recipes are now accepted and anonymously served; their frozen publication proof is [the recipe receipt](receipts/codex_plain_alternatives_publication_2026-11-16.json). The A1 candidate is [DOOR PR #203](https://github.com/kennedyjasondavid-eng/conc-kitchen-door/pull/203). Neither recipe publication nor the draft PR closes A2 or the native-workbook gate.
+The CODEX recipes are now accepted and anonymously served; their frozen publication proof is [the recipe receipt](receipts/codex_plain_alternatives_publication_2026-11-16.json). A1 merged in [DOOR PR #203](https://github.com/kennedyjasondavid-eng/conc-kitchen-door/pull/203). Recipe publication and merging do not establish individualized ingredient/preparation approval; historical output acceptance is recorded separately.
+
+## Recipe assignments and breakfast matrix follow-up
+
+PR #203 is merged. The next candidate sets only the six missing dinner alternative names to the exact canonical Chicken Leg/Basa plate recipes, with source IDs/fingerprints in the binding receipt. No public binding field or runtime approval meaning is invented. The actual coherent publisher preserved all residents/flags, import provenance, unrelated meals and routing portions. Another-device replay and a concurrent newer resident edit passed.
+
+The [breakfast matrix and B0 proof](DOOR_BREAKFAST_MATRIX_AND_REPRESENTATION_2026-11-16.md) owns the detailed matrix evidence. Jason confirmed oat milk only for 301a and smaller breakfast starch plus extra protein for 1007, retaining No Rice/Pasta and all current accommodations. Quantities remain unspecified; no GF diagnosis is added. These instructions are recorded in the review matrix, not silently applied to the operational registry. The 1007 W3 Wednesday duplicate and exact DF/LF yoghurt product facts remain visible. Breakfast fields have not been migrated because existing first-match routing demonstrably loses secondary requirements.
+
+Jason confirmed the No Dairy yoghurt substitute still needs confirming. The Activia LF-style example is not an approved milk-free product or an exact selected SKU; the B0 matrix records the investigated example and keeps affected variants unresolved.
+
+## Interim breakfast safeguard candidate
+
+Final breakfast files and print are refused when an occupied GF alternative section has no named breakfast plate; previews show DRAFT / NOT FOR SERVICE and an unresolved section. This covers 14 current services in Weeks 1 and 3. Existing routing calculations retain their fallback until B1; the review matrix distinguishes those calculations from the guarded preview. Defined plates still require the full B1/B2 requirements and product checks. Food/data and release reviewers passed this narrow guard. The No Dairy yoghurt substitute remains unconfirmed, as Jason explicitly advised.
