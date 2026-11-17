@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.84';
+const DOOR_APP_VERSION = 'v31-standard.85';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11869,6 +11869,228 @@ function doorPrivateV1ServingEligibility(accepted,serving) {
   return doorPrivateV1SameAccepted(accepted,serving) ? {eligible:true,reason:'current'} : {eligible:false,reason:'accepted-newer'};
 }
 /* DOOR_TESTABLE_CORE_END private-generation-v1 */
+
+/* DOOR_TESTABLE_CORE_START private-bootstrap-v1 */
+// Inactive administrative initialization. Observations are supplied by a future
+// authenticated transport; these pure functions do not authenticate or write Git.
+function doorPrivateBootstrapV1Snapshot(values) {
+  try { return JSON.parse(JSON.stringify(values)); } catch (_) { return null; }
+}
+function doorPrivateBootstrapV1Config(c) {
+  return doorPrivateV1Object(c) && c.schema === 1 && Number.isSafeInteger(c.privateRepositoryId) && c.privateRepositoryId > 0 &&
+    Number.isSafeInteger(c.publicRepositoryId) && c.publicRepositoryId > 0 && c.privateRepositoryId !== c.publicRepositoryId;
+}
+function doorPrivateBootstrapV1Ids(ids,c) {
+  return doorPrivateV1Object(ids) && ids.private === c.privateRepositoryId && ids.public === c.publicRepositoryId;
+}
+function doorPrivateBootstrapV1Repository(r,c,isPrivate) {
+  return doorPrivateV1Object(r) && r.id === (isPrivate ? c.privateRepositoryId : c.publicRepositoryId) &&
+    r.visibility === (isPrivate ? 'private' : 'public') && doorPrivateV1Object(r.permissions) && r.permissions.push === true;
+}
+function doorPrivateBootstrapV1Read(read,path,head) {
+  return doorPrivateV1Object(read) && read.source === 'authenticated-git-tree' && read.path === path && read.atCommit === head &&
+    (read.status === 'absent' ? !Object.hasOwn(read,'value') : read.status === 'present' && Object.hasOwn(read,'value'));
+}
+function doorPrivateBootstrapV1Pointer(p) {
+  return doorPrivateV1Object(p) && p.schema === 1 && doorPrivateV1Id(p.generationId) && doorPrivateV1Id(p.operationId) &&
+    Object.hasOwn(p,'parentAcceptedGenerationId') && (p.parentAcceptedGenerationId === null || doorPrivateV1Id(p.parentAcceptedGenerationId));
+}
+function doorPrivateBootstrapV1SamePointer(a,b) {
+  return doorPrivateBootstrapV1Pointer(a) && doorPrivateBootstrapV1Pointer(b) && a.generationId === b.generationId &&
+    a.operationId === b.operationId && a.parentAcceptedGenerationId === b.parentAcceptedGenerationId;
+}
+function doorPrivateBootstrapV1Same(a,b) { return a === null && b === null || doorPrivateV1SameRef(a,b); }
+function doorPrivateBootstrapV1Phase(accepted,serving) { return accepted ? serving ? 'initialized' : 'accepted-never-served' : 'uninitialized'; }
+function doorPrivateBootstrapV1State(s,c) {
+  return doorPrivateV1Object(s) && s.schema === 1 && doorPrivateBootstrapV1Ids(s.repositoryIds,c) &&
+    doorPrivateV1Commit(s.privateHead) && doorPrivateV1Commit(s.publicHead) &&
+    (s.accepted === null || doorPrivateV1Ref(s.accepted)) && (s.serving === null || doorPrivateV1Ref(s.serving)) &&
+    !(s.accepted === null && s.serving !== null) && (!s.accepted || s.accepted.privateCommit === s.privateHead) &&
+    s.phase === doorPrivateBootstrapV1Phase(s.accepted,s.serving);
+}
+function doorPrivateBootstrapV1CopyState(s) {
+  return {schema:1,phase:s.phase,repositoryIds:{private:s.repositoryIds.private,public:s.repositoryIds.public},
+    privateHead:s.privateHead,publicHead:s.publicHead,accepted:s.accepted && doorPrivateV1CopyRef(s.accepted),serving:s.serving && doorPrivateV1CopyRef(s.serving)};
+}
+function doorPrivateBootstrapV1Operation(o,c) {
+  if (!doorPrivateV1Object(o) || o.schema !== 1 || !doorPrivateBootstrapV1Ids(o.repositoryIds,c) ||
+      !doorPrivateV1Id(o.generationId) || !doorPrivateV1Id(o.operationId) || !doorPrivateV1Hash(o.publicInputWitness) ||
+      !doorPrivateV1Hash(o.publicProjectionBasisDigest) || !doorPrivateV1Commit(o.expectedPrivateHead) || !doorPrivateV1Commit(o.expectedPublicHead) ||
+      !(o.parentAccepted === null || doorPrivateV1Ref(o.parentAccepted)) || !(o.expectedServing === null || doorPrivateV1Ref(o.expectedServing)) ||
+      !['prepared','private-unconfirmed','accepted-release-pending','public-prepared','released','released-stale'].includes(o.phase)) return false;
+  if (o.parentAccepted && (o.generationId === o.parentAccepted.generationId || o.operationId === o.parentAccepted.operationId)) return false;
+  if (!['released','released-stale'].includes(o.phase) && (Object.hasOwn(o,'latestInputReleased') || Object.hasOwn(o,'needsRebase'))) return false;
+  if (['prepared','private-unconfirmed'].includes(o.phase)) return !Object.hasOwn(o,'privateCommit');
+  if (!doorPrivateV1Commit(o.privateCommit)) return false;
+  if (o.phase === 'released') return o.latestInputReleased === true && o.needsRebase === false;
+  if (o.phase === 'released-stale') return o.latestInputReleased === false && o.needsRebase === true;
+  return true;
+}
+function doorPrivateBootstrapV1CopyOperation(o) {
+  const out = {schema:1,repositoryIds:{private:o.repositoryIds.private,public:o.repositoryIds.public},generationId:o.generationId,
+    operationId:o.operationId,publicInputWitness:o.publicInputWitness,publicProjectionBasisDigest:o.publicProjectionBasisDigest,
+    expectedPrivateHead:o.expectedPrivateHead,expectedPublicHead:o.expectedPublicHead,
+    parentAccepted:o.parentAccepted && doorPrivateV1CopyRef(o.parentAccepted),expectedServing:o.expectedServing && doorPrivateV1CopyRef(o.expectedServing),phase:o.phase};
+  if (Object.hasOwn(o,'privateCommit')) out.privateCommit = o.privateCommit;
+  if (typeof o.latestInputReleased === 'boolean') out.latestInputReleased = o.latestInputReleased;
+  if (typeof o.needsRebase === 'boolean') out.needsRebase = o.needsRebase;
+  return out;
+}
+function doorPrivateBootstrapV1Target(o,commit) {
+  return {schema:1,generationId:o.generationId,operationId:o.operationId,publicInputWitness:o.publicInputWitness,privateCommit:commit || o.privateCommit};
+}
+function doorPrivateBootstrapV1Matches(o,ref) {
+  return doorPrivateV1Ref(ref) && o.generationId === ref.generationId && o.operationId === ref.operationId &&
+    o.publicInputWitness === ref.publicInputWitness && (!o.privateCommit || o.privateCommit === ref.privateCommit);
+}
+function doorPrivateBootstrapV1Receipt(r,c,isPrivate,parent) {
+  return doorPrivateV1Object(r) && r.kind === 'authenticated-git-cas-commit' && doorPrivateBootstrapV1Repository(r.repository,c,isPrivate) &&
+    doorPrivateV1Object(r.commit) && doorPrivateV1Commit(r.commit.sha) && r.commit.sha !== parent &&
+    Array.isArray(r.commit.parents) && r.commit.parents.length === 1 && r.commit.parents[0] === parent &&
+    doorPrivateV1Object(r.refUpdate) && r.refUpdate.before === parent && r.refUpdate.after === r.commit.sha && r.refUpdate.compareAndSwap === true;
+}
+async function doorPrivateBootstrapV1Package(ref,bundle,basis,c,pointer) {
+  if (!doorPrivateV1Ref(ref) || !doorPrivateV1Object(bundle) || !doorPrivateBootstrapV1Repository(bundle.repository,c,true) ||
+      !doorPrivateV1Hash(basis) || !doorPrivateBootstrapV1Pointer(bundle.accepted) || !doorPrivateV1Object(bundle.manifest)) return false;
+  const a = bundle.accepted, m = bundle.manifest;
+  if (a.generationId !== m.generationId || a.operationId !== m.operationId || a.parentAcceptedGenerationId !== m.parentAcceptedGenerationId ||
+      (pointer && !doorPrivateBootstrapV1SamePointer(a,pointer))) return false;
+  return (await doorPrivateV1ValidatePackage(ref,bundle,{repositoryId:c.privateRepositoryId,publicProjectionBasisDigest:basis})).ok;
+}
+async function doorPrivateBootstrapV1Observe(observation,config) {
+  const captured = doorPrivateBootstrapV1Snapshot([observation,config]);
+  if (!captured) return doorPrivateV1Reject('bootstrap-json');
+  const [o,c] = captured;
+  if (!doorPrivateBootstrapV1Config(c) || !doorPrivateV1Object(o) || o.schema !== 1 || !doorPrivateV1Object(o.private) || !doorPrivateV1Object(o.public)) return doorPrivateV1Reject('bootstrap-observation');
+  const p = o.private, u = o.public;
+  if (!doorPrivateBootstrapV1Repository(p.repository,c,true) || !doorPrivateBootstrapV1Repository(u.repository,c,false) ||
+      !doorPrivateV1Commit(p.head) || !doorPrivateV1Commit(u.head) || !doorPrivateBootstrapV1Read(p.accepted,'accepted.json',p.head) ||
+      !doorPrivateBootstrapV1Read(u.pin,'protocol-v1/publication.json',u.head)) return doorPrivateV1Reject('bootstrap-authority');
+  let accepted = null, serving = null;
+  if (p.accepted.status === 'present') {
+    const pointer = p.accepted.value;
+    if (!doorPrivateBootstrapV1Pointer(pointer) || !doorPrivateV1Object(p.package) || !doorPrivateV1Object(p.package.manifest)) return doorPrivateV1Reject('bootstrap-pointer');
+    accepted = {schema:1,generationId:pointer.generationId,operationId:pointer.operationId,privateCommit:p.head,publicInputWitness:p.package.manifest.publicInputWitness};
+    if (!(await doorPrivateBootstrapV1Package(accepted,p.package,p.expectedProjectionBasisDigest,c,pointer))) return doorPrivateV1Reject('bootstrap-accepted-package');
+  }
+  if (u.pin.status === 'present') {
+    if (!accepted || !doorPrivateV1Ref(u.pin.value)) return doorPrivateV1Reject('bootstrap-serving-without-accepted');
+    serving = doorPrivateV1CopyRef(u.pin.value);
+    if (!(await doorPrivateBootstrapV1Package(serving,u.package,u.expectedProjectionBasisDigest,c))) return doorPrivateV1Reject('bootstrap-serving-package');
+    const projection = doorPrivateV1ProjectPublic(u.projection);
+    if (!projection.ok || !doorPrivateV1SameRef(projection.value.generationRef,serving)) return doorPrivateV1Reject('bootstrap-serving-projection');
+  }
+  return {ok:true,state:{schema:1,phase:doorPrivateBootstrapV1Phase(accepted,serving),
+    repositoryIds:{private:c.privateRepositoryId,public:c.publicRepositoryId},privateHead:p.head,publicHead:u.head,accepted,serving}};
+}
+function doorPrivateBootstrapV1Plan(state,candidate,config) {
+  const captured = doorPrivateBootstrapV1Snapshot([state,candidate,config]);
+  if (!captured) return doorPrivateV1Reject('bootstrap-json');
+  const [s,v,c] = captured;
+  if (!doorPrivateBootstrapV1Config(c) || !doorPrivateBootstrapV1State(s,c) || s.phase === 'initialized' ||
+      !doorPrivateV1Object(v) || v.schema !== 1 || !doorPrivateV1Id(v.generationId) || !doorPrivateV1Id(v.operationId) ||
+      !doorPrivateV1Hash(v.publicInputWitness) || !doorPrivateV1Hash(v.publicProjectionBasisDigest) || Object.hasOwn(v,'privateCommit') ||
+      (s.accepted && (v.generationId === s.accepted.generationId || v.operationId === s.accepted.operationId))) return doorPrivateV1Reject('bootstrap-plan');
+  return {ok:true,effect:'write-private',operation:{schema:1,repositoryIds:{private:c.privateRepositoryId,public:c.publicRepositoryId},
+    generationId:v.generationId,operationId:v.operationId,publicInputWitness:v.publicInputWitness,publicProjectionBasisDigest:v.publicProjectionBasisDigest,
+    expectedPrivateHead:s.privateHead,expectedPublicHead:s.publicHead,parentAccepted:s.accepted && doorPrivateV1CopyRef(s.accepted),
+    expectedServing:s.serving && doorPrivateV1CopyRef(s.serving),phase:'prepared'}};
+}
+async function doorPrivateBootstrapV1Apply(state,operation,event,config) {
+  const captured = doorPrivateBootstrapV1Snapshot([state,operation,event,config]);
+  if (!captured) return doorPrivateV1Reject('bootstrap-json');
+  const [input,original,e,c] = captured;
+  if (!doorPrivateBootstrapV1Config(c) || !doorPrivateBootstrapV1State(input,c) || !doorPrivateBootstrapV1Operation(original,c) ||
+      !doorPrivateV1Object(e) || e.operationId !== original.operationId) return doorPrivateV1Reject('bootstrap-event');
+  const s = doorPrivateBootstrapV1CopyState(input), op = doorPrivateBootstrapV1CopyOperation(original);
+  const reject = code => doorPrivateV1Reject(code), done = () => ({ok:true,state:s,operation:op});
+  if (e.type === 'private-unconfirmed') {
+    if (!['prepared','private-unconfirmed'].includes(op.phase) || Object.hasOwn(op,'privateCommit') || doorPrivateBootstrapV1Matches(op,s.accepted)) return reject('bootstrap-private-phase');
+    op.phase = 'private-unconfirmed'; return done();
+  }
+  if (e.type === 'private-accepted') {
+    if (!doorPrivateBootstrapV1Receipt(e.receipt,c,true,op.expectedPrivateHead)) return reject('bootstrap-private-receipt');
+    const target = doorPrivateBootstrapV1Target(op,e.receipt.commit.sha);
+    if ((op.privateCommit && op.privateCommit !== target.privateCommit) ||
+        !(await doorPrivateBootstrapV1Package(target,e.package,op.publicProjectionBasisDigest,c)) ||
+        e.package.accepted.parentAcceptedGenerationId !== (op.parentAccepted ? op.parentAccepted.generationId : null)) return reject('bootstrap-private-package');
+    const already = doorPrivateV1SameRef(s.accepted,target) && s.privateHead === target.privateCommit;
+    if (!already && (!['prepared','private-unconfirmed'].includes(op.phase) || s.privateHead !== op.expectedPrivateHead ||
+        !doorPrivateBootstrapV1Same(s.accepted,op.parentAccepted))) return reject('bootstrap-private-parent');
+    op.privateCommit = target.privateCommit;
+    if (!already) { s.accepted = target; s.privateHead = target.privateCommit; s.phase = doorPrivateBootstrapV1Phase(s.accepted,s.serving); }
+    if (['prepared','private-unconfirmed'].includes(op.phase)) op.phase = 'accepted-release-pending';
+    return done();
+  }
+  const target = doorPrivateBootstrapV1Target(op);
+  if (!doorPrivateV1Ref(target)) return reject('bootstrap-not-accepted');
+  if (e.type === 'public-prepare') {
+    if (!['accepted-release-pending','public-prepared'].includes(op.phase) || !doorPrivateV1SameRef(s.accepted,target) || s.privateHead !== op.privateCommit ||
+        s.publicHead !== op.expectedPublicHead || !doorPrivateBootstrapV1Same(s.serving,op.expectedServing)) return reject('bootstrap-public-parent');
+    const projection = doorPrivateV1ProjectPublic(e.projection);
+    if (!projection.ok || !doorPrivateV1SameRef(projection.value.generationRef,target)) return reject('bootstrap-public-projection');
+    op.phase = 'public-prepared';
+    return {ok:true,state:s,operation:op,effect:{type:'write-public',expectedPublicHead:op.expectedPublicHead,
+      expectedServing:op.expectedServing && doorPrivateV1CopyRef(op.expectedServing),projection:projection.value}};
+  }
+  if (e.type === 'public-unconfirmed') {
+    if (!['public-prepared','accepted-release-pending'].includes(op.phase) || doorPrivateV1SameRef(s.serving,target)) return reject('bootstrap-public-phase');
+    op.phase = 'accepted-release-pending'; return done();
+  }
+  if (e.type !== 'public-committed' || !s.accepted || !['public-prepared','released','released-stale'].includes(op.phase) ||
+      !doorPrivateBootstrapV1Receipt(e.receipt,c,false,op.expectedPublicHead) ||
+      !doorPrivateBootstrapV1Read(e.pin,'protocol-v1/publication.json',e.receipt.commit.sha) || e.pin.status !== 'present' ||
+      !doorPrivateV1SameRef(e.pin.value,target)) return reject('bootstrap-public-receipt');
+  if (!(await doorPrivateBootstrapV1Package(target,e.package,op.publicProjectionBasisDigest,c)) ||
+      e.package.accepted.parentAcceptedGenerationId !== (op.parentAccepted ? op.parentAccepted.generationId : null)) return reject('bootstrap-public-package');
+  const projection = doorPrivateV1ProjectPublic(e.projection);
+  if (!projection.ok || !doorPrivateV1SameRef(projection.value.generationRef,target)) return reject('bootstrap-public-projection');
+  if (doorPrivateV1SameRef(s.serving,target)) {
+    if (s.publicHead === op.expectedPublicHead) return reject('bootstrap-public-history');
+    // A verified later code HEAD with the same pin remains the current HEAD.
+  } else {
+    if (s.publicHead !== op.expectedPublicHead || !doorPrivateBootstrapV1Same(s.serving,op.expectedServing) ||
+        ['released','released-stale'].includes(op.phase)) return reject('bootstrap-public-superseded');
+    s.serving = target; s.publicHead = e.receipt.commit.sha;
+  }
+  s.phase = 'initialized'; op.latestInputReleased = doorPrivateV1SameRef(s.accepted,target); op.needsRebase = !op.latestInputReleased;
+  op.phase = op.latestInputReleased ? 'released' : 'released-stale';
+  return done();
+}
+async function doorPrivateBootstrapV1Recover(operation,observation,config) {
+  const captured = doorPrivateBootstrapV1Snapshot([operation,observation,config]);
+  if (!captured) return doorPrivateV1Reject('bootstrap-json');
+  const [original,o,c] = captured;
+  if (!doorPrivateBootstrapV1Config(c) || !doorPrivateBootstrapV1Operation(original,c)) return doorPrivateV1Reject('bootstrap-recovery');
+  const observed = await doorPrivateBootstrapV1Observe(o,c);
+  if (!observed.ok) return observed;
+  const s = observed.state, op = doorPrivateBootstrapV1CopyOperation(original);
+  const result = (action,latestInputReleased=false,needsRebase=false) => ({ok:true,state:s,operation:op,action,latestInputReleased,needsRebase});
+  const expectedParent = op.parentAccepted ? op.parentAccepted.generationId : null;
+  if (doorPrivateBootstrapV1Matches(op,s.serving)) {
+    if (o.public.expectedProjectionBasisDigest !== op.publicProjectionBasisDigest ||
+        o.public.package.accepted.parentAcceptedGenerationId !== expectedParent) return result('review',false,true);
+    op.privateCommit = s.serving.privateCommit; op.latestInputReleased = doorPrivateV1SameRef(s.accepted,s.serving); op.needsRebase = !op.latestInputReleased;
+    op.phase = op.latestInputReleased ? 'released' : 'released-stale';
+    return result('ack-released',op.latestInputReleased,op.needsRebase);
+  }
+  if (['released','released-stale'].includes(op.phase)) return result('review',false,true);
+  if (!doorPrivateBootstrapV1Same(s.serving,op.expectedServing)) return result('superseded',false,true);
+  if (doorPrivateBootstrapV1Matches(op,s.accepted)) {
+    if (o.private.expectedProjectionBasisDigest !== op.publicProjectionBasisDigest ||
+        o.private.package.accepted.parentAcceptedGenerationId !== expectedParent) return result('review',false,true);
+    op.privateCommit = s.accepted.privateCommit; op.phase = 'accepted-release-pending';
+    return result(s.publicHead === op.expectedPublicHead ? 'resume-public' : 'review-public-head');
+  }
+  if (doorPrivateBootstrapV1Same(s.accepted,op.parentAccepted)) {
+    if (Object.hasOwn(op,'privateCommit')) return result('review',false,true);
+    if (s.privateHead !== op.expectedPrivateHead) return result('reread-rebase',false,true);
+    if (s.publicHead !== op.expectedPublicHead) return result('review-public-head');
+    return result('retry-private');
+  }
+  return result('superseded',false,true);
+}
+/* DOOR_TESTABLE_CORE_END private-bootstrap-v1 */
 
 /* DOOR_TESTABLE_CORE_START publish-transaction */
 // F1: one immutable read/build/write boundary, using HOUSE seams 1 and 5.

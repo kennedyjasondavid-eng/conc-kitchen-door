@@ -1,0 +1,7 @@
+# Inactive bootstrap implementation review — 2026-11-17
+
+The private-generation bootstrap now distinguishes verified first initialization, accepted-but-never-served data and an initialized serving reference. It preserves newer accepted input when an older publication finishes, binds retries to captured repository identity and nullable lineage, and rejects release claims before confirmation. The implementation is inactive: it has no production callers, transport, storage, credential handling, resident identity assignment or migration.
+
+Independent food/data and release/feed reviewers passed source SHA-256 d6ad37f95a80bd856a79fb41addae055257d2c322b5b358192f48728a07d0f0c. Their additional frozen probes exposed and verified fixes for missing accepted authority on public acknowledgement, mismatched parent lineage on recovery, and release-only flags on pending operations. The original 72 assertions were unchanged. The seven independent supplemental checks are included as portable synthetic CI gates.
+
+Validation: bootstrap79/79; existing private-generation46/46; complete Node suite1120 pass,1 skip,0 fail; existing browser readability263/263. The initial restricted Node attempt could not spawn children; the complete permitted rerun above succeeded. This receipt does not establish authenticated repository I/O, clinical suitability, current data freshness, consumer adoption or private serving activation. These remain separately reviewed work.
