@@ -10,6 +10,8 @@ Baseline: [comparison report](reviews/DOOR_MANUAL_PLATING_COMPARISON_2026-11-16.
 
 The 171 room identities match all ten manual masters. The evidence covers 84 rotation slots from 71 visible meal tabs. Jason chose visible tabs matching the current rotation, with ambiguous duplicates flagged; 54 alternate/hidden tabs were excluded. Week 4 Sunday breakfast protein remains provisional. Unlisted manual residents were inferred standard, which does not prove what staff served. Recipe/allergen facts come from CODEX, not copied manual CONTAINS rows.
 
+**Authority clarification during implementation:** Jason confirmed that the current manual plating sheets are what is served and are an authority. Use an unambiguous selected current manual meal/plate as the intended operation when DOOR disagrees. The B/M identifiers below remain traceability references; do not ask Jason to choose the same manual plate again merely because DOOR differs. Ask only about missing definitions, ambiguous duplicates, product/ingredient facts and recipient requirements that the evidence cannot establish. Authority over the served plate does not clear anaphylactic flags, waive ingredient checks, prove a clinical texture level, or turn excluded/older tabs into current instructions.
+
 There are two distinct problems: incomplete or misleading generated meal definitions, and disagreements about what the intended meals/resident instructions should be. Code can expose the first without guessing answers to the second. A named dish alone does not establish ingredient compatibility or separate preparation.
 
 ## Priority and release sequence
@@ -222,3 +224,5 @@ Both reviewers passed the revised plan with no remaining plan blockers. The [dat
 ## Implementation decision log — November 16
 
 Jason authorized Chicken Leg for missing non-vegetarian allergy plates, basa when the main meal is fish, with plain rice and stir-fry vegetables. Any existing plain/other alternative meeting every relevant restriction may be used instead. The six initial defaults are A01/A02/A03/A05 chicken leg and A04/A06 basa. Existing named manual alternatives remain authoritative; this is not a blanket overwrite. Jason also authorized creating and adding the plain recipes to CODEX. Recipe/product facts, preparation, texture and compatibility evidence remain the A2 completion gate. See the A1 receipt for the exact decisions and candidate verification.
+
+The CODEX recipes are now accepted and anonymously served; their frozen publication proof is [the recipe receipt](receipts/codex_plain_alternatives_publication_2026-11-16.json). The A1 candidate is [DOOR PR #203](https://github.com/kennedyjasondavid-eng/conc-kitchen-door/pull/203). Neither recipe publication nor the draft PR closes A2 or the native-workbook gate.
