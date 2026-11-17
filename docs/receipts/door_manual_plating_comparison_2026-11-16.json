@@ -1,0 +1,1154 @@
+{
+  "_meta": {
+    "asOf": "2026-11-16",
+    "methodVersion": 1,
+    "sourceCommit": "eb13cd078e5fa8b949ab887f39125348308f213d",
+    "serviceClock": "2026-11-17T09:00:00-05:00",
+    "sourceZipSha256": "61525ac82e24832d305c4a68301ab4ec448eac8c10832ed6eefc0d08db84f13f",
+    "sourceZip": "C:\\Users\\Jason\\Downloads\\OneDrive_1_11-16-2026.zip",
+    "selection": "User confirmed: visible tabs matching the current rotation; ambiguous duplicates flagged"
+  },
+  "summary": {
+    "manualBooks": 10,
+    "visibleSheets": 111,
+    "hiddenSheets": 24,
+    "selectedMealSlots": 84,
+    "selectedDistinctTabs": 71,
+    "registryResidents": 171,
+    "manualRegistryVariants": 0,
+    "manualRoomIdentitiesMatchAllBooks": true,
+    "gfBreakfastFallbackSlots": 28,
+    "unresolvedSoftAltSlots": 19,
+    "anaphWithoutNamedAlternativeSlots": 6
+  },
+  "sourceWorkbooks": [
+    {
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "sha256": "5d4dcacd45cf3b7b1f4620edea4549dd1a41d0d4eb23f2ecea90e5206a09b118"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "sha256": "fdd5c6b12650e72ac171881b0009f66e742dc5a4b7253a7dcf0bfd553c90c2f2"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "sha256": "3bf803b2d299752ae48cf00ce22afc01207bb9729dac56ceb83b6e2560773480"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "sha256": "e4138bd086779203eea8ec8f371b78c6d55af2893d8d8b2bb456095af34680a5"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "sha256": "f870d5caaa47011443818ec069bd1d39e0377d913a5ea267869eedede81ab546"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "sha256": "55b821c79107f374a578b63c9a36374b72b8fd7295d5b2ba32301f08baa62ac6"
+    },
+    {
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "sha256": "e7faec2e47cd3e01a6bd3962f0e6f960bac06df0fe29164bbaf377d37e5d9168"
+    },
+    {
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "sha256": "ed6b9404f2b049f688abd2195c6a812e894aa276aef48864fcdc30a492d33a57"
+    },
+    {
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "sha256": "6b2bd379694a8122c4e35236a0ee35a252f30cf77922eeba14d5ce950d801cbb"
+    },
+    {
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "sha256": "a1e8d6ddc27aee90ccb56eeff5e61dc4168dbdb6d3de19f3e26fe13af245bf72"
+    }
+  ],
+  "doorInputs": {
+    "index.html": "2c9b7d34d1a0ea1998d5fca77a94f4ada59f4e98bc9ab52c8110363c77c11f81",
+    "door_state.json": "e783bb4bc785dca4331742d2246d5b6b113aed5adfe44ef0b29f5d48963c20fc",
+    "menu_current.json": "f6eaf4fe487057205c76aaa268af00776b7bf5c9451213a0362f9011087dbd59",
+    "menu_overlay.json": "bac21f5627f639b79d68206e9e0531649fe58986a27cd2eaf8ad793d33d2a6c4",
+    "meal_swaps.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "special_meals.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "learned_nr.json": "ed09ca2dcb727aea08dca7ea187bc89d29f602395a98055197ca7adbec9b0721"
+  },
+  "codex": {
+    "schemaVersion": 1,
+    "asOf": "2026-11-16T22:11:45.000Z",
+    "sources": {
+      "main": "bb540c0d7e1a1aa7fa9640cff846b9a806e49c3f",
+      "sharedLibrary": "709da7d75b4435c562df643ab741019e9b636af8"
+    },
+    "sharedLibrary": {
+      "path": "library_public.json",
+      "sha256": "82a498dadd04d46a079e36a9aa720dc1683acd5ea575f556742b44ffc50f3f9b",
+      "schemaVersion": 1
+    }
+  },
+  "codexFiles": {
+    "DOOR_RECIPE_DATA.json": "00ec45ad4443453a3e25a3976069edd396af673265a3c6021b63f3fcfd952aeb",
+    "library_public.json": "82a498dadd04d46a079e36a9aa720dc1683acd5ea575f556742b44ffc50f3f9b",
+    "pages_provenance.json": "e532243f2dcb1eeb368b24656d38c948a930ceba015d9b8f8625145040634030"
+  },
+  "sourceMapping": [
+    {
+      "week": 1,
+      "day": "SUNDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "SUN Pork Chick",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "MONDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "MON Pancake Halal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "TUESDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "TUE Cereal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "WEDNESDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "WED Veg Frittata",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "THURSDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "THURS Scrambled Egg Sausage",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "FRIDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "FRI Turkey Oat",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "SATURDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "SAT Bagel",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "SUNDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "SUN Chicken Sandwich",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "MONDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "MON Hal Chick Burger",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "TUESDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "TUES Blackened Fish",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "WEDNESDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "WED Egg Salad Wrap",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "THURSDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "THU Loaded Sausage",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "FRIDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "FRI- Honey BBQ Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "SATURDAY",
+      "meal": "lunch",
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "SAT Chicken Fajitas",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "SUNDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "SUN beef strogonoff",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "MONDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "MON Jerk chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "TUESDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "TUE Pork Carnitas",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "WEDNESDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "WED Butter Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "THURSDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "THU Roast Chicken Shakshuka",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "FRIDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "FRI Pork Adobo",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 1,
+      "day": "SATURDAY",
+      "meal": "dinner",
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "SAT Gomen Besiga",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "SUNDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "SUN Turkey Chick",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "MONDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "MON Pancake Halal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "TUESDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "TUE Cereal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "WEDNESDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "WED Frittata",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "THURSDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "THU Scrambled Eggs Sausage",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "FRIDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "FRI Ham Chick Oat",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "SATURDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "SAT Bagel",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "SUNDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "SUN Philly Beef",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "MONDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "MON Chicken Gyro",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "TUESDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "TUE Tuna",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "WEDNESDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "WED Fried Chicken Biscuit",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "THURSDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "THU Beef Burger",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "FRIDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "FRI Beef Chili",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "SATURDAY",
+      "meal": "lunch",
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": " SAT Chick Tenders",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "SUNDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "SUN Sausage Greens Pasta",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "MONDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "MON Peanut Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "TUESDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "TUE Vindaloo",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "WEDNESDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "WED Yetisse Fish",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "THURSDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "THU Bangers",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "FRIDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "FRI Arroz ",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 2,
+      "day": "SATURDAY",
+      "meal": "dinner",
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "SAT Meatloaf",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "SUNDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "SUN Pork Chick",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "MONDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "MON Pancake Halal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "TUESDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "TUE Cereal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "WEDNESDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "W3 WED Ham Frittata",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "THURSDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "THURS Scrambled Egg Sausage",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "FRIDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "FRI Turkey Oat",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "SATURDAY",
+      "meal": "breakfast",
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "SAT Bagel",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "SUNDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "SUN Coro Chick",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "MONDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "MON Pull Pork Sammy",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "TUESDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "TUE Ginger Beef",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "WEDNESDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "WED Nachos",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "THURSDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "THU Piri Piri Chicken Wrap",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "FRIDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "FRI Nigerian Fish",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "SATURDAY",
+      "meal": "lunch",
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "SAT Chicken a la King",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "SUNDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "SUN Bolognese Pasta",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "MONDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "MON Roast Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "TUESDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "TUE Carib Stew",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "WEDNESDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "WED Cajun fish",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "THURSDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "THU Pork Griot and Chakalaka",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "FRIDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "FRI Chicken Fried Rice",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 3,
+      "day": "SATURDAY",
+      "meal": "dinner",
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "SAT Pineapple Rice",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "SUNDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "SUN Turkey Chick",
+      "note": "Unresolved protein mismatch: visible shared W2/W4 Sunday tab says Chicken; DOOR W4 says Turkey. Comparison is provisional."
+    },
+    {
+      "week": 4,
+      "day": "MONDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "MON Pancake Halal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "TUESDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "TUE Cereal",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "WEDNESDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "WED Frittata",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "THURSDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "THU Scrambled Eggs Sausage",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "FRIDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "FRI Ham Chick Oat",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "SATURDAY",
+      "meal": "breakfast",
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "SAT Bagel",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "SUNDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "SUN Pork Souvlaki",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "MONDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "MON Chicken Ranch Sandwich",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "TUESDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "TUE Ginger Beef",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "WEDNESDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "WED BBQ Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "THURSDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "THU Beef Lasagna",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "FRIDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "FRI Pork Al Pastor",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "SATURDAY",
+      "meal": "lunch",
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "SAT Lime Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "SUNDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "SUN White Chili",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "MONDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "MON Fish Curry",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "TUESDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "TUE Tandoori Pork, Briyani",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "WEDNESDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "WED Beef & Veg stew",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "THURSDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "THU Teriyaki Chicken",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "FRIDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "FRI Chicken Fried Rice",
+      "note": "Visible weekday tab matching the rotation meal"
+    },
+    {
+      "week": 4,
+      "day": "SATURDAY",
+      "meal": "dinner",
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "SAT Beef Massaman Curry",
+      "note": "Visible weekday tab matching the rotation meal"
+    }
+  ],
+  "excludedTabs": [
+    {
+      "file": "01 Breakfast Week 1 and 3 November 17.xlsx",
+      "tab": "WED Eggo",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "SUN P",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "FRI Frittata",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "FRI egg cup (2)",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "FRI egg cup",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "WED Waffle",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "02 Breakfast Week 2 and 4  November 17.xlsx",
+      "tab": "Sheet1",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "MON Sausage bean (2)",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "MON Pizza",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "TUE Jerk Chicken (2)",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "THU Caeser Salad",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "FRI Mar 31",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "SAT Shakshulka yes",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "VICTORIA DAY",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "MON Sausage bean",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "WED MacnCheese",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "SUN Mothers day Quesadilla",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "Christmas Lunch & New year",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "TUE (temp) Beef Burger",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "05 Lunch Week One  November 17.xlsx",
+      "tab": "THU BHM NIgerian Fish ",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "Mon Cheese Dog (2)",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "WED Cheese Dog Halal",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "WED mar 2",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "THU mar 3",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "SAT Mar 6",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "SAT Pepperoni Pizza",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "MON Vegan Chili",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "TUE Chick Chana",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "BHM THU Bebere Beef",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "MON Chicken Waffle (temp)",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "06 Lunch Week Two  November 17.xlsx",
+      "tab": "EASTER LUNCH Roast Beef Gratin ",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "Vegan Chilli  Dogs Revised",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "WED Chicken Huevos",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "TUE Jerk Chick",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "WED Egg Salad (2)",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "THU Cheese burger",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "THU Loaded Sausage",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "SAT Roasted Chicken Legs",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "WED Crispy Chicken Wrap Burg",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "TUES Glazed Ham",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "MON Vegan chili dogs",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "FRI Jamaican Patty",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "07 Lunch Week Three  November 17.xlsx",
+      "tab": "THU BHM Kuku Paka",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "SUN Pork Souvlaki (2)",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "THURS Shawarma",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "WED T-Rex Salad",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "THU Beef Burger",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "WED Canada Day",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "08 Lunch Week four November 17.xlsx",
+      "tab": "BHM THURS Chicken Yassa",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "09 Dinner Week One  November 17.xlsx",
+      "tab": "Christmas Dinner",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "10 Dinner Week Two  November 17.xlsx",
+      "tab": "TUE Salmon",
+      "state": "hidden",
+      "reason": "hidden tab"
+    },
+    {
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "AH Mon Turkey",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "11 Dinner Week Three  November 17.xlsx",
+      "tab": "SAT Pizza",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    },
+    {
+      "file": "12 Dinner Week Four  November 17.xlsx",
+      "tab": "Easter Sunday Pork Dinner",
+      "state": "visible",
+      "reason": "Visible alternate/historical tab not matching the current rotation"
+    }
+  ],
+  "structuralIssues": [
+    {
+      "kind": "duplicate manual assignment",
+      "week": 3,
+      "day": "WEDNESDAY",
+      "period": "breakfast",
+      "tab": "W3 WED Ham Frittata",
+      "rooms": [
+        "1007"
+      ]
+    },
+    {
+      "kind": "manual room not in registry",
+      "week": 3,
+      "day": "WEDNESDAY",
+      "period": "lunch",
+      "tab": "WED Nachos",
+      "rooms": [
+        "602"
+      ]
+    },
+    {
+      "kind": "duplicate manual assignment",
+      "week": 4,
+      "day": "TUESDAY",
+      "period": "dinner",
+      "tab": "TUE Tandoori Pork, Briyani",
+      "rooms": [
+        "1112"
+      ]
+    }
+  ],
+  "verification": {
+    "rosterIdentitiesMatchAllTen": true,
+    "doorAssignmentsPerSlot": 171,
+    "slotCount": 84,
+    "manualDuplicateExtraRows": 2,
+    "roomComparisonRows": 14366,
+    "sheetsVisuallyInspected": [
+      "Findings",
+      "Registry",
+      "Meal plans",
+      "Alternatives",
+      "Room comparison",
+      "Sources"
+    ],
+    "exportedWorkbookSheetRows": [
+      16,
+      171,
+      84,
+      537,
+      14366,
+      29
+    ],
+    "exportedFormulaErrors": 0,
+    "sourceDataEdited": false
+  },
+  "outputWorkbook": {
+    "path": "outputs\\door-manual-plating-20261116\\DOOR_manual_plating_comparison_2026-11-16.xlsx",
+    "sha256": "6b71653747c04b716d70395a5ff8b2c70febefb32453bbadc6cab99c6e516891"
+  }
+}

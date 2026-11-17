@@ -116,7 +116,7 @@ test('applyQueueToRegistry with a pending stamp: existing + NEW intake rooms get
     [{ room: '912', lastImported: '2026-05-20', tags: ['Regular'] }, { room: '213', lastImported: '2026-05-20', tags: ['Regular'] }],
     { concPendingImportStamp: JSON.stringify({ date: '2026-09-11', rooms: ['912', '605'] }) }
   );
-  vm.runInContext(HELPERS.map(fnBlock).join('\n') + "\nconst DOOR_PENDING_IMPORT_STAMP_KEY='concPendingImportStamp';\n" + fnBlock('applyQueueToRegistry'), sb);
+  vm.runInContext(HELPERS.map(fnBlock).join('\n') + "\nconst DOOR_PENDING_IMPORT_STAMP_KEY='concPendingImportStamp';\n" + fnBlock('doorAnaphAnswerTransition') + fnBlock('doorRegistryQueueTransition') + fnBlock('applyQueueToRegistry'), sb);
   sb.changesQueue.push({ room: '605', type: 'intake', tags: { noPork: true }, route: 'Regular', notes: '' });
   vm.runInContext('applyQueueToRegistry()', sb);
   assert.equal(sb.REGISTRY_MAP['605'].lastImported, '2026-09-11', 'new intake must carry the import date');
@@ -127,7 +127,7 @@ test('applyQueueToRegistry with a pending stamp: existing + NEW intake rooms get
 
 test('applyQueueToRegistry with no pending stamp (legacy / manual queue) changes no lastImported and does not throw', () => {
   const sb = makeSandbox([{ room: '912', lastImported: '2026-05-20', tags: ['Regular'] }]);
-  vm.runInContext(HELPERS.map(fnBlock).join('\n') + "\nconst DOOR_PENDING_IMPORT_STAMP_KEY='concPendingImportStamp';\n" + fnBlock('applyQueueToRegistry'), sb);
+  vm.runInContext(HELPERS.map(fnBlock).join('\n') + "\nconst DOOR_PENDING_IMPORT_STAMP_KEY='concPendingImportStamp';\n" + fnBlock('doorAnaphAnswerTransition') + fnBlock('doorRegistryQueueTransition') + fnBlock('applyQueueToRegistry'), sb);
   vm.runInContext('applyQueueToRegistry()', sb);
   assert.equal(sb.REGISTRY_MAP['912'].lastImported, '2026-05-20');
   // malformed pending → cleared, nothing stamped, no throw
