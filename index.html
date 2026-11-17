@@ -21939,8 +21939,15 @@ function openMenuEdit(week, day, period) {
 
   // Pre-populate alternative meals
   const initSoftAlt = (existing && existing.softAlt) ? existing.softAlt : (dayData[period + '_softAlt'] || '');
-  if (existing && existing.altMeals && existing.altMeals.length) {
-    ALT_MEALS = existing.altMeals.map(a => ({text: a.text || '', type: a.type || 'plain', flags: a.flags || {}}));
+  // Restore the structured alternatives before the legacy text fallback. An empty
+  // saved array is deliberate; an unrelated side edit must not resurrect it or
+  // lose a soft preparation type, captured facts, or additive recipe evidence.
+  const savedAltMeals = existing && Array.isArray(existing.altMeals)
+    ? existing.altMeals : dayData[period + '_altMeals'];
+  if (Array.isArray(savedAltMeals)) {
+    ALT_MEALS = JSON.parse(JSON.stringify(savedAltMeals)).map(a => ({
+      ...a, text: a.text || '', type: a.type || 'plain', flags: a.flags || {}
+    }));
   } else if (initSoftAlt) {
     ALT_MEALS = [{text: initSoftAlt, type: 'plain', flags: {}}];
   } else {
