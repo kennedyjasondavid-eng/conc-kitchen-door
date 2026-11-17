@@ -22,7 +22,7 @@ const feed = JSON.parse(fs.readFileSync(path.join(root, 'tests', 'fixtures', 'co
 const VEGAN_BOLOGNESE = { recipeName: 'Vegan Bolognese', stream: 'vegan', allergens: ['Gluten (Vegan Meat Replacement — Panko)', 'Sulphites (Vegan Meat Replacement — Liquid Smoke)', 'Corn (Vegan Meat Replacement — Cornmeal)', 'Nightshades (Crushed Tomatoes, Tomato Paste, Vegan Meat Replacement — Paprika)', 'Mushroom (Vegan Meat Replacement — Button Mushrooms)', 'Beans (Vegan Meat Replacement — Chickpeas)'] };
 
 function ctx(data) {
-  const c = { DOOR_RECIPE_DATA: data, DOOR_RECIPE_DATA_FALLBACK: [] };
+  const c = { DOOR_RECIPE_DATA: data, _doorRecipeBase:data, DOOR_RECIPE_DATA_FALLBACK: [] };
   vm.createContext(c);
   vm.runInContext(fn('getVegAltAllergenStr'), c, { filename: 'index.html#bare-side', timeout: 4000 });
   return c;

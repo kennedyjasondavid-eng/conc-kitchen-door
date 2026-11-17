@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.78';
+const DOOR_APP_VERSION = 'v31-standard.79';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -20827,29 +20827,59 @@ function flagsToMenuAllergens(flags) {
     .join(', ');
 }
 
+// Compatibility identities from the pre-addition shared Library a1757a3fcd99df56c6e3f4100f03964b47f437db.
+// These IDs preserve today's name hints; recipe contents still come from current CODEX facts.
+const DOOR_LEGACY_LIBRARY_VEG_HINT_IDS = new Set([
+  'baked-cajun-tofu','baked-tomato-tofu','blackened-tofu','butter-chickpeas',
+  'caribbean-stew-with-sweet-potato-and-collard-greens','chakalaka','chimichurri-tofu','couscous',
+  'garlic-bread','garlic-sauce','ginger-tofu-and-portobello','glazed-tofu-with-pineapple',
+  'kimchi-fried-rice-vegan','moroccan-chickpea-salad','moroccan-rice','mushroom-donburi-vegan',
+  'peas-and-corn','pineapple-rice','piri-piri-tofu-wrap','plain-carrot-and-zucchini',
+  'plain-parsnips','plain-rice-no-added-salt','plain-rice-porridge','plain-roasted-squash',
+  'plain-roasted-yams','plain-steamed-broccoli','plain-stir-fried-vegetables','plain-tofu',
+  'plain-tofu-with-rice-and-vegetables','refried-beans','rice-and-beans','roasted-yams',
+  'shakshuka-sauce-vegan','teriyaki-tofu','tofu-griot','vegan-baked-pasta',
+  'vegan-bolognese','vegan-garden-a-la-king','vegan-kebabs','vegan-meatloaf',
+  'vegan-taco-al-pastor','vegan-vindaloo','vegan-white-chili','veggie-burger-black-bean',
+]);
 function getVegAltAllergenStr(mealVeg) {
   const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : null) || DOOR_RECIPE_DATA_FALLBACK || [];
   const veganRecipes = recipeData.filter(r => r.stream === 'vegan');
   if (!mealVeg || !veganRecipes.length) return '';
   const normalize = s => s.toLowerCase().replace(/['']/g,"'").replace(/\s+/g,' ').trim();
   const sigWords = s => s.split(/\W+/).filter(w => w.length > 3);
+  // The sealed base (live, cached, or shipped fallback) supplies legacy identities. The growing
+  // Library is never used to expand this eligibility set automatically.
+  const base = (typeof _doorRecipeBase !== 'undefined' ? _doorRecipeBase : null) ||
+    (typeof DOOR_RECIPE_DATA_FALLBACK !== 'undefined' ? DOOR_RECIPE_DATA_FALLBACK : []);
+  const baseIds = new Set(base.filter(r => r.recipeId).map(r => String(r.recipeId)));
+  if (typeof DOOR_LEGACY_LIBRARY_VEG_HINT_IDS !== 'undefined') DOOR_LEGACY_LIBRARY_VEG_HINT_IDS.forEach(id => baseIds.add(id));
+  const baseNamesWithoutIds = new Set(base.filter(r => !r.recipeId).map(r => normalize(r.recipeName)));
   const allergenSet = new Set();
-  // A bare side word (one significant word: Pasta, Rice, Fruit) names that side only.
-  // It matches a recipe of the same name (or its plural), never a longer dish that
-  // contains the word: Pasta is not Vegan Baked Pasta, Rice is not Mushroom Fried Rice
-  // (Jason, 2026-11-09). The same side: equal, or one is the plural of the other.
+  const add = r => (r.allergens || []).forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
+  // A Library recipe can be an exact whole dish even when its own name contains commas.
+  const whole = veganRecipes.filter(r => normalize(r.recipeName) === normalize(mealVeg));
+  if (whole.length) {
+    if (whole.length === 1) add(whole[0]);
+    return [...allergenSet].join(', ').toUpperCase();
+  }
   const sameSide = (piece, rn) => rn === piece || rn === piece + 's' || rn === piece + 'es'
     || piece === rn + 's' || piece === rn + 'es';
   mealVeg.split(',').map(c => normalize(c)).forEach(comp => {
+    const exact = veganRecipes.filter(r => normalize(r.recipeName) === comp);
+    if (exact.length) { if (exact.length === 1) add(exact[0]); return; }
     let best = null, bestScore = 0;
     const bare = sigWords(comp).length <= 1;
     veganRecipes.forEach(r => {
       const rn = normalize(r.recipeName);
+      // Legacy base identities retain their old name hints. A newly added Library-only assembly must
+      // not reinterpret an unlinked side such as Green Beans or Peas & Carrots through partial words.
+      if (!(r.recipeId && baseIds.has(String(r.recipeId))) && !baseNamesWithoutIds.has(rn)) return;
       if (bare) {
         if (sameSide(comp, rn) && rn.length > bestScore) { bestScore = rn.length; best = r; }
         return;
       }
-      if (rn === comp || rn.includes(comp) || comp.includes(rn)) {
+      if (rn.includes(comp) || comp.includes(rn)) {
         const score = Math.max(rn.length, comp.length);
         if (score > bestScore) { bestScore = score; best = r; }
         return;
@@ -20857,12 +20887,11 @@ function getVegAltAllergenStr(mealVeg) {
       const overlap = [...new Set(sigWords(comp))].filter(w => new Set(sigWords(rn)).has(w)).length;
       if (overlap >= 2 && overlap > bestScore) { bestScore = overlap; best = r; }
     });
-    if (best && best.allergens) {
-      best.allergens.forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
-    }
+    if (best) add(best);
   });
   return [...allergenSet].join(', ').toUpperCase();
 }
+
 
 // FOOD SAFETY — the veg-alt allergen FLOOR (issue #63).
 //
