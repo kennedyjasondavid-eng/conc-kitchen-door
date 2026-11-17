@@ -20326,6 +20326,9 @@ function setAltMealsNone(v) {
   if (ALT_MEALS_NONE) {
     ALT_MEALS = [{text:'', type:'plain', flags:{}}];
     ALT_FLAGS_EXPANDED.clear();
+  } else if (!ALT_MEALS.length) {
+    // Explicitly enabling alternatives starts a new blank draft, never stale text.
+    ALT_MEALS = [{text:'', type:'plain', flags:{}}];
   }
   renderAltMealsSection();
   updateSlotSummary();
