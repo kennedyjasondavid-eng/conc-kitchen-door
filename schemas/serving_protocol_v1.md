@@ -18,6 +18,8 @@ The API is Prepare, Build, Validate, CreateState, Begin, Promote and Resolve, wi
 
 An observed live validation failure persists a hold. A strictly valid claimed pointer may raise/conflict high-water even when its frame fails; it never admits failed content. Unsupported/malformed authority, same-occurrence conflict, newer observations and stale attempts cannot be healed by old cache. Cache reads preserve the original live age. Valid restored data needs actual validation/promotion before operational use; invalid restoration stays quarantined until a valid live observation. Historical display and operational eligibility remain separate.
 
+A failed public pointer/frame/pointer read may retain an exact bounded observation with pointer and optional previousPointer. Both members must independently pass the strict pointer schema before either affects authority; they are observed previous→current. An invalid pair contributes no pointer authority and still leaves the ordinary live hold. This preserves an observed newer pointer or same-occurrence conflict across a changed reread without admitting any failed frame.
+
 Because state is functional, the real receiving owner MUST compare the operation's attempt against its CURRENT owner generation after every await and before installing state, caching, changing menus/counts/holds or producing side effects. The pure API cannot observe another invocation's replacement state. Real owner overlap tests are required; passing pure stale-token tests alone does not prove concurrent loader safety.
 
 ## Activation boundary

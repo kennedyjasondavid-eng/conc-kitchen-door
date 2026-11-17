@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.89';
+const DOOR_APP_VERSION = 'v31-standard.90';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -13065,7 +13065,7 @@ async function houseServingV1Promote(state,attempt,outcome,context) {
     if(!houseServingV1Exact(o,['kind','validation'])||o.kind!=='frame')return result('invalid-input');let v=o.validation;
     if(v&&v.ok===true){if(houseServingV1Exact(v,['ok','value'])&&v.value&&v.value.pointer&&v.value.frame&&v.value.pointer.frame){const p=v.value.pointer;v=await houseServingV1Validate(p,houseServingV1Wire(v.value.frame),{site:s.site,expectedPath:p.frame.path});}else v=houseServingV1Reject('invalid-input');}
     if(!v||v.ok!==true){const allowed=['invalid-material','bounds-exceeded','malformed-pointer','unsupported-protocol','seal-mismatch','mixed-frame','invalid-input','unavailable'],reason=v&&allowed.includes(v.reason)?v.reason:'invalid-input';if(ctx.source==='live'){
-      try{if(houseServingV1Exact(v.observation,['pointer'])){const p=v.observation.pointer;if(houseServingV1Wire(p).length<=16*1024&&p&&p.flow&&p.flow.publication&&houseServingV1Pointer(p,{site:s.site,expectedPath:houseServingV1Path(p.flow.publication)}))houseServingV1ObservePointer(s,p,'live');}}catch(_){}
+      try{if(houseServingV1Exact(v.observation,['pointer'],['previousPointer'])){const pointers=Object.hasOwn(v.observation,'previousPointer')?[v.observation.previousPointer,v.observation.pointer]:[v.observation.pointer];if(pointers.every(p=>houseServingV1Wire(p).length<=16*1024&&p&&p.flow&&p.flow.publication&&houseServingV1Pointer(p,{site:s.site,expectedPath:houseServingV1Path(p.flow.publication)})))for(const p of pointers)houseServingV1ObservePointer(s,p,'live');}}catch(_){}
       s.liveHold={attempt,reason,observedAt:ctx.observedAt};}return result(reason);}
     const p=v.value.pointer,allowed=houseServingV1ObservePointer(s,p,ctx.source);
     if(!allowed){if(ctx.source==='live')s.liveHold={attempt,reason:'superseded-flow',observedAt:ctx.observedAt};return result('superseded-flow');}
@@ -13080,6 +13080,69 @@ function houseServingV1Resolve(state,service,now,options) {
   try{const s=houseServingV1JSON(state),opts=houseServingV1JSON(options);if(!houseServingV1Exact(opts,['purpose'])||!['headcount','component-demand','production-scaling'].includes(opts.purpose))return unavailable('purpose-required');if(s.liveHold)return unavailable('live-hold');if(s.needsCacheValidation)return unavailable('cache-validation-required');if(s.conflict||!s.accepted||!s.highest)return unavailable('unverified-flow');const v=s.accepted.validation;if(!v.ok||houseServingV1Identity(v.value.pointer)!==houseServingV1Identity(s.highest.pointer))return unavailable('superseded-flow');if(!Number.isFinite(now)||now<s.accepted.observedAt||now-s.accepted.observedAt>s.maxAgeMs)return unavailable('expired-flow');const found=v.value.frame.material.rotation.concat(v.value.frame.material.dated).find(x=>x.key===service);if(!found)return unavailable('service-unavailable');let counts,unit='recipients';if(opts.purpose==='headcount')counts=found.sectionCounts;else if(opts.purpose==='component-demand'){if(found.resolution.state!=='complete'||found.demand.allocations!=='known')return unavailable(found.demand.reason);counts=found.componentAllocations;}else{if(found.demand.standardPortions!=='eligible')return unavailable(found.demand.reason);counts={...found.sectionCounts,_components:found.componentAllocations};unit='standard-portions';}return {status:'valid',reason:'released-copy',counts:houseFlowCopy(counts),unit,observedAt:s.accepted.observedAt,publication:houseFlowCopy(v.value.pointer.flow.publication),inputRevision:v.value.pointer.flow.inputRevision};}catch(_){return unavailable('invalid-input');}
 }
 /* HOUSE_TESTABLE_CORE_END serving-protocol-v1 */
+/* HOUSE_TESTABLE_CORE_START serving-public-io-v1 */
+// Public receiving only. No admission, cache, private source, credential or clinical authority.
+function houseServingV1PublicIOCreate(config,capabilities) {
+  let fetchPublic,Controller,schedule,clear;
+  try{
+    function dataRecord(v,keys){if(!houseServingV1Object(v))return false;const d=Object.getOwnPropertyDescriptors(v),names=Reflect.ownKeys(d);return names.length===keys.length&&names.every(k=>typeof k==='string'&&keys.includes(k)&&d[k].enumerable&&Object.hasOwn(d[k],'value'));}
+    if(!dataRecord(config,['site'])||config.site!=='rexdale'||!dataRecord(capabilities,['fetch','AbortController','setTimeout','clearTimeout'])||!Object.values(capabilities).every(v=>typeof v==='function'))return{ok:false,reason:'invalid-input'};
+    fetchPublic=capabilities.fetch;Controller=capabilities.AbortController;schedule=capabilities.setTimeout;clear=capabilities.clearTimeout;
+  }catch(_){return{ok:false,reason:'invalid-input'};}
+  const sitesURL='https://kennedyjasondavid-eng.github.io/conc-kitchen-house/sites.json',base='https://kennedyjasondavid-eng.github.io/conc-kitchen-door/',pointerURL=base+'protocol-v1/publication.json';
+  function error(reason){throw{publicIOReason:reason};}
+  function run(released){
+    return new Promise(resolve=>{
+      let controller,timer,settled=false,reader=null,responseBody=null,firstPointer=null,seenAuthority=false;
+      function cancel(body){try{const p=body&&typeof body.cancel==='function'&&body.cancel('public-receiving-stopped');if(p&&typeof p.catch==='function')p.catch(()=>{});}catch(_){} }
+      function cleanup(abort){if(timer!==undefined)try{clear(timer);}catch(_){}if(abort){try{controller&&controller.abort();}catch(_){}cancel(reader||responseBody);}if(reader)try{reader.releaseLock();}catch(_){}reader=null;responseBody=null;}
+      function failure(reason){
+        if(!released)return{ok:false,reason};
+        if(!firstPointer&&!seenAuthority&&['network','timeout','http-unavailable'].includes(reason))return{kind:'fetch-unavailable',reason};
+        const known=['invalid-material','bounds-exceeded','malformed-pointer','unsupported-protocol','seal-mismatch','mixed-frame','invalid-input','unavailable'];
+        const validation={ok:false,reason:known.includes(reason)?reason:'unavailable'};if(firstPointer)validation.observation={pointer:houseFlowCopy(firstPointer)};return{kind:'frame',validation};
+      }
+      function finish(result,abort){if(settled)return;settled=true;cleanup(abort);resolve(result);}
+      function active(){if(settled)error('unavailable');}
+      async function request(url,cap){
+        active();let response;
+        try{response=await fetchPublic(url,{method:'GET',headers:{Accept:'application/json'},credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',mode:'cors',redirect:'error',signal:controller.signal});}catch(_){active();error('network');}
+        if(settled){cancel(response&&response.body);error('unavailable');}
+        responseBody=response&&response.body;
+        if(!response||response.url!==url||response.redirected!==false||!['basic','cors'].includes(response.type)||!Number.isInteger(response.status)||response.status<100||response.status>599||response.status>=300&&response.status<400){seenAuthority=true;error('invalid-response');}
+        if(response.status!==200)error('http-unavailable');
+        seenAuthority=true;
+        if(!responseBody||typeof responseBody.getReader!=='function')error('invalid-response');
+        // Content-Length is only a transport hint; counted decoded chunks remain authoritative.
+        try{const encoding=response.headers&&response.headers.get('content-encoding'),length=response.headers&&response.headers.get('content-length');if((!encoding||encoding==='identity')&&length!==null&&length!==undefined&&/^\d+$/.test(length)&&Number.isSafeInteger(Number(length))&&Number(length)>cap)error('bounds-exceeded');}catch(e){if(e&&e.publicIOReason)throw e;error('invalid-response');}
+        let localReader;try{localReader=responseBody.getReader();reader=localReader;}catch(_){error('invalid-response');}
+        const chunks=[];let total=0,complete=false;
+        try{
+          for(;;){active();let part;try{part=await localReader.read();}catch(_){error('invalid-response');}active();if(!part||typeof part.done!=='boolean')error('invalid-response');if(part.done)break;if(!(part.value instanceof Uint8Array))error('invalid-response');if(part.value.byteLength>cap-total)error('bounds-exceeded');total+=part.value.byteLength;chunks.push(new Uint8Array(part.value));}
+          const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}complete=true;return bytes;
+        }finally{if(!settled){if(!complete)cancel(localReader);try{localReader.releaseLock();}catch(_){}reader=null;responseBody=null;}}
+      }
+      function json(bytes){try{return houseServingV1JSON(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)));}catch(_){error('invalid-json');}}
+      function strictPointer(bytes){let p;try{p=json(bytes);}catch(_){error('malformed-pointer');}if(p&&typeof p.protocol==='string'&&p.protocol!=='door-serving-v1')error('unsupported-protocol');if(!p||!p.flow||!p.flow.publication||houseServingV1Wire(p).length>16*1024||!houseServingV1Pointer(p,{site:'rexdale',expectedPath:houseServingV1Path(p.flow.publication)}))error('malformed-pointer');return p;}
+      try{controller=new Controller();timer=schedule(()=>finish(failure('timeout'),true),15000);}catch(_){finish(failure('invalid-response'),true);return;}
+      (async()=>{
+        try{
+          if(!released){const value=json(await request(sitesURL,256*1024));active();if(!houseServingV1Object(value)||!houseServingV1Object(value._meta)||value._meta.schemaVersion!==1||!Array.isArray(value.sites)||!value.sites.every(houseServingV1Object))error('unsupported-sites');finish({ok:true,value},false);return;}
+          firstPointer=strictPointer(await request(pointerURL,16*1024));active();
+          const frameBytes=await request(base+firstPointer.frame.path,8*1024*1024);active();
+          const validation=await houseServingV1Validate(firstPointer,frameBytes,{site:'rexdale',expectedPath:firstPointer.frame.path});active();
+          if(!validation.ok){finish({kind:'frame',validation},true);return;}
+          const second=strictPointer(await request(pointerURL,16*1024));active();
+          if(houseFlowCanonical(firstPointer)!==houseFlowCanonical(second)){finish({kind:'frame',validation:{ok:false,reason:'mixed-frame',observation:{previousPointer:houseFlowCopy(firstPointer),pointer:second}}},true);return;}
+          finish({kind:'frame',validation},false);
+        }catch(e){if(settled)return;const allowed=['invalid-input','network','timeout','http-unavailable','invalid-response','bounds-exceeded','invalid-json','unsupported-sites','malformed-pointer','unsupported-protocol'];finish(failure(e&&allowed.includes(e.publicIOReason)?e.publicIOReason:'invalid-response'),true);}
+      })().catch(()=>{if(!settled)finish(failure('invalid-response'),true);});
+    });
+  }
+  return{ok:true,io:{fetchSites:function(){if(arguments.length)return Promise.resolve({ok:false,reason:'invalid-input'});return run(false);},fetchReleased:function(){if(arguments.length)return Promise.resolve({kind:'frame',validation:{ok:false,reason:'invalid-input'}});return run(true);}}};
+}
+/* HOUSE_TESTABLE_CORE_END serving-public-io-v1 */
+
 
 // F4 switched on (v31-standard.62, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
 // read receipts (estimates past 7 days or once superseded). The writer cutover is the F1 reconnect of 2026-11-06/07 (R2;
