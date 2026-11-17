@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.82';
+const DOOR_APP_VERSION = 'v31-standard.83';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11653,6 +11653,194 @@ let _ghHydrated = false;
 let _ghForceOverwrite = false;
 // door_rules.json (D2a): one small editor file; a take-back may shrink it, and it must never hold the whole publish.
 const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'special_meals.json', 'meal_swaps_reverted.json', 'special_meals_removed.json', 'recent_log.json', 'door_rules.json']);
+/* DOOR_TESTABLE_CORE_START private-generation-v1 */
+// Inactive foundation. No storage, transport, hydration or production callers.
+// Editing acceptance and serving release are separate authorities.
+function doorPrivateV1Object(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+function doorPrivateV1Text(value) { return typeof value === 'string' && value.length > 0 && value.length <= 2000; }
+function doorPrivateV1Id(value) { return typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value); }
+function doorPrivateV1Commit(value) { return typeof value === 'string' && /^[a-f0-9]{40}$/.test(value); }
+function doorPrivateV1Hash(value) { return typeof value === 'string' && /^sha256:[a-f0-9]{64}$/.test(value); }
+function doorPrivateV1Count(value) { return Number.isSafeInteger(value) && value >= 0; }
+function doorPrivateV1Reject(code) { return {ok:false,code}; }
+function doorPrivateV1Accepted(value) {
+  return doorPrivateV1Object(value) && doorPrivateV1Id(value.generationId) && doorPrivateV1Commit(value.privateCommit);
+}
+function doorPrivateV1Ref(value) {
+  return doorPrivateV1Accepted(value) && value.schema === 1 && doorPrivateV1Id(value.operationId) && doorPrivateV1Hash(value.publicInputWitness);
+}
+function doorPrivateV1CopyAccepted(value) { return {generationId:value.generationId,privateCommit:value.privateCommit}; }
+function doorPrivateV1CopyRef(value) {
+  return {schema:1,generationId:value.generationId,privateCommit:value.privateCommit,operationId:value.operationId,publicInputWitness:value.publicInputWitness};
+}
+function doorPrivateV1SameAccepted(a,b) {
+  return doorPrivateV1Accepted(a) && doorPrivateV1Accepted(b) && a.generationId === b.generationId && a.privateCommit === b.privateCommit;
+}
+function doorPrivateV1SameRef(a,b) {
+  return doorPrivateV1Ref(a) && doorPrivateV1Ref(b) && doorPrivateV1SameAccepted(a,b) && a.operationId === b.operationId && a.publicInputWitness === b.publicInputWitness;
+}
+function doorPrivateV1NumberMap(value) {
+  if (!doorPrivateV1Object(value)) return null;
+  const entries = Object.entries(value);
+  if (!entries.every(([key,n]) => doorPrivateV1Text(key) && !['__proto__','constructor','prototype'].includes(key) && doorPrivateV1Count(n))) return null;
+  return Object.fromEntries(entries);
+}
+function doorPrivateV1Resolution(value) {
+  if (!doorPrivateV1Object(value) || value.schema !== 1 || !['complete','incomplete','unavailable'].includes(value.state) ||
+      typeof value.quantitiesComplete !== 'boolean' || !['not-required','named','missing'].includes(value.separateDefinitionState) ||
+      !['definitionRevision','catalogueRevision','inputRevision'].every(k => doorPrivateV1Text(value[k]))) return null;
+  const keys = ['expectedResidents','ordinaryResolved','ordinaryUnresolved','separateResidents'];
+  const unknown = keys.every(k => value[k] === null);
+  if (unknown) {
+    if (value.state !== 'unavailable' || value.quantitiesComplete) return null;
+  } else {
+    if (!keys.every(k => doorPrivateV1Count(value[k])) ||
+        value.ordinaryResolved + value.ordinaryUnresolved + value.separateResidents !== value.expectedResidents ||
+        (value.separateResidents === 0 && value.separateDefinitionState !== 'not-required') ||
+        (value.separateResidents > 0 && value.separateDefinitionState === 'not-required')) return null;
+    if (value.state === 'complete' && (value.ordinaryUnresolved !== 0 || value.separateDefinitionState === 'missing')) return null;
+  }
+  if (value.state !== 'complete' && value.quantitiesComplete) return null;
+  return {schema:1,state:value.state,expectedResidents:value.expectedResidents,ordinaryResolved:value.ordinaryResolved,
+    ordinaryUnresolved:value.ordinaryUnresolved,separateResidents:value.separateResidents,separateDefinitionState:value.separateDefinitionState,
+    quantitiesComplete:value.quantitiesComplete,definitionRevision:value.definitionRevision,catalogueRevision:value.catalogueRevision,inputRevision:value.inputRevision};
+}
+function doorPrivateV1ProjectPublic(snapshot) {
+  if (!doorPrivateV1Object(snapshot) || snapshot.schema !== 1 || !doorPrivateV1Ref(snapshot.generationRef) ||
+      !doorPrivateV1Object(snapshot.registrySummary) || !Array.isArray(snapshot.services)) return doorPrivateV1Reject('public-shape');
+  const summary = snapshot.registrySummary;
+  if (!['total','active','anaphylactic'].every(k => doorPrivateV1Count(summary[k])) || summary.active > summary.total || summary.anaphylactic > summary.active) return doorPrivateV1Reject('public-summary');
+  const services = [], seen = new Set();
+  for (const service of snapshot.services) {
+    if (!doorPrivateV1Object(service) || !doorPrivateV1Text(service.key) || seen.has(service.key) ||
+        !doorPrivateV1Object(service.menu) || !['regular','vegan','halal'].every(k => typeof service.menu[k] === 'string' && service.menu[k].length <= 2000) ||
+        !Array.isArray(service.components)) return doorPrivateV1Reject('public-service');
+    seen.add(service.key);
+    const resolution = doorPrivateV1Resolution(service.resolution), sectionCounts = doorPrivateV1NumberMap(service.sectionCounts);
+    if (!resolution || !sectionCounts) return doorPrivateV1Reject('public-resolution');
+    const components = [];
+    for (const component of service.components) {
+      if (!doorPrivateV1Object(component) || !['recipeId','name','role'].every(k => doorPrivateV1Text(component[k]))) return doorPrivateV1Reject('public-component');
+      components.push({recipeId:component.recipeId,name:component.name,role:component.role});
+    }
+    const projected = {key:service.key,menu:{regular:service.menu.regular,vegan:service.menu.vegan,halal:service.menu.halal},components,sectionCounts,resolution};
+    if (resolution.state === 'complete') {
+      const allocations = doorPrivateV1NumberMap(service.componentAllocations);
+      if (!allocations) return doorPrivateV1Reject('public-allocations');
+      if (resolution.ordinaryResolved > 0 && components.length > 0 && Object.keys(allocations).length === 0) return doorPrivateV1Reject('public-empty-demand');
+      projected.componentAllocations = allocations;
+    }
+    services.push(projected);
+  }
+  return {ok:true,value:{schema:1,generationRef:doorPrivateV1CopyRef(snapshot.generationRef),
+    registrySummary:{total:summary.total,active:summary.active,anaphylactic:summary.anaphylactic},services}};
+}
+async function doorPrivateV1ValidatePackage(pin,bundle,config) {
+  // Capture one immutable JSON transport frame before the first digest await.
+  // Caller edits during verification cannot retarget the receipt or file basis.
+  try {
+    pin = JSON.parse(JSON.stringify(pin));
+    bundle = JSON.parse(JSON.stringify(bundle));
+    config = JSON.parse(JSON.stringify(config));
+  } catch (_) { return doorPrivateV1Reject('package-json'); }
+  if (!doorPrivateV1Ref(pin) || !doorPrivateV1Object(bundle) || !doorPrivateV1Object(config) ||
+      !Number.isSafeInteger(config.repositoryId) || config.repositoryId <= 0 || !doorPrivateV1Hash(config.publicProjectionBasisDigest)) return doorPrivateV1Reject('package-config');
+  const repo = bundle.repository, manifest = bundle.manifest, accepted = bundle.accepted;
+  if (!doorPrivateV1Object(repo) || repo.id !== config.repositoryId || repo.visibility !== 'private' || bundle.commit !== pin.privateCommit) return doorPrivateV1Reject('package-authority');
+  if (!doorPrivateV1Object(manifest) || manifest.schema !== 1 || manifest.intent !== 'accepted-edit' ||
+      manifest.generationId !== pin.generationId || manifest.operationId !== pin.operationId ||
+      manifest.publicInputWitness !== pin.publicInputWitness || manifest.publicProjectionBasisDigest !== config.publicProjectionBasisDigest ||
+      !(manifest.parentAcceptedGenerationId === null || doorPrivateV1Id(manifest.parentAcceptedGenerationId)) ||
+      manifest.parentAcceptedGenerationId === manifest.generationId ||
+      typeof manifest.createdAt !== 'string' || !Number.isFinite(Date.parse(manifest.createdAt)) ||
+      !doorPrivateV1Object(accepted) || accepted.generationId !== pin.generationId || accepted.operationId !== pin.operationId) return doorPrivateV1Reject('package-manifest');
+  const paths = ['registry.json','menu.json'], files = bundle.files, descriptors = manifest.privateFiles;
+  if (!doorPrivateV1Object(files) || Object.keys(files).length !== paths.length || !paths.every(k => Object.hasOwn(files,k) && typeof files[k] === 'string') ||
+      !Array.isArray(descriptors) || descriptors.length !== paths.length) return doorPrivateV1Reject('package-files');
+  const seen = new Set();
+  for (const file of descriptors) {
+    if (!doorPrivateV1Object(file) || !paths.includes(file.path) || seen.has(file.path) || !doorPrivateV1Hash(file.sha256)) return doorPrivateV1Reject('package-path');
+    seen.add(file.path);
+    try {
+      const bytes = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(files[file.path]));
+      const digest = 'sha256:' + Array.from(new Uint8Array(bytes),n => n.toString(16).padStart(2,'0')).join('');
+      if (digest !== file.sha256) return doorPrivateV1Reject('package-digest');
+    } catch (_) { return doorPrivateV1Reject('package-crypto-unavailable'); }
+  }
+  return {ok:true,value:{generationId:pin.generationId,privateCommit:pin.privateCommit,operationId:pin.operationId}};
+}
+function doorPrivateV1Operation(value) {
+  return doorPrivateV1Object(value) && doorPrivateV1Id(value.operationId) && doorPrivateV1Id(value.generationId) &&
+    doorPrivateV1Commit(value.privateCommit) && doorPrivateV1Hash(value.publicInputWitness) &&
+    doorPrivateV1Accepted(value.parentAccepted) && doorPrivateV1Ref(value.expectedServing) &&
+    value.generationId !== value.parentAccepted.generationId && value.privateCommit !== value.parentAccepted.privateCommit;
+}
+function doorPrivateV1CopyOperation(value) {
+  const result = {operationId:value.operationId,generationId:value.generationId,privateCommit:value.privateCommit,publicInputWitness:value.publicInputWitness,
+    parentAccepted:doorPrivateV1CopyAccepted(value.parentAccepted),expectedServing:doorPrivateV1CopyRef(value.expectedServing)};
+  if (value.phase !== undefined) result.phase = value.phase;
+  if (typeof value.latestInputReleased === 'boolean') result.latestInputReleased = value.latestInputReleased;
+  if (typeof value.needsRebase === 'boolean') result.needsRebase = value.needsRebase;
+  return result;
+}
+function doorPrivateV1Target(operation) {
+  return {schema:1,generationId:operation.generationId,privateCommit:operation.privateCommit,operationId:operation.operationId,publicInputWitness:operation.publicInputWitness};
+}
+function doorPrivateV1Transition(state,event) {
+  const phases = ['prepared','prepared-only','accepted-release-pending','public-prepared','released','released-stale'];
+  if (!doorPrivateV1Object(state) || state.schema !== 1 || !doorPrivateV1Accepted(state.accepted) || !doorPrivateV1Ref(state.serving) ||
+      !(state.operation === null || (doorPrivateV1Operation(state.operation) && phases.includes(state.operation.phase))) || !doorPrivateV1Object(event)) return doorPrivateV1Reject('state-shape');
+  const next = {schema:1,accepted:doorPrivateV1CopyAccepted(state.accepted),serving:doorPrivateV1CopyRef(state.serving),operation:state.operation && doorPrivateV1CopyOperation(state.operation)};
+  if (event.type === 'prepare') {
+    const operation = event.operation;
+    if (!doorPrivateV1Operation(operation) || (next.operation && !['released','released-stale'].includes(next.operation.phase)) ||
+        !doorPrivateV1SameAccepted(operation.parentAccepted,state.accepted) || !doorPrivateV1SameRef(operation.expectedServing,state.serving)) return doorPrivateV1Reject('prepare-parent');
+    next.operation = doorPrivateV1CopyOperation(operation); next.operation.phase = 'prepared';
+    delete next.operation.latestInputReleased; delete next.operation.needsRebase;
+    return {ok:true,state:next};
+  }
+  const operation = next.operation;
+  if (!operation || event.operationId !== operation.operationId) return doorPrivateV1Reject('operation-mismatch');
+  if (event.type === 'private-prepared') {
+    if (!['prepared','prepared-only'].includes(operation.phase) || !doorPrivateV1SameAccepted(next.accepted,operation.parentAccepted)) return doorPrivateV1Reject('private-phase');
+    operation.phase = 'prepared-only';
+  } else if (event.type === 'private-accepted') {
+    if (!['prepared','prepared-only'].includes(operation.phase) || !doorPrivateV1SameAccepted(next.accepted,operation.parentAccepted)) return doorPrivateV1Reject('accepted-parent');
+    next.accepted = doorPrivateV1CopyAccepted(operation); operation.phase = 'accepted-release-pending';
+  } else if (event.type === 'public-prepare') {
+    if (!['accepted-release-pending','public-prepared'].includes(operation.phase) || !doorPrivateV1SameAccepted(next.accepted,operation) ||
+        !doorPrivateV1SameRef(next.serving,operation.expectedServing)) return doorPrivateV1Reject('public-parent');
+    operation.phase = 'public-prepared';
+    return {ok:true,state:next,effect:'write-public'};
+  } else if (event.type === 'public-committed') {
+    const target = doorPrivateV1Target(operation);
+    if (!['accepted-release-pending','public-prepared','released','released-stale'].includes(operation.phase) ||
+        (!doorPrivateV1SameRef(next.serving,operation.expectedServing) && !doorPrivateV1SameRef(next.serving,target))) return doorPrivateV1Reject('public-commit-parent');
+    next.serving = target;
+    operation.latestInputReleased = doorPrivateV1SameAccepted(next.accepted,operation);
+    operation.needsRebase = !operation.latestInputReleased;
+    operation.phase = operation.latestInputReleased ? 'released' : 'released-stale';
+  } else return doorPrivateV1Reject('event-unsupported');
+  return {ok:true,state:next};
+}
+function doorPrivateV1Recover(operation,observations) {
+  if (!doorPrivateV1Operation(operation) || !doorPrivateV1Object(observations) || !doorPrivateV1Accepted(observations.accepted) ||
+      !doorPrivateV1Ref(observations.serving) || typeof observations.privateGenerationVerified !== 'boolean') return doorPrivateV1Reject('recovery-unavailable');
+  const acceptedTarget = doorPrivateV1SameAccepted(observations.accepted,operation);
+  const servingTarget = doorPrivateV1SameRef(observations.serving,doorPrivateV1Target(operation));
+  const result = (action,latestInputReleased=false,needsRebase=false) => ({ok:true,action,latestInputReleased,needsRebase});
+  if (servingTarget) return observations.privateGenerationVerified ? result('ack-released',acceptedTarget,!acceptedTarget) : result('review');
+  if (!doorPrivateV1SameRef(observations.serving,operation.expectedServing)) return result('superseded',false,true);
+  if (acceptedTarget) return observations.privateGenerationVerified ? result('resume-public') : result('review');
+  if (!doorPrivateV1SameAccepted(observations.accepted,operation.parentAccepted)) return result('superseded',false,true);
+  return result(observations.privateGenerationVerified ? 'retry-private-acceptance' : 'retry-private');
+}
+function doorPrivateV1ServingEligibility(accepted,serving) {
+  if (!doorPrivateV1Accepted(accepted) || !doorPrivateV1Ref(serving)) return {eligible:false,reason:'unavailable'};
+  return doorPrivateV1SameAccepted(accepted,serving) ? {eligible:true,reason:'current'} : {eligible:false,reason:'accepted-newer'};
+}
+/* DOOR_TESTABLE_CORE_END private-generation-v1 */
+
 /* DOOR_TESTABLE_CORE_START publish-transaction */
 // F1: one immutable read/build/write boundary, using HOUSE seams 1 and 5.
 // This is an extension of the existing publish queue, not a second outbox.
