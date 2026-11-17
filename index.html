@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.83';
+const DOOR_APP_VERSION = 'v31-standard.84';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -12397,8 +12397,9 @@ function doorPublishCapture(revision) {
     uploaded:useRemoteMenu ? remoteMenu.menu : uploaded,
     uploadedAt:useRemoteMenu ? remoteMenuAt : uploadedAt,
     overlay:doorMergeMenuOverlayWithCloud(local('concMenuBase',{}),cloud['menu_overlay.json']).merged,
-    swaps:doorMergeSwapStores(local('concMealSwaps',{}),cloud['meal_swaps.json'],reverted,today),
-    specials:doorMergeSwapStores(local('concSpecialMeals',{}),cloud['special_meals.json'],removed,''),
+    // Pork is never halal-certified in a published swap or special meal (A2-P1-1, 2026-11-17).
+    swaps:(typeof doorDatedStorePorkNeverHalal === 'function' ? doorDatedStorePorkNeverHalal : (x => x))(doorMergeSwapStores(local('concMealSwaps',{}),cloud['meal_swaps.json'],reverted,today)),
+    specials:(typeof doorDatedStorePorkNeverHalal === 'function' ? doorDatedStorePorkNeverHalal : (x => x))(doorMergeSwapStores(local('concSpecialMeals',{}),cloud['special_meals.json'],removed,'')),
     reverted, removed,
     custom:custom.concat(cloud['custom_tag_rules.json'].filter(r => !patterns.has(r.pattern))),
     learned:Object.assign({},local('concLearnedNR',{}),cloud['learned_nr.json']),
@@ -14726,10 +14727,67 @@ const DOOR_DISH_PART_EMPTY = Object.assign({
 function doorEmptyDishParts(day, period) {
   Object.keys(DOOR_DISH_PART_EMPTY).forEach(k => { const v = DOOR_DISH_PART_EMPTY[k]; day[period + k] = Array.isArray(v) ? [] : v; });
 }
+// Pork is never halal-certified: the one owner of that rule for a set of ticks (2026-11-17, EXPO walkthrough A2-P1-1).
+// EXPO plans a meal's halal plate only when the meal is not marked halal-certified, so a pork meal marked so leaves the
+// halal residents with no dish on EXPO's board and HUB. The menu export cleared the mark (buildMenuJSON), but nothing
+// else did: Wk4 FRI lunch (Pork Tacos Al Pastor) kept a stale mark in the overlay from the Nov 11 week sheet, which
+// replaced a beef lasagna, and Swap Slots copied the menu as read into meal_swaps.json with it. Now the menu as read,
+// every tick writer, both halves of a swap and every stored swap or special meal pass through here. Never mutates:
+// returns the ticks as they are, or a copy with the mark off.
+function doorPorkNeverHalal(flags) {
+  return flags && typeof flags === 'object' && flags.hasPork && flags.halalCertifiedMeat
+    ? Object.assign({}, flags, { halalCertifiedMeat: false }) : flags;
+}
+// A swap or special meal entry: its ticks (_flagsRaw) and the whole meal it carries (_meal._flags). A copy when changed.
+function doorDatedEntryPorkNeverHalal(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry;
+  const raw = doorPorkNeverHalal(entry._flagsRaw);
+  const meal = entry._meal && typeof entry._meal === 'object' && !Array.isArray(entry._meal) ? entry._meal : null;
+  const mealFlags = meal ? doorPorkNeverHalal(meal._flags) : undefined;
+  if (raw === entry._flagsRaw && (!meal || mealFlags === meal._flags)) return entry;
+  const out = Object.assign({}, entry);
+  if (raw !== entry._flagsRaw) out._flagsRaw = raw;
+  if (meal && mealFlags !== meal._flags) out._meal = Object.assign({}, meal, { _flags: mealFlags });
+  return out;
+}
+// A whole store of swaps or special meals (date-period key to entry). The same object when nothing changed.
+function doorDatedStorePorkNeverHalal(store) {
+  if (!store || typeof store !== 'object' || Array.isArray(store)) return store;
+  let out = null;
+  Object.keys(store).forEach(k => {
+    const fixed = doorDatedEntryPorkNeverHalal(store[k]);
+    if (fixed !== store[k]) { if (!out) out = Object.assign({}, store); out[k] = fixed; }
+  });
+  return out || store;
+}
+// The menu as read: every meal of every day. Days are copied, never mutated (the base may be MENU_DATA or app state).
+function doorMenuPorkNeverHalal(menu) {
+  if (!menu || typeof menu !== 'object') return menu;
+  let out = null;
+  Object.keys(menu).forEach(wk => {
+    const days = menu[wk];
+    if (wk === '_meta' || !days || typeof days !== 'object') return;
+    Object.keys(days).forEach(dayName => {
+      const d = days[dayName];
+      if (!d || typeof d !== 'object') return;
+      ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+        const flags = d[meal + '_flags'];
+        const fixed = doorPorkNeverHalal(flags);
+        if (fixed === flags) return;
+        if (!out) out = Object.assign({}, menu);
+        if (out[wk] === menu[wk]) out[wk] = Object.assign({}, menu[wk]);
+        if (out[wk][dayName] === d) out[wk][dayName] = Object.assign({}, d);
+        out[wk][dayName][meal + '_flags'] = fixed;
+      });
+    });
+  });
+  return out || menu;
+}
 // A meal's allergen line is derived from its ticks: the menu export rebuilds it from them (buildMenuJSON). Every overlay
 // writer of a meal's ticks writes the line with them, so the overlay never keeps an older copy (2026-10-19: one older
 // copy stopped every publish, resident list included, at the publish check's overlay-menu-conflict).
 function doorSetMealFlags(day, period, flags) {
+  flags = typeof doorPorkNeverHalal === 'function' ? doorPorkNeverHalal(flags) : flags;
   day[period + '_flags'] = flags;
   day['allergens_' + period] = flagsToMenuAllergens(flags);
 }
@@ -15649,7 +15707,10 @@ function getMenuData() {
   const base = uploaded || MENU_DATA;
   const overlay = publishOverlay || loadMenuBaseOverlay();
   const merged = mergeDoorMenuDataWithOverlay(base, overlay);
-  return (typeof doorApplyTextDetectedFlags === 'function') ? doorApplyTextDetectedFlags(merged) : merged;
+  const read = (typeof doorApplyTextDetectedFlags === 'function') ? doorApplyTextDetectedFlags(merged) : merged;
+  // Pork is never halal-certified on the menu as read (A2-P1-1, 2026-11-17), not only on export: Swap Slots, plating and
+  // routing read this view.
+  return (typeof doorMenuPorkNeverHalal === 'function') ? doorMenuPorkNeverHalal(read) : read;
 }
 
 // Given a (week, day, period) rotation slot, return the next calendar Date
@@ -15689,7 +15750,7 @@ function doorDateKey(date) {
 // carried none of them. Older records' Crustaceans / Molluscs / Wheat boxes set keys nothing reads; they count as
 // Shellfish and Gluten. Kept in step with SM_ALLERGENS by its gate. (getMealForDate's resolveFlags until 2026-10-18.)
 function doorDatedMealFlags(entry) {
-  if (entry._flagsRaw) return {...entry._flagsRaw};
+  if (entry._flagsRaw) return typeof doorPorkNeverHalal === 'function' ? {...doorPorkNeverHalal(entry._flagsRaw)} : {...entry._flagsRaw};
   const f = {};
   const keys = ['hasDairy','hasGluten','hasPork','hasBeef','hasFish','hasShellfish','hasEgg','hasPeanuts','hasTreeNuts',
     'hasSoy','hasSesame','hasMustard','hasSulphites','isSpicy','isCarb'];
@@ -17099,14 +17160,19 @@ function executeSlotSwap(a, b) {
     const wkData = getMenuData()[String(s.week)];
     const dayData = wkData[s.day] || {};
     const existing = mealSwaps[key];
+    // Each half carries its own meal and its own ticks, with pork never halal-certified (A2-P1-1, 2026-11-17): the Nov 17
+    // swap of Wk4 THU and FRI lunch carried the pork tacos marked halal-certified from a stale overlay mark.
+    const pnh = typeof doorPorkNeverHalal === 'function' ? doorPorkNeverHalal : (f => f);
+    const meal = existing ? (existing.meal ? doorCopyValue(existing.meal) : null) : doorMealCopy(dayData, s.period);
+    if (meal && meal._flags) meal._flags = pnh(meal._flags);
     return {
       key,
       name: existing ? existing.name : (dayData[s.period] || ''),
       veg: existing ? (existing.veg || '') : (dayData[s.period+'_veg'] || ''),
-      flags: existing ? {...existing.flags} : {...(dayData[s.period+'_flags'] || {})},
+      flags: pnh(existing ? {...existing.flags} : {...(dayData[s.period+'_flags'] || {})}),
       // The whole meal moves (2026-11-04): its halal line, plates, parts and slots with it (doorSwapWholeMeal). A typed
       // swap already on the slot has no whole meal, so only its words and ticks move, as before.
-      meal: existing ? (existing.meal ? doorCopyValue(existing.meal) : null) : doorMealCopy(dayData, s.period)
+      meal
     };
   }
 
@@ -23056,9 +23122,10 @@ function updateSmSlotSummary() {
 
 function loadSpecialMeals() {
   if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) return _doorPublishInputs.specials;
-  try { return JSON.parse(localStorage.getItem('concSpecialMeals') || '{}'); } catch(e) { return {}; }
+  try { return (typeof doorDatedStorePorkNeverHalal === 'function' ? doorDatedStorePorkNeverHalal : (x => x))(JSON.parse(localStorage.getItem('concSpecialMeals') || '{}')); } catch(e) { return {}; }
 }
 function saveSpecialMeals(obj, skipPush) {
+  obj = (typeof doorDatedStorePorkNeverHalal === 'function' ? doorDatedStorePorkNeverHalal : (x => x))(obj);
   localStorage.setItem('concSpecialMeals', JSON.stringify(obj));
   if (!skipPush) {
     try { PublishAuth.sidePublish('special_meals.json',JSON.stringify(obj,null,2),'Special meals',true); } catch(e) {}
@@ -23129,9 +23196,11 @@ function doorSlotSwapDates(slots, today, cycleStart) {
 // Swaps = "plan changed, serve X instead of Y." Specials = "celebration/event override."
 function loadMealSwaps() {
   if (typeof _doorPublishInputs !== 'undefined' && _doorPublishInputs) return _doorPublishInputs.swaps;
-  try { return JSON.parse(localStorage.getItem('concMealSwaps') || '{}'); } catch(e) { return {}; }
+  // A swap stored before 2026-11-17 can hold a pork meal marked halal-certified (A2-P1-1): read without the mark.
+  try { return (typeof doorDatedStorePorkNeverHalal === 'function' ? doorDatedStorePorkNeverHalal : (x => x))(JSON.parse(localStorage.getItem('concMealSwaps') || '{}')); } catch(e) { return {}; }
 }
 function saveMealSwaps(obj, skipPush) {
+  obj = (typeof doorDatedStorePorkNeverHalal === 'function' ? doorDatedStorePorkNeverHalal : (x => x))(obj);
   localStorage.setItem('concMealSwaps', JSON.stringify(obj));
   if (!skipPush) {
     try { PublishAuth.sidePublish('meal_swaps.json',JSON.stringify(obj,null,2),'Meal swaps',true); } catch(e) {}
