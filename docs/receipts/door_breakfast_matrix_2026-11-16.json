@@ -1,0 +1,43 @@
+{
+  "asOf": "2026-11-17T01:53:55.458622+00:00",
+  "doorCaptureAsOf": "11/16/2026 8:20:36 PM",
+  "manualAuthority": "User: visible tabs matching current rotation; current manual plating sheets govern intended served meals; ambiguous duplicates flagged",
+  "manualZipSha256": "61525ac82e24832d305c4a68301ab4ec448eac8c10832ed6eefc0d08db84f13f",
+  "comparisonSha256": "c7a96ac51c7237b169f5e392c647ecce9b533deb8c4c57413b222185b0780f34",
+  "captureSha256": "bd7cb16a12829c9f895da5de1b35cceb6701c07c336df40cf8b9aacc1565e022",
+  "codeBaseline": "28d7a726aa0f777d6caaa1900490f919b637067d",
+  "codex": {
+    "schemaVersion": 1,
+    "asOf": "2026-11-17T00:13:29.000Z",
+    "sources": {
+      "main": "7a1afc9d984ff56ca3f148d91195320f3819b367",
+      "sharedLibrary": "a1757a3fcd99df56c6e3f4100f03964b47f437db"
+    },
+    "sharedLibrary": {
+      "path": "library_public.json",
+      "sha256": "be0620184d07e86fad7c57a2b77afca34eeeed88167737a5daf6f28615de2677",
+      "schemaVersion": 1
+    }
+  },
+  "summary": {
+    "breakfastSlots": 28,
+    "selectedVariants": 118,
+    "activeResidents": 171,
+    "expectedResidentServices": 4788,
+    "coverageRows": 4789,
+    "extraDuplicateRows": 1,
+    "rowsWithEvidenceOrPreparationQuestions": 3567
+  },
+  "productEvidence": {
+    "state": "Example only; No Dairy substitute confirmed as needing confirmation; not a runtime food-fact record",
+    "exampleUrl": "https://www.costcobusinesscentre.ca/p/-/activia-lactose-free-yogurt-24--100-g/2001134688",
+    "exampleListedIngredients": [
+      "milk",
+      "modified corn starch",
+      "gelatin"
+    ],
+    "manufacturerUrl": "https://www.activia.com/en-ca/all-products/lactose-free/product/plain-650g/",
+    "boundary": "Other flavours/formulas differ. No actual SKU or dairy-free product selected; verify package before use."
+  },
+  "scope": "Review matrix and B0 design proof; no breakfast menu or resident data migration; inferred standard is not service compatibility approval"
+}

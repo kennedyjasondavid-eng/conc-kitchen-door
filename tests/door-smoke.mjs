@@ -1291,6 +1291,7 @@ test('plating HTML renders synced resident payload text safely', () => {
     extractOutputEncodingBlock(html),
     extractFunctionBlock(html, 'doorAssessAnaphAlternative'),
     extractFunctionBlock(html, 'doorAnaphAlternativeLine'),
+    extractFunctionBlock(html, 'doorBreakfastDefinitionGap'),
     extractFunctionBlock(html, 'buildPlatingHtml')
   ].join('\n\n'), context, { filename: 'index.html#xss-plating', timeout: 1000 });
 

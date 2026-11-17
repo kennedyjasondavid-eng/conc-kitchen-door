@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.76';
+const DOOR_APP_VERSION = 'v31-standard.77';
 const DOOR_BUILD_DATE = '2026-11-16';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -25191,6 +25191,13 @@ function doorAnaphAlternativeLine(pd) {
   return a.state === 'missing' ? 'UNRESOLVED — name the separate anaphylactic meal; do not serve the standard meal'
     : a.dish + ' — prepared separately';
 }
+// Definition integrity only: do not present the generic lunch fallback as a finished breakfast plate.
+function doorBreakfastDefinitionGap(pd) {
+  if (!pd || pd.periodLabel !== 'Breakfast') return null;
+  const groups = (pd.sections || []).filter(s => s.rule.altType === 'gf_alt' && s.residents.length);
+  if (!groups.length || (pd.ctx && typeof pd.ctx._gfAlt === 'string' && pd.ctx._gfAlt.trim())) return null;
+  return { rooms: groups.flatMap(s => s.residents.map(r => r.room)), reason: 'Gluten-free breakfast meal is not defined' };
+}
 function doorRotationServices(period, weeks) {
   const services = [];
   for (const week of (weeks || [1,2,3,4]))
@@ -25209,6 +25216,8 @@ function doorPlatingReadiness(services, projected) {
       sheets.push({service, pd});
       const a = doorAssessAnaphAlternative(pd);
       if (a.state === 'missing') issues.push({label, rooms:a.rooms, reason:'Separate anaphylactic meal is not named'});
+      const breakfastGap = doorBreakfastDefinitionGap(pd);
+      if (breakfastGap) issues.push({label, ...breakfastGap});
     } catch (e) { issues.push({label, rooms:[], reason:'Could not assess this meal'}); }
   }
   return {ready:issues.length === 0, issues, sheets};
@@ -25223,7 +25232,7 @@ function doorRequirePlatingReady(services) {
 }
 function doorPlatingReadinessHTML(readiness) {
   if (readiness.ready) return '';
-  return '<div class="alert alert-danger" role="alert"><div class="alert-body"><strong>Plating NOT READY — separate meals need naming</strong><br>' +
+  return '<div class="alert alert-danger" role="alert"><div class="alert-body"><strong>Plating NOT READY — meal definitions are unresolved</strong><br>' +
     escapeHtml(doorPlatingReadinessText(readiness)).replace(/\n/g, '<br>') +
     '<br>Follow the current manual service process and obtain a supervisor-confirmed separate meal for affected residents. A blank manual alternative does not resolve this gap. Resident changes can still be saved and sent.</div></div>';
 }
@@ -25236,6 +25245,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   const pd = providedPd || computePlatingData(period, weekNum, dayName);
   if (!pd) return null;
   if (doorAssessAnaphAlternative(pd).state === 'missing') throw new Error('Plating NOT READY — separate anaphylactic meal is not named.');
+  if (doorBreakfastDefinitionGap(pd)) throw new Error('Plating NOT READY — gluten-free breakfast meal is not defined.');
   const { dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
           regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
@@ -25951,7 +25961,9 @@ function buildPlatingHtml(pd, isTest) {
           conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
 
   const assessment = doorAssessAnaphAlternative(pd);
+  const breakfastGap = doorBreakfastDefinitionGap(pd);
   let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
+  if (breakfastGap) h += '<tr><td colspan="3" class="ps-banner" style="border:3px solid #991b1b;color:#991b1b!important;background:#fff!important;font-weight:800;">DRAFT / NOT FOR SERVICE — ' + escapeHtml(breakfastGap.reason) + '. Rooms ' + escapeHtml(breakfastGap.rooms.join(', ')) + '.</td></tr>';
   if (assessment.state === 'missing') h += '<tr><td colspan="3" class="ps-banner" style="border:3px solid #991b1b;color:#991b1b!important;background:#fff!important;font-weight:800;">DRAFT / NOT FOR SERVICE — Separate anaphylactic meal not named. Rooms ' + escapeHtml(assessment.rooms.join(', ')) + '. ' + escapeHtml(pd.dayLabel + ' ' + pd.periodLabel + ': ' + pd.mealName) + '</td></tr>';
 
   if (conflictRooms.size > 0) {
@@ -25994,7 +26006,7 @@ function buildPlatingHtml(pd, isTest) {
     if (!res.length) return;
     restCount += res.length;
     sectNum++;
-    const altMeal = getAltMeal(s.rule.altType, ctx);
+    const altMeal = breakfastGap && s.rule.altType === 'gf_alt' ? 'UNRESOLVED — specify the gluten-free breakfast' : getAltMeal(s.rule.altType, ctx);
     const sectionAllergenStr = doorSectionAllergenStr(s, pd);
     const altMealLine = sectionAllergenStr
       ? altMeal + '  |  CONTAINS: ' + sectionAllergenStr

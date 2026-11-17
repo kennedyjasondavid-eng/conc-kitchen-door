@@ -25,8 +25,9 @@ function box(names = []) {
     XLSX:{utils:{book_new:()=>{const b={SheetNames:[]}; books.push(b); return b;},book_append_sheet:(b,w,n)=>b.SheetNames.push(n)},writeFile:()=>writes.push('WRITE')},
     buildDaySheet:()=>({ws:{},tabName:'Monday'}), writes, books};
   vm.createContext(ctx);
-  vm.runInContext(['doorAssessAnaphAlternative','doorAnaphAlternativeLine','doorRotationServices','doorPlatingReadiness',
-    'doorPlatingReadinessText','doorRequirePlatingReady','doorReportPlatingError',...names].map(fn).join('\n'),ctx);
+  vm.runInContext(['doorAssessAnaphAlternative','doorAnaphAlternativeLine','doorBreakfastDefinitionGap','doorRotationServices','doorPlatingReadiness',
+    'doorPlatingReadinessText','doorRequirePlatingReady','doorReportPlatingError',...names]
+    .filter(n=>n!=='doorBreakfastDefinitionGap'||html.includes('function doorBreakfastDefinitionGap(')).map(fn).join('\n'),ctx);
   return ctx;
 }
 test('missing/whitespace names remain unresolved with exact affected rooms; standard dish never substituted',()=>{
@@ -94,6 +95,27 @@ test('projected assessment passes explicit registry/list rather than temporarily
   c.doorPlatingReadiness([{period:'dinner',week:1,day:'MONDAY'}],projected);
   assert.equal(seen[0][0],projected.residents); assert.equal(seen[0][1],projected.anaphRooms);
   assert.deepEqual(c.REGISTRY_LIST,[]);
+});
+
+function breakfast(alt='') {
+  return {...fixture(),periodLabel:'Breakfast',mealName:'Pancakes, fruit and yoghurt',anaphSect:[],conflictRooms:new Set(),
+    ctx:{_gfAlt:alt},sections:[{rule:{key:'gf',label:'Gluten Free',altType:'gf_alt'},residents:[{room:'803',tags:['GF'],rawRestriction:'GF'}]}]};
+}
+test('blank required GF breakfast definition is unresolved without changing dinner or inactive GF cases',()=>{
+  const c=box();
+  for(const alt of ['', '  ']) assert.match(c.doorBreakfastDefinitionGap(breakfast(alt)).reason,/breakfast meal is not defined/);
+  assert.equal(c.doorBreakfastDefinitionGap(breakfast('GF pancakes, yoghurt and fruit')),null);
+  assert.equal(c.doorBreakfastDefinitionGap({...breakfast(),periodLabel:'Dinner'}),null);
+  assert.equal(c.doorBreakfastDefinitionGap({...breakfast(),sections:[]}),null);
+});
+test('both-week breakfast preflight refuses generic lunch fallback and preview labels the GF row unresolved',()=>{
+  const c=box(['buildBreakfastCombinedXlsx','buildPlatingHtml']);c.computePlatingData=()=>breakfast();
+  assert.throws(()=>c.buildBreakfastCombinedXlsx(1,3),/W3 SATURDAY breakfast.*803.*Gluten-free breakfast meal is not defined/);
+  assert.equal(c.books.length,0);
+  Object.assign(c,{doorSectionAllergenStr:()=>'',hasCarbAccommodation:()=>false,doorSectionLineNotes:()=>'',REGISTRY_LIST:[{room:'803'}]});
+  const output=c.buildPlatingHtml(breakfast(),false);
+  assert.match(output,/DRAFT \/ NOT FOR SERVICE/);assert.match(output,/UNRESOLVED — specify the gluten-free breakfast/);
+  assert.doesNotMatch(output,/Plain Roasted Chicken/);
 });
 
 function transitionBox() {
