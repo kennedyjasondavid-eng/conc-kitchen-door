@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.83';
+const DOOR_APP_VERSION = 'v31-standard.84';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11653,6 +11653,35 @@ let _ghHydrated = false;
 let _ghForceOverwrite = false;
 // door_rules.json (D2a): one small editor file; a take-back may shrink it, and it must never hold the whole publish.
 const ALLOW_SHRINK_PATHS = new Set(['meal_swaps.json', 'special_meals.json', 'meal_swaps_reverted.json', 'special_meals_removed.json', 'recent_log.json', 'door_rules.json']);
+/* DOOR_TESTABLE_CORE_START canonical-food-facts-v1 */
+// Inactive adapter: only source-authored, identity-bound assessments are read.
+// No ingredient matching, safety certification or production callers here.
+function doorCanonicalFoodFactAssessment(record,requirement) {
+  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
+  const text = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 2000;
+  const unknown = {requirementRevision:object(requirement) && text(requirement.revision) ? requirement.revision : '',status:'unknown',sources:[]};
+  if (!object(requirement) || !text(requirement.id) || !text(requirement.revision) || !object(record) ||
+      !text(record.recipeId) || !text(record.basisFingerprint) || !text(record.contentFingerprint)) return unknown;
+  const facts = record.foodFacts;
+  if (!object(facts) || facts.schema !== 1 || !text(facts.revision) || !object(facts.subject) ||
+      facts.subject.recipeId !== record.recipeId || facts.subject.basisFingerprint !== record.basisFingerprint ||
+      !text(facts.subject.productId) || facts.subject.region !== 'CA' ||
+      !['complete','partial','unknown'].includes(facts.ingredientPanel) ||
+      !['complete','partial','unknown'].includes(facts.precautionaryPanel) || !Array.isArray(facts.assessments)) return unknown;
+  const seen = new Set();
+  let selected = null;
+  for (const assessment of facts.assessments) {
+    if (!object(assessment) || !text(assessment.requirementId) || !text(assessment.requirementRevision) ||
+        !['covered','conflict','unknown'].includes(assessment.status) || !text(assessment.evidenceRevision) ||
+        !Array.isArray(assessment.sources) || assessment.sources.length === 0 || !Array.from(assessment.sources).every(text) ||
+        seen.has(assessment.requirementId)) return unknown;
+    seen.add(assessment.requirementId);
+    if (assessment.requirementId === requirement.id && assessment.requirementRevision === requirement.revision) selected = assessment;
+  }
+  return selected ? {requirementRevision:requirement.revision,status:selected.status,sources:selected.sources.slice()} : unknown;
+}
+/* DOOR_TESTABLE_CORE_END canonical-food-facts-v1 */
+
 /* DOOR_TESTABLE_CORE_START private-generation-v1 */
 // Inactive foundation. No storage, transport, hydration or production callers.
 // Editing acceptance and serving release are separate authorities.
