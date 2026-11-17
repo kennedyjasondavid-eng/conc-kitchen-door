@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import { twoComputers, out, R, discharge, intake } from './helpers/door_two_computers.mjs';
 
 const html = fs.readFileSync(process.env.ANAPH_NAMES_NONE_HTML || new URL('../index.html', import.meta.url), 'utf8');
-const { computer, kitchen, morning, fn } = twoComputers(html);
+const { computer, kitchen, morning, fn, has } = twoComputers(html);
 const update = (room, tags) => ({ room, type: 'update', tags, tagLabels: [], route: 'Regular', notes: 'From daily list import', isAnaph: false, isModerate: false, moderateNote: '', hadSection: 'Regular' });
 const rec = (state, room) => (state.residents || state.reg).find((r) => r.room === room) || {};
 const keepAll = (c) => { c.doorAsk = async (o) => { c.__asked.push({ title: o.title, lines: o.lines || [] }); return false; }; };
@@ -130,5 +130,7 @@ test('7. Generate: the kitchen\'s list, the discharge question, this question, t
   assert.ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), 'in order: ' + order);
   assert.match(gen, /anaphListAnswers\.filter\(a => a\.off\)[\s\S]{0,400}Taken off the anaphylactic list/, 'the change log names it');
   const apply = fn('applyQueueToRegistry');
-  assert.ok(apply.indexOf('doorApplyAnaphListAnswers(anaphListAnswers)') > 0 && apply.indexOf('doorApplyAnaphListAnswers(anaphListAnswers)') < apply.lastIndexOf('saveRegistryState()'), 'applied before the list is saved');
+  const call = has('doorRegistryQueueTransition') ? 'doorRegistryQueueTransition(' : 'doorApplyAnaphListAnswers(anaphListAnswers)';
+  assert.ok(apply.indexOf(call) > 0 && apply.indexOf(call) < apply.lastIndexOf('saveRegistryState()'), 'shared transition including answers runs before save');
+  if (has('doorRegistryQueueTransition')) assert.match(fn('doorRegistryQueueTransition'), /doorAnaphAnswerTransition\(anaphListAnswers/, 'answers apply inside the shared transition');
 });

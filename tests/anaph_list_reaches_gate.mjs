@@ -71,7 +71,7 @@ test('2. Generate takes the kitchen\'s newer list, then asks, then applies; the 
   // Re-pinned 2026-10-18 (v31-standard.39): the queue is applied with the answers about rooms naming no allergen.
   const iTake = gen.indexOf('await doorTakeNewerKitchenList()'), iAsk = gen.indexOf('await doorAskDischargedAnaphRooms(changesQueue)'), iApply = gen.indexOf('applyQueueToRegistry(');
   assert.ok(iTake > 0 && iAsk > iTake && iApply > iAsk, 'the kitchen\'s list, the question, then the queue: ' + [iTake, iAsk, iApply]);
-  assert.match(fn('applyQueueToRegistry'), /if \(c\.anaphCleared\) \{[\s\S]{0,200}anaphRooms\.splice/, 'a discharge takes the room off only when answered');
+  assert.match(fn(has('doorRegistryQueueTransition') ? 'doorRegistryQueueTransition' : 'applyQueueToRegistry'), /if \(c\.anaphCleared\) \{[\s\S]{0,200}anaphRooms\.splice/, 'a discharge takes the room off only when answered');
   assert.match(html, /doorDischargeAnaphRoom\(c\) \? \(c\.anaphCleared === true \? [^\n]*comes off the anaphylactic list[^\n]*stays on the anaphylactic list[^\n]*Generate asks/, 'the review row names it');
   assert.match(fn('renderQueue'), /doorDischargeAnaphRoom\(c\) \?[^\n]*Anaphylactic/, 'the queue tags it');
   assert.match(fn('saveDirectFromForm'), /also comes off the anaphylactic list/, 'the one-room Discharge says the room comes off the list');

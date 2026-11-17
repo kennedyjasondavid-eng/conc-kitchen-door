@@ -21,7 +21,7 @@ const end = html.indexOf('// ── Slot rendering', start);
 assert.ok(start > 0 && end > start, 'could not locate the HUB_ALLERGEN_MAP…hubAllergenToFlags block');
 const code = html.slice(start, end);
 
-const FLAG_KEYS = ['hasGluten','hasDairy','hasPeanuts','hasFish','hasEgg','hasSoy','hasSesame','hasMustard','hasTreeNuts','hasCoconut','hasCorn','hasSulphites','isSpicy','hasNightshades','hasShellfish'];
+const FLAG_KEYS = ['hasGluten','hasDairy','hasPeanuts','hasFish','hasEgg','hasSoy','hasSesame','hasMustard','hasTreeNuts','hasCoconut','hasCorn','hasSulphites','isSpicy','hasNightshades','hasShellfish','hasBrassicas'];
 function freshCtx() {
   const ctx = {
     console: { warn() {} },
@@ -35,6 +35,14 @@ function freshCtx() {
 }
 const set = (ctx, allergens) => ctx.hubAllergenToFlags(allergens);
 const on = (f) => Object.entries(f).filter(([, v]) => v).map(([k]) => k).sort();
+
+test('CODEX plain broccoli preserves its Brassicas fact at recipe binding', () => {
+  const c = freshCtx();
+  assert.equal(set(c, ['Brassicas (Broccoli)']).hasBrassicas, true);
+  assert.equal(set(c, ['brassicas (broccoli)']).hasBrassicas, true);
+  assert.deepEqual(on(set(c, ['Brassicas (Broccoli)'])), ['hasBrassicas']);
+  assert.equal(vm.runInContext('_hubAllergenResolve(["Brassicas (Broccoli)"]).unknown.size', c), 0);
+});
 
 test('synonyms + casing now map (authored-to-fail vs pre-S1)', () => {
   const c = freshCtx();

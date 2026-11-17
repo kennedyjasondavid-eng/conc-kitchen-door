@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.75';
+const DOOR_APP_VERSION = 'v31-standard.76';
 const DOOR_BUILD_DATE = '2026-11-16';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1401,7 +1401,7 @@ function updateCODEXBadge() {
       </div>
     </div>
     <div id="recent-generated" class="card" style="margin-top:16px;display:none;">
-      <div class="card-header"><span><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8m-8 4h8"/></svg></span><h2>Recently Generated Files</h2><span id="recent-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
+      <div class="card-header"><span><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8m-8 4h8"/></svg></span><h2>Files for Download</h2><span id="recent-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
       <div id="recent-gen-body" style="padding:8px 16px;"></div>
       <div style="padding:8px 16px 14px;">
         <button class="btn btn-mint" onclick="showScreen('plating',document.querySelector('[data-screen=plating]'))"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M3 3h18v18H3V3Zm0 6h18M9 3v18M3 15h18"/></svg> View Plating Sheets →</button>
@@ -1413,14 +1413,14 @@ function updateCODEXBadge() {
 <!-- ===== CONFIRM ===== -->
 <div class="screen" id="screen-confirm">
   <div class="topbar">
-    <div><div class="topbar-title">Output Confirmation</div><div class="topbar-sub">Files generated and saved to shared drive</div></div>
+    <div><div class="topbar-title">Resident Save Confirmation</div><div class="topbar-sub">Check plating readiness, then download the files you need</div></div>
     <div class="topbar-right"><button class="btn btn-ghost" onclick="resetAndGoHome()">Done</button></div>
   </div>
   <div class="content">
     <div class="card" style="max-width:640px;margin:0 auto;">
       <div class="confirm-center">
         <div class="confirm-check"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M5 12l4 4L19 6"/></svg></div>
-        <div class="confirm-title">Files Generated Successfully</div>
+        <div class="confirm-title">Resident Changes Saved</div>
         <div class="confirm-sub" id="confirm-sub">Loading…</div>
       </div>
       <div class="file-list" id="confirm-files"></div>
@@ -1463,7 +1463,7 @@ function updateCODEXBadge() {
     <div id="ps-print-header" style="display:none;"></div>
     <div id="ps-preview" style="overflow-x:auto;"></div>
     <div id="plating-recent-generated" class="card" style="margin-top:16px;display:none;">
-      <div class="card-header"><span><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8m-8 4h8"/></svg></span><h2>All Generated Files</h2><span id="plating-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
+      <div class="card-header"><span><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8m-8 4h8"/></svg></span><h2>Files for Download</h2><span id="plating-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
       <div id="plating-gen-body" style="padding:8px 16px;"></div>
     </div>
   </div>
@@ -6997,9 +6997,9 @@ function getRoomBase(room) {
   return room.toLowerCase().replace(/[a-d]$/i, '');
 }
 
-function findRoommates(room) {
+function findRoommates(room, registry = REGISTRY_LIST) {
   const base = getRoomBase(room);
-  return REGISTRY_LIST.filter(r =>
+  return registry.filter(r =>
     getRoomBase(r.room) === base &&
     r.room.toLowerCase() !== room.toLowerCase()
   );
@@ -7009,9 +7009,10 @@ function findRoommates(room) {
 // have the flag act accordingly"). Lockout and the Anaphylactic List always read both; the sheets, labels, week-ahead
 // list and published count read only the flag, so a room (on the list, flag reset by an import) was contained but
 // never red. Every reader uses this one rule.
-function doorIsAnaphResident(r) {
+function doorIsAnaphResident(r, rooms) {
   if (!r) return false;
-  return !!r.isAnaph || (typeof anaphRooms !== 'undefined' && Array.isArray(anaphRooms) && anaphRooms.includes(r.room));
+  const listed = rooms === undefined ? (typeof anaphRooms !== 'undefined' ? anaphRooms : []) : rooms;
+  return !!r.isAnaph || (Array.isArray(listed) && listed.includes(r.room));
 }
 
 // Taking a resident off DOOR's anaphylactic list is a deliberate act, asked once (2026-10-18, the routing audit;
@@ -7025,9 +7026,9 @@ async function doorAskTakeOffAnaphList(room) {
 }
 
 // Returns Set of room numbers routed to Anaphylactic Alternative today
-function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
+function getAnaphConflictRooms(lunchMeal, dinnerMeal, registry = REGISTRY_LIST, rooms) {
   const conflictRooms = new Set();
-  const anaphResidents = REGISTRY_LIST.filter(r => doorIsAnaphResident(r));
+  const anaphResidents = registry.filter(r => doorIsAnaphResident(r, rooms));
 
   for (const resident of anaphResidents) {
     // v29: If anaphTags is set, only check those specific allergens against the meal.
@@ -7041,7 +7042,7 @@ function getAnaphConflictRooms(lunchMeal, dinnerMeal) {
     for (const tag of tagsToCheck) {
       if (anaphTagMealFlags(tag).some(f => lunchMeal[f] || dinnerMeal[f])) {
         conflictRooms.add(resident.room);
-        findRoommates(resident.room).forEach(mate => conflictRooms.add(mate.room));
+        findRoommates(resident.room, registry).forEach(mate => conflictRooms.add(mate.room));
       }
     }
   }
@@ -7346,7 +7347,7 @@ function buildReview() {
 
   flagsHtml += anaphAlerts.map(a => `
     <div class="alert alert-danger"><span class="alert-icon">${doorIcon("warning")}</span><div class="alert-body"><strong>Anaphylactic routing active — ${escapeHtml(a.allergen)}</strong><br>
-    Room ${escapeHtml(a.anaphRoom)} (${escapeHtml(a.allergen)}) and ${escapeHtml(a.roommateRooms.length ? 'roommate ' + a.roommateRooms.join(', ') : 'no roommate')} routed to Anaphylactic Alternative for today\u2019s ${escapeHtml(a.mealsAffected)}. Alternative meal: no ${escapeHtml(a.allergen.replace('No ','').toLowerCase())}.</div></div>
+    Room ${escapeHtml(a.anaphRoom)} (${escapeHtml(a.allergen)}) and ${escapeHtml(a.roommateRooms.length ? 'roommate ' + a.roommateRooms.join(', ') : 'no roommate')} routed to Anaphylactic Alternative for today\u2019s ${escapeHtml(a.mealsAffected)}. Required exclusion: ${escapeHtml(a.allergen)}. See plating readiness for the named separate meal.</div></div>
   `).join('');
 
   // Unresolved Needs Review — mandatory acknowledgment before Generate
@@ -7508,7 +7509,7 @@ function buildReview() {
       </details>
     </div>`;
   }
-  document.getElementById('review-flags-area').innerHTML = reconcileHtml + autoDischargeHtml + nrHtml + conflictHtml + flagsHtml;
+  document.getElementById('review-flags-area').innerHTML = doorPlatingReadinessHTML(doorPlatingReadiness(doorRotationServices(), doorProjectRegistryQueue(changesQueue))) + reconcileHtml + autoDischargeHtml + nrHtml + conflictHtml + flagsHtml;
 
   // Changes table
   const body = document.getElementById('review-changes-body');
@@ -7693,7 +7694,7 @@ async function doorAskAnaphRoomsNamingNoAllergen(queue) {
   return answers;
 }
 // Applied to the list once the queue is: taken off, as the list's Remove does; kept, stamped on the resident.
-function doorApplyAnaphListAnswers(answers) {
+function doorAnaphAnswerTransition(answers, REGISTRY_LIST, anaphRooms, actor) {
   let removed = false;
   (answers || []).forEach((a) => {
     const key = String(a.room).toLowerCase();
@@ -7702,13 +7703,24 @@ function doorApplyAnaphListAnswers(answers) {
       for (let i = anaphRooms.length - 1; i >= 0; i--) if (String(anaphRooms[i]).toLowerCase() === key) { anaphRooms.splice(i, 1); removed = true; }
       recs.forEach((r) => { r.isAnaph = false; r.anaphTags = []; delete r.anaphListKept; });
     } else {
-      recs.forEach((r) => { r.anaphListKept = { sig: a.sig, at: new Date().toISOString(), by: getOperatorName() }; });
+      recs.forEach((r) => { r.anaphListKept = { sig: a.sig, at: new Date().toISOString(), by: actor }; });
     }
   });
-  if (removed) { try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch (e) {} }
+  return removed;
 }
 
-function applyQueueToRegistry(anaphListAnswers) {
+function doorApplyAnaphListAnswers(answers) {
+  if (doorAnaphAnswerTransition(answers, REGISTRY_LIST, anaphRooms, getOperatorName())) {
+    try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch (e) {}
+  }
+}
+
+// Shared transition: only supplied records/lists are changed. Projection supplies clones and no effects.
+function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, anaphListAnswers, effects) {
+  effects = effects || {};
+  const pushResidentHistory = effects.history || (() => {});
+  const clearResidentHistory = effects.clearHistory || (() => {});
+  const getOperatorName = () => effects.actor || '';
   changesQueue.forEach(c => {
     if (c.type === 'discharge') {
       // v31: remove EVERY matching record, not just the first. A duplicated room
@@ -7835,8 +7847,20 @@ function applyQueueToRegistry(anaphListAnswers) {
   });
 
   // The rooms Generate asked about that the queue leaves on the list naming none of their allergens (2026-10-18).
-  if (anaphListAnswers && anaphListAnswers.length) doorApplyAnaphListAnswers(anaphListAnswers);
+  if (anaphListAnswers && anaphListAnswers.length) doorAnaphAnswerTransition(anaphListAnswers, REGISTRY_LIST, anaphRooms, getOperatorName());
 
+  return { residents: REGISTRY_LIST, anaphRooms };
+}
+
+function doorProjectRegistryQueue(queue, answers) {
+  return doorRegistryQueueTransition(JSON.parse(JSON.stringify(REGISTRY_LIST)), [...anaphRooms], queue || [], answers || []);
+}
+
+function applyQueueToRegistry(anaphListAnswers) {
+  doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, anaphListAnswers,
+    { history: pushResidentHistory, clearHistory: clearResidentHistory, actor: getOperatorName() });
+  // Keep an explicit removal durable, as before; resident state is saved below.
+  try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch (e) {}
   // Rebuild REGISTRY_MAP
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
   REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
@@ -9032,6 +9056,13 @@ async function generateFiles() {
     await doorTakeNewerKitchenList();
     await doorAskDischargedAnaphRooms(changesQueue);
     anaphListAnswers = await doorAskAnaphRoomsNamingNoAllergen(changesQueue);
+    // Assess the same transition that commit uses, without writes, history, logs or queue consumption.
+    const projected = doorProjectRegistryQueue(changesQueue, anaphListAnswers);
+    const readiness = doorPlatingReadiness(doorRotationServices(), projected);
+    if (!readiness.ready && !(await doorAsk({ title:'Plating outputs are NOT READY',
+      lines:[doorPlatingReadinessText(readiness),
+        'Save the resident changes anyway? The queue will be committed and sent through the normal kitchen sync. Incomplete final plating workbooks and ZIPs remain blocked; follow the current manual service process and obtain a supervisor-confirmed separate meal for affected residents.'],
+      goLabel:'Save resident changes', cancelLabel:'Keep queue for review' }))) return;
   } finally { _doorGenerateBusy = false; }
 
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
@@ -9051,7 +9082,7 @@ async function generateFiles() {
 
   const months2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const n2 = new Date();
-  document.getElementById('confirm-sub').textContent = `${months2[n2.getMonth()]} ${n2.getDate()}, ${n2.getFullYear()} · ${net} residents · 14 files updated`;
+  document.getElementById('confirm-sub').textContent = `${months2[n2.getMonth()]} ${n2.getDate()}, ${n2.getFullYear()} · ${net} residents · Resident changes saved; download files separately`;
 
   const parts = [];
   if (intakes) parts.push(`${intakes} intake${intakes>1?'s':''}`);
@@ -9097,6 +9128,10 @@ async function generateFiles() {
     RECENT_LOG.unshift({ ts:_logDate.toISOString(), date:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_logDate.getMonth()] + ' ' + _logDate.getDate(), room:a.room, type:'update', desc:'Taken off the anaphylactic list — its restriction names none of its allergens', color:'#dc2626', _real:true, by:getOperatorName() });
   });
   applyQueueToRegistry(anaphListAnswers);
+  // Re-assess committed inputs; a saved resident change is distinct from document readiness.
+  const committedReadiness = doorPlatingReadiness(doorRotationServices());
+  document.getElementById('confirm-sub').textContent = `${months2[n2.getMonth()]} ${n2.getDate()}, ${n2.getFullYear()} · ${REGISTRY_LIST.length} residents saved · ` +
+    (committedReadiness.ready ? 'Files available to download' : 'Plating NOT READY — ' + committedReadiness.issues.length + ' unresolved services');
 
   // Clear the queue — changes are now committed to the registry
   changesQueue = []; renderQueue(); updateBadge(); saveRecentLog();
@@ -9125,7 +9160,7 @@ async function generateFiles() {
     // v32 fix: publishAndSync was also called below, causing two concurrent publishToGitHub
     // calls that raced on GitHub SHA — second call would 409 and skip remaining files.
     // Now only publishAndSync fires (single publish path).
-    publishAndSync('plating sheets generated');
+    publishAndSync('resident changes saved');
   } else {
     const who = 'Saved on this computer — ' + REGISTRY_LIST.length + ' residents. ';
     const hint = _tokenExpired
@@ -20214,7 +20249,7 @@ const HUB_ALLERGEN_MAP = {
   'Gluten':'hasGluten','Wheat':'hasGluten','Milk':'hasDairy','Dairy':'hasDairy','Peanuts':'hasPeanuts','Fish':'hasFish',
   'Eggs':'hasEgg','Egg':'hasEgg','Fish Sauce':'hasFish','Soy':'hasSoy','Sesame':'hasSesame','Mustard':'hasMustard',
   'Tree Nuts':'hasTreeNuts','Coconut':'hasCoconut','Corn':'hasCorn','Sulphites':'hasSulphites','Spicy':'isSpicy',
-  'Nightshades':'hasNightshades','Tomato':'hasNightshades','Shellfish':'hasShellfish',
+  'Nightshades':'hasNightshades','Tomato':'hasNightshades','Shellfish':'hasShellfish','Brassicas':'hasBrassicas',
   // CODEX writes shellfish as its two families, "Crustaceans (Shrimp)" and "Molluscs (Oyster Sauce)" (2026-10-18). DOOR
   // has one flag for both, as No Shellfish and No Molluscs residents already share it (RESIDENT_TO_MEAL_FLAG).
   'Crustaceans':'hasShellfish','Molluscs':'hasShellfish',
@@ -24977,7 +25012,7 @@ const A = { // alignment presets
 // ── P2 v26: Shared plating data computation ──────────────────────────────────
 // Single source of truth for both preview and xlsx generation.
 // Eliminates divergence between renderPlatingPreview and buildDaySheet.
-function computePlatingData(period, weekNum, dayName) {
+function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, rooms) {
   const dayLabel = dayName.charAt(0) + dayName.slice(1).toLowerCase();
   const wkData = getMenuData()[String(weekNum)];
   // The slot's next service may be a swap or a special meal (2026-10-18, Jason: "Yes, and the routing file too"): the
@@ -25060,7 +25095,7 @@ function computePlatingData(period, weekNum, dayName) {
   // Anaphylactic conflict detection
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   const conflictCheckFlags = mealFlags;
-  const conflictRooms = getAnaphConflictRooms(conflictCheckFlags, emptyFlags);
+  const conflictRooms = getAnaphConflictRooms(conflictCheckFlags, emptyFlags, registry, rooms);
 
   const periodLabel = period === 'lunch' ? 'Lunch' : period === 'dinner' ? 'Dinner' : 'Breakfast';
 
@@ -25068,11 +25103,11 @@ function computePlatingData(period, weekNum, dayName) {
   const routingRegistry = [];
   const anaphSect = [];
   const sortR = (a,b) => { const na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
-  REGISTRY_LIST.forEach(r => {
+  registry.forEach(r => {
     if (conflictRooms.has(r.room)) {
-      const isA = doorIsAnaphResident(r);
-      const mateOf = isA ? null : REGISTRY_LIST.find(ar =>
-        (doorIsAnaphResident(ar)) &&
+      const isA = doorIsAnaphResident(r, rooms);
+      const mateOf = isA ? null : registry.find(ar =>
+        (doorIsAnaphResident(ar, rooms)) &&
         getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room);
       anaphSect.push({...r, _role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''});
     } else {
@@ -25098,7 +25133,7 @@ function computePlatingData(period, weekNum, dayName) {
   const regCount = regularSection ? regularSection.residents.length : 0;
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
-  const diabCount = REGISTRY_LIST.filter(r => (r.tags||[]).includes('Diabetic')).length;
+  const diabCount = registry.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const mealGfAlt = dayData[period+'_gfAlt'] || '';
   // The halal plate's own allergens (2026-10-18, the routing audit; the line reads the plate eaten): the dish set on its
   // slot (a linked recipe, or a typed dish's tags) and the shared sides, over the main meal's allergens without its pork
@@ -25142,9 +25177,65 @@ function doorDatedMealLine(dated) {
   return (dated.kind === 'special' ? 'Special meal' : 'Swap') + ' for ' + MONTHS[m - 1] + ' ' + d + ' \u2014 replaces the rotation meal';
 }
 
+// A1 is naming integrity, not an ingredient/preparation approval database. Named legacy plates remain named.
+function doorAssessAnaphAlternative(pd) {
+  const residents = pd && pd.anaphSect || [];
+  const dish = String(pd && pd.ctx && pd.ctx.anaphAlt || '').trim();
+  return { state: !residents.length ? 'not-required' : dish ? 'named' : 'missing', dish,
+    rooms: residents.map(r => r.room),
+    allergens: [...new Set(residents.filter(r => r._role === 'anaphylactic')
+      .flatMap(r => getAnaphDisplayAllergens(r, pd.mealFlags)))] };
+}
+function doorAnaphAlternativeLine(pd) {
+  const a = doorAssessAnaphAlternative(pd);
+  return a.state === 'missing' ? 'UNRESOLVED — name the separate anaphylactic meal; do not serve the standard meal'
+    : a.dish + ' — prepared separately';
+}
+function doorRotationServices(period, weeks) {
+  const services = [];
+  for (const week of (weeks || [1,2,3,4]))
+    for (const day of ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'])
+      for (const meal of (period ? [period] : ['breakfast','lunch','dinner'])) services.push({period:meal, week, day});
+  return services;
+}
+function doorPlatingReadiness(services, projected) {
+  const issues = [], sheets = [];
+  for (const service of services) {
+    const label = 'W' + service.week + ' ' + service.day + ' ' + service.period;
+    try {
+      const pd = projected ? computePlatingData(service.period, service.week, service.day, projected.residents, projected.anaphRooms)
+        : computePlatingData(service.period, service.week, service.day);
+      if (!pd) throw new Error('Meal data unavailable');
+      sheets.push({service, pd});
+      const a = doorAssessAnaphAlternative(pd);
+      if (a.state === 'missing') issues.push({label, rooms:a.rooms, reason:'Separate anaphylactic meal is not named'});
+    } catch (e) { issues.push({label, rooms:[], reason:'Could not assess this meal'}); }
+  }
+  return {ready:issues.length === 0, issues, sheets};
+}
+function doorPlatingReadinessText(readiness) {
+  return readiness.issues.map(x => x.label + (x.rooms.length ? ' — Rooms ' + x.rooms.join(', ') : '') + ': ' + x.reason).join('\n');
+}
+function doorRequirePlatingReady(services) {
+  const readiness = doorPlatingReadiness(services);
+  if (!readiness.ready) throw new Error('Plating NOT READY.\n' + doorPlatingReadinessText(readiness));
+  return readiness.sheets;
+}
+function doorPlatingReadinessHTML(readiness) {
+  if (readiness.ready) return '';
+  return '<div class="alert alert-danger" role="alert"><div class="alert-body"><strong>Plating NOT READY — separate meals need naming</strong><br>' +
+    escapeHtml(doorPlatingReadinessText(readiness)).replace(/\n/g, '<br>') +
+    '<br>Follow the current manual service process and obtain a supervisor-confirmed separate meal for affected residents. A blank manual alternative does not resolve this gap. Resident changes can still be saved and sent.</div></div>';
+}
+function doorReportPlatingError(e) {
+  console.error('[DOOR plating]', e);
+  alert(String(e && e.message || 'Could not build the complete requested plating file.'));
+}
+
 function buildDaySheet(period, weekNum, dayName, providedPd) {
   const pd = providedPd || computePlatingData(period, weekNum, dayName);
   if (!pd) return null;
+  if (doorAssessAnaphAlternative(pd).state === 'missing') throw new Error('Plating NOT READY — separate anaphylactic meal is not named.');
   const { dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
           regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
@@ -25206,7 +25297,7 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
   if (anaphSect.length) {
     const allergens = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>getAnaphDisplayAllergens(r)))].join(', ');
     addMerged('Anaphylactic Alternative ('+allergens+')', F.whB, '993333', B.thick, 16);
-    addMerged((ctx && ctx.anaphAlt ? ctx.anaphAlt : mealName.replace(/peanut/i,'(no peanut oil)'))+' \u2014 prepared separately  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
+    addMerged(doorAnaphAlternativeLine(pd)+'  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
         addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell('ANAPHYLACTIC',F.noteRed,'F2DCDC',B.anaph,A.center), 14);
@@ -25299,51 +25390,35 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
 }
 
 function buildBreakfastCombinedXlsx(weekA, weekB) {
+  const sheets = doorRequirePlatingReady(doorRotationServices('breakfast', [weekA, weekB]));
   const wb = XLSX.utils.book_new();
-  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-  [weekA, weekB].forEach(w => {
-    DAYS.forEach(dayName => {
-      const result = buildDaySheet('breakfast', w, dayName);
-      if (result) {
-        const tab = ('W' + w + ' ' + result.tabName).slice(0, 31);
-        XLSX.utils.book_append_sheet(wb, result.ws, tab);
-      }
-    });
+  sheets.forEach(({service, pd}) => {
+    const result = buildDaySheet(service.period, service.week, service.day, pd);
+    if (!result) throw new Error('Incomplete breakfast workbook — no sheet built.');
+    XLSX.utils.book_append_sheet(wb, result.ws, ('W' + service.week + ' ' + result.tabName).slice(0,31));
   });
-  return wb.SheetNames.length ? wb : null;
+  return wb;
 }
 
 async function downloadBreakfastCombined(filename, weekA, weekB) {
-  const wb = buildBreakfastCombinedXlsx(weekA, weekB);
-  if (wb) XLSX.writeFile(wb, filename);
+  try { const wb = buildBreakfastCombinedXlsx(weekA, weekB); XLSX.writeFile(wb, filename); }
+  catch (e) { doorReportPlatingError(e); }
 }
 
 function buildPlatingXlsx(period, weekNum) {
+  const sheets = doorRequirePlatingReady(doorRotationServices(period, [weekNum]));
   const wb = XLSX.utils.book_new();
-  const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-  const errors = [];
-
-  DAYS.forEach(dayName => {
-    try {
-      const result = buildDaySheet(period, weekNum, dayName);
-      if (result) XLSX.utils.book_append_sheet(wb, result.ws, result.tabName);
-    } catch (e) {
-      // One bad day shouldn't kill the whole week download. Log it and move on.
-      errors.push({ day: dayName, msg: String(e && e.message || e) });
-      console.error('[buildPlatingXlsx] ' + dayName + ' build failed:', e);
-    }
+  sheets.forEach(({service, pd}) => {
+    const result = buildDaySheet(service.period, service.week, service.day, pd);
+    if (!result) throw new Error('Incomplete plating workbook — no sheet built.');
+    XLSX.utils.book_append_sheet(wb, result.ws, result.tabName);
   });
-
-  if (errors.length) {
-    console.warn('[buildPlatingXlsx] skipped ' + errors.length + ' day(s) in W' +
-      weekNum + ' ' + period + ':', errors);
-  }
-  return wb.SheetNames.length ? wb : null;
+  return wb;
 }
 
 async function downloadPlatingSheet(filename, period, weekNum) {
-  const wb = buildPlatingXlsx(period, weekNum);
-  if (wb) XLSX.writeFile(wb, filename);
+  try { const wb = buildPlatingXlsx(period, weekNum); XLSX.writeFile(wb, filename); }
+  catch (e) { doorReportPlatingError(e); }
 }
 
 // ============================================================
@@ -25619,13 +25694,17 @@ async function downloadAllFiles() {
   btns.forEach(b => { b.disabled = true; b.textContent = 'Building zip…'; });
 
   try {
+    doorRequirePlatingReady(doorRotationServices());
     const zip = new JSZip();
     const files = buildAllFileList();
+    const built = files.map(f => {
+      const wb = f.fn();
+      if (!wb) throw new Error('Incomplete file set: ' + f.name);
+      return {...f, wb};
+    });
 
-    for (const f of files) {
-      try {
-        const wb = f.fn();
-        if (!wb) continue;
+    for (const f of built) {
+        const wb = f.wb;
         // The Labels file needs <printOptions>/<pageSetup> injected — see
         // buildLabelsXlsxBlob — so it goes through the async path. Everything
         // else can use the synchronous writer.
@@ -25636,7 +25715,6 @@ async function downloadAllFiles() {
           const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
           zip.file(f.name, buf);
         }
-      } catch(e) { console.warn('Failed to build', f.name, e); }
     }
 
     const ds = getDateStamp();
@@ -25653,7 +25731,8 @@ async function downloadAllFiles() {
     showToast('Downloaded ' + files.length + ' files as ' + zipName);
   } catch(e) {
     console.error('Zip failed:', e);
-    showToast('Zip failed — try downloading files individually.', 'error');
+    doorReportPlatingError(e);
+    showToast('No ZIP downloaded — the complete file set could not be built.', 'error');
   } finally {
     btns.forEach((b, i) => { b.disabled = false; b.innerHTML = origText[i] || doorIcon('download') + ' Download All (zip)'; });
   }
@@ -25751,7 +25830,7 @@ function populateRecentGenerated() {
       +'</div>';
   }
 
-  const filesHtml = fileList.map(fileItemHtml).join('');
+  const filesHtml = doorPlatingReadinessHTML(doorPlatingReadiness(doorRotationServices())) + fileList.map(fileItemHtml).join('');
 
   const confirmFiles = document.getElementById('confirm-files');
   if (confirmFiles) {
@@ -25764,12 +25843,12 @@ function populateRecentGenerated() {
   const container = document.getElementById('recent-generated');
   const body = document.getElementById('recent-gen-body');
   const timeEl = document.getElementById('recent-gen-time');
-  if (container) { timeEl.textContent = 'Generated '+ts; body.innerHTML = filesHtml; container.style.display = 'block'; }
+  if (container) { timeEl.textContent = 'Resident list saved '+ts; body.innerHTML = filesHtml; container.style.display = 'block'; }
 
   const pContainer = document.getElementById('plating-recent-generated');
   const pBody = document.getElementById('plating-gen-body');
   const pTime = document.getElementById('plating-gen-time');
-  if (pContainer) { pTime.textContent = 'Generated '+ts; pBody.innerHTML = filesHtml; pContainer.style.display = 'block'; }
+  if (pContainer) { pTime.textContent = 'Resident list saved '+ts; pBody.innerHTML = filesHtml; pContainer.style.display = 'block'; }
 }
 
 
@@ -25858,7 +25937,7 @@ function initPlatingPreview() {
   const dlBtn = document.getElementById('ps-dl-btn');
   if (dlBtn) {
     if (psPeriod === 'breakfast') {
-      dlBtn.setAttribute('onclick', `alert('Breakfast sheet download — Phase 5')`);
+      dlBtn.setAttribute('onclick', 'downloadBreakfastCombined(' + _jsArgLiteral(fn) + ',' + (psWeek === 1 || psWeek === 3 ? '1,3' : '2,4') + ')');
     } else {
       dlBtn.setAttribute('onclick', 'downloadPlatingSheet(' + _jsArgLiteral(fn) + ',' + _jsArgLiteral(psPeriod) + ',' + Number(psWeek) + ')');
     }
@@ -25871,7 +25950,9 @@ function buildPlatingHtml(pd, isTest) {
   const { dayLabel, periodLabel, mealName, mealVeg, mealFlags, allergenStr, vegAllergenStr,
           conflictRooms, anaphSect, sections, regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
 
+  const assessment = doorAssessAnaphAlternative(pd);
   let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
+  if (assessment.state === 'missing') h += '<tr><td colspan="3" class="ps-banner" style="border:3px solid #991b1b;color:#991b1b!important;background:#fff!important;font-weight:800;">DRAFT / NOT FOR SERVICE — Separate anaphylactic meal not named. Rooms ' + escapeHtml(assessment.rooms.join(', ')) + '. ' + escapeHtml(pd.dayLabel + ' ' + pd.periodLabel + ': ' + pd.mealName) + '</td></tr>';
 
   if (conflictRooms.size > 0) {
     const anaphNames = REGISTRY_LIST.filter(r=>doorIsAnaphResident(r)).map(r=>r.room).join(', ');
@@ -25894,7 +25975,7 @@ function buildPlatingHtml(pd, isTest) {
   if (anaphSect.length) {
     const alg = [...new Set(anaphSect.filter(r=>r._role==='anaphylactic').flatMap(r=>getAnaphDisplayAllergens(r)))].join(', ');
     h += `<tr><td colspan="3" class="ps-anaph-hdr">${doorIcon("warning")}  Anaphylactic Alternative (${escapeHtml(alg)})</td></tr>`;
-    h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(ctx && ctx.anaphAlt ? ctx.anaphAlt : mealName.replace(/peanut/i,'(no peanut oil)'))} — prepared separately  |  ${escapeHtml(alg.toUpperCase())}</td></tr>`;
+    h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(doorAnaphAlternativeLine(pd))}  |  ${escapeHtml(alg.toUpperCase())}</td></tr>`;
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
         h += `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${doorIcon("warning")} ANAPHYLACTIC</td></tr>`;
@@ -25959,18 +26040,17 @@ function renderPlatingPreview() {
   const preview = document.getElementById('ps-preview');
   const printHeader = document.getElementById('ps-print-header');
   if (!preview) return;
-
-  const pd = computePlatingData(psPeriod, psWeek, psDay);
-  if (!pd) {
-    preview.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);">No menu data for this day/meal.</div>';
-    if (printHeader) printHeader.innerHTML = '';
-    return;
+  try {
+    const pd = computePlatingData(psPeriod, psWeek, psDay);
+    if (!pd) throw new Error('Meal data unavailable');
+    preview.innerHTML = doorNoResidentListNoticeHTML() + buildPlatingHtml(pd, false);
+    if (printHeader) printHeader.innerHTML = `<div class="ph-org">CONC Rexdale</div><div class="ph-detail">Week ${Number(psWeek)} ${escapeHtml(pd.dayLabel)} ${escapeHtml(pd.periodLabel)} — ${escapeHtml(pd.mealName)}</div>`;
+  } catch (e) {
+    // Browser print continues after listener errors. Replace any old ready plate before returning.
+    if (printHeader) printHeader.textContent = 'DRAFT / NOT FOR SERVICE';
+    preview.innerHTML = '<div role="alert" style="border:3px solid #991b1b;color:#991b1b!important;background:#fff!important;padding:16px;font-weight:800;">DRAFT / NOT FOR SERVICE — This meal could not be assessed. No current plating sheet is available. Refresh the data or ask Jason; follow the manual service process with a supervisor-confirmed separate meal.</div>';
+    console.error('[DOOR plating preview]', e);
   }
-
-  if (printHeader) {
-    printHeader.innerHTML = `<div class="ph-org">CONC Rexdale</div><div class="ph-detail">Week ${Number(psWeek)} ${escapeHtml(pd.dayLabel)} ${escapeHtml(pd.periodLabel)} — ${escapeHtml(pd.mealName)}</div>`;
-  }
-  preview.innerHTML = doorNoResidentListNoticeHTML() + buildPlatingHtml(pd, false);
 }
 
 
@@ -26200,6 +26280,7 @@ function togglePlaygroundFlag(key, checked) {
 
 function exportTestPlating() {
   if (!_lastTestPd) { alert('Generate a plating preview first.'); return; }
+  if (doorAssessAnaphAlternative(_lastTestPd).state === 'missing') { alert('Test export NOT READY — name the separate anaphylactic meal.'); return; }
   var result = buildDaySheet(null, null, null, _lastTestPd);
   if (!result) { alert('Could not build export sheet.'); return; }
   var wb = XLSX.utils.book_new();
@@ -26210,6 +26291,7 @@ function exportTestPlating() {
 
 function printTestPlating() {
   if (!_lastTestPd) { alert('Generate a plating preview first.'); return; }
+  if (doorAssessAnaphAlternative(_lastTestPd).state === 'missing') { alert('Test print NOT READY — name the separate anaphylactic meal.'); return; }
   document.body.classList.add('tm-printing');
   setTimeout(function() {
     window.print();
@@ -26295,8 +26377,16 @@ function closeLabelModal() {
 }
 
 function printPlatingPreview() {
+  const readiness = doorPlatingReadiness([{period:psPeriod, week:psWeek, day:psDay}]);
+  renderPlatingPreview(); // Never print an old rendered plate after resident/menu edits.
+  if (!readiness.ready) { doorReportPlatingError(new Error('Print NOT READY.\n' + doorPlatingReadinessText(readiness))); return; }
   window.print();
 }
+
+// Ctrl+P uses the same current preview. Its warning is inside the printable table, not a hidden toolbar.
+window.addEventListener('beforeprint', function() {
+  if (!document.body.classList.contains('printing-labels') && !document.body.classList.contains('tm-printing')) renderPlatingPreview();
+});
 
 function printLabels() {
   closeLabelModal();

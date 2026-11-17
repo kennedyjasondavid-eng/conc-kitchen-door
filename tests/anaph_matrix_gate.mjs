@@ -34,7 +34,7 @@ const SRC = [
   between('/* DOOR_TESTABLE_CORE_START compliance-conflicts */', '/* DOOR_TESTABLE_CORE_END compliance-conflicts */'),
   fn('getRoomBase'), fn('findRoommates'), fn('doorIsAnaphResident'), fnOpt('doorAskTakeOffAnaphList'), fn('getAnaphConflictRooms'),
   fn('getAnaphAlertInfo'), fn('routeResident'), fn('doorAnaphMealLines'),
-  fn('removeAnaphRoom'), fn('applyQueueToRegistry'), fn('commitIntakeQueue'),
+  fn('removeAnaphRoom'), fnOpt('doorAnaphAnswerTransition'), fnOpt('doorRegistryQueueTransition'), fn('applyQueueToRegistry'), fn('commitIntakeQueue'),
   'this.__set = (reg, rooms, meals) => { REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...reg); REGISTRY_MAP = {}; reg.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; }); anaphRooms = rooms; if (meals) MEAL_DATA = meals; };',
   'this.__state = () => ({ rooms: anaphRooms, reg: REGISTRY_LIST });',
 ].join('\n');

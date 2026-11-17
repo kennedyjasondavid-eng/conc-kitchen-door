@@ -38,7 +38,7 @@ export function twoComputers(html, { fns = [], optFns = [], extraSrc = '', ctx =
     fn('getRegistryProvenanceTs'), fn('setRegistryProvenance'), fn('doorRegistryDataTs'), fn('doorRegistrySyncShouldSkip'),
     fn('doorFetchRemoteRegistryMeta'), fn('doorRegistryPublishGate'), fnOpt('doorTakeNewerKitchenList'), fn('doorRegistryPublishPreflight'),
     fn('pullStateFromGitHub'), fn('saveRegistryState'), fn('dedupeRegistryList'), fn('buildStateJSON'),
-    fn('doorIsAnaphResident'), fn('applyQueueToRegistry'), fnOpt('doorDischargeAnaphRoom'), fnOpt('doorAskDischargedAnaphRooms'),
+    fn('doorIsAnaphResident'), fnOpt('doorAnaphAnswerTransition'), fnOpt('doorRegistryQueueTransition'), fn('applyQueueToRegistry'), fnOpt('doorDischargeAnaphRoom'), fnOpt('doorAskDischargedAnaphRooms'),
     fnOpt('doorAnaphRoomsNamingNoAllergen'), fnOpt('doorAskAnaphRoomsNamingNoAllergen'), fnOpt('doorApplyAnaphListAnswers'),
     ...fns.map(fn), ...optFns.map(fnOpt), extraSrc,
     `this.__generate = async () => {
