@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.80';
+const DOOR_APP_VERSION = 'v31-standard.81';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21178,7 +21178,7 @@ function renderSlotCard(def, ns) {
     const val = (state && state.manual) ? state.manual : '';
     return `<div style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--paper);">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;">${escapeHtml(def.label)}${optLabel}</div>
-      <input type="text" id="${_escAttr(pfx)}-manual-${_escAttr(def.id)}" placeholder="${_escAttr(def.ph)}" value="${_escAttr(val)}"
+      <input type="text" id="${_escAttr(pfx)}-manual-${_escAttr(def.id)}" aria-label="${_escAttr(def.label)}" placeholder="${_escAttr(def.ph)}" value="${_escAttr(val)}"
         oninput="${_escAttr(fn + 'SetManual(' + _jsArgLiteral(def.id) + ',this.value)')}"
         style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;">
       ${qpHtml}
@@ -21194,18 +21194,34 @@ function renderSlotCard(def, ns) {
   // W3e: words the box holds that were not saved stay in the box, with a note saying what was kept and why.
   const heldTyped = (ns === 'slot' && typeof SLOT_HELD !== 'undefined') ? SLOT_HELD[def.id] : null;
   const currentVal = heldTyped ? heldTyped.typed : (hasValue ? (state.recipeName || state.manual || '') : '');
-  const matchBadge = hasValue && state.recipeName
-    ? `<span style="font-size:10px;padding:1px 6px;background:var(--ok-faint, #d1fae5);color:var(--ok-ink, #065f46);border-radius:8px;font-weight:600;margin-left:6px;">${doorIcon("check")} recipe matched</span>`
-    : (hasValue && state.manual ? `<span style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:var(--warn-ink, #92400e);border-radius:8px;font-weight:600;margin-left:6px;" title="No CODEX recipe linked. Allergen flags here are manual — verify they're complete. Type to search CODEX, click a suggestion to link.">${doorIcon("warning")} unlinked (manual)</span>` : '');
-
-  const borderColor = hasValue ? (state.recipeName ? '#10b981' : '#60a5fa') : 'var(--border)';
+  // A saved recipe label is not proof that its identity still resolves. Rendering
+  // checks current catalogue identity without altering captured facts or shown words.
+  const binding = (() => {
+    if (!hasValue || !state.recipeName) return null;
+    const rows = isHubLoaded() ? DOOR_RECIPE_DATA : [];
+    const norm = v => String(v || '').trim().toLowerCase();
+    const names = rows.filter(r => norm(r.recipeName) === norm(state.recipeName));
+    if (state.recipeId) {
+      const ids = rows.filter(r => r.recipeId && String(r.recipeId) === String(state.recipeId));
+      if (ids.length !== 1) return {ok:false, label:ids.length ? 'Ambiguous recipe — review link' : 'Recipe unavailable — review link'};
+      if (names.some(r => r.recipeId && String(r.recipeId) !== String(state.recipeId))) return {ok:false, label:'Conflicting recipe — review link'};
+      return {ok:true, label:'Linked to CODEX'};
+    }
+    return names.length === 1
+      ? {ok:false, label:ns === 'sm-slot' ? 'Linked by name' : 'Linked by name — confirm recipe'}
+      : {ok:false, label:names.length ? 'Ambiguous recipe — review link' : 'Recipe unavailable — review link'};
+  })();
+  const badgeText = binding ? binding.label : 'Unlinked (manual)';
+  const matchBadge = hasValue
+    ? '<span style="font-size:10px;padding:1px 6px;background:' + (binding && binding.ok ? 'var(--ok-faint, #d1fae5)' : 'var(--amber-pale)') + ';color:' + (binding && binding.ok ? 'var(--ok-ink, #065f46)' : 'var(--warn-ink, #92400e)') + ';border-radius:8px;font-weight:600;margin-left:6px;">' + doorIcon(binding && binding.ok ? 'check' : 'warning') + ' ' + escapeHtml(badgeText) + '</span>' : '';
+  const borderColor = hasValue ? (binding && binding.ok ? '#10b981' : '#60a5fa') : 'var(--border)';
   // Recipe-attach S2: "Shown on menu as" — ANY bound slot (main group + the alt slots),
   // regular editor only (SM has its own path). Lets the operator show e.g. "Pork Al Pastor
   // Taco" / "Vegan Nacho Mix" while allergens stay linked to the bound recipe. Absent on
   // manual (unbound) + SM cards. The bound recipe check (state.recipeName) excludes both.
   const showAsHtml = (ns === 'slot' && hasValue && state.recipeName)
     ? `<div style="margin-top:6px;">
-        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Shown on menu as <span style="font-style:italic;">(allergens stay linked to “${escapeHtml(state.recipeName)}”)</span></label>
+        <label for="slot-showas-${_escAttr(def.id)}" style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Shown on menu as <span style="font-style:italic;">(saved recipe: “${escapeHtml(state.recipeName)}”; captured ingredient flags are kept)</span></label>
         <input type="text" id="slot-showas-${_escAttr(def.id)}" value="${_escAttr(state.displayText || state.recipeName)}"
           oninput="${_escAttr('slotSetDisplayText(' + _jsArgLiteral(def.id) + ',this.value)')}"
           style="width:100%;padding:4px 8px;border:${heldTyped && heldTyped.kind === 'rename' ? '2px solid #d97706' : '1px dashed var(--border)'};border-radius:6px;font-size:12px;box-sizing:border-box;">
@@ -21215,10 +21231,11 @@ function renderSlotCard(def, ns) {
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;">
       ${escapeHtml(def.label)}${optLabel}${matchBadge}
-      ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear">×</button>` : ''}
+      ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear" aria-label="Clear ${_escAttr(def.label)}">×</button>` : ''}
     </div>
     <div style="position:relative;">
-      <input type="text" id="${_escAttr(pfx)}-search-${_escAttr(def.id)}" autocomplete="off"
+      <input type="text" id="${_escAttr(pfx)}-search-${_escAttr(def.id)}" autocomplete="off" aria-label="${_escAttr(def.label)} recipe"
+        ${ns === 'slot' ? 'role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="slot-dd-' + _escAttr(def.id) + '"' : ''}
         placeholder="${_escAttr(def.ph)}"
         value="${_escAttr(currentVal)}"
         style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;"
@@ -21226,7 +21243,7 @@ function renderSlotCard(def, ns) {
         onfocus="${_escAttr('this.select();' + fn + 'Search(' + _jsArgLiteral(def.id) + ',this.value)')}"
         onblur="${_escAttr(fn + 'AutoSave(' + _jsArgLiteral(def.id) + ',this.value)')}"
         onkeydown="${_escAttr(fn + 'Key(event,' + _jsArgLiteral(def.id) + ')')}">
-      <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
+      <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" ${ns === 'slot' ? 'role="listbox" aria-label="' + _escAttr(def.label) + ' recipes"' : ''} style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
     </div>
     ${heldTyped ? doorSlotHeldNoteHTML(def.id, heldTyped, state) : ''}
     ${showAsHtml}
@@ -22359,6 +22376,8 @@ function recipeMatchesSlotDef(def, recipe) {
 function slotSearch(slotId, query) {
   const dd = document.getElementById('slot-dd-' + slotId);
   if (!dd) return;
+  const input = document.getElementById('slot-search-' + slotId);
+  if (input) { input.removeAttribute('aria-activedescendant'); input.setAttribute('aria-expanded', 'false'); }
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
@@ -22375,9 +22394,9 @@ function slotSearch(slotId, query) {
     : '';
   if (!results.length && !q) { dd.style.display = 'none'; return; }
   dd.innerHTML = renameRow + (results.length
-    ? results.map(r => {
+    ? results.map((r, index) => {
         const hilite = highlightHtml(r.recipeName, q);
-        return `<div onmousedown="event.preventDefault();${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}"
+        return `<div role="option" id="slot-option-${_escAttr(slotId)}-${index}" aria-selected="false" data-recipe-name="${_escAttr(r.recipeName)}" onmousedown="event.preventDefault();${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
@@ -22388,6 +22407,7 @@ function slotSearch(slotId, query) {
     : '<div onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" style="padding:10px 12px;font-size:12px;color:var(--muted);cursor:pointer;" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">No matches — ' +
       (cur && cur.recipeName ? 'unlink “' + escapeHtml(cur.recipeName) + '” and use "' + escapeHtml(query) + '" (no allergen data; tick them by hand)' : 'Add "' + escapeHtml(query) + '" manually (no allergen data)') + '</div>');
   dd.style.display = 'block';
+  if (input) input.setAttribute('aria-expanded', 'true');
 }
 
 // W3e (2026-11-09): new words typed in the search box of a linked slot, that are not the recipe or the shown name.
@@ -22427,10 +22447,16 @@ function slotRenameShown(slotId, val) {
 }
 
 function slotSelect(slotId, recipeName) {
-  const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
+  const choices = isHubLoaded() ? DOOR_RECIPE_DATA.filter(r => r.recipeName === recipeName) : [];
+  const recipe = choices[0];
   if (!recipe) return;
+  if (choices.length !== 1 || (recipe.recipeId && DOOR_RECIPE_DATA.filter(r => String(r.recipeId || '') === String(recipe.recipeId)).length !== 1)) {
+    showToast('This recipe is ambiguous in CODEX. Review the link before choosing it.');
+    return;
+  }
   const current = MEAL_SLOT_STATE[slotId];
-  const sameRecipe = current && current.recipeName === recipeName;
+  const sameRecipe = current && (current.recipeId && recipe.recipeId
+    ? String(current.recipeId) === String(recipe.recipeId) : current.recipeName === recipeName);
   const next = {
     recipeName,
     flags: sameRecipe && current.flags ? current.flags : doorLinkFlags(recipe, current),
@@ -22513,6 +22539,8 @@ function slotAutoSave(slotId, val, how) {
   // and the operator's exact text must be kept (never forced onto a partial CODEX match). Hide
   // any open dropdown and fall through to the exact-match-or-manual commit below.
   if (dd) dd.style.display = 'none';
+  const searchInput = document.getElementById('slot-search-' + slotId);
+  if (searchInput && searchInput.setAttribute) { searchInput.setAttribute('aria-expanded', 'false'); searchInput.removeAttribute('aria-activedescendant'); }
   const held = typeof SLOT_HELD !== 'undefined' ? SLOT_HELD : null;
   if (!val) { MEAL_SLOT_STATE[slotId] = null; if (held) delete held[slotId]; renderSlots(); updateSlotSummary(); return; }
   const current = MEAL_SLOT_STATE[slotId];
@@ -22527,11 +22555,17 @@ function slotAutoSave(slotId, val, how) {
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   const pool = def ? recipes.filter(r => recipeMatchesSlotDef(def, r)) : recipes;
-  const match = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
+  const matches = pool.filter(r => r.recipeName.toLowerCase() === val.toLowerCase());
+  const match = matches[0];
+  if (matches.length > 1 || (match && match.recipeId && recipes.filter(r => String(r.recipeId || '') === String(match.recipeId)).length !== 1)) {
+    showToast('This recipe is ambiguous in CODEX. Review the link before choosing it.');
+    return;
+  }
   if (match) {
     // Preserve slot-level flag overrides when the same recipe is re-confirmed
     // on a subsequent blur. A genuine recipe change resets flags.
-    const sameRecipe = current && current.recipeName === match.recipeName;
+    const sameRecipe = current && (current.recipeId && match.recipeId
+      ? String(current.recipeId) === String(match.recipeId) : current.recipeName === match.recipeName);
     const next = {
       recipeName: match.recipeName,
       flags: sameRecipe && current.flags ? current.flags : doorLinkFlags(match, current),
@@ -22635,16 +22669,40 @@ function _mealNoAllergenSource(flags, anyRecipeLinked, name) {
 
 function slotKey(e, slotId) {
   const dd = document.getElementById('slot-dd-' + slotId);
-  if (e.key === 'Escape') { if (dd) dd.style.display = 'none'; }
-  if (e.key === 'Enter') {
-    // Commit exactly what was typed — never auto-adopt a partial/close CODEX match just
-    // because it's on top of the dropdown. slotAutoSave links only on an EXACT recipe-name
-    // match (for its allergens) and keeps anything else as free manual text. To take a
-    // similarly-named recipe, click it in the dropdown.
+  const input = document.getElementById('slot-search-' + slotId);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
+    if (!dd || !input) return;
+    if (dd.style.display === 'none') slotSearch(slotId, input.value);
+    const options = Array.from(dd.querySelectorAll('[role="option"]'));
+    if (!options.length) return;
+    const prior = options.findIndex(o => o.id === input.getAttribute('aria-activedescendant'));
+    const next = prior < 0 ? (e.key === 'ArrowDown' ? 0 : options.length - 1)
+      : (prior + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+    options.forEach((o, i) => { o.setAttribute('aria-selected', i === next ? 'true' : 'false'); o.style.background = i === next ? 'var(--cream)' : ''; o.style.outline = i === next ? '2px solid var(--forest-text)' : ''; o.style.outlineOffset = '-2px'; });
+    input.setAttribute('aria-activedescendant', options[next].id);
+    options[next].scrollIntoView({block:'nearest'});
+    return;
+  }
+  if (e.key === 'Escape') {
     if (dd) dd.style.display = 'none';
-    const inp = document.getElementById('slot-search-' + slotId);
-    if (inp) slotAutoSave(slotId, inp.value.trim(), 'enter');   // W3e: Enter keeps the words as typed
+    if (input) { input.removeAttribute('aria-activedescendant'); input.setAttribute('aria-expanded', 'false'); }
+    return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const activeId = input && input.getAttribute && input.getAttribute('aria-activedescendant');
+    const active = activeId && dd && dd.style.display !== 'none' && document.getElementById(activeId);
+    if (active && active.getAttribute('role') === 'option' && dd.contains(active)) {
+      slotSelect(slotId, active.getAttribute('data-recipe-name'));
+      return;
+    }
+    // With no deliberately highlighted option, preserve the established manual
+    // commit. Merely opening a list never selects a fuzzy match.
+    if (dd) dd.style.display = 'none';
+    if (input && input.setAttribute) { input.removeAttribute('aria-activedescendant'); input.setAttribute('aria-expanded', 'false'); }
+    const inp = input;
+    if (inp) slotAutoSave(slotId, inp.value.trim(), 'enter');
   }
 }
 
