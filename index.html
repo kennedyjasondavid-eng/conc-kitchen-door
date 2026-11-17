@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.86';
+const DOOR_APP_VERSION = 'v31-standard.88';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9059,8 +9059,9 @@ async function generateFiles() {
     // Assess the same transition that commit uses, without writes, history, logs or queue consumption.
     const projected = doorProjectRegistryQueue(changesQueue, anaphListAnswers);
     const readiness = doorPlatingReadiness(doorRotationServices(), projected);
+    const feedback = typeof doorPlatingReadinessFeedbackModel === 'function' ? doorPlatingReadinessFeedbackModel(readiness) : null;
     if (!readiness.ready && !(await doorAsk({ title:'Plating outputs are NOT READY',
-      lines:[doorPlatingReadinessText(readiness),
+      lines:[feedback && feedback.ordinaryDefinitionGaps ? feedback.serviceCount + ' services need a meal definition. Final plating outputs remain blocked.' : doorPlatingReadinessText(readiness),
         'Save the resident changes anyway? The queue will be committed and sent through the normal kitchen sync. Incomplete final plating workbooks and ZIPs remain blocked; follow the current manual service process and obtain a supervisor-confirmed separate meal for affected residents.'],
       goLabel:'Save resident changes', cancelLabel:'Keep queue for review' }))) return;
   } finally { _doorGenerateBusy = false; }
@@ -12130,6 +12131,9 @@ function doorPrivateGitV1Base64(text) {
   for(let i=0;i<bytes.length;i+=32768)parts.push(String.fromCharCode.apply(null,bytes.subarray(i,i+32768)));
   return btoa(parts.join(''));
 }
+function doorPrivateGitV1MutationDocument() {
+  return 'mutation DoorAcceptPrivate($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){clientMutationId commit{oid repository{databaseId nameWithOwner} parents(first:2){totalCount nodes{oid}}} ref{name prefix repository{databaseId nameWithOwner} target{oid}}}}';
+}
 function doorPrivateGitTransportV1Create(rawConfig,capabilities) {
   let config,request,getCredential,deriveProjectionBasis;
   try{
@@ -12287,7 +12291,7 @@ function doorPrivateGitTransportV1Create(rawConfig,capabilities) {
     if(generations&&(await s.tree(generations.sha)).some(e=>e.path===operation.generationId))doorPrivateGitV1Fail('generation-exists');
     const prefix='generations/'+operation.generationId+'/';
     const additions=[{path:prefix+'manifest.json',contents:doorPrivateGitV1Base64(input.manifestText)},...['registry.json','menu.json'].map(name=>({path:prefix+name,contents:doorPrivateGitV1Base64(input.files[name])})),{path:'accepted.json',contents:doorPrivateGitV1Base64(pointerText)}];
-    const query='mutation DoorAcceptPrivate($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){clientMutationId commit{oid repository{databaseId nameWithOwner} parents(first:2){totalCount nodes{oid}}} ref{name prefix repository{databaseId nameWithOwner} target{oid}}}}';
+    const query=doorPrivateGitV1MutationDocument();
     const response=await s.json('https://api.github.com/graphql',M,{query,variables:{input:{branch:{repositoryNameWithOwner:fullName,branchName:fixed.branch},expectedHeadOid:head,fileChanges:{additions},message:{headline:'Accept private DOOR generation'},clientMutationId:operation.operationId}}});
     const ack=response.data?.createCommitOnBranch,c=ack?.commit,ref=ack?.ref,repoOK=r=>r?.databaseId===fixed.id&&r?.nameWithOwner===fullName;
     if(Object.hasOwn(response,'errors')&&(!Array.isArray(response.errors)||response.errors.length>0)||!ack||ack.clientMutationId!==operation.operationId||!doorPrivateV1Commit(c?.oid)||c.oid===head||!repoOK(c.repository)||c.parents?.totalCount!==1||c.parents?.nodes?.length!==1||c.parents.nodes[0]?.oid!==head||!repoOK(ref?.repository)||ref.name!==fixed.branch||ref.prefix!=='refs/heads/'||ref.target?.oid!==c.oid)doorPrivateGitV1Fail('unavailable');
@@ -12300,6 +12304,121 @@ function doorPrivateGitTransportV1Create(rawConfig,capabilities) {
   return {ok:true,transport:{observePrivate,readPackage,acceptPrivate}};
 }
 /* DOOR_TESTABLE_CORE_END private-git-transport-v1 */
+/* DOOR_TESTABLE_CORE_START private-git-fetch-bridge-v1 */
+// Explicit native capabilities only. Connection testing never mutates shared data.
+function doorPrivateGitFetchBridgeV1Create(rawConfig,capabilities) {
+  let config,nativeFetch,schedule,clear,Controller;
+  const exact=(v,keys)=>doorPrivateV1Object(v)&&Reflect.ownKeys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
+  const functions=(v,keys)=>exact(v,keys)&&keys.every(k=>{const d=Object.getOwnPropertyDescriptor(v,k);return d&&d.enumerable&&Object.hasOwn(d,'value')&&typeof d.value==='function';});
+  try{
+    config=doorPrivateGitV1Frame(rawConfig);
+    if(!doorPrivateGitTransportV1Create(config,{request(){},getCredential(){},deriveProjectionBasis(){}}).ok)return {ok:false,code:'config'};
+    if(!functions(capabilities,['fetch','setTimeout','clearTimeout','AbortController']))return {ok:false,code:'capability'};
+    nativeFetch=capabilities.fetch;schedule=capabilities.setTimeout;clear=capabilities.clearTimeout;Controller=capabilities.AbortController;
+  }catch(_){return {ok:false,code:'config'};}
+  const fixed=config.privateRepository,root='https://api.github.com/repos/'+fixed.owner+'/'+fixed.name,K=1024,M=K*K;
+  const error=code=>({code,doorPrivateGitCode:code==='invalid-request'?'invalid-input':code==='response-bounds-exceeded'?'bounds-exceeded':'unavailable'});
+  function contents(text,limit){
+    if(typeof text!=='string'||!text.length||text.length%4!==0)return false;
+    const padding=text.endsWith('==')?2:text.endsWith('=')?1:0;
+    if(text.length/4*3-padding>limit||!/^[A-Za-z0-9+/]*$/.test(text.slice(0,text.length-padding)))return false;
+    try{return btoa(atob(text))===text;}catch(_){return false;}
+  }
+  function admit(raw){
+    const r=doorPrivateGitV1Frame(raw),post=r?.method==='POST';
+    if(!exact(r,post?['url','method','headers','timeoutMs','maxResponseBytes','redirect','body']:['url','method','headers','timeoutMs','maxResponseBytes','redirect'])||
+      !['GET','POST'].includes(r.method)||typeof r.url!=='string'||r.url.length>512||r.timeoutMs!==15000||r.redirect!=='error'||!Number.isSafeInteger(r.maxResponseBytes)||r.maxResponseBytes<=0)throw error('invalid-request');
+    let cap=0;
+    if(post){if(r.url==='https://api.github.com/graphql')cap=M;}
+    else if(r.url===root||r.url===root+'/git/ref/heads/'+fixed.branch)cap=M;
+    else if(r.url.startsWith(root+'/git/')){
+      const tail=r.url.slice((root+'/git/').length),match=/^(commits|trees|blobs)\/[a-f0-9]{40}$/.exec(tail);
+      if(match)cap=match[1]==='blobs'?6*M:match[1]==='trees'?2*M:M;
+    }
+    if(!cap||r.maxResponseBytes>cap||!exact(r.headers,post?['Accept','Authorization','X-GitHub-Api-Version','Content-Type']:['Accept','Authorization','X-GitHub-Api-Version'])||
+      r.headers.Accept!=='application/vnd.github+json'||r.headers['X-GitHub-Api-Version']!=='2022-11-28'||typeof r.headers.Authorization!=='string'||!/^Bearer [!-~]{1,2000}$/.test(r.headers.Authorization)||post&&r.headers['Content-Type']!=='application/json')throw error('invalid-request');
+    if(Object.entries(r.headers).reduce((n,[key,value])=>n+new TextEncoder().encode(key+value).length,0)>4096)throw error('invalid-request');
+    if(post){
+      const body=doorPrivateGitV1JSON(r.body,12*M),input=body?.variables?.input;
+      if(!exact(body,['query','variables'])||body.query!==doorPrivateGitV1MutationDocument()||!exact(body.variables,['input'])||!exact(input,['branch','expectedHeadOid','fileChanges','message','clientMutationId'])||
+        !exact(input.branch,['repositoryNameWithOwner','branchName'])||input.branch.repositoryNameWithOwner!==fixed.owner+'/'+fixed.name||input.branch.branchName!==fixed.branch||!doorPrivateV1Commit(input.expectedHeadOid)||
+        !exact(input.message,['headline'])||input.message.headline!=='Accept private DOOR generation'||!doorPrivateV1Id(input.clientMutationId)||!exact(input.fileChanges,['additions'])||!Array.isArray(input.fileChanges.additions)||input.fileChanges.additions.length!==4)throw error('invalid-request');
+      let generation=null;const paths=new Set();
+      for(const addition of input.fileChanges.additions){
+        if(!exact(addition,['path','contents'])||typeof addition.path!=='string'||paths.has(addition.path))throw error('invalid-request');paths.add(addition.path);
+        let limit=16*K;
+        if(addition.path!=='accepted.json'){
+          const match=/^generations\/([a-f0-9-]{36})\/(manifest\.json|registry\.json|menu\.json)$/.exec(addition.path);
+          if(!match||!doorPrivateV1Id(match[1])||generation!==null&&generation!==match[1])throw error('invalid-request');generation=match[1];limit=match[2]==='manifest.json'?64*K:4*M;
+        }
+        if(!contents(addition.contents,limit))throw error('invalid-request');
+      }
+      if(!generation||!['accepted.json',...['manifest.json','registry.json','menu.json'].map(n=>'generations/'+generation+'/'+n)].every(p=>paths.has(p)))throw error('invalid-request');
+    }
+    return r;
+  }
+  async function request(raw){
+    let r;try{r=admit(raw);}catch(_){throw error('invalid-request');}
+    return new Promise((resolve,reject)=>{
+      let controller,timer,timerSet=false,settled=false,response=null,reader=null,released=false;
+      const quietly=fn=>{try{const result=fn();if(result&&typeof result.then==='function')Promise.resolve(result).catch(()=>{});}catch(_){}};
+      const cancelBody=body=>{if(body&&typeof body.cancel==='function')quietly(()=>body.cancel('DOOR private request stopped'));};
+      const cleanup=stop=>{
+        if(timerSet){timerSet=false;quietly(()=>clear(timer));}
+        if(stop){if(controller)quietly(()=>controller.abort('DOOR private request stopped'));if(reader)quietly(()=>reader.cancel('DOOR private request stopped'));else cancelBody(response?.body);}
+        if(reader&&!released){released=true;quietly(()=>reader.releaseLock());}
+      };
+      const fail=code=>{if(settled)return;settled=true;cleanup(true);reject(error(code));};
+      const succeed=(value,stop=false)=>{if(settled)return;settled=true;cleanup(stop);resolve(value);};
+      try{
+        controller=new Controller();
+        if(!controller||typeof controller.abort!=='function'||!controller.signal||controller.signal.aborted!==false)throw error('capability-unavailable');
+        timer=schedule(()=>fail('request-timeout'),15000);timerSet=true;
+      }catch(_){fail('capability-unavailable');return;}
+      const run=async()=>{
+        let result;
+        try{result=await nativeFetch(r.url,{method:r.method,headers:r.headers,...(r.method==='POST'?{body:r.body}:{}),credentials:'omit',mode:'cors',redirect:'error',cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal});}
+        catch(_){fail('network-unavailable');return;}
+        if(settled){cancelBody(result?.body);return;}response=result;
+        if(!result||!['basic','cors'].includes(result.type)||!Number.isInteger(result.status)||result.status<100||result.status>599){fail('response-invalid');return;}
+        if(result.url!==r.url||result.redirected!==false||result.status>=300&&result.status<400){fail('redirect-rejected');return;}
+        if(result.status!==200){succeed({status:result.status,url:r.url,redirected:false,bytes:new Uint8Array(0)},true);return;}
+        try{
+          if(!result.headers||typeof result.headers.get!=='function')throw error('response-invalid');
+          const length=result.headers.get('content-length');
+          if(length!==null&&length!==undefined){
+            if(typeof length!=='string'||!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length)))throw error('response-invalid');
+            if(Number(length)>r.maxResponseBytes){fail('response-bounds-exceeded');return;}
+          }
+          if(!result.body||typeof result.body.getReader!=='function')throw error('response-invalid');
+          reader=result.body.getReader();if(!reader||typeof reader.read!=='function'||typeof reader.releaseLock!=='function'||typeof reader.cancel!=='function')throw error('response-invalid');
+          const chunks=[];let total=0;
+          while(!settled){
+            const part=await reader.read();if(settled)return;
+            if(!part||typeof part.done!=='boolean')throw error('response-invalid');
+            if(part.done){const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}succeed({status:200,url:r.url,redirected:false,bytes});return;}
+            if(!(part.value instanceof Uint8Array))throw error('response-invalid');
+            if(part.value.byteLength>r.maxResponseBytes-total){fail('response-bounds-exceeded');return;}
+            total+=part.value.byteLength;chunks.push(new Uint8Array(part.value));
+          }
+        }catch(_){fail('response-invalid');}
+      };
+      run().catch(()=>fail('response-invalid'));
+    });
+  }
+  async function testConnection(caps){
+    try{
+      if(!functions(caps,['getCredential','deriveProjectionBasis']))return {ok:false,code:'capability'};
+      const getCredential=Object.getOwnPropertyDescriptor(caps,'getCredential').value,deriveProjectionBasis=Object.getOwnPropertyDescriptor(caps,'deriveProjectionBasis').value;
+      const made=doorPrivateGitTransportV1Create(config,{request,getCredential,deriveProjectionBasis});if(!made.ok)return {ok:false,code:made.code};
+      const result=await made.transport.observePrivate();if(!result.ok)return {ok:false,code:result.code};
+      return {ok:true,status:'private-read-verified',repositoryId:fixed.id,head:result.frame.head,acceptedStatus:result.frame.accepted.status,writeVerified:false};
+    }catch(_){return {ok:false,code:'unavailable'};}
+  }
+  return {ok:true,bridge:{request,testConnection}};
+}
+/* DOOR_TESTABLE_CORE_END private-git-fetch-bridge-v1 */
+
 
 
 /* DOOR_TESTABLE_CORE_START private-episode-v1 */
@@ -26659,6 +26778,55 @@ function doorRotationServices(period, weeks) {
       for (const meal of (period ? [period] : ['breakfast','lunch','dinner'])) services.push({period:meal, week, day});
   return services;
 }
+/* DOOR_TESTABLE_CORE_START plating-readiness-feedback-v1 */
+// Presentation only: no readiness, food, routing or output-admission authority.
+function doorPlatingReadinessFeedbackModel(readiness) {
+  const issues = readiness && readiness.issues;
+  const valid = !!readiness && typeof readiness.ready === 'boolean' && Array.isArray(issues) && Array.from(issues).every(x =>
+    x && typeof x.kind === 'string' && typeof x.label === 'string' && x.label.trim() &&
+    typeof x.reason === 'string' && x.reason.trim() && Array.isArray(x.rooms) && Array.from(x.rooms).every(r => typeof r === 'string' && r.trim()));
+  const ready = !!(valid && readiness.ready && issues.length === 0);
+  const ordinaryDefinitionGaps = !!(valid && readiness.ready === false && issues.length > 0 && issues.every(x => x.kind === 'definition-gap'));
+  const groups = [], labels = new Set();
+  if (valid) issues.forEach(issue => {
+    labels.add(issue.label);
+    let group = groups.find(g => g.reason === issue.reason);
+    if (!group) { group = {reason:issue.reason, services:[]}; groups.push(group); }
+    let service = group.services.find(x => x.label === issue.label);
+    if (!service) { service = {label:issue.label, rooms:[]}; group.services.push(service); }
+    issue.rooms.forEach(room => { if (!service.rooms.includes(room)) service.rooms.push(room); });
+  });
+  return {ready, ordinaryDefinitionGaps, serviceCount:labels.size, groups};
+}
+var doorCreatePlatingReadinessError = (function() {
+  const bindings = new WeakMap();
+  const snapshot = readiness => ({ready:readiness.ready, issues:readiness.issues.map(x => ({...x, rooms:Array.isArray(x.rooms) ? x.rooms.slice() : x.rooms}))});
+  function create(readiness, prefix) {
+    const error = new Error(prefix + '\n' + doorPlatingReadinessText(readiness));
+    bindings.set(error, snapshot(readiness));
+    return error;
+  }
+  Object.defineProperty(create, 'readinessFor', {value:error => {
+    const value = error && bindings.get(error);
+    return value ? snapshot(value) : null;
+  }});
+  return create;
+})();
+function doorPresentPlatingReadiness(readiness) {
+  const model = doorPlatingReadinessFeedbackModel(readiness);
+  if (!model.ordinaryDefinitionGaps || typeof document === 'undefined') return false;
+  const screen = document.querySelector('.screen.active');
+  if (!screen || typeof document.createElement !== 'function') return false;
+  let host = document.getElementById('door-plating-readiness-feedback');
+  if (!host) { host = document.createElement('div'); host.id = 'door-plating-readiness-feedback'; }
+  if (host.parentNode !== screen) screen.prepend(host);
+  host.innerHTML = doorPlatingReadinessHTML(readiness);
+  const heading = host.querySelector('.door-plating-readiness-title');
+  if (heading && typeof heading.focus === 'function') heading.focus();
+  return true;
+}
+/* DOOR_TESTABLE_CORE_END plating-readiness-feedback-v1 */
+
 function doorPlatingReadiness(services, projected) {
   const issues = [], sheets = [];
   for (const service of services) {
@@ -26669,10 +26837,10 @@ function doorPlatingReadiness(services, projected) {
       if (!pd) throw new Error('Meal data unavailable');
       sheets.push({service, pd});
       const a = doorAssessAnaphAlternative(pd);
-      if (a.state === 'missing') issues.push({label, rooms:a.rooms, reason:'Separate anaphylactic meal is not named'});
+      if (a.state === 'missing') issues.push({kind:'anaph-missing', label, rooms:a.rooms, reason:'Separate anaphylactic meal is not named'});
       const breakfastGap = doorBreakfastDefinitionGap(pd);
-      if (breakfastGap) issues.push({label, ...breakfastGap});
-    } catch (e) { issues.push({label, rooms:[], reason:'Could not assess this meal'}); }
+      if (breakfastGap) issues.push({kind:'definition-gap', label, ...breakfastGap});
+    } catch (e) { issues.push({kind:'assessment-error', label, rooms:[], reason:'Could not assess this meal'}); }
   }
   return {ready:issues.length === 0, issues, sheets};
 }
@@ -26681,18 +26849,33 @@ function doorPlatingReadinessText(readiness) {
 }
 function doorRequirePlatingReady(services) {
   const readiness = doorPlatingReadiness(services);
-  if (!readiness.ready) throw new Error('Plating NOT READY.\n' + doorPlatingReadinessText(readiness));
+  if (!readiness.ready) throw typeof doorCreatePlatingReadinessError === 'function'
+    ? doorCreatePlatingReadinessError(readiness, 'Plating NOT READY.')
+    : new Error('Plating NOT READY.\n' + doorPlatingReadinessText(readiness));
+  if (typeof document !== 'undefined') document.getElementById('door-plating-readiness-feedback')?.remove();
   return readiness.sheets;
 }
 function doorPlatingReadinessHTML(readiness) {
   if (readiness.ready) return '';
+  const model = typeof doorPlatingReadinessFeedbackModel === 'function' ? doorPlatingReadinessFeedbackModel(readiness) : null;
+  if (model && model.ordinaryDefinitionGaps) {
+    const count = model.serviceCount;
+    const details = model.groups.map(group => '<details style="margin-top:8px;min-width:0;overflow-wrap:anywhere"><summary style="cursor:pointer;overflow-wrap:anywhere">' +
+      escapeHtml(group.reason) + ' — ' + group.services.length + (group.services.length === 1 ? ' service' : ' services') + '</summary><ul style="padding-left:20px;overflow-wrap:anywhere">' +
+      group.services.map(service => '<li><strong>' + escapeHtml(service.label) + '</strong>' + (service.rooms.length ? ' — Rooms ' + service.rooms.map(escapeHtml).join(', ') : '') + '</li>').join('') + '</ul></details>').join('');
+    return '<div class="alert alert-warning" style="display:block;min-width:0;overflow-wrap:anywhere"><div role="status" aria-live="polite"><strong class="door-plating-readiness-title" tabindex="-1">Plating not ready — ' + count + (count === 1 ? ' service needs' : ' services need') + ' a meal definition.</strong></div>' +
+      '<p style="margin:6px 0">Final plating downloads, ZIP and print are blocked. Resident changes can still be saved. Use the current supervisor-confirmed manual service process.</p>' + details + '</div>';
+  }
   return '<div class="alert alert-danger" role="alert"><div class="alert-body"><strong>Plating NOT READY — meal definitions are unresolved</strong><br>' +
     escapeHtml(doorPlatingReadinessText(readiness)).replace(/\n/g, '<br>') +
     '<br>Follow the current manual service process and obtain a supervisor-confirmed separate meal for affected residents. A blank manual alternative does not resolve this gap. Resident changes can still be saved and sent.</div></div>';
 }
 function doorReportPlatingError(e) {
   console.error('[DOOR plating]', e);
+  const readiness = typeof doorCreatePlatingReadinessError === 'function' ? doorCreatePlatingReadinessError.readinessFor(e) : null;
+  if (readiness && doorPlatingReadinessFeedbackModel(readiness).ordinaryDefinitionGaps && doorPresentPlatingReadiness(readiness)) return true;
   alert(String(e && e.message || 'Could not build the complete requested plating file.'));
+  return false;
 }
 
 function buildDaySheet(period, weekNum, dayName, providedPd) {
@@ -27197,8 +27380,7 @@ async function downloadAllFiles() {
     showToast('Downloaded ' + files.length + ' files as ' + zipName);
   } catch(e) {
     console.error('Zip failed:', e);
-    doorReportPlatingError(e);
-    showToast('No ZIP downloaded — the complete file set could not be built.', 'error');
+    if (!doorReportPlatingError(e)) showToast('No ZIP downloaded — the complete file set could not be built.', 'error');
   } finally {
     btns.forEach((b, i) => { b.disabled = false; b.innerHTML = origText[i] || doorIcon('download') + ' Download All (zip)'; });
   }
@@ -27296,7 +27478,7 @@ function populateRecentGenerated() {
       +'</div>';
   }
 
-  const filesHtml = doorPlatingReadinessHTML(doorPlatingReadiness(doorRotationServices())) + fileList.map(fileItemHtml).join('');
+  const filesHtml = '<div class="alert alert-info" style="display:block">File list from the last save — not a plating clearance. Downloads are rebuilt and checked against current data.</div>' + doorPlatingReadinessHTML(doorPlatingReadiness(doorRotationServices())) + fileList.map(fileItemHtml).join('');
 
   const confirmFiles = document.getElementById('confirm-files');
   if (confirmFiles) {
@@ -27850,7 +28032,10 @@ function closeLabelModal() {
 function printPlatingPreview() {
   const readiness = doorPlatingReadiness([{period:psPeriod, week:psWeek, day:psDay}]);
   renderPlatingPreview(); // Never print an old rendered plate after resident/menu edits.
-  if (!readiness.ready) { doorReportPlatingError(new Error('Print NOT READY.\n' + doorPlatingReadinessText(readiness))); return; }
+  if (!readiness.ready) { doorReportPlatingError(typeof doorCreatePlatingReadinessError === 'function'
+    ? doorCreatePlatingReadinessError(readiness, 'Print NOT READY.')
+    : new Error('Print NOT READY.\n' + doorPlatingReadinessText(readiness))); return; }
+  if (typeof document !== 'undefined') document.getElementById('door-plating-readiness-feedback')?.remove();
   window.print();
 }
 

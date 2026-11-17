@@ -1,0 +1,13 @@
+# Private bridge and plating feedback review — 2026-11-17
+
+Independent food/data and release reviews clear index.html SHA256 `161020a1272e5dd453f8b9f5e29cb0f33d17c02384f2f5c05ff4efa9c33c4d7b`. The native-fetch bridge was reviewed separately before the presentation change; both remain pinned in the final source. Gate authors froze expectations before implementation.
+
+Ordinary missing-definition errors now provide escaped, grouped, initially collapsed inline feedback in the current screen. A concise polite announcement and focused heading replace repeated native alerts only for privately bound ordinary errors. Sparse/malformed issues, unknown errors and mixed or anaphylactic failures retain critical refusal and native alerts. No navigation or dirty-draft loss is introduced. Saving resident changes remains a separate existing choice. File cards accurately describe the last-save file list and current-data checks at download; they do not imply plating clearance.
+
+The inactive bridge bounds fixed GitHub request routes, streaming, deadlines, cleanup and diagnostics. Its constructor has no default network, credential, storage or production caller. Existing transport mutation bytes are preserved. Independent supplementary probes cover reused stream buffers, obsolete timers, unneeded error bodies and fixed mutation ownership.
+
+Validation on the reviewed source: complete Node run1276 pass,1 skip,0 fail; actual desktop/tablet feedback browser30/30; unchanged critical output browser18/18; readability/printing263/263. Bridge author41 and supplemental4 checks pass; pure feedback8 and malformed2 checks pass. Required CI now explicitly runs the new actual browser gate. Future serving-protocol tests are a separate frozen, unimplemented packet and are not part of this release.
+
+No operational JSON, food facts, routing, private migration or serving activation changes. Missing breakfast definitions remain unresolved. Synthetic browser and transport results do not establish staff-browser authentication, kitchen suitability, Office acceptance or HOUSE adoption.
+
+Hosted validation exposed one historical ordinary-GF print assertion that required the alert intentionally replaced by this UX. The author independently reproduced that failure on the exact reviewed source, then changed only its presentation observation: zero prints remains required, together with zero dialogs and the actual current-screen warning reason, nonempty closed details, focused heading and polite status. All21 other assertions remain unchanged; the complete gate passes22/22. The separate critical output Node/browser files remain byte-identical. This bounded adoption changes no product source or refusal criterion; it is not a relaxation of anaphylactic expectations.

@@ -147,7 +147,14 @@ try {
  check('both combined breakfast weeks are refused until the GF definitions exist',!breakfastPreview.readiness.ready&&breakfastPreview.readiness.issues.length===14);
  const alerts=[];replay.page.on('dialog',async d=>{alerts.push(d.message());await d.accept();});
  const printed=await replay.page.evaluate(()=>{let prints=0;window.print=()=>prints++;printPlatingPreview();return prints;});
- check('ordinary service print refuses missing GF breakfast',printed===0&&alerts.some(x=>x.includes('Gluten-free breakfast meal is not defined')));
+ // Gate-author feedback adoption 2026-11-17: ordinary missing definitions use the actual current-screen inline owner.
+ // Keep output refusal; require quiet dialogs plus collapsed, focused, accessible reason feedback. Critical gates unchanged.
+ const ordinaryFeedback=await replay.page.evaluate(()=>{
+  const host=document.querySelector('.screen.active #door-plating-readiness-feedback');
+  return {reason:host?.textContent||'',closed:!!host&&[...host.querySelectorAll('details')].length>0&&[...host.querySelectorAll('details')].every(d=>!d.open),
+   focused:!!host&&document.activeElement===host.querySelector('.door-plating-readiness-title'),polite:!!host?.querySelector('[role="status"][aria-live="polite"]')};
+ });
+ check('ordinary service print refuses missing GF breakfast',printed===0&&alerts.length===0&&ordinaryFeedback.reason.includes('Gluten-free breakfast meal is not defined')&&ordinaryFeedback.closed&&ordinaryFeedback.focused&&ordinaryFeedback.polite);
 
  // A resident edit on the remote after this tablet opened cannot be replaced by this menu change.
  const race=await h.boot(clone(files),{storage});await prepare(race);
