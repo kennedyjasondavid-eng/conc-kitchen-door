@@ -36,6 +36,14 @@ Independent focused revalidation on this exact frozen replacement:
 
 Earlier **45/45** frozen main draft gate evidence is retained; builder independently reran it after the guard. No remaining safety/UX blocker found in the replacement. Final required CI and release/feed clearance still apply.
 
+## Final compatibility ordering and gate interaction clearance
+
+2026-11-17: **PASS** final product source/snapshot SHA-256 `330ca0b890eb54b48907ca68ec6583599b64fa4d9c0c88ca70981662a4dbf691`. Compared the final key/session checks: clauses are now separate to preserve existing source-locked harness expectations, but each awaited save return still rejects a changed service or editor session before mutation. Independently reran the stale-answer browser probe on this exact snapshot: **3/3 pass** (`dirty-safety-race-final.log`). Prior draft behavior clearance is unchanged; builder's final full Node result is 984 pass, 0 fail, 1 skip.
+
+The hosted plain-plate gate's legacy cancellation interaction was independently reproduced red at its original saved-original reopen assertion (`plain-options-cancel-red.log`). Its earlier conflict-save probe stubs `doorAsk` to true; with draft protection that means Save rather than Discard, so Close correctly kept the incompatible draft. The gate now temporarily restores the captured real dialog, invokes normal Close, explicitly chooses Discard, waits for the panel to close, and restores the prior stub in finally. All four Close transitions use this user path. No force-close bypass was added.
+
+All **26 original check assertion lines are identical** to HEAD (automated comparison). No food/data/output expectations were changed. The completed amended gate passes **26/26** (`plain-options-cancel-green.log`). Final test SHA-256 `5ca6f940964d7592dcd9c7a8c6979e95a52bc0cf869923cf6f23759b654ec7f4`. No operational data or product edit was made by this gate amendment. No remaining safety/UX blocker found in final source plus amended test interaction.
+
 
 # Dirty menu draft — independent release/feed review
 
@@ -72,3 +80,11 @@ The signature/session state is intentionally transient. Native beforeunload prot
 This clearance is for source/gates only. Operational JSON changes in the working tree are separate and must not be swept into this PR. Full source CI and final committed-head inspection remain necessary. Hosted deployment and intended device observations remain distinct from successful local save. No public operational push approval is implied by this review.
 
 Final locked-source recheck: PASS, unchanged SHA-256 d4daeec884e5eec4b78f7ecc56a65f5862ee0a0a2dfe8e9a4731866270105975. Existing held-key and cancellation assertions remain in order, followed by session guards before mutation. Prior independently executed final-snapshot 45/45 + 3/3 remain applicable. Cleared for a source/gates-only PR based on current main; operational JSON must remain excluded.
+
+## Final compatibility pin and plain-plate interaction amendment
+
+**PASS** at final frozen source SHA-256 `330ca0b890eb54b48907ca68ec6583599b64fa4d9c0c88ca70981662a4dbf691`. Rechecked source hash and clause ordering: existing service-key and cancellation assertions remain, independent session guards follow before every state mutation; no behavioral weakening of stale-session protection. The ordering-only adjustment keeps the prior frozen structural contracts without changing expected source behavior. Builder reports exact-source Node 984 passing and affected structural files 16/16; prior independently executed dirty/race behavior remains applicable to these equivalent guard clauses.
+
+Reviewed the gate-author amendment to `plain_plate_options.mjs`: it captures/restores the real doorAsk before the existing conflict probe's stub, invokes ordinary Close, selects explicit Discard changes when the new loss dialog appears, and waits for the panel to close. It does not force-close the editor, stub away the loss question, or change the original 26 checks. The unchanged-sheet/reopen assertions run after the actual discard path.
+
+Independently ran the amended plain-plate gate against current final source: **26 checks passed**, exit 0 (`dirty-plain-release.log`). This amendment is justified interaction adaptation, not an expectation change to green a regression. Cleared final source/gate scope; continue to exclude operational JSON from the PR and observe hosted checks/deployment independently.

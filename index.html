@@ -21591,7 +21591,9 @@ async function saveMenuEdit() {
       items: _runOn.map(r => r.label + ': "' + r.text + '"'),
       cancelLabel: 'Go back and split them', goLabel: 'Save as it is'
     });
-    if (!ok || mcMenuEditKey !== editKey || (editSession && _doorMenuDraftBaseline !== editSession)) return;
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
+    if (!ok) return;
   }
   // Require an explicit decision on soft/plain alternatives: either at least one
   // is specified, or the user has affirmatively marked "none required".
@@ -21603,12 +21605,15 @@ async function saveMenuEdit() {
         'Confirm that no resident requires a soft or plain alternative for this meal — the standard meal already covers every dietary need.'],
       cancelLabel: 'Go back and add one', goLabel: 'Save with “none required”'
     });
-    if (!ok || mcMenuEditKey !== editKey || (editSession && _doorMenuDraftBaseline !== editSession)) return;
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
+    if (!ok) return;
     ALT_MEALS_NONE = true;
     renderAltMealsSection();
   }
   // The questions wait for an answer, so the editor could have closed or moved to another meal meanwhile.
-  if (mcMenuEditKey !== editKey || (editSession && _doorMenuDraftBaseline !== editSession)) return;
+  if (mcMenuEditKey !== editKey) return;
+  if (editSession && _doorMenuDraftBaseline !== editSession) return;
   const veg  = buildVegAlt();
   const slotFlags = buildUnionFlags();
   const flags = { ...slotFlags };
@@ -21657,7 +21662,8 @@ async function saveMenuEdit() {
   if (_offTicks.length) {
     const ask = doorTicksQuestion(_carried, _offTicks);
     const ans = await doorAsk(ask);
-    if (mcMenuEditKey !== editKey || (editSession && _doorMenuDraftBaseline !== editSession)) return;
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
     if (!ans) return;
     const takeOff = _carried.sameDish ? ans === 'alt' : ans === true;
     _offTicks.forEach(k => { flags[k] = !takeOff; });
