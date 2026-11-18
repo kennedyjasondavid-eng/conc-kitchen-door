@@ -2059,6 +2059,7 @@ function updateCODEXBadge() {
     <!-- Stale allergen flags banner (pre-v30 meals lacking per-slot snapshot) -->
     <div id="mc-menu-source-banner" style="display:none;background:var(--danger-faint, #fee2e2);border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-overlay-diff-banner" role="status" style="display:none;background:var(--card,#fff);border:1px solid var(--border,#d1d5db);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;"></div>
+    <div id="mc-label-resave-banner" role="status" style="display:none;background:var(--amber-pale);border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-unmapped-allergen-banner" style="display:none;background:var(--danger-faint, #fee2e2);border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
 
     <!-- Edit Menu mode banner -->
@@ -15210,6 +15211,7 @@ function renderMenuConfig() {
   renderMenuSourceBanner();
   renderOverlayDiffBanner();
   renderUnmappedAllergenBanner();
+  if (typeof renderLabelResaveBanner === 'function') renderLabelResaveBanner();
   closeMealEdit();
 }
 
@@ -16136,17 +16138,42 @@ function doorSectionLabelPlate(section, f) {
   if (at === 'bland_alt') return f && f._blandAlt ? null : 'regular';
   return null;
 }
+// Each plate holds entries { dish, known }: known null when the label is not checked, else the allergen families of a
+// label checked since the dish was linked (its saved flags are still the empty ones; the meal is to be saved again).
+// A plate DOOR cannot read (gluten free, soft, no processed, the bland plate the kitchen names) gives an anaphylactic
+// resident every such dish on the meal (review fold, 2026-11-18); others on it get no note, as before.
 function doorLabelCheckNote(r, plate, mealFlags) {
   const all = mealFlags && mealFlags._labelUnchecked;
-  const dishes = (all && plate && all[plate]) || [];
-  if (!r || !dishes.length) return { note: '', red: false };
+  if (!r || !all) return { note: '', red: false };
   const anaph = typeof doorIsAnaphResident === 'function' && doorIsAnaphResident(r);
+  let items = plate ? (all[plate] || []) : [];
+  if (!plate && anaph) {
+    const seen = {};
+    items = [];
+    Object.keys(all).forEach(k => (all[k] || []).forEach(x => { if (!seen[x.dish]) { seen[x.dish] = 1; items.push(x); } }));
+  }
+  if (!items.length) return { note: '', red: false };
   if (!anaph && !doorResidentAllergenRestricted(r)) return { note: '', red: false };
-  return { note: (anaph ? 'ANAPHYLACTIC: ' : '') + 'check label: ' + dishes.join(', '), red: !!anaph };
+  const parts = [];
+  const unknown = items.filter(x => !x.known).map(x => x.dish);
+  if (unknown.length) parts.push('check label: ' + unknown.join(', '));
+  items.filter(x => x.known).forEach(x => parts.push(x.dish + ' label checked since: ' + (x.known.length ? 'contains ' + x.known.join(', ') : 'nothing listed') + ', re-save the meal'));
+  return { note: (anaph ? 'ANAPHYLACTIC: ' : '') + parts.join('; '), red: !!anaph };
+}
+// The dishes of a menu text (a plate with no slots: 26 of 28 breakfasts) that name, in any case, a recipe whose label is
+// not checked. An exact name only: a guess is the name lookup of the vegan line, which hands back its own matches.
+function doorTextUncheckedDishes(text) {
+  const out = [];
+  if (!text || typeof DOOR_RECIPE_DATA === 'undefined' || !Array.isArray(DOOR_RECIPE_DATA) || typeof doorRecipeLabelUnchecked !== 'function') return out;
+  doorSplitDishes(text).forEach(part => {
+    const n = part.toLowerCase();
+    if (DOOR_RECIPE_DATA.some(r => r && typeof r.recipeName === 'string' && r.recipeName.trim().toLowerCase() === n && doorRecipeLabelUnchecked(r)) && out.indexOf(part) < 0) out.push(part);
+  });
+  return out;
 }
 // The dishes on each plate of a meal whose label is not checked, or null when there are none. A typed special meal keeps
-// no slots: its linked recipes (and the marks saved with it) stand in for them.
-function doorPlatesLabelUnchecked(dayData, period, dated) {
+// no slots: its linked recipes (and the marks saved with it) stand in for them. byText adds dishes read by name.
+function doorPlatesLabelUnchecked(dayData, period, dated, byText) {
   let slots = dayData && dayData[period + '_slots'];
   if ((!slots || typeof slots !== 'object') && dated && dated.entry && dated.entry.linkedRecipes && typeof dated.entry.linkedRecipes === 'object') {
     const marked = Array.isArray(dated.entry.labelUnchecked) ? dated.entry.labelUnchecked : [];
@@ -16158,10 +16185,15 @@ function doorPlatesLabelUnchecked(dayData, period, dated) {
       if (marked.indexOf(id) >= 0) slots[id].labelUnchecked = true;
     });
   }
-  if (!slots || typeof slots !== 'object' || typeof doorSlotLabelUnchecked !== 'function') return null;
+  if (!slots || typeof slots !== 'object') slots = {};
+  if (typeof doorSlotLabelState !== 'function') return null;
+  const add = (out, dish, known) => { if (dish && !out.some(x => x.dish.toLowerCase() === dish.toLowerCase())) out.push({ dish, known }); };
   const pick = list => {
     const out = [];
-    (list || []).forEach(x => { if (doorSlotLabelUnchecked(x)) { const t = _slotText(x); if (t && out.indexOf(t) < 0) out.push(t); } });
+    (list || []).forEach(x => {
+      const st = doorSlotLabelState(x);
+      if (st) add(out, _slotText(x), st.unchecked ? null : st.known);
+    });
     return out;
   };
   const at = ids => ids.map(id => slots[id]);
@@ -16171,7 +16203,36 @@ function doorPlatesLabelUnchecked(dayData, period, dated) {
     halal: pick(doorLinePieces(slots, 'halal', ['mainalt', 'starch', 'vegside', 'xtra'])),
     nopork: pick(at(['noporkalt', 'starch', 'vegside', 'xtra']))
   };
+  Object.keys(byText || {}).forEach(k => { if (plates[k]) (byText[k] || []).forEach(d => add(plates[k], d, null)); });
   return Object.keys(plates).some(k => plates[k].length) ? plates : null;
+}
+// Menu Config: the meals whose slots were linked while a label was not checked and whose label is checked now. Their
+// saved flags stay as they are until someone opens and saves each one.
+function doorMealsToResave(menu) {
+  const out = [];
+  const m = menu || (typeof getMenuData === 'function' ? getMenuData() : {});
+  Object.keys(m || {}).forEach(week => Object.keys(m[week] || {}).forEach(day => ['breakfast', 'lunch', 'dinner'].forEach(period => {
+    const slots = m[week][day] && m[week][day][period + '_slots'];
+    if (!slots || typeof slots !== 'object') return;
+    const dishes = [];
+    Object.keys(slots).forEach(id => {
+      const one = x => { const st = doorSlotLabelState(x); if (st && st.checkedSince) { const t = _slotText(x); if (t && dishes.indexOf(t) < 0) dishes.push(t); } };
+      one(slots[id]);
+      if (slots[id] && slots[id].lines) Object.keys(slots[id].lines).forEach(l => one(slots[id].lines[l]));
+    });
+    if (dishes.length) out.push({ week: String(week), day, period, dishes });
+  })));
+  return out;
+}
+function renderLabelResaveBanner() {
+  const el = document.getElementById('mc-label-resave-banner');
+  if (!el) return;
+  const list = typeof doorMealsToResave === 'function' ? doorMealsToResave() : [];
+  if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = '<strong style="color:var(--warn-ink, #92400e);">' + doorIcon('warning') + ' Labels checked since these dishes were linked</strong> ' +
+    '<span style="color:var(--muted);">Open each meal in Edit Menu and save it so its allergens reach the plates and the kitchen files:</span> ' +
+    list.map(x => escapeHtml('Wk' + x.week + ' ' + x.day.slice(0, 3) + ' ' + x.period + ' (' + x.dishes.join(', ') + ')')).join(', ');
+  el.style.display = 'block';
 }
 function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
   const tags = (r && r.tags) || [];
@@ -20712,20 +20773,42 @@ function hubAllergenToFlags(allergens) {
 // from the recipe list of today (doorRecipeLabelUnchecked), so a recipe found unchecked today is unchecked whatever it
 // captured. A slot that captured the mark keeps it until the editor shows it with the label checked: then its flags are
 // taken from the checked recipe and the mark goes, saved at the next Save. Nothing here blocks a save.
-function doorSlotRecipeToday(s) {
-  if (!s || !s.recipeName || typeof DOOR_RECIPE_DATA === 'undefined' || !Array.isArray(DOOR_RECIPE_DATA)) return null;
+// Review fold (2026-11-18): the records a slot may stand for today, by its id when exactly one holds it, else every record
+// of its name in any case. Two records of one name are both read, so one not checked makes the slot not checked.
+function doorSlotRecipesToday(s) {
+  if (!s || !s.recipeName || typeof DOOR_RECIPE_DATA === 'undefined' || !Array.isArray(DOOR_RECIPE_DATA)) return [];
   if (s.recipeId) {
     const byId = DOOR_RECIPE_DATA.filter(r => r && r.recipeId && String(r.recipeId) === String(s.recipeId));
-    if (byId.length === 1) return byId[0];
+    if (byId.length === 1) return byId;
   }
-  const byName = DOOR_RECIPE_DATA.filter(r => r && r.recipeName === s.recipeName);
-  return byName.length === 1 ? byName[0] : null;
+  const n = String(s.recipeName).trim().toLowerCase();
+  return DOOR_RECIPE_DATA.filter(r => r && typeof r.recipeName === 'string' && r.recipeName.trim().toLowerCase() === n);
+}
+function doorSlotRecipeToday(s) {
+  const rs = doorSlotRecipesToday(s);
+  return rs.length === 1 ? rs[0] : null;
+}
+// The label state of a linked slot: null (checked, or nothing to read), { unchecked: true }, or { checkedSince: true,
+// known } when it was linked while not checked and its one recipe is checked today (its flags still the empty ones it
+// captured, so the plate says what the label holds and asks for a re-save; published flags never change here). A marked
+// slot whose recipe left the list, or whose name holds two records, stays not checked. A slot with no mark whose recipe
+// is not on this list reads as before: an offline list lacks many linked recipes.
+function doorSlotLabelState(s) {
+  if (!s || !s.recipeName) return null;
+  const rs = doorSlotRecipesToday(s);
+  if (rs.some(r => typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r))) return { unchecked: true };
+  if (s.labelUnchecked !== true) return null;
+  if (rs.length !== 1) return { unchecked: true };
+  const known = [];
+  (rs[0].allergens || []).forEach(a => {
+    const f = String(a == null ? '' : a).split('(')[0].trim();
+    if (f && f.toLowerCase() !== 'none' && known.indexOf(f) < 0) known.push(f);
+  });
+  return { checkedSince: true, known };
 }
 function doorSlotLabelUnchecked(s) {
-  if (!s || !s.recipeName) return false;
-  if (s.labelUnchecked === true) return true;
-  const r = doorSlotRecipeToday(s);
-  return !!r && typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r);
+  const st = doorSlotLabelState(s);
+  return !!(st && st.unchecked);
 }
 function doorMarkLabelUnchecked(slot, recipe) {
   if (slot && recipe && typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(recipe)) slot.labelUnchecked = true;
@@ -20740,10 +20823,11 @@ function doorRefreshLabelChecks(state) {
   if (!state || typeof state !== 'object') return state;
   const one = s => {
     if (!s || !s.recipeName) return;
+    const st = doorSlotLabelState(s);
+    if (st && st.unchecked) { if (doorSlotRecipesToday(s).length) s.labelUnchecked = true; return; }
     const r = doorSlotRecipeToday(s);
     if (!r) return;
-    if (doorRecipeLabelUnchecked(r)) { s.labelUnchecked = true; return; }
-    if (s.labelUnchecked === true) {
+    if (st && st.checkedSince) {
       const f = doorLinkFlags(r, s);
       Object.keys(s.flags || {}).forEach(k => { if (s.flags[k] === true) f[k] = true; });   // a tick set by hand stays
       s.flags = f;
@@ -21083,7 +21167,7 @@ const DOOR_LEGACY_LIBRARY_VEG_HINT_IDS = new Set([
   'vegan-bolognese','vegan-garden-a-la-king','vegan-kebabs','vegan-meatloaf',
   'vegan-taco-al-pastor','vegan-vindaloo','vegan-white-chili','veggie-burger-black-bean',
 ]);
-function getVegAltAllergenStr(mealVeg) {
+function getVegAltAllergenStr(mealVeg, uncheckedOut) {
   const recipeData = (typeof DOOR_RECIPE_DATA !== 'undefined' ? DOOR_RECIPE_DATA : null) || DOOR_RECIPE_DATA_FALLBACK || [];
   const veganRecipes = recipeData.filter(r => r.stream === 'vegan');
   if (!mealVeg || !veganRecipes.length) return '';
@@ -21097,7 +21181,11 @@ function getVegAltAllergenStr(mealVeg) {
   if (typeof DOOR_LEGACY_LIBRARY_VEG_HINT_IDS !== 'undefined') DOOR_LEGACY_LIBRARY_VEG_HINT_IDS.forEach(id => baseIds.add(id));
   const baseNamesWithoutIds = new Set(base.filter(r => !r.recipeId).map(r => normalize(r.recipeName)));
   const allergenSet = new Set();
-  const add = r => (r.allergens || []).forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
+  const add = r => {
+    // Review fold (2026-11-18): a matched recipe whose label is not checked is handed back, never read as no allergens.
+    if (Array.isArray(uncheckedOut) && typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r) && uncheckedOut.indexOf(r.recipeName) < 0) uncheckedOut.push(r.recipeName);
+    (Array.isArray(r.allergens) ? r.allergens : []).forEach(a => { if (a && a !== 'None') allergenSet.add(a.split('(')[0].trim()); });
+  };
   // A Library recipe can be an exact whole dish even when its own name contains commas.
   const whole = veganRecipes.filter(r => normalize(r.recipeName) === normalize(mealVeg));
   if (whole.length) {
@@ -22628,7 +22716,7 @@ function smSlotSearch(slotId, query) {
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
-          <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
+          <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens, typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r))}</div>
         </div>`;
       }).join('')
     : `<div onclick="${_escJsAttrCall('smSlotSaveManual', [slotId])}" onmousedown="event.preventDefault()"
@@ -22656,7 +22744,10 @@ function smSlotSelect(slotId, recipeName) {
 // Short allergen preview text for a typeahead row — shows what flags would
 // auto-fill if the staff member clicks this suggestion. Keeps the dropdown
 // honest about consequences so they're not surprised by an auto-set flag.
-function _allergenPreview(allergens) {
+function _allergenPreview(allergens, unchecked) {
+  // Review fold (2026-11-18): a recipe whose label is not checked says so; it is never a blank (read as safe).
+  const flag = unchecked || allergens === null ? '<span style="display:inline-block;font-size:10px;padding:1px 6px;margin:0 2px 0 0;border-radius:8px;background:var(--amber-pale);color:var(--warn-ink, #92400e);">label not checked</span>' : '';
+  if (flag) return flag + (Array.isArray(allergens) && allergens.length ? [..._hubAllergenResolve(allergens).labels].map(t => '<span style="display:inline-block;font-size:10px;padding:1px 6px;margin:0 2px 0 0;border-radius:8px;background:var(--danger-faint, #fee2e2);color:var(--danger-ink, #991b1b);">' + escapeHtml(t) + '</span>').join('') : '');
   if (!allergens || !allergens.length) return '';
   // Recipe-attach S1: use the shared normalized resolver so the preview shows exactly
   // the allergens that hubAllergenToFlags will set (case-fold + compound-split included).
@@ -22707,7 +22798,7 @@ function slotSearch(slotId, query) {
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
           onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
           <div>${hilite}</div>
-          <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens)}</div>
+          <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens, typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r))}</div>
         </div>`;
       }).join('')
     // 2026-11-12 (Week 4 setup log 13, 16): the whole row is the button, and on a linked slot it says it unlinks.
@@ -25682,7 +25773,8 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
     ? flagBasedAllergens.toUpperCase()
     : (dayData['allergens_'+period] || '').toUpperCase();
   const vegAllergenStored = menuEdit && menuEdit.vegAllergens ? menuEdit.vegAllergens.toUpperCase() : '';
-  const vegAllergenLookup = typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '';
+  const vegLookupUnchecked = [];
+  const vegAllergenLookup = typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg, vegLookupUnchecked) : '';
   // 2026-10-17: the dishes set on the vegan line's slots — linked recipes and typed dishes' tags
   // (getVegAltSlotAllergenStr) — join the name lookup.
   const vegAllergenSlots = typeof getVegAltSlotAllergenStr !== 'undefined' ? getVegAltSlotAllergenStr(dayData[period + '_slots']) : '';
@@ -25733,11 +25825,17 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
   const mealKitchenAlts = doorKitchenAlternatives(dayData, period);
   doorAddKitchenPlateFlags(mealFlags, dayData, period);
   // C2: the dishes on each plate whose label is not checked. Not enumerable, so no copy, count or published file reads it.
-  const plateLabels = typeof doorPlatesLabelUnchecked === 'function' ? doorPlatesLabelUnchecked(dayData, period, dated) : null;
+  const plateLabels = typeof doorPlatesLabelUnchecked === 'function' ? doorPlatesLabelUnchecked(dayData, period, dated, {
+    regular: typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(dayData[period]) : [],
+    vegan: vegLookupUnchecked.concat(typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(mealVeg) : []),
+    halal: typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(mealHalal) : [] }) : null;
   if (plateLabels) Object.defineProperty(mealFlags, '_labelUnchecked', { value: plateLabels, enumerable: false, configurable: true });
   // Smart no-egg: check if veg alt is egg/mustard-free from allergen string
   const vegAllergenCheck = (vegAllergenStr || '').toUpperCase();
   mealFlags._vegAltSafe = !vegAllergenCheck || (!/EGG/i.test(vegAllergenCheck) && !/MUSTARD/i.test(vegAllergenCheck));
+  // Review fold (2026-11-18): a vegan plate holding a dish whose label is not checked (or checked since and not saved) is
+  // not known to be egg or mustard free, so No Egg / Mustard residents are not moved onto it.
+  if (plateLabels && plateLabels.vegan && plateLabels.vegan.length) mealFlags._vegAltSafe = false;
   const mealAltMeals = dayData[period+'_altMeals'] || [];
   mealFlags._altMeals = mealAltMeals;
 
