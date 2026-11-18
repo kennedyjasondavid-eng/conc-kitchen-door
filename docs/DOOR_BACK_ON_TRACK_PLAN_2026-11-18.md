@@ -225,3 +225,11 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - **C3 Tuna and the mushroom sandwich links (U1):** each changes EXPO's plan; decide with EXPO's view open.
 - **C4 The 24 differences (U2):** one sitting.
 - **C7 Stew / Side (ruled 2026-11-18):** a CODEX category (`stew_side`) for a vegetable-based side made on a stew cycle EXPO can plan; DOOR offers it in Veg Side (DOOR .98 first, then CODEX). **C8:** Okra and Cassava Stew, Atakilt Wat and Shakshuka Sauce (Vegan) become Stew / Side; Wk2 WED dinner's fish and stew split into a main and a side.
+  Vegetable Cacciatore (a shared-Library recipe, Jason's inspiration for the kind) is re-saved as Stew / Side in CODEX
+  once the picker is live; the seed recipes move in a CODEX data edition.
+  - **Done 2026-11-18 (publication 33):** Wk2 WED dinner's slots read main Yetisse Fish (it keeps the meal's ticks),
+    starch Coconut Rice and peas, veg side Okra and Cassava Stew (`okra-and-cassava-stew`, its allergens from CODEX),
+    vegan Spiced Tofu. Menu text, meal ticks and routing counts unchanged.
+- **C9 EXPO's okra stew link (2026-11-18, handed to the EXPO session):** EXPO plans the okra stew's stew cycle (cook Wk1
+  FRI at Bloor, bag, cold van, reheat Wk2 WED) but links it to the Caribbean Stew recipe. EXPO's job panel work owns the
+  fix; DOOR now names `okra-and-cassava-stew` on the slot.
