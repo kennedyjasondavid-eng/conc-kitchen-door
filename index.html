@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.98';
+const DOOR_APP_VERSION = 'v31-standard.99';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -25956,7 +25956,7 @@ var doorCreatePlatingReadinessError = (function() {
   }});
   return create;
 })();
-function doorPresentPlatingReadiness(readiness) {
+function doorPresentPlatingReadiness(readiness, opts) {
   const model = doorPlatingReadinessFeedbackModel(readiness);
   if (!model.ordinaryDefinitionGaps || typeof document === 'undefined') return false;
   const screen = document.querySelector('.screen.active');
@@ -25966,7 +25966,7 @@ function doorPresentPlatingReadiness(readiness) {
   if (host.parentNode !== screen) screen.prepend(host);
   host.innerHTML = doorPlatingReadinessHTML(readiness);
   const heading = host.querySelector('.door-plating-readiness-title');
-  if (heading && typeof heading.focus === 'function') heading.focus();
+  if (!(opts && opts.focus === false) && heading && typeof heading.focus === 'function') heading.focus();
   return true;
 }
 /* DOOR_TESTABLE_CORE_END plating-readiness-feedback-v1 */
@@ -26484,9 +26484,48 @@ function buildAllFileList() {
   return files;
 }
 
+// U4 (2026-11-18, Jason: Download All only took him to the top of the page): when the ZIP is refused, say so beside
+// each Download All button, in words, with the reason and where the details are. Cleared by the next attempt.
+function doorDownloadAllStopText(e) {
+  const readiness = typeof doorCreatePlatingReadinessError === 'function' ? doorCreatePlatingReadinessError.readinessFor(e) : null;
+  if (readiness && typeof doorPlatingReadinessFeedbackModel === 'function') {
+    const model = doorPlatingReadinessFeedbackModel(readiness);
+    if (model.ordinaryDefinitionGaps) {
+      const n = model.serviceCount;
+      const reasons = model.groups.map(g => g.reason).join('; ');
+      return 'No ZIP downloaded: ' + n + (n === 1 ? ' meal needs' : ' meals need') + ' attention first (' + reasons + ').';
+    }
+  }
+  return 'No ZIP downloaded: ' + String(e && e.message || 'the complete file set could not be built.').split('\n')[0];
+}
+function doorDownloadAllNote(btns, text) {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
+  btns.forEach(b => {
+    const id = b.id + '-stop';
+    let note = document.getElementById(id);
+    if (!text) { if (note) note.remove(); return; }
+    if (!note) {
+      note = document.createElement('div');
+      note.id = id;
+      note.className = 'door-dl-stop';
+      note.setAttribute('role', 'status');
+      note.style.cssText = 'flex-basis:100%;margin-top:6px;font-size:13px;color:var(--red-text,#b91c1c);overflow-wrap:anywhere;max-width:420px';
+      if (typeof b.insertAdjacentElement === 'function') b.insertAdjacentElement('afterend', note); else return;
+    }
+    note.textContent = text + ' ';
+    const show = document.getElementById('door-plating-readiness-feedback');
+    if (show && typeof show.querySelector === 'function') {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn btn-ghost btn-sm'; btn.textContent = 'Show the list';
+      btn.onclick = () => { const h = document.querySelector('#door-plating-readiness-feedback .door-plating-readiness-title'); if (h && h.focus) h.focus(); };
+      note.appendChild(btn);
+    }
+  });
+}
 async function downloadAllFiles() {
   const btns = ['dl-all-btn','ps-dl-all-btn'].map(id => document.getElementById(id)).filter(Boolean);
   const origText = btns.map(b => b.innerHTML);
+  if (typeof doorDownloadAllNote === 'function') doorDownloadAllNote(btns, '');
   btns.forEach(b => { b.disabled = true; b.textContent = 'Building zip…'; });
 
   try {
@@ -26527,7 +26566,12 @@ async function downloadAllFiles() {
     showToast('Downloaded ' + files.length + ' files as ' + zipName);
   } catch(e) {
     console.error('Zip failed:', e);
-    if (!doorReportPlatingError(e)) showToast('No ZIP downloaded — the complete file set could not be built.', 'error');
+    // The list of meals goes at the top of the screen as for every refused output, but Download All keeps the person
+    // where they are (the button may sit at the bottom of Review): the note beside it says why and can show the list.
+    const gaps = typeof doorCreatePlatingReadinessError === 'function' ? doorCreatePlatingReadinessError.readinessFor(e) : null;
+    const quiet = !!(gaps && doorPlatingReadinessFeedbackModel(gaps).ordinaryDefinitionGaps && doorPresentPlatingReadiness(gaps, { focus: false }));
+    if (!quiet && !doorReportPlatingError(e)) showToast('No ZIP downloaded — the complete file set could not be built.', 'error');
+    if (typeof doorDownloadAllNote === 'function') doorDownloadAllNote(btns, doorDownloadAllStopText(e));
   } finally {
     btns.forEach((b, i) => { b.disabled = false; b.innerHTML = origText[i] || doorIcon('download') + ' Download All (zip)'; });
   }
