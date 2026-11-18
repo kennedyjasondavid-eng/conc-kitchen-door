@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-18T15:00:42.539Z",
+    "exported": "2026-11-18T15:04:34.917Z",
     "version": 32,
     "flow": {
       "calendar": {
@@ -15,14 +15,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:cdecb88b91652b8b7713a8d37c038072b9e8bf710cdc3b97659cfed231e058ff",
+        "menu": "sha256:bd22c3d570d85062aab421fb5c4bc65d833622638362ab2c1ecc9d19879b1c9c",
         "recipe": "sha256:712b98b361c66f5e9c8d01e248e105bc668e8aef971d447253df818832c3739e",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:0cc699cceff7db22ed11b40b1c0fdb5d0a1febe67f4cba70acf6cf32e8e01fcf",
+      "inputRevision": "sha256:98f4fb22a6a44a0f220923fa103406a3ae8568a75273bce280b4980d84c0a706",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 30
+        "sequence": 31
       },
       "schema": 1
     }
@@ -1654,17 +1654,17 @@
           "hasNightshades": false,
           "hasBeans": false
         },
-        "lunch": "Chicken Fajitas, Tortillas, Peas and Corn",
-        "lunch_veg": "Vegetarian Fajitas, Tortillas, Peas and Corn",
-        "lunch_mainItem": "Chicken Fajitas",
-        "lunch_sides": "Tortillas, Peas and Corn",
+        "lunch": "Roasted Chicken Thighs, Mashed Potatoes with Onion Gravy, Seasonal Veg",
+        "lunch_veg": "Roasted Seasoned Tofu, Mashed Potatoes with Onion Gravy, Seasonal Veg",
+        "lunch_mainItem": "Roasted Chicken Thighs",
+        "lunch_sides": "Mashed Potatoes with Onion Gravy, Seasonal Veg",
         "lunch_flags": {
           "hasGluten": true,
           "hasDairy": false,
           "hasEgg": false,
           "hasFish": false,
           "hasPeanuts": false,
-          "hasSoy": false,
+          "hasSoy": true,
           "hasTreeNuts": false,
           "hasSesame": false,
           "hasMustard": false,
@@ -1678,12 +1678,12 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": true,
+          "hasCoconut": false,
           "hasNightshades": true,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": true
         },
         "dinner": "Gomen Besiga with Vegetable, Rice",
         "dinner_veg": "Vegetarian Collard Stew, Rice",
@@ -1717,13 +1717,13 @@
           "hasBeans": false
         },
         "allergens_breakfast": "gluten, dairy, sulphites",
-        "allergens_lunch": "gluten",
+        "allergens_lunch": "gluten, soy",
         "allergens_dinner": "dairy, beef",
         "lunch_slots": {
           "main": {
-            "manual": "Chicken Fajitas & Tortillas",
+            "manual": "Roasted Chicken Thighs",
             "flags": {
-              "hasGluten": true,
+              "hasGluten": false,
               "hasDairy": false,
               "hasEgg": false,
               "hasFish": false,
@@ -1745,13 +1745,13 @@
               "hasCoconut": false,
               "hasMushroom": false,
               "hasBrassicas": false,
-              "hasCorn": true,
+              "hasCorn": false,
               "hasNightshades": true,
               "hasBeans": false
             }
           },
           "veganalt": {
-            "recipeName": "Vegan Fajitas",
+            "manual": "Roasted Seasoned Tofu",
             "flags": {
               "hasGluten": false,
               "hasDairy": false,
@@ -1778,12 +1778,42 @@
               "hasNightshades": true,
               "hasBrassicas": false,
               "hasCorn": false
+            }
+          },
+          "starch": {
+            "recipeName": "Olive Oil Mashed Potato (Vegan)",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": false,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": true,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasBeans": false,
+              "hasMushroom": false,
+              "hasCoconut": false,
+              "hasNightshades": false,
+              "hasBrassicas": false,
+              "hasCorn": false
             },
-            "recipeId": "vegan-fajitas",
-            "displayText": "Vegetarian Fajitas, Tortillas"
+            "recipeId": "olive-oil-mashed-potato-vegan",
+            "displayText": "Mashed Potatoes with Onion Gravy"
           },
           "vegside": {
-            "manual": "Peas and Corn",
+            "manual": "Seasonal Veg",
             "flags": {}
           }
         },
@@ -1873,7 +1903,14 @@
           }
         ],
         "dinner_softAlt": "Roasted Chicken Leg, Vegetable Stirfry, Plain Rice",
-        "dinner_altMealsNone": false
+        "dinner_altMealsNone": false,
+        "lunch_diabeticAlt": "",
+        "lunch_noDairyAlt": "",
+        "lunch_noEggAlt": "",
+        "lunch_blandAlt": "",
+        "lunch_anaphAlt": "",
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": ""
       }
     },
     "2": {
