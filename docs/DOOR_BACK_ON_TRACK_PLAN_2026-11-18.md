@@ -207,7 +207,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - [x] R3 DOOR switched-off code and its tests removed (DOOR #225, .94).
 - [x] R4 Ledger, CLAUDE.md and old plans point here (HOUSE #117, DOOR #225).
 - [ ] R5 DOOR repository private; raw fallback removed.
-- [ ] U1 Every active component has a clear identity. *Done: the 10 neutral name-only links carry their CODEX recipe IDs (publication 25, 2026-11-18). Left: tuna and the mushroom sandwich (C3), run-on slots, misspelled names.*
+- [ ] U1 Every active component has a clear identity. *Done: all 12 name-only links carry their CODEX recipe IDs (publications 25 and 26, 2026-11-18; C3 ruled "link both" after EXPO's cards proved identical). Left: run-on slots, misspelled names.*
 - [ ] U2 Every saved-versus-CODEX difference decided; facts rule written.
 - [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for.
 - [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default. *Done: one save line and plain notice (#226, .95); counts unavailable without a list and the halal plate named (#227, .96); undo and reset already name what they put back. Left: import review kept/replaced, quieter default.*
@@ -216,7 +216,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 
 ## 9. Calls for Jason
 
-**Ruled 2026-11-18 (Jason, on the leans):** R-a to R-d accepted ("roll it back … no dead code"). C1: the simple breakfast design. C2: CODEX bought-item records with label allergens and a "label checked" date. C3: show Jason a before/after of EXPO's cards for each of the two dishes, then he decides each. C4: still open; it comes as one list with a lean per dish once U1 is done. Tags could not be pushed from the cloud session; the removed code stays in git history before each removal commit.
+**Ruled 2026-11-18 (Jason, on the leans):** R-a to R-d accepted ("roll it back … no dead code"). C1: the simple breakfast design. C2: CODEX bought-item records with label allergens and a "label checked" date. C3: EXPO's 30 tuna, mushroom and Portobello cards were identical before and after linking; Jason: link both (follow lean). C4: still open; it comes as one list with a lean per dish once U1 is done. Tags could not be pushed from the cloud session; the removed code stays in git history before each removal commit.
 
 - **C1 Breakfast design (U3):** named plates plus a resident breakfast note plus a per-resident plate choice only where
   the rules can't place them. Lean: yes. Consequence: no resolver; breakfast stays in DOOR's existing fields and
