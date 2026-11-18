@@ -16150,7 +16150,7 @@ function doorLabelCheckNote(r, plate, mealFlags) {
   if (!plate && anaph) {
     const seen = {};
     items = [];
-    Object.keys(all).forEach(k => (all[k] || []).forEach(x => { if (!seen[x.dish]) { seen[x.dish] = 1; items.push(x); } }));
+    Object.keys(all).forEach(k => (all[k] || []).forEach(x => { const k2 = String(x.dish || '').toLowerCase(); if (!seen[k2]) { seen[k2] = 1; items.push(x); } }));
   }
   if (!items.length) return { note: '', red: false };
   if (!anaph && !doorResidentAllergenRestricted(r)) return { note: '', red: false };
