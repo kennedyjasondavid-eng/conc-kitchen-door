@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.94';
+const DOOR_APP_VERSION = 'v31-standard.95';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -20859,9 +20859,9 @@ function doorLegacySlotNoticeHTML(slotsBlockPresent) {
   if (slotsBlockPresent) return '';
   return '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--border);border-radius:10px;'
     + 'background:var(--cream);color:var(--muted);font-size:10px;font-weight:600;text-transform:none;letter-spacing:0;" '
-    + 'title="This meal was imported from the menu text and never re-saved here. Its dishes are read from the text; '
-    + 'save this meal to record which recipe each dish is (EXPO then plans from the linked recipe).">'
-    + (doorIcon('refresh') + ' from menu text &mdash; save to link</div>');
+    + 'title="This meal was imported from the menu text and never saved here. Its dishes are read from the text. '
+    + 'Check each dish below (link the ones that have a CODEX recipe), then Save; EXPO plans from the saved recipe links.">'
+    + (doorIcon('refresh') + ' read from the menu text &mdash; check the dishes, then Save</div>');
 }
 
 const CARB_KEYWORDS = /\b(rice|pasta|noodles?|potato|potatoes|mac|macaroni|bread|roti|couscous|pita|naan|spaghetti|linguine|fettuccine|orzo|gnocchi|polenta|quinoa|farro|bulgur|barley|pilaf|biryani|fried rice|congee|porridge|oat|oatmeal|pancake|waffle|bagel|biscuit|wrap|tortilla|dumpling|pierogi|lasagna|grits)\b/i;
@@ -21831,6 +21831,16 @@ function _showHalalCertDialog(proteins, hasPorkInMain, slotBreakdown, callback, 
   overlay.querySelector('#_halal-no').onclick = () => { overlay.remove(); callback(false); };
 }
 
+// U4 (2026-11-18): one plain line after an Edit Menu save. It names what changed (the rotation meal, every cycle) and
+// where it goes: sending to the kitchen, or kept on this computer with the reason. The status bar then shows delivery.
+function doorMenuSavedMessage(week, day, period) {
+  const d = String(day || ''), meal = 'Wk' + week + ' ' + d.charAt(0) + d.slice(1, 3).toLowerCase() + ' ' + String(period || '');
+  let cap = null;
+  try { cap = (typeof doorDeviceCapability === 'function' && typeof doorDeviceCapabilityInput === 'function') ? doorDeviceCapability(doorDeviceCapabilityInput()) : null; } catch (e) { cap = null; }
+  if (cap && cap.canPublish) return 'Saved: ' + meal + ', every cycle. Sending to the kitchen; the status bar says when it arrives.';
+  const why = cap && cap.reasons && cap.reasons[0] ? cap.reasons[0].label : 'this computer could not check its connection';
+  return 'Saved on this computer only: ' + meal + ', every cycle. Not sent to the kitchen: ' + why + '.';
+}
 function _finishMenuSave(name, veg, flags) {
   // Re-check after the async halal-certification prompt: source state could
   // have changed while the dialog was open.
@@ -21882,7 +21892,7 @@ function _finishMenuSave(name, veg, flags) {
   closeMenuEdit(true);
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-  showToast("Saved permanently to rotation");
+  showToast(doorMenuSavedMessage(week, day, period));
   publishAndSync('menu edit saved');
   return true;
 }
