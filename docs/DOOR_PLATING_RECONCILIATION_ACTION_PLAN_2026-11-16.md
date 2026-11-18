@@ -1,5 +1,7 @@
 # DOOR plating reconciliation action plan
 
+> **2026-11-18: frozen.** The private-data, serving-protocol and breakfast-resolver work recorded here was removed. This line's status and next steps are owned by `DOOR_BACK_ON_TRACK_PLAN_2026-11-18.md`.
+
 **Status:** Independently reviewed: food/data PASS; release/feed PASS. A1 merged in PR #203. PR #204 merged the six A2 naming assignments, interim breakfast definition safeguard and B0 evidence. The inactive B1 resolver foundation is independently reviewed; operational B1/B2 migration and remaining gates are tracked below. **Owner:** this file owns this DOOR workstream's actions, decisions and completion state. Jason owns meal choices and resident instructions; the implementing agent owns code, reproducible verification and release evidence. Cross-app release/status facts remain in HOUSE_STATUS_LEDGER.md; producer contracts remain with their existing owners.
 
 Requested November 16, 2026: prioritize the manual-plating comparison findings, starting with anaphylactic alternatives and breakfast, identify decisions needed from Jason, and submit the plan for agentic review. The current manual plating sheets are authority for what staff serve (Jason, November 16). Their absent separate-plate definitions remain gaps; the agent must not infer a missing dish from a recipient list. Planning and review do not alter the registry, menu, learned answers or manual workbooks.

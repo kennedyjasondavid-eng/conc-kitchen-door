@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-18) — the switched-off private-data work is gone (`v31-standard.94`)
+Jason, 2026-11-18: roll back the private data repository and serving protocol, and leave no dead code. **Owner of this line now: `docs/DOOR_BACK_ON_TRACK_PLAN_2026-11-18.md`** (the staff-ready and plating-reconciliation plans are frozen).
+- Removed from `index.html`, never used: the `private-*`, `canonical-*` and `serving-*` blocks (#213, #214, #217, #218, #220–#224) and #205's breakfast resolver. Their gates, fixtures and schemas went too; the review notes are in `docs/archive/private-serving-2026-11-18/`. HUB and CODEX dropped their copies in the same change.
+- Kept: `flow-validity` (live F4), #219's grouped plating warnings, #203/#204/#215.
+- Privacy follows the HOUSE ledger plan: make this repository private, then remove the raw-read fallback.
+- **Don't bring it back.** A new protocol, private store or "inactive foundation" needs a call from Jason first.
+
 ## Recent (2026-11-17) — a swapped pork meal is never halal-certified (`v31-standard.84`)
 EXPO walkthrough finding A2-P1-1 (conc-kitchen-expo `docs/EXPO_WALKTHROUGH_AUDIT_REPORT_2026-11-17.md`, area 2 P1-1); Jason, 2026-11-17: EXPO ships its own guard, DOOR its half in a paired PR. Swap Slots of Wk4 THU lunch (beef lasagna) ⇄ FRI lunch (Pork Tacos Al Pastor) wrote the Nov 19 half of `meal_swaps.json` as the pork meal with `halalCertifiedMeat: true` (in `_flagsRaw` and `_meal._flags`). EXPO plans a halal plate only for a meal not marked halal-certified, so EXPO and HUB planned no "Halal chicken al pastor" while DOOR routed 56 halal plates.
 - **Cause:** not the other slot. The swap copies each slot's own ticks. FRI lunch's own ticks in `menu_overlay.json` kept the mark from the Nov 11 week sheet (which replaced a beef lasagna). Only the menu export cleared a pork meal's mark (`buildMenuJSON`), so `menu_current.json` read false; Swap Slots reads `getMenuData()`, which didn't. `hasChicken` on the pork half is FRI's own (its halal chicken line), as published.
