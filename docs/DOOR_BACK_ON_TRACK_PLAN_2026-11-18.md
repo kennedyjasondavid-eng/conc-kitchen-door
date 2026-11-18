@@ -207,7 +207,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - [x] R3 DOOR switched-off code and its tests removed (DOOR #225, .94).
 - [x] R4 Ledger, CLAUDE.md and old plans point here (HOUSE #117, DOOR #225).
 - [ ] R5 DOOR repository private; raw fallback removed.
-- [ ] U1 Every active component has a clear identity.
+- [ ] U1 Every active component has a clear identity. *Done: the 10 neutral name-only links carry their CODEX recipe IDs (publication 25, 2026-11-18). Left: tuna and the mushroom sandwich (C3), run-on slots, misspelled names.*
 - [ ] U2 Every saved-versus-CODEX difference decided; facts rule written.
 - [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for.
 - [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default. *Done: one save line and plain notice (#226, .95); counts unavailable without a list and the halal plate named (#227, .96); undo and reset already name what they put back. Left: import review kept/replaced, quieter default.*
