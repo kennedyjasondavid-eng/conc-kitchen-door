@@ -1,6 +1,6 @@
 # DOOR back on track: take out the private-data work, then finish the supervisor screens
 
-Status: draft for Jason, 2026-11-18. Nothing in it is built yet.
+Status: accepted by Jason, 2026-11-18 ("proceed with work"). Progress is the checklist in §8; rulings in §9.
 Owner: once Jason accepts it, this plan owns the DOOR staff-ready line. It replaces the working sections of
 `DOOR_STAFF_READY_BASELINE_ACTION_PLAN_2026-11-17.md` (whose Outcome below is kept word for word) and the breakfast
 B1/B2 sections of `DOOR_PLATING_RECONCILIATION_ACTION_PLAN_2026-11-16.md`. Those two become frozen records.
@@ -202,19 +202,21 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 
 ## 8. Checklist
 
-- [ ] R1 HUB serving code removed; device lock fixed; links unchanged.
+- [x] R1 HUB serving code removed; device lock fixed; links unchanged (HUB #80).
 - [ ] R2 CODEX serving code removed; exact-ID opener kept and tested.
-- [ ] R3 DOOR switched-off code and its tests removed; outputs byte-identical.
-- [ ] R4 Ledger, CLAUDE.md and old plans point here.
+- [x] R3 DOOR switched-off code and its tests removed (DOOR #225, .94).
+- [x] R4 Ledger, CLAUDE.md and old plans point here (HOUSE #117, DOOR #225).
 - [ ] R5 DOOR repository private; raw fallback removed.
 - [ ] U1 Every active component has a clear identity.
 - [ ] U2 Every saved-versus-CODEX difference decided; facts rule written.
 - [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for.
-- [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default.
+- [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default. *Done: one save line and plain notice (#226, .95); counts unavailable without a list and the halal plate named (#227, .96); undo and reset already name what they put back. Left: import review kept/replaced, quieter default.*
 - [ ] U5 End-to-end journey passes; HUB 21/20 explained.
 - [ ] U6 Supervisor walkthrough done without developer help.
 
 ## 9. Calls for Jason
+
+**Ruled 2026-11-18 (Jason, on the leans):** R-a to R-d accepted ("roll it back … no dead code"). C1: the simple breakfast design. C2: CODEX bought-item records with label allergens and a "label checked" date. C3: show Jason a before/after of EXPO's cards for each of the two dishes, then he decides each. C4: still open; it comes as one list with a lean per dish once U1 is done. Tags could not be pushed from the cloud session; the removed code stays in git history before each removal commit.
 
 - **C1 Breakfast design (U3):** named plates plus a resident breakfast note plus a per-resident plate choice only where
   the rules can't place them. Lean: yes. Consequence: no resolver; breakfast stays in DOOR's existing fields and
