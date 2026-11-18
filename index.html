@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.95';
+const DOOR_APP_VERSION = 'v31-standard.96';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21099,6 +21099,7 @@ function updateSlotSummary() {
   const veg = buildVegAlt();
   const softAlt = buildSoftAlt();
   const noPorkAlt = buildNoPorkAlt();
+  const halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;
   const summaryId = testMealActive ? 'tm-slot-name-preview' : 'mc-slot-name-preview';
   const summaryLabel = testMealActive ? 'Test meal preview' : 'Will save as';
   const summaryEl = document.getElementById(summaryId);
@@ -21108,7 +21109,8 @@ function updateSlotSummary() {
       summaryEl.innerHTML =
         '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">' + escapeHtml(summaryLabel) + '</div>' +
         (name       ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${escapeHtml(name)}</div>` : '') +
-        (veg        ? `<div style="font-size:12px;color:var(--muted);">Veg alt: ${escapeHtml(veg)}</div>` : '') +
+        (veg        ? `<div style="font-size:12px;color:var(--muted);">Vegan plate: ${escapeHtml(veg)}</div>` : '') +
+        (halalLine  ? `<div style="font-size:12px;color:var(--muted);">Halal plate: ${escapeHtml(halalLine)}</div>` : '') +
         (noPorkAlt  ? `<div style="font-size:12px;color:var(--violet-ink, #7c3aed);margin-top:2px;">No Pork alt: ${escapeHtml(noPorkAlt)}</div>` : '') +
         buildAltMeals().map(a => `<div style="font-size:12px;color:var(--cyan-ink, #0e7490);margin-top:2px;">${a.type==='soft'?'Soft':'Plain'}: ${escapeHtml(a.text)}</div>`).join('');
       // Recipe-attach S4 (F-E safety nudge): a meal with text that will save with NO
@@ -21490,6 +21492,8 @@ function renderEditFlagGrid(currentFlags) {
 }
 
 function renderSectionPreviewInto(flags, el) {
+  // U4 (2026-11-18): with no resident list on this computer the counts are unknown, not zero.
+  const noList = !Array.isArray(REGISTRY_LIST) || REGISTRY_LIST.length === 0;
   const sections = computeSections(flags, REGISTRY_LIST).slice().sort((a, b) => {
     if (a.rule.key === 'regular') return -1;
     if (b.rule.key === 'regular') return 1;
@@ -21497,7 +21501,7 @@ function renderSectionPreviewInto(flags, el) {
   });
   el.innerHTML = sections.map(s => {
     const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
-    const count = s.residents.length;
+    const count = noList ? '\u2014' : s.residents.length;
     const chip = doorColourChip(color);
     const bg = chip.bg; const border = color; const textColor = chip.ink;
     const badge = count > 0 ? ' <span style="font-size:10px;background:'+doorFill(color)+';color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">'+count+'</span>' : '';
@@ -21505,7 +21509,7 @@ function renderSectionPreviewInto(flags, el) {
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-left:3px solid '+border+';background:'+bg+';border-radius:0 5px 5px 0;margin-bottom:4px;">' +
       '<span style="font-size:12px;font-weight:600;color:'+textColor+'">'+displayLabel+badge+'</span>' +
       '<span style="font-size:10px;color:'+textColor+'">'+count+'</span></div>';
-  }).join('');
+  }).join('') + (noList ? '<div class="door-preview-nolist" style="font-size:11px;color:var(--muted);margin-top:2px;">No resident list on this computer, so the counts are unavailable.</div>' : '');
 }
 
 // 2026-10-08 (Jason: "go with your leans, 1 and 2"): Save asks its questions in DOOR's own dialog, not a

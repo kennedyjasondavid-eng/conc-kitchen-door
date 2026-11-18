@@ -892,11 +892,13 @@ test('review-and-generate and change-editor preview sinks are escaped in source'
       source: sliceBetween('function updateSlotSummary', "document.addEventListener('click'"),
       forbidden: [
         />\$\{name\}<\/div>/,
-        /Veg alt: \$\{veg\}/,
+        /Vegan plate: \$\{veg\}/,
+        /Halal plate: \$\{halalLine\}/,
         /No Pork alt: \$\{noPorkAlt\}/,
         /: \$\{a\.text\}<\/div>/
       ],
-      required: ['${escapeHtml(name)}</div>', 'Veg alt: ${escapeHtml(veg)}', 'No Pork alt: ${escapeHtml(noPorkAlt)}', ': ${escapeHtml(a.text)}</div>']
+      // 2026-11-18 (back-on-track U4): the summary names the vegan and halal plates; both stay escaped.
+      required: ['${escapeHtml(name)}</div>', 'Vegan plate: ${escapeHtml(veg)}', 'Halal plate: ${escapeHtml(halalLine)}', 'No Pork alt: ${escapeHtml(noPorkAlt)}', ': ${escapeHtml(a.text)}</div>']
     }
   ];
 
