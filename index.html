@@ -851,8 +851,8 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.92';
-const DOOR_BUILD_DATE = '2026-11-17';
+const DOOR_APP_VERSION = 'v31-standard.93';
+const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -13028,6 +13028,16 @@ function houseServingV1Resolution(r) {
   if(r.state==='complete'&&(r.ordinaryUnresolved!==0||r.separateDefinitionState==='missing'))return false;
   return r.state==='complete'||!r.quantitiesComplete;
 }
+function houseServingV1UnknownSections(s) {
+  if(!s||!houseServingV1NumberMap(s.sectionCounts)||Object.keys(s.sectionCounts).length!==0
+    ||!houseServingV1Resolution(s.resolution)||!houseServingV1Exact(s.coverage,['ordinary'])
+    ||!houseServingV1Exact(s.demand,['unit','allocations','standardPortions','reason'])||Object.hasOwn(s,'componentAllocations'))return false;
+  const r=s.resolution,d=s.demand;
+  return r.state==='unavailable'&&r.quantitiesComplete===false
+    &&['expectedResidents','ordinaryResolved','ordinaryUnresolved','separateResidents'].every(key=>r[key]===null)
+    &&s.coverage.ordinary==='unknown'&&d.unit==='recipients'&&d.allocations==='unavailable'
+    &&d.standardPortions==='unavailable'&&d.reason==='allocation-unavailable';
+}
 function houseServingV1Material(m) {
   const need=(v)=>{if(!v)houseServingV1Fail('invalid-material');};
   const days=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],meals=['breakfast','lunch','dinner'];
@@ -13052,7 +13062,7 @@ function houseServingV1Material(m) {
       const offset=((houseFlowCivilDay(match[1])-houseFlowCivilDay(m.calendar.cycleStart))%28+28)%28;need(s.week===Math.floor(offset/7)+1&&s.day===days[offset%7]);
     }
     need(houseServingV1Exact(s.menu,['regular','vegan','halal'])&&Object.values(s.menu).every(v=>houseServingV1Text(v,8000)&&v.length<=2000));
-    need(Array.isArray(s.components)&&Array.isArray(s.unresolvedComponents)&&houseServingV1Exact(s.coverage,['ordinary'])&&['complete','incomplete','unknown'].includes(s.coverage.ordinary)&&houseServingV1Resolution(s.resolution)&&houseServingV1NumberMap(s.sectionCounts)&&Object.keys(s.sectionCounts).length>0);
+    need(Array.isArray(s.components)&&Array.isArray(s.unresolvedComponents)&&houseServingV1Exact(s.coverage,['ordinary'])&&['complete','incomplete','unknown'].includes(s.coverage.ordinary)&&houseServingV1Resolution(s.resolution)&&houseServingV1NumberMap(s.sectionCounts)&&(Object.keys(s.sectionCounts).length>0||houseServingV1UnknownSections(s)));
     const r=s.resolution;need(r.expectedResidents===null||r.expectedResidents<=summary.active);
     need(Object.values(s.sectionCounts).every(n=>n<=summary.active));
     need(houseServingV1Exact(s.demand,['unit','allocations','standardPortions','reason'])&&s.demand.unit==='recipients'&&['known','unavailable'].includes(s.demand.allocations)&&['eligible','unavailable'].includes(s.demand.standardPortions)&&['verified-standard','qualitative-portion','missing-portion-basis','nonstandard-size','unresolved-component','allocation-unavailable'].includes(s.demand.reason));
@@ -13148,7 +13158,7 @@ async function houseServingV1Promote(state,attempt,outcome,context) {
 }
 function houseServingV1Resolve(state,service,now,options) {
   const unavailable=reason=>({status:'unavailable',reason,counts:null});
-  try{const s=houseServingV1JSON(state),opts=houseServingV1JSON(options);if(!houseServingV1Exact(opts,['purpose'])||!['headcount','component-demand','production-scaling'].includes(opts.purpose))return unavailable('purpose-required');if(s.liveHold)return unavailable('live-hold');if(s.needsCacheValidation)return unavailable('cache-validation-required');if(s.conflict||!s.accepted||!s.highest)return unavailable('unverified-flow');const v=s.accepted.validation;if(!v.ok||houseServingV1Identity(v.value.pointer)!==houseServingV1Identity(s.highest.pointer))return unavailable('superseded-flow');if(!Number.isFinite(now)||now<s.accepted.observedAt||now-s.accepted.observedAt>s.maxAgeMs)return unavailable('expired-flow');const found=v.value.frame.material.rotation.concat(v.value.frame.material.dated).find(x=>x.key===service);if(!found)return unavailable('service-unavailable');let counts,unit='recipients';if(opts.purpose==='headcount')counts=found.sectionCounts;else if(opts.purpose==='component-demand'){if(found.resolution.state!=='complete'||found.demand.allocations!=='known')return unavailable(found.demand.reason);counts=found.componentAllocations;}else{if(found.demand.standardPortions!=='eligible')return unavailable(found.demand.reason);counts={...found.sectionCounts,_components:found.componentAllocations};unit='standard-portions';}return {status:'valid',reason:'released-copy',counts:houseFlowCopy(counts),unit,observedAt:s.accepted.observedAt,publication:houseFlowCopy(v.value.pointer.flow.publication),inputRevision:v.value.pointer.flow.inputRevision};}catch(_){return unavailable('invalid-input');}
+  try{const s=houseServingV1JSON(state),opts=houseServingV1JSON(options);if(!houseServingV1Exact(opts,['purpose'])||!['headcount','component-demand','production-scaling'].includes(opts.purpose))return unavailable('purpose-required');if(s.liveHold)return unavailable('live-hold');if(s.needsCacheValidation)return unavailable('cache-validation-required');if(s.conflict||!s.accepted||!s.highest)return unavailable('unverified-flow');const v=s.accepted.validation;if(!v.ok||houseServingV1Identity(v.value.pointer)!==houseServingV1Identity(s.highest.pointer))return unavailable('superseded-flow');if(!Number.isFinite(now)||now<s.accepted.observedAt||now-s.accepted.observedAt>s.maxAgeMs)return unavailable('expired-flow');const found=v.value.frame.material.rotation.concat(v.value.frame.material.dated).find(x=>x.key===service);if(!found)return unavailable('service-unavailable');let counts,unit='recipients';if(opts.purpose==='headcount'){if(houseServingV1UnknownSections(found))return unavailable('allocation-unavailable');counts=found.sectionCounts;}else if(opts.purpose==='component-demand'){if(found.resolution.state!=='complete'||found.demand.allocations!=='known')return unavailable(found.demand.reason);counts=found.componentAllocations;}else{if(found.demand.standardPortions!=='eligible')return unavailable(found.demand.reason);counts={...found.sectionCounts,_components:found.componentAllocations};unit='standard-portions';}return {status:'valid',reason:'released-copy',counts:houseFlowCopy(counts),unit,observedAt:s.accepted.observedAt,publication:houseFlowCopy(v.value.pointer.flow.publication),inputRevision:v.value.pointer.flow.inputRevision};}catch(_){return unavailable('invalid-input');}
 }
 /* HOUSE_TESTABLE_CORE_END serving-protocol-v1 */
 /* HOUSE_TESTABLE_CORE_START serving-public-io-v1 */
