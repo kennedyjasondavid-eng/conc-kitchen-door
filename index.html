@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.91';
+const DOOR_APP_VERSION = 'v31-standard.92';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -11682,6 +11682,77 @@ function doorCanonicalFoodFactAssessment(record,requirement) {
   return selected ? {requirementRevision:requirement.revision,status:selected.status,sources:selected.sources.slice()} : unknown;
 }
 /* DOOR_TESTABLE_CORE_END canonical-food-facts-v1 */
+/* DOOR_TESTABLE_CORE_START canonical-clinical-source-v1 */
+// Inactive supplied-byte composition. This private candidate is not adoption or clinical readiness.
+async function doorCanonicalClinicalSourceV1FromPublic(input,selection) {
+  const reasons=['invalid-input','bounds-exceeded','invalid-json','unsupported-provenance','invalid-catalogue','integrity-mismatch'];
+  const failure=error=>{const reason=houseCatalogueReason(error);return {ok:false,reason:reasons.includes(reason)?reason:'invalid-input'};};
+  function data(value,keys) {
+    if(!houseCatalogueObject(value))houseCatalogueFail('invalid-input');
+    const descriptors=Object.getOwnPropertyDescriptors(value),own=Reflect.ownKeys(descriptors);
+    if(own.length!==keys.length||!own.every(key=>typeof key==='string'&&keys.includes(key)&&descriptors[key].enumerable&&Object.hasOwn(descriptors[key],'value')))houseCatalogueFail('invalid-input');
+    const out=Object.create(null);for(const key of keys)out[key]=descriptors[key].value;return out;
+  }
+  function text(value,max) {
+    return typeof value==='string'&&value.length>0&&value.length<=max&&value===value.trim()
+      &&!(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(value));
+  }
+  function requests(value) {
+    if(!Array.isArray(value))houseCatalogueFail('invalid-input');
+    const descriptors=Object.getOwnPropertyDescriptors(value),length=descriptors.length;
+    if(!length||!Object.hasOwn(length,'value')||!Number.isInteger(length.value)||length.value<0)houseCatalogueFail('invalid-input');
+    if(length.value>256)houseCatalogueFail('bounds-exceeded');
+    const own=Reflect.ownKeys(descriptors);
+    if(own.length!==length.value+1||own.some(key=>typeof key!=='string'||key!=='length'&&!/^(0|[1-9][0-9]*)$/.test(key)))houseCatalogueFail('invalid-input');
+    const out=[],seen=new Set();
+    for(let i=0;i<length.value;i++){
+      const descriptor=descriptors[String(i)];
+      if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))houseCatalogueFail('invalid-input');
+      const item=data(descriptor.value,['id','revision']);
+      if(!text(item.id,2000)||!text(item.revision,2000)||seen.has(item.id))houseCatalogueFail('invalid-input');
+      seen.add(item.id);out.push({id:item.id,revision:item.revision});
+    }
+    return out;
+  }
+  try {
+    // Capture all three real native views and every selection value before the provider can await.
+    const supplied=data(input,['provenanceBytes','primaryFeedBytes','libraryBytes']);
+    const captured={provenanceBytes:houseCatalogueBytes(supplied.provenanceBytes,16384),primaryFeedBytes:houseCatalogueBytes(supplied.primaryFeedBytes,8388608),libraryBytes:houseCatalogueBytes(supplied.libraryBytes,8388608)};
+    const selected=data(selection,['schema','recipeId','contentFingerprint','catalogueRevision','requirements']);
+    const revision=data(selected.catalogueRevision,['kind','value']);
+    if(selected.schema!==1||!text(selected.recipeId,200)||typeof selected.contentFingerprint!=='string'||!/^[a-f0-9]{64}$/.test(selected.contentFingerprint)
+      ||revision.kind!=='codex-public-snapshot'||typeof revision.value!=='string'||!/^sha256:[a-f0-9]{64}$/.test(revision.value))houseCatalogueFail('invalid-input');
+    const wanted={recipeId:selected.recipeId,contentFingerprint:selected.contentFingerprint,catalogueRevision:{kind:revision.kind,value:revision.value},requirements:requests(selected.requirements)};
+    const result=await houseServingV1CatalogueFromPublic(captured);
+    if(!result.ok)return {ok:false,reason:reasons.includes(result.reason)?result.reason:'invalid-input'};
+    const catalogue=result.catalogue,rows=catalogue.recipes.filter(row=>row.recipeId===wanted.recipeId),warnings=[];
+    for(const row of rows)for(const label of row.door.allergens){
+      const family=houseCatalogueAllergenFamily(label);
+      if(family&&family!=='none'&&houseCatalogueKey(label)!=='none confirmed'&&!warnings.includes(label))warnings.push(label);
+    }
+    const candidate={schema:1,scope:'private-candidate',catalogueRevision:{kind:catalogue.revision.kind,value:catalogue.revision.value},recipeRef:null,holdReason:null,warnings,portionBasis:null,
+      assessments:wanted.requirements.map(requirement=>({requirementId:requirement.id,requirementRevision:requirement.revision,status:'unknown',sources:[]}))};
+    if(wanted.catalogueRevision.kind!==catalogue.revision.kind||wanted.catalogueRevision.value!==catalogue.revision.value){candidate.holdReason='catalogue-mismatch';return {ok:true,candidate};}
+    const canonical=rows.filter(row=>row.binding==='canonical');
+    if(canonical.length!==1){candidate.holdReason='canonical-unavailable';return {ok:true,candidate};}
+    const row=canonical[0];
+    if(row.sourceFingerprint.kind!=='codex-content'||row.sourceFingerprint.value!==wanted.contentFingerprint){candidate.holdReason='fingerprint-mismatch';return {ok:true,candidate};}
+    // Decode only our detached bytes already verified by the actual provider, never a caller cache.
+    const library=houseCatalogueJSON(captured.libraryBytes),raw=library.recipes.filter(record=>!record.removed&&record.recipeId===row.recipeId&&record.door&&record.door.recipeId===row.recipeId
+      &&record.contentFingerprint===row.sourceFingerprint.value&&houseCatalogueKey(record.recipeName)===houseCatalogueKey(row.recipeName)&&houseCatalogueKey(record.door.recipeName)===houseCatalogueKey(row.recipeName));
+    if(raw.length!==1){candidate.holdReason='canonical-unavailable';return {ok:true,candidate};}
+    const record=raw[0],basis=typeof record.basisFingerprint==='string'&&/^[a-f0-9]{64}$/.test(record.basisFingerprint)?record.basisFingerprint:null;
+    candidate.recipeRef={recipeId:row.recipeId,recipeName:row.recipeName,contentFingerprint:row.sourceFingerprint.value,basisFingerprint:basis};
+    candidate.portionBasis=row.portionBasis?{servings:row.portionBasis.servings,unit:row.portionBasis.unit}:null;
+    candidate.assessments=wanted.requirements.map(requirement=>{
+      const assessment=doorCanonicalFoodFactAssessment({recipeId:row.recipeId,contentFingerprint:row.sourceFingerprint.value,basisFingerprint:basis,foodFacts:record.foodFacts},requirement);
+      return {requirementId:requirement.id,requirementRevision:assessment.requirementRevision,status:assessment.status,sources:assessment.sources.slice()};
+    });
+    return {ok:true,candidate};
+  } catch(error) { return failure(error); }
+}
+/* DOOR_TESTABLE_CORE_END canonical-clinical-source-v1 */
+
 
 /* DOOR_TESTABLE_CORE_START private-generation-v1 */
 // Inactive foundation. No storage, transport, hydration or production callers.
