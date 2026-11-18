@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.96';
+const DOOR_APP_VERSION = 'v31-standard.97';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -920,15 +920,21 @@ const DOOR_SHARED_LIBRARY_URL = 'https://kennedyjasondavid-eng.github.io/conc-re
 /* DOOR_TESTABLE_CORE_START shared-recipes */
 // One shared record → the DOOR recipe it stands for, or null when it carries no usable `door` block. A stream
 // other than 'vegan' reads as 'regular': a recipe wrongly listed as vegan would be offered for the vegan line.
+// C2 (2026-11-18, Jason: "follow lean"): allergens null means the label was not checked yet (CODEX: null = not checked,
+// [] = checked, none). It is kept as null, never read as none. The one rule every reader asks: a recipe whose allergens
+// are not a list, or that carries labelUnchecked (a shared copy not checked yet over a CODEX list), is not checked.
+function doorRecipeLabelUnchecked(r) {
+  return !!r && typeof r === 'object' && (!Array.isArray(r.allergens) || r.labelUnchecked === true);
+}
 function doorSharedDoorRecord(rec) {
   if (!rec || typeof rec !== 'object' || rec.removed) return null;
   const d = rec.door;
   if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
   const name = typeof d.recipeName === 'string' ? d.recipeName.trim() : '';
   if (!name) return null;
-  if (!Array.isArray(d.allergens) || !d.allergens.every(a => typeof a === 'string')) return null;
+  if (d.allergens !== null && (!Array.isArray(d.allergens) || !d.allergens.every(a => typeof a === 'string'))) return null;
   if (typeof d.category !== 'string' || !d.category.trim()) return null;
-  const out = { recipeName: name, allergens: d.allergens.slice(), category: d.category.trim(), stream: d.stream === 'vegan' ? 'vegan' : 'regular' };
+  const out = { recipeName: name, allergens: d.allergens === null ? null : d.allergens.slice(), category: d.category.trim(), stream: d.stream === 'vegan' ? 'vegan' : 'regular' };
   // CODEX C8 (K4): vegan-friendly is worked out from the ingredients where the recipe was saved: true, false, or null
   // while it waits on a label. A record written before the flag carries none, and since it replaces the whole CODEX
   // record, the CODEX list's value never survives under a shared version that may hold different ingredients.
@@ -963,7 +969,7 @@ function doorSharedRemovedFamilies(rec) {
 function doorOverlaySharedRecipes(base, shared) {
   const key = n => String(n == null ? '' : n).trim().toLowerCase();
   const list = Array.isArray(base) ? base.filter(r => r && typeof r === 'object').map(r => Object.assign({}, r)) : [];
-  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], keptAllergens: [], notVeganFriendly: [], generated: null };
+  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], keptAllergens: [], notVeganFriendly: [], labelUnchecked: [], generated: null };
   if (shared && shared._meta && typeof shared._meta.generated === 'string') receipt.generated = shared._meta.generated;
   const recs = shared && Array.isArray(shared.recipes) ? shared.recipes : [];
   const find = n => list.findIndex(r => key(r.recipeName) === key(n));
@@ -977,7 +983,18 @@ function doorOverlaySharedRecipes(base, shared) {
     let i = find(name);
     if (i < 0) i = find(d.recipeName);
     if (i >= 0 && list[i].recipeId) d.recipeId = list[i].recipeId;
-    if (i >= 0) {
+    // C2: a shared copy whose label is not checked (allergens null) is never a removal and never none. Over a CODEX
+    // list with real allergens it keeps that list and is marked not checked; otherwise it stays null.
+    if (d.allergens === null) {
+      const known = i >= 0 && Array.isArray(list[i].allergens)
+        ? list[i].allergens.filter(a => typeof a === 'string' && doorAllergenFamily(a) && doorAllergenFamily(a) !== 'none') : [];
+      if (known.length) {
+        d.allergens = known.slice();
+        d.labelUnchecked = true;
+        receipt.keptAllergens.push({ recipe: d.recipeName, allergens: known.slice() });
+      }
+      receipt.labelUnchecked.push(d.recipeName);
+    } else if (i >= 0) {
       const have = {}, confirmed = {};
       d.allergens.forEach(a => { have[doorAllergenFamily(a)] = true; });
       doorSharedRemovedFamilies(rec).forEach(f => { confirmed[f] = true; });
@@ -997,7 +1014,7 @@ function doorOverlaySharedRecipes(base, shared) {
       receipt.notVeganFriendly.push(d.recipeName);
     }
     if (i >= 0) {
-      const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream, list[i].veganFriendly === undefined ? null : list[i].veganFriendly]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream, d.veganFriendly === undefined ? null : d.veganFriendly]);
+      const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream, list[i].veganFriendly === undefined ? null : list[i].veganFriendly, list[i].labelUnchecked === true]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream, d.veganFriendly === undefined ? null : d.veganFriendly, d.labelUnchecked === true]);
       list[i] = d;
       (same ? receipt.unchanged : receipt.replaced).push(d.recipeName);
     }
@@ -1015,6 +1032,7 @@ function _doorApplySharedRecipes() {
   if (out.receipt.skipped.length) console.info('[DOOR] shared Library: ' + out.receipt.skipped.length + ' record(s) without a DOOR block left out:', out.receipt.skipped);
   if (out.receipt.keptAllergens.length) console.info('[DOOR] shared Library: allergens kept because their removal was not confirmed:', out.receipt.keptAllergens);
   if (out.receipt.notVeganFriendly.length) console.info('[DOOR] shared Library: not vegan-friendly, since a kept allergen names an animal family:', out.receipt.notVeganFriendly);
+  if (out.receipt.labelUnchecked.length) console.info('[DOOR] shared Library: label not checked yet:', out.receipt.labelUnchecked);
   updateCODEXBadge();
 }
 
@@ -11967,7 +11985,7 @@ async function doorFlowPreviousReceipt(inputs,creds) {
 }
 function doorFlowRecipeInput() {
   const project = r => ({recipeId:r.recipeId || null,recipeName:r.recipeName || '',
-    allergens:Array.isArray(r.allergens) ? r.allergens.slice() : null,category:r.category || null,
+    allergens:Array.isArray(r.allergens) && r.labelUnchecked !== true ? r.allergens.slice() : null,category:r.category || null,
     stream:r.stream || null,veganFriendly:typeof r.veganFriendly === 'boolean' ? r.veganFriendly : null});
   const records = (typeof DOOR_RECIPE_DATA !== 'undefined' && Array.isArray(DOOR_RECIPE_DATA) ? DOOR_RECIPE_DATA : []).map(project);
   const shared = typeof _doorSharedLibrary !== 'undefined' && _doorSharedLibrary;
@@ -16091,6 +16109,70 @@ function doorAllergenStrFlags(allergenStr) {
 //     which the kitchen serves them soft;
 //   - "extra veg less starch" for Diabetic / Low Carb, as before.
 // Both plating renderers (the sheet and the preview / print) read this one function.
+// C2 (2026-11-18, Jason: "follow lean"): a plate holding a dish whose label is not checked is unknown, never safe. Each
+// resident on it with an allergen restriction gets "check label: <dish>" on their line; an anaphylactic resident gets it
+// as ANAPHYLACTIC, drawn red like the anaphylactic rows. computePlatingData puts the dishes per plate on the meal flags
+// (not enumerable, so no published file carries them); routing and counts never read them.
+const DOOR_LABEL_CHECK_SKIP_TAGS = ['No Spicy', 'Bland Diet', 'Halal', 'Vegan', 'Vegetarian', 'Soft Meals', 'Diabetic', 'Low Carb', 'Regular'];
+function doorResidentAllergenRestricted(r) {
+  if (!r) return false;
+  if (Array.isArray(r.anaphTags) && r.anaphTags.length) return true;
+  const tags = [].concat(r.tags || [], r.allergenFlags || [], r.accommodations || [], r.avoidances || []);
+  return tags.some(t => DOOR_LABEL_CHECK_SKIP_TAGS.indexOf(t) < 0 &&
+    ((typeof RESIDENT_TO_MEAL_FLAG !== 'undefined' && Object.prototype.hasOwnProperty.call(RESIDENT_TO_MEAL_FLAG, t)) ||
+     (typeof doorIsAnaphAllergenTag === 'function' && doorIsAnaphAllergenTag(t))));
+}
+// The plate a section eats, as the label check reads it: the regular dishes, a line (vegan, halal, no pork), or another
+// dish the slots do not hold (gluten free, soft, the bland plate the kitchen names).
+function doorSectionLabelPlate(section, f) {
+  const rule = section && section.rule;
+  if (!rule) return null;
+  if (rule.key === 'regular') return 'regular';
+  const at = rule.altType;
+  if (at === 'vegan_alt') return 'vegan';
+  if (at === 'halal_alt') return 'halal';
+  if (at === 'nopork_alt') return 'nopork';
+  if (at === 'modified_main' || at === 'diabetic_alt' || at === 'nodairy_alt') return 'regular';
+  if (at === 'bland_alt') return f && f._blandAlt ? null : 'regular';
+  return null;
+}
+function doorLabelCheckNote(r, plate, mealFlags) {
+  const all = mealFlags && mealFlags._labelUnchecked;
+  const dishes = (all && plate && all[plate]) || [];
+  if (!r || !dishes.length) return { note: '', red: false };
+  const anaph = typeof doorIsAnaphResident === 'function' && doorIsAnaphResident(r);
+  if (!anaph && !doorResidentAllergenRestricted(r)) return { note: '', red: false };
+  return { note: (anaph ? 'ANAPHYLACTIC: ' : '') + 'check label: ' + dishes.join(', '), red: !!anaph };
+}
+// The dishes on each plate of a meal whose label is not checked, or null when there are none. A typed special meal keeps
+// no slots: its linked recipes (and the marks saved with it) stand in for them.
+function doorPlatesLabelUnchecked(dayData, period, dated) {
+  let slots = dayData && dayData[period + '_slots'];
+  if ((!slots || typeof slots !== 'object') && dated && dated.entry && dated.entry.linkedRecipes && typeof dated.entry.linkedRecipes === 'object') {
+    const marked = Array.isArray(dated.entry.labelUnchecked) ? dated.entry.labelUnchecked : [];
+    slots = {};
+    Object.keys(dated.entry.linkedRecipes).forEach(id => {
+      const name = dated.entry.linkedRecipes[id];
+      if (typeof name !== 'string' || !name) return;
+      slots[id] = { recipeName: name };
+      if (marked.indexOf(id) >= 0) slots[id].labelUnchecked = true;
+    });
+  }
+  if (!slots || typeof slots !== 'object' || typeof doorSlotLabelUnchecked !== 'function') return null;
+  const pick = list => {
+    const out = [];
+    (list || []).forEach(x => { if (doorSlotLabelUnchecked(x)) { const t = _slotText(x); if (t && out.indexOf(t) < 0) out.push(t); } });
+    return out;
+  };
+  const at = ids => ids.map(id => slots[id]);
+  const plates = {
+    regular: pick(at(['extras', 'main', 'starch', 'vegside', 'xtra'])),
+    vegan: pick(doorLinePieces(slots, 'vegan')),
+    halal: pick(doorLinePieces(slots, 'halal', ['mainalt', 'starch', 'vegside', 'xtra'])),
+    nopork: pick(at(['noporkalt', 'starch', 'vegside', 'xtra']))
+  };
+  return Object.keys(plates).some(k => plates[k].length) ? plates : null;
+}
 function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
   const tags = (r && r.tags) || [];
   const f = mealFlags || {};
@@ -16102,7 +16184,8 @@ function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
     if ((f[rule.mealFlag] || plate[rule.mealFlag]) && tags.includes(rule.residentTag) && !notes.includes(rule.note)) notes.push(rule.note);
   });
   const base = hasCarbAccommodation(r) ? 'extra veg less starch' : '';
-  return [base, notes.join(', ')].filter(Boolean).join(' \u00B7 ');
+  const label = f._labelUnchecked && typeof doorLabelCheckNote === 'function' ? doorLabelCheckNote(r, doorSectionLabelPlate(section, f), f).note : '';
+  return [base, notes.join(', '), label].filter(Boolean).join(' \u00B7 ');
 }
 
 // The CONTAINS line of a plating-sheet section: the allergens of the plate it eats (2026-10-18; both renderers had a copy).
@@ -17908,7 +17991,13 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
     // 2026-11-12 (Week 4 setup log 11): the halal plate never inherits Pork from a dish name ("Halal chicken al pastor"
     // read as pork from "al pastor"); only a word that names pork itself keeps it, so a real mistake still shows.
     if (ln === 'halal' && !/\b(pork|ham|bacon|prosciutto|chorizo|pepperoni)\b/i.test(piece)) f.hasPork = false;
-    if (r) { const s = { recipeName: r.recipeName, flags: f }; if (r.recipeId) s.recipeId = String(r.recipeId); if (piece !== r.recipeName) s.displayText = piece; return s; }
+    if (r) {
+      const s = { recipeName: r.recipeName, flags: f };
+      if (r.recipeId) s.recipeId = String(r.recipeId);
+      if (piece !== r.recipeName) s.displayText = piece;
+      if (typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r)) s.labelUnchecked = true;   // C2
+      return s;
+    }
     return { manual: piece, flags: f };
   };
   const slots = {};
@@ -20618,10 +20707,80 @@ function hubAllergenToFlags(allergens) {
   return f;
 }
 
+// C2 (2026-11-18, Jason: "follow lean"): a dish linked to a recipe whose label is not checked brings no allergen flags
+// and is marked labelUnchecked on its slot, captured at link time as flags are. Shown or plated, the mark is read again
+// from the recipe list of today (doorRecipeLabelUnchecked), so a recipe found unchecked today is unchecked whatever it
+// captured. A slot that captured the mark keeps it until the editor shows it with the label checked: then its flags are
+// taken from the checked recipe and the mark goes, saved at the next Save. Nothing here blocks a save.
+function doorSlotRecipeToday(s) {
+  if (!s || !s.recipeName || typeof DOOR_RECIPE_DATA === 'undefined' || !Array.isArray(DOOR_RECIPE_DATA)) return null;
+  if (s.recipeId) {
+    const byId = DOOR_RECIPE_DATA.filter(r => r && r.recipeId && String(r.recipeId) === String(s.recipeId));
+    if (byId.length === 1) return byId[0];
+  }
+  const byName = DOOR_RECIPE_DATA.filter(r => r && r.recipeName === s.recipeName);
+  return byName.length === 1 ? byName[0] : null;
+}
+function doorSlotLabelUnchecked(s) {
+  if (!s || !s.recipeName) return false;
+  if (s.labelUnchecked === true) return true;
+  const r = doorSlotRecipeToday(s);
+  return !!r && typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r);
+}
+function doorMarkLabelUnchecked(slot, recipe) {
+  if (slot && recipe && typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(recipe)) slot.labelUnchecked = true;
+  return slot;
+}
+// Captured flags are kept on a re-confirm of the same recipe, unless they were captured while its label was not checked.
+function doorKeepCapturedFlags(current) {
+  return !!(current && current.flags && current.labelUnchecked !== true);
+}
+// The editor reads the mark again: checked since, the flags come from the recipe; unchecked today, the slot is marked.
+function doorRefreshLabelChecks(state) {
+  if (!state || typeof state !== 'object') return state;
+  const one = s => {
+    if (!s || !s.recipeName) return;
+    const r = doorSlotRecipeToday(s);
+    if (!r) return;
+    if (doorRecipeLabelUnchecked(r)) { s.labelUnchecked = true; return; }
+    if (s.labelUnchecked === true) {
+      const f = doorLinkFlags(r, s);
+      Object.keys(s.flags || {}).forEach(k => { if (s.flags[k] === true) f[k] = true; });   // a tick set by hand stays
+      s.flags = f;
+      delete s.labelUnchecked;
+    }
+  };
+  Object.keys(state).forEach(id => {
+    const s = state[id];
+    one(s);
+    if (s && s.lines) Object.keys(s.lines).forEach(l => one(s.lines[l]));
+  });
+  return state;
+}
+// The dishes on a meal (Edit Menu or Special Meal slots) whose label is not checked, once each, as the menu shows them.
+function doorUncheckedSlotDishes(state, ids) {
+  const out = [];
+  if (!state || typeof state !== 'object') return out;
+  const add = s => { if (doorSlotLabelUnchecked(s)) { const t = _slotText(s); if (t && out.indexOf(t) < 0) out.push(t); } };
+  (ids || Object.keys(state)).forEach(id => {
+    const s = state[id];
+    add(s);
+    if (s && s.lines) Object.keys(s.lines).forEach(l => add(s.lines[l]));
+  });
+  return out;
+}
+function doorLabelUncheckedTagHTML() {
+  return '<span style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:var(--warn-ink, #92400e);border-radius:8px;font-weight:600;margin-left:6px;">' + doorIcon('warning') + ' label not checked</span>';
+}
+function doorLabelUncheckedLinesHTML(dishes) {
+  return (dishes || []).map(d => '<div style="font-size:12px;color:var(--warn-ink, #92400e);margin-top:2px;">' + doorIcon('warning') + ' ' + escapeHtml(d) + ': label not checked</div>').join('');
+}
+
 // ── Slot rendering ────────────────────────────────────────────
 function renderSlots() {
   const container = document.getElementById(testMealActive ? 'tm-slot-panel' : 'mc-slot-panel');
   if (!container) return;
+  if (typeof doorRefreshLabelChecks === 'function') doorRefreshLabelChecks(MEAL_SLOT_STATE);   // C2: a label checked since brings its allergens
   _slotRenderDepth++;
   try {
   container.innerHTML = MEAL_SLOT_DEFS.map(def => {
@@ -20705,6 +20864,7 @@ function doorMakeLineVersion(text) {
   if (r) {
     const v = { mode: 'swap', recipeName: r.recipeName, flags: (typeof doorLinkFlags === 'function') ? doorLinkFlags(r, { manual: t }) : {} };
     if (r.recipeId) v.recipeId = String(r.recipeId);
+    if (typeof doorMarkLabelUnchecked === 'function') doorMarkLabelUnchecked(v, r);
     return v;
   }
   return { mode: 'swap', manual: t, flags: (typeof doorRexPieceFlags === 'function') ? doorRexPieceFlags(t, null, null) : {} };
@@ -20818,6 +20978,8 @@ function _buildSlotSnapshot() {
         // for an exact deep-link). A phase-1 slot with no id adds no key, so its published
         // `_slots` entry stays byte-identical.
         if (s.recipeId) snap[d.id].recipeId = String(s.recipeId);
+        // C2: a recipe linked while its label was not checked carries the mark (no key otherwise, byte-identical).
+        if (s.labelUnchecked === true) snap[d.id].labelUnchecked = true;
         // Recipe-attach S1: carry a display override on any bound slot where it actually
         // differs from the recipe name. A legacy/default-display slot adds no key, so its
         // published `_slots` entry stays byte-identical to pre-S1.
@@ -21112,7 +21274,8 @@ function updateSlotSummary() {
         (veg        ? `<div style="font-size:12px;color:var(--muted);">Vegan plate: ${escapeHtml(veg)}</div>` : '') +
         (halalLine  ? `<div style="font-size:12px;color:var(--muted);">Halal plate: ${escapeHtml(halalLine)}</div>` : '') +
         (noPorkAlt  ? `<div style="font-size:12px;color:var(--violet-ink, #7c3aed);margin-top:2px;">No Pork alt: ${escapeHtml(noPorkAlt)}</div>` : '') +
-        buildAltMeals().map(a => `<div style="font-size:12px;color:var(--cyan-ink, #0e7490);margin-top:2px;">${a.type==='soft'?'Soft':'Plain'}: ${escapeHtml(a.text)}</div>`).join('');
+        buildAltMeals().map(a => `<div style="font-size:12px;color:var(--cyan-ink, #0e7490);margin-top:2px;">${a.type==='soft'?'Soft':'Plain'}: ${escapeHtml(a.text)}</div>`).join('') +
+        (typeof doorLabelUncheckedLinesHTML === 'function' ? doorLabelUncheckedLinesHTML(doorUncheckedSlotDishes(MEAL_SLOT_STATE)) : '');
       // Recipe-attach S4 (F-E safety nudge): a meal with text that will save with NO
       // allergen data at all — no flag set AND no recipe-linked slot. Closes the "typed a
       // dish, forgot to link/flag it" hole.
@@ -21294,6 +21457,7 @@ function renderSlotCard(def, ns) {
   const matchBadge = hasValue
     ? '<span style="font-size:10px;padding:1px 6px;background:' + (binding && binding.ok ? 'var(--ok-faint, #d1fae5)' : 'var(--amber-pale)') + ';color:' + (binding && binding.ok ? 'var(--ok-ink, #065f46)' : 'var(--warn-ink, #92400e)') + ';border-radius:8px;font-weight:600;margin-left:6px;">' + doorIcon(binding && binding.ok ? 'check' : 'warning') + ' ' + escapeHtml(badgeText) + '</span>' : '';
   const borderColor = hasValue ? (binding && binding.ok ? '#10b981' : '#60a5fa') : 'var(--border)';
+  const labelTag = hasValue && typeof doorSlotLabelUnchecked === 'function' && doorSlotLabelUnchecked(state) ? doorLabelUncheckedTagHTML() : '';
   // Recipe-attach S2: "Shown on menu as" — ANY bound slot (main group + the alt slots),
   // regular editor only (SM has its own path). Lets the operator show e.g. "Pork Al Pastor
   // Taco" / "Vegan Nacho Mix" while allergens stay linked to the bound recipe. Absent on
@@ -21309,7 +21473,7 @@ function renderSlotCard(def, ns) {
     : '';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;">
-      ${escapeHtml(def.label)}${optLabel}${matchBadge}
+      ${escapeHtml(def.label)}${optLabel}${matchBadge}${labelTag}
       ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear" aria-label="Clear ${_escAttr(def.label)}">×</button>` : ''}
     </div>
     <div style="position:relative;">
@@ -22083,7 +22247,7 @@ function openMenuEdit(week, day, period) {
     Object.entries(existing.linkedRecipes).forEach(([slotId, recipeName]) => {
       const recipe = isHubLoaded() && DOOR_RECIPE_DATA.find(r => r.recipeName === recipeName);
       MEAL_SLOT_STATE[slotId] = recipe
-        ? { recipeName, flags: hubAllergenToFlags(recipe.allergens) }
+        ? (typeof doorMarkLabelUnchecked === 'function' ? doorMarkLabelUnchecked : (x => x))({ recipeName, flags: hubAllergenToFlags(recipe.allergens) }, recipe)
         : { manual: recipeName };
     });
   } else if (existing && existing.name) {
@@ -22392,6 +22556,7 @@ function initSmSlotState() {
 function renderSmSlots() {
   const container = document.getElementById('sm-slot-panel');
   if (!container) return;
+  if (typeof doorRefreshLabelChecks === 'function') doorRefreshLabelChecks(SM_SLOT_STATE);   // C2: a label checked since brings its allergens
   _slotRenderDepth++;   // W3e: the blur a redraw fires is not a commit (see slotAutoSave)
   try { container.innerHTML = MEAL_SLOT_DEFS.map(def => renderSlotCard(def, 'sm-slot')).join(''); }
   finally { _slotRenderDepth--; }
@@ -22478,10 +22643,10 @@ function smSlotSelect(slotId, recipeName) {
   if (!recipe) return;
   const current = SM_SLOT_STATE[slotId];
   const sameRecipe = current && current.recipeName === recipeName;
-  SM_SLOT_STATE[slotId] = {
+  SM_SLOT_STATE[slotId] = (typeof doorMarkLabelUnchecked === 'function' ? doorMarkLabelUnchecked : (x => x))({
     recipeName,
-    flags: sameRecipe && current.flags ? current.flags : doorLinkFlags(recipe, current),
-  };
+    flags: sameRecipe && (typeof doorKeepCapturedFlags === 'function' ? doorKeepCapturedFlags(current) : current.flags) ? current.flags : doorLinkFlags(recipe, current),
+  }, recipe);
   const dd = document.getElementById('sm-slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   renderSmSlots();
@@ -22599,10 +22764,10 @@ function slotSelect(slotId, recipeName) {
   const current = MEAL_SLOT_STATE[slotId];
   const sameRecipe = current && (current.recipeId && recipe.recipeId
     ? String(current.recipeId) === String(recipe.recipeId) : current.recipeName === recipeName);
-  const next = {
+  const next = (typeof doorMarkLabelUnchecked === 'function' ? doorMarkLabelUnchecked : (x => x))({
     recipeName,
-    flags: sameRecipe && current.flags ? current.flags : doorLinkFlags(recipe, current),
-  };
+    flags: sameRecipe && (typeof doorKeepCapturedFlags === 'function' ? doorKeepCapturedFlags(current) : current.flags) ? current.flags : doorLinkFlags(recipe, current),
+  }, recipe);
   // Recipe-attach S2: a same-recipe re-confirm keeps the operator's display override;
   // a genuine recipe change drops it (the rename belonged to the old dish).
   if (sameRecipe && current.displayText) next.displayText = current.displayText;
@@ -22708,10 +22873,10 @@ function slotAutoSave(slotId, val, how) {
     // on a subsequent blur. A genuine recipe change resets flags.
     const sameRecipe = current && (current.recipeId && match.recipeId
       ? String(current.recipeId) === String(match.recipeId) : current.recipeName === match.recipeName);
-    const next = {
+    const next = (typeof doorMarkLabelUnchecked === 'function' ? doorMarkLabelUnchecked : (x => x))({
       recipeName: match.recipeName,
-      flags: sameRecipe && current.flags ? current.flags : doorLinkFlags(match, current),
-    };
+      flags: sameRecipe && (typeof doorKeepCapturedFlags === 'function' ? doorKeepCapturedFlags(current) : current.flags) ? current.flags : doorLinkFlags(match, current),
+    }, match);
     if (sameRecipe && current.displayText) next.displayText = current.displayText;   // S2: keep the display override on re-confirm
     if (match.recipeId) next.recipeId = String(match.recipeId);                      // phase-2: store the stable id (published for HUB deep-links)
     MEAL_SLOT_STATE[slotId] = next;
@@ -22746,10 +22911,10 @@ function smSlotAutoSave(slotId, val) {
   const match = pool.find(r => r.recipeName.toLowerCase() === val.toLowerCase());
   if (match) {
     const sameRecipe = current && current.recipeName === match.recipeName;
-    SM_SLOT_STATE[slotId] = {
+    SM_SLOT_STATE[slotId] = (typeof doorMarkLabelUnchecked === 'function' ? doorMarkLabelUnchecked : (x => x))({
       recipeName: match.recipeName,
-      flags: sameRecipe && current.flags ? current.flags : doorLinkFlags(match, current),
-    };
+      flags: sameRecipe && (typeof doorKeepCapturedFlags === 'function' ? doorKeepCapturedFlags(current) : current.flags) ? current.flags : doorLinkFlags(match, current),
+    }, match);
   } else {
     SM_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
   }
@@ -22943,7 +23108,8 @@ function updateSmSlotSummary() {
       sumEl.innerHTML =
         '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">Will save as</div>' +
         (name ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${escapeHtml(name)}</div>` : '') +
-        (veg  ? `<div style="font-size:12px;color:var(--muted);">Alt: ${escapeHtml(veg)}</div>` : '');
+        (veg  ? `<div style="font-size:12px;color:var(--muted);">Alt: ${escapeHtml(veg)}</div>` : '') +
+        (typeof doorLabelUncheckedLinesHTML === 'function' ? doorLabelUncheckedLinesHTML(doorUncheckedSlotDishes(SM_SLOT_STATE)) : '');
     } else {
       sumEl.style.display = 'none';
     }
@@ -23146,6 +23312,8 @@ function saveSpecialMeal() {
     if (s && s.recipeName) linkedRecipes[slotId] = s.recipeName;
   });
   const verified = Object.values(linkedRecipes).length > 0;
+  // C2: the linked dishes whose label is not checked (no key when none, so a saved meal is as before).
+  const labelUnchecked = typeof doorSlotLabelUnchecked === 'function' ? Object.keys(linkedRecipes).filter(id => doorSlotLabelUnchecked(SM_SLOT_STATE[id])) : [];
 
   const key = date + '-' + period;
   const meals = loadSpecialMeals();
@@ -23183,6 +23351,7 @@ function saveSpecialMeal() {
     createdAt: new Date().toISOString(),
     site: getSelectedSite() || 'unknown'
   };
+  if (labelUnchecked.length) meals[key].labelUnchecked = labelUnchecked;
   // saved again after a removal: this computer's removal no longer applies (one elsewhere is older than this meal)
   if (REMOVED_SPECIAL_KEYS.has(key)) REMOVED_SPECIAL_KEYS.delete(key);
   saveSpecialMeals(meals);
@@ -25563,6 +25732,9 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
   // The kitchen's alternatives (2026-10-19, the plating review): which plates the meal has.
   const mealKitchenAlts = doorKitchenAlternatives(dayData, period);
   doorAddKitchenPlateFlags(mealFlags, dayData, period);
+  // C2: the dishes on each plate whose label is not checked. Not enumerable, so no copy, count or published file reads it.
+  const plateLabels = typeof doorPlatesLabelUnchecked === 'function' ? doorPlatesLabelUnchecked(dayData, period, dated) : null;
+  if (plateLabels) Object.defineProperty(mealFlags, '_labelUnchecked', { value: plateLabels, enumerable: false, configurable: true });
   // Smart no-egg: check if veg alt is egg/mustard-free from allergen string
   const vegAllergenCheck = (vegAllergenStr || '').toUpperCase();
   mealFlags._vegAltSafe = !vegAllergenCheck || (!/EGG/i.test(vegAllergenCheck) && !/MUSTARD/i.test(vegAllergenCheck));
@@ -25597,8 +25769,11 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
       const conflicts = checkResidentMealConflicts(mealFlags, r);
       const conflictNote = formatConflictNote(conflicts);
       const svcNote = doorRegularServiceNote(r, mealFlags);
-      if (conflicts.length || svcNote) {
-        regularNotes.push({ room: r.room, rawRestriction: r.rawRestriction || '', tags: r.tags || [], conflictNote, serviceNote: svcNote });
+      const label = plateLabels ? doorLabelCheckNote(r, 'regular', mealFlags) : null;
+      if (conflicts.length || svcNote || (label && label.note)) {
+        const row = { room: r.room, rawRestriction: r.rawRestriction || '', tags: r.tags || [], conflictNote, serviceNote: svcNote };
+        if (label && label.note) { row.labelNote = label.note; row.labelRed = label.red; }
+        regularNotes.push(row);
       }
     });
     regularNotes.sort((a,b) => { const na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); });
@@ -25860,7 +26035,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
       const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
-      addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
+      if (mealFlags._labelUnchecked && doorLabelCheckNote(r, doorSectionLabelPlate(s, mealFlags), mealFlags).red)
+        addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell(allNotes,F.noteRed,'F2DCDC',B.anaph), 14);
+      else addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
     });
     addRow(xCell(sectionLabel+' Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
     totalRestrictions += s.residents.length;
@@ -25872,8 +26049,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     addMerged('Regular Meal \u2014 Notes', F.stdB, 'D9E2F3', B.thick, 16);
     addMerged('Standard meal with the following modifications', F.std, 'D9E2F3', B.thin, 14);
     regularNotes.forEach(r => {
-      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' \u00B7 ');
-      addRow(xCell(r.rawRestriction, F.std, 'E8EDF5', B.thin), xCell(r.room, F.std, 'E8EDF5', B.thin, A.center), xCell(note, F.std, 'E8EDF5', B.thin), 14);
+      const note = [r.conflictNote, r.serviceNote, r.labelNote].filter(Boolean).join(' \u00B7 ');
+      if (r.labelRed) addRow(xCell(r.rawRestriction, F.anaph, 'F2DCDC', B.anaph), xCell(r.room, F.anaph, 'F2DCDC', B.anaph, A.center), xCell(note, F.noteRed, 'F2DCDC', B.anaph), 14);
+      else addRow(xCell(r.rawRestriction, F.std, 'E8EDF5', B.thin), xCell(r.room, F.std, 'E8EDF5', B.thin, A.center), xCell(note, F.std, 'E8EDF5', B.thin), 14);
     });
   }
 
@@ -26538,7 +26716,8 @@ function buildPlatingHtml(pd, isTest) {
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
       const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
-      const cls = isDiab ? ' class="ps-diabetic"' : '';
+      const labelRed = !!mealFlags._labelUnchecked && doorLabelCheckNote(r, doorSectionLabelPlate(s, mealFlags), mealFlags).red;
+      const cls = labelRed ? ' class="ps-anaph-row"' : isDiab ? ' class="ps-diabetic"' : '';
       h += `<tr${cls}><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(allNotes)}</td></tr>`;
     });
     h += `<tr class="ps-sect-total"><td>${escapeHtml(sectionLabel)} Total</td><td></td><td>${res.length}</td></tr>`;
@@ -26547,8 +26726,10 @@ function buildPlatingHtml(pd, isTest) {
     h += `<tr><td colspan="3" class="ps-sect-hdr" style="background:#D9E2F3;">Regular Meal — Notes</td></tr>`;
     h += `<tr><td colspan="3" class="ps-meal" style="background:#E8EDF5;">Standard meal with the following modifications</td></tr>`;
     regularNotes.forEach(r => {
-      const note = [r.conflictNote, r.serviceNote].filter(Boolean).join(' · ');
-      h += `<tr class="ps-notes-row" style="background:#E8EDF5;"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(note)}</td></tr>`;
+      const note = [r.conflictNote, r.serviceNote, r.labelNote].filter(Boolean).join(' · ');
+      h += r.labelRed
+        ? `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(note)}</td></tr>`
+        : `<tr class="ps-notes-row" style="background:#E8EDF5;"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(note)}</td></tr>`;
     });
   }
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
