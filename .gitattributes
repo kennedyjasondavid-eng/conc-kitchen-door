@@ -5,3 +5,5 @@
 # breaking the extractor.
 *.html text eol=lf
 *.mjs  text eol=lf
+# These synthetic publisher fixtures carry seals of their exact emitted bytes.
+tests/fixtures/serving_catalogue/** text eol=lf

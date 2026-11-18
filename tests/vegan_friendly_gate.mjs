@@ -72,7 +72,15 @@ test('DOOR reads the flag in these places only (the vegan plate\'s allergen gues
   // 2026-10-22 (Corn source alignment): the scoped fallback additions carry CODEX's inert veganFriendly data.
   // F4 also preserves the typed source flag in its frozen recipe receipt projection.
   // Exclude only the literal data declaration; all six exact reader sites remain mandatory below.
-  const code = html.split('\n').filter(l => /veganFriendly/.test(l) && !/^\s*\/\//.test(l)
+  // 2026-11-17: this legacy reader census excludes ONLY the independently gated inactive catalogue core.
+  const catalogueStart = '/* HOUSE_TESTABLE_CORE_START serving-catalogue-v1 */';
+  const catalogueEnd = '/* HOUSE_TESTABLE_CORE_END serving-catalogue-v1 */';
+  assert.equal(html.split(catalogueStart).length, 2, 'unique catalogue core start marker');
+  assert.equal(html.split(catalogueEnd).length, 2, 'unique catalogue core end marker');
+  const catalogueAt = html.indexOf(catalogueStart), catalogueTo = html.indexOf(catalogueEnd);
+  assert.ok(catalogueTo > catalogueAt, 'catalogue core marker order');
+  const legacyHtml = html.slice(0, catalogueAt) + html.slice(catalogueTo + catalogueEnd.length);
+  const code = legacyHtml.split('\n').filter(l => /veganFriendly/.test(l) && !/^\s*\/\//.test(l)
     && !/^const DOOR_RECIPE_DATA_FALLBACK = /.test(l));
   assert.equal(code.length, 6, code.join('\n'));
   assert.ok(/out\.veganFriendly = d\.veganFriendly/.test(code[0]));
