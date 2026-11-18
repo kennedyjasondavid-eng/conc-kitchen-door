@@ -2,10 +2,10 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-18T12:00:05.328Z",
+    "exported": "2026-11-18T14:45:33.914Z",
     "version": 31,
     "builtFromMenu": {
-      "exported": "2026-11-18T12:00:05.205Z",
+      "exported": "2026-11-18T14:45:33.852Z",
       "hash": "15thiez"
     },
     "flow": {
@@ -20,13 +20,13 @@
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
         "menu": "sha256:cf3dd5581ad23251963a11497184874edf8e2f05b25979b0db55b57ef7ded57c",
-        "recipe": "sha256:036f6fc2569c48ec9f545b0aa8150ce2402d127522e5ba582d50b2445bb111e7",
+        "recipe": "sha256:9c1ed47700bda5e49b7133da4fc31becf2c367d4e318168c2723acbb8db4c18f",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:bf2cff4575bad340efad711d62ca80e9bbf2aab5a2bbab120986d790abc5ce15",
+      "inputRevision": "sha256:f20a57411cfad957055a143236abca7c0978b24769319e1a75a697754a2802b6",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 26
+        "sequence": 27
       },
       "schema": 1
     }
@@ -1325,7 +1325,7 @@
   },
   "flow": {
     "schema": 1,
-    "inputRevision": "sha256:bf2cff4575bad340efad711d62ca80e9bbf2aab5a2bbab120986d790abc5ce15",
+    "inputRevision": "sha256:f20a57411cfad957055a143236abca7c0978b24769319e1a75a697754a2802b6",
     "recipes": {
       "adobo-pork-chicken-tofu-adobo-marinade-and-sauce": {
         "canonicalName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
@@ -9711,6 +9711,38 @@
         },
         "portionBasis": null
       },
+      "house-gluten-free-pancakes": {
+        "canonicalName": "House Gluten-Free Pancakes",
+        "allergenState": "known",
+        "allergenFlags": {
+          "hasGluten": false,
+          "hasDairy": true,
+          "hasEgg": true,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": false,
+          "hasPork": false,
+          "hasBeef": false,
+          "hasChicken": false,
+          "hasTurkey": false,
+          "isSpicy": false,
+          "isCarb": false,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": true
+        },
+        "portionBasis": null
+      },
       "kimchi-chicken-fried-rice": {
         "canonicalName": "Kimchi Chicken Fried Rice",
         "allergenState": "known",
@@ -10604,6 +10636,38 @@
           "hasNightshades": true,
           "hasBrassicas": false,
           "hasCorn": true
+        },
+        "portionBasis": null
+      },
+      "vegetable-cacciatore": {
+        "canonicalName": "Vegetable Cacciatore",
+        "allergenState": "known",
+        "allergenFlags": {
+          "hasGluten": false,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": true,
+          "hasPork": false,
+          "hasBeef": false,
+          "hasChicken": false,
+          "hasTurkey": false,
+          "isSpicy": false,
+          "isCarb": false,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
+          "hasBeans": false,
+          "hasMushroom": true,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "portionBasis": null
       }
