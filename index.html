@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.97';
+const DOOR_APP_VERSION = 'v31-standard.98';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -20494,7 +20494,7 @@ const MEAL_SLOT_DEFS = [
   { id:'noporkalt',label:'No Pork Alt', required:false, cats:['protein','stew_main'],          streams:['regular',''],  ph:'Non-halal alt for No Pork residents…', hidden:true },
   { id:'veganalt', label:'Vegan Alt',   required:false, cats:['protein','stew_main'],          streams:['vegan'],       ph:'Vegan alternative…' },
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
-  { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side'],                     streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
+  { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side','stew_side'],         streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
   { id:'xtra',     label:'Extras',      required:false,                                        streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
   { id:'vegextras',   label:'Vegan line also gets', required:false, list:true, streams:null, ph:'Only on the vegan line, e.g. Burger bun, Turmeric Quinoa…' },
   { id:'halalextras', label:'Halal line also gets', required:false, list:true, streams:null, ph:'Only on the halal line…' },
@@ -22756,6 +22756,8 @@ function _allergenPreview(allergens, unchecked) {
   return tokens.map(t => `<span style="display:inline-block;font-size:10px;padding:1px 6px;margin:0 2px 0 0;border-radius:8px;background:var(--danger-faint, #fee2e2);color:var(--danger-ink, #991b1b);">${t}</span>`).join('');
 }
 
+// C7 (Jason, 2026-11-18): a CODEX Stew / Side recipe (stew_side) is a vegetable-based side made on a stew cycle; the
+// Veg Side slot offers it beside veg_side. The main slots keep stew_main only.
 function recipeMatchesSlotDef(def, recipe) {
   if (!recipe) return false;
   if (def && def.cats && !def.cats.includes(recipe.category)) return false;
