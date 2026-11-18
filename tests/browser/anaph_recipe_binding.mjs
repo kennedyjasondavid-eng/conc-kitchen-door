@@ -136,7 +136,12 @@ try {
   return {slots,cases,registry:REGISTRY_LIST,anaphRooms};
  });
  check('breakfast capture covers 28 slots with every resident once',breakfast.slots.length===28&&breakfast.slots.every(s=>s.residents.length===files['door_state.json'].residents.length&&new Set(s.residents.map(r=>r.room)).size===s.residents.length));
+ // 2026-11-18 re-pin: the kitchen now names every GF breakfast (DOOR #232, publication 32), so this gate stages the
+ // undefined state itself: Weeks 1 and 3 lose their GF breakfast in this page only, and the refusal is checked on that.
  const breakfastPreview=await replay.page.evaluate(()=>{
+  const current=loadMenuBaseOverlay(),trial=JSON.parse(JSON.stringify(current));
+  for(const w of ['1','3']) for(const d of ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY']) { trial[w]??={}; trial[w][d]={...(trial[w][d]||{}),breakfast_gfAlt:''}; }
+  localStorage.setItem('concMenuBase',JSON.stringify(doorNormalizeMenuOverlay(doorStampOverlayEdits(current,trial,Date.now()))));
   psWhen='browse';psWeek=1;psDay='MONDAY';psPeriod='breakfast';showScreen('plating');renderPlatingPreview();
   const header=[...document.querySelectorAll('#ps-preview .ps-sect-hdr')].find(e=>e.textContent.includes('Gluten Free'));
   const readiness=doorPlatingReadiness(doorRotationServices('breakfast',[1,3]));
