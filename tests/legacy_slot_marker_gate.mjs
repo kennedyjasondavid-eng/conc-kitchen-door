@@ -23,7 +23,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-const MARKER = 'save to link';
+// Re-pinned 2026-11-18 (back-on-track plan U4): the notice now says what to do (check the dishes, then Save)
+// instead of claiming Save links them. Same notice, same places, plainer words.
+const MARKER = 'check the dishes, then Save';
 
 function fnBlock(name) {
   const start = html.indexOf('function ' + name + '(');
