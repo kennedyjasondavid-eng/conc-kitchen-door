@@ -224,3 +224,4 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - **C2 Bought items (D2):** short CODEX bought-item records with label allergens and a "label checked" date. Lean: yes.
 - **C3 Tuna and the mushroom sandwich links (U1):** each changes EXPO's plan; decide with EXPO's view open.
 - **C4 The 24 differences (U2):** one sitting.
+- **C7 Stew / Side (ruled 2026-11-18):** a CODEX category (`stew_side`) for a vegetable-based side made on a stew cycle EXPO can plan; DOOR offers it in Veg Side (DOOR .98 first, then CODEX). **C8:** Okra and Cassava Stew, Atakilt Wat and Shakshuka Sauce (Vegan) become Stew / Side; Wk2 WED dinner's fish and stew split into a main and a side.
