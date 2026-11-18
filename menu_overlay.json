@@ -534,10 +534,10 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "lunch": "Chicken Deli & Cheese, Broccoli Salad",
-      "lunch_veg": "Roasted Vegetable Sandwich, Broccoli Salad, Burger Bun",
-      "lunch_mainItem": "Chicken Deli & Cheese",
-      "lunch_sides": "Broccoli Salad",
+      "lunch": "Chicken Deli & Cheese Sandwich, Seasonal Soup",
+      "lunch_veg": "Roasted Vegetable Sandwich, Seasonal Soup",
+      "lunch_mainItem": "Chicken Deli & Cheese Sandwich",
+      "lunch_sides": "Seasonal Soup",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -558,12 +558,12 @@
         "isCarb": false,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": true,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": false,
-        "hasBeans": false
+        "hasBrassicas": true,
+        "hasCorn": false
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_lunch": "gluten, dairy, turkey",
@@ -682,7 +682,98 @@
       "lunch_noDairyAlt": "Halal Chicken Deli, Vegan Cheese, Lettuce, Tomato and Broccoli Salad",
       "lunch_altMeals": [],
       "lunch_softAlt": "",
-      "lunch_altMealsNone": true
+      "lunch_altMealsNone": true,
+      "lunch_diabeticAlt": "",
+      "lunch_noEggAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_noPorkAlt": "",
+      "lunch_mainAlt": "",
+      "lunch_slots": {
+        "main": {
+          "manual": "Chicken Deli & Cheese Sandwich",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": true,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": true,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
+        },
+        "veganalt": {
+          "manual": "Roasted Vegetable Sandwich",
+          "flags": {
+            "hasNightshades": true
+          }
+        },
+        "vegside": {
+          "manual": "Seasonal Soup",
+          "flags": {}
+        }
+      },
+      "lunch_original": {
+        "meal": {
+          "": "Chicken Deli & Cheese, Broccoli Salad",
+          "_veg": "Roasted Vegetable Sandwich, Broccoli Salad, Burger Bun",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": true,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "Chicken Deli & Cheese",
+          "_sides": "Broccoli Salad",
+          "_softAlt": "",
+          "_gfAlt": "Gluten Free Bread, Dairy Free Cheese, Halal Chicken Deli, Tomato, Lettuce and Broccoli Salad",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_noDairyAlt": "Halal Chicken Deli, Vegan Cheese, Lettuce, Tomato and Broccoli Salad"
+        },
+        "at": "2026-11-18T14:48:53.707Z",
+        "by": "JK",
+        "how": "Edit Menu"
+      }
     },
     "MONDAY": {
       "lunch": "Breaded Chicken Burgers, Home Fry Potatoes",
@@ -9757,7 +9848,7 @@
       "2|SATURDAY": 1795003203207,
       "3|WEDNESDAY": 1794930526177,
       "1|WEDNESDAY": 1794878436000,
-      "1|SUNDAY": 1795003203207,
+      "1|SUNDAY": 1795013333708,
       "2|THURSDAY": 1794186589141,
       "3|FRIDAY": 1794168729668,
       "3|SUNDAY": 1794227850191,
@@ -9794,14 +9885,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:cf3dd5581ad23251963a11497184874edf8e2f05b25979b0db55b57ef7ded57c",
+        "menu": "sha256:786350e1093cdb17a7bb3922ee86c11b800398309180dcac6a0918602729e6fd",
         "recipe": "sha256:9c1ed47700bda5e49b7133da4fc31becf2c367d4e318168c2723acbb8db4c18f",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:f20a57411cfad957055a143236abca7c0978b24769319e1a75a697754a2802b6",
+      "inputRevision": "sha256:223b199e65b0f516463d01637b6b86aab217c375371fa752a17662be6c7990d8",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 27
+        "sequence": 28
       },
       "schema": 1
     }
