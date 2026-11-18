@@ -26,7 +26,10 @@ async function boot(html,tag) {
  process.env.HOUSE_FLOW_HTML=html;
  const {harness}=await import('./menu_flow_f6_harness.mjs?plain-options='+tag);
  const h=await harness(),b=await h.boot(structuredClone(files),{storage});
- await b.page.clock.pauseAt(new Date('2026-11-17T12:00:00.000Z'));
+ // 2026-11-18 re-pin: the gate edits the live menu, so its clock must be later than every stamped day in the
+ // kitchen overlay (newest edit wins). A fixed Nov 17 clock lost to the Nov 18 publications 25 and 26.
+ const stamps=Object.values((files['menu_overlay.json']&&files['menu_overlay.json']._meta&&files['menu_overlay.json']._meta.dayEditedAt)||{}).map(Number).filter(Number.isFinite);
+ await b.page.clock.pauseAt(new Date(Math.max(Date.parse('2026-11-17T12:00:00.000Z'),...stamps.map(t=>t+3600000))));
  await b.page.evaluate(fixture=>{
   if(fixture.base){_doorRecipeBase=fixture.base;_recipeDataSource='captured-live';}
   _doorSharedLibrary={_meta:{version:1},recipes:fixture.recipes};_doorSharedLibrarySource='test-fixture';_doorApplySharedRecipes();

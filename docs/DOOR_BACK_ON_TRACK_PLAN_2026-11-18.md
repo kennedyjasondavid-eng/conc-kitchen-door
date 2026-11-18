@@ -209,7 +209,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - [ ] R5 DOOR repository private; raw fallback removed.
 - [ ] U1 Every active component has a clear identity. *Done: all 12 name-only links carry their CODEX recipe IDs (publications 25 and 26, 2026-11-18; C3 ruled "link both" after EXPO's cards proved identical). Left: run-on slots, misspelled names.*
 - [ ] U2 Every saved-versus-CODEX difference decided; facts rule written.
-- [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for.
+- [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for. *Done: C2 DOOR half (a recipe whose label is not checked reads as unknown: "label not checked" in the editor, "check label" on the plate, `.97`). Left: CODEX bought-item records and null in its projection, named breakfast plates, the resident breakfast note, the plate choice. Cross-app follow-up: EXPO and HUB's DC18 anaphylactic checks see nothing for an unchecked dish (only the flow block's allergenState 'unknown').*
 - [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default. *Done: one save line and plain notice (#226, .95); counts unavailable without a list and the halal plate named (#227, .96); undo and reset already name what they put back. Left: import review kept/replaced, quieter default.*
 - [ ] U5 End-to-end journey passes; HUB 21/20 explained.
 - [ ] U6 Supervisor walkthrough done without developer help.
