@@ -1,5 +1,7 @@
 # DOOR staff-ready baseline — action plan
 
+> **2026-11-18: frozen.** The private-data, serving-protocol and breakfast-resolver work recorded here was removed. This line's status and next steps are owned by `DOOR_BACK_ON_TRACK_PLAN_2026-11-18.md`.
+
 Status: Independently reviewed; amendments incorporated 2026-11-17. Implementation authorized and started. Created 2026-11-17.
 Owner of this workstream: this document. Implementation authorized 2026-11-17 with standard review cadence and merge authority.
 
