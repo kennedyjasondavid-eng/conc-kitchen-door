@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.90';
+const DOOR_APP_VERSION = 'v31-standard.91';
 const DOOR_BUILD_DATE = '2026-11-17';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -13142,6 +13142,271 @@ function houseServingV1PublicIOCreate(config,capabilities) {
   return{ok:true,io:{fetchSites:function(){if(arguments.length)return Promise.resolve({ok:false,reason:'invalid-input'});return run(false);},fetchReleased:function(){if(arguments.length)return Promise.resolve({kind:'frame',validation:{ok:false,reason:'invalid-input'}});return run(true);}}};
 }
 /* HOUSE_TESTABLE_CORE_END serving-public-io-v1 */
+/* HOUSE_TESTABLE_CORE_START serving-catalogue-v1 */
+// Inactive public-byte integrity provider. No source adoption or clinical authority.
+function houseCatalogueFail(reason) { throw {catalogueReason:reason}; }
+function houseCatalogueReason(error) {
+  try{if(error===null||!['object','function'].includes(typeof error))return null;const d=Object.getOwnPropertyDescriptor(error,'catalogueReason');return d&&Object.hasOwn(d,'value')&&typeof d.value==='string'?d.value:null;}catch(_){return null;}
+}
+function houseCatalogueObject(v) {
+  if(v===null||typeof v!=='object'||Array.isArray(v))return false;
+  const p=Object.getPrototypeOf(v);if(p===null)return true;if(Object.getPrototypeOf(p)!==null)return false;
+  const c=Object.getOwnPropertyDescriptor(p,'constructor');if(!c||!Object.hasOwn(c,'value')||typeof c.value!=='function')return false;
+  const n=Object.getOwnPropertyDescriptor(c.value,'name'),q=Object.getOwnPropertyDescriptor(c.value,'prototype');
+  return !!(n&&n.value==='Object'&&q&&q.value===p&&/\[native code\]/.test(Function.prototype.toString.call(c.value)));
+}
+function houseCatalogueExact(v,keys) {
+  if(!houseCatalogueObject(v))return false;const d=Object.getOwnPropertyDescriptors(v),own=Reflect.ownKeys(d);
+  return own.length===keys.length&&own.every(k=>typeof k==='string'&&keys.includes(k)&&d[k].enumerable&&Object.hasOwn(d[k],'value'));
+}
+function houseCatalogueText(v,max) { return typeof v==='string'&&v.trim().length>0&&v.length<=max; }
+function houseCatalogueKey(v) { return typeof v==='string'?v.trim().toLowerCase():''; }
+function houseCatalogueBytes(v,cap) {
+  try{
+    const p=Object.getPrototypeOf(Uint8Array.prototype),get=k=>Object.getOwnPropertyDescriptor(p,k).get;
+    if(get(Symbol.toStringTag).call(v)!=='Uint8Array')houseCatalogueFail('invalid-input');
+    const length=get('byteLength').call(v);if(length>cap)houseCatalogueFail('bounds-exceeded');
+    const out=new Uint8Array(length);Uint8Array.prototype.set.call(out,v);return out;
+  }catch(e){if(houseCatalogueReason(e))throw e;houseCatalogueFail('invalid-input');}
+}
+function houseCatalogueJSON(bytes) {
+  try{
+    if(bytes[0]===239&&bytes[1]===187&&bytes[2]===191)houseCatalogueFail('invalid-json');
+    const value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));let nodes=0;
+    function check(v,depth){
+      if(++nodes>250000||depth>32)houseCatalogueFail('bounds-exceeded');
+      if(v===null||typeof v==='boolean')return;
+      if(typeof v==='number'){if(!Number.isFinite(v))houseCatalogueFail('invalid-json');return;}
+      if(typeof v==='string'){if(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(v))houseCatalogueFail('invalid-json');return;}
+      if(!v||typeof v!=='object'||(!Array.isArray(v)&&!houseCatalogueObject(v)))houseCatalogueFail('invalid-json');
+      for(const k of Object.keys(v)){if(['__proto__','constructor','prototype'].includes(k))houseCatalogueFail('invalid-json');check(k,depth+1);check(v[k],depth+1);}
+    }check(value,0);return value;
+  }catch(e){if(houseCatalogueReason(e))throw e;houseCatalogueFail('invalid-json');}
+}
+function houseCatalogueUTC(v) {return typeof v==='string'&&v.length<=40&&/^\d{4}-\d\d-\d\dT.*Z$/.test(v)&&Number.isFinite(Date.parse(v));}
+function houseCatalogueDescriptor(p) {
+  const h=(v,n)=>typeof v==='string'&&new RegExp('^[a-f0-9]{'+n+'}$').test(v);
+  if(!houseCatalogueExact(p,['schemaVersion','asOf','sources','primaryFeed','sharedLibrary'])||p.schemaVersion!==1||!houseCatalogueUTC(p.asOf)
+    ||!houseCatalogueExact(p.sources,['main','sharedLibrary'])||!h(p.sources.main,40)||!h(p.sources.sharedLibrary,40)
+    ||!houseCatalogueExact(p.primaryFeed,['path','sha256','schemaVersion'])||p.primaryFeed.path!=='DOOR_RECIPE_DATA.json'||p.primaryFeed.schemaVersion!==1||!h(p.primaryFeed.sha256,64)
+    ||!houseCatalogueExact(p.sharedLibrary,['path','sha256','schemaVersion'])||p.sharedLibrary.path!=='library_public.json'||p.sharedLibrary.schemaVersion!==1||!h(p.sharedLibrary.sha256,64))houseCatalogueFail('unsupported-provenance');
+  return {schema:1,main:p.sources.main,sharedLibrary:p.sources.sharedLibrary,doorRecipeDataSha256:p.primaryFeed.sha256,libraryPublicSha256:p.sharedLibrary.sha256};
+}
+async function houseCatalogueSHA(bytes) { const d=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(d),x=>x.toString(16).padStart(2,'0')).join(''); }
+function houseCatalogueStrings(v,max) {return Array.isArray(v)&&v.length<=max&&v.every(x=>typeof x==='string'&&x.length<=300);}
+function houseCataloguePrivacy(v) {
+  if(!v||typeof v!=='object')return;
+  for(const k of Object.keys(v)){
+    if(['sourceEvidence','intakeReceipt','authoringEvidence','publishedBy','localHistory','identityHistory','history','importHistory','attribution','rawSource'].includes(k))houseCatalogueFail('invalid-catalogue');
+    houseCataloguePrivacy(v[k]);
+  }
+}
+function houseCatalogueDoor(d,primary) {
+  if(!houseCatalogueObject(d)||!houseCatalogueText(d.recipeName,300)||!houseCatalogueStrings(d.allergens,128)||!houseCatalogueText(d.category,100)||typeof d.stream!=='string'||d.stream.length>32)houseCatalogueFail('invalid-catalogue');
+  if(Object.hasOwn(d,'veganFriendly')&&![true,false,null].includes(d.veganFriendly))houseCatalogueFail('invalid-catalogue');
+  if(primary&&Object.hasOwn(d,'recipeId')&&!houseCatalogueText(d.recipeId,200))houseCatalogueFail('invalid-catalogue');
+  if(Object.hasOwn(d,'removedAllergens')&&!houseCatalogueStrings(d.removedAllergens,128))houseCatalogueFail('invalid-catalogue');
+  const out={recipeName:d.recipeName.trim(),allergens:d.allergens.slice(),category:d.category.trim(),stream:primary?d.stream:d.stream==='vegan'?'vegan':'regular'};
+  if(Object.hasOwn(d,'veganFriendly'))out.veganFriendly=d.veganFriendly;
+  if(houseCatalogueText(d.recipeId,200))out.recipeId=d.recipeId.trim();return out;
+}
+async function houseServingV1CatalogueFromPublic(input) {
+  try{
+    if(!houseCatalogueExact(input,['provenanceBytes','primaryFeedBytes','libraryBytes']))houseCatalogueFail('invalid-input');
+    // Capture all caller bytes before the first await, using intrinsic typed-array operations.
+    const provenanceBytes=houseCatalogueBytes(input.provenanceBytes,16384),primaryFeedBytes=houseCatalogueBytes(input.primaryFeedBytes,8388608),libraryBytes=houseCatalogueBytes(input.libraryBytes,8388608);
+    const descriptor=houseCatalogueDescriptor(houseCatalogueJSON(provenanceBytes));
+    if(await houseCatalogueSHA(primaryFeedBytes)!==descriptor.doorRecipeDataSha256||await houseCatalogueSHA(libraryBytes)!==descriptor.libraryPublicSha256)houseCatalogueFail('integrity-mismatch');
+    const base=houseCatalogueJSON(primaryFeedBytes),library=houseCatalogueJSON(libraryBytes);
+    if(!Array.isArray(base)||base.length>10000||!houseCatalogueExact(library,['_meta','recipes'])||!houseCatalogueExact(library._meta,['version','generated','count'])||library._meta.version!==1||!houseCatalogueUTC(library._meta.generated)||!Number.isInteger(library._meta.count)||library._meta.count<0||library._meta.count>10000||!Array.isArray(library.recipes)||library.recipes.length>10000||!library.recipes.every(houseCatalogueObject)||library._meta.count!==library.recipes.filter(r=>!r.removed).length)houseCatalogueFail('invalid-catalogue');
+    houseCataloguePrivacy(base);houseCataloguePrivacy(library);
+    const allowed=['recipeName','recipeId','removed','category','stream','portions','servingOz','notes','kitchenNote','prepTime','cookTime','targetYieldLbs','basePortions','notVeganFriendly','savedAt','contentFingerprint','allergens','sourceAllergens','homeSites','producedAt','servedAt','previousNames','ingredients','instructions','tags','production','door','allergenRemovalsConfirmed','releaseDecisions','foodFacts','basisFingerprint'];
+    const normalizedBase=base.map(r=>houseCatalogueDoor(r,true)),normalizedLibrary=[],originals=new Map();
+    for(const r of library.recipes){
+      if(!houseCatalogueObject(r)||Object.keys(r).some(k=>!allowed.includes(k))||!houseCatalogueText(r.recipeName,300)||Object.hasOwn(r,'removed')&&typeof r.removed!=='boolean')houseCatalogueFail('invalid-catalogue');
+      if(Object.hasOwn(r,'previousNames')&&!houseCatalogueStrings(r.previousNames,128))houseCatalogueFail('invalid-catalogue');
+      let d=null;if(r.door!=null){if(!houseCatalogueObject(r.door))houseCatalogueFail('invalid-catalogue');if(r.door.recipeName&&r.door.allergens&&r.door.category){d=houseCatalogueDoor(r.door,false);if(Array.isArray(r.door.removedAllergens))d.removedAllergens=r.door.removedAllergens.slice();}}
+      const normalized={...r,door:d};normalizedLibrary.push(normalized);originals.set(normalized,r);
+    }
+    const displayRecipes=houseCatalogueOverlay(normalizedBase,{_meta:library._meta,recipes:normalizedLibrary}).list,active=normalizedLibrary.filter(r=>!r.removed),recipes=[],issues=[];
+    const id=v=>houseCatalogueText(v,200)?v.trim():null,name=houseCatalogueKey;
+    const families=row=>Array.from(new Set(row.allergens.map(houseCatalogueAllergenFamily).filter(f=>f&&f!=='none'))).sort();
+    const factsAgree=(a,b)=>!!(a&&b&&JSON.stringify(families(a))===JSON.stringify(families(b))&&(Object.hasOwn(a,'veganFriendly')?a.veganFriendly:null)===(Object.hasOwn(b,'veganFriendly')?b.veganFriendly:null));
+    function issue(index,reason){if(!issues.some(x=>x.index===index&&x.reason===reason))issues.push({index,reason});}
+    for(let index=0;index<displayRecipes.length;index++){
+      const d=displayRecipes[index],recipeId=id(d.recipeId),recipeName=d.recipeName;
+      const door={recipeName,recipeId,allergens:d.allergens.slice(),category:d.category,stream:d.stream,veganFriendly:Object.hasOwn(d,'veganFriendly')?d.veganFriendly:null};
+      const matches=active.filter(r=>id(r.recipeId)===recipeId&&recipeId!==null);
+      const claimName=r=>[r.recipeName,...(r.previousNames||[])].some(n=>name(n)===name(recipeName));
+      const group=displayRecipes.filter(x=>recipeId!==null&&id(x.recipeId)===recipeId),r=matches[0];
+      // A real source-owned rename may leave the old primary display row in place.
+      // Only explicit aliases of one uniquely owned current record qualify; no name inference.
+      const current=r&&group.filter(x=>name(x.recipeName)===name(r.recipeName)),aliases=r&&(r.previousNames||[]).map(name);
+      const ownedNames=r&&new Set([name(r.recipeName),...aliases]);
+      const confirmedRename=group.length>1&&matches.length===1&&r.recipeId===recipeId&&r.door&&originals.get(r).door.recipeId===recipeId
+        &&typeof r.contentFingerprint==='string'&&/^[a-f0-9]{64}$/.test(r.contentFingerprint)&&name(r.door.recipeName)===name(r.recipeName)
+        &&current.length===1&&factsAgree(current[0],r.door)&&normalizedBase.filter(x=>id(x.recipeId)===recipeId).length<=1
+        &&group.every(x=>x===current[0]||aliases.includes(name(x.recipeName)))
+        &&!active.some(other=>other!==r&&[other.recipeName,...(other.previousNames||[])].some(n=>ownedNames.has(name(n))))
+        &&!displayRecipes.some(x=>name(x.recipeName)===name(r.recipeName)&&id(x.recipeId)!==recipeId);
+      const ambiguousId=recipeId!==null&&(!confirmedRename&&group.length>1||matches.length>1||normalizedBase.filter(x=>id(x.recipeId)===recipeId).length>1);
+      const ambiguousName=displayRecipes.some((x,i)=>i!==index&&name(x.recipeName)===name(recipeName)&&id(x.recipeId)!==recipeId)||active.filter(claimName).length>1||active.some(r=>claimName(r)&&matches.length===1&&r!==matches[0]);
+      const effectiveFactsAgree=factsAgree(r&&r.door,door);
+      const canonical=recipeId!==null&&!ambiguousId&&!ambiguousName&&matches.length===1&&r.recipeId===recipeId&&r.door&&originals.get(r).door.recipeId===recipeId&&name(r.recipeName)===name(recipeName)&&name(r.door.recipeName)===name(recipeName)&&typeof r.contentFingerprint==='string'&&/^[a-f0-9]{64}$/.test(r.contentFingerprint)&&effectiveFactsAgree;
+      let sourceFingerprint,portionBasis=null;
+      if(canonical){sourceFingerprint={kind:'codex-content',value:r.contentFingerprint};if(typeof r.portions==='number'&&Number.isFinite(r.portions)&&r.portions>0&&r.portions<=1000000)portionBasis={servings:r.portions,unit:'standard-serving'};else issue(index,'unknown-yield');}
+      else{sourceFingerprint={kind:'public-projection',value:(await houseFlowDigest(door)).slice(7)};issue(index,'canonical-unavailable');if(!recipeId)issue(index,'missing-id');if(ambiguousId)issue(index,'ambiguous-id');if(ambiguousName)issue(index,'ambiguous-name');}
+      recipes.push({recipeId,recipeName,door,sourceFingerprint,portionBasis,binding:canonical?'canonical':ambiguousId||ambiguousName?'ambiguous':'projection-only'});
+    }
+    issues.sort((a,b)=>a.index-b.index||a.reason.localeCompare(b.reason));if(issues.length>20000)houseCatalogueFail('bounds-exceeded');
+    return {ok:true,catalogue:{schema:1,revision:{kind:'codex-public-snapshot',value:await houseFlowDigest(descriptor)},descriptor,displayRecipes,recipes,issues}};
+  }catch(e){const reason=houseCatalogueReason(e);return {ok:false,reason:['invalid-input','bounds-exceeded','invalid-json','unsupported-provenance','invalid-catalogue','integrity-mismatch'].includes(reason)?reason:'invalid-input'};}
+}
+// Pure copies of the existing DOOR Option C display-overlay semantics are inserted here.
+
+// One shared record → the DOOR recipe it stands for, or null when it carries no usable `door` block. A stream
+// other than 'vegan' reads as 'regular': a recipe wrongly listed as vegan would be offered for the vegan line.
+function houseCatalogueSharedDoorRecord(rec) {
+  if (!rec || typeof rec !== 'object' || rec.removed) return null;
+  const d = rec.door;
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  const name = typeof d.recipeName === 'string' ? d.recipeName.trim() : '';
+  if (!name) return null;
+  if (!Array.isArray(d.allergens) || !d.allergens.every(a => typeof a === 'string')) return null;
+  if (typeof d.category !== 'string' || !d.category.trim()) return null;
+  const out = { recipeName: name, allergens: d.allergens.slice(), category: d.category.trim(), stream: d.stream === 'vegan' ? 'vegan' : 'regular' };
+  // CODEX C8 (K4): vegan-friendly is worked out from the ingredients where the recipe was saved: true, false, or null
+  // while it waits on a label. A record written before the flag carries none, and since it replaces the whole CODEX
+  // record, the CODEX list's value never survives under a shared version that may hold different ingredients.
+  if (d.veganFriendly === true || d.veganFriendly === false || d.veganFriendly === null) out.veganFriendly = d.veganFriendly;
+  if (typeof d.recipeId === 'string' && d.recipeId.trim()) out.recipeId = d.recipeId.trim();
+  return out;
+}
+// Allergen family: the text before " (" without case ("Milk (Butter)" → milk), as CODEX compares them.
+function houseCatalogueAllergenFamily(a) { return String(a == null ? '' : a).split(' (')[0].trim().toLowerCase(); }
+// CODEX C8 review fold (2026-10-18): a list that names an animal family is never vegan-friendly, whatever a record's
+// veganFriendly says ("Egg and Mustard" counts as two families). The overlay clears the flag when Option C keeps such
+// a label, and the Vegan Alt slot never offers such a recipe.
+const HOUSE_CATALOGUE_ANIMAL_FAMILIES = { milk: 1, dairy: 1, egg: 1, eggs: 1, fish: 1, shellfish: 1, crustaceans: 1, molluscs: 1 };
+function houseCatalogueNamesAnimalFamily(list) {
+  return (Array.isArray(list) ? list : []).some(a => houseCatalogueAllergenFamily(a).split(/\s*(?:,|&|\band\b)\s*/)
+    .some(f => HOUSE_CATALOGUE_ANIMAL_FAMILIES[f.trim()] === 1));
+}
+// Option C (2026-10-14, Jason: "go with C"): the families whose removal was confirmed where the recipe was
+// saved (the record's door.removedAllergens). Only these may come off DOOR's list.
+function houseCatalogueSharedRemovedFamilies(rec) {
+  const r = rec && rec.door && Array.isArray(rec.door.removedAllergens) ? rec.door.removedAllergens : [];
+  return r.filter(f => typeof f === 'string' && f.trim()).map(houseCatalogueAllergenFamily);
+}
+// Pure: the CODEX list with the shared Library laid over it. Never mutates its inputs. Names match without
+// case. Allergens: the shared list, plus every allergen the CODEX list has that the shared version leaves out
+// — unless its family's removal was confirmed (Option C). A shorter list without that confirmation (an old
+// copy shared from a forgotten tablet) never strips a warning. A recipe already on the list keeps its
+// recipeId (menu slots link by it). A removal (tombstone) never
+// takes a recipe off the CODEX list — CODEX tablets keep their built-in recipes on a removal too; a recipe
+// only the shared Library added is gone because its record has become the removal. A rename therefore adds
+// the new name and leaves the old one for menu slots that still name it. Returns { list, receipt }.
+function houseCatalogueOverlay(base, shared) {
+  const key = n => String(n == null ? '' : n).trim().toLowerCase();
+  const list = Array.isArray(base) ? base.filter(r => r && typeof r === 'object').map(r => Object.assign({}, r)) : [];
+  const receipt = { added: [], replaced: [], unchanged: [], skipped: [], keptAllergens: [], notVeganFriendly: [], generated: null };
+  if (shared && shared._meta && typeof shared._meta.generated === 'string') receipt.generated = shared._meta.generated;
+  const recs = shared && Array.isArray(shared.recipes) ? shared.recipes : [];
+  const find = n => list.findIndex(r => key(r.recipeName) === key(n));
+  recs.forEach(rec => {
+    if (!rec || typeof rec !== 'object') return;
+    const name = typeof rec.recipeName === 'string' ? rec.recipeName : '';
+    if (!name.trim()) return;
+    if (rec.removed) return;
+    const d = houseCatalogueSharedDoorRecord(rec);
+    if (!d) { receipt.skipped.push(name); return; }
+    let i = find(name);
+    if (i < 0) i = find(d.recipeName);
+    if (i >= 0 && list[i].recipeId) d.recipeId = list[i].recipeId;
+    if (i >= 0) {
+      const have = {}, confirmed = {};
+      d.allergens.forEach(a => { have[houseCatalogueAllergenFamily(a)] = true; });
+      houseCatalogueSharedRemovedFamilies(rec).forEach(f => { confirmed[f] = true; });
+      const kept = (Array.isArray(list[i].allergens) ? list[i].allergens : []).filter(a => {
+        const f = houseCatalogueAllergenFamily(a);
+        return typeof a === 'string' && f && f !== 'none' && !have[f] && !confirmed[f];
+      });
+      if (kept.length) {
+        d.allergens = d.allergens.filter(a => houseCatalogueAllergenFamily(a) !== 'none').concat(kept);
+        receipt.keptAllergens.push({ recipe: d.recipeName, allergens: kept.slice() });
+      }
+    }
+    // A kept Milk, Eggs, Fish or shellfish label means the shared version's "vegan-friendly" was worked out from
+    // ingredients that leave it out (an unconfirmed shorter copy): it can't stand.
+    if (d.veganFriendly === true && houseCatalogueNamesAnimalFamily(d.allergens)) {
+      d.veganFriendly = false;
+      receipt.notVeganFriendly.push(d.recipeName);
+    }
+    if (i >= 0) {
+      const same = JSON.stringify([list[i].recipeName, list[i].allergens, list[i].category, list[i].stream, list[i].veganFriendly === undefined ? null : list[i].veganFriendly]) === JSON.stringify([d.recipeName, d.allergens, d.category, d.stream, d.veganFriendly === undefined ? null : d.veganFriendly]);
+      list[i] = d;
+      (same ? receipt.unchanged : receipt.replaced).push(d.recipeName);
+    }
+    else { list.push(d); receipt.added.push(d.recipeName); }
+  });
+  return { list, receipt };
+}
+
+
+function houseServingV1CatalogueIOCreate(config,capabilities) {
+  let fetchPublic,Controller,schedule,clear;
+  try{if(!houseCatalogueExact(config,['site'])||config.site!=='rexdale'||!houseCatalogueExact(capabilities,['fetch','AbortController','setTimeout','clearTimeout'])||!Object.values(capabilities).every(f=>typeof f==='function'))return{ok:false,reason:'invalid-input'};
+    fetchPublic=capabilities.fetch;Controller=capabilities.AbortController;schedule=capabilities.setTimeout;clear=capabilities.clearTimeout;
+    // Probe the internal constructor capability without invoking the supplied constructor.
+    Reflect.construct(new Proxy(Controller,{construct(){return {};}}),[]);
+  }catch(_){return{ok:false,reason:'invalid-input'};}
+  const base='https://kennedyjasondavid-eng.github.io/conc-recipe-hub/',p=base+'pages_provenance.json';
+  function fetchCatalogue(...args){
+    if(args.length)return Promise.resolve({ok:false,reason:'invalid-input'});
+    return new Promise(resolve=>{
+      let controller,timer,settled=false,reader=null,body=null;
+      const fail=houseCatalogueFail;
+      function cancel(v){try{const p=v&&typeof v.cancel==='function'&&v.cancel('catalogue-receiving-stopped');if(p&&typeof p.catch==='function')p.catch(()=>{});}catch(_){} }
+      function finish(value,abort){if(settled)return;settled=true;if(timer!==undefined)try{clear(timer);}catch(_){}if(abort){try{controller&&controller.abort();}catch(_){}cancel(reader||body);}if(reader)try{reader.releaseLock();}catch(_){}reader=null;body=null;resolve(value);}
+      function active(){if(settled)fail('timeout');}
+      async function request(url,cap){
+        active();let response;
+        try{response=await fetchPublic(url,{method:'GET',headers:{Accept:'application/json'},credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',mode:'cors',redirect:'error',signal:controller.signal});}catch(_){active();fail('network');}
+        if(settled){cancel(response&&response.body);fail('timeout');}body=response&&response.body;
+        if(!response||response.url!==url||response.redirected!==false||!['basic','cors','default'].includes(response.type)||!Number.isInteger(response.status)||response.status<100||response.status>599)fail('invalid-response');
+        if(response.status!==200)fail([408,429].includes(response.status)||response.status>=500?'http-unavailable':'invalid-response');
+        let expected=null;try{
+          const type=response.headers.get('content-type'),length=response.headers.get('content-length'),encoding=response.headers.get('content-encoding');
+          if(typeof type!=='string'||!/^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?\s*$/i.test(type))fail('invalid-response');
+          if(length!=null){
+            if(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length)))fail('invalid-response');
+            // Fetch decodes compressed bodies, and CORS may hide Content-Encoding.
+            // Only explicit basic identity metadata can describe decoded bytes exactly.
+            if(response.type==='basic'&&typeof encoding==='string'&&encoding.trim().toLowerCase()==='identity'){expected=Number(length);if(expected>cap)fail('bounds-exceeded');}
+          }
+        }catch(e){if(houseCatalogueReason(e))throw e;fail('invalid-response');}
+        if(!body||typeof body.getReader!=='function')fail('invalid-response');
+        let local;try{local=body.getReader();reader=local;}catch(_){fail('invalid-response');}
+        const chunks=[];let total=0,complete=false;
+        try{
+          for(;;){active();let part;try{part=await local.read();}catch(_){active();fail('network');}active();if(!part||typeof part.done!=='boolean')fail('invalid-response');if(part.done)break;let chunk;try{chunk=houseCatalogueBytes(part.value,cap-total);}catch(e){fail(houseCatalogueReason(e)==='bounds-exceeded'?'bounds-exceeded':'invalid-response');}total+=chunk.byteLength;chunks.push(chunk);}
+          if(expected!==null&&expected!==total)fail('invalid-response');const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}complete=true;return bytes;
+        }finally{if(!settled){if(!complete)cancel(local);try{local.releaseLock();}catch(_){}reader=null;body=null;}}
+      }
+      try{controller=new Controller();timer=schedule(()=>finish({ok:false,reason:'timeout'},true),15000);if(settled){try{clear(timer);}catch(_){}return;}}catch(_){finish({ok:false,reason:'invalid-input'},true);return;}
+      (async()=>{try{
+        const provenanceBytes=await request(p,16384);active();const first=houseCatalogueDescriptor(houseCatalogueJSON(provenanceBytes));
+        const primaryFeedBytes=await request(base+'DOOR_RECIPE_DATA.json',8388608);active();const libraryBytes=await request(base+'library_public.json',8388608);active();
+        const result=await houseServingV1CatalogueFromPublic({provenanceBytes,primaryFeedBytes,libraryBytes});active();if(!result.ok){finish(result,true);return;}
+        const secondBytes=await request(p,16384);active();const second=houseCatalogueDescriptor(houseCatalogueJSON(secondBytes));
+        if(houseFlowCanonical(first)!==houseFlowCanonical(second))fail('catalogue-changed');active();finish(result,false);
+      }catch(e){if(settled)return;const reason=houseCatalogueReason(e);finish({ok:false,reason:['invalid-input','bounds-exceeded','invalid-json','unsupported-provenance','invalid-catalogue','integrity-mismatch','catalogue-changed','network','timeout','http-unavailable','invalid-response'].includes(reason)?reason:'invalid-response'},true);}})();
+    });
+  }
+  return {ok:true,io:{fetchCatalogue}};
+}
+/* HOUSE_TESTABLE_CORE_END serving-catalogue-v1 */
+
 
 
 // F4 switched on (v31-standard.62, 2026-11-09). The readers are served: EXPO #580 and HUB #58 carry the shared block and
