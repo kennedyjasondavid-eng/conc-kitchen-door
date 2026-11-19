@@ -860,7 +860,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.120';
+const DOOR_APP_VERSION = 'v31-standard.121';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -19748,6 +19748,61 @@ function doorRexMealTitle(m) {
   return 'Wk' + m.week + ' ' + dayLabel(m.day) + ' ' + m.period + (d ? ' · ' + formatShortDate(d) : '');
 }
 function doorRexFlagsList(keys) { return keys.map(doorRexFlagLabel).join(', '); }
+// U4 (back-on-track plan): the import review says what each meal keeps and what it replaces, dishes and their links
+// and allergens, so nobody has to read the two columns side by side to see where a recipe link goes.
+function doorRexDishLink(m, dish) {
+  const day = ((typeof getMenuData === 'function' ? getMenuData() : {}) || {})[String(m.week)] || {};
+  const slots = (day[m.day] || {})[m.period + '_slots'] || {};
+  const t = String(dish || '').trim().toLowerCase();
+  if (!t) return '';
+  for (const s of Object.values(slots)) {
+    if (!s || !s.recipeName) continue;
+    const words = String(s.displayText || s.manual || s.recipeName).trim().toLowerCase();
+    if (words === t || String(s.recipeName).trim().toLowerCase() === t) return s.recipeName;
+  }
+  return '';
+}
+function doorRexKeptReplacedHTML(m) {
+  const L = m.lines || {};
+  const newLink = (piece) => {
+    const nd = (m.newDishes || []).find(n => String(n.piece).toLowerCase() === String(piece || '').toLowerCase());
+    return nd && nd.lean ? nd.lean : '';
+  };
+  const kept = [], replaced = [];
+  for (const line of [L.reg, L.veg]) {
+    if (!line || line.empty) continue;
+    for (const x of line.diffs || []) {
+      if (x.status === 'same' && x.door) {
+        const ln = doorRexDishLink(m, x.door);
+        kept.push(escapeHtml(x.door) + (ln ? ' <span style="color:var(--muted);">(link to ' + escapeHtml(ln) + ' kept)</span>' : ''));
+      } else if (x.status === 'changed') {
+        const was = doorRexDishLink(m, x.door), now = newLink(x.rex);
+        replaced.push(escapeHtml(x.door) + ' &rarr; ' + escapeHtml(x.rex) + ' <span style="color:var(--muted);">(' +
+          (was ? 'link to ' + escapeHtml(was) + ' replaced' : 'no link before') + (now ? '; links ' + escapeHtml(now) : '; no recipe link yet') + ')</span>');
+      } else if (x.status === 'added') {
+        const now = newLink(x.rex);
+        replaced.push('+ ' + escapeHtml(x.rex) + ' <span style="color:var(--muted);">(' + (now ? 'links ' + escapeHtml(now) : 'no recipe link yet') + ')</span>');
+      } else if (x.status === 'removed') {
+        const was = doorRexDishLink(m, x.door);
+        replaced.push('&minus; ' + escapeHtml(x.door) + (was ? ' <span style="color:var(--muted);">(its link to ' + escapeHtml(was) + ' goes)</span>' : ''));
+      }
+    }
+  }
+  const off = m.removeDefault ? (m.removeFlags || []) : [];
+  const keptFlags = (m.beforeFlags || []).filter(k => off.indexOf(k) < 0 && (m.removeDefault || (m.removeFlags || []).indexOf(k) < 0));
+  const flagLine = [
+    keptFlags.length ? 'kept: ' + escapeHtml(doorRexFlagsList(keptFlags)) : '',
+    (m.addFlags || []).length ? 'added: ' + escapeHtml(doorRexFlagsList(m.addFlags)) : '',
+    off.length ? 'coming off (untick below to keep): ' + escapeHtml(doorRexFlagsList(off)) : '',
+    !m.removeDefault && (m.removeFlags || []).length ? 'kept unless you tick them off: ' + escapeHtml(doorRexFlagsList(m.removeFlags)) : '',
+  ].filter(Boolean).join(' · ');
+  const once = (a) => a.filter((x, i) => a.indexOf(x) === i);   // a dish on both lines is listed once
+  if (!kept.length && !replaced.length && !flagLine) return '';
+  return '<div class="rex-kept" style="margin-top:6px;font-size:12px;line-height:1.5;">' +
+    (replaced.length ? '<div><strong>Replaced:</strong> ' + once(replaced).join('; ') + '</div>' : '') +
+    (kept.length ? '<div><strong>Kept:</strong> ' + once(kept).join('; ') + '</div>' : '') +
+    (flagLine ? '<div><strong>Allergens</strong> ' + flagLine + '</div>' : '') + '</div>';
+}
 function doorRexRemovalsHTML(m) {
   if (!m.removeFlags.length) return '';
   const on = !!m.removeDefault;
@@ -19832,7 +19887,7 @@ function doorRexQuestionHTML(m, idx) {
   return '<div class="rex-q" data-rex-meal="' + _escAttr(m.key) + '" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">' +
     '<div style="font-weight:700;font-size:13px;margin-bottom:4px;">' + escapeHtml(doorRexMealTitle(m)) + '</div>' +
     '<div style="overflow-x:auto;"><table style="font-size:12px;border-collapse:collapse;width:100%;"><thead><tr><th></th><th style="text-align:left;padding:0 8px;color:var(--muted);font-weight:600;">Rex’s sheet</th><th style="text-align:left;padding:0 0 0 8px;color:var(--muted);font-weight:600;">DOOR now</th></tr></thead><tbody>' +
-    row('Regular', L.reg) + row('Vegetarian', L.veg) + halalRow + '</tbody></table></div>' + notes + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) +
+    row('Regular', L.reg) + row('Vegetarian', L.veg) + halalRow + '</tbody></table></div>' + doorRexKeptReplacedHTML(m) + notes + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) +
     '<div style="margin-top:6px;">' + choices + '</div></div>';
 }
 function doorRexAutoHTML(m) {
@@ -19843,7 +19898,7 @@ function doorRexAutoHTML(m) {
   return '<div class="rex-auto" data-rex-meal="' + _escAttr(m.key) + '" style="font-size:12px;padding:6px 0;border-top:1px solid var(--border);">' +
     '<strong>' + escapeHtml(doorRexMealTitle(m)) + ':</strong> ' + what +
     ' <label style="margin-left:8px;color:var(--muted);"><input type="checkbox" data-rex-auto-keep="' + _escAttr(m.key) + '"> keep DOOR’s</label>' +
-    doorRexAddsHTML(m) + doorRexRemovalsHTML(m) + '</div>';
+    doorRexKeptReplacedHTML(m) + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) + '</div>';
 }
 function doorRenderRexWeekReview() {
   const R = _rexReview;

@@ -53,6 +53,15 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Rex's week review says what each meal keeps and replaces (U4, `v31-standard.121`)
+Back-on-track plan §5 U4 ("Import review shows which dishes, links and allergens are kept and which are replaced"). Each
+meal in Rex's week-sheet review, asked or applied without a question, now carries a short summary under its table
+(`doorRexKeptReplacedHTML`, `doorRexDishLink`): **Replaced** (old → new dish, the recipe link that goes and the one the
+new dish takes, or "no recipe link yet"; added and removed dishes), **Kept** (each dish kept, with the link it keeps),
+and **Allergens** kept, added, coming off by default, or kept unless ticked off. A dish on both lines is listed once;
+every name is escaped. Display only: what Save writes is unchanged. Gate `tests/import_review_kept_u4_gate.mjs` (5).
+The browser `rex_week_review` (not in CI) reads 52/66 on `main` and this build alike (pinned to older menu data).
+
 ## Recent (2026-11-19) — a full browser allowance frees DOOR's kept copies first (HOUSE storage S1-D, `v31-standard.120`)
 HOUSE storage plan `conc-kitchen-house/docs/HOUSE_STORAGE_PLAN_2026-11-19.md` §2 (Jason, 2026-11-19: "do the storage
 fix"). DOOR, EXPO, HUB and CODEX share one origin's localStorage, and Jason's device filled it.
@@ -71,6 +80,16 @@ fix"). DOOR, EXPO, HUB and CODEX share one origin's localStorage, and Jason's de
   it. `doorDropRetiredKeys` removes it once at boot, named on the console.
 - **Gate:** `tests/storage_headroom_gate.mjs` (7), red 5/7 on `main` `5e2d7a3` (4 and 5 lock the loud failure and the
   self-skip).
+
+## Recent (2026-11-19) — the U1 side boxes answered (data, publication 40, #262)
+Jason, 2026-11-19: "Follow leans, you make them; buns have no soy or sesame". Through DOOR's meal view and Save, one
+publish through DOOR's publisher (EXPO's W6 harness). Wk1 FRI dinner's Garlic Green Bean links the shared Library's
+Garlic Green Beans (`garlic-green-beans`), so the meal gains **Beans**; Wk4 SAT lunch's Turmeric Quinoa links CODEX's
+`tumeric-quinoa` (CODEX's rename keeps that id); Steamed Carrots and Fruit and Chips have nothing to declare; the Sub Bun
+carries Gluten only. Menu words and routing counts unchanged; independent review SHIP (no resident changes plate on any
+of 84 meals). A No Beans resident on the regular plate still gets no note (No Beans is a preference, which the
+regular-plate conflict check does not read; not changed). Receipt `docs/receipts/door_u1_side_answers_2026-11-19.md`;
+gate `tests/u1_side_answers_gate.mjs` (4). After merge: republish EXPO once.
 
 ## Recent (2026-11-19) — splitting a side box no longer asks the soft-plate question (`v31-standard.119`)
 Found by the U1 data review. Save asks the soft-plate question only when a dish changed, and it compared box contents. So
