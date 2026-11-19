@@ -53,6 +53,34 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Edit Menu says what a change does before Save (redesign S5b, `v31-standard.112`)
+Once a meal differs from how it opened, **What changes** (`#mc-what-changes`) shows, for the every-week meal:
+- **The plates:** each plate's allergens before → after, with what is new (amber) and what comes off. Before is the
+  stored meal with no dated meal (`doorPlateFactsFor(…, { noDated: true })`); after is the draft (S2b's
+  `doorDraftPlateFacts`).
+- **Who moves:** the residents who change plates, counted by plate (`doorSeatsForFacts`: anaphylactic containment, then
+  `computeSections`, as the sheet seats them; `doorWhatChanges`, `doorWhatChangesHTML`).
+- **Anaphylactic rooms:** named, in red when the meal now holds their allergen; otherwise "not affected".
+- **A replaced swap:** an upcoming one-date change of the slot is named as replaced (Save already clears it).
+- **No resident list on this computer:** reads "counts not available", never "none".
+
+Display only: nothing saved or published changes. Gates `tests/what_changes_s5b_gate.mjs` (3, red 3/3 on `main`) and
+browser `tests/browser/what_changes_s5b.mjs` (12, in CI, red on `main`; made-up residents). On all 56 lunches and dinners,
+with Egg and Peanuts ticked, the counts equal `computePlatingData` before and after. A meal with a swap on its next date
+still shows the every-week moves.
+**Independent review (FIX FIRST), folded:**
+- **P2:** an added dish whose label is not checked sets no flag, so nobody moved and the panel said "not affected". It
+  now names the dish ("Label not checked") and tells the anaphylactic rooms to check its label before serving; it
+  never says "not affected" while a label is unread.
+- **P3:**
+  - a special meal on the next date is said to stay, and a swap under it is "cleared", not "replaced";
+  - the after side never reads a legacy edit (Save deletes it);
+  - one line says Save may still ask about old ticks or halal meat;
+  - the live region is rewritten only when its text changes.
+- **Also fixed:** S2b's summary printed "[object Object]" for a dish whose label is not checked.
+
+Browser gate 15.
+
 ## Recent (2026-11-19) — Edit Menu groups the dishes into plate cards (redesign S4b, `v31-standard.111`)
 The dish boxes sit in the plates they make (`DOOR_PLATE_CARDS`): **Regular plate** (main dish, side, vegetable side, also
 served, event name), **Vegan plate** (vegan main, only on the vegan plate), **Halal plate** (halal main, only on the halal

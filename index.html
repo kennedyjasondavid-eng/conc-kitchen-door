@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.111';
+const DOOR_APP_VERSION = 'v31-standard.112';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2225,6 +2225,7 @@ function updateCODEXBadge() {
         </div>
         <div>
           <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Preview</div>
+          <div id="mc-what-changes" role="status" aria-live="polite" style="display:none;"></div>
           <div id="mc-menu-edit-preview"></div>
           <div id="mc-slot-name-preview" style="margin-top:16px;padding:12px;background:var(--cream);border-radius:8px;font-size:13px;display:none;"></div>
         </div>
@@ -21691,6 +21692,7 @@ function updateSlotSummary() {
   // would write it; the editor no longer works out its own egg and mustard check for the vegan plate.
   const draftFacts = (!testMealActive && typeof doorDraftPlateFacts === 'function') ? doorDraftPlateFacts(doorEditorDraftFlags(flags)) : null;
   if (typeof window !== 'undefined') window.__DOOR_PLATE_SUMMARY__ = draftFacts;
+  if (!testMealActive && typeof doorRenderWhatChanges === 'function') doorRenderWhatChanges(draftFacts, flags);   // S5b
   if (draftFacts) flags._vegAltSafe = !!draftFacts.mealFlags._vegAltSafe;
   else { const vegFlags = buildVegAltFlags(); flags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard; }
   flags._altMeals = buildAltMeals();
@@ -22678,7 +22680,7 @@ function doorWriteEditorMeal(target, period, name, veg, flags) {
 }
 // S2b: the open meal as Save would write it, read the way the plating sheet reads it (doorPlateFacts, every week, no
 // dated meal). Nothing is stored: the overlay is copied, and the menu override is put back before this returns.
-function doorDraftPlateFacts(flags) {
+function doorDraftPlateFacts(flags, opts) {
   if (!mcMenuEditKey || typeof doorPlateFacts !== 'function') return null;
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
@@ -22693,7 +22695,7 @@ function doorDraftPlateFacts(flags) {
     const wk = getMenuData()[String(week)];
     dayData = wk ? wk[day] : null;
   } finally { setDoorPublishMenuOverlayOverride(was); }
-  const menuEdit = typeof getMenuEdit !== 'undefined' ? getMenuEdit(week, day, period) : null;
+  const menuEdit = (opts && opts.noMenuEdit) ? null : (typeof getMenuEdit !== 'undefined' ? getMenuEdit(week, day, period) : null);
   return doorPlateFacts(dayData, period, { dated: null, menuEdit });
 }
 // S2b: the flags Save would start from (the grid, the dishes, and the meat the dish names say), before its questions.
@@ -22728,7 +22730,7 @@ function doorPlateSummaryHTML(facts, handKeys) {
   const line = (label, str) => '<div style="font-size:12px;margin-top:2px;"><b>' + escapeHtml(label) + ' plate contains:</b> '
     + (str ? escapeHtml(words(str)) : '<span style="color:var(--muted);">nothing on the allergen list</span>') + '</div>';
   const lab = facts.plateLabels || {};
-  const amber = ['regular', 'vegan', 'halal'].map(k => (lab[k] || []).map(d => d + ' (' + k + ')')).flat();
+  const amber = ['regular', 'vegan', 'halal'].map(k => (lab[k] || []).map(d => ((d && d.dish) || d) + ' (' + k + ')')).flat();
   let html = '<div class="door-plate-summary" style="margin:6px 0 8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt, var(--cream));">'
     + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:2px;">As it will be served (every week)</div>'
     + line('Regular', facts.allergenStr) + line('Vegan', facts.vegAllergenStr);
@@ -26705,6 +26707,122 @@ function doorPlateFactsFor(weekNum, dayName, period, opts) {
   const dayData = wkData && dated ? doorApplyDatedMeal(wkData[dayName], period, dated) : (wkData ? wkData[dayName] : null);
   const menuEdit = !dated && typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
   return doorPlateFacts(dayData, period, { dated, menuEdit });
+}
+
+// S5b (Edit Menu redesign): where each resident eats a meal, from its plate facts, as the plating sheet seats them
+// (the anaphylactic containment first, then the routing sections). { room: plate label }.
+function doorSeatsForFacts(facts, registry, rooms) {
+  const seats = {};
+  if (!facts || !facts.mealFlags || !Array.isArray(registry)) return seats;
+  const empty = {};
+  const conflictRooms = getAnaphConflictRooms(facts.mealFlags, empty, registry, rooms);
+  const pool = [];
+  registry.forEach(r => { if (conflictRooms.has(r.room)) seats[r.room] = 'Anaphylactic Alternative'; else pool.push(r); });
+  computeSections(facts.mealFlags, pool).forEach(sec => sec.residents.forEach(r => { seats[r.room] = sec.rule.label; }));
+  return seats;
+}
+// S5b: what an every-week change does, before (the stored meal, with no dated meal) against after (the draft).
+// Pure on its inputs. swaps: [{ key, name }] of the upcoming one-date changes the save replaces.
+function doorWhatChanges(beforeFacts, afterFacts, registry, rooms, swaps) {
+  const toks = s => String(s || '').split(',').map(t => t.trim()).filter(Boolean);
+  const plates = [['Regular', 'allergenStr'], ['Vegan', 'vegAllergenStr'], ['Halal', 'halalAllergenStr']].map(([plate, k]) => {
+    const b = toks(beforeFacts && beforeFacts[k]), a = toks(afterFacts && afterFacts[k]);
+    return { plate, before: b, after: a, added: a.filter(t => !b.includes(t)), removed: b.filter(t => !a.includes(t)) };
+  }).filter(x => x.added.length || x.removed.length);
+  const list = Array.isArray(registry) ? registry : [];
+  // Review fold (P2): a dish whose label is not checked sets no flag, so nobody moves; it is still unknown, never safe.
+  const unchecked = f => { const out = []; const lab = (f && f.plateLabels) || {};
+    ['regular', 'vegan', 'halal'].forEach(k => (lab[k] || []).forEach(d => { const n = d && d.known === null ? d.dish : null; if (n && !out.includes(n)) out.push(n); })); return out; };
+  const ua = unchecked(afterFacts), ub = unchecked(beforeFacts);
+  const out = { plates, swaps: swaps || [], counts: list.length ? 'ok' : 'none', moves: [], moved: 0, anaph: [],
+    unchecked: ua, newUnchecked: ua.filter(d => !ub.includes(d)), anaphRooms: list.filter(r => doorIsAnaphResident(r, rooms)).map(r => r.room) };
+  if (!list.length) return out;
+  const sb = doorSeatsForFacts(beforeFacts, list, rooms), sa = doorSeatsForFacts(afterFacts, list, rooms);
+  const tally = {};
+  list.forEach(r => {
+    const from = sb[r.room] || '', to = sa[r.room] || '';
+    if (doorIsAnaphResident(r, rooms)) out.anaph.push({ room: r.room, before: from, after: to });
+    if (from === to) return;
+    const key = from + '\u0000' + to;
+    tally[key] = (tally[key] || 0) + 1;
+    out.moved++;
+  });
+  out.moves = Object.keys(tally).map(k => { const [from, to] = k.split('\u0000'); return { from, to, count: tally[k] }; })
+    .sort((x, y) => y.count - x.count || x.from.localeCompare(y.from));
+  return out;
+}
+function doorWhatChangesHTML(m) {
+  if (!m) return '';
+  const words = a => a.map(t => t.charAt(0) + t.slice(1).toLowerCase()).join(', ');
+  const row = (html, style) => '<div style="font-size:12px;margin-top:3px;' + (style || '') + '">' + html + '</div>';
+  let h = '<div class="door-what-changes" style="margin:0 0 10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--paper);">'
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">What changes (every week)</div>';
+  if ((m.newUnchecked || []).length) h += row(doorIcon('warning') + ' Label not checked: ' + escapeHtml(m.newUnchecked.join(', ')) + '. Its allergens are unknown until someone reads the package.', 'color:var(--warn-ink, #92400e);font-weight:700;');
+  else if (!m.plates.length) h += row('<span style="color:var(--muted);">No plate gains or loses an allergen.</span>');
+  m.plates.forEach(p => {
+    h += row('<b>' + escapeHtml(p.plate) + ' plate:</b> ' + escapeHtml(p.before.length ? words(p.before) : 'nothing on the allergen list')
+      + ' → ' + escapeHtml(p.after.length ? words(p.after) : 'nothing on the allergen list'));
+    if (p.added.length) h += row('New: ' + escapeHtml(words(p.added)), 'color:var(--warn-ink, #92400e);font-weight:600;padding-left:10px;');
+    if (p.removed.length) h += row('Comes off: ' + escapeHtml(words(p.removed)), 'color:var(--muted);padding-left:10px;');
+  });
+  if (m.counts === 'none') h += row('Residents who move plates: counts not available (no resident list on this computer).', 'color:var(--muted);');
+  else if (!m.moved) h += row('No resident moves to another plate.', 'color:var(--muted);');
+  else {
+    h += row('<b>' + m.moved + (m.moved === 1 ? ' resident moves' : ' residents move') + ' to another plate:</b>');
+    m.moves.forEach(x => { h += row(escapeHtml((x.from || 'no plate') + ' → ' + (x.to || 'no plate')) + ': ' + x.count, 'padding-left:10px;'); });
+  }
+  if (m.counts === 'ok') {
+    const hit = m.anaph.filter(a => a.before !== a.after);
+    if (!m.anaph.length) h += row('No anaphylactic residents on the list.', 'color:var(--muted);');
+    else if (!hit.length && !(m.unchecked || []).length) h += row('Anaphylactic residents: not affected.', 'color:var(--muted);');
+    else hit.forEach(a => {
+      const into = a.after === 'Anaphylactic Alternative';
+      h += row(doorIcon('warning') + ' Room ' + escapeHtml(a.room) + ' (anaphylactic): ' + escapeHtml(a.before + ' → ' + a.after)
+        + (into ? '. This meal now holds an allergen they are anaphylactic to.' : '.'),
+        'color:' + (into ? 'var(--danger-ink, #991b1b)' : 'var(--text-2, var(--muted))') + ';font-weight:700;');
+    });
+  }
+  if ((m.unchecked || []).length && (m.anaphRooms || []).length) h += row(doorIcon('warning') + ' Anaphylactic ' + (m.anaphRooms.length === 1 ? 'room ' : 'rooms ')
+    + escapeHtml(m.anaphRooms.join(', ')) + ': check the label of ' + escapeHtml(m.unchecked.join(', ')) + ' before serving.', 'color:var(--danger-ink, #991b1b);font-weight:700;');
+  const when = key => { const d = new Date(String(key).slice(0, 10) + 'T12:00:00'); return isNaN(d) ? String(key).slice(0, 10) : d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }); };
+  (m.swaps || []).forEach(sw => {
+    h += sw.special
+      ? row('The one-date change for ' + escapeHtml(when(sw.key)) + (sw.name ? ' (' + escapeHtml(sw.name) + ')' : '') + ' is cleared.', 'color:var(--warn-ink, #92400e);')
+      : row('The one-date change for ' + escapeHtml(when(sw.key)) + (sw.name ? ' (' + escapeHtml(sw.name) + ')' : '') + ' is replaced: Save puts this every-week meal on that date too.', 'color:var(--warn-ink, #92400e);');
+  });
+  (m.specials || []).forEach(sp => {
+    h += row('The special meal on ' + escapeHtml(when(sp.key)) + (sp.name ? ' (' + escapeHtml(sp.name) + ')' : '') + ' stays: that date serves the special meal, not this change.', 'color:var(--muted);');
+  });
+  // Review fold (P3-3): Save still asks its questions; their answers can change what is shown here.
+  h += row('Save may still ask about old allergen ticks or halal meat; your answers can change this.', 'color:var(--muted);font-size:11px;');
+  return h + '</div>';
+}
+// S5b: the What changes panel, shown once the meal differs from how it opened.
+function doorRenderWhatChanges(draftFacts, draftFlags) {
+  const el = typeof document !== 'undefined' ? document.getElementById('mc-what-changes') : null;
+  if (!el) return;
+  let model = null;
+  try {
+    if (draftFacts && mcMenuEditKey && typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) {
+      const [week, day, period] = mcMenuEditKey.split('-');
+      const before = doorPlateFactsFor(week, day, period, { noDated: true });
+      const store = loadMealSwaps();
+      const specialsStore = typeof loadSpecialMeals === 'function' ? loadSpecialMeals() : {};
+      const swaps = doorSwapKeysForSlot(week, day, period, store).map(k => ({ key: k, name: (store[k] && store[k].specialName) || '', special: !!(specialsStore[k] && specialsStore[k].specialName) }));
+      const next = typeof nextDateForSlot === 'function' ? nextDateForSlot(Number(week), day) : null;
+      const nextKey = next ? doorDateKey(next) + '-' + period : null;
+      const specials = nextKey && specialsStore[nextKey] && specialsStore[nextKey].specialName ? [{ key: nextKey, name: specialsStore[nextKey].specialName }] : [];
+      // Review fold (P3-2): Save deletes a legacy edit of the slot, so the after side never reads one.
+      const legacy = typeof getMenuEdit !== 'undefined' && getMenuEdit(week, day, period);
+      const after = legacy && draftFlags ? doorDraftPlateFacts(doorEditorDraftFlags(draftFlags), { noMenuEdit: true }) : draftFacts;
+      model = doorWhatChanges(before, after, typeof REGISTRY_LIST !== 'undefined' ? REGISTRY_LIST : [], undefined, swaps);
+      model.specials = specials;
+    }
+  } catch (e) { console.warn('[DOOR] What changes could not be worked out:', e); }
+  if (typeof window !== 'undefined') window.__DOOR_WHAT_CHANGES__ = model;
+  el.style.display = model ? 'block' : 'none';
+  const html = model ? doorWhatChangesHTML(model) : '';
+  if (el._doorHtml !== html) { el._doorHtml = html; el.innerHTML = html; }   // Review fold (P3-4): the live region speaks only when it changes
 }
 
 function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, rooms) {
