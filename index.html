@@ -860,7 +860,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.118';
+const DOOR_APP_VERSION = 'v31-standard.119';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21873,7 +21873,17 @@ function doorSaveAskSnapshot() {
   const meat = id => (typeof doorEditorDetectMeat === 'function' ? doorEditorDetectMeat(id) : []).map(m => m.flag).sort().join(',');
   const dishes = {};
   Object.keys(MEAL_SLOT_STATE || {}).forEach(id => { const x = MEAL_SLOT_STATE[id]; dishes[id] = _slotText(x) + '|' + JSON.stringify((x && x.lines) || {}) + '|' + JSON.stringify((x && x.list) || []); });
-  return { key: mcMenuEditKey, meat: { main: meat('main'), mainalt: meat('mainalt') }, dishes };
+  // The dishes themselves, whichever box holds them: splitting "Pork Adobo & Garlic Green Bean" into two boxes changes no
+  // dish (the U1 review found Save asking the soft-plate question for a split).
+  // Review fold: one set per plate, so a dish moved to another plate, or a vegan or halal line version changed, still reads
+  // as a change (soft residents eat the regular plate, or the halal plate on a pork day).
+  const words = list => [...new Set(list.map(x => String(_slotText(x) || '')).join(', ').split(/\s*(?:&|,|;|\+)\s*/)
+    .map(t => t.trim().toLowerCase().replace(/\s+/g, ' ')).filter(Boolean))].sort().join('|');
+  const at = ids => ids.map(id => (MEAL_SLOT_STATE || {})[id]).filter(Boolean);
+  const line = l => (typeof doorLinePieces === 'function' ? doorLinePieces(MEAL_SLOT_STATE || {}, l, l === 'halal' ? ['mainalt'].concat(DOOR_LINE_SIDE_IDS) : undefined) || [] : []);
+  const pieces = ['regular:' + words(at(['main', 'starch', 'vegside', 'xtra', 'extras'])), 'halalmain:' + words(at(['mainalt'])),
+    'nopork:' + words(at(['noporkalt'])), 'vegan:' + words(line('vegan')), 'halal:' + words(line('halal'))].join('#');
+  return { key: mcMenuEditKey, meat: { main: meat('main'), mainalt: meat('mainalt') }, dishes, pieces };
 }
 function doorHalalMainChangedSinceOpen() {
   const o = _doorSaveAskAtOpen;
@@ -21888,8 +21898,7 @@ function doorMeatChangedSinceOpen(slotId) {
 function doorDishesChangedSinceOpen() {
   const o = _doorSaveAskAtOpen;
   if (!o || o.key !== mcMenuEditKey) return true;
-  const now = doorSaveAskSnapshot().dishes;
-  return Object.keys(now).some(id => now[id] !== o.dishes[id]);
+  return doorSaveAskSnapshot().pieces !== o.pieces;   // a dish added, taken out or renamed; moving one between boxes is not
 }
 // The soft-plate choice is asked only when the change can affect soft residents (a dish changed and someone on the list
 // eats soft), and always when this computer has no resident list.

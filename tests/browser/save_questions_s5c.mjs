@@ -201,6 +201,24 @@ try {
     check('the soft plate is asked with ' + label, r.asked === 'No soft or plain alternative?' && !r.wrote, r);
     await q.close();
   }
+  // U1 review (2026-11-19): splitting a box changes no dish, so a soft resident on the list brings no soft-plate question.
+  {
+    const q = await boot(RES.concat([SOFT]));
+    const r = await q.evaluate(async () => {
+      // Wk3 TUE lunch: no soft plate set, its vegetable side box reads "Garlic corn & Bean"; split into two side boxes,
+      // the same dishes on every plate (a test of the rule, not a menu change).
+      openMenuEdit(3, 'TUESDAY', 'lunch');
+      const vs = MEAL_SLOT_STATE.vegside;
+      MEAL_SLOT_STATE.vegside = { manual: 'Garlic corn', flags: JSON.parse(JSON.stringify((vs && vs.flags) || {})) };
+      MEAL_SLOT_STATE.xtra = { manual: 'Bean', flags: {} };
+      renderSlots(); updateSlotSummary();
+      const r = await window.__saveAndSee('back', true);
+      closeMenuEdit(true);
+      return r;
+    });
+    check('splitting a side box (the same dishes on every plate) does not ask the soft-plate question', !(r.seen || []).includes('No soft or plain alternative?'), r);
+    await q.close();
+  }
   check('no page errors', errors.length === 0, errors.slice(0, 3));
 } finally { await browser.close(); }
 const passed = results.filter((r) => r.pass).length;
