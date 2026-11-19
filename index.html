@@ -22569,7 +22569,7 @@ function openMenuEdit(week, day, period) {
   // first key wiped the dish and a click away re-read it. The page brings the meal heading into view instead.
   // Review fold P3: keyboard users start at the meal name, at once (a later move could blur a box someone is typing in).
   const _title = document.getElementById('mc-menu-edit-title');
-  if (_title) { _title.setAttribute('tabindex', '-1'); try { _title.focus({ preventScroll: true }); } catch (e) { _title.focus(); } }
+  if (_title && typeof _title.focus === 'function') { if (_title.setAttribute) _title.setAttribute('tabindex', '-1'); try { _title.focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy */ } }
   setTimeout(() => { const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' }); }, 80);
 }
 
