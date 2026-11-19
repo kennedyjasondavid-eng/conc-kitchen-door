@@ -284,5 +284,6 @@ moves its code without changing a byte).
 | S3 typed dishes | merged (`7f8483b`, `v31-standard.107`); review SHIP, P2s folded | #247 |
 | ST test harness | folded into each slice: each slice's gate is a behaviour gate in the real page, and a source check it breaks is re-pinned or turned into one then (S4a's contract gate edits every published meal) | |
 | S4a kept words | merged (`c807b54`, `v31-standard.109`); reviews FIX FIRST, folded, SHIP | #249 |
-| S5a Save in view | built (`v31-standard.110`); Close stays by the title (one Close); review pending | |
-| S4b, S5b–S8, U1 | planned; D2, D4, D7, D8 ruled; D1, D3, D5, D6, D9 pending | |
+| S5a Save in view | merged (`5d71209`, `v31-standard.110`); review FIX FIRST, folded, SHIP | #250 |
+| S4b plate cards | built (`v31-standard.111`): boxes grouped into plate cards, kitchen words, no optional tags, line choices folded, no Seasonal Veg quick pick; reading a meal into one row per dish (H3) and the before/after on a row (M19) left for a later pass; review SHIP, its P3s folded (Event name label, card notes, plate words in the fold, a fold kept open over a redraw and its click kept) | #251 |
+| S5b–S8, U1 | planned; D2, D4, D7, D8 ruled; D1, D3, D5, D6, D9 pending | |

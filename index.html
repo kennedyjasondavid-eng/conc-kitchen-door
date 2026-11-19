@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.110';
+const DOOR_APP_VERSION = 'v31-standard.111';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -20743,7 +20743,7 @@ const MEAL_SLOT_DEFS = [
   { id:'noporkalt',label:'No Pork Alt', required:false, cats:['protein','stew_main'],          streams:['regular',''],  ph:'Non-halal alt for No Pork residents…', hidden:true },
   { id:'veganalt', label:'Vegan Alt',   required:false, cats:['protein','stew_main'],          streams:['vegan'],       ph:'Vegan alternative…' },
   { id:'starch',   label:'Starch Side', required:false, cats:['starch_side'],                  streams:null,            ph:'Rice, pasta, bread…',           qp:['Rice','Naan','Bread','Pasta','Mashed Potato','Couscous','Biscuit','Roti'] },
-  { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side','stew_side'],         streams:null,            ph:'Vegetable side dish…',          qp:['Seasonal Veg','Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
+  { id:'vegside',  label:'Veg Side',    required:false, cats:['veg_side','stew_side'],         streams:null,            ph:'Vegetable side dish…',          qp:['Broccoli','Green Beans','Coleslaw','Corn','Cabbage','Peas & Carrots','Mixed Veg','Salad'] },
   { id:'xtra',     label:'Extras',      required:false,                                        streams:null,            ph:'Dessert, condiment, special addition…', qp:['Dessert','Fruit Cup','Garlic Bread','Soup','Salad','Yogurt'] },
   { id:'vegextras',   label:'Vegan line also gets', required:false, list:true, streams:null, ph:'Only on the vegan line, e.g. Burger bun, Turmeric Quinoa…' },
   { id:'halalextras', label:'Halal line also gets', required:false, list:true, streams:null, ph:'Only on the halal line…' },
@@ -21116,22 +21116,41 @@ function renderSlots() {
   if (typeof doorRefreshLabelChecks === 'function') doorRefreshLabelChecks(MEAL_SLOT_STATE);   // C2: a label checked since brings its allergens
   _slotRenderDepth++;
   try {
-  container.innerHTML = MEAL_SLOT_DEFS.map(def => {
+  const card = def => {
     // v30: Hidden slots only show when toggled visible or have content
     if (def.hidden) {
       const hasContent = MEAL_SLOT_STATE[def.id] && (MEAL_SLOT_STATE[def.id].recipeName || MEAL_SLOT_STATE[def.id].manual);
       const visible = hasContent || _noPorkAltVisible;
-      if (!visible) return `<div id="nopork-alt-toggle" style="padding:4px 12px;">
-        <button onclick="_noPorkAltVisible=true;renderSlots();updateSlotSummary();" class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--violet-ink, #7c3aed);">+ Add No Pork Alt</button>
+      if (!visible) return `<div id="nopork-alt-toggle" style="padding:2px 0;">
+        <button onclick="_noPorkAltVisible=true;renderSlots();updateSlotSummary();" class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--violet-ink, #7c3aed);">+ Add a no-pork main</button>
       </div>`;
     }
     return renderSlotCard(def, 'slot');
-  }).join('') + (isHubLoaded() ? ['vegan', 'halal'].map(line => '<datalist id="door-recipe-names-' + line + '">'
+  };
+  // S4b (Edit Menu redesign): the boxes are grouped into the plates they make. Same boxes, same ids, same saved meal.
+  const _plates = typeof DOOR_PLATE_CARDS !== 'undefined' ? DOOR_PLATE_CARDS : null;
+  container.innerHTML = (!_plates ? MEAL_SLOT_DEFS.map(card).join('') : _plates.map(pc => {
+    const defs = pc.ids.map(id => MEAL_SLOT_DEFS.find(d => d.id === id)).filter(Boolean);
+    return '<section class="door-plate-card" data-plate="' + pc.key + '" style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--surface-alt, var(--cream));">'
+      + '<div style="font-size:14px;font-weight:700;margin-bottom:2px;">' + escapeHtml(pc.title) + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">' + escapeHtml(pc.note) + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:8px;">' + defs.map(card).join('') + '</div></section>';
+  }).join('')) + (isHubLoaded() ? ['vegan', 'halal'].map(line => '<datalist id="door-recipe-names-' + line + '">'
     + DOOR_RECIPE_DATA.filter(r => typeof doorLineRefusal !== 'function' || !doorLineRefusal(line, r)).map(r => '<option value="' + _escAttr(r.recipeName) + '">').join('') + '</datalist>').join('') : '');
   } finally { _slotRenderDepth--; }
   renderAltMealsSection();
 }
 let _noPorkAltVisible = false;
+// S4b: the plates the boxes make, and each box in kitchen words. The saved meal and every box id are unchanged.
+const DOOR_PLATE_CARDS = [
+  { key: 'regular', title: 'Regular plate', note: 'What most residents get.', ids: ['main', 'starch', 'vegside', 'xtra', 'extras'] },
+  { key: 'vegan', title: 'Vegan plate', note: 'Gets the vegan main instead of the main. The sides are the same as the regular plate, unless a side there says otherwise.', ids: ['veganalt', 'vegextras'] },
+  { key: 'halal', title: 'Halal plate', note: 'Gets the halal main instead of the main, and the regular sides unless a side says otherwise. A no-pork main, when there is one, is for No Pork residents who are not halal.', ids: ['mainalt', 'halalextras', 'noporkalt'] },
+];
+const DOOR_SLOT_KITCHEN_LABEL = {
+  main: 'Main dish', starch: 'Side (starch)', vegside: 'Vegetable side', xtra: 'Also served', extras: 'Event name, if any',
+  veganalt: 'Vegan main', vegextras: 'Only on the vegan plate', mainalt: 'Halal main', halalextras: 'Only on the halal plate', noporkalt: 'No-pork main',
+};
 
 // Recipe-attach S1 (2026-08-18): the shown dish text for a slot. A slot may carry a
 // displayText that DIFFERS from its bound recipeName — e.g. show "Pork Al Pastor Taco"
@@ -21791,10 +21810,16 @@ function _slotLinkSuggestionHTML(def, state, fn) {
 function _slotLinesHTML(id) {
   const s = MEAL_SLOT_STATE[id];
   if (!s) return '';
-  return '<div class="slot-lines" style="margin-top:6px;font-size:11px;display:grid;gap:4px;">' + ['vegan', 'halal'].map(line => {
+  const _modeOf = line => { const v = (s.lines || {})[line]; return v ? v.mode : 'same'; };
+  const _say = line => { const m = _modeOf(line), v = (s.lines || {})[line]; return m === 'none' ? 'doesn’t get it' : m === 'swap' ? 'gets ' + (_slotText(v) || '…') + ' instead' : 'gets this'; };
+  const _same = _modeOf('vegan') === 'same' && _modeOf('halal') === 'same';
+  const _summary = _same ? 'Same on the vegan and halal plates' : 'Vegan plate ' + _say('vegan') + ' · Halal plate ' + _say('halal');
+  const _open = !_same || DOOR_LINES_FOLD_OPEN.has(id);
+  return '<details class="slot-lines-fold" data-fold="' + _escAttr(id) + '"' + (_open ? ' open' : '') + ' ontoggle="doorNoteFoldToggle(this)" style="margin-top:6px;font-size:11px;"><summary onmousedown="event.preventDefault()" style="cursor:pointer;color:var(--muted);">' + escapeHtml(_summary) + ' · change</summary>'
+    + '<div class="slot-lines" style="margin-top:6px;font-size:11px;display:grid;gap:4px;">' + ['vegan', 'halal'].map(line => {
     const v = (s.lines || {})[line];
     const mode = v ? v.mode : 'same';
-    const label = line === 'vegan' ? 'Vegan line' : 'Halal line';
+    const label = line === 'vegan' ? 'Vegan plate' : 'Halal plate';
     const opt = (val, txt) => '<option value="' + val + '"' + (mode === val ? ' selected' : '') + '>' + txt + '</option>';
     const sel = '<select data-slot-line="' + id + '-' + line + '" onchange="slotLineMode(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 4px;">' +
       opt('same', 'gets this') + opt('swap', 'gets instead…') + opt('none', 'doesn’t get it') + '</select>';
@@ -21802,7 +21827,14 @@ function _slotLinesHTML(id) {
       ? ' <input type="text" list="door-recipe-names-' + line + '" data-slot-line-text="' + id + '-' + line + '" value="' + _escAttr(_slotText(v)) + '" placeholder="the ' + label.toLowerCase() + '’s side" onchange="slotLineText(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 6px;width:55%;">'
       : '';
     return '<div><span style="color:var(--muted);">' + label + ':</span> ' + sel + txt + '</div>';
-  }).join('') + '</div>';
+  }).join('') + '</div></details>';
+}
+// S4b: a fold opened by hand stays open over a redraw from another box (reset when a meal opens).
+const DOOR_LINES_FOLD_OPEN = new Set();
+function doorNoteFoldToggle(el) {
+  const id = el && el.getAttribute('data-fold');
+  if (!id) return;
+  if (el.open) DOOR_LINES_FOLD_OPEN.add(id); else DOOR_LINES_FOLD_OPEN.delete(id);
 }
 function slotLineMode(id, line, mode) {
   const s = MEAL_SLOT_STATE[id];
@@ -21829,7 +21861,8 @@ function renderSlotCard(def, ns) {
   const fn    = ns === 'slot' ? 'slot'   : 'smSlot';
   const pfx   = ns;
   const hasValue = state && (state.recipeName || state.manual);
-  const optLabel = def.required ? '' : ' <span style="font-weight:400;font-style:italic;font-size:10px;color:var(--muted);">optional</span>';
+  const optLabel = '';   // S4b: no "optional" tags; every box but the main may be empty
+  const kitchenLabel = (ns === 'slot' && typeof DOOR_SLOT_KITCHEN_LABEL !== 'undefined' && DOOR_SLOT_KITCHEN_LABEL[def.id]) || def.label;
 
   // Quick picks HTML (shown when slot is empty)
   const qpHtml = (!hasValue && def.qp && def.qp.length)
@@ -21846,7 +21879,7 @@ function renderSlotCard(def, ns) {
   if (def.manual) {
     const val = (state && state.manual) ? state.manual : '';
     return `<div style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--paper);">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;">${escapeHtml(def.label)}${optLabel}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text-2, var(--muted));margin-bottom:6px;">${escapeHtml(kitchenLabel)}${optLabel}</div>
       <input type="text" id="${_escAttr(pfx)}-manual-${_escAttr(def.id)}" aria-label="${_escAttr(def.label)}" placeholder="${_escAttr(def.ph)}" value="${_escAttr(val)}"
         oninput="${_escAttr(fn + 'SetManual(' + _jsArgLiteral(def.id) + ',this.value)')}"
         style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;">
@@ -21907,8 +21940,8 @@ function renderSlotCard(def, ns) {
       </div>`
     : '';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;">
-      ${escapeHtml(def.label)}${optLabel}${matchBadge}${changedBtn}${labelTag}
+    <div style="font-size:12px;font-weight:600;color:var(--text-2, var(--muted));margin-bottom:6px;display:flex;align-items:center;flex-wrap:wrap;">
+      ${escapeHtml(kitchenLabel)}${optLabel}${matchBadge}${changedBtn}${labelTag}
       ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear" aria-label="Clear ${_escAttr(def.label)}">×</button>` : ''}
     </div>
     <div style="position:relative;">
@@ -23042,6 +23075,7 @@ function openMenuEdit(week, day, period) {
   // last meal's slot state.
   _LAST_SLOT_FLAGS = {};
   SLOT_TYPED_AT_OPEN = {}; SLOT_DECLARED_AT_OPEN = {};
+  if (typeof DOOR_LINES_FOLD_OPEN !== "undefined") DOOR_LINES_FOLD_OPEN.clear();
   // S4a (D4): the words this meal opened with and its boxes then; a legacy edit (concMenuEdits) rebuilds as before.
   if (typeof _doorWordsAtOpen !== 'undefined') _doorWordsAtOpen = existing ? null : { key: mcMenuEditKey, text: String(dayData[period] || ''), slots: {} };
   if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof DOOR_WORD_SLOT_IDS !== 'undefined') ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { _doorWordsAtOpen.slots[id] = _slotText(MEAL_SLOT_STATE[id]); });

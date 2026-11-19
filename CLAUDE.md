@@ -53,6 +53,16 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Edit Menu groups the dishes into plate cards (redesign S4b, `v31-standard.111`)
+The dish boxes sit in the plates they make (`DOOR_PLATE_CARDS`): **Regular plate** (main dish, side, vegetable side, also
+served, event name), **Vegan plate** (vegan main, only on the vegan plate), **Halal plate** (halal main, only on the halal
+plate, no-pork main), each with one line on what it gets. Boxes read in kitchen words (`DOOR_SLOT_KITCHEN_LABEL`), sentence
+case, with no "optional" tags. The vegan and halal choices under a side fold into one line ("Same on the vegan and halal
+plates · change"), open when one differs. The "Seasonal Veg" quick pick is gone (the house rule names the vegetable). Every
+box keeps its id and the saved meal is unchanged; the Special Meal editor is untouched. Gates `tests/plate_cards_s4b_gate.mjs`
+(3, red on `main`) and browser `tests/browser/plate_cards_s4b.mjs` (9, in CI: every box in its plate card on all 84
+meals at 1280 and 390 px, no optional tag, differing choices open, opening changes nothing).
+
 ## Recent (2026-11-19) — Save is always in view; the meal stays open after Save (redesign S5a, `v31-standard.110`)
 The walkthrough found Save 3,200 px down the page and the result only a toast. A footer (`#mc-menu-edit-footer`) is pinned
 to the bottom while a meal is open (sticky; fixed on a phone, where sticky does not stick): the regular plate line from the
