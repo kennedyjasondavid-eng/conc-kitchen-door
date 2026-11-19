@@ -57,12 +57,24 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **On a phone (768 px or narrower) the Menu page** shows a day picker (`#mc-day-picker`, `mcSetPhoneDay`; today on the
   current week) and that day's breakfast, lunch and dinner cards instead of the sideways week. Every day column is
   tagged `mc-day-col`, and the picked one `mc-day-on`.
-- **The meal view** is full screen on a phone and a side panel on a wide screen (1200 px or wider), with the week still in
-  view at its left (`.mc-open`, `body.mc-meal-open`); the Save footer stays in view in both.
+- **The meal view** is full screen on a phone and a side panel on a wide screen (1500 px or wider), under the header,
+  with at least four days of the week and the header actions still usable (`.mc-open`, `body.mc-meal-open`). The Save
+  footer stays in view in both. Below 1500 px on a computer it stays in the page.
 - **On a phone or any touch screen**, the meal view's allergen pills (`.slot-pill`), clear (`.slot-clear`) and buttons are
   at least 44 px. The Menu Config header leaves more room beside ☰.
-- **Gates:** `tests/phones_tablets_s7_gate.mjs` (3) and browser `tests/browser/phones_tablets_s7.mjs` (14, in CI): 390 and
-  320 px phones, an 820 px touch tablet, a 1280 px wide screen; red on the build before.
+- **Gates:** `tests/phones_tablets_s7_gate.mjs` (3) and browser `tests/browser/phones_tablets_s7.mjs` (22, in CI): 390 and
+  320 px phones, an 820 px touch tablet, 1280 and 1600 px screens; red on the build before.
+- **Independent review (FIX FIRST), folded:**
+  - P1: on a phone every dialog (Save's questions, halal, leave without saving) opened under the full-screen meal view,
+    so the cook could be trapped. The panel now sits under the dialogs (z-index 190 < 200).
+  - P2:
+    - the footer covered the end of the meal on a phone;
+    - the out-of-date bar covered Close (the panel starts below it, `doorPlaceMealPanel`);
+    - at 1200–1440 px the side panel left only Sunday in view. It now starts at 1500 px, under the header.
+  - Noted:
+    - the week tabs reset the picked day;
+    - the 44 px sizes are Edit Menu only (Special Meal keeps its sizes).
+  - Re-pinned with a dated note: browser `menu_page_s6c` (closes the open meal first on a phone).
 
 ## Recent (2026-11-19) — the Menu page: no Edit mode, meal cards, and a More menu (redesign S6c, `v31-standard.116`)
 - **No Edit mode.** Its button, banner, state (`editMenuMode`) and toggle are gone, along with "Leave Edit Menu". A

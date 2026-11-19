@@ -66,6 +66,8 @@ try {
     check(width + ' clicking a meal card opens the meal view', more.opened, more);
     check(width + ' no sideways scroll', !page.wide, page.wide);
     // Review fold (P1): the open menu sits inside the screen, each item is what a tap there reaches; Escape closes it.
+    // Re-pinned 2026-11-19 (Edit Menu redesign S7): a phone meal view is full screen, so the meal opened above closes first.
+    await p.evaluate(() => closeMenuEdit(true));
     await p.click('details.mc-more > summary');
     const place = await p.evaluate(() => {
       const m = document.querySelector('.mc-more-menu').getBoundingClientRect();

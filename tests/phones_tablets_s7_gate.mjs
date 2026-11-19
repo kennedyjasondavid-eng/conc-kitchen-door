@@ -12,8 +12,11 @@ test('S7-1 a phone shows a day picker and one day; the week grid tags each day c
   assert.match(html, /function mcSetPhoneDay\(i\)/);
 });
 test('S7-2 the meal view: full screen on a phone, a side panel on a wide screen; the page is given back on close', () => {
-  assert.match(html, /#mc-menu-edit-panel\.mc-open \{ position: fixed; inset: 0; z-index: 210;/);
-  assert.match(html, /@media \(min-width: 1200px\) \{\s*#mc-menu-edit-panel\.mc-open \{ position: fixed; top: 0; right: 0; bottom: 0;/);
+  // Review fold: under the dialogs (.modal-overlay 200) and below the out-of-date bar; the side panel only from 1500 px,
+  // under the header, so the week and the header actions stay usable.
+  assert.match(html, /#mc-menu-edit-panel\.mc-open \{ position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 190;/);
+  assert.match(html, /@media \(min-width: 1500px\) \{\s*#mc-menu-edit-panel\.mc-open \{ position: fixed; top: 0; right: 0; bottom: 0;/);
+  assert.match(html, /function doorPlaceMealPanel\(\)/);
   assert.match(html, /panel\.classList\.add\('mc-open'\)/);
   assert.match(html, /panel\.classList\.remove\('mc-open'\)/);
 });

@@ -51,6 +51,36 @@ try {
     check(w + ' the meal view opens full screen', meal.full && !!meal.key, meal);
     const tiny = await p.evaluate(small);
     check(w + ' every pill, clear and button in the meal view is at least 44 px', tiny.length === 0, tiny.slice(0, 8));
+    // Review fold: the end of the meal is clear of the footer; a question opened over the meal can be tapped;
+    // the out-of-date bar never covers Close.
+    const bottom = await p.evaluate(() => {
+      const panel = document.getElementById('mc-menu-edit-panel');
+      panel.scrollTop = panel.scrollHeight;
+      const kids = [...panel.children].filter((c) => c.id !== 'mc-menu-edit-footer' && c.offsetParent !== null);
+      const lastBottom = Math.max(...kids.map((c) => c.getBoundingClientRect().bottom));
+      return { lastBottom, footerTop: document.getElementById('mc-menu-edit-footer').getBoundingClientRect().top };
+    });
+    check(w + ' the end of the meal scrolls clear of the footer', bottom.lastBottom <= bottom.footerTop + 1, bottom);
+    const asks = await p.evaluate(async () => {
+      const hit = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!at && (at === el || el.contains(at)); };
+      const pa = doorAsk({ title: 'Test question', lines: ['x'], goLabel: 'Go', cancelLabel: 'Back' });
+      await new Promise((r) => setTimeout(r, 20));
+      const askOk = hit(document.querySelector('.door-ask .door-ask-go')) && hit(document.querySelector('.door-ask .door-ask-cancel'));
+      document.querySelector('.door-ask .door-ask-cancel').click(); await pa;
+      _showHalalCertDialog('beef', false, { main: ['beef'], mainalt: [], noporkalt: [], about: { slot: 'Main', dish: 'Beef Stew', from: 'the menu’s words' } }, () => {}, () => {});
+      await new Promise((r) => setTimeout(r, 20));
+      const halalOk = hit(document.getElementById('_halal-yes'));
+      document.querySelectorAll('.modal-overlay.open').forEach((o) => o.remove());
+      document.getElementById('mc-menu-edit-panel').scrollTop = 0;
+      showStaleVersionBanner({ fileVersion: 'v99', note: 'test' });
+      await new Promise((r) => setTimeout(r, 20));
+      const closeBtn = [...document.querySelectorAll('#mc-menu-edit-panel button')].find((b) => b.textContent.trim() === 'Close');
+      const closeOk = hit(closeBtn);
+      const bar = document.getElementById('door-stale-banner'); if (bar) bar.remove(); document.documentElement.style.removeProperty('--door-stale-h');
+      return { askOk, halalOk, closeOk };
+    });
+    check(w + ' Save questions and the halal question can be tapped over the full-screen meal', asks.askOk && asks.halalOk, asks);
+    check(w + ' the out-of-date bar never covers Close', asks.closeOk, asks);
     const closed = await p.evaluate(() => { closeMenuEdit(true); return !document.body.classList.contains('mc-meal-open') && !document.getElementById('mc-menu-edit-panel').classList.contains('mc-open'); });
     check(w + ' closing it gives the page back', closed, closed);
     await ctx.close();
@@ -63,18 +93,28 @@ try {
     check('820 touch: every pill, clear and button in the meal view is at least 44 px', tiny.length === 0, tiny.slice(0, 8));
     await ctx.close();
   }
-  // A wide screen: a side panel with the week still in view, Save in view.
+  // Review fold: at 1280 the meal view stays in the page (a side panel there left only Sunday in view).
   {
     const { p, ctx } = await boot(1280, 900, false);
+    const pos = await p.evaluate(() => { openMenuEdit(2, 'TUESDAY', 'lunch'); return getComputedStyle(document.getElementById('mc-menu-edit-panel')).position; });
+    check('1280 the meal view stays in the page, not a side panel', pos !== 'fixed', pos);
+    await ctx.close();
+  }
+  // A wide screen: a side panel with the week still usable, the header actions in reach, Save in view.
+  {
+    const { p, ctx } = await boot(1600, 900, false);
     const side = await p.evaluate(() => {
       openMenuEdit(2, 'TUESDAY', 'lunch');
       const r = document.getElementById('mc-menu-edit-panel').getBoundingClientRect();
       const grid = document.getElementById('mc-grid').getBoundingClientRect();
       const save = document.getElementById('mc-menu-save-btn').getBoundingClientRect();
-      return { left: r.left, right: r.right, w: innerWidth, top: r.top, gridLeft: grid.left, saveIn: save.bottom <= innerHeight && save.top >= 0 };
+      const hit = (el) => { if (!el) return false; const b = el.getBoundingClientRect(); const at = document.elementFromPoint(b.left + b.width / 2, b.top + Math.min(b.height / 2, 20)); return !!at && (at === el || el.contains(at)); };
+      const days = [...document.querySelectorAll('#mc-grid-body tr:nth-child(2) td.mc-day-col')].filter(hit).length;
+      return { left: r.left, right: r.right, w: innerWidth, top: r.top, saveIn: save.bottom <= innerHeight && save.top >= 0, days, more: hit(document.querySelector('details.mc-more > summary')), send: hit(document.getElementById('mc-publish-btn')) };
     });
-    check('1280 the meal view is a side panel, the week still in view at its left', side.right >= side.w - 1 && side.left > 300 && Math.abs(side.top) < 1 && side.gridLeft < side.left, side);
-    check('1280 Save is in view in the side panel', side.saveIn, side);
+    check('1600 the meal view is a side panel under the header', side.right >= side.w - 1 && side.top > 20, side);
+    check('1600 at least four days of the week can still be clicked beside it, and More and Send are in reach', side.days >= 4 && side.more && side.send, side);
+    check('1600 Save is in view in the side panel', side.saveIn, side);
     await ctx.close();
   }
   check('no page errors', errors.length === 0, errors.slice(0, 3));
