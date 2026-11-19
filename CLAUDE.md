@@ -61,7 +61,8 @@ meals' plating data, sheet HTML, workbook sheets and `routing_by_meal.json` byte
 (`docs/receipts/door_plate_facts_s2a_2026-11-19.md`). Gate `tests/plate_facts_s2a_gate.mjs` (3), red 3/3 on `main`.
 Re-pinned with dated notes (the sandboxes load the new function): `door_rules_plates_d2b`, `label_unchecked`,
 `make_permanent_whole_dish`, `restore_original`, `routing_replay`, `w1b_safe_side_ticks`, `yoghurt_swap`,
-`kitchen_alternatives`, `vegan_plate_dishes`, helper `corn_gate_runtime`.
+`kitchen_alternatives`, `vegan_plate_dishes`, helper `corn_gate_runtime`. Independent review: SHIP. The routing replay's
+sheet reader is brought up to date (notes with a colon, the anaphylactic row's icon): 0 disagreements on today's data.
 
 ## Recent (2026-11-19) — Edit Menu's search finds the recipe, never one a plate refuses (redesign S1, `v31-standard.104`)
 Plan `docs/DOOR_MENU_EDIT_REDESIGN_PLAN_2026-11-19.md` (status owner); D7, Jason 2026-11-19: "Follow lean".

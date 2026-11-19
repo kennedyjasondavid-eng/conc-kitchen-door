@@ -48,7 +48,8 @@ const run = await page.evaluate(({ residents, rooms }) => {
     const sheet = buildPlatingHtml(pd, false);
     // every resident row the sheet prints: restriction, room, note
     const rows = {};
-    for (const m of sheet.matchAll(/<tr[^>]*><td>([^<]*)<\/td><td>([^<]*)<\/td><td>([^<]*)<\/td><\/tr>/g)) rows[unesc(m[2])] = unesc(m[3]);
+    // 2026-11-19: the note cell may hold markup (an anaphylactic row starts with a warning icon); read its text.
+    for (const m of sheet.matchAll(/<tr[^>]*><td>([^<]*)<\/td><td>([^<]*)<\/td><td>((?:(?!<\/td>)[\s\S])*)<\/td><\/tr>/g)) rows[unesc(m[2])] = unesc(m[3].replace(/<[^>]*>/g, '').trim());
     const seat = {};
     pd.anaphSect.forEach((r) => { seat[r.room] = { key: 'anaph', label: 'Anaphylactic Alternative', role: r._role }; });
     pd.sections.forEach((s) => s.residents.forEach((r) => { seat[r.room] = { key: s.rule.key, label: s.rule.key === 'regular' ? 'Regular' : s.rule.label }; }));
@@ -75,7 +76,8 @@ const VEG_WORDS = { WHEAT: 'hasGluten', GLUTEN: 'hasGluten', DAIRY: 'hasDairy', 
   'TREE NUTS': 'hasTreeNuts', PEANUTS: 'hasPeanuts', SESAME: 'hasSesame', MUSTARD: 'hasMustard', SULPHITES: 'hasSulphites', FISH: 'hasFish',
   SHELLFISH: 'hasShellfish', CRUSTACEANS: 'hasShellfish', MOLLUSCS: 'hasShellfish', 'PROCESSED MEAT': 'hasProcessedMeat', PORK: 'hasPork', BEEF: 'hasBeef' };
 const tagOf = (m) => 'W' + m.wk + ' ' + m.day.slice(0, 3) + ' ' + m.period;
-const split = (s) => new Set(String(s || '').split(/ · |, /).map((x) => x.trim()).filter(Boolean));
+// 2026-11-19: a note may carry its detail after a colon (call 4: "dairy-free: vegan yoghurt"); the note is the part before it.
+const split = (s) => new Set(String(s || '').split(/ · |, /).map((x) => x.trim().split(': ')[0]).filter(Boolean));
 const disagreements = [], csv = [['week', 'day', 'meal', 'dish', 'room', 'tags', 'plate', 'line', 'contained', 'oracle_plate', 'missing_notes'].join(',')];
 const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
 for (const m of run.meals) {

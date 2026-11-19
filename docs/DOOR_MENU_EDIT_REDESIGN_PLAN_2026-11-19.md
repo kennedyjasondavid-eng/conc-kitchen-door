@@ -268,5 +268,5 @@ moves its code without changing a byte).
 | S0 two defects | merged (`c470937`); review SHIP | #242 |
 | Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
 | S1 search | merged (`f246523`, `v31-standard.104`); reviews FIX FIRST ×2, folded; SHIP | #244 |
-| S2a plate facts | built (`v31-standard.105`); byte-identical proof `docs/receipts/door_plate_facts_s2a_2026-11-19.md`; review pending | |
+| S2a plate facts | built (`v31-standard.105`); byte-identical proof `docs/receipts/door_plate_facts_s2a_2026-11-19.md`; review SHIP | #245 |
 | S2b–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |

@@ -32,7 +32,15 @@ halal allergen line and the yoghurt plates are worked out before `computeSection
 ## Not in this slice
 The editor's own `_vegAltSafe` and `vegAllergens` stay until S2b replaces the editor preview with `doorPlateFacts`.
 
-## Found, not changed
-On `main` the routing replay against today's data reports 130 rows where its rules-table oracle disagrees (breakfast
-"line misses dairy-free"); the receipt of 2026-10-18 recorded 0 on that day's data. Not caused by S2a (identical table);
-to look at separately.
+## Found and fixed (test only)
+On `main` the routing replay against today's data reported 130 rows where its rules-table oracle disagreed (0 on the
+data of 2026-10-18). None was a plating gap, and the table was identical with or without S2a. The replay's reader of the
+sheet lagged two later changes: 116 breakfast rows read "dairy-free: vegan yoghurt" (call 4) as a note other than
+"dairy-free", and 14 anaphylactic rows went unread because their note cell now starts with a warning icon. Fixed in
+`tests/browser/routing_replay.mjs`: a note is the part before its colon, and the note cell is read as text. Today's data
+then shows 0 disagreements, 0 routing differences and 0 page errors. The 2026-10-18 receipt is frozen and unchanged.
+
+## Independent review
+SHIP, no P1 or P2. The reviewer also ran old against new `computePlatingData` on 1008 meal runs (random flags,
+alternatives, swaps and special meals, real and 120 made-up residents): 0 differences in the returned object and the
+sheet HTML.
