@@ -30,6 +30,20 @@ vegan links that name a shared pot stay until CODEX gives each pot its own vegan
   answer yet: the meal's ticks still cover them (they were part of the main box), and Menu Config lists them under
   "Typed dishes with allergens not answered yet".
 
+## Checked (independent review: SHIP)
+- Plating identical on all 84 meals before and after, against the real resident list and about 185 made-up residents
+  (30 tags, pairs, five anaphylactic rooms and a roommate): sections, every plate's allergen line, line notes,
+  anaphylactic containment. The only differences are the vegan line text (Wk4 SUN, MON, SAT) and "Turmeric".
+- Wk4 SUN lunch's vegan plate still says DAIRY and SULPHITES: the regular meal's ticks are copied onto the vegan plate
+  as a floor (the safe side). `registry_summary.json` changed only its stamps. `scripts/check_published_flow.mjs` passes.
+
+## After merge
+- **EXPO:** republish once (Menu & Board → Review DOOR menu → Apply). Until then HUB shows its menu-drift banner for the
+  Wk4 SUN, MON and SAT vegan lines. No new dish is expected: Tzatziki stays on the regular line, and EXPO already maps
+  "turmeric quinoa".
+- **Spelling across apps:** CODEX's recipe, `recipe_production.json` and EXPO's recipe table still say "Tumeric Quinoa".
+  HUB's portion link for that card opens unscaled until CODEX renames it (fails safe).
+
 ## Open (CODEX)
 Four vegan dishes link to a shared pot recipe whose name says pork or lists several versions (Wk1 FRI dinner's "Adobo
 Pork/Chicken/Tofu (Adobo Marinade & Sauce)", and the Vegan Alt links on Wk2 SUN, MON and FRI dinner). Their allergens

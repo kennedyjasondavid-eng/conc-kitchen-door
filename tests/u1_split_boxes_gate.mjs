@@ -35,3 +35,20 @@ test('U1-4 the regular menu words did not change on these meals', () => {
   assert.equal(meal('4', 'MONDAY').lunch, 'Chicken Ranch Salad Sandwich, Fruit and Chips');
   assert.equal(meal('4', 'SATURDAY').lunch, 'Lime-Spiced Chicken Legs, Garlic Bread, Steamed Broccoli');
 });
+test('U1-5 the safety ticks stayed: each meal keeps its allergen ticks; the tzatziki box carries its own', () => {
+  // Review fold: pin what the split must not lose (as published at publication 39).
+  const f = (w, d, p) => meal(w, d)[p + '_flags'] || {};
+  assert.ok(f('1', 'FRIDAY', 'dinner').hasPork && f('1', 'FRIDAY', 'dinner').hasSoy && f('1', 'FRIDAY', 'dinner').hasTreeNuts && f('1', 'FRIDAY', 'dinner').hasCoconut);
+  assert.ok(f('4', 'SUNDAY', 'lunch').hasPork && f('4', 'SUNDAY', 'lunch').hasDairy && f('4', 'SUNDAY', 'lunch').hasGluten && f('4', 'SUNDAY', 'lunch').hasSulphites);
+  assert.ok(meal('4', 'SUNDAY').lunch_slots.xtra.flags.hasDairy && meal('4', 'SUNDAY').lunch_slots.xtra.flags.hasSulphites);
+  assert.ok(meal('4', 'SUNDAY').lunch_slots.main.flags.hasDairy, 'the main box keeps the meal ticks it carried');
+  assert.ok(meal('1', 'FRIDAY').dinner_slots.main.flags.hasPork);
+});
+test('U1-6 routing: the section counts of the four meals are what plating gave before the split', () => {
+  const r = JSON.parse(fs.readFileSync('routing_by_meal.json', 'utf8')).routing;
+  const sections = (w, d, p) => Object.fromEntries(Object.entries(r[w][d][p]).filter(([k]) => k !== '_components'));
+  const total = (o) => Object.values(o).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+  for (const [w, d, p] of [['1', 'FRIDAY', 'dinner'], ['4', 'SUNDAY', 'lunch'], ['4', 'MONDAY', 'lunch'], ['4', 'SATURDAY', 'lunch']]) assert.ok(total(sections(w, d, p)) > 0, 'every resident still has a plate');
+  assert.equal(r['4'].SUNDAY.lunch._components.Tzatziki, 150, 'the vegan plate no longer gets the tzatziki');
+});
+
