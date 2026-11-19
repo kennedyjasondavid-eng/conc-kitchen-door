@@ -16849,7 +16849,8 @@ function showToast(msg) {
   // S5a review fold: a toast never covers the pinned Save; it sits above the footer and lets clicks through.
   t.style.pointerEvents = 'none';
   const _ft = document.getElementById('mc-menu-edit-footer');
-  const _fr = _ft && _ft.offsetParent && _ft.getBoundingClientRect ? _ft.getBoundingClientRect() : null;
+  const _pn = document.getElementById('mc-menu-edit-panel');
+  const _fr = _ft && _pn && _pn.style.display !== 'none' && _ft.getBoundingClientRect ? _ft.getBoundingClientRect() : null;   // re-review P3: offsetParent is null for a fixed footer
   t.style.bottom = (_fr && _fr.top < window.innerHeight && _fr.bottom > 0) ? Math.round(window.innerHeight - _fr.top + 12) + 'px' : '24px';
   t.style.opacity = '1';
   clearTimeout(t._timer);
@@ -22873,6 +22874,7 @@ function doorStayOnSavedMeal(week, day, period, message) {
   if (typeof openMenuEdit !== 'function') return;
   _doorReopenAfterSave = true;   // review fold P3-3: the page keeps its place
   try { openMenuEdit(week, day, period); } finally { _doorReopenAfterSave = false; }
+  if (message && typeof showToast === 'function') showToast(message);   // re-review P3: placed above the footer, now on screen
   const t = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
   doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /only|Not sent/.test(message || ''));
 }
