@@ -61,7 +61,8 @@ function box(opts = {}) {
     between(src, 'const DOOR_DISH_PART_EMPTY = ', '\nfunction doorEmptyDishParts(') + '\n',
     fn('doorKitchenAlternatives'), fn('doorAddKitchenPlateFlags'), fn('doorRegularServiceNote'),
     between(src, 'const CONFLICT_MAP = [', '\n];\n') + '\n];\n', fn('getIngredientConflicts'), fn('doorAllergenStrFlags'), fn('doorSectionLineNotes'), fn('doorSectionAllergenStr'),
-    fn('computePlatingData'), fn('getAltMeal'), fn('doorSplitDishes'), fn('buildRoutingByMealJSON'), fn('importSectionForTags'),
+    fn('doorPlateFacts'), fn('computePlatingData'),   // 2026-11-19 (Edit Menu redesign S2a): the plate facts moved into doorPlateFacts
+    fn('getAltMeal'), fn('doorSplitDishes'), fn('buildRoutingByMealJSON'), fn('importSectionForTags'),
   ];
   if (opts.withRules !== false) {
     parts.push(between(src, CORE_S, CORE_E), between(src, CORE_E, '\n// The recipes a dish can link'));

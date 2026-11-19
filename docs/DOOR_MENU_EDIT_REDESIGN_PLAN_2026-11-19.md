@@ -98,7 +98,8 @@ a label checked since still writes its ticks. Gate `tests/browser/menu_edit_no_s
 - It takes the day directly, with "no dated meal" as an explicit option, so a preview can plate the every-week meal on
   a date that has a swap. Sections still come from `computeSections`; anaphylactic residents are still set apart with
   `getAnaphConflictRooms`.
-- Remove the editor's own `_vegAltSafe` and its unused `vegAllergens` (they disagree with plating).
+- The editor's own `_vegAltSafe` and its unused `vegAllergens` (they disagree with plating) go in S2b, with the preview
+  that replaces them (S2a stays a pure move).
 - Gate and proof: every plating sheet (84 HTML, 56 XLSX) and `routing_by_meal.json` byte-identical before and after on
   today's data; a meal with a swap on its next date plates the every-week meal when asked.
 
@@ -266,5 +267,6 @@ moves its code without changing a byte).
 |---|---|---|
 | S0 two defects | merged (`c470937`); review SHIP | #242 |
 | Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
-| S1 search | built (`v31-standard.104`); gate `tests/recipe_search_s1_gate.mjs` (10) red on `d7a3e65`; reviews FIX FIRST ×2, folded | #244 |
-| S2a–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |
+| S1 search | merged (`f246523`, `v31-standard.104`); reviews FIX FIRST ×2, folded; SHIP | #244 |
+| S2a plate facts | built (`v31-standard.105`); byte-identical proof `docs/receipts/door_plate_facts_s2a_2026-11-19.md`; review SHIP | #245 |
+| S2b–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |

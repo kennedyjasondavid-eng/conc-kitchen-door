@@ -47,7 +47,8 @@ vm.runInContext([
   // 2026-10-19 (v31-standard.42): the parts of a dish a swap drops (doorApplyDatedMeal reads the list).
   html.includes('const DOOR_DISH_PART_EMPTY = ') ? between('const DOOR_DISH_PART_EMPTY = ', '\nfunction doorEmptyDishParts(') + '\n' : '',
   fnOpt('doorKitchenAlternatives'), fnOpt('doorAddKitchenPlateFlags'), fnOpt('doorRegularServiceNote'),
-  fn('computePlatingData'),
+  fn('doorPlateFacts'), fn('computePlatingData'),   // 2026-11-19 (Edit Menu redesign S2a): the plate facts moved into doorPlateFacts
+   
 ].join('\n'), c, { filename: 'index.html#routing-replay', timeout: 30000 });
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MEALS = [];

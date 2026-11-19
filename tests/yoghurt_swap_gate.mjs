@@ -43,7 +43,8 @@ function harness(recipes, residents, menu) {
     between('const DOOR_YOGHURT_SWAP_NOTE', 'function doorYoghurtSwapFor('), fn('doorYoghurtSwapFor'),
     between('const CONFLICT_MAP = [', '\n];\n') + '\n];\n', fn('doorAllergenStrFlags'),
     between('const DOOR_LABEL_CHECK_SKIP_TAGS', 'function doorSectionLineNotes('), fn('doorSectionLineNotes'), fn('doorSectionAllergenStr'),
-    fn('computePlatingData'),
+    fn('doorPlateFacts'), fn('computePlatingData'),   // 2026-11-19 (Edit Menu redesign S2a): the plate facts moved into doorPlateFacts
+   
     between('const MEAL_SLOT_DEFS = [', '\n];\n') + '\n];\n', fn('recipeMatchesSlotDef'), fn('doorKeepCapturedFlags'),
     fn('slotSelect'), fn('slotAutoSave'), fn('smSlotSelect'), fn('_buildSlotSnapshot'), fn('doorMakeLineVersion'),
     // review fold (2026-11-18): the name-read dishes, the Special Meal blur, the search preview, the re-save list

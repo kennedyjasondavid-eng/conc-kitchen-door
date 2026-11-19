@@ -118,11 +118,12 @@ test('the regular line\'s own slots, empty slots and nothing at all bring nothin
 });
 
 test('computePlatingData merges the vegan line\'s slots into the floor; a stored statement still wins outright', () => {
-  const body = fn('computePlatingData');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2a): the plate facts moved, unchanged, into doorPlateFacts.
+  const body = fn('doorPlateFacts');
   assert.match(body, /const vegAllergenSlots = typeof getVegAltSlotAllergenStr !== 'undefined' \? getVegAltSlotAllergenStr\(dayData\[period \+ '_slots'\]\) : '';/);
   assert.match(body, /const vegAllergenStr = vegAllergenStored\s*\n\s*\|\| mergeVegAltAllergenFloor\(mergeVegAltAllergenFloor\(vegAllergenLookup, vegAllergenSlots\), vegAllergenFallback\)/);
   assert.match(body, /mealFlags\._vegAltSafe = !vegAllergenCheck \|\| \(!\/EGG\/i\.test\(vegAllergenCheck\) && !\/MUSTARD\/i\.test\(vegAllergenCheck\)\);/);
-  assert.ok(html.indexOf('function getVegAltSlotAllergenStr(') < html.indexOf('function computePlatingData('), 'declared before use');
+  assert.ok(html.indexOf('function getVegAltSlotAllergenStr(') < html.indexOf('function doorPlateFacts('), 'declared before use');
 });
 
 test('the menu links each confirmed vegan dish to its recipe and still shows what the menu said', () => {
