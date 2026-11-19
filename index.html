@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.100';
+const DOOR_APP_VERSION = 'v31-standard.101';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -7009,7 +7009,40 @@ function doorRegularServiceNote(r, mealFlags) {
   const t = (r && r.tags) || [], f = mealFlags || {};
   const carb = t.includes('Low Carb') || (t.includes('Diabetic') && !!f.isCarb);
   const soft = t.includes('Soft Meals') && !!f._altMealsNone;
-  return [carb ? 'extra veg less starch' : '', soft ? 'soft' : '', r && r.serviceNote].filter(Boolean).join(' · ');
+  const yog = typeof doorYoghurtSwapFor === 'function' && doorYoghurtSwapFor(r, 'regular', f);
+  return [carb ? 'extra veg less starch' : '', soft ? 'soft' : '', yog ? DOOR_YOGHURT_SWAP_NOTE : '', r && r.serviceNote].filter(Boolean).join(' · ');
+}
+// Call 4 (2026-11-19, Jason: "Follow lean"): a dairy yoghurt on a breakfast plate. A mention reads as dairy unless the
+// words just before it say otherwise (DF, dairy-free, vegan, coconut, soy, oat, plant); lactose-free yoghurt is dairy.
+const DOOR_YOGHURT_SWAP_NOTE = 'dairy-free: vegan yoghurt';
+function doorNamesDairyYoghurt(text) {
+  const t = String(text || '');
+  const re = /yog(?:h)?urt/ig;
+  let m;
+  while ((m = re.exec(t))) {
+    const before = t.slice(Math.max(0, m.index - 24), m.index).toLowerCase();
+    if (!/(\bdf|dairy[- ]free|non[- ]dairy|vegan|coconut|\bsoy|\boat|plant)[^,&]*$/.test(before)) return true;
+  }
+  return false;
+}
+// Each plate of a breakfast and whether it serves dairy yoghurt: the regular, vegan and halal lines, and the
+// alternative plates (the dish the kitchen names, else the regular plate it is made from), keyed as the label check is.
+function doorYoghurtPlates(dayData, period, vegText, halalText) {
+  const regular = doorNamesDairyYoghurt(dayData && dayData[period]);
+  const ka = typeof doorKitchenAlternatives === 'function' ? doorKitchenAlternatives(dayData, period) : {};
+  const soft = (Array.isArray(dayData && dayData[period + '_altMeals']) ? dayData[period + '_altMeals'] : []).filter(a => a && a.type === 'soft').map(a => a.text || '').join(', ')
+    || (dayData && dayData[period + '_softAlt']) || '';
+  const own = text => (String(text || '').trim() ? doorNamesDairyYoghurt(text) : regular);
+  return {
+    regular, vegan: own(vegText), halal: own(halalText), nopork: regular,
+    gf: own(dayData && dayData[period + '_gfAlt']), diabetic: own(ka.diabeticAlt), nodairy: own(ka.noDairyAlt),
+    noegg: own(ka.noEggAlt), bland: own(ka.blandAlt), soft: own(soft)
+  };
+}
+function doorYoghurtSwapFor(r, plate, mealFlags) {
+  const yp = mealFlags && mealFlags._yoghurtPlates;
+  const t = (r && r.tags) || [];
+  return !!(yp && plate && yp[plate] && (t.includes('No Dairy') || t.includes('Lactose Intolerant')));
 }
 
 function getRoomBase(room) {
@@ -16265,6 +16298,10 @@ function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
   (typeof doorConflictRows === 'function' ? doorConflictRows() : CONFLICT_MAP).forEach(rule => {
     if ((f[rule.mealFlag] || plate[rule.mealFlag]) && tags.includes(rule.residentTag) && !notes.includes(rule.note)) notes.push(rule.note);
   });
+  if (typeof doorYoghurtSwapFor === 'function' && doorYoghurtSwapFor(r, doorSectionLabelPlate(section, f), f)) {
+    const at = notes.indexOf('dairy-free');
+    if (at >= 0) notes.splice(at, 1, DOOR_YOGHURT_SWAP_NOTE); else notes.push(DOOR_YOGHURT_SWAP_NOTE);
+  }
   const base = hasCarbAccommodation(r) ? 'extra veg less starch' : '';
   const label = f._labelUnchecked && typeof doorLabelCheckNote === 'function' ? doorLabelCheckNote(r, doorSectionLabelPlate(section, f), f).note : '';
   return [base, notes.join(', '), label].filter(Boolean).join(' \u00B7 ');
@@ -25870,6 +25907,12 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = registry.filter(r => (r.tags||[]).includes('Diabetic')).length;
   const mealGfAlt = dayData[period+'_gfAlt'] || '';
+  // Call 4 (2026-11-19, Jason: "Follow lean"): the plates of a breakfast that serve dairy yoghurt. A No Dairy or Lactose
+  // Intolerant resident on one reads "dairy-free: vegan yoghurt" (the Silk coconut yoghurt CODEX lists as Vegan yoghurt).
+  // Not enumerable, so no copy, count or published file reads it.
+  if (period === 'breakfast' && typeof doorYoghurtPlates === 'function') {
+    Object.defineProperty(mealFlags, '_yoghurtPlates', { value: doorYoghurtPlates(dayData, period, mealVeg, mealHalal), enumerable: false, configurable: true });
+  }
   // The halal plate's own allergens (2026-10-18, the routing audit; the line reads the plate eaten): the dish set on its
   // slot (a linked recipe, or a typed dish's tags) and the shared sides, over the main meal's allergens without its pork
   // as a floor, as the vegan line does. Its section printed no CONTAINS, and its rows read the main meal only, so a
