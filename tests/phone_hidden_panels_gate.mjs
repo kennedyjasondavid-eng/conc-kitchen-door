@@ -24,8 +24,10 @@ const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const SCREENS = ['reports', 'custom-reports', 'settings', 'review', 'leftover', 'menu-config'];
 // The direct children of a screen's .content that start hidden by their inline style (the 2026-10-19 browser scan).
 const HIDDEN = { 'menu-config': ['mc-swaps-banner', 'mc-menu-source-banner', 'mc-overlay-diff-banner', 'mc-unmapped-allergen-banner',
-  'mc-edit-menu-banner', 'mc-specials-banner', 'mc-slot-swap-banner', 'mc-edit-panel', 'mc-day-preview', 'mc-menu-edit-panel',
-  'mc-test-meal-panel'], review: ['recent-generated'] };
+  'mc-edit-menu-banner', 'mc-specials-banner', 'mc-slot-swap-banner', 'mc-day-preview', 'mc-menu-edit-panel'], review: ['recent-generated'] };
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel (mc-edit-panel) and the test-meal panel
+// (mc-test-meal-panel) are retired, so 10 remain; a meal opens in the one meal view (mc-menu-edit-panel), still checked.
+assert.ok(!html.includes('id="mc-edit-panel"') && !html.includes('id="mc-test-meal-panel"'), 'the retired panels are gone, not left unchecked');
 
 // The phone block: from its @media line to its matching brace, comments dropped.
 function phoneBlock() {

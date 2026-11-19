@@ -18,6 +18,9 @@
 //      never read (a swap renamed later)
 //   6. a special meal that displaces the rotation meal moves the displaced meal whole
 // Authored to fail on DOOR 94f1cd2 (1-4, 6). Env: SLOT_SWAP_ROOT (another checkout's directory).
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's Make Permanent is retired. Check 4 moved to the
+// path that replaces it: the banner's Make Permanent writes the moved meal whole, then the meal view's every-week Save
+// (_finishMenuSave) puts the cook's own change on top and leaves the rest of the moved meal whole.
 import test from 'node:test';
 import { historical, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
@@ -61,7 +64,7 @@ function box(store, extra = {}) {
   const el = (id) => (els[id] || (els[id] = { id, value: '', checked: false, style: {}, innerHTML: '', textContent: '' }));
   const b = Object.assign({
     console, document: { getElementById: el }, Date, alert() {},
-    mcEditKey: null, mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
+    mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
     getMenuData: () => out(BASE), MENU_DATA: {}, loadUploadedMenu: () => out(BASE),
     loadMenuBaseOverlay: () => out(store.overlay), saveMenuBaseOverlay: (o) => { store.overlay = out(o); },
     loadMealSwaps: () => out(store.swaps || {}), saveMealSwaps: (s) => { store.swaps = out(s); },
@@ -74,9 +77,12 @@ function box(store, extra = {}) {
     guardStandardMenuWrite: () => true, doorAsk: async () => true, loadMenuEdits: () => ({}), saveMenuEdits() {},
     logMenuEvent() {}, showToast() {}, renderMenuConfig() {}, renderTodayMealContext() {}, publishAndSync() {},
     getOperatorName: () => 'Jason', appendChangeLog() {}, location: { hash: '' },
+    // 2026-11-19 (S6b): the meal view's every-week Save reads these.
+    mcMenuEditKey: null, getMenuEdit: () => null, closeMenuEdit() {}, _doorPlainChoiceTargets: new Map(),
   }, extra);
   vm.createContext(b);
-  vm.runInContext([HELPERS, fn('executeSlotSwap'), fn('makePermanent'), fn('makeSwapPermanentFromBanner')].join('\n'), b,
+  vm.runInContext([HELPERS, fn('executeSlotSwap'), fn('makeSwapPermanentFromBanner'), fn('doorWriteEditorMeal'),
+    fn('doorMenuSavedMessage'), fn('_finishMenuSave')].join('\n'), b,
     { filename: 'index.html#slot-swap', timeout: 5000 });
   b.__els = els;
   return b;
@@ -135,18 +141,26 @@ test('3. Make Permanent from the banner writes the moved meal whole', async () =
   assert.deepEqual(m[B.day].dinner_flags, at(A).dinner_flags);
 });
 
-test('4. Make Permanent from the meal panel writes it whole, with the panel\'s change on top', async () => {
+// Re-pinned 2026-11-19 (S6b, D5): was the meal panel's makePermanent with its own change on top; now the banner's Make
+// Permanent, then the meal view's every-week Save of that meal with the cook's change (the vegan line).
+test('4. Make Permanent writes it whole, and an every-week change on top keeps the rest of the moved meal', async () => {
   const store = swapStore();
-  const b = slotSwap(store);
+  slotSwap(store);
   const moved = at(B);
-  const p = box(store, { mcEditKey: '2-' + A.day + '-dinner', mealSwaps: b.mealSwaps });
-  p.__els['mc-swap-name'] = { value: moved.dinner };
-  p.__els['mc-swap-veg'] = { value: 'Vegan Sausages, Mashed Potato' };
-  p.__els['mc-swap-softalt'] = { value: '' };
-  vm.runInContext('FLAG_DEFS', p).forEach((f) => { p.__els['mc-flag-' + f.key] = { checked: !!(moved.dinner_flags || {})[f.key] }; });
-  await p.makePermanent();
+  await box(store).makeSwapPermanentFromBanner(DATES[A.day] + '-' + P);
+  const now = merged(store.overlay)['2'][A.day];
+  const v = (s, d) => (now[P + s] === undefined || now[P + s] === null) ? d : out(now[P + s]);
+  const p = box(store, { mcMenuEditKey: '2-' + A.day + '-dinner', getMenuData: () => merged(store.overlay),
+    buildSoftAlt: () => v('_softAlt', ''), buildAltMeals: () => v('_altMeals', []), ALT_MEALS_NONE: !!now[P + '_altMealsNone'],
+    doorKitchenAltInputValues: () => ({ gfAlt: v('_gfAlt', ''), diabeticAlt: v('_diabeticAlt', ''), noDairyAlt: v('_noDairyAlt', ''),
+      noEggAlt: v('_noEggAlt', ''), blandAlt: v('_blandAlt', ''), anaphAlt: v('_anaphAlt', '') }),
+    buildNoPorkAlt: () => v('_noPorkAlt', ''), buildMainItem: () => v('_mainItem', ''), buildMainAltItem: () => v('_mainAlt', ''),
+    buildSides: () => v('_sides', ''), _buildSlotSnapshot: () => v('_slots', null) });
+  const flags = Object.fromEntries(vm.runInContext('FLAG_DEFS', p).map((f) => [f.key, !!(moved.dinner_flags || {})[f.key]]));
+  assert.equal(p._finishMenuSave(moved.dinner, 'Vegan Sausages, Mashed Potato', flags), true, 'the every-week Save goes through');
   const d = merged(store.overlay)['2'][A.day];
-  assert.equal(d.dinner_veg, 'Vegan Sausages, Mashed Potato', 'the panel\'s vegan line wins');
+  assert.equal(d.dinner_veg, 'Vegan Sausages, Mashed Potato', 'the cook\'s vegan line wins');
+  assert.equal(store.swaps[DATES[A.day] + '-' + P], undefined, 'no swap of the slot is left');
   for (const k of PARTS) assert.deepEqual(d[P + k] ?? null, moved[P + k] ?? null, 'the rest of the meal comes whole: ' + k);
   assert.deepEqual(d.dinner_flags, moved.dinner_flags);
 });

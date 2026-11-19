@@ -240,7 +240,7 @@ Names here are this plan's (the back-on-track plan has its own D-numbers).
 - **D4** A real edit keeps the menu words it didn't change (in S4a; EXPO reads those words). **Ruled 2026-11-19 (Jason:
   "Follow lean").**
 - **D5** Retire Edit Flags / Swap Meal / Make Permanent into one view; what Change Log and ↩ Undo Last cover afterwards;
-  keep or retire Test Meal; Special Meal and Rex's review follow each slice or are pinned.
+  keep or retire Test Meal; Special Meal and Rex's review follow each slice or are pinned. **Ruled 2026-11-19 (Jason: "Follow lean"):** retire the panel and Test Meal; ↩ Undo Last and the Change Log stay; Special Meal and Rex's review are left for their own pass.
 - **D6** The order in §4.
 - **D7** The wider search never offers a recipe a plate's rule refuses (listed greyed with the reason, never pickable).
   **Ruled 2026-11-19 (Jason: "Follow lean").**
@@ -289,4 +289,5 @@ moves its code without changing a byte).
 | S5b What changes | built (`v31-standard.112`): each plate before → after, new and removed allergens, residents who move plates (counts equal the plating sheet), anaphylactic rooms affected or not, the one-date change an every-week Save replaces (named; Save already clears it, so no D1 call is needed for S5b), "counts not available" with no resident list; review FIX FIRST, folded (an unread label is never "not affected"; special meal stays; legacy edit; Save questions line) | |
 | S5c Save's questions | built (`v31-standard.113`; D3 ruled): Save asks halal only when the meat changed, any allergen coming off (keep as the default; meat marks follow the dish as W3a), and a new anaphylactic conflict in red; a run-on box, held words and the soft plate (asked only when a soft resident is on the list and a dish changed, or with no list) are lines in What changes; review FIX FIRST, folded (every allergen removal asked; meat marks follow the dish; held words kept after Save) | |
 | S6a Just on <date> | built (`v31-standard.114`; D1 ruled): the meal view chooses Every week or Just on the next date; Just on writes a whole-meal swap entry (as Swap Slots), refused for breakfast and on a date holding a swap or special meal; revert is the swap revert; review FIX FIRST, folded (listed in Active Swaps even when the name is kept; no unpaired warning; Undo Last, change log, labels) | |
-| S6b–S8, U1 | planned; D1, D2, D3, D4, D7, D8 ruled; D5, D6, D9 pending | |
+| S6b One view | built (`v31-standard.115`; D5 ruled): a meal cell opens the meal view; the old panel (Routing / Swap Meal / Edit Flags, Make Permanent) and Test Meal retired with their code; their checks moved to the new paths; a changed halal main replaces the stored halal line; review SHIP, P3s folded | |
+| S6c–S8, U1 | planned; D1, D2, D3, D4, D5, D7, D8 ruled; D6, D9 pending | |

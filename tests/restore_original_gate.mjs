@@ -20,6 +20,11 @@
 //   6. the copy stays DOOR's: never in menu_current.json, no publish stop, editor-only on the P4 list; the change log
 //      keeps copies on its newest entries; a workbook import starts fresh
 // Authored to fail on ce6a9fa (1–6). Env: RESTORE_ORIGINAL_ROOT (another checkout's directory).
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel (Make Permanent, Edit Flags, Revert to Original) is
+// retired. Its checks moved to the one meal view: an every-week change is Edit Menu's Save (_finishMenuSave, which keeps
+// the copy with doorNoteMealChange), a tick-only change is the same Save with the dishes as they are, Revert to Original
+// is the footer's "Put back the original" (revertMenuEdit -> doorRestoreMealOriginal), and a one-time swap is taken back
+// from the Active Swaps banner (revertSwapFromBanner). Every assertion keeps its intent.
 import test from 'node:test';
 import { historical, regressionResidents, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
@@ -41,8 +46,10 @@ const PARTS_SRC = lineOf('const DOOR_KITCHEN_ALT_FIELDS = ') + between('const DO
 const COPY_SRC = html.includes('const DOOR_MEAL_FIELDS = ') ? between('const DOOR_MEAL_FIELDS = ', '\nfunction doorKitchenAlternatives(') + '\n' : '';
 const MENU_SRC = [CORE, PARTS_SRC, fn('doorEmptyDishParts'), fn('doorSetMealFlags'), COPY_SRC,
   fn('flagsToMenuAllergens'), fn('mergeDoorMenuDataWithOverlay'), fn('dayLabel'), between('const FLAG_DEFS = [', '\n];\n') + '\n];\n',
-  fn('appendChangeLog'), fn('makePermanent'), fn('makeSwapPermanentFromBanner'), fn('revertMealSwap'), fn('revertMenuEdit'),
-  fn('saveEditFlags'), fn('doorWriteEditorMeal'), fn('_finishMenuSave'),   // 2026-11-19 (S2b): the writer moved
+  fn('appendChangeLog'), fn('makeSwapPermanentFromBanner'), fn('revertSwapFromBanner'), fn('revertMenuEdit'),
+  fn('doorWriteEditorMeal'), fn('_finishMenuSave'),   // 2026-11-19 (S2b): the writer moved
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): makePermanent, revertMealSwap and saveEditFlags are retired; their
+  // checks run on _finishMenuSave, revertMenuEdit and revertSwapFromBanner.
    fn('doorMenuSavedMessage'), fn('revertLastChange'), fn('buildMenuJSON')].join('\n');
   // 2026-11-18 (back-on-track U4): _finishMenuSave's toast now comes from doorMenuSavedMessage; the box loads it too.
 
@@ -78,12 +85,12 @@ const mealOf = (store) => mergedOf(store)[W][D];
 let CLOCK = Date.now() + 1000;
 const computer = (over = {}) => Object.assign({ base: out(BASE), overlay: out(OVERLAY), swaps: {}, edits: {}, log: [],
   asked: [], alerts: [], toasts: [], published: [] }, over);
-function makeBox(store, answers = []) {
+function makeBox(store, answers = [], editor = {}) {
   const els = {};
   const el = (id) => (els[id] || (els[id] = { id, value: '', checked: false, style: {}, textContent: '' }));
   const box = {
     console, document: { getElementById: el }, location: { hash: '' }, setTimeout() {},
-    mcEditKey: W + '-' + D + '-' + P, mcMenuEditKey: W + '-' + D + '-' + P, testMealActive:false, _doorPlainChoiceTargets:new Map(), mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
+    mcMenuEditKey: W + '-' + D + '-' + P, _doorPlainChoiceTargets:new Map(), mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
     MENU_DATA: {}, loadUploadedMenu: () => out(store.base), DOOR_SCHEMA_VERSIONS: { menu_current: 32 },
     getMenuData: () => mergedOf(store), guardStandardMenuWrite: () => true,
     doorAsk: async (o) => { store.asked.push(out(o)); return answers.length ? answers.shift() : true; },
@@ -95,32 +102,42 @@ function makeBox(store, answers = []) {
     loadChangeLog: () => out(store.log), saveChangeLog: (l) => { store.log = out(l); },
     getSelectedSite: () => 'rexdale', getOperatorName: () => 'Jason',
     logMenuEvent() {}, showToast: (m) => { store.toasts.push(String(m)); }, renderMenuConfig() {}, closeMenuEdit() {},
-    closeMealEdit: () => { store.closedPanel = true; }, publishAndSync: (why) => { store.published.push(why); },
+    publishAndSync: (why) => { store.published.push(why); },
     nextDateForSlot: () => null, getMealForDate: () => ({ week: Number(W), day: D }),
-    loadSpecialMeals: () => ({}), saveSpecialMeals() {}, renderRoutingTab() {}, doorAddKitchenPlateFlags: (f) => f,
+    loadSpecialMeals: () => ({}), saveSpecialMeals() {}, doorAddKitchenPlateFlags: (f) => f,
     // Edit Menu's save, its editor holding the new dish
     buildVegAltFlags: () => ({}), flagsToAllergenStr: () => '', buildSoftAlt: () => '', buildAltMeals: () => [], ALT_MEALS_NONE: false,
     doorKitchenAltInputValues: () => ({ gfAlt: '', diabeticAlt: '', noDairyAlt: '', blandAlt: '', noEggAlt: '', anaphAlt: '' }),
     buildNoPorkAlt: () => '', buildMainItem: () => 'Beef Burger', buildMainAltItem: () => 'Halal Beef Burger', buildSides: () => 'Side Salad',
     _buildSlotSnapshot: () => ({ main: { manual: 'Beef Burger', flags: {} }, xtra: { manual: 'Side Salad', flags: {} } }),
   };
+  Object.assign(box, editor);
   vm.createContext(box);
   vm.runInContext(MENU_SRC, box, { filename: 'index.html#restore-original', timeout: 10000 });
   box.__els = els;
   return box;
 }
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's Make Permanent moved to Edit Menu's every-week
+// Save (_finishMenuSave), the editor holding the new dish; its Edit Flags moved to the same Save with the open meal's
+// dishes as they are (editorFrom) and only the ticks changed.
+const allTicks = (box, on) => Object.fromEntries(vm.runInContext('FLAG_DEFS', box).map((f) => [f.key, on.includes(f.key)]));
 async function makePermanentOnPanel(store) {
   const box = makeBox(store);
-  box.__els['mc-swap-name'] = { value: NEW.name };
-  box.__els['mc-swap-veg'] = { value: NEW.veg };
-  box.__els['mc-swap-softalt'] = { value: '' };
-  vm.runInContext('FLAG_DEFS', box).forEach((f) => { box.__els['mc-flag-' + f.key] = { checked: NEW.ticks.includes(f.key) }; });
-  await box.makePermanent();
+  box._finishMenuSave(NEW.name, NEW.veg, allTicks(box, NEW.ticks));
+}
+// The editor's builders reading back the meal as it is, so a Save changes only what the test changes.
+function editorFrom(day) {
+  const v = (s, d) => (day[P + s] === undefined || day[P + s] === null) ? d : out(day[P + s]);
+  return { buildSoftAlt: () => v('_softAlt', ''), buildAltMeals: () => v('_altMeals', []), ALT_MEALS_NONE: !!day[P + '_altMealsNone'],
+    doorKitchenAltInputValues: () => ({ gfAlt: v('_gfAlt', ''), diabeticAlt: v('_diabeticAlt', ''), noDairyAlt: v('_noDairyAlt', ''),
+      blandAlt: v('_blandAlt', ''), noEggAlt: v('_noEggAlt', ''), anaphAlt: v('_anaphAlt', '') }),
+    buildNoPorkAlt: () => v('_noPorkAlt', ''), buildMainItem: () => v('_mainItem', ''), buildMainAltItem: () => v('_mainAlt', ''),
+    buildSides: () => v('_sides', ''), _buildSlotSnapshot: () => v('_slots', null) };
 }
 function editFlags(store, on) {
-  const box = makeBox(store);
-  vm.runInContext('FLAG_DEFS', box).forEach((f) => { box.__els['mc-ef-' + f.key] = { checked: on.includes(f.key) }; });
-  box.saveEditFlags();
+  const day = mealOf(store);
+  const box = makeBox(store, [], editorFrom(day));
+  box._finishMenuSave(day[P], day[P + '_veg'] || '', allTicks(box, on));
 }
 const ticksOn = (day) => Object.keys(day[P + '_flags'] || {}).filter((k) => day[P + '_flags'][k]);
 // What a computer sends (menu_current.json from the menu export, menu_overlay.json), and what one takes at its next
@@ -162,21 +179,21 @@ test('1. Make Permanent keeps the meal as it was; after the publish and the next
   assert.ok(copy && copy.meal, 'the first change keeps the meal as it was');
   assert.equal(reads(asDay(copy.meal)), reads(ORIGINAL), 'the copy is the whole meal');
   assert.equal(copy.by, 'Jason');
-  assert.equal(copy.how, 'Make Permanent');
+  assert.equal(copy.how, 'Edit Menu');   // re-pinned 2026-11-19 (S6b, D5): the every-week change is Edit Menu's Save
   assert.ok(!isNaN(new Date(copy.at)), 'and when');
   // The change goes out, and the next load takes the published menu as the base: the base now holds the change.
   const sent = publish(A);
   load(A, sent);
   assert.equal(A.base[W][D][P], NEW.name, 'the base holds the change');
-  await makeBox(A).revertMealSwap();
+  await makeBox(A).revertMenuEdit();   // re-pinned 2026-11-19 (S6b, D5): Revert to Original is the footer's Put back the original
   const q = A.asked.at(-1);
-  assert.equal(q.goLabel, 'Restore the original');
+  assert.equal(q.goLabel, 'Put it back');
   assert.match(q.lines[0], /goes back to “Caribbean Chicken Curry, Naan”, as it was before it was changed on [A-Z][a-z]{2} \d{1,2} by Jason\./, 'it names the meal');
   const day = mealOf(A);
   assert.equal(reads(day), reads(ORIGINAL), 'the whole meal is back, after the load');
   assert.equal(day['allergens_' + P], ORIGINAL['allergens_' + P], 'with its allergen line');
   assert.equal(day[P + '_original'], undefined, 'the copy is dropped');
-  assert.ok(A.published.includes('menu meal restored'), 'and the restore is sent');
+  assert.ok(A.published.includes('menu meal reset'), 'and the restore is sent');
   const restored = platingBox(mergedOf(A)).computePlatingData(P, W, D), before = platingBox(BASE).computePlatingData(P, W, D);
   assert.equal(restored.mealName, before.mealName, 'the plating sheet prints the original meal');
   assert.equal(restored.ctx.mealHalal, before.ctx.mealHalal, 'with its halal line');
@@ -189,7 +206,7 @@ test('2. the other computer puts it back from the copy the overlay brought; the 
   load(B, publish(A));                     // B's next load: A's day and A's published menu
   assert.equal(mealOf(B)[P], NEW.name);
   assert.ok(B.overlay[W][D][P + '_original'], 'the copy came with the overlay');
-  await makeBox(B).revertMealSwap();
+  await makeBox(B).revertMenuEdit();
   assert.equal(reads(mealOf(B)), reads(ORIGINAL), 'B puts the whole meal back, though its base holds the change');
   const sentB = publish(B);
   assert.equal(reads(sentB.menu.menu[W][D]), reads(ORIGINAL), 'B sends it');
@@ -271,31 +288,37 @@ test('4. ↩ Undo Last undoes only the latest change, from the copy saved with i
   assert.equal(Y.log.length, 1, 'nothing is logged as undone');
 });
 
-test('5. no saved original: Revert to Original says so, changes nothing and offers Edit Menu', async () => {
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): Revert to Original is the footer's Put back the original, already
+// inside the meal view, so it points at the open meal instead of a link to Edit Menu; a one-time swap is taken back from
+// the Active Swaps banner (revertSwapFromBanner), which leaves the every-week change as it is.
+test('5. no saved original: Put back the original says so, changes nothing and points at the open meal', async () => {
   // The published Wk3 TUE dinner: its ticks and alternatives were changed before DOOR kept copies (its name never was,
   // so the panel's old check, the name alone, skipped it without a word).
   const N = computer();
   assert.ok(Object.keys(N.overlay[W][D]).some((k) => k.startsWith(P + '_')) && !N.overlay[W][D][P + '_original'], 'changed, with no copy');
   const before = out(N.overlay);
-  await makeBox(N, [false]).revertMealSwap();
+  await makeBox(N, [false]).revertMenuEdit();
   const q = N.asked.at(-1);
-  assert.ok(q, 'Revert to Original says something, not nothing');
+  assert.ok(q, 'Put back the original says something, not nothing');
   assert.equal(q.title, 'No saved original');
   assert.match(q.lines[0], /^DOOR has no copy of Wk3 Tuesday dinner from before it was changed, so it can’t put it back\./);
-  assert.equal(q.goLabel, 'Open in Edit Menu');
+  assert.equal(q.lines[1], 'To change the meal, edit it here.');
+  assert.equal(q.goLabel, 'OK');
   assert.deepEqual(N.overlay, before, 'nothing changes');
   const box = makeBox(N, [true]);
-  await box.revertMealSwap();
-  assert.equal(box.location.hash, '#menu-config/edit/3/TUESDAY/dinner', 'Open in Edit Menu opens the meal there');
-  assert.equal(N.closedPanel, true);
+  await box.revertMenuEdit();
+  assert.equal(box.location.hash, '', 'the meal is already open: no link away');
   assert.deepEqual(N.overlay, before);
-  // With a one-time swap on the meal: the swap goes, the permanent change stays, and DOOR says so.
-  const M = computer({ swaps: { ['2026-11-03-' + P]: { specialName: 'Pizza Lunch' } } });
+  assert.deepEqual(N.published, [], 'nothing is sent');
+  // With a one-time swap on the meal: the banner's Revert takes the swap away and the every-week change stays.
+  const key = '2026-11-03-' + P;
+  const M = computer({ swaps: { [key]: { specialName: 'Pizza Lunch' } } });
   const mBefore = out(M.overlay);
-  await makeBox(M).revertMealSwap();
+  const mb = makeBox(M);
+  mb.revertSwapFromBanner(key);
   assert.deepEqual(M.swaps, {}, 'the swap goes');
+  assert.ok(mb.REVERTED_SWAP_KEYS.has(key), 'and stays gone at the next sync');
   assert.deepEqual(M.overlay, mBefore, 'the permanent change stays');
-  assert.match(M.toasts.at(-1) || '', /The permanent change stays/);
 });
 
 test('6. the copy stays DOOR\'s: not in menu_current.json, no publish stop, editor-only on the P4 list; the change log keeps copies on its newest entries', () => {

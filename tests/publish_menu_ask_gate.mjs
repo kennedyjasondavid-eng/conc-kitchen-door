@@ -50,8 +50,9 @@ const ASKS = {
   doorRegistryPublishPreflight: 1,
   doorPublishSelectRegistry: 1,
   _doPublishToGitHub: 1,
-  makePermanent: 1,
-  revertMealSwap: 1,
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's makePermanent and revertMealSwap are retired.
+  // Their questions moved to the one meal view: Put back the original asks in revertMenuEdit (below), and an every-week
+  // change asks in saveMenuEdit (save_dialog_styled_gate); the banner's Make Permanent keeps its own.
   clearAllSwaps: 1,
   makeSwapPermanentFromBanner: 1,
   removeSpecialMeal: 1,
@@ -185,8 +186,8 @@ test('7. clear all swaps: Go back changes nothing, Clear swaps clears them', asy
 });
 
 test('8. the menu screens re-check the open meal after the answer', () => {
-  for (const name of ['makePermanent', 'revertMealSwap']) {
-    assert.match(fnBlock(name), /await doorAsk\([\s\S]*?\}\);?[\s\S]{0,200}mcEditKey\s*!==/, name + ' stops if another meal is open');
-  }
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): makePermanent and revertMealSwap (mcEditKey) are retired; the
+  // meal view's Put back the original (revertMenuEdit, mcMenuEditKey) is the check that stays.
+  assert.ok(!/\bmcEditKey\b/.test(html), 'the retired panel key is gone');
   assert.match(fnBlock('revertMenuEdit'), /await doorAsk\([\s\S]*?\}\);?[\s\S]{0,200}mcMenuEditKey\s*!==/, 'revertMenuEdit stops if another meal is open');
 });

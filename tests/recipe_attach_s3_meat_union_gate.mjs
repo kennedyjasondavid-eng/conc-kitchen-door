@@ -106,8 +106,11 @@ test('guard #3 banner renders the unmapped labels and hides when none', () => {
 test('source locks: _detectInSlot reads displayText; the banner is wired', () => {
   assertContains(fnBlock('doorEditorDetectMeat'), 's.displayText', 'the save reader scans the display rename (two-site union)');
   assertContains(fnBlock('_detectInSlot'), 'doorEditorDetectMeat(slotId)', '_detectInSlot reads the shared reader');
-  // Test-Meal preview parity: its detector reads the display too, so the sandbox matches save
-  assertContains(fnBlock('generateTestPlating'), 's.displayText', 'the Test-Meal detector scans the display for save-parity');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the Test Meal sandbox (generateTestPlating, its own detector) is
+  // retired by D5, so there is no second detector to keep in parity; the plate summary already reads the save reader
+  // (doorEditorDraftFlags -> doorEditorDetectMeat), checked here instead.
+  assert.ok(!html.includes('function generateTestPlating('), 'the Test Meal sandbox is retired');
+  assertContains(fnBlock('doorEditorDraftFlags'), 'doorEditorDetectMeat(id)', 'the plate summary reads the same meat reader as save');
   // banner reads the S0.5 surface and is called in the menu render flow
   assertContains((fnBlock('doorIcon') + '\n' + fnBlock('renderUnmappedAllergenBanner')), '_hubUnmappedLabels', 'banner reads the unmapped-label surface');
   assertContains(html, 'renderUnmappedAllergenBanner();', 'banner is invoked in the render flow');

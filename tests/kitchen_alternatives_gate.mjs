@@ -159,8 +159,11 @@ test('7. on every published meal the plates open as the kitchen’s alternatives
   // Re-pinned 2026-11-19 (Edit Menu redesign S2a): the plate facts moved, unchanged, into doorPlateFacts.
   assert.match(fn('doorPlateFacts'), /doorAddKitchenPlateFlags\(mealFlags, dayData, period\);/);
   assert.match(fn('buildRoutingByMealJSON'), /const mealFlags = doorAddKitchenPlateFlags\(\{ \.\.\.\(dayData\[period\+'_flags'\] \|\| emptyFlags\) \}, dayData, period\);/);
-  assert.match(fn('openMealEdit'), /renderRoutingTab\(doorAddKitchenPlateFlags\(\{ \.\.\.flags \}, dayData, period\), currentVeg\);/);
-  assert.match(fn('updateEditFlagsPreview'), /doorAddKitchenPlateFlags\(flags, /);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's Routing and Edit Flags previews are retired. The
+  // one meal view's previews read the plates the same way: the preview through doorEditorPlateFlags, and the plate summary
+  // through doorDraftPlateFacts -> doorPlateFacts (which calls doorAddKitchenPlateFlags, above).
+  assert.match(fn('updateSlotSummary'), /doorEditorPlateFlags\(flags\);/);
+  assert.match(fn('doorDraftPlateFacts'), /return doorPlateFacts\(dayData, period, /);
   const bad = [];
   for (const m of MEALS) {
     const flags = c.doorAddKitchenPlateFlags({ ...(field(m, 'flags') || {}), _altMeals: field(m, 'altMeals') || [] }, m.d, m.period);
@@ -227,8 +230,15 @@ test('9. a swap or a permanent change drops the old dish’s alternatives; a pla
   assert.equal(d.dinner_diabeticAlt, 'keep', 'the other meal keeps its own');
   // Re-pinned 2026-10-19 (v31-standard.42): both Make Permanent paths write every part of the old dish empty through one
   // list (tests/make_permanent_whole_dish_gate.mjs drives them); here, that the alternatives are on it, empty.
-  for (const name of ['makePermanent', 'makeSwapPermanentFromBanner'])
-    assert.match(fn(name), /doorEmptyDishParts\(overlay\[String\(week\)\]\[(day|dayName)\], period\);/, name + ' writes them empty');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's makePermanent is retired. The banner's Make
+  // Permanent still writes the list empty; the every-week Save of the meal view writes every alternative from its own
+  // boxes (an emptied box as empty), so none of the old dish's comes back from the base menu.
+  assert.match(fn('makeSwapPermanentFromBanner'), /doorEmptyDishParts\(overlay\[String\(week\)\]\[dayName\], period\);/, 'the banner writes them empty');
+  const w = fn('doorWriteEditorMeal');
+  for (const re of [/target\[period \+ '_softAlt'\] = buildSoftAlt\(\);/, /target\[period \+ '_altMeals'\] = buildAltMeals\(\);/,
+    /target\[period \+ '_altMealsNone'\] = !!ALT_MEALS_NONE;/, /Object\.entries\(doorKitchenAltInputValues\(\)\)\.forEach\(\(\[k, v\]\) => \{ target\[period \+ '_' \+ k\] = v; \}\);/])
+    assert.match(w, re, 'the every-week Save writes ' + re);
+  assert.match(fn('_finishMenuSave'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, name, veg, flags\)/);
   const parts = vm.runInNewContext(PART_LIST + ';DOOR_DISH_PART_EMPTY');
   for (const k of ['_gfAlt', '_diabeticAlt', '_noDairyAlt', '_blandAlt', '_noEggAlt', '_anaphAlt']) assert.equal(parts[k], '', k);
   assert.equal(parts._altMealsNone, false, 'the new dish starts with its soft plate open');
