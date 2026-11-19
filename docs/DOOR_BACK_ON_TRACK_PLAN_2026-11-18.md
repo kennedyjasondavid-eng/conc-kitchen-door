@@ -235,6 +235,12 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
   so it is unchanged; the GF cereal line now says "soy or oat milk where noted". The Silk vegan yoghurt is for residents who
   take no dairy (Jason: "I assume it's for no dairy people"); naming it on their plate note ("dairy-free: vegan yoghurt") is
   open, a plating-note change for Jason to rule on.
+- **C2 labels (2026-11-19, publication 35):** CODEX #384 (Jason: "follow lean") gives the four bought items the allergen
+  lists from their published Canadian listings: Chex cereal Sulphites, Soy milk Soy, Oat milk Oats only (not certified
+  gluten-free), Vegan yoghurt Tree Nuts (coconut), Corn, Sulphites. Oat milk is not gluten-free, so the GF cereal line
+  says "soy milk where noted" again. DOOR has no Oats flag, so oat milk shows no allergen in DOOR (known gap). Next in
+  CODEX: a "What the package says" panel on a bought item, so a supervisor edits its list with no code (Jason: "follow
+  lean, add the package panel after this edition").
 - **C9 EXPO's okra stew link (2026-11-18, handed to the EXPO session):** EXPO plans the okra stew's stew cycle (cook Wk1
   FRI at Bloor, bag, cold van, reheat Wk2 WED) but links it to the Caribbean Stew recipe. EXPO's job panel work owns the
   fix; DOOR now names `okra-and-cassava-stew` on the slot.
