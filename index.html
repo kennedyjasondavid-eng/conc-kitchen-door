@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.106';
+const DOOR_APP_VERSION = 'v31-standard.107';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2059,6 +2059,7 @@ function updateCODEXBadge() {
     <!-- Stale allergen flags banner (pre-v30 meals lacking per-slot snapshot) -->
     <div id="mc-menu-source-banner" style="display:none;background:var(--danger-faint, #fee2e2);border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-overlay-diff-banner" role="status" style="display:none;background:var(--card,#fff);border:1px solid var(--border,#d1d5db);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;"></div>
+    <div id="mc-typed-unanswered" style="display:none;font-size:12px;margin-bottom:12px;"></div>
     <div id="mc-label-resave-banner" role="status" style="display:none;background:var(--amber-pale);border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-unmapped-allergen-banner" style="display:none;background:var(--danger-faint, #fee2e2);border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
 
@@ -15246,6 +15247,7 @@ function renderMenuConfig() {
   renderOverlayDiffBanner();
   renderUnmappedAllergenBanner();
   if (typeof renderLabelResaveBanner === 'function') renderLabelResaveBanner();
+  if (typeof renderTypedUnansweredList === 'function') renderTypedUnansweredList();
   closeMealEdit();
 }
 
@@ -16278,6 +16280,58 @@ function doorMealsToResave(menu) {
     if (dishes.length) out.push({ week: String(week), day, period, dishes });
   })));
   return out;
+}
+// S3 (Edit Menu redesign, D2; Jason 2026-11-19: "Follow lean"): a typed dish (no recipe) says what it contains. It is
+// answered when someone said so (declared: true, "Nothing to declare" included) or when it carries an allergen tick.
+function doorTypedDishUnanswered(state) {
+  if (!state || state.recipeName || !String(state.manual || '').trim() || state.declared === true) return false;
+  const f = state.flags || {};
+  return !(typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).some(d => !d.mealLevel && f[d.key] === true);
+}
+// The slot boxes that are dishes (not the Event Name).
+const DOOR_TYPED_DISH_IDS = ['main', 'mainalt', 'noporkalt', 'veganalt', 'starch', 'vegside', 'xtra', 'vegextras', 'halalextras'];
+// The typed dishes not answered on the menu: every meal, for the Menu Config list (one sitting).
+function doorMealsTypedUnanswered(menu) {
+  const out = [];
+  const m = menu || (typeof getMenuData === 'function' ? getMenuData() : {});
+  Object.keys(m || {}).forEach(week => Object.keys(m[week] || {}).forEach(day => ['breakfast', 'lunch', 'dinner'].forEach(period => {
+    const slots = m[week][day] && m[week][day][period + '_slots'];
+    if (!slots || typeof slots !== 'object') return;
+    const dishes = DOOR_TYPED_DISH_IDS.filter(id => doorTypedDishUnanswered(slots[id])).map(id => String(slots[id].manual).trim());
+    if (dishes.length) out.push({ week: String(week), day, period, dishes: [...new Set(dishes)] });
+  })));
+  return out;
+}
+function renderTypedUnansweredList() {
+  const el = document.getElementById('mc-typed-unanswered');
+  if (!el) return;
+  const list = doorMealsTypedUnanswered();
+  if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const n = list.reduce((t, x) => t + x.dishes.length, 0);
+  el.innerHTML = '<details><summary style="cursor:pointer;color:var(--muted);">Typed dishes with allergens not answered yet: ' + n
+    + ' on ' + list.length + ' meals. Open each meal and say what each one contains (or Nothing to declare).</summary>'
+    + '<ul style="margin:6px 0 0 18px;padding:0;">' + list.map(x => '<li><a href="#menu-config/edit/' + encodeURIComponent(x.week) + '/'
+      + encodeURIComponent(x.day) + '/' + encodeURIComponent(x.period) + '">' + escapeHtml('Wk' + x.week + ' ' + x.day.slice(0, 3) + ' ' + x.period)
+      + '</a>: ' + escapeHtml(x.dishes.join(', ')) + '</li>').join('') + '</ul></details>';
+  el.style.display = 'block';
+}
+// The typed dishes a meal had when it was opened: one of those not answered reads quietly (it was saved before S3); a dish
+// typed now reads amber until someone answers.
+var SLOT_TYPED_AT_OPEN = {};
+function doorTypedDishNoteHTML(def, state) {
+  if (!doorTypedDishUnanswered(state)) return '';
+  const legacy = SLOT_TYPED_AT_OPEN[def.id] === String(state.manual || '').trim();
+  const dish = escapeHtml(String(state.manual).trim());
+  const btn = '<button type="button" onclick="' + _escAttr('slotDeclareNothing(' + _jsArgLiteral(def.id) + ')') + '" class="btn btn-ghost btn-sm" style="font-size:11px;margin-left:6px;">Nothing to declare</button>';
+  return legacy
+    ? '<div class="slot-typed-note slot-typed-old" style="margin-top:6px;font-size:11px;color:var(--muted);">Allergens not answered yet for “' + dish + '”. Tick what it contains below, or ' + btn + '</div>'
+    : '<div class="slot-typed-note slot-typed-new" role="status" style="margin-top:6px;padding:6px 8px;border-radius:6px;background:var(--amber-pale);color:var(--warn-ink, #92400e);font-size:12px;font-weight:600;">What does “' + dish + '” contain? Tick each allergen below, or ' + btn + '</div>';
+}
+function slotDeclareNothing(slotId) {
+  const s = MEAL_SLOT_STATE[slotId];
+  if (!s || s.recipeName || !s.manual) return;
+  s.declared = true;
+  renderSlots(); updateSlotSummary();
 }
 function renderLabelResaveBanner() {
   const el = document.getElementById('mc-label-resave-banner');
@@ -18118,7 +18172,10 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
       if (typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r)) s.labelUnchecked = true;   // C2
       return s;
     }
-    return { manual: piece, flags: f };
+    const typed = { manual: piece, flags: f };
+    // S3: the review asked what this dish contains and someone ticked its allergens.
+    if (((a.ticks || {})[ln + '|' + piece] || []).length) typed.declared = true;
+    return typed;
   };
   const slots = {};
   const regMain = reg.diffs[0], vegMain = veg.diffs[0];
@@ -21131,7 +21188,11 @@ function _buildSlotSnapshot() {
           snap[d.id].displayText = s.displayText;
         }
       }
-      else if (s.manual) snap[d.id] = { manual: s.manual, flags: s.flags || {} };
+      else if (s.manual) {
+        snap[d.id] = { manual: s.manual, flags: s.flags || {} };
+        // S3 (D2, Jason 2026-11-19: "Follow lean"): someone answered what this typed dish contains (no key otherwise).
+        if (s.declared === true) snap[d.id].declared = true;
+      }
       // W3b: a side's vegan / halal line version travels with it.
       if (snap[d.id] && s.lines && DOOR_LINE_SIDE_IDS.indexOf(d.id) >= 0 && Object.keys(s.lines).length) snap[d.id].lines = JSON.parse(JSON.stringify(s.lines));
     }
@@ -21653,6 +21714,7 @@ function renderSlotCard(def, ns) {
       <div id="${_escAttr(pfx)}-dd-${_escAttr(def.id)}" ${ns === 'slot' ? 'role="listbox" aria-label="' + _escAttr(def.label) + ' recipes"' : ''} style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:190px;overflow-y:auto;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.13);"></div>
     </div>
     ${heldTyped ? doorSlotHeldNoteHTML(def.id, heldTyped, state) : ''}
+    ${ns === 'slot' && hasValue && typeof doorTypedDishNoteHTML === 'function' ? doorTypedDishNoteHTML(def, state) : ''}
     ${showAsHtml}
     ${_slotLinkSuggestionHTML(def, state, fn)}
     ${chipHtml}
@@ -21769,6 +21831,8 @@ function slotToggleFlag(slotId, key) {
   if (!MEAL_SLOT_STATE[slotId]) MEAL_SLOT_STATE[slotId] = { manual: '' };
   if (!MEAL_SLOT_STATE[slotId].flags) MEAL_SLOT_STATE[slotId].flags = {};
   MEAL_SLOT_STATE[slotId].flags[key] = !MEAL_SLOT_STATE[slotId].flags[key];
+  // S3: setting the allergens of a typed dish by hand answers what it contains (an untick back to none stays answered).
+  if (!MEAL_SLOT_STATE[slotId].recipeName && MEAL_SLOT_STATE[slotId].manual) MEAL_SLOT_STATE[slotId].declared = true;
   renderSlots(); updateSlotSummary();
 }
 
@@ -22381,6 +22445,14 @@ function doorPlateSummaryHTML(facts, handKeys) {
   if ((facts.halalPorkDishes || []).length) html += '<div style="font-size:12px;margin-top:4px;color:var(--danger-ink, #991b1b);font-weight:700;">'
     + doorIcon('warning') + ' The halal plate names pork: ' + escapeHtml(facts.halalPorkDishes.join(', ')) + '. Check this dish.</div>';
   if (amber.length) html += '<div style="font-size:12px;margin-top:4px;color:var(--warn-ink, #92400e);">Label not checked: ' + escapeHtml(amber.join(', ')) + '</div>';
+  // S3: typed dishes nobody has said the allergens of (amber when typed now, quiet when saved before).
+  if (typeof MEAL_SLOT_STATE !== 'undefined' && typeof doorTypedDishUnanswered === 'function') {
+    const unanswered = DOOR_TYPED_DISH_IDS.filter(id => doorTypedDishUnanswered(MEAL_SLOT_STATE[id]));
+    const fresh = unanswered.filter(id => SLOT_TYPED_AT_OPEN[id] !== String(MEAL_SLOT_STATE[id].manual).trim()).map(id => String(MEAL_SLOT_STATE[id].manual).trim());
+    const old = unanswered.filter(id => SLOT_TYPED_AT_OPEN[id] === String(MEAL_SLOT_STATE[id].manual).trim()).map(id => String(MEAL_SLOT_STATE[id].manual).trim());
+    if (fresh.length) html += '<div style="font-size:12px;margin-top:4px;color:var(--warn-ink, #92400e);font-weight:600;">Allergens not set: ' + escapeHtml(fresh.join(', ')) + '</div>';
+    if (old.length) html += '<div style="font-size:12px;margin-top:4px;color:var(--muted);">Allergens not answered yet: ' + escapeHtml(old.join(', ')) + '</div>';
+  }
   if ((handKeys || []).length) html += '<div style="font-size:12px;margin-top:4px;color:var(--muted);">Added by hand (no dish names it): '
     + escapeHtml(handKeys.map(k => (typeof doorFlagLabel === 'function' ? doorFlagLabel(k) : k)).join(', ')) + '</div>';
   return html + '</div>';
@@ -22667,6 +22739,9 @@ function openMenuEdit(week, day, period) {
   // opened meal doesn't auto-uncheck flags that were carried over from the
   // last meal's slot state.
   _LAST_SLOT_FLAGS = {};
+  SLOT_TYPED_AT_OPEN = {};
+  Object.keys(MEAL_SLOT_STATE).forEach(id => { const x = MEAL_SLOT_STATE[id]; if (x && !x.recipeName && x.manual) SLOT_TYPED_AT_OPEN[id] = String(x.manual).trim(); });
+  renderSlots();
   updateSlotSummary();
   if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
   // H4 (2026-11-19): opening a meal focuses nothing. The Main box used to take focus with its words selected, so the

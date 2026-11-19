@@ -232,7 +232,9 @@ Names here are this plan's (the back-on-track plan has its own D-numbers).
   meal refused, an every-week Save naming the one-date change it replaces, EXPO/HUB's "Swap for" wording kept, and the
   swap's revert as its undo.
 - **D2** A typed dish records that its allergens were answered (`declared`); what the 55 legacy typed dishes show; and
-  whether Rex's import and Special Meal write it.
+  whether Rex's import and Special Meal write it. **Ruled 2026-11-19 (Jason: "Follow lean"):** legacy ones quiet grey
+  and listed in Menu Config for one sitting; a new one amber; Rex's import marks a dish its review ticked; Special Meal
+  keeps no per-dish allergens (its meal grid is the answer).
 - **D3** Halal (meat changed), allergen removals and new anaphylactic conflicts stay blocking; run-on, soft and held
   words go inline.
 - **D4** A real edit keeps the menu words it didn't change (in S4a; EXPO reads those words).
@@ -277,5 +279,6 @@ moves its code without changing a byte).
 | Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
 | S1 search | merged (`f246523`, `v31-standard.104`); reviews FIX FIRST ×2, folded; SHIP | #244 |
 | S2a plate facts | merged (`7d33af4`, `v31-standard.105`); review SHIP | #245 |
-| S2b plate summary | built (`v31-standard.106`); the grid regrouping and one-line dish allergens move to S4b (layout); review SHIP, P3-b folded | #246 |
-| S3–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |
+| S2b plate summary | merged (`14d6198`, `v31-standard.106`); review SHIP | #246 |
+| S3 typed dishes | built (`v31-standard.107`); D2 ruled; review pending | |
+| ST–S8, U1 | planned; D2, D7, D8 ruled; D1, D3–D6, D9 pending | |
