@@ -66,6 +66,8 @@ kitchen makes**, with one plain sentence on a plate not made (`doorFillKitchenAl
   built.
 - **Gates:** `tests/other_plates_s8_gate.mjs` (2) and browser `tests/browser/other_plates_s8.mjs` (15, in CI; made-up
   residents).
+- **Re-pinned with a dated note:** browser `plain_plate_options` (adds the Gluten free plate with + Add a plate for, and
+  reads the new words).
 
 ## Recent (2026-11-19) — Menu Config on phones, tablets and wide screens (redesign S7, `v31-standard.117`)
 - **On a phone (768 px or narrower) the Menu page** shows a day picker (`#mc-day-picker`, `mcSetPhoneDay`; today on the

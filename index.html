@@ -14903,7 +14903,8 @@ function doorRenderAltEditorFeedback(flags) {
     const n = o.residents.length, who = n + ' resident' + (n === 1 ? '' : 's');
     h += o.text ? '<strong>' + who + ' get' + (n === 1 ? 's' : '') + ' this plate</strong>' + (rooms ? ' (' + escapeHtml(rooms) + ')' : '') + '.'
       : '<strong>' + who + '</strong>' + (rooms ? ' (' + escapeHtml(rooms) + ')' : '') + '. ' + escapeHtml((typeof DOOR_KITCHEN_ALT_NOT_MADE !== 'undefined' && DOOR_KITCHEN_ALT_NOT_MADE[o.target]) || '');
-    if (o.target === 'anaphAlt' && o.text) h += ' ' + escapeHtml(o.explanation);
+    // The anaphylactic plate and the soft / plain rows keep their own explanation (what the plate is for).
+    if ((o.target === 'anaphAlt' && o.text) || !(typeof DOOR_KITCHEN_ALT_NOT_MADE !== 'undefined' && DOOR_KITCHEN_ALT_NOT_MADE[o.target])) h += ' ' + escapeHtml(o.explanation || '');
     if (o.text) {
       if (doorTurnkeyPlateParts(o.text)) h += '<div><strong>Plate: '+escapeHtml(o.text)+'</strong></div>';
       h += '<br>'+ (o.facts.known ? 'Contains: '+escapeHtml(flagsToAllergenStr(o.facts.flags) || 'nothing on the allergen list')+'.' : 'Allergens to check: '+escapeHtml(o.facts.missing.join('; '))+'.');
