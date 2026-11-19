@@ -42,7 +42,7 @@ const ASKS = {
   batchConfirmCompliance: 1,
   batchResolveCompliance: 1,
   reopenComplianceItem: 1,
-  goHome: 2,
+  goHome: 1,   // re-pinned 2026-11-19 (S6c): the Leave Edit Menu question went with Edit mode
   revertLastChange: 1,
   commitIntakeQueue: 1,
   saveDirectFromForm: 2,

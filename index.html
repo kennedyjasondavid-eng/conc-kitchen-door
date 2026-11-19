@@ -169,8 +169,6 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
   /* Dark mode: menu config banners */
   [data-theme="dark"] #mc-swaps-banner { background:#2a2520 !important; border-color:#8a6d20 !important; }
   [data-theme="dark"] #mc-swaps-banner strong { color:#d4a040 !important; }
-  [data-theme="dark"] #mc-edit-menu-banner { background:#1a2332 !important; border-color:#2563eb !important; }
-  [data-theme="dark"] #mc-edit-menu-banner strong { color:#60a5fa !important; }
   [data-theme="dark"] #mc-specials-banner { background:#1a2a20 !important; border-color:#2d6a4f !important; }
   [data-theme="dark"] #mc-slot-swap-banner { background:#1a2332 !important; border-color:#3b82f6 !important; }
   [data-theme="dark"] #mc-slot-swap-banner strong { color:#60a5fa !important; }
@@ -839,7 +837,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.115';
+const DOOR_APP_VERSION = 'v31-standard.116';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2025,14 +2023,21 @@ function updateCODEXBadge() {
   <div class="topbar">
     <div>
       <div class="topbar-title">Menu Config</div>
-      <div class="topbar-sub">View the 4-week rotation, edit flags, and swap meals when the plan changes</div>
+      <div class="topbar-sub">The 4-week menu. Click a meal to see it or change it.</div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" id="mc-swap-slots-btn" onclick="enterSlotSwapMode()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M3 7h17l-4-4m4 14H3l4 4M20 7l-4 4M3 17l4-4"/></svg> Swap Slots</button>
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
-      <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m12 2 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1 3-7Z"/></svg> Special Meal</button>
-      <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M15 4l5 5M4 16l12-12a3 3 0 0 1 4 4L8 20l-5 1 1-5Z"/></svg> Edit Menu</button>
-      <button class="btn btn-ghost btn-sm" id="mc-rex-week-btn" onclick="triggerRexWeekUpload()" title="Upload the week's menu sheet Rex sends. DOOR shows what changed and asks about what it can't tell.">↑ Rex&rsquo;s week sheet</button>
+      <!-- S6c (Edit Menu redesign): the tools a kitchen uses rarely, under one More menu. Edit mode is gone: click a meal. -->
+      <style>@media (max-width: 768px) { #screen-menu-config .mc-more-menu { right:auto !important; left:0 !important; max-width:calc(100vw - 32px); } }</style>
+      <details class="mc-more" style="position:relative;">
+        <summary class="btn btn-ghost btn-sm" style="list-style:none;cursor:pointer;">More ▾</summary>
+        <div class="mc-more-menu" style="position:absolute;right:0;top:100%;z-index:60;min-width:240px;margin-top:4px;padding:6px;background:var(--paper);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.14);display:flex;flex-direction:column;gap:2px;">
+      <button class="btn btn-ghost btn-sm mc-more-item" style="justify-content:flex-start;width:100%;" id="mc-swap-slots-btn" onclick="enterSlotSwapMode()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M3 7h17l-4-4m4 14H3l4 4M20 7l-4 4M3 17l4-4"/></svg> Swap two meals</button>
+      <button class="btn btn-ghost btn-sm mc-more-item" style="justify-content:flex-start;width:100%;" onclick="openSpecialMealPanel()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m12 2 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1 3-7Z"/></svg> Special meal</button>
+      <button class="btn btn-ghost btn-sm mc-more-item" style="justify-content:flex-start;width:100%;" id="mc-rex-week-btn" onclick="triggerRexWeekUpload()" title="Upload the week's menu sheet Rex sends. DOOR shows what changed and asks about what it can't tell.">Rex’s week sheet</button>
+          <button class="btn btn-ghost btn-sm mc-more-item" style="justify-content:flex-start;width:100%;" onclick="triggerMenuUpload()" title="Replace the whole 4-week menu from a workbook (.xlsx)">Replace the whole menu from a file</button>
+        </div>
+      </details>
       <button class="btn btn-sm btn-mint" id="mc-publish-btn" onclick="publishMenuFromConfig()" title="Send the current menu to the kitchen so EXPO and HUB can use it"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/></svg> Send to kitchen</button>
     </div>
   </div>
@@ -2050,17 +2055,6 @@ function updateCODEXBadge() {
     <div id="mc-typed-unanswered" style="display:none;font-size:12px;margin-bottom:12px;"></div>
     <div id="mc-label-resave-banner" role="status" style="display:none;background:var(--amber-pale);border:1.5px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
     <div id="mc-unmapped-allergen-banner" style="display:none;background:var(--danger-faint, #fee2e2);border:1.5px solid #dc2626;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;"></div>
-
-    <!-- Edit Menu mode banner -->
-    <div id="mc-edit-menu-banner" style="display:none;background:var(--info-faint, #eff6ff);border:1.5px solid #2563eb;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><strong style="color:var(--info-ink, #1e40af);"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M15 4l5 5M4 16l12-12a3 3 0 0 1 4 4L8 20l-5 1 1-5Z"/></svg> Edit Menu Mode</strong> <span style="color:var(--muted);margin-left:8px;">Click any meal cell to edit it directly in the rotation.</span></div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="triggerMenuUpload()" title="Upload a new 4-week rotation from an xlsx file">↑ Upload Menu</button>
-          <button class="btn btn-ghost btn-sm" onclick="toggleEditMenuMode()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M5 12l4 4L19 6"/></svg> Done Editing</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Upcoming special meals banner -->
     <div id="mc-specials-banner" style="display:none;background:var(--ok-faint, #ecfdf5);border:1px solid var(--forest-light);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
@@ -10164,7 +10158,6 @@ async function applyHashRoute() {
   try { if (_doorBootMenuSync) await Promise.race([_doorBootMenuSync, new Promise(r => setTimeout(r, 8000))]); } catch (e) {}
   mcWeek = route.edit.week;
   showScreen(route.screen, nav);
-  if (!editMenuMode) toggleEditMenuMode();
   openMenuEdit(route.edit.week, route.edit.day, route.edit.period);
   const panel = document.getElementById('mc-menu-edit-panel');
   if (panel && panel.scrollIntoView) panel.scrollIntoView({ block: 'start' });
@@ -15149,9 +15142,18 @@ function renderMenuConfig() {
       const mealVeg = swap ? (swap.veg || '') : (menuEdit ? (menuEdit.veg || '') : (dayData[period+'_veg'] || ''));
       const mealCellSoftAlt = dayData[period+'_softAlt'] || '';
 
-      let flagBadges = FLAG_DEFS.filter(f => activeFlags[f.key]).map(f =>
-        `<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:${doorColourChip(f.color).bg};color:${doorColourChip(f.color).ink};margin:1px;">${f.label}</span>`
-      ).join('');
+      // S6c: a card names the allergens a cook scans for an anaphylaxis trigger (MC_CARD_NAMED: peanuts, tree nuts,
+      // sesame, fish, shellfish) in red, and Pork (halal and No Pork planning), then counts the rest; Spicy shows too.
+      // The full list is in the hover text and in the meal view. Meat and routing marks other than Pork are not allergens.
+      const _allergenDefs = FLAG_DEFS.filter(f => activeFlags[f.key] && !MC_CARD_NOT_ALLERGEN[f.key]);
+      const _chip = (txt, title, col) => '<span class="mc-card-chip" title="' + escapeHtml(title) + '" style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:' + doorColourChip(col).bg + ';color:' + doorColourChip(col).ink + ';margin:1px;">' + escapeHtml(txt) + '</span>';
+      const _named = _allergenDefs.filter(f => MC_CARD_NAMED.includes(f.key));
+      const _rest = _allergenDefs.filter(f => !MC_CARD_NAMED.includes(f.key));
+      let flagBadges = _named.map(f => _chip(f.label, f.label, '#b91c1c')).join('')
+        + (activeFlags.hasPork ? _chip('Pork', 'Pork', '#7c3aed') : '')
+        + (_rest.length ? _chip((_named.length ? '+' : '') + _rest.length + (_rest.length === 1 ? ' allergen' : ' allergens'), _allergenDefs.map(f => f.label).join(', '), '#6b7280')
+          : (_named.length ? '' : _chip('No allergens', 'Nothing on the allergen list', '#6b7280')))
+        + (activeFlags.isSpicy ? _chip('Spicy', 'Spicy', '#dc2626') : '');
 
       const swapBadge = swap ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:'+doorColourChip('#d97706').bg+';color:'+doorColourChip('#d97706').ink+(';margin:1px;">' + doorIcon('swap') + ' Swapped</span>') : '';
       const editBadge = (!swap && menuEdit) ? ('<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(37,99,235,0.12);color:#60a5fa;margin:1px;">' + doorIcon('edit') + ' Edited</span>') : '';
@@ -15165,10 +15167,8 @@ function renderMenuConfig() {
       const td = document.createElement('td');
       const specialBg = nextSpecial ? 'background:rgba(52,211,153,0.06);' : (isToday ? 'background:rgba(52,211,153,0.08);' : '');
       const _dk = document.documentElement.getAttribute('data-theme')==='dark';
-      const editModeBg = editMenuMode ? ('background:'+(_dk?'#1a2332':'#eff6ff')+';') : '';
-      td.style.cssText = `padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;min-width:120px;${specialBg || editModeBg}`;
+      td.style.cssText = `padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;min-width:120px;${specialBg}`;
       if (nextSpecial) td.style.outline = '1.5px solid #6ee7b7';
-      if (editMenuMode) td.style.outline = '1.5px dashed #93c5fd';
       const changedToday = typeof doorChangedToday === 'function' ? doorChangedToday(mcWeek, dayName, period) : '';
       td.innerHTML = `<div style="font-size:12px;font-weight:500;margin-bottom:3px;line-height:1.3;">${escapeHtml(mealName)}</div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${escapeHtml(mealVeg)}</div>
@@ -16726,6 +16726,20 @@ function clearPastSpecials() {
 // S6b (Edit Menu redesign, D5; Jason 2026-11-19: "Follow lean"): a meal cell opens the one meal view. The old panel
 // (Routing / Swap Meal / Edit Flags and Make Permanent) is retired: What changes shows the routing, "Just on <date>"
 // replaces Swap Meal, the ticks are in the editor and an every-week Save is the permanent change.
+// S6c: the card marks. Named on the card: the families a cook scans for an anaphylaxis trigger. Not allergens: meat and
+// routing marks (Pork is shown on its own).
+const MC_CARD_NAMED = ['hasPeanuts', 'hasTreeNuts', 'hasSesame', 'hasFish', 'hasShellfish'];
+const MC_CARD_NOT_ALLERGEN = { isSpicy: 1, isCarb: 1, halalCertifiedMeat: 1, hasProcessedMeat: 1, hasPork: 1, hasBeef: 1, hasChicken: 1, hasTurkey: 1 };
+// S6c: the More menu closes after a choice, a click outside it, or Escape (focus goes back to More).
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    document.querySelectorAll('details.mc-more[open]').forEach(d => { if (!d.contains(e.target) || (e.target.closest && e.target.closest('.mc-more-item'))) d.removeAttribute('open'); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('details.mc-more[open]').forEach(d => { d.removeAttribute('open'); const sm = d.querySelector('summary'); if (sm) sm.focus(); });
+  });
+}
 function handleMealCellClick(week, day, period) {
   if (!slotSwapMode) {
     openMenuEdit(week, day, period);
@@ -20099,7 +20113,6 @@ function showMenuUploadReview(parseResult, filename) {
 // ============================================================
 // EDIT MENU MODE
 // ============================================================
-let editMenuMode = false;
 let mcMenuEditKey = null; // 'week-day-period'
 
 function loadMenuEdits() {
@@ -20115,11 +20128,6 @@ function getMenuEdit(week, day, period) {
 
 async function goHome() {
   if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => goHome()); return; }
-  // Edit Menu mode is a modal session — warn before leaving
-  if (editMenuMode) {
-    if (!(await doorAsk({ title: 'Leave Edit Menu', lines: ['Edit Menu mode is on. Leave it and go home?', 'Menu edits you already saved are kept.'], goLabel: 'Leave', cancelLabel: 'Stay' }))) return;
-    toggleEditMenuMode();
-  }
 
   // Clear queue if anything is pending
   if (changesQueue.length) {
@@ -21181,28 +21189,6 @@ document.addEventListener('click', function(e) {
   });
 });
 
-function toggleEditMenuMode() {
-  if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => toggleEditMenuMode()); return; }
-  editMenuMode = !editMenuMode;
-  const btn = document.getElementById('mc-edit-menu-btn');
-  const banner = document.getElementById('mc-edit-menu-banner');
-  if (editMenuMode) {
-    btn.innerHTML = doorIcon('check') + ' Done';
-    btn.style.background = 'var(--info-faint, #dbeafe)';
-    btn.style.color = 'var(--info-ink, #1e40af)';
-    btn.style.border = '1.5px solid #2563eb';
-    if (banner) banner.style.display = 'block';
-    closeMenuEdit();
-  } else {
-    btn.innerHTML = doorIcon('edit') + ' Edit Menu';
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.style.border = '';
-    if (banner) banner.style.display = 'none';
-    closeMenuEdit();
-  }
-  renderMenuConfig();
-}
 
 // V7: a hand-typed dish that is a recipe's name in all but spelling details offers the link.
 function _slotLinkSuggestionHTML(def, state, fn) {

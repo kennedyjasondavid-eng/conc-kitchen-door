@@ -51,6 +51,8 @@ async function session(width) {
   return { browser, page, errors };
 }
 async function upload(page, file) {
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6c): Rex's week sheet is under the More menu.
+  await page.click('details.mc-more > summary');
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#mc-rex-week-btn')]);
   await chooser.setFiles(file);
   await page.waitForSelector('.rex-week-review', { timeout: 10000 });

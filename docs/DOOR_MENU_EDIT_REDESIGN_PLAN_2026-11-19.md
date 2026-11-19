@@ -204,6 +204,7 @@ a label checked since still writes its ticks. Gate `tests/browser/menu_edit_no_s
   `menu_edit_deeplink`, `staff_walkthrough`.
 
 ### S7 · Phones and tablets (H6, M21, M22)
+- From S6c: the meal view as a side panel on a desktop and full screen on a phone.
 - One column; the footer as a bottom sheet; a day picker then three meal cards instead of the sideways grid; touch
   targets at least 44 px, including the allergen pills and × buttons (about 17 px today); the ☰ button with its own
   header bar on this screen.
@@ -290,4 +291,5 @@ moves its code without changing a byte).
 | S5c Save's questions | built (`v31-standard.113`; D3 ruled): Save asks halal only when the meat changed, any allergen coming off (keep as the default; meat marks follow the dish as W3a), and a new anaphylactic conflict in red; a run-on box, held words and the soft plate (asked only when a soft resident is on the list and a dish changed, or with no list) are lines in What changes; review FIX FIRST, folded (every allergen removal asked; meat marks follow the dish; held words kept after Save) | |
 | S6a Just on <date> | built (`v31-standard.114`; D1 ruled): the meal view chooses Every week or Just on the next date; Just on writes a whole-meal swap entry (as Swap Slots), refused for breakfast and on a date holding a swap or special meal; revert is the swap revert; review FIX FIRST, folded (listed in Active Swaps even when the name is kept; no unpaired warning; Undo Last, change log, labels) | |
 | S6b One view | built (`v31-standard.115`; D5 ruled): a meal cell opens the meal view; the old panel (Routing / Swap Meal / Edit Flags, Make Permanent) and Test Meal retired with their code; their checks moved to the new paths; a changed halal main replaces the stored halal line; review SHIP, P3s folded | |
-| S6c–S8, U1 | planned; D1, D2, D3, D4, D5, D7, D8 ruled; D6, D9 pending | |
+| S6c Menu page and More | built (`v31-standard.116`): no Edit mode (a meal card opens the meal view); cards name Peanuts, Tree Nuts, Sesame, Fish, Shellfish and Pork, count the rest, and show Spicy; Swap two meals, Special meal, Rex's week sheet and Replace the whole menu from a file under More; the side panel on desktop / full screen on a phone moves to S7; review FIX FIRST, folded (More inside the screen on a phone; anaphylaxis families named on cards; Escape) | |
+| S7–S8, U1 | planned; D1, D2, D3, D4, D5, D7, D8 ruled; D6, D9 pending | |
