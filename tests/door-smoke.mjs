@@ -94,6 +94,13 @@ function extractTestableCoreBlock(html, blockName) {
   return match[1];
 }
 
+// 2026-11-19 (Edit Menu redesign S1): a top-level const, to its closing semicolon at the end of a line.
+function extractConstBlock(html, name) {
+  const start = html.indexOf('const ' + name + ' = ');
+  if (start < 0) throw new Error('could not find const ' + name);
+  const end = html.indexOf(';\n', start);
+  return html.slice(start, end + 1);
+}
 function extractFunctionBlock(html, functionName) {
   const escapedName = functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`(?:async\\s+)?function\\s+${escapedName}\\s*\\(`);
@@ -1143,6 +1150,13 @@ test('recipe slot dropdowns render synced recipe names and manual no-match text 
     extractFunctionBlock(html, 'doorNormDishName'),
     extractFunctionBlock(html, 'doorRecipeMatchRank'),
     extractFunctionBlock(html, 'doorRankedRecipeMatches'),
+    // 2026-11-19 (Edit Menu redesign S1): slotSearch groups the list (fit, Other recipes, refused) through these.
+    extractConstBlock(html, 'DOOR_ANIMAL_FAMILIES'), extractConstBlock(html, 'DOOR_PORK_NAME_RE'),
+    extractConstBlock(html, 'DOOR_SLOT_LINE'), extractConstBlock(html, 'DOOR_REGULAR_SLOT_IDS'),
+    extractFunctionBlock(html, 'doorAllergenFamily'), extractFunctionBlock(html, 'doorNamesAnimalFamily'),
+    extractFunctionBlock(html, 'doorRecipeNamesPork'), extractFunctionBlock(html, 'doorAnimalFamilyNamed'),
+    extractFunctionBlock(html, 'doorLineRefusal'), extractFunctionBlock(html, 'doorSlotRefusal'),
+    extractFunctionBlock(html, 'doorSlotSearchGroups'),
     extractFunctionBlock(html, 'slotSearch'),
     extractFunctionBlock(html, 'smSlotSearch')
   ].join('\n\n'), context, { filename: 'index.html#xss-slot-search', timeout: 1000 });

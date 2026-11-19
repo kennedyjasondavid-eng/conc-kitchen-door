@@ -94,7 +94,10 @@ test('V7d Save asks about a slot that reads like several dishes, and only that',
 });
 
 test('V7e both editors use the ranked list, and Save asks before it writes anything', () => {
-  assert.match(fnBlock('slotSearch'), /doorRankedRecipeMatches\(def, q, 6\)/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S1): Edit Menu groups the ranked list (fit, Other recipes, refused); the
+  // Special Meal editor keeps doorRankedRecipeMatches. Both rank through doorRecipeMatchRank.
+  assert.match(fnBlock('slotSearch'), /doorSlotSearchGroups\(def, q, 6\)/);
+  assert.match(fnBlock('doorSlotSearchGroups'), /doorRecipeMatchRank\(r\.recipeName, q\)/);
   assert.match(fnBlock('smSlotSearch'), /doorRankedRecipeMatches\(def, q, 6\)/);
   const save = fnBlock('saveMenuEdit');
   const ask = save.indexOf('doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS)');

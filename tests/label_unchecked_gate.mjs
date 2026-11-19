@@ -135,9 +135,13 @@ test('linking a recipe not checked sets no flags and marks the slot; a checked o
   const m = J(c.MEAL_SLOT_STATE.main);
   assert.equal('labelUnchecked' in m, false, 'a checked recipe carries no mark (byte-identical slot)');
   assert.equal(m.flags.hasSoy, true);
-  // typed on blur, and on the Special Meal editor
+  // typed and committed with Enter, and on the Special Meal editor. Re-pinned 2026-11-19 (Edit Menu redesign S1): a
+  // click away from a recipe name links nothing (held, Save asks); Enter on the exact name still links it.
   c.MEAL_SLOT_STATE.vegside = null;
   c.slotAutoSave('vegside', 'Silk Coconut Yogurt');
+  assert.equal(c.MEAL_SLOT_STATE.vegside, null, 'a blur on the name links nothing');
+  assert.equal(c.SLOT_HELD.vegside.kind, 'exact');
+  c.slotAutoSave('vegside', 'Silk Coconut Yogurt', 'enter');
   assert.equal(c.MEAL_SLOT_STATE.vegside.labelUnchecked, true);
   c.smSlotSelect('starch', 'Rice Chex');
   assert.equal(c.SM_SLOT_STATE.starch.labelUnchecked, true);

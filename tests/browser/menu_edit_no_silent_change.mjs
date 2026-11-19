@@ -78,8 +78,12 @@ try {
     check(width + ' an unchanged typed dish stays typed after a click away', main && main.manual === 'Lime-Spiced Chicken Legs' && !main.recipeName, main);
     check(width + ' its ticks stay as they opened', JSON.stringify(main && main.flags) === JSON.stringify(opened && opened.flags), [main && main.flags, opened && opened.flags]);
     check(width + ' the draft still reads unchanged', await p.evaluate(() => !doorMenuDraftIsDirty()));
-    // 4. Typing the recipe name on purpose still links it (the change is the person's).
+    // 4. Typing the recipe name on purpose still links it (the change is the person's). Re-pinned 2026-11-19 (Edit Menu
+    // redesign S1): a click away from a recipe name links nothing (held; Save asks); Enter on the name links it.
     await p.evaluate(() => slotAutoSave('main', 'audit lime chicken'));
+    const held4 = await p.evaluate(() => ({ s: JSON.parse(JSON.stringify(MEAL_SLOT_STATE.main)), h: SLOT_HELD.main || null }));
+    check(width + ' a click away from a recipe name links nothing and holds the words', held4.s && !held4.s.recipeName && held4.h && held4.h.kind === 'exact', held4);
+    await p.evaluate(() => slotAutoSave('main', 'audit lime chicken', 'enter'));
     const linked = await p.evaluate(() => JSON.parse(JSON.stringify(MEAL_SLOT_STATE.main)));
     check(width + ' typing a recipe name on purpose still links it', linked && linked.recipeName === 'Audit Lime Chicken', linked);
     await p.close();
