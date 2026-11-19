@@ -31,7 +31,9 @@ jobs:
     name: DOOR safety checks
     # Keep this OS paired with the reviewed test-only Playwright version.
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # 2026-11-19: a PR run took 9.5 of its 10 minutes (run 827) and the next was cancelled at the limit (run 829)
+    # with every check passing, so the job has room again.
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
