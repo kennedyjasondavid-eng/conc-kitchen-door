@@ -17624,8 +17624,8 @@ function doorRexRecipeFor(piece, recipes, accept, known) {
   const list = (recipes || []).filter(r => r && r.recipeName && (!accept || accept(r)));
   let exact = list.find(r => { const R = doorRexTokens(r.recipeName); return R.length === T.length && T.every(t => doorRexHas(R, t)); }) || null;
   let linkedAt = '';
-  // The same words, spelt as the sheet spells them ("Carribean" = Caribbean): one letter off in a long word, as
-  // doorRexSameDish reads it. Only when every such name points at one recipe.
+  // A remembered link spelt one letter off in a long word ("Carribean" = Caribbean, as doorRexSameDish reads it), when
+  // every such name points at one recipe, is only suggested.
   // Ruled 2026-11-19 (Jason: follow lean): a remembered link is picked only when its words are the same words, any
   // case and order. A near spelling is offered as a suggestion, never picked.
   const kn = !exact && known ? known[T.slice().sort().join(' ')] : null;
@@ -17645,7 +17645,8 @@ function doorRexRecipeFor(piece, recipes, accept, known) {
     return { r, score: shared ? shared / (T.length + R.length - shared) + (sameAs(r) ? 1 : 0) : 0 };
   }).filter(x => x.score > 0 && x.r !== exact).sort((a, b) => b.score - a.score).slice(0, 5).map(x => x.r);
   // Ruled 2026-11-19: a plain staple ("Side Salad", "Rice") is never linked to a longer recipe by default; Week 4 read
-  // "Side Salad" as Potato Salad (for Honey BBQ Drums). Its recipes stay in the suggestions.
+  // "Side Salad" as Potato Salad (for Honey BBQ Drums). A staple main still lists them as suggestions; a staple side is
+  // saved as a typed dish, which Edit Menu then lists as not answered.
   const plain = typeof doorRexIsStaple === 'function' && doorRexIsStaple(piece);
   const same = !exact && !plain && close[0] && sameAs(close[0]) ? close[0] : null;
   if (knownNear && close.indexOf(knownNear) < 0) close.unshift(knownNear);
