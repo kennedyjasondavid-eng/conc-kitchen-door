@@ -67,6 +67,8 @@ test('S4a-3 dishes are whole pieces: never inside another dish; anything not pla
   assert.equal(c.doorKeepMenuWords('Jerk Night — Jerk Chicken, Rice', { extras: 'Jerk Night', main: 'Jerk Chicken', starch: 'Rice' },
     { extras: 'Jerk Night', main: '', starch: 'Rice' }), 'Jerk Night — Rice');
   assert.equal(c.doorKeepMenuWords('Jerk Night — Jerk Chicken', { extras: 'Jerk Night', main: 'Jerk Chicken' }, { extras: 'BBQ Night', main: 'Jerk Chicken' }), null, 'a new Event Name rebuilds');
+  assert.equal(c.doorKeepMenuWords('Jerk Night — Jerk Chicken', { extras: 'Jerk Night', main: 'Jerk Chicken' }, { extras: 'Jerk Night', main: '' }), 'Jerk Night', 'no dash left at the end');
+  assert.equal(c.doorKeepMenuWords('Rice, Rice', { main: 'Rice' }, { main: 'Rice', starch: 'Rice' }), 'Rice, Rice', 'a dish already in the words twice is not added again');
   // a joined box ("A & B") is the run of its pieces
   assert.equal(c.doorKeepMenuWords('Pancakes, turkey bacon, fruit & yoghurt', { main: 'Pancakes', xtra: 'fruit & yoghurt' }, { main: 'Pancakes', xtra: 'Fruit Cup' }), 'Pancakes, turkey bacon, Fruit Cup');
 });

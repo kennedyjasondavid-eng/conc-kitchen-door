@@ -21178,8 +21178,10 @@ function doorKeepMenuWords(text, before, after) {
     else seps.splice(a, b - a + 1);
   }
   let t = pieces.map((x, i) => x + (i < seps.length ? seps[i] : '')).join('');
-  added.forEach(w => { if (!doorFindDishRun(doorWordPieces(t), w)) t = t.trim() ? t.replace(/\s+$/, '') + ', ' + w : w; });
-  t = t.trim();
+  // A new dish is added unless the words already hold it as a whole piece (once or more: re-review P3b).
+  const isPiece = (txt, w) => doorWordPieces(txt).pieces.some(x => x.trim().replace(/\s+/g, ' ').toLowerCase() === String(w).trim().replace(/\s+/g, ' ').toLowerCase()) || !!doorFindDishRun(doorWordPieces(txt), w);
+  added.forEach(w => { if (!isPiece(t, w)) t = t.trim() ? t.replace(/\s+$/, '') + ', ' + w : w; });
+  t = t.replace(/\s*(?:,|&|\u2014|;|\+)\s*$/, '').trim();   // re-review P3a: no separator left at the end
   return t || null;
 }
 // The words the open meal had, and its boxes then (set by openMenuEdit before the draft baseline).
