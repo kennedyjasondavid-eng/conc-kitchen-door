@@ -234,7 +234,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
   lean"; "oat milk is a soy milk stand-in, it's for cereal"). DOOR's vegetarian breakfast line serves dairy yoghurt and milk,
   so it is unchanged; the GF cereal line now says "soy or oat milk where noted". The Silk vegan yoghurt is for residents who
   take no dairy (Jason: "I assume it's for no dairy people"); naming it on their plate note ("dairy-free: vegan yoghurt") is
-  open, a plating-note change for Jason to rule on.
+  built (call 4, below).
 - **C2 labels (2026-11-19, publication 35):** CODEX #384 (Jason: "follow lean") gives the four bought items the allergen
   lists from their published Canadian listings: Chex cereal Sulphites, Soy milk Soy, Oat milk Oats only (not certified
   gluten-free), Vegan yoghurt Tree Nuts (coconut), Corn, Sulphites. Oat milk is not gluten-free, so the GF cereal line
@@ -246,6 +246,10 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
   for them (exact recipe name), or are the regular plate when it names none; the anaphylactic plate counts toward an
   anaphylactic resident, who is checked against every plate. Nothing moves on today's data (no recipe is unchecked).
   The package panel shipped in CODEX #385 (`d59db42`).
+- **Call 4 (2026-11-19, Jason: "Follow lean"), `v31-standard.101`:** on a breakfast plate that serves dairy yoghurt, a
+  No Dairy or Lactose Intolerant resident's plating note reads "dairy-free: vegan yoghurt" (CODEX's Vegan yoghurt, the
+  Silk coconut yoghurt). A plate naming DF, dairy-free, vegan or coconut yoghurt is already dairy-free; lactose-free
+  yoghurt is dairy. Menu text, routing, counts and published files are unchanged. This closes the C2 open note.
 - **C9 EXPO's okra stew link (2026-11-18, handed to the EXPO session):** EXPO plans the okra stew's stew cycle (cook Wk1
   FRI at Bloor, bag, cold van, reheat Wk2 WED) but links it to the Caribbean Stew recipe. EXPO's job panel work owns the
   fix; DOOR now names `okra-and-cassava-stew` on the slot.

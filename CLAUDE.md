@@ -53,6 +53,14 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — a No Dairy resident's breakfast note names the vegan yoghurt (call 4, `v31-standard.101`)
+Jason, 2026-11-19: "Follow lean". On a breakfast plate that serves dairy yoghurt (`doorYoghurtPlates`, keyed as the label
+check is; `doorNamesDairyYoghurt` reads "fruit & yoghurt" and "lactose-free yoghurt" as dairy, "DF", "dairy-free",
+"vegan" or "coconut" yoghurt as not), a No Dairy or Lactose Intolerant resident's note reads "dairy-free: vegan yoghurt"
+(`doorYoghurtSwapFor`, in `doorSectionLineNotes` and `doorRegularServiceNote`). Breakfast only; the flag is not
+enumerable, so menu text, routing, counts and published files are unchanged. Gate `tests/yoghurt_swap_gate.mjs` (4),
+red 4/4 on `main` `9eff740`.
+
 ## Recent (2026-11-19) — the label check reads the alternative plates (call 3, `v31-standard.100`)
 Jason, 2026-11-19: "Yes follow lean". A bought item whose label is not checked was noted only on the regular, vegan,
 halal and no-pork plates. `doorPlatesLabelUnchecked` now also lists the gluten-free, diabetic, no-dairy, no-egg /
