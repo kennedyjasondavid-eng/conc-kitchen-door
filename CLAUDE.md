@@ -53,6 +53,25 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Edit Menu changes nothing nobody chose (walkthrough H2 + H4, `v31-standard.103`)
+Jason, 2026-11-19: "fix the two defects first", from the Edit Menu UX walkthrough (42 findings; before/after mockups in
+the redesign page). **H2:** a meal opened and saved with nothing changed rewrote its menu text from the dish boxes
+("Pancakes, turkey bacon, fruit & yoghurt" became "Pancakes & turkey bacon & fruit & yoghurt"); `saveMenuEdit` now writes
+nothing when the draft matches the meal as opened (`doorMenuDraftIsDirty`) and says so. **H4:** opening a meal focused the
+Main box, and clicking away from a typed dish re-read its words and linked a recipe of the same name, swapping its
+allergens (Wk4 SAT lunch lost Gluten, Dairy, Chicken); `openMenuEdit` focuses nothing, and `slotAutoSave` /
+`smSlotAutoSave` leave an unchanged typed dish as it is. Typing a recipe name on purpose still links it. Gate
+`tests/browser/menu_edit_no_silent_change.mjs` (27, in CI), red 12/19 on `main` `a1059f4`; `halal_context_race`
+re-pinned (dated: each save marks the draft changed). A real edit still rebuilds the menu text from the boxes; the
+redesign keeps the wording. **Independent review (FIX FIRST), folded:** P1, the "re-save the meal" step for a label
+checked since (and a dish tick missing from the meal) relied on an unchanged Save; now `doorOpenRepairTicks` spots
+ticks the stored meal lacks and `doorRepairMealTicks` writes only those ticks (and the dish boxes), never removing one,
+menu words untouched (gate cases 5, red 4/27 on the unfolded `4b00eb7`, and 6, a real change still saves). P3: the meal
+heading takes keyboard focus on open (at once). An unchanged Save no longer clears a leftover swap or legacy edit of the slot.
+Second review (FIX FIRST), folded: P2, a vegan or halal line version waiting on its label counts too; P3, Carb-swap found
+on open is not written, and dish boxes behind the menu words are not overwritten by the repair. Gate 35 checks, red 4/35
+on the first fold `0630d92`.
+
 ## Recent (2026-11-19) — saved ticks follow CODEX, add only; the allergen facts rule; the badge says what CODEX lists (C4 / U2, `v31-standard.102`)
 Jason, 2026-11-19: "Follow lean". The 42 linked slots whose saved ticks differ from CODEX were compared; none left a
 resident unwarned. 23 slots took CODEX's newer families (mostly Beans and Mushroom), add only, publication 36. Spicy (the
