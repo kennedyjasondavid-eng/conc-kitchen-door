@@ -61,9 +61,13 @@ nothing when the draft matches the meal as opened (`doorMenuDraftIsDirty`) and s
 Main box, and clicking away from a typed dish re-read its words and linked a recipe of the same name, swapping its
 allergens (Wk4 SAT lunch lost Gluten, Dairy, Chicken); `openMenuEdit` focuses nothing, and `slotAutoSave` /
 `smSlotAutoSave` leave an unchanged typed dish as it is. Typing a recipe name on purpose still links it. Gate
-`tests/browser/menu_edit_no_silent_change.mjs` (19, in CI), red 12/19 on `main` `a1059f4`; `halal_context_race`
+`tests/browser/menu_edit_no_silent_change.mjs` (27, in CI), red 12/19 on `main` `a1059f4`; `halal_context_race`
 re-pinned (dated: each save marks the draft changed). A real edit still rebuilds the menu text from the boxes; the
-redesign keeps the wording.
+redesign keeps the wording. **Independent review (FIX FIRST), folded:** P1, the "re-save the meal" step for a label
+checked since (and a dish tick missing from the meal) relied on an unchanged Save; now `doorOpenRepairTicks` spots
+ticks the stored meal lacks and `doorRepairMealTicks` writes only those ticks (and the dish boxes), never removing one,
+menu words untouched (gate cases 5, red 4/27 on the unfolded `4b00eb7`, and 6, a real change still saves). P3: the meal
+heading takes keyboard focus on open. An unchanged Save no longer clears a leftover swap or legacy edit of the slot.
 
 ## Recent (2026-11-19) — saved ticks follow CODEX, add only; the allergen facts rule; the badge says what CODEX lists (C4 / U2, `v31-standard.102`)
 Jason, 2026-11-19: "Follow lean". The 42 linked slots whose saved ticks differ from CODEX were compared; none left a

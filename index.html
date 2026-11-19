@@ -21991,6 +21991,11 @@ async function saveMenuEdit() {
   // dish boxes, so a meal read from its text came back reworded ("Pancakes, turkey bacon, fruit & yoghurt" became
   // "Pancakes & turkey bacon & fruit & yoghurt"), and that text is what EXPO, HUB and the sheets read.
   if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
+    // Review fold (2026-11-19, P1): opening the meal can bring in ticks the stored meal lacks (a recipe label checked
+    // since it was linked; a dish tick missing from the meal). The "re-save the meal" step relies on Save writing
+    // them, so they are written, and only added, with the menu words left as stored.
+    const repair = doorOpenRepairTicks();
+    if (repair) return doorRepairMealTicks(repair);
     showToast('Nothing changed, so nothing was saved.', 'info');
     closeMenuEdit(true);
     return true;
@@ -22202,6 +22207,63 @@ function doorMenuSavedMessage(week, day, period) {
   const why = cap && cap.reasons && cap.reasons[0] ? cap.reasons[0].label : 'this computer could not check its connection';
   return 'Saved on this computer only: ' + meal + ', every cycle. Not sent to the kitchen: ' + why + '.';
 }
+// The ticks the open editor holds, as Save reads them: every dish tick, and the tick grid.
+function doorEditorTickUnion() {
+  const flags = { ...buildUnionFlags() };
+  FLAG_DEFS.forEach(f => {
+    const cb = document.getElementById('mc-edit-flag-' + f.key);
+    if (cb) flags[f.key] = flags[f.key] || cb.checked;
+  });
+  return flags;
+}
+// Review fold (2026-11-19, P1): what an unchanged Save must still write. Null when the stored meal already has every
+// tick the editor holds and no linked dish is waiting for its checked label; else the stored ticks plus the new ones.
+function doorOpenRepairTicks() {
+  if (!mcMenuEditKey) return null;
+  const parts = mcMenuEditKey.split('-');
+  const week = parts[0], day = parts[1], period = parts[2];
+  const dayData = (getMenuData()[String(week)] || {})[day] || {};
+  const stored = dayData[period + '_flags'] || {};
+  const held = doorEditorTickUnion();
+  const added = Object.keys(held).filter(k => held[k] === true && stored[k] !== true);
+  const storedSlots = dayData[period + '_slots'] || {};
+  const labelWaiting = Object.keys(storedSlots).some(id => {
+    const was = storedSlots[id], now = MEAL_SLOT_STATE[id];
+    return was && was.labelUnchecked === true && now && now.recipeName && now.labelUnchecked !== true;
+  });
+  if (!added.length && !labelWaiting) return null;
+  const out = { ...stored };
+  added.forEach(k => { out[k] = true; });
+  return { flags: out, added, labelWaiting };
+}
+// Writes only the meal ticks (and, for a meal with saved dish boxes, the boxes): the menu words, sides and plate text
+// stay exactly as stored, so nothing is reworded. Never takes a tick off.
+function doorRepairMealTicks(repair) {
+  if (!guardStandardMenuWrite('Edit Menu')) return;
+  const parts = mcMenuEditKey.split('-');
+  const week = parts[0], day = parts[1], period = parts[2];
+  const overlay = loadMenuBaseOverlay();
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);
+  if (!overlay[week]) overlay[week] = {};
+  if (!overlay[week][day]) overlay[week][day] = {};
+  doorSetMealFlags(overlay[week][day], period, repair.flags);
+  const dayData = (getMenuData()[String(week)] || {})[day] || {};
+  if (dayData[period + '_slots']) overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
+  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Menu');
+  saveMenuBaseOverlay(overlay);
+  const name = dayData[period] || '\u2014';
+  appendChangeLog({ type: 'permanent_edit', week, day, period, oldName: name, newName: name, flags: repair.flags,
+    before: noted.before, afterSig: noted.afterSig, first: noted.first });
+  closeMenuEdit(true);
+  renderMenuConfig();
+  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
+  const labels = repair.added.map(k => (FLAG_DEFS.find(f => f.key === k) || { label: k }).label);
+  showToast(labels.length ? 'Saved: this meal now carries ' + labels.join(', ') + '. Its menu words are unchanged.'
+    : 'Saved the checked recipe label. The menu words are unchanged.');
+  publishAndSync('menu edit saved');
+  return true;
+}
+
 function _finishMenuSave(name, veg, flags) {
   // Re-check after the async halal-certification prompt: source state could
   // have changed while the dialog was open.
@@ -22497,7 +22559,11 @@ function openMenuEdit(week, day, period) {
   if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
   // H4 (2026-11-19): opening a meal focuses nothing. The Main box used to take focus with its words selected, so the
   // first key wiped the dish and a click away re-read it. The page brings the meal heading into view instead.
-  setTimeout(() => { const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' }); }, 80);
+  setTimeout(() => {
+    const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' });
+    const t = document.getElementById('mc-menu-edit-title');   // review fold P3: keyboard users start at the meal name
+    if (t) { t.setAttribute('tabindex', '-1'); try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
+  }, 80);
 }
 
 // ============================================================

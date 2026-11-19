@@ -12,6 +12,13 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
 const menu = JSON.parse(fs.readFileSync('menu_current.json', 'utf8')).menu;
 // Wk4 SAT lunch as published: its main opens as the typed dish "Lime-Spiced Chicken Legs", read from the menu words,
 // carrying the meal's ticks; CODEX has a recipe of exactly that name (the walkthrough's H4 case).
+// Review fold (2026-11-19, P1): Wk3 SUN dinner made a meal whose one dish was linked while its label was not checked;
+// CODEX now lists Peanuts for it. Opening and saving it must write the Peanuts tick (the "re-save the meal" step).
+const sun = menu['3'].SUNDAY;
+Object.assign(sun, { dinner: 'Audit Stew', dinner_veg: 'Audit Stew', dinner_mainItem: '', dinner_mainAlt: '', dinner_sides: '', dinner_halal: '',
+  dinner_flags: {}, dinner_slots: { main: { recipeName: 'Audit Stew', recipeId: 'audit-stew', flags: {}, labelUnchecked: true } },
+  dinner_altMeals: [], dinner_altMealsNone: true, dinner_softAlt: '', dinner_noPorkAlt: '' });
+delete sun.dinner_original;
 const browser = await chromium.launch();
 async function boot(width) {
   const p = await browser.newPage({ viewport: { width, height: 900 } });
@@ -26,7 +33,8 @@ async function boot(width) {
   await p.goto(pathToFileURL(source).href);
   await p.waitForFunction(() => typeof openMenuEdit === 'function');
   await p.evaluate(() => {
-    DOOR_RECIPE_DATA = DOOR_RECIPE_DATA.concat([{ recipeName: 'Audit Lime Chicken', recipeId: 'audit-lime-chicken', allergens: ['Sulphites (Lime)'], category: 'protein', stream: 'regular' }]);
+    DOOR_RECIPE_DATA = DOOR_RECIPE_DATA.concat([{ recipeName: 'Audit Lime Chicken', recipeId: 'audit-lime-chicken', allergens: ['Sulphites (Lime)'], category: 'protein', stream: 'regular' },
+      { recipeName: 'Audit Stew', recipeId: 'audit-stew', allergens: ['Peanuts (Sauce)'], category: 'stew_main', stream: 'regular' }]);
     showScreen('menu-config');
   });
   return p;
@@ -59,7 +67,6 @@ try {
     await p.locator('#mc-menu-edit-context').click();
     await p.waitForTimeout(200);
     const main = await p.evaluate(() => JSON.parse(JSON.stringify(MEAL_SLOT_STATE.main)));
-    void opened;
     check(width + ' the main opens as a typed dish (the published case)', main && !!main.manual, main);
     check(width + ' an unchanged typed dish stays typed after a click away', main && main.manual === 'Lime-Spiced Chicken Legs' && !main.recipeName, main);
     check(width + ' its ticks stay as they opened', JSON.stringify(main && main.flags) === JSON.stringify(opened && opened.flags), [main && main.flags, opened && opened.flags]);
@@ -68,6 +75,30 @@ try {
     await p.evaluate(() => slotAutoSave('main', 'audit lime chicken'));
     const linked = await p.evaluate(() => JSON.parse(JSON.stringify(MEAL_SLOT_STATE.main)));
     check(width + ' typing a recipe name on purpose still links it', linked && linked.recipeName === 'Audit Lime Chicken', linked);
+    await p.close();
+    // 5. Review fold P1: a label checked since the dish was linked still reaches the meal on an unchanged Save.
+    p = await boot(width);
+    await p.evaluate(() => openMenuEdit(3, 'SUNDAY', 'dinner'));
+    await p.waitForTimeout(300);
+    const r5 = await p.evaluate(() => Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('asked a question'), 3000))]));
+    await p.waitForTimeout(300);
+    const after5 = await p.evaluate(() => { const o = JSON.parse(localStorage.getItem('concMenuBase') || '{}'); const d = (o['3'] || {}).SUNDAY || {};
+      return { flags: d.dinner_flags || {}, slot: (d.dinner_slots || {}).main || null, text: getMenuData()['3'].SUNDAY.dinner }; });
+    check(width + ' a label checked since: Save writes its new allergen', r5 === true && after5.flags.hasPeanuts === true, [r5, after5.flags]);
+    check(width + ' the dish no longer waits for its label', after5.slot && after5.slot.labelUnchecked !== true, after5.slot);
+    check(width + ' its menu words stay as they were', after5.text === 'Audit Stew', after5.text);
+    await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
+    await p.close();
+    // 6. A real one-field change still saves (a tick added on the meal grid).
+    p = await boot(width);
+    await p.evaluate(() => openMenuEdit(3, 'SUNDAY', 'dinner'));
+    await p.waitForTimeout(300);
+    await p.evaluate(() => { const cb = document.getElementById('mc-edit-flag-hasSesame'); cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); });
+    const r6 = await p.evaluate(() => Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('asked a question'), 3000))]));
+    await p.waitForTimeout(300);
+    const f6 = await p.evaluate(() => ((((JSON.parse(localStorage.getItem('concMenuBase') || '{}'))['3'] || {}).SUNDAY || {}).dinner_flags) || {});
+    check(width + ' a real change still saves', r6 === true && f6.hasSesame === true, [r6, f6]);
+    await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
     await p.close();
   }
   check('no uncaught browser errors', errors.length === 0, errors);
