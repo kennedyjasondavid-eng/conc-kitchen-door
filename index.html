@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.102';
+const DOOR_APP_VERSION = 'v31-standard.103';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21987,6 +21987,14 @@ async function saveMenuEdit() {
   const editSession = typeof _doorMenuDraftBaseline !== 'undefined' ? _doorMenuDraftBaseline : null;
   if (!guardStandardMenuWrite('Edit Menu')) return;
   _commitLiveSlotInputs();   // save reads MEAL_SLOT_STATE — take whatever is in the boxes right now
+  // H2 (2026-11-19): a meal opened and saved with nothing changed writes nothing. Saving rebuilt its menu text from the
+  // dish boxes, so a meal read from its text came back reworded ("Pancakes, turkey bacon, fruit & yoghurt" became
+  // "Pancakes & turkey bacon & fruit & yoghurt"), and that text is what EXPO, HUB and the sheets read.
+  if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
+    showToast('Nothing changed, so nothing was saved.', 'info');
+    closeMenuEdit(true);
+    return true;
+  }
   // W3e (2026-11-09): words a box holds that were not saved are asked about here, one box at a time, never saved
   // silently. Going back saves nothing.
   const _heldKey = mcMenuEditKey;
@@ -22487,7 +22495,9 @@ function openMenuEdit(week, day, period) {
   _LAST_SLOT_FLAGS = {};
   updateSlotSummary();
   if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
-  setTimeout(() => { const s = document.getElementById('slot-search-main'); if (s) s.focus(); }, 80);
+  // H4 (2026-11-19): opening a meal focuses nothing. The Main box used to take focus with its words selected, so the
+  // first key wiped the dish and a click away re-read it. The page brings the meal heading into view instead.
+  setTimeout(() => { const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' }); }, 80);
 }
 
 // ============================================================
@@ -23041,6 +23051,9 @@ function slotAutoSave(slotId, val, how) {
   const held = typeof SLOT_HELD !== 'undefined' ? SLOT_HELD : null;
   if (!val) { MEAL_SLOT_STATE[slotId] = null; if (held) delete held[slotId]; renderSlots(); updateSlotSummary(); return; }
   const current = MEAL_SLOT_STATE[slotId];
+  // H4 (2026-11-19): clicking away from a typed dish that was not changed is no change. It used to look the words up
+  // again and link a recipe of the same name, swapping the allergens the dish carried with nobody choosing to.
+  if (current && !current.recipeName && String(current.manual || '').trim() === val) { if (held && held[slotId]) { delete held[slotId]; renderSlots(); } return; }
   // Don't overwrite a recipe-linked entry with the same name
   if (current && current.recipeName && current.recipeName === val) { if (held && held[slotId]) { delete held[slotId]; renderSlots(); } return; }
   // W3e: the box showing the linked slot's own shown name is no change either.
@@ -23093,6 +23106,7 @@ function smSlotAutoSave(slotId, val) {
   if (dd) dd.style.display = 'none';
   if (!val) { SM_SLOT_STATE[slotId] = null; renderSmSlots(); updateSmSlotSummary(); return; }
   const current = SM_SLOT_STATE[slotId];
+  if (current && !current.recipeName && String(current.manual || '').trim() === val) return;   // H4: an unchanged typed dish stays as it is
   if (current && current.recipeName && current.recipeName === val) return;
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
