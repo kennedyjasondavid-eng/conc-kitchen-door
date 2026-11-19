@@ -860,7 +860,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.117';
+const DOOR_APP_VERSION = 'v31-standard.118';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -14899,14 +14899,16 @@ function doorRenderAltEditorFeedback(flags) {
     if (!el) continue;
     const rooms = o.residents.map(r => r.room).join(', ');
     let h = '<div style="font-size:11px;line-height:1.5;color:var(--muted);">';
-    const scope = {gfAlt:'Gluten-free plate when the main contains gluten.',diabeticAlt:'Diabetic / Low Carb plate.',noDairyAlt:'No Dairy / Lactose Intolerant plate when the main contains dairy.',noEggAlt:'No Eggs / No Mustard plate when the matching ingredient is present.',blandAlt:'No Spicy / Bland Diet plate on spicy meals.',anaphAlt:'Separate anaphylactic plate, including affected roommates.'};
-    h += (scope[o.target] ? escapeHtml(scope[o.target])+'<br>' : 'Used by the existing soft/plain section.<br>');
-    h += '<strong>Draft routing: '+o.residents.length+' resident'+(o.residents.length === 1 ? '' : 's')+'</strong>'+(rooms ? ' — '+escapeHtml(rooms) : '')+'. '+escapeHtml(o.explanation);
+    // S8: plain words. How many residents get this plate (or would, when it is not made), and what happens if it is not.
+    const n = o.residents.length, who = n + ' resident' + (n === 1 ? '' : 's');
+    h += o.text ? '<strong>' + who + ' get' + (n === 1 ? 's' : '') + ' this plate</strong>' + (rooms ? ' (' + escapeHtml(rooms) + ')' : '') + '.'
+      : '<strong>' + who + '</strong>' + (rooms ? ' (' + escapeHtml(rooms) + ')' : '') + '. ' + escapeHtml((typeof DOOR_KITCHEN_ALT_NOT_MADE !== 'undefined' && DOOR_KITCHEN_ALT_NOT_MADE[o.target]) || '');
+    if (o.target === 'anaphAlt' && o.text) h += ' ' + escapeHtml(o.explanation);
     if (o.text) {
       if (doorTurnkeyPlateParts(o.text)) h += '<div><strong>Plate: '+escapeHtml(o.text)+'</strong></div>';
-      h += '<br>'+ (o.facts.known ? 'CODEX declarations: '+escapeHtml(flagsToAllergenStr(o.facts.flags) || 'none listed')+'.' : 'Recipe facts need review: '+escapeHtml(o.facts.missing.join('; '))+'.');
-      h += ' Check ingredient labels and every resident instruction before use.';
-    } else h += '<br>No replacement entered; existing fallback behavior applies.';
+      h += '<br>'+ (o.facts.known ? 'Contains: '+escapeHtml(flagsToAllergenStr(o.facts.flags) || 'nothing on the allergen list')+'.' : 'Allergens to check: '+escapeHtml(o.facts.missing.join('; '))+'.');
+      h += ' Check the labels and each resident’s instructions.';
+    }
     for (const c of o.conflicts) h += '<div style="color:var(--danger-ink, #b91c1c);font-weight:600;">Check room '+escapeHtml(c.room)+': '+escapeHtml(c.reasons.join(', '))+'.</div>';
     const notes = o.residents.filter(r => r.note);
     if (notes.length) h += '<details><summary>Resident preparation instructions</summary>'+notes.map(r => '<div>'+escapeHtml(r.room)+': '+escapeHtml(r.note)+'</div>').join('')+'</details>';
@@ -14931,19 +14933,48 @@ function doorAddKitchenPlateFlags(mealFlags, dayData, period) {
 
 // Edit Menu's "Alternatives the kitchen makes" (2026-10-19): filled when a meal opens, read by the preview and saved.
 const DOOR_KITCHEN_ALT_LABELS = { gfAlt: 'Gluten free', diabeticAlt: 'Diabetic', noDairyAlt: 'No dairy', noEggAlt: 'No egg / mustard', blandAlt: 'Bland (no spicy)', anaphAlt: 'Anaphylactic' };
+// S8 (Edit Menu redesign, M13): "Other plates the kitchen makes". One row per plate the meal has, "+ Add a plate for..."
+// for the rest, and one plain sentence on what happens when a plate is not made. The boxes, their ids and what is saved
+// are unchanged; a hidden row is an empty box.
+const DOOR_KITCHEN_ALT_NOT_MADE = {
+  gfAlt: 'Not made: gluten-free residents get the regular plate made without gluten.',
+  diabeticAlt: 'Not made: diabetic residents eat the regular plate, noted “extra veg less starch”.',
+  noDairyAlt: 'Not made: No Dairy residents get the vegan plate.',
+  noEggAlt: 'Not made: No Egg / Mustard residents get the vegan plate when it has neither, else the regular plate made without.',
+  blandAlt: 'Not made: No Spicy residents eat the regular plate, noted “No Spicy”.',
+  anaphAlt: 'Not made: the anaphylactic plate is prepared separately, as always.',
+};
 function doorFillKitchenAltInputs(dayData, period) {
   const box = document.getElementById('mc-kitchen-alt-fields');
   if (!box) return;
   const title = document.getElementById('mc-kitchen-alts-title'),help = document.getElementById('mc-kitchen-alts-help');
-  if (title) title.textContent = period === 'breakfast' ? 'Alternatives the kitchen makes' : 'Restriction-specific plates';
-  if (help) help.textContent = period === 'breakfast'
-    ? 'The dish each plate gets. Leave a box empty when the kitchen makes no such plate: diabetics then eat the regular plate ("extra veg less starch"), No Dairy residents the vegan plate, and No Spicy residents the regular plate, noted "No Spicy".'
-    : 'Assign a complete plate to an existing requirement group. Type your own plate or choose a CODEX option. Draft feedback shows recipients and checks; nothing applies until Save. Leaving a box empty keeps the existing fallback.';
+  if (title) title.textContent = 'Other plates the kitchen makes';
+  if (help) help.textContent = 'Name the dish only for a plate the kitchen makes for this meal. When a plate is not made, its residents eat another plate, as each line says.';
+  const stored = k => String((dayData && dayData[period + '_' + k]) || '');
   box.innerHTML = Object.keys(DOOR_KITCHEN_ALT_LABELS).map(k =>
+    '<div class="mc-kalt-row" data-kalt="' + k + '" style="display:' + (stored(k).trim() ? 'contents' : 'none') + ';">' +
     '<label for="mc-kalt-' + k + '">' + escapeHtml(DOOR_KITCHEN_ALT_LABELS[k]) + '</label>' +
-    '<div style="min-width:0;"><input id="mc-kalt-' + k + '" class="form-input" style="width:100%;box-sizing:border-box;min-width:0;font-size:12px;padding:5px 8px;" oninput="updateSlotSummary()" value="' + _escAttr((dayData && dayData[period + '_' + k]) || '') + '">'+
-    (period !== 'breakfast' ? doorPlainPlatePickerHTML(k)+'<div id="door-alt-feedback-'+k+'"></div>' : '')+'</div>').join('')+
+    '<div style="min-width:0;"><input id="mc-kalt-' + k + '" class="form-input" style="width:100%;box-sizing:border-box;min-width:0;font-size:12px;padding:5px 8px;" oninput="updateSlotSummary()" value="' + _escAttr(stored(k)) + '">' +
+    (period !== 'breakfast' ? doorPlainPlatePickerHTML(k)+'<div id="door-alt-feedback-'+k+'"></div>' : '')+'</div></div>').join('')+
+    '<div id="mc-kalt-add" style="grid-column:1/-1;margin-top:4px;"></div>' +
     (period !== 'breakfast' ? '<div id="door-alt-save-issue" role="alert" tabindex="-1" style="display:none;grid-column:1/-1;color:var(--danger-ink, #b91c1c);font-weight:600;font-size:12px;"></div>' : '');
+  if (typeof doorRenderAddPlate === "function") doorRenderAddPlate();
+}
+function doorRenderAddPlate() {
+  const el = typeof document !== 'undefined' ? document.getElementById('mc-kalt-add') : null;
+  if (!el) return;
+  const hidden = Object.keys(DOOR_KITCHEN_ALT_LABELS).filter(k => { const r = document.querySelector('.mc-kalt-row[data-kalt="' + k + '"]'); return r && r.style.display === 'none'; });
+  el.innerHTML = hidden.length ? '<label style="font-size:12px;">+ Add a plate for <select id="mc-kalt-add-select" onchange="doorAddPlateRow(this.value)" style="font-size:12px;"><option value="">choose…</option>'
+    + hidden.map(k => '<option value="' + k + '">' + escapeHtml(DOOR_KITCHEN_ALT_LABELS[k]) + '</option>').join('') + '</select></label>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">Not made now: ' + escapeHtml(hidden.map(k => DOOR_KITCHEN_ALT_LABELS[k]).join(', ')) + '.</div>' : '';
+}
+function doorAddPlateRow(k) {
+  const row = document.querySelector('.mc-kalt-row[data-kalt="' + k + '"]');
+  if (!row) return;
+  row.style.display = 'contents';
+  if (typeof doorRenderAddPlate === "function") doorRenderAddPlate();
+  const input = document.getElementById('mc-kalt-' + k);
+  if (input && input.focus) input.focus();
 }
 // The editor's preview opens the plates the sheet will (2026-10-19): the kitchen's alternatives and "none needed".
 function doorEditorPlateFlags(flags) {

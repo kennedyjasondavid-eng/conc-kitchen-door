@@ -53,6 +53,20 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — "Other plates the kitchen makes" (redesign S8, M13, `v31-standard.118`)
+The editor's "Restriction-specific plates" (and, at breakfast, "Alternatives the kitchen makes") becomes **Other plates the
+kitchen makes**, with one plain sentence on a plate not made (`doorFillKitchenAltInputs`).
+- **Rows:** one per plate the meal has (`.mc-kalt-row`, an empty box hidden), and **+ Add a plate for…** for the rest
+  (`doorRenderAddPlate`, `doorAddPlateRow`).
+- **Each row (lunch and dinner)** says how many residents get the plate, equal to the plating sheet. A plate not made
+  says where its residents eat instead (`DOOR_KITCHEN_ALT_NOT_MADE`).
+- **Wording:** "Draft routing", "existing fallback" and "CODEX declarations" are gone ("Contains: …", "Allergens to
+  check: …").
+- **Unchanged:** the box ids and what Save stores. Breakfast keeps today's fields until U3/C1's breakfast plates are
+  built.
+- **Gates:** `tests/other_plates_s8_gate.mjs` (2) and browser `tests/browser/other_plates_s8.mjs` (15, in CI; made-up
+  residents).
+
 ## Recent (2026-11-19) — Menu Config on phones, tablets and wide screens (redesign S7, `v31-standard.117`)
 - **On a phone (768 px or narrower) the Menu page** shows a day picker (`#mc-day-picker`, `mcSetPhoneDay`; today on the
   current week) and that day's breakfast, lunch and dinner cards instead of the sideways week. Every day column is
