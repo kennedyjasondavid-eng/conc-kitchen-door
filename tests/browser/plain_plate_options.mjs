@@ -55,7 +55,15 @@ let old,current;
 try {
  old=await boot(originalPath,'old');const before=await snapshot(old.b);
  await old.b.publish();const oldPublished=structuredClone(old.b.remote.files);
- current=await boot(path.resolve('index.html'),'new');const after=await snapshot(current.b);
+ current=await boot(path.resolve('index.html'),'new');
+ // 2026-11-19 (call 4, Jason: "Follow lean"): the "dairy-free: vegan yoghurt" breakfast note is the one intended sheet
+ // change since the baseline; it is compared on its own, then switched off for the identity check below.
+ const withSwap=await snapshot(current.b);
+ await current.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});
+ const after=await snapshot(current.b);
+ const movedSheets=withSwap.sheets.filter((s,i)=>JSON.stringify(s)!==JSON.stringify(after.sheets[i]));
+ check('the yoghurt note changes breakfast sheets only, and only by naming the vegan yoghurt',movedSheets.length>0&&movedSheets.every(s=>s.period==='breakfast'&&/vegan yoghurt/.test(JSON.stringify(s)))
+  &&JSON.stringify(withSwap.routing)===JSON.stringify(after.routing)&&JSON.stringify(withSwap.menu)===JSON.stringify(after.menu)&&JSON.stringify(withSwap.state)===JSON.stringify(after.state));
  check('all 84 saved previews, worksheet cells/styles, memberships and anaphylactic roles are identical',JSON.stringify(before.sheets)===JSON.stringify(after.sheets));
  check('current menu, registry, imports and routing are unchanged before any selection',JSON.stringify(before.menu)===JSON.stringify(after.menu)&&JSON.stringify(before.state)===JSON.stringify(after.state)&&JSON.stringify(before.routing)===JSON.stringify(after.routing));
  await current.b.publish();

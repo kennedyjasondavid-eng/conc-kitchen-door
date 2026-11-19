@@ -36,7 +36,15 @@ async function snapshot(b) {
 try {
  for(const mode of ['live','cached','fallback']) {
   const a=await boot(old,mode+'-old',mode,false),before=await snapshot(a.b);
-  const b=await boot(path.resolve('index.html'),mode+'-guard',mode,false),guard=await snapshot(b.b);
+  const b=await boot(path.resolve('index.html'),mode+'-guard',mode,false);
+  // 2026-11-19 (call 4, Jason: "Follow lean"): No Dairy residents on a dairy-yoghurt breakfast now read "dairy-free: vegan
+  // yoghurt". That note is the one intended change since the baseline; it is compared on its own, then switched off here.
+  const withSwap=await snapshot(b.b);
+  await b.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});
+  const guard=await snapshot(b.b);
+  const moved=withSwap.slots.filter((s,i)=>!isDeepStrictEqual(s,guard.slots[i]));
+  check(mode+': the yoghurt note changes breakfast sheets only, and only by naming the vegan yoghurt',moved.length>0&&moved.every(s=>s.p==='breakfast'&&/vegan yoghurt/.test(JSON.stringify(s)))
+    &&isDeepStrictEqual(withSwap.menu,guard.menu)&&isDeepStrictEqual(withSwap.routing,guard.routing)&&isDeepStrictEqual(withSwap.registry,guard.registry));
   check(mode+': guard alone preserves all 84 sheet HTML/worksheet objects, notes, memberships, roles and routing',isDeepStrictEqual(before,guard));
   await b.b.page.evaluate(additions=>{_doorSharedLibrary.recipes.push(...additions);_doorApplySharedRecipes();},fixture.additions);
   const after=await snapshot(b.b);
