@@ -32,7 +32,8 @@ const J = (x) => JSON.stringify(x);
 
 test('S2b-1 Save and the summary share one writer and one meat reader', () => {
   assert.match(fnBlock('_finishMenuSave'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, name, veg, flags\);/);
-  assert.match(fnBlock('doorDraftPlateFacts'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, buildMealName\(\), buildVegAlt\(\), flags\);/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S4a, D4): Save reads the name through doorEditedMealName (kept words).
+  assert.match(fnBlock('doorDraftPlateFacts'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, doorEditedMealName\(\), buildVegAlt\(\), flags\);/);
   assert.match(fnBlock('doorDraftPlateFacts'), /return doorPlateFacts\(dayData, period, \{ dated: null, menuEdit \}\);/);
   assert.match(fnBlock('doorDraftPlateFacts'), /finally \{ setDoorPublishMenuOverlayOverride\(was\); \}/, 'the menu override is always put back');
   assert.match(fnBlock('saveMenuEdit'), /return doorEditorDetectMeat\(slotId\);/);

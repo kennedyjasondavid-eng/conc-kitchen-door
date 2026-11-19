@@ -53,6 +53,22 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — a real edit rewrites only the dish that changed (redesign S4a, D4, `v31-standard.109`)
+D4, Jason 2026-11-19: "Follow lean". Save rebuilt the whole menu line from the dish boxes (in box order, joined with
+", " or " & "), so changing one side reworded meals EXPO, HUB and the sheets read. Now `doorEditedMealName` keeps the words
+the meal opened with (`_doorWordsAtOpen`, taken before the draft baseline): a changed dish has its words replaced where they
+stood (`doorKeepMenuWords`, found whole, then without case), a dish taken out loses its words and one separator, a new dish
+goes at the end. **Independent review (FIX FIRST), folded:** dishes are matched as whole pieces between separators
+(`doorWordPieces`, `doorFindDishRun`: exactly one run of whole pieces, any case), never inside another dish (Broccoli in
+"Beef and Broccoli"); edits are placed on the words as they opened and overlapping ones rebuild; a new dish is added unless
+it is already a whole piece; the Event Name keeps its dash. A changed Event Name, a box not exactly one piece run, or a
+legacy edit rebuild from the boxes as before. D4 covers the regular line; the vegan line is still built from its boxes
+(W3b reads all 55 back unchanged). Save, the
+plate summary and "Will save as" read it. Gates `tests/menu_words_kept_s4a_gate.mjs` (4, with the review's cases) and browser
+`tests/browser/menu_words_kept_s4a.mjs` (3, in CI): a one-dish edit on every published meal (84) leaves every other word
+as written; on `main` 40 meals were reworded. Re-pinned with dated notes: `plate_summary_s2b`, `slot_editor_live_commit`,
+`w3e_slot_commit_ticks`. The plan's ST step is folded into each slice (behaviour gates, re-pins as code moves).
+
 ## Recent (2026-11-19) — another site picked: DOOR refuses to change or send Rexdale's data (multi-site plan G1, `v31-standard.108`)
 Slice G1 of `conc-kitchen-house/docs/HOUSE_MULTI_SITE_MENUS_PLAN_2026-11-18.md` (§2, §6). The menu, resident list,
 routing, swaps, special meals and rules live under storage keys with no site in them, and every published file is
