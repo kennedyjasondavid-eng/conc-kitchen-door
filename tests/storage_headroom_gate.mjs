@@ -132,11 +132,15 @@ test('still full: loud failure, false, no throw, nothing but the expendable copi
   assert.equal(ls._store.concMenuBase.length, 1000, 'the old value of the failed key is kept');
 });
 
-test('a cache key is never freed to make room for itself; an empty slot is skipped', () => {
-  const s = seed(); delete s.door_house_sites_cache;
-  const ls = fullStorage(s, used(s) + 100); const { sb } = sandbox(ls);
-  assert.equal(vm.runInContext("doorSetItemSafe('door_recipe_data_cache', 'r'.repeat(5000 + 3050))", sb), true);
-  assert.deepEqual(ls._removed, ['concRegistrySnapshot']);
+// Re-pinned 2026-11-19 (review fold P2): a kept-copy write frees nothing, so a cache refresh can never take
+// the Undo Generate snapshot or push the other big copy out; its own write just fails quietly.
+test('a kept copy never frees another key (not the undo snapshot, not the other copy)', () => {
+  for (const k of EXPECTED.filter(x => x !== 'concRegistrySnapshot')) {
+    const s = seed(); const ls = fullStorage(s, used(s) + 100); const { sb } = sandbox(ls);
+    assert.equal(vm.runInContext("doorSetItemSafe('" + k + "', 'r'.repeat(20000))", sb), false, k + ' write fails quietly');
+    assert.deepEqual(ls._removed, [], k + ': nothing freed');
+    assert.ok('concRegistrySnapshot' in ls._store, k + ': the undo snapshot stays');
+  }
 });
 
 test('DOOR writes its CODEX copies through doorSetItemSafe, and their readers fall back when the copy is gone', () => {

@@ -60,7 +60,9 @@ fix"). DOOR, EXPO, HUB and CODEX share one origin's localStorage, and Jason's de
   each, and stops once the write lands; each freed key is named on the console. Order: `door_recipe_data_cache` (CODEX
   recipe list; reader falls back to the built-in list), `door_house_sites_cache` (built-in registry copy),
   `concRegistrySnapshot` (the undo snapshot, as before), and last `door_shared_library_cache` (offline, Library-only
-  recipes and Option C kept allergens are hidden until the next fetch). Still full: loud, `false`, nothing else removed.
+  recipes and families a shared save added are missing until the next fetch). Still full: loud, `false`, nothing else removed.
+  A write of one of those copies frees nothing (review fold: a cache refresh never takes the Undo Generate snapshot or
+  pushes the other copy out); it fails quietly and is fetched again later.
 - **Only DOOR's own keys** (§2: each app frees what it writes). `door_routing_cache`, `door_menu_rexdale_current_cache`
   and `door_recipe_prod_records_cache` are HUB's despite the prefix (written and read only by HUB), so they are left for
   HUB's slice S1-U. Working data (outbox, menu base, upload, overlay, change log, registry, rules, key) is never listed.

@@ -8217,8 +8217,9 @@ async function doorConnectCardSubmit() {
 // retrying the write after each, and stops as soon as it lands. Only keys DOOR itself
 // writes are listed: a kept copy of a published file whose reader falls back on the
 // next fetch (the CODEX recipe list, the HOUSE site registry), then the pre-Generate
-// undo snapshot, and LAST the shared Library copy (offline, Library-only recipes and
-// Option C kept allergens are hidden until the next fetch). Working data (the outbox,
+// undo snapshot, and LAST the shared Library copy (offline, recipes only the shared
+// Library adds and families a shared save added are missing until the next fetch; with
+// the recipe copy freed an offline computer reads the list built into the page). Working data (the outbox,
 // menu base, upload, overlay, change log, registry, residents, rules, connection key)
 // and every other app key (door_routing_cache and the other HUB caches included) are
 // never listed. Still full: loud on the console, return false, nothing else removed.
@@ -8235,7 +8236,10 @@ function doorSetItemSafe(key, value) {
   try { localStorage.setItem(key, value); return true; }
   catch (e) {
     let lastErr = e;
-    for (let i = 0; i < DOOR_EXPENDABLE_KEYS.length; i++) {
+    // Review fold 2026-11-19: a kept copy never frees another key (not the undo snapshot,
+    // not the other copy); its own write just fails quietly and is fetched again later.
+    const writingCopy = DOOR_EXPENDABLE_KEYS.indexOf(key) !== -1;
+    for (let i = 0; !writingCopy && i < DOOR_EXPENDABLE_KEYS.length; i++) {
       const k = DOOR_EXPENDABLE_KEYS[i];
       if (k === key) continue;
       let held = null;
