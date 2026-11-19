@@ -53,6 +53,28 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — another site picked: DOOR refuses to change or send Rexdale's data (multi-site plan G1, `v31-standard.108`)
+Slice G1 of `conc-kitchen-house/docs/HOUSE_MULTI_SITE_MENUS_PLAN_2026-11-18.md` (§2, §6). The menu, resident list,
+routing, swaps, special meals and rules live under storage keys with no site in them, and every published file is
+stamped `rexdale`, so editing with Lansdowne picked overwrote Rexdale's files with no warning.
+- **One check, one message:** `doorSiteEditable()` reads the picked site through the HOUSE registry (`doorHouseSiteFor`,
+  key or alias, any case); only Rexdale is editable. `doorSiteGuard()` refuses with `DOOR_SITE_GUARD_COPY` ("DOOR's
+  published menu and resident list are Rexdale's. Switch to Rexdale to change them. Other sites' menus come later.") and
+  turns the banner red; `#door-site-guard-banner` shows quietly while another site is picked.
+- **Refused first, before anything is read or written:** 57 actions found through the callers of every storage writer
+  and the publisher: Edit Menu save (and its writers), Edit Flags, Make Permanent, swaps (apply, revert, clear, Swap two
+  meals), special meals, Use the published one, Rex's week sheet, Menu Config upload, Send to the kitchen, Enter
+  Changes (queue, edit, direct save), Generate and Undo Generate, the resident-list import and Needs Review answers, the
+  Intake Portal, the anaphylactic list, notes and compliance actions, revert a resident, seed from roster, ↩ Undo Last,
+  and Settings' allergen and routing rules.
+- **Sends:** the publisher skips with reason `other_site` before any read (the outbox keeps the work; the device banner
+  names it); the outbox drain and side publishes send nothing; `ghPushFile` / `ghPushFilesAtomic` refuse as a backstop.
+  Incoming syncs, reading, viewing and printing are unchanged; the picker still changes paths, labels and notes; nothing
+  published, no `_meta.version` or schema changes.
+- **Gates:** `tests/site_guard_g1_gate.mjs` (5, red 5/5 on `main` `7f8483b`) and browser `tests/browser/site_guard_g1.mjs`
+  (10, in CI, red on `main`: with Lansdowne picked every action refuses in words, no storage key changes, no file is
+  written, a send skips as `other_site` and stays in the outbox; back on Rexdale the same actions work). Made-up residents only.
+
 ## Recent (2026-11-19) — a typed dish says what it contains (redesign S3, `v31-standard.107`)
 D2, Jason 2026-11-19: "Follow lean". A typed dish (no recipe) is answered when someone said what it contains
 (`declared: true`, which "Nothing to declare" sets) or when it carries an allergen tick (`doorTypedDishUnanswered`;
