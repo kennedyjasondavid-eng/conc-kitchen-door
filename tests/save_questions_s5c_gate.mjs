@@ -87,15 +87,28 @@ test('S5c-5 a new anaphylactic conflict is a red question before the halal quest
   assert.match(fn('doorAsk'), /if \(o\.danger\) h\.style\.color = 'var\(--danger-ink, #991b1b\)';/);
 });
 
-test('S5c-6 splitting a box is not a changed dish, so it does not bring the soft-plate question (U1 review, 2026-11-19)', () => {
-  const c = { mcMenuEditKey: '1-FRIDAY-dinner', MEAL_SLOT_STATE: { main: { manual: 'Pork Adobo & Garlic Green Bean' }, starch: { manual: 'Rice' } }, _slotText: (s) => (s && (s.displayText || s.recipeName || s.manual)) || '' };
+test('S5c-6 splitting a side box is not a changed dish; moving a dish to another plate or changing a line version is (U1 review, 2026-11-19)', () => {
+  // A side box split in two ("Fruit & Chips"): every plate keeps the same dishes. (A dish split out of the main box
+  // becomes a shared side, so the vegan and halal plates gain it in the data: that still asks, the safe side.)
+  const c = { mcMenuEditKey: '4-MONDAY-lunch', MEAL_SLOT_STATE: { main: { manual: 'Pork Adobo' }, starch: { manual: 'Rice' }, xtra: { manual: 'Fruit & Chips' } }, _slotText: (s) => (s && (s.displayText || s.recipeName || s.manual)) || '' };
   vm.createContext(c);
-  vm.runInContext(['var _doorSaveAskAtOpen = null;', 'const DOOR_EDITOR_MEAT_DETECT = [];', fn('doorEditorDetectMeat'), fn('doorSaveAskSnapshot'), fn('doorDishesChangedSinceOpen')].join('\n'), c);
+  const html2 = html;
+  const constLine = (name) => { const i = html2.indexOf('const ' + name + ' = '); return i < 0 ? '' : html2.slice(i, html2.indexOf(';\n', i) + 2); };
+  vm.runInContext(['var _doorSaveAskAtOpen = null;', 'const DOOR_EDITOR_MEAT_DETECT = [];', constLine('DOOR_LINE_SIDE_IDS'), constLine('DOOR_LINE_EXTRAS'), fn('doorLinePieces'), fn('doorEditorDetectMeat'), fn('doorSaveAskSnapshot'), fn('doorDishesChangedSinceOpen')].join('\n'), c);
   vm.runInContext('_doorSaveAskAtOpen = doorSaveAskSnapshot();', c);
-  c.MEAL_SLOT_STATE.main = { manual: 'Pork Adobo' };
-  c.MEAL_SLOT_STATE.vegside = { manual: 'Garlic Green Bean' };
+  c.MEAL_SLOT_STATE.xtra = { manual: 'Fruit' };
+  c.MEAL_SLOT_STATE.vegside = { manual: 'Chips' };
   assert.equal(c.doorDishesChangedSinceOpen(), false, 'the same dishes in more boxes');
   c.MEAL_SLOT_STATE.vegside = { manual: 'Steamed Kale' };
   assert.equal(c.doorDishesChangedSinceOpen(), true, 'a dish changed');
+  // Review fold: a dish moved to another plate, or a line version changed, is a change.
+  const reset = () => { c.MEAL_SLOT_STATE = { main: { manual: 'Pork Adobo' }, starch: { manual: 'Rice' }, vegside: { manual: 'Garlic Green Bean' } };
+    vm.runInContext('_doorSaveAskAtOpen = doorSaveAskSnapshot();', c); };
+  reset(); delete c.MEAL_SLOT_STATE.starch; c.MEAL_SLOT_STATE.vegextras = { manual: 'Rice' };
+  assert.equal(c.doorDishesChangedSinceOpen(), true, 'rice moved from the regular plate to the vegan plate only');
+  reset(); c.MEAL_SLOT_STATE.starch = { manual: 'Rice', lines: { halal: { mode: 'none' } } };
+  assert.equal(c.doorDishesChangedSinceOpen(), true, 'the halal plate stops getting the rice');
+  reset(); c.MEAL_SLOT_STATE.starch = { manual: 'Rice', lines: { halal: { mode: 'swap', manual: 'Couscous' } } };
+  assert.equal(c.doorDishesChangedSinceOpen(), true, 'the halal plate gets couscous instead');
 });
 

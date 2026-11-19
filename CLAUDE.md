@@ -53,14 +53,20 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-11-19) — splitting a dish box no longer asks the soft-plate question (`v31-standard.119`)
-Found by the U1 data review. Save asks the soft-plate question only when a dish changed. It compared box contents, so
-moving "Garlic Green Bean" out of the main box into its own read as a change. With a soft resident on the list, Save
-then asked "No soft or plain alternative?", and its main button marks the meal "no soft plate needed". On Wk1 FRI
-dinner, a pork meal, that quietly changes where soft residents eat.
-- **Now:** `doorDishesChangedSinceOpen` compares the meal's dishes, whichever box holds them (`doorSaveAskSnapshot`
-  `pieces`). A dish added, taken out or renamed still asks.
-- **Checks:** node `save_questions_s5c_gate` S5c-6 and browser `save_questions_s5c` (14), both red on `main`.
+## Recent (2026-11-19) — splitting a side box no longer asks the soft-plate question (`v31-standard.119`)
+Found by the U1 data review. Save asks the soft-plate question only when a dish changed, and it compared box contents. So
+splitting one box into two read as a changed dish. Its main button marks the meal "no soft plate needed".
+- **Now:** `doorDishesChangedSinceOpen` compares one set of dishes per plate (`doorSaveAskSnapshot` `pieces`): the
+  regular plate's boxes, the halal and no-pork mains, and the vegan and halal lines (`doorLinePieces`, line versions
+  included).
+- **Does not ask:** splitting a side box that every plate shares.
+- **Still asks:** a dish moved to another plate, a vegan or halal line version changed, a dish added, taken out or
+  renamed. It also asks for a dish split out of the main box: it becomes a shared side, so the vegan and halal plates
+  gain it in the data, which is the safe side.
+- **Independent review (FIX FIRST), folded:** the first cut pooled every box and dropped the line versions.
+- **Checks:** node `save_questions_s5c_gate` S5c-6 (a side split, a move between plates, two halal line changes) and
+  browser `save_questions_s5c` (14), red on `main`.
+
 ## Recent (2026-11-19) — U1 through the new editor: combined boxes split, the vegan plate without tzatziki (data, publication 39)
 D9, Jason 2026-11-19: "Follow lean on D9". Both walkthrough calls: "Follow lean".
 - **How:** made through DOOR's own meal view and Save, then one publish through DOOR's publisher. It ran against an
