@@ -18,5 +18,9 @@ test('S8-2 each plate says how many residents get it, and what happens when it i
   assert.match(f, /' get' \+ \(n === 1 \? 's' : ''\) \+ ' this plate/);
   assert.match(f, /DOOR_KITCHEN_ALT_NOT_MADE\[o\.target\]/);
   for (const gone of ['Draft routing', 'existing fallback', 'CODEX declarations', 'requirement group', 'Restriction-specific plates']) assert.ok(!html.includes(gone), gone);
-  for (const k of ['gfAlt', 'diabeticAlt', 'noDairyAlt', 'noEggAlt', 'blandAlt', 'anaphAlt']) assert.match(html, new RegExp('\\b' + k + ": 'Not made: "));
+  for (const k of ['diabeticAlt', 'noDairyAlt', 'noEggAlt', 'blandAlt']) assert.match(html, new RegExp('\\b' + k + ": 'Not made: "));
+  // Review fold: a plate with a fallback the sheet prints says so in the sheet's own terms.
+  assert.match(html, /gfAlt: 'Not named: gluten-free residents get the house plate \(Plain Roasted Chicken, Plain Rice & Stir-fried Veg\)\.'/);
+  assert.match(html, /anaphAlt: 'Not named: the plating sheet stays NOT READY until the separate anaphylactic meal is named\.'/);
+  assert.match(fn('doorMenuDraftSignature'), /\.filter\(e => e\.id !== 'mc-kalt-add-select'\)/, 'the add-plate picker is not part of the meal');
 });

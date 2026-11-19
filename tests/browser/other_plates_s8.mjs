@@ -12,6 +12,7 @@ const menu = JSON.parse(fs.readFileSync('menu_current.json', 'utf8')).menu;
 const overlay = JSON.parse(fs.readFileSync('menu_overlay.json', 'utf8'));
 const TAGS = [['Regular'], ['GF'], ['GF'], ['Diabetic'], ['Low Carb'], ['No Dairy'], ['Lactose Intolerant'], ['No Eggs'], ['No Spicy'], ['Vegan'], ['Halal'], ['GF', 'No Dairy']];
 const RES = TAGS.map((tags, i) => ({ room: String(200 + i) + 'z', tags, rawRestriction: tags.join(', ') }));
+RES.push({ room: '901z', tags: ['No Eggs'], rawRestriction: 'No Eggs', isAnaph: true, anaphTags: ['noEggs'] });
 const browser = await chromium.launch();
 const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 p.on('pageerror', (e) => errors.push(e.message));
@@ -26,6 +27,7 @@ await p.waitForFunction(() => typeof openMenuEdit === 'function');
 try {
   const r = await p.evaluate((res) => {
     REGISTRY_LIST.length = 0; res.forEach((x) => REGISTRY_LIST.push(x));
+    anaphRooms = res.filter((x) => x.isAnaph).map((x) => x.room);
     showScreen('menu-config');
     const out = { meals: [] };
     const KEYS = { gfAlt: 'gf', diabeticAlt: 'diabetic', noDairyAlt: 'no_dairy', noEggAlt: 'no_egg', blandAlt: 'bland' };
@@ -33,7 +35,10 @@ try {
       openMenuEdit(wk, day, 'lunch');
       updateSlotSummary();
       const d = getMenuData()[String(wk)][day];
-      const stored = Object.keys(DOOR_KITCHEN_ALT_LABELS).filter((k) => String(d['lunch_' + k] || '').trim());
+      // Review fold: the anaphylactic and gluten-free plates show whenever residents get them, named or not.
+      const pdA = computePlatingData('lunch', wk, day, REGISTRY_LIST);
+      const gfOn = !!(pdA.sections.find((s) => s.rule.key === 'gf') || { residents: [] }).residents.length;
+      const stored = Object.keys(DOOR_KITCHEN_ALT_LABELS).filter((k) => String(d['lunch_' + k] || '').trim() || (k === 'anaphAlt' && (pdA.anaphSect || []).length) || (k === 'gfAlt' && gfOn));
       const shown = [...document.querySelectorAll('.mc-kalt-row')].filter((row) => row.style.display !== 'none').map((row) => row.dataset.kalt);
       const pd = computePlatingData('lunch', wk, day, REGISTRY_LIST);
       const counts = shown.filter((k) => KEYS[k]).map((k) => {
@@ -53,6 +58,23 @@ try {
     out.added = { key: hidden.dataset.kalt, nowShown: hidden.style.display !== 'none', focused: document.activeElement && document.activeElement.id === 'mc-kalt-' + hidden.dataset.kalt,
       stillOffered: [...document.querySelectorAll('#mc-kalt-add-select option')].some((o) => o.value === hidden.dataset.kalt) };
     closeMenuEdit(true);
+    // Review fold (P1): an egg-anaphylactic resident on an egg lunch with no anaphylactic plate named.
+    openMenuEdit(1, 'MONDAY', 'lunch'); updateSlotSummary();
+    const arow = document.querySelector('.mc-kalt-row[data-kalt="anaphAlt"]');
+    const afb = (document.getElementById('door-alt-feedback-anaphAlt') || {}).textContent || '';
+    const notMade = (document.getElementById('mc-kalt-add') || {}).textContent || '';
+    const gfb = (document.getElementById('door-alt-feedback-gfAlt') || {}).textContent || '';
+    out.anaph = { shown: arow && arow.style.display !== 'none', afb, notMadeLists: /Not made now:.*Anaphylactic/.test(notMade), gfb, gfShown: document.querySelector('.mc-kalt-row[data-kalt="gfAlt"]').style.display !== 'none' };
+    // Review fold (P2-3): adding every hidden plate with nothing typed leaves the meal unchanged.
+    const hiddenKeys = [...document.querySelectorAll('.mc-kalt-row')].filter((row) => row.style.display === 'none').map((row) => row.dataset.kalt);
+    hiddenKeys.forEach((k) => doorAddPlateRow(k));
+    updateSlotSummary();
+    out.anaph.dirtyAfterAdd = doorMenuDraftIsDirty();
+    // Review fold (P2-2): a plate not made counts the residents who would get it.
+    const notMadeKey = hiddenKeys.find((k) => k !== 'anaphAlt' && k !== 'gfAlt');
+    const dfb = notMadeKey ? ((document.getElementById('door-alt-feedback-' + notMadeKey) || {}).textContent || '') : 'none hidden';
+    out.anaph.dfb = dfb;
+    closeMenuEdit(true);
     openMenuEdit(1, 'MONDAY', 'breakfast');
     out.bk = document.getElementById('mc-kitchen-alts-title').textContent;
     closeMenuEdit(true);
@@ -66,6 +88,10 @@ try {
   }
   check('+ Add a plate for… shows that plate’s box, focused, and no longer offers it', r.added.nowShown && r.added.focused && !r.added.stillOffered, r.added);
   check('breakfast uses the same name', r.bk === 'Other plates the kitchen makes', r.bk);
+  check('a missing anaphylactic plate is shown, in the plating sheet’s words, and never listed as not made', r.anaph.shown && /901z/.test(r.anaph.afb) && /NOT READY/.test(r.anaph.afb) && !r.anaph.notMadeLists, r.anaph);
+  check('the house gluten-free plate is shown when gluten-free residents get it, with its dishes', r.anaph.gfShown && /house plate \(Plain Roasted Chicken, Plain Rice & Stir-fried Veg\)/.test(r.anaph.gfb), r.anaph);
+  check('a plate not made counts the residents who would get it', /\d+ residents? would get this plate/.test(r.anaph.dfb), r.anaph.dfb);
+  check('adding every hidden plate with nothing typed leaves the meal unchanged', r.anaph.dirtyAfterAdd === false, r.anaph);
   check('no page errors', errors.length === 0, errors.slice(0, 3));
 } finally { await browser.close(); }
 const passed = results.filter((x) => x.pass).length;

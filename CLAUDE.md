@@ -64,8 +64,19 @@ kitchen makes**, with one plain sentence on a plate not made (`doorFillKitchenAl
   check: …").
 - **Unchanged:** the box ids and what Save stores. Breakfast keeps today's fields until U3/C1's breakfast plates are
   built.
-- **Gates:** `tests/other_plates_s8_gate.mjs` (2) and browser `tests/browser/other_plates_s8.mjs` (15, in CI; made-up
-  residents).
+- **Independent review (FIX FIRST), folded:**
+  - P1: a missing anaphylactic plate was hidden and called normal. The row now shows whenever residents are contained,
+    in red, in the sheet's words ("stays NOT READY until … named").
+  - P2:
+    - the gluten-free fallback names the house plate the sheet prints, and its row shows when gluten-free residents
+      get it;
+    - a plate not made counts the residents who would get it (it always read 0);
+    - adding every hidden plate no longer marks an unchanged meal as changed.
+  - Noted:
+    - jargon left in the plain-plate picker ("clinical texture", "draft");
+    - the static help text at load.
+- **Gates:** `tests/other_plates_s8_gate.mjs` (2) and browser `tests/browser/other_plates_s8.mjs` (19, in CI; made-up
+  residents; the fold's checks red on the pre-fold build).
 - **Re-pinned with a dated note:** browser `plain_plate_options` (adds the Gluten free plate with + Add a plate for, and
   reads the new words).
 
