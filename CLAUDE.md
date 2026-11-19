@@ -53,6 +53,17 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Menu Config on phones, tablets and wide screens (redesign S7, `v31-standard.117`)
+- **On a phone (768 px or narrower) the Menu page** shows a day picker (`#mc-day-picker`, `mcSetPhoneDay`; today on the
+  current week) and that day's breakfast, lunch and dinner cards instead of the sideways week. Every day column is
+  tagged `mc-day-col`, and the picked one `mc-day-on`.
+- **The meal view** is full screen on a phone and a side panel on a wide screen (1200 px or wider), with the week still in
+  view at its left (`.mc-open`, `body.mc-meal-open`); the Save footer stays in view in both.
+- **On a phone or any touch screen**, the meal view's allergen pills (`.slot-pill`), clear (`.slot-clear`) and buttons are
+  at least 44 px. The Menu Config header leaves more room beside ☰.
+- **Gates:** `tests/phones_tablets_s7_gate.mjs` (3) and browser `tests/browser/phones_tablets_s7.mjs` (14, in CI): 390 and
+  320 px phones, an 820 px touch tablet, a 1280 px wide screen; red on the build before.
+
 ## Recent (2026-11-19) — the Menu page: no Edit mode, meal cards, and a More menu (redesign S6c, `v31-standard.116`)
 - **No Edit mode.** Its button, banner, state (`editMenuMode`) and toggle are gone, along with "Leave Edit Menu". A
   meal card opens the meal view, and so does the `#menu-config/edit/…` link.
