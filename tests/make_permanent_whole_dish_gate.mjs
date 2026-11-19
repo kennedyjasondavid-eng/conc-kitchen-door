@@ -104,7 +104,8 @@ function platingBox(menu) {
     fn('getVegAltAllergenStr'), fn('mergeVegAltAllergenFloor'), fn('getVegAltSlotAllergenStr'),
     between('const DOOR_DECLARED_FREE = ', '\n'), fn('stripDeclaredFreeAllergens'),
     'this.doorDatedMealFor = () => null;', PARTS_SRC, fnOpt('doorKitchenAlternatives'), fnOpt('doorAddKitchenPlateFlags'), fnOpt('doorRegularServiceNote'),
-    fn('getAltMeal'), fn('computePlatingData'),
+    fn('getAltMeal'), fn('doorPlateFacts'), fn('computePlatingData'),   // 2026-11-19 (Edit Menu redesign S2a): the plate facts moved into doorPlateFacts
+   
   ].join('\n'), c, { filename: 'index.html#make-permanent-plating', timeout: 30000 });
   return c;
 }
@@ -201,5 +202,6 @@ test('6. one list of a dish\'s parts: a swap drops the same ones, and DOOR reads
   vm.runInContext(fn('_restoreSlotSnapshot') + fn('getVegAltSlotAllergenStr'), r);
   assert.equal(r._restoreSlotSnapshot(null), false);
   assert.equal(r.getVegAltSlotAllergenStr(null), '');
-  assert.match(fn('computePlatingData'), /const mealMainItem\s+= dayData\[period\+'_mainItem'\] \|\| '';/, 'an empty main item is no main item');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2a): the plate facts moved, unchanged, into doorPlateFacts.
+  assert.match(fn('doorPlateFacts'), /const mealMainItem\s+= dayData\[period\+'_mainItem'\] \|\| '';/, 'an empty main item is no main item');
 });

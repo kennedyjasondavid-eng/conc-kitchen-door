@@ -207,7 +207,8 @@ function engine(weeks, feed) {
     html.includes('const DOOR_KITCHEN_ALT_FIELDS = ') ? lineOf('const DOOR_KITCHEN_ALT_FIELDS = ') : '',
     html.includes('const DOOR_DISH_PART_EMPTY = ') ? between('const DOOR_DISH_PART_EMPTY = ', '\nfunction doorEmptyDishParts(') + '\n' : '',
     fnOpt('doorKitchenAlternatives'), fnOpt('doorAddKitchenPlateFlags'), fnOpt('doorRegularServiceNote'),
-    fn('computePlatingData'),
+    fn('doorPlateFacts'), fn('computePlatingData'),   // 2026-11-19 (Edit Menu redesign S2a): the plate facts moved into doorPlateFacts
+   
   ].join('\n'), c, { filename: 'index.html#w1b-engine', timeout: 30000 });
   const byRoom = Object.fromEntries(state.residents.map((r) => [r.room, r]));
   const out = {};

@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.104';
+const DOOR_APP_VERSION = 'v31-standard.105';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -26044,15 +26044,15 @@ const A = { // alignment presets
 // ── P2 v26: Shared plating data computation ──────────────────────────────────
 // Single source of truth for both preview and xlsx generation.
 // Eliminates divergence between renderPlatingPreview and buildDaySheet.
-function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, rooms) {
-  const dayLabel = dayName.charAt(0) + dayName.slice(1).toLowerCase();
-  const wkData = getMenuData()[String(weekNum)];
-  // The slot's next service may be a swap or a special meal (2026-10-18, Jason: "Yes, and the routing file too"): the
-  // sheet routes that meal, and says so (pd.dated).
-  const dated = doorDatedMealFor(weekNum, dayName, period);
-  const dayData = wkData && dated ? doorApplyDatedMeal(wkData[dayName], period, dated) : (wkData ? wkData[dayName] : null);
+// S2a (Edit Menu redesign, 2026-11-19): the plate facts of one meal, lifted out of computePlatingData unchanged so the
+// plating sheet, the routing file and the editor read one owner: each plate's dishes and CONTAINS line, the dishes whose
+// label is not checked, and the plate flags computeSections routes on (kitchen alternatives, soft plates, whether the
+// vegan plate is egg and mustard free). Pure over its inputs: dayData is the day as it will be served (the caller decides
+// whether a swap or special meal applies; opts.dated says which one did), opts.menuEdit an operator vegan statement.
+// No resident is read here.
+function doorPlateFacts(dayData, period, opts) {
   if (!dayData || !dayData[period]) return null;
-
+  const dated = (opts && opts.dated) || null;
   const mealMainItem  = dayData[period+'_mainItem'] || '';
   const mealMainAlt   = dayData[period+'_mainAlt'] || '';
   const mealSides     = dayData[period+'_sides'] || '';
@@ -26097,7 +26097,7 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
 
   // Allergen string — flags-first, fallback to hardcoded
   // An operator's vegan-line statement belongs to the rotation meal's vegan line, not a swap's.
-  const menuEdit = !dated && typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
+  const menuEdit = (opts && opts.menuEdit) || null;
   const flagBasedAllergens = flagsToAllergenStr(mealFlags);
   const allergenStr = flagBasedAllergens
     ? flagBasedAllergens.toUpperCase()
@@ -26125,6 +26125,71 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
     || mergeVegAltAllergenFloor(mergeVegAltAllergenFloor(vegAllergenLookup, vegAllergenSlots), vegAllergenFallback)
     || null;
 
+  // v30: Attach noPorkAlt to mealFlags so computeSections can use it for No Pork split
+  if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
+  // The kitchen's alternatives (2026-10-19, the plating review): which plates the meal has.
+  const mealKitchenAlts = doorKitchenAlternatives(dayData, period);
+  doorAddKitchenPlateFlags(mealFlags, dayData, period);
+  // C2: the dishes on each plate whose label is not checked. Not enumerable, so no copy, count or published file reads it.
+  const plateLabels = typeof doorPlatesLabelUnchecked === 'function' ? doorPlatesLabelUnchecked(dayData, period, dated, {
+    regular: typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(dayData[period]) : [],
+    vegan: vegLookupUnchecked.concat(typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(mealVeg) : []),
+    halal: typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(mealHalal) : [] }) : null;
+  if (plateLabels) Object.defineProperty(mealFlags, '_labelUnchecked', { value: plateLabels, enumerable: false, configurable: true });
+  // Smart no-egg: check if veg alt is egg/mustard-free from allergen string
+  const vegAllergenCheck = (vegAllergenStr || '').toUpperCase();
+  mealFlags._vegAltSafe = !vegAllergenCheck || (!/EGG/i.test(vegAllergenCheck) && !/MUSTARD/i.test(vegAllergenCheck));
+  // Review fold (2026-11-18): a vegan plate holding a dish whose label is not checked (or checked since and not saved) is
+  // not known to be egg or mustard free, so No Egg / Mustard residents are not moved onto it.
+  if (plateLabels && plateLabels.vegan && plateLabels.vegan.length) mealFlags._vegAltSafe = false;
+  const mealAltMeals = dayData[period+'_altMeals'] || [];
+  mealFlags._altMeals = mealAltMeals;
+  const mealGfAlt = dayData[period+'_gfAlt'] || '';
+  // Call 4 (2026-11-19, Jason: "Follow lean"): the plates of a breakfast that serve dairy yoghurt. A No Dairy or Lactose
+  // Intolerant resident on one reads "dairy-free: vegan yoghurt" (the Silk coconut yoghurt CODEX lists as Vegan yoghurt).
+  // Not enumerable, so no copy, count or published file reads it.
+  if (period === 'breakfast' && typeof doorYoghurtPlates === 'function') {
+    Object.defineProperty(mealFlags, '_yoghurtPlates', { value: doorYoghurtPlates(dayData, period, mealVeg, mealHalal), enumerable: false, configurable: true });
+  }
+  // The halal plate's own allergens (2026-10-18, the routing audit; the line reads the plate eaten): the dish set on its
+  // slot (a linked recipe, or a typed dish's tags) and the shared sides, over the main meal's allergens without its pork
+  // as a floor, as the vegan line does. Its section printed no CONTAINS, and its rows read the main meal only, so a
+  // Halal + No Eggs resident was given Wk2 SAT's halal breaded chicken burger (egg) with nothing said.
+  const halalSlots = dayData[period + '_slots'];
+  const halalAllergenStr = (halalSlots && halalSlots.mainalt && (halalSlots.mainalt.recipeName || halalSlots.mainalt.manual))
+    ? mergeVegAltAllergenFloor(getVegAltSlotAllergenStr(halalSlots, ['mainalt', 'starch', 'vegside', 'xtra']),
+        flagsToAllergenStr({ ...mealFlags, hasPork: false }).toUpperCase())
+        // the halal plate has no pork, whatever a slot's copied ticks say (Wk4 FRI's "Tandoori Chicken" carries hasPork)
+        .split(',').map(t => t.trim()).filter(t => t && t.toUpperCase() !== 'PORK').join(', ') || null
+    : null;
+  return {
+    mealName, mealVeg, mealHalal, mealMainItem, mealMainAlt, mealSides, mealSoftAlt, mealNoPorkAlt, mealAltMealsNone,
+    mealAltMeals, mealFlags, mealKitchenAlts, mealGfAlt, plateLabels, allergenStr, vegAllergenStr, halalAllergenStr
+  };
+}
+// S2a: the plate facts of a rotation slot. With noDated, the every-week meal even when its next service is a swap or a
+// special meal, so a preview of an every-week change never compares a swap with itself.
+function doorPlateFactsFor(weekNum, dayName, period, opts) {
+  const wkData = getMenuData()[String(weekNum)];
+  const dated = opts && opts.noDated ? null : doorDatedMealFor(weekNum, dayName, period);
+  const dayData = wkData && dated ? doorApplyDatedMeal(wkData[dayName], period, dated) : (wkData ? wkData[dayName] : null);
+  const menuEdit = !dated && typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
+  return doorPlateFacts(dayData, period, { dated, menuEdit });
+}
+
+function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, rooms) {
+  const dayLabel = dayName.charAt(0) + dayName.slice(1).toLowerCase();
+  const wkData = getMenuData()[String(weekNum)];
+  // The slot's next service may be a swap or a special meal (2026-10-18, Jason: "Yes, and the routing file too"): the
+  // sheet routes that meal, and says so (pd.dated).
+  const dated = doorDatedMealFor(weekNum, dayName, period);
+  const dayData = wkData && dated ? doorApplyDatedMeal(wkData[dayName], period, dated) : (wkData ? wkData[dayName] : null);
+  if (!dayData || !dayData[period]) return null;
+  const menuEditForSlot = !dated && typeof getMenuEdit !== 'undefined' ? getMenuEdit(weekNum, dayName, period) : null;
+  const facts = doorPlateFacts(dayData, period, { dated, menuEdit: menuEditForSlot });
+  const { mealName, mealVeg, mealHalal, mealMainItem, mealMainAlt, mealSides, mealSoftAlt, mealNoPorkAlt, mealAltMealsNone,
+    mealAltMeals, mealFlags, mealKitchenAlts, mealGfAlt, plateLabels, allergenStr, vegAllergenStr, halalAllergenStr } = facts;
+
   // Anaphylactic conflict detection
   const emptyFlags = {hasDairy:false,hasGluten:false,hasPork:false,hasBeef:false,hasChicken:false,hasTurkey:false,hasFish:false,hasEgg:false,hasPeanuts:false,isSpicy:false,isCarb:false,hasCoconut:false,hasMushroom:false,hasBrassicas:false,hasCorn:false,hasNightshades:false,hasBeans:false,hasTreeNuts:false,hasShellfish:false,hasMustard:false,hasSulphites:false};
   const conflictCheckFlags = mealFlags;
@@ -26149,26 +26214,6 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
   });
   anaphSect.sort(sortR);
 
-  // v30: Attach noPorkAlt to mealFlags so computeSections can use it for No Pork split
-  if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
-  // The kitchen's alternatives (2026-10-19, the plating review): which plates the meal has.
-  const mealKitchenAlts = doorKitchenAlternatives(dayData, period);
-  doorAddKitchenPlateFlags(mealFlags, dayData, period);
-  // C2: the dishes on each plate whose label is not checked. Not enumerable, so no copy, count or published file reads it.
-  const plateLabels = typeof doorPlatesLabelUnchecked === 'function' ? doorPlatesLabelUnchecked(dayData, period, dated, {
-    regular: typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(dayData[period]) : [],
-    vegan: vegLookupUnchecked.concat(typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(mealVeg) : []),
-    halal: typeof doorTextUncheckedDishes === 'function' ? doorTextUncheckedDishes(mealHalal) : [] }) : null;
-  if (plateLabels) Object.defineProperty(mealFlags, '_labelUnchecked', { value: plateLabels, enumerable: false, configurable: true });
-  // Smart no-egg: check if veg alt is egg/mustard-free from allergen string
-  const vegAllergenCheck = (vegAllergenStr || '').toUpperCase();
-  mealFlags._vegAltSafe = !vegAllergenCheck || (!/EGG/i.test(vegAllergenCheck) && !/MUSTARD/i.test(vegAllergenCheck));
-  // Review fold (2026-11-18): a vegan plate holding a dish whose label is not checked (or checked since and not saved) is
-  // not known to be egg or mustard free, so No Egg / Mustard residents are not moved onto it.
-  if (plateLabels && plateLabels.vegan && plateLabels.vegan.length) mealFlags._vegAltSafe = false;
-  const mealAltMeals = dayData[period+'_altMeals'] || [];
-  mealFlags._altMeals = mealAltMeals;
-
   // Compute dynamic sections — using routingRegistry (anaph residents excluded)
   const sections = computeSections(mealFlags, routingRegistry);
   const regularSection = sections.find(s => s.rule.key === 'regular');
@@ -26176,24 +26221,6 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
   const halalCount = sections.filter(s=>s.rule.key==='halal').reduce((sum,s)=>sum+s.residents.length,0);
   const veganCount = sections.filter(s=>s.rule.key==='vegan').reduce((sum,s)=>sum+s.residents.length,0);
   const diabCount = registry.filter(r => (r.tags||[]).includes('Diabetic')).length;
-  const mealGfAlt = dayData[period+'_gfAlt'] || '';
-  // Call 4 (2026-11-19, Jason: "Follow lean"): the plates of a breakfast that serve dairy yoghurt. A No Dairy or Lactose
-  // Intolerant resident on one reads "dairy-free: vegan yoghurt" (the Silk coconut yoghurt CODEX lists as Vegan yoghurt).
-  // Not enumerable, so no copy, count or published file reads it.
-  if (period === 'breakfast' && typeof doorYoghurtPlates === 'function') {
-    Object.defineProperty(mealFlags, '_yoghurtPlates', { value: doorYoghurtPlates(dayData, period, mealVeg, mealHalal), enumerable: false, configurable: true });
-  }
-  // The halal plate's own allergens (2026-10-18, the routing audit; the line reads the plate eaten): the dish set on its
-  // slot (a linked recipe, or a typed dish's tags) and the shared sides, over the main meal's allergens without its pork
-  // as a floor, as the vegan line does. Its section printed no CONTAINS, and its rows read the main meal only, so a
-  // Halal + No Eggs resident was given Wk2 SAT's halal breaded chicken burger (egg) with nothing said.
-  const halalSlots = dayData[period + '_slots'];
-  const halalAllergenStr = (halalSlots && halalSlots.mainalt && (halalSlots.mainalt.recipeName || halalSlots.mainalt.manual))
-    ? mergeVegAltAllergenFloor(getVegAltSlotAllergenStr(halalSlots, ['mainalt', 'starch', 'vegside', 'xtra']),
-        flagsToAllergenStr({ ...mealFlags, hasPork: false }).toUpperCase())
-        // the halal plate has no pork, whatever a slot's copied ticks say (Wk4 FRI's "Tandoori Chicken" carries hasPork)
-        .split(',').map(t => t.trim()).filter(t => t && t.toUpperCase() !== 'PORK').join(', ') || null
-    : null;
   const ctx = {mealName, mealVeg, allergenStr, softAlt: mealSoftAlt, altMeals: mealAltMeals, altMealsNone: mealAltMealsNone, noPorkAlt: mealNoPorkAlt, mainAlt: mealMainAlt, mainItem: mealMainItem, sides: mealSides, mealFlags, _gfAlt: mealGfAlt, halalAllergenStr, noPorkAllergenStr: null, mealHalal: mealHalal, ...mealKitchenAlts};
 
   // v31: Regular-with-notes — find Regular residents with active conflicts or service notes

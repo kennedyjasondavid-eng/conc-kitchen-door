@@ -156,7 +156,8 @@ test('7. on every published meal the plates open as the kitchen’s alternatives
   const residents = [...copy(regressionResidents), syntheticResident('case_diabetic', ['Diabetic']), syntheticResident('case_dairy', ['No Dairy'])];
   assert.equal(typeof c.doorAddKitchenPlateFlags, 'function', 'doorAddKitchenPlateFlags');
   // The sheet, the routing file's fallback and the menu screens' previews all read a meal's plates through it.
-  assert.match(fn('computePlatingData'), /doorAddKitchenPlateFlags\(mealFlags, dayData, period\);/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2a): the plate facts moved, unchanged, into doorPlateFacts.
+  assert.match(fn('doorPlateFacts'), /doorAddKitchenPlateFlags\(mealFlags, dayData, period\);/);
   assert.match(fn('buildRoutingByMealJSON'), /const mealFlags = doorAddKitchenPlateFlags\(\{ \.\.\.\(dayData\[period\+'_flags'\] \|\| emptyFlags\) \}, dayData, period\);/);
   assert.match(fn('openMealEdit'), /renderRoutingTab\(doorAddKitchenPlateFlags\(\{ \.\.\.flags \}, dayData, period\), currentVeg\);/);
   assert.match(fn('updateEditFlagsPreview'), /doorAddKitchenPlateFlags\(flags, /);

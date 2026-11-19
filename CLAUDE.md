@@ -53,6 +53,16 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — one function for a plate's facts (redesign S2a, `v31-standard.105`)
+The plate part of `computePlatingData` moved, unchanged, into `doorPlateFacts(dayData, period, { dated, menuEdit })`
+(reads no resident); `doorPlateFactsFor(week, day, period, { noDated })` plates the every-week meal on a swap date. The
+editor's summary (S2b) and What changes (S5b) will read it, so a preview can't disagree with the sheet. Proof: all 84
+meals' plating data, sheet HTML, workbook sheets and `routing_by_meal.json` byte-identical on today's data
+(`docs/receipts/door_plate_facts_s2a_2026-11-19.md`). Gate `tests/plate_facts_s2a_gate.mjs` (3), red 3/3 on `main`.
+Re-pinned with dated notes (the sandboxes load the new function): `door_rules_plates_d2b`, `label_unchecked`,
+`make_permanent_whole_dish`, `restore_original`, `routing_replay`, `w1b_safe_side_ticks`, `yoghurt_swap`,
+`kitchen_alternatives`, `vegan_plate_dishes`, helper `corn_gate_runtime`.
+
 ## Recent (2026-11-19) — Edit Menu's search finds the recipe, never one a plate refuses (redesign S1, `v31-standard.104`)
 Plan `docs/DOOR_MENU_EDIT_REDESIGN_PLAN_2026-11-19.md` (status owner); D7, Jason 2026-11-19: "Follow lean".
 - Any words in any order (`doorRecipeMatchRank` rank 4: "pork adobo" finds "Adobo Pork/Chicken/Tofu (…)"). A regular

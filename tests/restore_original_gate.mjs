@@ -146,7 +146,8 @@ function platingBox(menu) {
     fn('getVegAltAllergenStr'), fn('mergeVegAltAllergenFloor'), fn('getVegAltSlotAllergenStr'),
     between('const DOOR_DECLARED_FREE = ', '\n'), fn('stripDeclaredFreeAllergens'),
     'this.doorDatedMealFor = () => null;', PARTS_SRC, fn('doorKitchenAlternatives'), fn('doorAddKitchenPlateFlags'), fn('doorRegularServiceNote'),
-    fn('getAltMeal'), fn('computePlatingData'),
+    fn('getAltMeal'), fn('doorPlateFacts'), fn('computePlatingData'),   // 2026-11-19 (Edit Menu redesign S2a): the plate facts moved into doorPlateFacts
+   
   ].join('\n'), c, { filename: 'index.html#restore-original-plating', timeout: 30000 });
   return c;
 }
