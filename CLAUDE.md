@@ -56,14 +56,19 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 ## Recent (2026-11-19) — the Menu page: no Edit mode, meal cards, and a More menu (redesign S6c, `v31-standard.116`)
 - **No Edit mode.** Its button, banner, state (`editMenuMode`) and toggle are gone, along with "Leave Edit Menu". A
   meal card opens the meal view, and so does the `#menu-config/edit/…` link.
-- **Meal cards** show the dishes, how many allergens the meal holds ("3 allergens", with the list in the hover text) and
-  Spicy, instead of a chip per tick. Meat and routing marks are not counted (`DOOR_SUMMARY_SKIP`). The swap, special,
-  soft and "Changed today" marks stay.
+- **Meal cards** show the dishes; the families a cook scans for an anaphylaxis trigger, named in red (`MC_CARD_NAMED`:
+  Peanuts, Tree Nuts, Sesame, Fish, Shellfish); Pork; the rest as a count ("+3 allergens", the full list in the hover
+  text); and Spicy. This replaces a chip per tick. The swap, special, soft and "Changed today" marks stay.
 - **More** holds Swap two meals, Special meal, Rex's week sheet and Replace the whole menu from a file
-  (`details.mc-more`, closing after a choice or a click outside; the buttons keep their ids). The toolbar shows More
-  and Send to kitchen.
+  (`details.mc-more`, closing after a choice, a click outside or Escape; the buttons keep their ids; on a phone it
+  opens from the left edge, inside the screen). The toolbar shows More and Send to kitchen.
 - **Moved to S7:** the meal view as a side panel on a desktop and full screen on a phone.
-- **Gates:** `tests/menu_page_s6c_gate.mjs` (3) and browser `tests/browser/menu_page_s6c.mjs` (15, in CI).
+- **Gates:** `tests/menu_page_s6c_gate.mjs` (4) and browser `tests/browser/menu_page_s6c.mjs` (19, in CI).
+- **Independent review (FIX FIRST), folded:**
+  - P1: on a phone More opened off the left edge (from -129 px), so its items couldn't be read or tapped.
+  - P2: a card with peanuts read only "8 allergens"; the anaphylaxis families and Pork are now named.
+  - P3: Escape closes More.
+  - The fold's checks are red on the pre-fold build.
 - **Re-pinned with dated notes:** `menu_edit_deeplink` (no Edit mode to turn on), `phone_hidden_panels` (the banner
   went), `daily_entry_ask` (goHome asks one question), browser `rex_week_review` (opens More first).
 

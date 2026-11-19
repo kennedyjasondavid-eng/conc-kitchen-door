@@ -15,8 +15,14 @@ test('S6c-2 the rare tools are under one More menu, keeping their ids', () => {
   for (const want of ['id="mc-swap-slots-btn"', 'Swap two meals', 'openSpecialMealPanel()', 'Special meal', 'id="mc-rex-week-btn"', 'Rex’s week sheet', 'triggerMenuUpload()', 'Replace the whole menu from a file'])
     assert.ok(menu.includes(want), want);
 });
-test('S6c-3 a meal card shows the allergen count and Spicy, never the meat marks as allergens', () => {
-  assert.match(html, /const _allergenDefs = FLAG_DEFS\.filter\(f => activeFlags\[f\.key\] && !\(typeof DOOR_SUMMARY_SKIP !== 'undefined' && DOOR_SUMMARY_SKIP\[f\.key\]\)\);/);
+test('S6c-3 a meal card names the anaphylaxis families and Pork, counts the rest, and shows Spicy', () => {
+  assert.match(html, /const MC_CARD_NAMED = \['hasPeanuts', 'hasTreeNuts', 'hasSesame', 'hasFish', 'hasShellfish'\];/);
+  assert.match(html, /_named\.map\(f => _chip\(f\.label, f\.label, '#b91c1c'\)\)/);
+  assert.match(html, /activeFlags\.hasPork \? _chip\('Pork', 'Pork', '#7c3aed'\)/);
   assert.match(html, /_chip\('Spicy', 'Spicy', '#dc2626'\)/);
   assert.ok(!html.includes('if (false)'));
+});
+test('S6c-4 More opens inside the screen on a phone and closes on Escape', () => {
+  assert.match(html, /@media \(max-width: 768px\) \{ #screen-menu-config \.mc-more-menu \{ right:auto !important; left:0 !important; max-width:calc\(100vw - 32px\); \} \}/);
+  assert.match(html, /if \(e\.key !== 'Escape'\) return;/);
 });

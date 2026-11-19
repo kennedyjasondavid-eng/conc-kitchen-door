@@ -2028,6 +2028,7 @@ function updateCODEXBadge() {
     <div class="topbar-right">
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
       <!-- S6c (Edit Menu redesign): the tools a kitchen uses rarely, under one More menu. Edit mode is gone: click a meal. -->
+      <style>@media (max-width: 768px) { #screen-menu-config .mc-more-menu { right:auto !important; left:0 !important; max-width:calc(100vw - 32px); } }</style>
       <details class="mc-more" style="position:relative;">
         <summary class="btn btn-ghost btn-sm" style="list-style:none;cursor:pointer;">More ▾</summary>
         <div class="mc-more-menu" style="position:absolute;right:0;top:100%;z-index:60;min-width:240px;margin-top:4px;padding:6px;background:var(--paper);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.14);display:flex;flex-direction:column;gap:2px;">
@@ -15141,11 +15142,17 @@ function renderMenuConfig() {
       const mealVeg = swap ? (swap.veg || '') : (menuEdit ? (menuEdit.veg || '') : (dayData[period+'_veg'] || ''));
       const mealCellSoftAlt = dayData[period+'_softAlt'] || '';
 
-      // S6c: a card shows how many allergens the meal holds and whether it is spicy; the list is in the hover text and
-      // in the meal view. Meat and routing marks are not allergens (DOOR_SUMMARY_SKIP).
-      const _allergenDefs = FLAG_DEFS.filter(f => activeFlags[f.key] && !(typeof DOOR_SUMMARY_SKIP !== 'undefined' && DOOR_SUMMARY_SKIP[f.key]));
+      // S6c: a card names the allergens a cook scans for an anaphylaxis trigger (MC_CARD_NAMED: peanuts, tree nuts,
+      // sesame, fish, shellfish) in red, and Pork (halal and No Pork planning), then counts the rest; Spicy shows too.
+      // The full list is in the hover text and in the meal view. Meat and routing marks other than Pork are not allergens.
+      const _allergenDefs = FLAG_DEFS.filter(f => activeFlags[f.key] && !MC_CARD_NOT_ALLERGEN[f.key]);
       const _chip = (txt, title, col) => '<span class="mc-card-chip" title="' + escapeHtml(title) + '" style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:' + doorColourChip(col).bg + ';color:' + doorColourChip(col).ink + ';margin:1px;">' + escapeHtml(txt) + '</span>';
-      let flagBadges = (_allergenDefs.length ? _chip(_allergenDefs.length + (_allergenDefs.length === 1 ? ' allergen' : ' allergens'), _allergenDefs.map(f => f.label).join(', '), '#6b7280') : _chip('No allergens', 'Nothing on the allergen list', '#6b7280'))
+      const _named = _allergenDefs.filter(f => MC_CARD_NAMED.includes(f.key));
+      const _rest = _allergenDefs.filter(f => !MC_CARD_NAMED.includes(f.key));
+      let flagBadges = _named.map(f => _chip(f.label, f.label, '#b91c1c')).join('')
+        + (activeFlags.hasPork ? _chip('Pork', 'Pork', '#7c3aed') : '')
+        + (_rest.length ? _chip((_named.length ? '+' : '') + _rest.length + (_rest.length === 1 ? ' allergen' : ' allergens'), _allergenDefs.map(f => f.label).join(', '), '#6b7280')
+          : (_named.length ? '' : _chip('No allergens', 'Nothing on the allergen list', '#6b7280')))
         + (activeFlags.isSpicy ? _chip('Spicy', 'Spicy', '#dc2626') : '');
 
       const swapBadge = swap ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;background:'+doorColourChip('#d97706').bg+';color:'+doorColourChip('#d97706').ink+(';margin:1px;">' + doorIcon('swap') + ' Swapped</span>') : '';
@@ -16719,10 +16726,20 @@ function clearPastSpecials() {
 // S6b (Edit Menu redesign, D5; Jason 2026-11-19: "Follow lean"): a meal cell opens the one meal view. The old panel
 // (Routing / Swap Meal / Edit Flags and Make Permanent) is retired: What changes shows the routing, "Just on <date>"
 // replaces Swap Meal, the ticks are in the editor and an every-week Save is the permanent change.
-// S6c: the More menu closes after a choice or a click outside it.
-if (typeof document !== 'undefined') document.addEventListener('click', e => {
-  document.querySelectorAll('details.mc-more[open]').forEach(d => { if (!d.contains(e.target) || (e.target.closest && e.target.closest('.mc-more-item'))) d.removeAttribute('open'); });
-});
+// S6c: the card marks. Named on the card: the families a cook scans for an anaphylaxis trigger. Not allergens: meat and
+// routing marks (Pork is shown on its own).
+const MC_CARD_NAMED = ['hasPeanuts', 'hasTreeNuts', 'hasSesame', 'hasFish', 'hasShellfish'];
+const MC_CARD_NOT_ALLERGEN = { isSpicy: 1, isCarb: 1, halalCertifiedMeat: 1, hasProcessedMeat: 1, hasPork: 1, hasBeef: 1, hasChicken: 1, hasTurkey: 1 };
+// S6c: the More menu closes after a choice, a click outside it, or Escape (focus goes back to More).
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    document.querySelectorAll('details.mc-more[open]').forEach(d => { if (!d.contains(e.target) || (e.target.closest && e.target.closest('.mc-more-item'))) d.removeAttribute('open'); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('details.mc-more[open]').forEach(d => { d.removeAttribute('open'); const sm = d.querySelector('summary'); if (sm) sm.focus(); });
+  });
+}
 function handleMealCellClick(week, day, period) {
   if (!slotSwapMode) {
     openMenuEdit(week, day, period);
