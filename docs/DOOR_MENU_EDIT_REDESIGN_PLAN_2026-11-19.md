@@ -247,7 +247,7 @@ Names here are this plan's (the back-on-track plan has its own D-numbers).
   **Ruled 2026-11-19 (Jason: "Follow lean").**
 - **D8** A halal dish carrying Pork: show it in red on the summary and the sheet instead of hiding it.
   **Ruled 2026-11-19 (Jason: "Follow lean").**
-- **D9** U1 owns the combined-meal split and Turmeric; this plan does it through the new editor.
+- **D9** U1 owns the combined-meal split and Turmeric; this plan does it through the new editor. **Ruled 2026-11-19 (Jason: "Follow lean on D9"):** through the new editor, one reviewed data publish; the walkthrough's tzatziki and shared-pot calls brought one at a time (both "Follow lean").
 
 ## 5b. Carried from the S2b review (P3, for the slice that touches them)
 - S5b: `doorCheckNewPlainChoices` still reads the editor's own egg and mustard check; feed it the draft's value.
@@ -294,4 +294,4 @@ moves its code without changing a byte).
 | S6c Menu page and More | built (`v31-standard.116`): no Edit mode (a meal card opens the meal view); cards name Peanuts, Tree Nuts, Sesame, Fish, Shellfish and Pork, count the rest, and show Spicy; Swap two meals, Special meal, Rex's week sheet and Replace the whole menu from a file under More; the side panel on desktop / full screen on a phone moves to S7; review FIX FIRST, folded (More inside the screen on a phone; anaphylaxis families named on cards; Escape) | |
 | S7 Phones and tablets | built (`v31-standard.117`): a phone shows a day picker and that day's three meals; the meal view is full screen on a phone and a side panel from 1500 px (from S6c); pills, clear and buttons at least 44 px on a phone or touch screen; more room by ☰; the footer stays a bottom bar; review FIX FIRST, folded (dialogs above the full-screen view; footer and stale bar clear; side panel from 1500 px) | |
 | S8 Other plates | built (`v31-standard.118`): "Other plates the kitchen makes" at every meal; one row per plate the meal has, + Add a plate for… the rest; per plate how many residents get it (equal to plating) and, when not made, where its residents eat; the routing jargon is gone; boxes and stored data unchanged. Breakfast keeps today's fields until U3/C1's breakfast plates are built (they fit this list); review FIX FIRST, folded (a missing anaphylactic plate shows, red, as NOT READY; GF house plate named; would-get counts; no false change) | |
-| U1 | planned; D9 pending | |
+| U1 through the new editor | published (publication 39; D9 ruled): the four combined boxes split (Wk1 FRI dinner, Wk4 SUN, MON and SAT lunch), the vegan plate without tzatziki on Wk4 SUN lunch, Turmeric spelled, the falafel line's double space gone; regular menu words, section counts and recipe facts unchanged (`docs/receipts/door_u1_split_boxes_2026-11-19.md`); the vegan links to shared pots wait on CODEX's vegan records; review pending | |

@@ -1877,12 +1877,12 @@
         "isCarb": true,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasCoconut": true,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": true,
+        "hasCoconut": true,
         "hasNightshades": false,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": true
       },
       "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
       "breakfast_altMeals": [
@@ -1991,7 +1991,7 @@
       },
       "dinner_slots": {
         "main": {
-          "manual": "Pork Adobo & Garlic Green Bean",
+          "manual": "Pork Adobo",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -2050,10 +2050,14 @@
             "hasCorn": true
           },
           "recipeId": "adobo-pork-chicken-tofu-adobo-marinade-and-sauce",
-          "displayText": "Vegetarian Adobo, Garlic Green Bean"
+          "displayText": "Vegetarian Adobo"
         },
         "starch": {
           "manual": "Rice",
+          "flags": {}
+        },
+        "vegside": {
+          "manual": "Garlic Green Bean",
           "flags": {}
         }
       },
@@ -2061,7 +2065,125 @@
       "lunch_softAlt": "",
       "lunch_altMealsNone": true,
       "dinner_anaphAlt": "Plain Chicken Leg with Rice and Vegetables",
-      "breakfast_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt"
+      "breakfast_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt",
+      "dinner_softAlt": "",
+      "dinner_altMeals": [],
+      "dinner_altMealsNone": false,
+      "dinner_gfAlt": "",
+      "dinner_diabeticAlt": "",
+      "dinner_noDairyAlt": "",
+      "dinner_noEggAlt": "",
+      "dinner_blandAlt": "",
+      "dinner_noPorkAlt": "",
+      "dinner_mainAlt": "",
+      "dinner_original": {
+        "meal": {
+          "": "Pork Adobo, Rice, Garlic Green Bean",
+          "_veg": "Vegetarian Adobo, Rice, Garlic Green Bean",
+          "_flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": true,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": true,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": true,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "Pork Adobo",
+          "_sides": "Rice, Garlic Green Bean",
+          "_halal": "Halal Chicken Adobo",
+          "_slots": {
+            "main": {
+              "manual": "Pork Adobo & Garlic Green Bean",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": true,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": true,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasCoconut": true,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": true,
+                "hasNightshades": false,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": true,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": true,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": true
+              },
+              "recipeId": "adobo-pork-chicken-tofu-adobo-marinade-and-sauce",
+              "displayText": "Vegetarian Adobo, Garlic Green Bean"
+            },
+            "starch": {
+              "manual": "Rice",
+              "flags": {}
+            }
+          },
+          "_anaphAlt": "Plain Chicken Leg with Rice and Vegetables"
+        },
+        "at": "2026-11-19T18:46:57.160Z",
+        "by": "Edit Menu redesign U1 (combined boxes split)",
+        "how": "Edit Menu"
+      }
     }
   },
   "2": {
@@ -8269,7 +8391,7 @@
         "hasBeans": false
       },
       "lunch": "Lime-Spiced Chicken Legs, Garlic Bread, Steamed Broccoli",
-      "lunch_veg": "Roasted Veg and Tofu Medley, Tumeric Quinoa, Garlic Bread, Steamed Broccoli",
+      "lunch_veg": "Roasted Veg and Tofu Medley, Garlic Bread, Steamed Broccoli, Turmeric Quinoa",
       "lunch_mainItem": "Lime-Spiced Chicken Legs",
       "lunch_sides": "Garlic Bread, Steamed Broccoli",
       "lunch_flags": {
@@ -8292,12 +8414,12 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": true,
+        "hasCorn": false
       },
       "dinner": "Beef Massaman Curry, Rice",
       "dinner_veg": "Vegetarian Massaman Curry, Rice",
@@ -8426,7 +8548,7 @@
           }
         },
         "veganalt": {
-          "manual": "Roasted Veg and Tofu Medley, Tumeric Quinoa",
+          "manual": "Roasted Veg and Tofu Medley",
           "flags": {
             "hasSoy": true
           }
@@ -8438,9 +8560,13 @@
         "vegside": {
           "manual": "Steamed Broccoli",
           "flags": {}
+        },
+        "vegextras": {
+          "manual": "Turmeric Quinoa",
+          "flags": {}
         }
       },
-      "lunch_diabeticAlt": "Lime-Spiced Chicken Legs, Tumeric Quinoa, Broccoli",
+      "lunch_diabeticAlt": "Lime-Spiced Chicken Legs, Turmeric Quinoa, Broccoli",
       "lunch_altMeals": [],
       "lunch_softAlt": "",
       "lunch_altMealsNone": true,
@@ -8568,7 +8694,102 @@
         "by": "JK",
         "how": "Edit Menu"
       },
-      "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit"
+      "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit",
+      "lunch_gfAlt": "",
+      "lunch_noDairyAlt": "",
+      "lunch_noEggAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_noPorkAlt": "",
+      "lunch_mainAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "Lime-Spiced Chicken Legs, Garlic Bread, Steamed Broccoli",
+          "_veg": "Roasted Veg and Tofu Medley, Tumeric Quinoa, Garlic Bread, Steamed Broccoli",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "_mainItem": "Lime-Spiced Chicken Legs",
+          "_sides": "Garlic Bread, Steamed Broccoli",
+          "_softAlt": "",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Lime-Spiced Chicken Legs",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": true,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "manual": "Roasted Veg and Tofu Medley, Tumeric Quinoa",
+              "flags": {
+                "hasSoy": true
+              }
+            },
+            "starch": {
+              "manual": "Garlic Bread",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Steamed Broccoli",
+              "flags": {}
+            }
+          },
+          "_diabeticAlt": "Lime-Spiced Chicken Legs, Tumeric Quinoa, Broccoli"
+        },
+        "at": "2026-11-19T18:46:57.889Z",
+        "by": "Edit Menu redesign U1 (combined boxes split)",
+        "how": "Edit Menu"
+      }
     },
     "FRIDAY": {
       "breakfast": "Ham, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
@@ -9094,7 +9315,7 @@
         "hasCorn": false
       },
       "lunch": "Pork Souvlaki, Naan, Steamed Carrots, Tzatziki",
-      "lunch_veg": "Black bean patty, Naan, Steamed Carrots, Tzatziki",
+      "lunch_veg": "Black bean patty, Naan, Steamed Carrots",
       "lunch_halal": "Halal chicken Souvlaki",
       "lunch_mainItem": "Pork Souvlaki",
       "lunch_sides": "Naan, Steamed Carrots, Tzatziki",
@@ -9118,12 +9339,12 @@
         "isCarb": true,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": false,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": false
       },
       "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
       "dinner_veg": "Vegan White Chilli Pasta Casserole, Broccoli",
@@ -9265,7 +9486,7 @@
       "allergens_dinner": "gluten, sulphites",
       "lunch_slots": {
         "main": {
-          "manual": "Pork Souvlaki & Steamed Carrots & Tzatziki",
+          "manual": "Pork Souvlaki",
           "flags": {
             "hasGluten": true,
             "hasDairy": true,
@@ -9324,11 +9545,27 @@
             "hasCorn": false
           },
           "recipeId": "vegan-bean-patties",
-          "displayText": "Black bean patty, Steamed Carrots, Tzatziki"
+          "displayText": "Black bean patty"
         },
         "starch": {
           "manual": "Naan",
           "flags": {}
+        },
+        "vegside": {
+          "manual": "Steamed Carrots",
+          "flags": {}
+        },
+        "xtra": {
+          "manual": "Tzatziki",
+          "flags": {
+            "hasDairy": true,
+            "hasSulphites": true
+          },
+          "lines": {
+            "vegan": {
+              "mode": "none"
+            }
+          }
         }
       },
       "lunch_gfAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
@@ -9461,7 +9698,131 @@
         "by": "JK",
         "how": "Edit Menu"
       },
-      "breakfast_gfAlt": "GF roll, chicken deli, egg, cheese, yoghurt, fruit"
+      "breakfast_gfAlt": "GF roll, chicken deli, egg, cheese, yoghurt, fruit",
+      "lunch_diabeticAlt": "",
+      "lunch_noEggAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_noPorkAlt": "",
+      "lunch_mainAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "Pork Souvlaki, Naan, Steamed Carrots, Tzatziki",
+          "_veg": "Black bean patty, Naan, Steamed Carrots, Tzatziki",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "Pork Souvlaki",
+          "_sides": "Naan, Steamed Carrots, Tzatziki",
+          "_halal": "Halal chicken Souvlaki",
+          "_softAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+          "_gfAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+          "_altMeals": [
+            {
+              "text": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Pork Souvlaki & Steamed Carrots & Tzatziki",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": true,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": false,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan Bean Patties",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": true,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-bean-patties",
+              "displayText": "Black bean patty, Steamed Carrots, Tzatziki"
+            },
+            "starch": {
+              "manual": "Naan",
+              "flags": {}
+            }
+          },
+          "_noDairyAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins"
+        },
+        "at": "2026-11-19T18:46:57.403Z",
+        "by": "Edit Menu redesign U1 (combined boxes split)",
+        "how": "Edit Menu"
+      }
     },
     "WEDNESDAY": {
       "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -9840,7 +10201,7 @@
         "hasBeans": false
       },
       "lunch": "Chicken Ranch Salad Sandwich, Fruit and Chips",
-      "lunch_veg": "Falafel  Sandwich, Fruit and Chips, Sub Bun",
+      "lunch_veg": "Falafel Sandwich, Fruit and Chips, Sub Bun",
       "lunch_mainItem": "Chicken Ranch Salad Sandwich",
       "lunch_sides": "Fruit and Chips",
       "lunch_flags": {
@@ -9863,12 +10224,12 @@
         "isCarb": false,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": false
       },
       "dinner": "Fish Curry, Steamed Rice, Roasted Zucchini",
       "dinner_veg": "Tofu Curry, Steamed Rice, Roasted Zucchini",
@@ -9985,7 +10346,7 @@
       "allergens_dinner": "fish, tree nuts, soy, sulphites",
       "lunch_slots": {
         "main": {
-          "manual": "Chicken Ranch Salad Sandwich & Fruit and Chips",
+          "manual": "Chicken Ranch Salad Sandwich",
           "flags": {
             "hasGluten": true,
             "hasDairy": true,
@@ -10044,7 +10405,15 @@
             "hasCorn": true
           },
           "recipeId": "rexdale-falafel",
-          "displayText": "Falafel  Sandwich, Fruit and Chips, Sub Bun"
+          "displayText": "Falafel Sandwich"
+        },
+        "xtra": {
+          "manual": "Fruit and Chips",
+          "flags": {}
+        },
+        "vegextras": {
+          "manual": "Sub Bun",
+          "flags": {}
         }
       },
       "lunch_gfAlt": "Roasted Chicken Leg, Roasted Yams, Stirfry Vegetables",
@@ -10064,7 +10433,120 @@
       ],
       "dinner_altMealsNone": false,
       "dinner_anaphAlt": "Plain Basa with Rice and Vegetables",
-      "breakfast_gfAlt": "Gluten-free pancakes, turkey bacon, fresh fruit, yoghurt"
+      "breakfast_gfAlt": "Gluten-free pancakes, turkey bacon, fresh fruit, yoghurt",
+      "lunch_diabeticAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_noPorkAlt": "",
+      "lunch_mainAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "Chicken Ranch Salad Sandwich, Fruit and Chips",
+          "_veg": "Falafel  Sandwich, Fruit and Chips, Sub Bun",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "_mainItem": "Chicken Ranch Salad Sandwich",
+          "_sides": "Fruit and Chips",
+          "_softAlt": "",
+          "_gfAlt": "Roasted Chicken Leg, Roasted Yams, Stirfry Vegetables",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Chicken Ranch Salad Sandwich & Fruit and Chips",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": true,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Rexdale Falafel",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": true,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": true,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": true
+              },
+              "recipeId": "rexdale-falafel",
+              "displayText": "Falafel  Sandwich, Fruit and Chips, Sub Bun"
+            }
+          },
+          "_noDairyAlt": "DF Chicken (Chicken Salad, No Mayo, DF cheese), 6\" sub bun, Seasonal Soup or salad",
+          "_noEggAlt": "DF Chicken (Chicken Salad, No Mayo, DF cheese), 6\" sub bun, Seasonal Soup or salad"
+        },
+        "at": "2026-11-19T18:46:57.645Z",
+        "by": "Edit Menu redesign U1 (combined boxes split)",
+        "how": "Edit Menu"
+      }
     }
   },
   "_meta": {
@@ -10081,20 +10563,20 @@
       "3|SUNDAY": 1795017603184,
       "4|TUESDAY": 1795055184234,
       "4|THURSDAY": 1795017603184,
-      "4|SATURDAY": 1795017603184,
+      "4|SATURDAY": 1795114017891,
       "1|SATURDAY": 1795081678597,
-      "1|FRIDAY": 1795081678597,
+      "1|FRIDAY": 1795114017162,
       "2|WEDNESDAY": 1795017748161,
       "2|MONDAY": 1795081678597,
       "2|TUESDAY": 1795081678597,
       "4|FRIDAY": 1795017603184,
-      "4|SUNDAY": 1795081678597,
+      "4|SUNDAY": 1795114017404,
       "4|WEDNESDAY": 1795081678597,
       "2|FRIDAY": 1795017603184,
       "3|SATURDAY": 1795081678597,
       "3|THURSDAY": 1795017603184,
       "3|MONDAY": 1795017603184,
-      "4|MONDAY": 1795081678597,
+      "4|MONDAY": 1795114017646,
       "1|MONDAY": 1795081678597,
       "3|TUESDAY": 1795081678597,
       "1|THURSDAY": 1795017603184,
@@ -10112,14 +10594,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:abdb8e723f6592882cf0f5213d60df58aaea383566fc87e00fce365dfe226240",
+        "menu": "sha256:55724ef738e3ac62ab1bc97d2d0d935f4f47584263927f82ef223f4590dc38a3",
         "recipe": "sha256:c28fd4f350236a3f1ce27eae54df9a3d8f068b33ea144bfa207791a625bffcf8",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:d5bbd1be965ea26dc93c95509f5e855a3beb2a6c8e5ae9b05292fd2d954bf7f5",
+      "inputRevision": "sha256:c9cd63a2b32150d9cd459f9be63a37581ba910abbaefa27ec85c04bc8911e478",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 38
+        "sequence": 39
       },
       "schema": 1
     }
