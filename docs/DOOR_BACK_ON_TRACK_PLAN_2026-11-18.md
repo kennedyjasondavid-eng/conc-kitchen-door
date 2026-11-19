@@ -208,7 +208,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - [x] R4 Ledger, CLAUDE.md and old plans point here (HOUSE #117, DOOR #225).
 - [ ] R5 DOOR repository private; raw fallback removed.
 - [ ] U1 Every active component has a clear identity. *Done: all 12 name-only links carry their CODEX recipe IDs (publications 25 and 26, 2026-11-18; C3 ruled "link both" after EXPO's cards proved identical). Left: run-on slots, misspelled names.*
-- [ ] U2 Every saved-versus-CODEX difference decided; facts rule written.
+- [x] U2 Every saved-versus-CODEX difference decided; facts rule written. *Done 2026-11-19 (C4, Jason: "Follow lean"): `docs/DOOR_ALLERGEN_FACTS_RULE.md`; 23 vegan and side slots refreshed, add only (publication 36). The editor's link badge (current / recipe changed / unavailable / manual) is still to build.*
 - [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for. *Done: C2 DOOR half (a recipe whose label is not checked reads as unknown: "label not checked" in the editor, "check label" on the plate, `.97`). CODEX bought-item records (CODEX #383, edition 2026-11-18-bought-items): Chex cereal, Soy milk, Oat milk and Vegan yoghurt, label not checked; the GF cereal line names soy or oat milk (publication 34). DOOR reads unchecked dishes only in the regular, vegan and halal texts, so no plate says "check label" for them yet (a plating change, Jason's call). Left: name Vegan yoghurt on the no-dairy breakfast (a plating-note change, Jason's call first), and the rest of this item.*
 - [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default. *Done: one save line and plain notice (#226, .95); counts unavailable without a list and the halal plate named (#227, .96); undo and reset already name what they put back; a refused Download All says why beside its button and keeps focus there (.99, #235). Left: import review kept/replaced, quieter default.*
 - [ ] U5 End-to-end journey passes; HUB 21/20 explained.
@@ -223,7 +223,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
   resident record.
 - **C2 Bought items (D2):** short CODEX bought-item records with label allergens and a "label checked" date. Lean: yes.
 - **C3 Tuna and the mushroom sandwich links (U1):** each changes EXPO's plan; decide with EXPO's view open.
-- **C4 The 24 differences (U2):** one sitting.
+- **C4 The differences (U2), ruled 2026-11-19 ("Follow lean"):** 42 slots compared, none left a resident unwarned. A: 23 slots refreshed from CODEX, add only (Spicy and Butter Chickpeas' Milk left out). B and C: kept, by design. D: Wk3 WED beef nachos stay unticked for Spicy (kitchen's call). Record: `docs/DOOR_ALLERGEN_FACTS_RULE.md`.
 - **C7 Stew / Side (ruled 2026-11-18):** a CODEX category (`stew_side`) for a vegetable-based side made on a stew cycle EXPO can plan; DOOR offers it in Veg Side (DOOR .98 first, then CODEX). **C8:** Okra and Cassava Stew, Atakilt Wat and Shakshuka Sauce (Vegan) become Stew / Side; Wk2 WED dinner's fish and stew split into a main and a side.
   Vegetable Cacciatore (a shared-Library recipe, Jason's inspiration for the kind) is re-saved as Stew / Side in CODEX
   once the picker is live; the seed recipes move in a CODEX data edition.
