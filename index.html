@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.103';
+const DOOR_APP_VERSION = 'v31-standard.104';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -5552,6 +5552,7 @@ const DOOR_INLINE_HANDLER_ALLOWLIST = {
   removeRefusal: true,
   slotSelect: true,
   slotRenameShown: true,
+  slotDropHeld: true,   // S1 review fold: put a refused box back
   smSlotSelect: true,
   slotSaveManual: true,
   smSlotSaveManual: true
@@ -20935,7 +20936,8 @@ function renderSlots() {
       </div>`;
     }
     return renderSlotCard(def, 'slot');
-  }).join('') + (isHubLoaded() ? '<datalist id="door-recipe-names">' + DOOR_RECIPE_DATA.map(r => '<option value="' + _escAttr(r.recipeName) + '">').join('') + '</datalist>' : '');
+  }).join('') + (isHubLoaded() ? ['vegan', 'halal'].map(line => '<datalist id="door-recipe-names-' + line + '">'
+    + DOOR_RECIPE_DATA.filter(r => typeof doorLineRefusal !== 'function' || !doorLineRefusal(line, r)).map(r => '<option value="' + _escAttr(r.recipeName) + '">').join('') + '</datalist>').join('') : '');
   } finally { _slotRenderDepth--; }
   renderAltMealsSection();
 }
@@ -21521,7 +21523,7 @@ function _slotLinesHTML(id) {
     const sel = '<select data-slot-line="' + id + '-' + line + '" onchange="slotLineMode(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 4px;">' +
       opt('same', 'gets this') + opt('swap', 'gets instead…') + opt('none', 'doesn’t get it') + '</select>';
     const txt = mode === 'swap'
-      ? ' <input type="text" list="door-recipe-names" data-slot-line-text="' + id + '-' + line + '" value="' + _escAttr(_slotText(v)) + '" placeholder="the ' + label.toLowerCase() + '’s side" onchange="slotLineText(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 6px;width:55%;">'
+      ? ' <input type="text" list="door-recipe-names-' + line + '" data-slot-line-text="' + id + '-' + line + '" value="' + _escAttr(_slotText(v)) + '" placeholder="the ' + label.toLowerCase() + '’s side" onchange="slotLineText(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 6px;width:55%;">'
       : '';
     return '<div><span style="color:var(--muted);">' + label + ':</span> ' + sel + txt + '</div>';
   }).join('') + '</div>';
@@ -21539,6 +21541,9 @@ function slotLineMode(id, line, mode) {
 function slotLineText(id, line, text) {
   const s = MEAL_SLOT_STATE[id];
   if (!s) return;
+  // S1 (D7, review fold P1-A): a recipe the line refuses is refused out loud; the line keeps what it had.
+  const refused = typeof doorRefusedExactRecipe === 'function' ? doorRefusedExactRecipe(text, r => doorLineRefusal(line, r)) : null;
+  if (refused) { showToast('“' + refused.recipe + '” can’t go on the ' + line + ' line: ' + refused.reason + '.'); renderSlots(); return; }
   s.lines = Object.assign({}, s.lines, { [line]: doorMakeLineVersion(text) || { mode: 'swap', manual: '', flags: {} } });
   renderSlots(); updateSlotSummary();
 }
@@ -21657,7 +21662,14 @@ function doorSlotHeldNoteHTML(slotId, h, state) {
   const saved = state ? (state.displayText || state.recipeName || state.manual || '') : '';
   const keeps = saved ? 'Still saved: “' + escapeHtml(saved) + '”.' : 'Nothing is saved in this box yet.';
   const btn = (label, call, args) => `<button onmousedown="event.preventDefault()" onclick="${_escJsAttrCall(call, args)}" class="btn btn-ghost btn-sm" style="font-size:11px;margin:4px 6px 0 0;">${label}</button>`;
-  const body = h.kind === 'rename'
+  const body = h.kind === 'refused'
+    ? `“${escapeHtml(h.typed)}” is not saved: the recipe “${escapeHtml(h.recipe)}” can’t go in this box (${escapeHtml(h.reason)}). ${keeps}<br>`
+      + btn('Put the box back', 'slotDropHeld', [slotId])
+    : h.kind === 'exact'
+    ? `“${escapeHtml(h.typed)}” is a recipe in the recipe book (CODEX), not linked yet. ${keeps}<br>`
+      + btn('Link “' + escapeHtml(h.recipe) + '”', 'slotSelect', [slotId, h.recipe])
+      + '<span style="color:var(--muted);">Its allergens come with it. A recipe name is never saved without them.</span>'
+    : h.kind === 'rename'
     ? `“${escapeHtml(h.typed)}” is not saved: this box picks the recipe. To change what the menu prints, use “Shown on menu as” below; the recipe and its allergens stay linked. ${keeps}<br>`
       + btn('Show “' + escapeHtml(h.typed) + '” on the menu', 'slotRenameShown', [slotId, h.typed])
       + '<span style="color:var(--muted);">or press Enter in the box to unlink the recipe and keep your words.</span>'
@@ -21974,6 +21986,18 @@ function doorSlotHeldQuestion(id, h) {
       'The words the menu prints go in “Shown on menu as”. The recipe and its allergens stay linked.'],
     cancelLabel: 'Go back', altLabel: 'Unlink the recipe, keep the words', goLabel: 'Show “' + h.typed + '” on the menu'
   };
+  if (h.kind === 'refused') return {
+    title: 'This recipe can’t go here',
+    lines: ['The ' + box + ' says “' + h.typed + '”, the recipe “' + h.recipe + '”, which can’t go in this box: ' + h.reason + '.',
+      'Put the box back to what it had, or go back and choose another dish.'],
+    cancelLabel: 'Go back', goLabel: 'Put the box back'
+  };
+  if (h.kind === 'exact') return {
+    title: 'Link the recipe?',
+    lines: ['The ' + box + ' says “' + h.typed + '”, a recipe in the recipe book (CODEX).',
+      'Linked, its allergens come with it. DOOR does not save a recipe name without them.'],
+    cancelLabel: 'Go back', goLabel: 'Link “' + h.recipe + '”'
+  };
   return {
     title: 'Finish the dish name?',
     lines: ['The ' + box + ' says “' + h.typed + '”, the start of “' + h.recipe + '”.',
@@ -22011,8 +22035,18 @@ async function saveMenuEdit() {
     if (mcMenuEditKey !== _heldKey) return;
     if (!ans) return;
     if (editSession && _doorMenuDraftBaseline !== editSession) return;
-    if (h.kind === 'half') { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotSelect(id, h.recipe); }
+    if (h.kind === 'refused') slotDropHeld(id);
+    else if (h.kind === 'exact') slotSelect(id, h.recipe);
+    else if (h.kind === 'half') { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotSelect(id, h.recipe); }
     else { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotRenameShown(id, h.typed); }
+  }
+  // S1 review fold (P2): putting a refused box back can leave the meal as it opened. Then Save writes nothing, as above.
+  if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
+    const repair2 = doorOpenRepairTicks();
+    if (repair2) return doorRepairMealTicks(repair2);
+    showToast('Nothing changed, so nothing was saved.', 'info');
+    closeMenuEdit(true);
+    return true;
   }
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
@@ -22848,6 +22882,10 @@ function doorRecipeMatchRank(recipeName, query) {
   const words = ' ' + n.replace(/[^a-z0-9]+/g, ' '), qw = q.replace(/[^a-z0-9]+/g, ' ').trim();
   if (qw && words.includes(' ' + qw)) return 2;
   if (n.includes(q)) return 3;
+  // S1 (Edit Menu redesign, 2026-11-19): every word typed starts a word of the name, in any order
+  // ("pork adobo" finds "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)").
+  const nw = doorNormDishName(n).split(' '), qs = doorNormDishName(q).split(' ').filter(Boolean);
+  if (qs.length && qs.every(w => nw.some(x => x.startsWith(w)))) return 4;
   return -1;
 }
 function doorRankedRecipeMatches(def, query, limit) {
@@ -22858,11 +22896,75 @@ function doorRankedRecipeMatches(def, query, limit) {
     .sort((a, b) => a.k - b.k || a.i - b.i)
     .slice(0, limit || 6).map(x => x.r);
 }
+// S1 (Edit Menu redesign, D7; Jason 2026-11-19: "follow lean"): the wider search never offers a recipe a plate rule
+// refuses. The vegan boxes keep the vegan rule (the vegan line or CODEX vegan-friendly; never a list naming Milk, Eggs,
+// Fish or shellfish); the halal and no-pork boxes never take a recipe whose name says pork. recipeMatchesSlotDef is
+// unchanged; this names the reason so the search can show a refused recipe greyed out, never pickable.
+const DOOR_PORK_NAME_RE = /\bpork\b|\bham\b|\bbacon\b|\bpepperoni\b|\bprosciutto\b|\bchorizo\b|\bpancetta\b/;
+function doorRecipeNamesPork(recipe) {
+  const n = String((recipe && recipe.recipeName) || '').toLowerCase();
+  return DOOR_PORK_NAME_RE.test(n.replace(/turkey bacon/g, '')) && !/\bhalal\b/.test(n);
+}
+const DOOR_SLOT_LINE = { veganalt: 'vegan', vegextras: 'vegan', mainalt: 'halal', noporkalt: 'halal', halalextras: 'halal' };
+function doorAnimalFamilyNamed(list) {
+  const hit = (Array.isArray(list) ? list : []).map(a => doorAllergenFamily(a).split(/\s*(?:,|&|\band\b)\s*/)
+    .find(f => DOOR_ANIMAL_FAMILIES[f.trim()] === 1)).find(Boolean);
+  return hit ? hit.trim() : '';
+}
+// The reason a recipe can't go on a line ('vegan' or 'halal'), or '' when it can.
+function doorLineRefusal(line, recipe) {
+  if (!recipe) return '';
+  if (line === 'vegan') {
+    const f = doorAnimalFamilyNamed(recipe.allergens);
+    if (f) return 'lists ' + f.charAt(0).toUpperCase() + f.slice(1);
+    // Review fold (S1, P1-B): CODEX found an animal ingredient (meat has no allergen family). A missing or null flag
+    // (the offline list; a bought item waiting on its label) is not read as a refusal.
+    if (recipe.veganFriendly === false) return 'not vegan';
+  }
+  if (line === 'halal' && doorRecipeNamesPork(recipe)) return 'pork';
+  return '';
+}
+function doorSlotRefusal(def, recipe) {
+  if (!def || !recipe) return '';
+  const line = DOOR_SLOT_LINE[def.id];
+  const why = doorLineRefusal(line, recipe);
+  if (why) return why;
+  if (def.streams && def.streams.includes('vegan') && !def.streams.includes('regular')
+      && !def.streams.includes(recipe.stream) && recipe.veganFriendly !== true) return 'not a vegan recipe';
+  return '';
+}
+// Review fold (S1, P1-A): the recipe these words name exactly, when the box (or line) refuses it, with the reason.
+function doorRefusedExactRecipe(text, refuse) {
+  const t = String(text || '').trim().toLowerCase();
+  if (!t || !isHubLoaded()) return null;
+  const r = DOOR_RECIPE_DATA.find(x => x && x.recipeName && x.recipeName.toLowerCase() === t && refuse(x));
+  return r ? { recipe: r.recipeName, reason: refuse(r) } : null;
+}
+// The Edit Menu search: recipes that fit the box, then (regular boxes only) every other recipe, then up to three
+// refused ones with their reason. A box for a line (vegan, halal, no pork) relaxes nothing.
+const DOOR_REGULAR_SLOT_IDS = ['main', 'starch', 'vegside', 'xtra'];
+function doorSlotSearchGroups(def, query, limit) {
+  const out = { fit: [], other: [], refused: [] };
+  if (!def || !isHubLoaded()) return out;
+  const q = String(query || '').trim();
+  const max = limit || 6;
+  DOOR_RECIPE_DATA.map((r, i) => ({ r, i, k: doorRecipeMatchRank(r.recipeName, q) }))
+    .filter(x => x.k >= 0)
+    .sort((a, b) => a.k - b.k || a.i - b.i)
+    .forEach(({ r }) => {
+      const why = doorSlotRefusal(def, r);
+      if (why) { if (q && out.refused.length < 3) out.refused.push({ r, reason: why }); return; }
+      if (recipeMatchesSlotDef(def, r)) { if (out.fit.length < max) out.fit.push(r); return; }
+      if (q && DOOR_REGULAR_SLOT_IDS.includes(def.id) && out.other.length < max) out.other.push(r);
+    });
+  return out;
+}
 // A recipe whose name is this hand-typed dish in all but case, punctuation, "&"/"and" or a plural.
 function doorRecipeSuggestionFor(def, text) {
   const t = doorNormDishName(text);
   if (!def || !t || !isHubLoaded()) return null;
-  return DOOR_RECIPE_DATA.find(r => recipeMatchesSlotDef(def, r) && doorNormDishName(r.recipeName) === t) || null;
+  return DOOR_RECIPE_DATA.find(r => recipeMatchesSlotDef(def, r) && !(typeof doorSlotRefusal === 'function' && doorSlotRefusal(def, r))
+    && doorNormDishName(r.recipeName) === t) || null;
 }
 // V7: slots whose text reads like several dishes in one ("A & B", "A, B", "A; B", "A + B"). EXPO reads one
 // dish per slot, so a run-on line is guessed at later (the Wk3 WED nachos line went missing that way).
@@ -22961,7 +23063,9 @@ function slotSearch(slotId, query) {
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
   if (!def || !isHubLoaded()) { dd.style.display = 'none'; return; }
   const q = (query || '').trim().toLowerCase();
-  const results = doorRankedRecipeMatches(def, q, 6);   // V7: best match first
+  // S1 (Edit Menu redesign): recipes that fit first, then "Other recipes" on a regular box, then refused ones greyed.
+  const groups = doorSlotSearchGroups(def, q, 6);
+  const results = groups.fit.concat(groups.other);
   if (typeof SLOT_OFFERED !== 'undefined') SLOT_OFFERED[slotId] = results.map(r => r.recipeName);
   // W3e: on a linked slot, new words in this box are usually a new name for the same dish. Say where that goes first.
   const cur = MEAL_SLOT_STATE[slotId];
@@ -22972,9 +23076,8 @@ function slotSearch(slotId, query) {
         Renaming the dish? Show “${escapeHtml(String(query).trim())}” on the menu (“Shown on menu as”). The recipe “${escapeHtml(cur.recipeName)}” and its allergens stay linked.
       </div>`
     : '';
-  if (!results.length && !q) { dd.style.display = 'none'; return; }
-  dd.innerHTML = renameRow + (results.length
-    ? results.map((r, index) => {
+  if (!results.length && !groups.refused.length && !q) { dd.style.display = 'none'; return; }
+  const optionHtml = (r, index) => {
         const hilite = highlightHtml(r.recipeName, q);
         return `<div role="option" id="slot-option-${_escAttr(slotId)}-${index}" aria-selected="false" data-recipe-name="${_escAttr(r.recipeName)}" onmousedown="event.preventDefault();${_escJsAttrCall('slotSelect', [slotId, r.recipeName])}"
           style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;"
@@ -22982,7 +23085,18 @@ function slotSearch(slotId, query) {
           <div>${hilite}</div>
           <div style="margin-top:3px;line-height:1.4;">${_allergenPreview(r.allergens, typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(r))}</div>
         </div>`;
-      }).join('')
+  };
+  const head = t => `<div class="slot-dd-head" style="padding:6px 12px 4px;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);">${t}</div>`;
+  const refusedHtml = groups.refused.map(x => `<div class="slot-dd-refused" aria-disabled="true" onmousedown="event.preventDefault()"
+          style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);cursor:not-allowed;">
+          <div>${escapeHtml(x.r.recipeName)}</div>
+          <div style="margin-top:2px;font-size:11px;">Can’t go here: ${escapeHtml(x.reason)}</div>
+        </div>`).join('');
+  dd.innerHTML = renameRow + (results.length || groups.refused.length
+    ? groups.fit.map((r, i) => optionHtml(r, i)).join('')
+      + (groups.other.length ? head('Other recipes') + groups.other.map((r, i) => optionHtml(r, groups.fit.length + i)).join('') : '')
+      + refusedHtml
+      + (results.length || groups.refused.some(x => x.r.recipeName.toLowerCase() === q) ? '' : '<div onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" style="padding:10px 12px;font-size:12px;color:var(--muted);cursor:pointer;">Use "' + escapeHtml(query) + '" as a typed dish (no allergen data; tick them by hand)</div>')
     // 2026-11-12 (Week 4 setup log 13, 16): the whole row is the button, and on a linked slot it says it unlinks.
     : '<div onclick="' + _escJsAttrCall('slotSaveManual', [slotId]) + '" onmousedown="event.preventDefault()" style="padding:10px 12px;font-size:12px;color:var(--muted);cursor:pointer;" onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'\'">No matches — ' +
       (cur && cur.recipeName ? 'unlink “' + escapeHtml(cur.recipeName) + '” and use "' + escapeHtml(query) + '" (no allergen data; tick them by hand)' : 'Add "' + escapeHtml(query) + '" manually (no allergen data)') + '</div>');
@@ -23012,6 +23126,12 @@ function doorSlotHoldTyped(val, current, offered) {
   if (linked && doorSlotIsRename(v, current)) return { kind: 'rename', typed: v, recipe: linked };
   return null;
 }
+// Review fold (S1): drop words a box holds, so it shows what is saved again.
+function slotDropHeld(slotId) {
+  if (typeof SLOT_HELD !== 'undefined') delete SLOT_HELD[slotId];
+  renderSlots();
+  updateSlotSummary();
+}
 // W3e: show other words on the menu for a linked slot; the recipe and its allergens stay.
 function slotRenameShown(slotId, val) {
   const s = MEAL_SLOT_STATE[slotId];
@@ -23034,6 +23154,9 @@ function slotSelect(slotId, recipeName) {
     showToast('This recipe is ambiguous in CODEX. Review the link before choosing it.');
     return;
   }
+  const _def = typeof MEAL_SLOT_DEFS !== 'undefined' ? MEAL_SLOT_DEFS.find(d => d.id === slotId) : null;
+  const _why = _def && typeof doorSlotRefusal === 'function' ? doorSlotRefusal(_def, recipe) : '';
+  if (_why) { showToast('“' + recipeName + '” can’t go in this box: ' + _why + '.'); return; }
   const current = MEAL_SLOT_STATE[slotId];
   const sameRecipe = current && (current.recipeId && recipe.recipeId
     ? String(current.recipeId) === String(recipe.recipeId) : current.recipeName === recipeName);
@@ -23137,12 +23260,29 @@ function slotAutoSave(slotId, val, how) {
   // adopt a similarly-named recipe, pick it explicitly from the dropdown.
   const recipes = isHubLoaded() ? DOOR_RECIPE_DATA : [];
   const def = MEAL_SLOT_DEFS.find(d => d.id === slotId);
-  const pool = def ? recipes.filter(r => recipeMatchesSlotDef(def, r)) : recipes;
+  // S1: the pool is what the search offers (fitting recipes, and on a regular box any recipe); never a refused one.
+  const regularBox = def && typeof DOOR_REGULAR_SLOT_IDS !== 'undefined' && DOOR_REGULAR_SLOT_IDS.includes(def.id);
+  const refused = r => typeof doorSlotRefusal === 'function' && !!doorSlotRefusal(def, r);
+  const pool = def ? recipes.filter(r => !refused(r) && (regularBox || recipeMatchesSlotDef(def, r))) : recipes;
   const matches = pool.filter(r => r.recipeName.toLowerCase() === val.toLowerCase());
   const match = matches[0];
   if (matches.length > 1 || (match && match.recipeId && recipes.filter(r => String(r.recipeId || '') === String(match.recipeId)).length !== 1)) {
     showToast('This recipe is ambiguous in CODEX. Review the link before choosing it.');
     return;
+  }
+  // Review fold (S1, P1-A): words that name a recipe this box refuses are not saved as a typed dish with no allergens.
+  // The last saved value stays, the words are held, and the card and Save say why.
+  const refusedExact = !match && def && typeof doorRefusedExactRecipe === 'function' ? doorRefusedExactRecipe(val, r => doorSlotRefusal(def, r)) : null;
+  if (refusedExact && held) {
+    held[slotId] = { kind: 'refused', typed: val, recipe: refusedExact.recipe, reason: refusedExact.reason };
+    showToast('“' + refusedExact.recipe + '” can’t go in this box: ' + refusedExact.reason + '.');
+    renderSlots(); updateSlotSummary(); return;
+  }
+  // S1 (Edit Menu redesign): clicking away from a recipe name links nothing. Picking is the only way to link (a tap,
+  // Enter, or Link on the card); the words are held and Save asks, so a recipe name is never saved without its allergens.
+  if (match && how !== 'enter' && held && !(current && current.recipeName === match.recipeName)) {
+    held[slotId] = { kind: 'exact', typed: val, recipe: match.recipeName };
+    renderSlots(); updateSlotSummary(); return;
   }
   if (match) {
     // Preserve slot-level flag overrides when the same recipe is re-confirmed
@@ -23296,6 +23436,10 @@ function slotSaveManual(slotId, val) {
     val = inp ? inp.value.trim() : '';
   }
   if (!val) return;
+  // Review fold (S1, P1-A): never a typed dish named exactly as a recipe this box refuses.
+  const _sdef = typeof MEAL_SLOT_DEFS !== 'undefined' ? MEAL_SLOT_DEFS.find(d => d.id === slotId) : null;
+  const _ref = _sdef && typeof doorRefusedExactRecipe === 'function' ? doorRefusedExactRecipe(val, r => doorSlotRefusal(_sdef, r)) : null;
+  if (_ref) { showToast('“' + _ref.recipe + '” can’t go in this box: ' + _ref.reason + '.'); return; }
   const dd = document.getElementById('slot-dd-' + slotId);
   if (dd) dd.style.display = 'none';
   MEAL_SLOT_STATE[slotId] = { manual: val };

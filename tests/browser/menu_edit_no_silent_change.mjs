@@ -65,6 +65,25 @@ try {
     check(width + ' the editor closes and says nothing changed (no question asked)', r === true && !after.open, r);
     await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
     await p.close();
+    // 2b. S1 review fold (P2, 2026-11-19): a recipe the box refuses, put back from the Save question, writes nothing.
+    p = await boot(width);
+    await p.evaluate(() => openMenuEdit(1, 'MONDAY', 'breakfast'));
+    await p.waitForTimeout(300);
+    const before2b = await state(p);
+    const r2b = await p.evaluate(async () => {
+      DOOR_RECIPE_DATA = DOOR_RECIPE_DATA.concat([{ recipeName: 'Audit Pork Roast', recipeId: 'audit-pork-roast', allergens: [], category: 'protein', stream: 'regular' }]);
+      slotAutoSave('mainalt', 'Audit Pork Roast');
+      const held = SLOT_HELD.mainalt && SLOT_HELD.mainalt.kind;
+      const asked = [];
+      window.doorAsk = async (q) => { asked.push(q.title); return true; };
+      const res = await Promise.race([saveMenuEdit(), new Promise((r) => setTimeout(() => r('timeout'), 3000))]);
+      return { held, asked, res };
+    });
+    await p.waitForTimeout(300);
+    const after2b = await state(p);
+    check(width + ' a refused recipe name is held, and Save asks once', r2b.held === 'refused' && r2b.asked.length === 1, r2b);
+    check(width + ' putting it back from the question writes nothing', after2b.overlay === before2b.overlay && after2b.bk === before2b.bk && r2b.res === true, [r2b, after2b.overlay.slice(0, 120)]);
+    await p.close();
     // 3. Clicking away from a typed dish that was not changed leaves it, ticks and all.
     p = await boot(width);
     await p.evaluate(() => openMenuEdit(4, 'SATURDAY', 'lunch'));
@@ -78,8 +97,12 @@ try {
     check(width + ' an unchanged typed dish stays typed after a click away', main && main.manual === 'Lime-Spiced Chicken Legs' && !main.recipeName, main);
     check(width + ' its ticks stay as they opened', JSON.stringify(main && main.flags) === JSON.stringify(opened && opened.flags), [main && main.flags, opened && opened.flags]);
     check(width + ' the draft still reads unchanged', await p.evaluate(() => !doorMenuDraftIsDirty()));
-    // 4. Typing the recipe name on purpose still links it (the change is the person's).
+    // 4. Typing the recipe name on purpose still links it (the change is the person's). Re-pinned 2026-11-19 (Edit Menu
+    // redesign S1): a click away from a recipe name links nothing (held; Save asks); Enter on the name links it.
     await p.evaluate(() => slotAutoSave('main', 'audit lime chicken'));
+    const held4 = await p.evaluate(() => ({ s: JSON.parse(JSON.stringify(MEAL_SLOT_STATE.main)), h: SLOT_HELD.main || null }));
+    check(width + ' a click away from a recipe name links nothing and holds the words', held4.s && !held4.s.recipeName && held4.h && held4.h.kind === 'exact', held4);
+    await p.evaluate(() => slotAutoSave('main', 'audit lime chicken', 'enter'));
     const linked = await p.evaluate(() => JSON.parse(JSON.stringify(MEAL_SLOT_STATE.main)));
     check(width + ' typing a recipe name on purpose still links it', linked && linked.recipeName === 'Audit Lime Chicken', linked);
     await p.close();

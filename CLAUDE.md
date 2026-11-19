@@ -53,6 +53,29 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Edit Menu's search finds the recipe, never one a plate refuses (redesign S1, `v31-standard.104`)
+Plan `docs/DOOR_MENU_EDIT_REDESIGN_PLAN_2026-11-19.md` (status owner); D7, Jason 2026-11-19: "Follow lean".
+- Any words in any order (`doorRecipeMatchRank` rank 4: "pork adobo" finds "Adobo Pork/Chicken/Tofu (…)"). A regular
+  box (main, starch, veg side, extras) lists fitting recipes first, then **Other recipes** (only the category relaxes).
+- `doorSlotRefusal` / `doorLineRefusal`: the vegan boxes never offer a recipe listing Milk, Eggs, Fish or shellfish, or
+  one off the vegan line (unless CODEX vegan-friendly); the halal, no-pork and halal-extras boxes never a recipe whose
+  name says pork (a "Halal …" name is fine). A refused recipe shows greyed with its reason, never pickable; `slotSelect`
+  refuses it. `recipeMatchesSlotDef` is unchanged (Rex import and the Special Meal editor read it).
+- A click away from a recipe name links nothing: the words are held (W3e, kind `exact`) and Save asks "Link the
+  recipe?". Enter on the name, a pick or Link on the card still links.
+- The vegan and halal "gets instead" boxes link no recipe the line refuses and suggest only allowed ones.
+- No saved link changes. Three published Vegan Alt links name a pot made in several versions (Wk2 SUN, MON, FRI dinner); they
+  stay linked, but could not be linked again once cleared (raised with Jason).
+- **Independent review (FIX FIRST), folded:** P1-A, words naming a refused recipe exactly were saved as a typed dish
+  with no allergens; now they are refused out loud and held (kind `refused`, "Put the box back"), on a blur, Enter, the
+  typed-dish row and the "gets instead" boxes (the open-time read-in still links by name). P1-B, the vegan "also gets"
+  and "gets instead" boxes let meat through; the vegan line now also refuses CODEX `veganFriendly: false` (a missing or
+  null flag is not a refusal). P2: "Link to …?" never offers a refused recipe. Second review (FIX FIRST): putting a
+  refused box back from the Save question left the meal as it opened but still wrote it; Save now checks again and writes
+  nothing (browser gate 2b, which also found the card button missing from the allowed inline handlers).
+- Gate `tests/recipe_search_s1_gate.mjs` (10), red on `main` `d7a3e65`. Re-pinned with dated notes: `door-smoke`,
+  `label_unchecked_gate`, `recipe_binding_v7_gate`, `vegan_friendly_gate`, browser `menu_edit_no_silent_change` (37).
+
 ## Recent (2026-11-19) — Edit Menu changes nothing nobody chose (walkthrough H2 + H4, `v31-standard.103`)
 Jason, 2026-11-19: "fix the two defects first", from the Edit Menu UX walkthrough (42 findings; before/after mockups in
 the redesign page). **H2:** a meal opened and saved with nothing changed rewrote its menu text from the dish boxes
