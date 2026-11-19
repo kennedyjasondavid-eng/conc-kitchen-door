@@ -17059,6 +17059,7 @@ function findOrphanSwaps(upcomingSwaps) {
 // edited directly afterward). The swap has nothing to actually swap, so it
 // shouldn't surface in the banner or count toward the unpaired check.
 function _isNoopSwap(swapKey, sw) {
+  if (sw && sw._oneDate) return false;   // S6a review fold (P1): a one-date change keeping the name still changes the meal
   try {
     const date = swapKey.slice(0,10);
     const period = swapKey.slice(11);
@@ -17087,7 +17088,7 @@ function renderSwapsBanner() {
   banner.style.display = 'block';
   clearBtn.style.display = 'inline-flex';
 
-  const orphans = new Set(findOrphanSwaps(upcomingSwaps));
+  const orphans = new Set(findOrphanSwaps(upcomingSwaps.filter(([, sw]) => !(sw && sw._oneDate))));   // S6a review fold (P2)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const list = document.getElementById('mc-swaps-list');
   const orphanWarning = orphans.size > 0
@@ -22353,14 +22354,15 @@ function doorSaveJustOn(name, veg, flags) {
     specialName: name, veg: veg || '', allergens, verified: false,
     notes: 'One-date change from Edit Menu (Wk' + week + ' ' + dayLabel(day) + ' ' + period + ')',
     createdAt: new Date().toISOString(), site: getSelectedSite() || 'unknown',
-    _flagsRaw: pnh({ ...flags }), _rotationSlot: mcMenuEditKey, _meal: meal
+    _flagsRaw: pnh({ ...flags }), _rotationSlot: mcMenuEditKey, _meal: meal,
+    _oneDate: true   // S6a review fold: a one-date change from Edit Menu (no partner, may keep the meal name); EXPO ignores it
   };
   saveMealSwaps(swaps);
   appendChangeLog({ type: 'one_date', week, day, period, date: key.slice(0, 10), newName: name, flags });
   closeMenuEdit(true);
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-  const msg = 'Saved for ' + label + ' only. The every-week meal is unchanged; revert it from Active Swaps to take it back.';
+  const msg = 'Saved for ' + label + ' only. Showing the every-week meal, which is unchanged; revert the ' + label + ' change from Active Swaps to take it back.';
   showToast(msg);
   publishAndSync('one-date change saved');
   if (typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, msg);
@@ -22481,13 +22483,14 @@ async function saveMenuEdit() {
   // "Pancakes & turkey bacon & fruit & yoghurt"), and that text is what EXPO, HUB and the sheets read.
   // S3 review fold: when the only change is answering what typed dishes contain, only the answers are written; a full
   // Save would rebuild the menu words from the boxes (the H2 rewording) for every meal on the Menu Config list.
-  const _answers = typeof doorAnswersOnly === 'function' && editSession && editSession.key === mcMenuEditKey ? doorAnswersOnly(editSession) : null;
+  const _dateMode = typeof _doorSaveWhen !== 'undefined' && _doorSaveWhen === 'date';   // S6a review fold: these write the every-week meal
+  const _answers = !_dateMode && typeof doorAnswersOnly === 'function' && editSession && editSession.key === mcMenuEditKey ? doorAnswersOnly(editSession) : null;
   if (_answers) { const done = doorWriteAnswersOnly(_answers); if (done) return done; }
   if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorDraftDirtyWithoutHeld()) {
     // Review fold (2026-11-19, P1): opening the meal can bring in ticks the stored meal lacks (a recipe label checked
     // since it was linked; a dish tick missing from the meal). The "re-save the meal" step relies on Save writing
     // them, so they are written, and only added, with the menu words left as stored.
-    const repair = doorOpenRepairTicks();
+    const repair = _dateMode ? null : doorOpenRepairTicks();
     if (repair) return doorRepairMealTicks(repair);
     const _held0 = Object.keys(SLOT_HELD).filter(id => SLOT_HELD[id]);
     if (_held0.length) {   // S5c (D3): held words are not a question; say what was not saved and keep the meal open
@@ -23090,7 +23093,7 @@ function doorStayOnSavedMeal(week, day, period, message) {
   }
   if (message && typeof showToast === 'function') showToast(message);   // re-review P3: placed above the footer, now on screen
   const t = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
-  doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /only|Not sent/.test(message || ''));
+  doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /this computer only|Not sent/.test(message || ''));
 }
 function closeMenuEdit(savedOrDiscarded) {
   if (!savedOrDiscarded && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => closeMenuEdit(true)); return; }
@@ -23298,7 +23301,7 @@ function doorChangedToday(week, day, period) {
   let log = [];
   try { log = loadChangeLog(); } catch (e) { return ''; }
   const today = typeof doorDateKey === 'function' ? doorDateKey(new Date()) : new Date().toISOString().slice(0, 10);
-  const e = (Array.isArray(log) ? log : []).filter(x => x && String(x.week) === String(week) && x.day === day && x.period === period && x.timestamp)
+  const e = (Array.isArray(log) ? log : []).filter(x => x && x.type !== 'one_date' && String(x.week) === String(week) && x.day === day && x.period === period && x.timestamp)
     .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))[0];   // review fold P3-5: the newest, however the log is ordered
   if (!e || !e.timestamp || (typeof doorDateKey === 'function' ? doorDateKey(new Date(e.timestamp)) : String(e.timestamp).slice(0, 10)) !== today) return '';
   return e.by ? 'Changed today by ' + e.by : 'Changed today';
@@ -23332,6 +23335,8 @@ function appendChangeLog(entry, opts) {
     } else if (entry.type === 'special_meal') {
       desc = 'Special meal “' + (entry.specialName || '') + '” on ' + (entry.date || '') + ' ' + (entry.period || '');
       color = '#0891b2';
+    } else if (entry.type === 'one_date') {
+      desc = 'Changed Wk' + entry.week + ' ' + dayStr + ' ' + entry.period + ' just on ' + (entry.date || '') + ' — ' + (entry.newName || '');
     } else {
       desc = 'Menu change (' + entry.type + ')';
     }
@@ -23365,6 +23370,8 @@ async function revertLastChange() {
     description = `revert of "${last.oldName}" back to "${last.newName}" (Week ${last.week} · ${last.day} · ${last.period})`;
   } else if (last.type === 'special_meal') {
     description = `special meal "${last.specialName}" on ${last.date} ${last.period}`;
+  } else if (last.type === 'one_date') {
+    alert('The last change is a one-date change for ' + (last.date || 'one date') + '. Take it back with Revert on the Active Swaps banner.'); return;
   } else {
     alert('Cannot undo this type of entry.'); return;
   }
@@ -23452,7 +23459,7 @@ function renderChangeLog() {
   el.innerHTML = filtered.map(e => {
     const d = new Date(e.timestamp);
     const ds = d.toLocaleDateString('en-CA') + ' ' + d.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit'});
-    const typeLabel = { permanent_edit: 'Permanent edit', special_meal: 'Special meal', revert: 'Revert' }[e.type] || e.type;
+    const typeLabel = { permanent_edit: 'Permanent edit', special_meal: 'Special meal', revert: 'Revert', one_date: 'One-date change' }[e.type] || e.type;
     const site = e.site || 'unknown';
     let detail = '';
     if (e.type === 'permanent_edit' || e.type === 'revert') {
@@ -23462,6 +23469,9 @@ function renderChangeLog() {
         : '"' + (e.oldName||'') + '" \u2192 "' + (e.newName||'') + '"');
     } else if (e.type === 'special_meal') {
       detail = (e.date||'') + ' ' + (e.period||'') + ' \u2014 "' + (e.specialName||'') + '"' + (e.verified ? '' : " Warning: allergens unverified");
+    } else if (e.type === 'one_date') {
+      const day = e.day ? e.day.charAt(0)+e.day.slice(1).toLowerCase() : '';
+      detail = 'Wk ' + e.week + ' ' + day + ' ' + (e.period||'') + ' just on ' + (e.date||'') + ' \u2014 "' + (e.newName||'') + '"';
     }
     return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:120px 130px 1fr;gap:6px;align-items:start;">' +
       '<span style="color:var(--muted);">' + escapeHtml(ds) + '</span>' +

@@ -50,4 +50,9 @@ test('S6a-3 the entry is a whole moved meal, as Swap Slots writes it, with pork 
   assert.match(w, /doorWriteEditorMeal\(overlay\[week\]\[day\], period, name, veg, flags\);/, 'built by the every-week writer');
   assert.ok(!/saveMenuBaseOverlay\(/.test(w), 'the every-week meal is never written');
   assert.match(w, /saveMealSwaps\(swaps\);/);
+  // Review fold: marked as a one-date change, so Active Swaps never hides it as a no-op or calls it an unpaired half.
+  assert.match(w, /_oneDate: true/);
+  assert.match(fn('_isNoopSwap'), /if \(sw && sw\._oneDate\) return false;/);
+  assert.match(fn('renderSwapsBanner'), /findOrphanSwaps\(upcomingSwaps\.filter\(\(\[, sw\]\) => !\(sw && sw\._oneDate\)\)\)\)/);
+  assert.match(fn('saveMenuEdit'), /const _answers = !_dateMode &&/, 'the answer-only shortcut writes the every-week meal, so not in date mode');
 });

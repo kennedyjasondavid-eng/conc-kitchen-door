@@ -65,7 +65,19 @@ slot's next service; `#mc-when-choice`, `doorRenderWhenChoice`, `doorSetSaveWhen
 - **Refused** (`doorJustOnTarget`): breakfast (the dated readers read lunch and dinner only), and a date that already
   holds a special meal or a one-date change.
 - **What changes** says "just on <date>".
-- **Gates:** `tests/just_on_date_s6a_gate.mjs` (3, red on `main`) and browser `tests/browser/just_on_date_s6a.mjs` (13, in
+- **Independent review (FIX FIRST), folded:**
+  - P1: a one-date change that kept the meal name (ticks or lines only) was hidden from Active Swaps as a no-op, so it
+    could not be reverted. Entries now carry `_oneDate: true` (additive; EXPO ignores it), and `_isNoopSwap` never
+    hides them.
+  - P2: every one-date change read as "1 unpaired swap"; the orphan check now skips them.
+  - P3:
+    - ↩ Undo Last points to Revert;
+    - the change log and Recent Activity name it;
+    - "Changed today" on the card is for every-week changes only;
+    - the saved line is no longer amber;
+    - the answer-only and repair shortcuts are skipped in date mode (they write the every-week meal).
+  - Re-pinned with a dated note: `save_in_view_s5a` 3 (only "this computer only" reads as a warning).
+- **Gates:** `tests/just_on_date_s6a_gate.mjs` (3, red on `main`) and browser `tests/browser/just_on_date_s6a.mjs` (17, in
   CI). The browser gate covers:
   - the entry, read by EXPO's rules, and the plating sheet serving it on that date;
   - the same whole meal an every-week save of the same change writes;

@@ -75,6 +75,36 @@ try {
   check('the entry carries the same whole meal an every-week save of the same change writes', same.same, same);
   check('revert takes the one-date change back', same.swapsLeft === 0, same);
 
+  // 2b. Review fold: a one-date change that keeps the meal name (ticks only) is listed in Active Swaps with its Revert,
+  // with no unpaired-swap warning; Undo Last points to Revert; the change log names it; the saved line is not amber.
+  const tick = await p.evaluate(async () => {
+    openMenuEdit(3, 'MONDAY', 'dinner');
+    const cb = document.getElementById('mc-edit-flag-hasSesame'); if (cb && !cb.checked) cb.click();
+    updateSlotSummary();
+    doorSetSaveWhen('date');
+    await saveMenuEdit();
+    const status = document.getElementById('mc-footer-status');
+    const amber = /warn/.test(status.getAttribute('style') || '');
+    const key = Object.keys(loadMealSwaps()).find((k) => loadMealSwaps()[k]._rotationSlot === '3-MONDAY-dinner');
+    const entry = loadMealSwaps()[key];
+    closeMenuEdit(true);
+    renderMenuConfig();
+    if (typeof renderSwapsBanner === 'function') renderSwapsBanner();
+    const list = (document.getElementById('mc-swaps-list') || {}).innerHTML || '';
+    let alerted = '';
+    const was = window.alert; window.alert = (m) => { alerted = m; };
+    await revertLastChange();
+    window.alert = was;
+    renderChangeLog();
+    const log = (document.getElementById('mc-log-entries') || {}).textContent || '';
+    return { oneDate: entry && entry._oneDate, sameName: entry && entry.specialName === getMenuData()['3'].MONDAY.dinner,
+      listed: !!key && list.includes(key), unpaired: /unpaired/.test(list), alerted, log: log.slice(0, 300), amber };
+  });
+  check('a one-date change that keeps the meal name is listed in Active Swaps with its Revert', tick.oneDate === true && tick.sameName && tick.listed, tick);
+  check('a one-date change is never reported as an unpaired swap', !tick.unpaired, tick);
+  check('Undo Last points to Revert for a one-date change, and the change log names it', /Revert on the Active Swaps banner/.test(tick.alerted) && /One-date change/.test(tick.log), tick);
+  check('the saved line for a one-date change is not shown as a warning', !tick.amber, tick);
+
   // 3. Refused: breakfast; a date with a special meal; a date with a swap.
   const refused = await p.evaluate(async () => {
     openMenuEdit(1, 'MONDAY', 'breakfast');
