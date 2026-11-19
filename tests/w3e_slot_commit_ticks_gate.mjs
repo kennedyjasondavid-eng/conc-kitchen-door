@@ -178,22 +178,24 @@ test('5. linking the main names every warning Save would take off, and keeps the
   // the half-typed and the renamed forms read as the same dish too
   assert.equal(carried(saved, { recipeName: 'Bolognese Sauce', flags: {} }, {}, {}, []).sameDish, true);
   assert.equal(carried(saved, { recipeName: 'Bolognese Sauce', displayText: 'Beef Bolognese', flags: {} }, {}, {}, []).sameDish, true);
-  // Re-pinned 2026-11-19 (S5c, D3): a different dish now defaults to Keep them too; Take them off is the alt choice.
+  // Re-pinned 2026-11-19 (S5c, D3 review fold): the main-changed question keeps W3a for a different dish (Take them off);
+  // Save now gives it only the meat and routing marks, and asks about allergens separately, keep by default.
   const ham = { lunch: 'Glazed Ham', dinner: 'Glazed Ham', dinner_flags: { hasPork: true, hasGluten: true }, dinner_slots: { main: { manual: 'Glazed Ham' } } };
   const t = carried(ham, { recipeName: 'Ginger Tofu', flags: {} }, { hasPork: true }, {}, []);
   assert.equal(t.sameDish, false);
   assert.deepEqual(t.list, ['hasPork']);
   assert.deepEqual(t.dropped, ['hasGluten']);
   const tq = ticksQ(t, ['hasGluten', 'hasPork']);
-  assert.equal(tq.goLabel, 'Keep them');
-  assert.equal(tq.altLabel, 'Take them off');
+  assert.equal(tq.goLabel, 'Take them off');
+  assert.equal(tq.altLabel, 'Keep them');
   assert.deepEqual(tq.items, ['Gluten', 'Pork']);
   // nothing changed: nothing asked
   assert.deepEqual(carried(saved, { manual: 'bolognese pasta', flags: {} }, {}, {}, []).dropped, []);
   // Save asks about both kinds, and maps the answer the right way round
   const save = fnBlock('saveMenuEdit');
-  assert.match(save, /const _offTicks = \[\.\.\.new Set\(\[\.\.\._carried\.list, \.\.\.\(_carried\.dropped \|\| \[\]\)\]\)\]/);
-  assert.match(save, /if \(!ans\) return;\s*const takeOff = ans === 'alt';[^\n]*\n\s*_offTicks\.forEach\(k => \{ flags\[k\] = !takeOff; \}\);/);
+  assert.match(save, /const _offTicks = \[\.\.\.new Set\(\[\.\.\._carried\.list, \.\.\.\(_carried\.dropped \|\| \[\]\)\]\)\]\.filter\(k => DOOR_MEAT_MARKS\.includes\(k\)\)/);
+  assert.match(save, /if \(!ans\) return;\s*const takeOff = _carried\.sameDish \? ans === 'alt' : ans === true;\s*_offTicks\.forEach\(k => \{ flags\[k\] = !takeOff; \}\);/);
+  assert.match(save, /const _removed = doorAllergenRemovals\(editKey, flags\);/, 'allergens: asked whatever the main did');
 });
 
 test('6. no control characters in the page; a linked "...Beans" dish gets its Beans tick', () => {

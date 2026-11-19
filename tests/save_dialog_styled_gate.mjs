@@ -75,7 +75,8 @@ test('1. saveMenuEdit asks through doorAsk — no browser confirm() left in Save
   // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3: "Follow lean"): the run-on box and held words are lines in What
   // changes now. Save asks three things through doorAsk: the soft plate (only when it can matter), the old dish's
   // warnings (keep is the default), and a new anaphylactic conflict (red). Halal keeps its own dialog.
-  assert.equal((save.match(/await doorAsk\(/g) || []).length, 3, 'the three questions use doorAsk');
+  // Review fold (2026-11-19): a fourth, any allergen removal (keep by default), asked whatever the main did.
+  assert.equal((save.match(/await doorAsk\(/g) || []).length, 4, 'the four questions use doorAsk');
   assert.ok(!save.includes('doorRunOnSlots('), 'the run-on box is not a Save question');
 });
 

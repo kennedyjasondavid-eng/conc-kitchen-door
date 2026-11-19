@@ -50,7 +50,7 @@ async function boot(res) {
           const go = ask ? ask.querySelector('.door-ask-go').textContent : '';
           const alt = ask && ask.querySelector('.door-ask-alt') ? ask.querySelector('.door-ask-alt').textContent : '';
           seen.push(title);
-          if (through && /^(Take off the old dish’s warnings|Keep the meal’s warnings)\?$/.test(title)) { ask.querySelector('.door-ask-go').click(); await new Promise((r) => setTimeout(r, 30)); continue; }
+          if (through && /^(Take off the old dish’s meat marks|Keep the meal’s warnings|Take these allergens off the meal)\?$/.test(title)) { ask.querySelector('.door-ask-go').click(); await new Promise((r) => setTimeout(r, 30)); continue; }
           if (ask) ask.querySelector(answer === 'go' ? '.door-ask-go' : '.door-ask-cancel').click();
           else halal.remove();
           await new Promise((r) => setTimeout(r, 30));
@@ -117,18 +117,53 @@ try {
   check('halal is not asked when the meat did not change', !halal.same.seen.includes('HALAL'), halal);
   check('halal is asked when the main meat changed (chicken to beef)', halal.changed.asked === 'HALAL' && !halal.changed.wrote, halal);
 
-  // 4. The old dish's warnings: keeping them is the default for a different dish.
+  // 4. Review fold: the meat marks follow the dish (W3a): sausage to a linked dish without meat, Take them off first.
   const ticks = await p.evaluate(async () => {
     openMenuEdit(1, 'THURSDAY', 'lunch');
-    // Link a main recipe with none of these allergens: the sausage dish's Gluten, Pork, Beef and Processed Meat look carried.
-    const rec = DOOR_RECIPE_DATA.find((r) => Array.isArray(r.allergens) && r.allergens.every((a) => !/gluten|wheat|pork|beef|processed/i.test(a)) && r.stream !== 'vegan' && /main|entree|protein/i.test(r.category || '') && !/pork|sausage|beef|ham|chicken/i.test(r.recipeName));
+    const rec = DOOR_RECIPE_DATA.find((r) => Array.isArray(r.allergens) && r.allergens.every((a) => !/gluten|wheat|pork|beef|processed|sausage/i.test(a)) && r.stream !== 'vegan' && /main|entree|protein/i.test(r.category || '') && !/pork|sausage|beef|ham|chicken|turkey|fish|tofu|bean/i.test(r.recipeName));
     slotSelect('main', rec.recipeName);
     updateSlotSummary();
     const r = await window.__saveAndSee('back');
     closeMenuEdit(true);
-    return r;
+    return { rec: rec.recipeName, ...r };
   });
-  check('taking off the old dish warnings is a choice; keeping them is the default', /^(Take off the old dish’s warnings|Keep the meal’s warnings)\?$/.test(ticks.asked) && ticks.go === 'Keep them' && ticks.alt === 'Take them off' && !ticks.wrote, ticks);
+  check('the old dish meat marks follow the dish: a different dish takes them off by default (W3a)',
+    (ticks.asked === 'Take off the old dish’s meat marks?' && ticks.go === 'Take them off') || (ticks.asked === 'Keep the meal’s warnings?' && ticks.go === 'Keep them'), ticks);
+
+  // 4b. Review fold (P1): an allergen coming off with the main unchanged (a dish tag switched off) is asked, keep by default.
+  const pill = await p.evaluate(async () => {
+    openMenuEdit(1, 'MONDAY', 'lunch');
+    Object.keys(MEAL_SLOT_STATE).forEach((id) => { const x = MEAL_SLOT_STATE[id]; if (x && x.flags) x.flags.hasEgg = false; });
+    renderSlots(); updateSlotSummary();
+    const back = await window.__saveAndSee('back');
+    closeMenuEdit(true);
+    openMenuEdit(1, 'MONDAY', 'lunch');
+    Object.keys(MEAL_SLOT_STATE).forEach((id) => { const x = MEAL_SLOT_STATE[id]; if (x && x.flags) x.flags.hasEgg = false; });
+    renderSlots(); updateSlotSummary();
+    const keep = await window.__saveAndSee('go');
+    await new Promise((res) => setTimeout(res, 50));
+    closeMenuEdit(true);
+    const egg = !!((getMenuData()['1'] || {}).MONDAY || {}).lunch_flags.hasEgg;
+    return { back, keep, egg };
+  });
+  check('an allergen coming off with the main unchanged is asked about, before anything is written',
+    pill.back.asked === 'Take these allergens off the meal?' && pill.back.go === 'Keep them' && !pill.back.wrote, pill);
+  check('the default keeps it on the saved meal', pill.keep.asked === 'Take these allergens off the meal?' && pill.egg === true, pill);
+
+  // 4c. Review fold (P2): words held out of a save that changed something else stay in their box after the meal reopens.
+  const held = await p.evaluate(async () => {
+    openMenuEdit(3, 'TUESDAY', 'lunch');
+    slotAutoSave('vegside', 'Steamed Kale', 'enter');
+    SLOT_HELD.starch = { kind: 'half', typed: 'Home Fr', recipe: 'Home Fries' };
+    renderSlots(); updateSlotSummary();
+    const r = await window.__saveAndSee('go', true);
+    await new Promise((res) => setTimeout(res, 50));
+    const still = !!(SLOT_HELD.starch && SLOT_HELD.starch.typed === 'Home Fr') && !!document.querySelector('.slot-held-note');
+    const status = (document.getElementById('mc-footer-status') || {}).textContent || '';
+    closeMenuEdit(true);
+    return { r, still, status };
+  });
+  check('held words are named on the saved line and stay in their box after the meal reopens', held.r.wrote && held.still && /Not saved: “Home Fr”/.test(held.status), held);
 
   // 5. The soft plate: not asked when no one on the list eats soft.
   const soft = await p.evaluate(async () => {
@@ -148,7 +183,8 @@ try {
     }
     return null;
   });
-  check('with no soft resident on the list, the soft plate is a line, not a question', soft && soft.r.asked !== 'No soft or plain alternative?' && /No soft plate is set/.test(soft.line), soft);
+  // Review fold: the soft line shows only when someone on the list eats soft (or there is no list).
+  check('with no soft resident on the list, the soft plate is neither asked nor named', soft && soft.r.asked !== 'No soft or plain alternative?' && !/No soft plate is set/.test(soft.line), soft);
   await p.close();
 
   // 6. The soft plate is asked when a soft resident is on the list and a dish changed, and always with no list.

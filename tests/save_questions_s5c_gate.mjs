@@ -24,16 +24,22 @@ test('S5c-1 Save no longer asks about a run-on box or held words; What changes s
   assert.match(h, /No soft plate is set for this meal/);
 });
 
-test('S5c-2 an allergen removal keeps by default, for the same dish and a different one', () => {
-  const c = { FLAG_DEFS: [{ key: 'hasPork', label: 'Pork' }] };
+test('S5c-2 any allergen removal is asked, keep by default; the meat marks follow the dish (W3a)', () => {
+  const c = { FLAG_DEFS: [{ key: 'hasPork', label: 'Pork' }, { key: 'hasEgg', label: 'Egg' }],
+    getMenuData: () => ({ 1: { MONDAY: { lunch_flags: { hasEgg: true, hasPork: true, isSpicy: true, halalCertifiedMeat: true } } } }) };
   vm.createContext(c);
-  vm.runInContext(fn('doorTicksQuestion') + '\nthis.f = doorTicksQuestion;', c);
-  for (const sameDish of [true, false]) {
-    const q = out(c.f({ oldMain: 'Glazed Ham', newMain: 'Ginger Tofu', sameDish }, ['hasPork']));
-    assert.equal(q.goLabel, 'Keep them');
-    assert.equal(q.altLabel, 'Take them off');
-  }
-  assert.match(fn('saveMenuEdit'), /const takeOff = ans === 'alt';/);
+  const at = html.indexOf("const DOOR_MEAT_MARKS = ");
+  vm.runInContext(html.slice(at, html.indexOf('\n', at)) + '\n' + fn('doorAllergenRemovals') + fn('doorRemovalQuestion') + fn('doorTicksQuestion'), c);
+  assert.deepEqual(out(c.doorAllergenRemovals('1-MONDAY-lunch', { hasPork: false })), ['hasEgg', 'isSpicy'], 'allergens and warnings, never the meat marks');
+  const q = out(c.doorRemovalQuestion(['hasEgg']));
+  assert.equal(q.goLabel, 'Keep them');
+  assert.equal(q.altLabel, 'Take them off');
+  assert.deepEqual(q.items, ['Egg']);
+  assert.equal(out(c.doorTicksQuestion({ oldMain: 'Glazed Ham', newMain: 'Ginger Tofu', sameDish: false }, ['hasPork'])).goLabel, 'Take them off');
+  assert.equal(out(c.doorTicksQuestion({ oldMain: 'Glazed Ham', newMain: 'Ham Steak', sameDish: true }, ['hasPork'])).goLabel, 'Keep them');
+  const save = fn('saveMenuEdit');
+  assert.match(save, /if \(ans !== 'alt'\) _removed\.forEach\(k => \{ flags\[k\] = true; \}\);/);
+  assert.ok(save.indexOf('doorAllergenRemovals(') > save.indexOf('doorCarriedTicks('), 'after the meat marks are settled');
 });
 
 test('S5c-3 halal is asked only when the meat changed since the meal opened', () => {
@@ -71,9 +77,12 @@ test('S5c-5 a new anaphylactic conflict is a red question before the halal quest
   const save = fn('saveMenuEdit');
   const at = save.indexOf('doorAnaphSaveQuestion(flags)');
   assert.ok(at > save.indexOf('doorCarriedTicks(') && at < save.indexOf('needsHalalPrompt'), 'after the ticks answer, before halal');
-  const q = fn('doorAnaphSaveQuestion');
+  const q = fn('doorAnaphSaveQuestionInner');
   assert.match(q, /danger: true/);
-  assert.match(q, /a\.before !== 'Anaphylactic Alternative' && a\.after === 'Anaphylactic Alternative'/);
+  assert.match(q, /sb\[r\.room\] !== 'Anaphylactic Alternative' && sa\[r\.room\] === 'Anaphylactic Alternative'/);
   assert.match(q, /if \(!list\.length\) return null;/, 'no list: nothing to name (What changes says counts not available)');
+  assert.match(q, /\(shares the room\)/, 'the roommates the sheet contains are named');
+  assert.match(fn('doorAnaphSaveQuestion'), /return \{ hold: true \};/, 'a check that cannot run holds Save');
+  assert.match(save, /Not saved: DOOR could not check the anaphylactic residents/);
   assert.match(fn('doorAsk'), /if \(o\.danger\) h\.style\.color = 'var\(--danger-ink, #991b1b\)';/);
 });

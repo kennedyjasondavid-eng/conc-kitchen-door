@@ -58,8 +58,10 @@ D3, Jason 2026-11-19: "Follow lean on D3".
 - **Still asked:**
   - halal, only when the meat it is about changed since the meal opened (`doorMeatChangedSinceOpen`, the open snapshot
     `doorSaveAskSnapshot`);
-  - the old dish's warnings, now **keep by default** for a different dish too, since a removal travels only with its
-    confirmation (`doorTicksQuestion`, `takeOff = ans === 'alt'`);
+  - **any allergen coming off**, whatever the main did (a dish tag switched off, a side cleared or relinked): asked
+    with **keep as the default** (`doorAllergenRemovals`, `doorRemovalQuestion`);
+  - the old dish's meat and routing marks (`DOOR_MEAT_MARKS`: Pork, Beef, Chicken, Turkey, Processed Meat, Carb-swap)
+    still follow the dish as W3a ruled, so a different main takes them off by default (`doorTicksQuestion`);
   - a new anaphylactic conflict, in red, before anything is written (`doorAnaphSaveQuestion`: a room this save moves
     onto the anaphylactic plate, or a newly added dish whose label is not checked while anaphylactic residents are on
     the list; `doorAsk` gains `danger`).
@@ -74,7 +76,20 @@ D3, Jason 2026-11-19: "Follow lean on D3".
 - **Re-pinned with dated notes:** `save_dialog_styled` (three doorAsk questions), `ticks_follow_dish`, `w3e_slot_commit_ticks`,
   `recipe_search_s1` (the note under the box offers the held-word choices), `recipe_binding_v7` (run-on is a line),
   `menu_save_message` (the saved line names held words), `typed_dish_s3` (the unchanged-Save check), browser
-  `menu_edit_no_silent_change` 2b (held words alone write nothing and keep the meal open).
+  `menu_edit_no_silent_change` 2b (held words alone write nothing and keep the meal open), browser `halal_context_race`
+  (each forced save also clears the open snapshot, so the meat reads as changed).
+- **Independent review (FIX FIRST), folded:**
+  - P1: only a main change asked; an allergen switched off on a dish came off silently. It is now asked whatever the
+    main did.
+  - P2: keep-by-default also kept the old dish's Pork mark (the Week 3 halal failure). Meat marks now follow the dish
+    again.
+  - P2: held words were dropped when the meal reopened after a Save; they now stay in their box with their note.
+  - P3:
+    - the anaphylactic question names the roommates it contains;
+    - a check that cannot run holds Save and says so;
+    - the soft line shows only when someone eats soft and says the sheet will ask for a plate;
+    - the dish snapshot covers every box and line version;
+    - the held-words message is grammatical.
 - **Found while building, fixed:** the draft-changed check counts held words, so with Save no longer asking, a box
   holding only unsaved words made Save rewrite the meal (the H2 class). Save now decides whether the meal changed with
   held words set aside (`doorDraftDirtyWithoutHeld`).
