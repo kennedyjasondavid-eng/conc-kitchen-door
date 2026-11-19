@@ -151,5 +151,6 @@ test('both reviews show it at the top, in large type, escaped, and a warning nev
 
 test('the build stamp moved', () => {
   // Re-pinned 2026-11-13: .69 or later (v31-standard.70 merges a one-week upload).
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(69|[7-9]\d)';/);
+  // 2026-11-19: the build stamp passed .99; three-digit stamps count as later.
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(69|[7-9]\d|[1-9]\d{2,})';/);
 });

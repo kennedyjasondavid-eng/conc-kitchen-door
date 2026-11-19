@@ -194,5 +194,6 @@ test('the review asks which week (pre-picked to the week read), says what Apply 
   assert.match(h, /data-file-week="4"[^>]*>.*<option value="4" selected>Week 4<\/option>/);
   assert.equal((h.match(/ selected/g) || []).length, 1);
   assert.match(h, /Apply replaces Week 4 only; Weeks 1–3 stay as they are\./);
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(7\d|[89]\d)';/, 'the build stamp moved');
+  // 2026-11-19: the build stamp passed .99; three-digit stamps count as later.
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(7\d|[89]\d|[1-9]\d{2,})';/, 'the build stamp moved');
 });

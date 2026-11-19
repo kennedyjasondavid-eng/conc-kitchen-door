@@ -136,5 +136,6 @@ test('the new inline handler is on the _escJsAttrCall allowlist (the real page t
 
 test('pending chip shows the specific note text; version stamp bumped', () => {
   assert.match(fnBlock('buildReview'), /d\.action==='note'\s*\?\s*\(d\.value\s*\|\|\s*'Service note'\)/, 'chip label uses the note value when present');
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(9|[1-9]\d)'/);
+  // 2026-11-19: the build stamp passed .99; three-digit stamps count as later.
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(9|[1-9]\d|[1-9]\d{2,})'/);
 });

@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.99';
+const DOOR_APP_VERSION = 'v31-standard.100';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -16134,8 +16134,14 @@ function doorSectionLabelPlate(section, f) {
   if (at === 'vegan_alt') return 'vegan';
   if (at === 'halal_alt') return 'halal';
   if (at === 'nopork_alt') return 'nopork';
-  if (at === 'modified_main' || at === 'diabetic_alt' || at === 'nodairy_alt') return 'regular';
-  if (at === 'bland_alt') return f && f._blandAlt ? null : 'regular';
+  // Call 3 (2026-11-19, Jason: "Yes follow lean"): the alternative plates are read too. Each is its own plate in
+  // doorPlatesLabelUnchecked: the dish the kitchen names for it, else the regular plate it is made from.
+  if (at === 'gf_alt') return 'gf';
+  if (at === 'diabetic_alt') return 'diabetic';
+  if (at === 'nodairy_alt') return 'nodairy';
+  if (at === 'modified_main') return 'noegg';
+  if (at === 'bland_alt') return 'bland';
+  if (at === 'soft') return 'soft';
   return null;
 }
 // Each plate holds entries { dish, known }: known null when the label is not checked, else the allergen families of a
@@ -16204,6 +16210,21 @@ function doorPlatesLabelUnchecked(dayData, period, dated, byText) {
     nopork: pick(at(['noporkalt', 'starch', 'vegside', 'xtra']))
   };
   Object.keys(byText || {}).forEach(k => { if (plates[k]) (byText[k] || []).forEach(d => add(plates[k], d, null)); });
+  // Call 3: the alternative plates. A plate the kitchen names is read from its own text (by exact recipe name, as a
+  // plate with no slots is); one it does not name is the regular plate it is made from. The anaphylactic plate counts
+  // only toward an anaphylactic resident, who is checked against every plate of the meal.
+  const ka = typeof doorKitchenAlternatives === 'function' ? doorKitchenAlternatives(dayData, period) : {};
+  const softMeal = (Array.isArray(dayData && dayData[period + '_altMeals']) ? dayData[period + '_altMeals'] : []).filter(a => a && a.type === 'soft').map(a => a.text || '').filter(Boolean).join(', ');
+  const altText = {
+    gf: dayData && dayData[period + '_gfAlt'], diabetic: ka.diabeticAlt, nodairy: ka.noDairyAlt, noegg: ka.noEggAlt,
+    bland: ka.blandAlt, soft: softMeal || (dayData && dayData[period + '_softAlt']), anaph: ka.anaphAlt
+  };
+  Object.keys(altText).forEach(k => {
+    const text = typeof altText[k] === 'string' ? altText[k].trim() : '';
+    if (!text) { if (k !== 'anaph') plates[k] = plates.regular.slice(); return; }
+    plates[k] = [];
+    if (typeof doorTextUncheckedDishes === 'function') doorTextUncheckedDishes(text).forEach(d => add(plates[k], d, null));
+  });
   return Object.keys(plates).some(k => plates[k].length) ? plates : null;
 }
 // Menu Config: the meals whose slots were linked while a label was not checked and whose label is checked now. Their

@@ -241,6 +241,11 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
   says "soy milk where noted" again. DOOR has no Oats flag, so oat milk shows no allergen in DOOR (known gap). Next in
   CODEX: a "What the package says" panel on a bought item, so a supervisor edits its list with no code (Jason: "follow
   lean, add the package panel after this edition").
+- **Call 3 (2026-11-19, Jason: "Yes follow lean"), `v31-standard.100`:** the label check reads the alternative plates
+  too. Gluten free, diabetic, no dairy, no egg / mustard, bland and soft are each read from the dish the kitchen names
+  for them (exact recipe name), or are the regular plate when it names none; the anaphylactic plate counts toward an
+  anaphylactic resident, who is checked against every plate. Nothing moves on today's data (no recipe is unchecked).
+  The package panel shipped in CODEX #385 (`d59db42`).
 - **C9 EXPO's okra stew link (2026-11-18, handed to the EXPO session):** EXPO plans the okra stew's stew cycle (cook Wk1
   FRI at Bloor, bag, cold van, reheat Wk2 WED) but links it to the Caribbean Stew recipe. EXPO's job panel work owns the
   fix; DOOR now names `okra-and-cassava-stew` on the slot.

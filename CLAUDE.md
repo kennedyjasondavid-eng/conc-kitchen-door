@@ -53,6 +53,14 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — the label check reads the alternative plates (call 3, `v31-standard.100`)
+Jason, 2026-11-19: "Yes follow lean". A bought item whose label is not checked was noted only on the regular, vegan,
+halal and no-pork plates. `doorPlatesLabelUnchecked` now also lists the gluten-free, diabetic, no-dairy, no-egg /
+mustard, bland and soft plates (each from the dish the kitchen names, by exact recipe name, else the regular plate it is
+made from) and the anaphylactic plate; `doorSectionLabelPlate` maps each section to its plate. An anaphylactic resident
+is still checked against every plate. Today no recipe is unchecked, so no sheet changes. Gate: `label_unchecked_gate`
+test 15 (red on `main` `f89e9a8`), tests 7 and 13 re-pinned (dated). Five build-stamp checks now accept three digits.
+
 ## Recent (2026-11-18) — a recipe whose label is not checked is unknown, never safe (C2 DOOR half, `v31-standard.97`)
 Plan `docs/DOOR_BACK_ON_TRACK_PLAN_2026-11-18.md` §5 U3, §9 C2 (Jason, 2026-11-18: "follow lean"). CODEX bought items (Rice Chex, Silk coconut yogurt, Kirkland oat and soy drinks) will arrive with `allergens: null` (not checked) until someone reads the package. DOOR ships first; CODEX's projection still turns null into [] until its own PR.
 - **One rule:** `doorRecipeLabelUnchecked(r)` (shared-recipes core): allergens not a list, or `labelUnchecked: true`. The shared overlay keeps null as null, never [] or None. Option C: a shared null over a CODEX list with real allergens keeps that list and marks it `labelUnchecked` (never a removal); over [] it stays null. The flow block reads such a recipe as unknown.
