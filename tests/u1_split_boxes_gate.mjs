@@ -26,7 +26,16 @@ test('U1-2 the vegan plate does not get the tzatziki on Wk4 SUN lunch; the regul
   assert.deepEqual(m.lunch_slots.xtra.lines.vegan, { mode: 'none' });
 });
 test('U1-3 Turmeric is spelled right and the falafel line has no double space', () => {
-  assert.ok(!JSON.stringify(menu).includes('Tumeric'));
+  // Re-pinned 2026-11-19 (the U1 side boxes answered, publication 40): Wk4 SAT lunch's Turmeric Quinoa box now links
+  // CODEX's recipe, whose record name is still "Tumeric Quinoa" until CODEX renames it; the menu's words (meal lines and
+  // what each box shows) are what must be spelled right.
+  const words = [];
+  for (const w of Object.keys(menu)) for (const d of Object.keys(menu[w])) for (const [k, v] of Object.entries(menu[w][d])) {
+    if (typeof v === 'string') words.push(v);
+    if (k.endsWith('_slots') && v) for (const s of Object.values(v)) if (s) words.push(s.displayText || s.manual || '');
+  }
+  assert.ok(!words.some((x) => x.includes('Tumeric')), 'no menu words say Tumeric');
+  assert.equal(meal('4', 'SATURDAY').lunch_slots.vegextras.displayText, 'Turmeric Quinoa');
   assert.equal(meal('4', 'MONDAY').lunch_veg, 'Falafel Sandwich, Fruit and Chips, Sub Bun');
 });
 test('U1-4 the regular menu words did not change on these meals', () => {

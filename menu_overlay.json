@@ -1877,7 +1877,7 @@
         "isCarb": true,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasBeans": false,
+        "hasBeans": true,
         "hasMushroom": false,
         "hasCoconut": true,
         "hasNightshades": false,
@@ -2057,8 +2057,36 @@
           "flags": {}
         },
         "vegside": {
-          "manual": "Garlic Green Bean",
-          "flags": {}
+          "recipeName": "Garlic Green Beans",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": true,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "recipeId": "garlic-green-beans",
+          "displayText": "Garlic Green Bean"
         }
       },
       "lunch_altMeals": [],
@@ -8562,8 +8590,36 @@
           "flags": {}
         },
         "vegextras": {
-          "manual": "Turmeric Quinoa",
-          "flags": {}
+          "recipeName": "Tumeric Quinoa",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "recipeId": "tumeric-quinoa",
+          "displayText": "Turmeric Quinoa"
         }
       },
       "lunch_diabeticAlt": "Lime-Spiced Chicken Legs, Turmeric Quinoa, Broccoli",
@@ -9553,7 +9609,8 @@
         },
         "vegside": {
           "manual": "Steamed Carrots",
-          "flags": {}
+          "flags": {},
+          "declared": true
         },
         "xtra": {
           "manual": "Tzatziki",
@@ -10409,11 +10466,14 @@
         },
         "xtra": {
           "manual": "Fruit and Chips",
-          "flags": {}
+          "flags": {},
+          "declared": true
         },
         "vegextras": {
           "manual": "Sub Bun",
-          "flags": {}
+          "flags": {
+            "hasGluten": true
+          }
         }
       },
       "lunch_gfAlt": "Roasted Chicken Leg, Roasted Yams, Stirfry Vegetables",
@@ -10563,20 +10623,20 @@
       "3|SUNDAY": 1795017603184,
       "4|TUESDAY": 1795055184234,
       "4|THURSDAY": 1795017603184,
-      "4|SATURDAY": 1795114017891,
+      "4|SATURDAY": 1795119762497,
       "1|SATURDAY": 1795081678597,
-      "1|FRIDAY": 1795114017162,
+      "1|FRIDAY": 1795119761688,
       "2|WEDNESDAY": 1795017748161,
       "2|MONDAY": 1795081678597,
       "2|TUESDAY": 1795081678597,
       "4|FRIDAY": 1795017603184,
-      "4|SUNDAY": 1795114017404,
+      "4|SUNDAY": 1795119761947,
       "4|WEDNESDAY": 1795081678597,
       "2|FRIDAY": 1795017603184,
       "3|SATURDAY": 1795081678597,
       "3|THURSDAY": 1795017603184,
       "3|MONDAY": 1795017603184,
-      "4|MONDAY": 1795114017646,
+      "4|MONDAY": 1795119762216,
       "1|MONDAY": 1795081678597,
       "3|TUESDAY": 1795081678597,
       "1|THURSDAY": 1795017603184,
@@ -10594,14 +10654,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:55724ef738e3ac62ab1bc97d2d0d935f4f47584263927f82ef223f4590dc38a3",
+        "menu": "sha256:28fa4e9c81c792feaae44485fe088f4c328543d3188317b2902622cb7827cf21",
         "recipe": "sha256:c28fd4f350236a3f1ce27eae54df9a3d8f068b33ea144bfa207791a625bffcf8",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:c9cd63a2b32150d9cd459f9be63a37581ba910abbaefa27ec85c04bc8911e478",
+      "inputRevision": "sha256:ff7b24912c5a9d0ce2fbd0bdff4ff271d674e574e58330cc25e0d879f0fd500f",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 39
+        "sequence": 40
       },
       "schema": 1
     }
