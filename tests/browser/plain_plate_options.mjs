@@ -90,14 +90,15 @@ try {
    await page.evaluate(()=>{doorAsk=window.__plainOptionsPriorDoorAsk;});
   }
  };
- await page.evaluate(()=>{showScreen('menu-config');openMenuEdit(1,'MONDAY','lunch');});
+ // Re-pinned 2026-11-19 (Edit Menu redesign S8): a plate the meal does not have is added with "+ Add a plate for".
+ await page.evaluate(()=>{showScreen('menu-config');openMenuEdit(1,'MONDAY','lunch');if(typeof doorAddPlateRow==='function')doorAddPlateRow('gfAlt');});
  const closedBefore=await page.evaluate(()=>JSON.stringify({overlay:loadMenuBaseOverlay(),registry:buildStateJSON().residents}));
  const options=page.locator('select[aria-label="Choose a plain plate for Gluten free"]');
  check('restriction-specific editor offers nine available plates with no default choice',await options.locator('option:not([disabled])').count()===10&&await options.inputValue()==='');
  await options.selectOption('basa-yams');
  check('explicit selection fills only the draft requirement field',await page.locator('#mc-kalt-gfAlt').inputValue()==='Plain Basa, Plain Roasted Yams, Plain Carrot and Zucchini');
  check('draft selection does not persist or publish',closedBefore===await page.evaluate(()=>JSON.stringify({overlay:loadMenuBaseOverlay(),registry:buildStateJSON().residents})));
- check('feedback shows recipients, recipe facts and retained instructions',/Draft routing:/.test(await page.locator('#door-alt-feedback-gfAlt').innerText())&&/CODEX declarations:.*FISH/i.test(await page.locator('#door-alt-feedback-gfAlt').innerText()));
+ check('feedback shows recipients, recipe facts and retained instructions',/\d+ residents? gets? this plate/.test(await page.locator('#door-alt-feedback-gfAlt').innerText())&&/Contains:.*FISH/i.test(await page.locator('#door-alt-feedback-gfAlt').innerText()));
  await page.evaluate(()=>{doorAsk=async()=>true;});
  await page.evaluate(()=>saveMenuEdit());
  check('known fish conflict on a newly chosen plate blocks Save and preserves the draft',await page.locator('#door-alt-save-issue').isVisible()&&/613a.*No Fish/.test(await page.locator('#door-alt-save-issue').innerText())&&await page.locator('#mc-kalt-gfAlt').inputValue()==='Plain Basa, Plain Roasted Yams, Plain Carrot and Zucchini');

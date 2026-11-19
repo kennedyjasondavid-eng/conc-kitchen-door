@@ -53,6 +53,33 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — "Other plates the kitchen makes" (redesign S8, M13, `v31-standard.118`)
+The editor's "Restriction-specific plates" (and, at breakfast, "Alternatives the kitchen makes") becomes **Other plates the
+kitchen makes**, with one plain sentence on a plate not made (`doorFillKitchenAltInputs`).
+- **Rows:** one per plate the meal has (`.mc-kalt-row`, an empty box hidden), and **+ Add a plate for…** for the rest
+  (`doorRenderAddPlate`, `doorAddPlateRow`).
+- **Each row (lunch and dinner)** says how many residents get the plate, equal to the plating sheet. A plate not made
+  says where its residents eat instead (`DOOR_KITCHEN_ALT_NOT_MADE`).
+- **Wording:** "Draft routing", "existing fallback" and "CODEX declarations" are gone ("Contains: …", "Allergens to
+  check: …").
+- **Unchanged:** the box ids and what Save stores. Breakfast keeps today's fields until U3/C1's breakfast plates are
+  built.
+- **Independent review (FIX FIRST), folded:**
+  - P1: a missing anaphylactic plate was hidden and called normal. The row now shows whenever residents are contained,
+    in red, in the sheet's words ("stays NOT READY until … named").
+  - P2:
+    - the gluten-free fallback names the house plate the sheet prints, and its row shows when gluten-free residents
+      get it;
+    - a plate not made counts the residents who would get it (it always read 0);
+    - adding every hidden plate no longer marks an unchanged meal as changed.
+  - Noted:
+    - jargon left in the plain-plate picker ("clinical texture", "draft");
+    - the static help text at load.
+- **Gates:** `tests/other_plates_s8_gate.mjs` (2) and browser `tests/browser/other_plates_s8.mjs` (19, in CI; made-up
+  residents; the fold's checks red on the pre-fold build).
+- **Re-pinned with a dated note:** browser `plain_plate_options` (adds the Gluten free plate with + Add a plate for, and
+  reads the new words).
+
 ## Recent (2026-11-19) — Menu Config on phones, tablets and wide screens (redesign S7, `v31-standard.117`)
 - **On a phone (768 px or narrower) the Menu page** shows a day picker (`#mc-day-picker`, `mcSetPhoneDay`; today on the
   current week) and that day's breakfast, lunch and dinner cards instead of the sideways week. Every day column is
