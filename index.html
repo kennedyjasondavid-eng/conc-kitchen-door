@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.105';
+const DOOR_APP_VERSION = 'v31-standard.106';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21397,8 +21397,12 @@ function updateSlotSummary() {
     const cb = document.getElementById(cbPrefix + f.key);
     flags[f.key] = cb ? cb.checked : (slotFlags[f.key] || false);
   });
-  const vegFlags = buildVegAltFlags();
-  flags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard;
+  // S2b (Edit Menu redesign): the plate facts come from the one function the plating sheet reads, on the meal as Save
+  // would write it; the editor no longer works out its own egg and mustard check for the vegan plate.
+  const draftFacts = (!testMealActive && typeof doorDraftPlateFacts === 'function') ? doorDraftPlateFacts(doorEditorDraftFlags(flags)) : null;
+  if (typeof window !== 'undefined') window.__DOOR_PLATE_SUMMARY__ = draftFacts;
+  if (draftFacts) flags._vegAltSafe = !!draftFacts.mealFlags._vegAltSafe;
+  else { const vegFlags = buildVegAltFlags(); flags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard; }
   flags._altMeals = buildAltMeals();
   doorEditorPlateFlags(flags);
   const prevId = testMealActive ? 'tm-section-preview' : 'mc-menu-edit-preview';
@@ -21418,6 +21422,7 @@ function updateSlotSummary() {
       summaryEl.style.display = 'block';
       summaryEl.innerHTML =
         '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;">' + escapeHtml(summaryLabel) + '</div>' +
+        (draftFacts ? doorPlateSummaryHTML(draftFacts, doorHandAddedTicks(flags)) : '') +
         (name       ? `<div style="font-size:13px;font-weight:600;margin-bottom:2px;">${escapeHtml(name)}</div>` : '') +
         (veg        ? `<div style="font-size:12px;color:var(--muted);">Vegan plate: ${escapeHtml(veg)}</div>` : '') +
         (halalLine  ? `<div style="font-size:12px;color:var(--muted);">Halal plate: ${escapeHtml(halalLine)}</div>` : '') +
@@ -22093,28 +22098,16 @@ async function saveMenuEdit() {
   });
 
   // ── P0 v26 / v30: Per-slot protein detection + halal certification prompt ──
-  const MEAT_DETECT = [
-    { kw: /\bchicken\b|\bchik'?n\b|\bdrum\w*\b|\btender\b|\bwing\b/i, flag: 'hasChicken', label: 'chicken' },
-    { kw: /\bbeef\b|\bsteak\b|\bmeatloaf\b|\bmeatball\b/i, flag: 'hasBeef', label: 'beef' },
-    { kw: /\bturkey\b/i, flag: 'hasTurkey', label: 'turkey' },
-    { kw: /\bpork\b|\bham\b|\bsausage\b|\bbacon\b|\bcarnitas\b/i, flag: 'hasPork', label: 'pork' },
-  ];
+  const MEAT_DETECT = DOOR_EDITOR_MEAT_DETECT;   // S2b: one list, read by the plate summary too
 
   // Detect per slot
   function _detectInSlot(slotId) {
-    const s = MEAL_SLOT_STATE[slotId];
-    // Recipe-attach S3 (meat union, belt-and-suspenders): scan the recipe name AND the
-    // display rename AND any manual text. Meat is name-derived and this only SETS flags
-    // (additive), so reading the display can only ADD a meat flag the recipe name missed
-    // ("Meatloaf" shown "Pork & Beef Meatloaf") — never removes one, never imports another
-    // recipe's allergens. ⚠ THIS SAVE SITE IS THE SOLE AUTHORITY for hasPork/hasBeef:
-    // computePlatingData does NOT re-detect them (it re-detects only chicken/turkey/halal
-    // from the display name as an additive backstop). So the display scan here is
-    // load-bearing — do not remove it thinking "plating covers it"; for pork/beef it does not.
-    const val = s ? [s.recipeName, s.displayText, s.manual].filter(Boolean).join(' ') : '';
-    if (!val) return [];
-    return MEAT_DETECT.filter(m => m.kw.test(val)).map(m => ({ ...m }));
+    // Recipe-attach S3 (meat union, belt-and-suspenders): scan the recipe name AND the display rename AND any manual text.
+    // Meat is name-derived and this only SETS flags. THIS SAVE SITE IS THE SOLE AUTHORITY for hasPork/hasBeef:
+    // computePlatingData does not re-detect them. S2b: one reader, doorEditorDetectMeat, shared with the plate summary.
+    return doorEditorDetectMeat(slotId);
   }
+
 
   const mainProteins    = _detectInSlot('main');
   const altProteins     = _detectInSlot('mainalt');
@@ -22306,14 +22299,105 @@ function doorRepairMealTicks(repair) {
   return true;
 }
 
+// S2b (Edit Menu redesign): what Save writes for the open meal, in one place, so the plate summary reads the meal exactly
+// as Save will write it.
+function doorWriteEditorMeal(target, period, name, veg, flags) {
+  target[period]              = name;
+  target[period + '_veg']     = veg;
+  const _halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;   // W3b: the own sides of the halal line, as a full line the plating sheet uses whole
+  if (_halalLine) target[period + '_halal'] = _halalLine;
+  doorSetMealFlags(target, period, flags);   // with its allergen line (2026-10-19)
+  target[period + '_softAlt'] = buildSoftAlt();
+  target[period + '_altMeals'] = buildAltMeals();
+  target[period + '_altMealsNone'] = !!ALT_MEALS_NONE;
+  // The kitchen alternatives (2026-10-19): an emptied box takes that plate off the meal. It is saved empty, not
+  // deleted: the base menu of every DOOR computer is the last published one, so a deleted field would come back from it.
+  Object.entries(doorKitchenAltInputValues()).forEach(([k, v]) => { target[period + '_' + k] = v; });
+  target[period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
+  target[period + '_mainItem'] = buildMainItem(); // v30
+  target[period + '_mainAlt'] = buildMainAltItem(); // v30
+  target[period + '_sides']   = buildSides(); // v30
+  // v30: Save individual slot values for lossless re-open
+  target[period + '_slots'] = _buildSlotSnapshot();
+  return target;
+}
+// S2b: the open meal as Save would write it, read the way the plating sheet reads it (doorPlateFacts, every week, no
+// dated meal). Nothing is stored: the overlay is copied, and the menu override is put back before this returns.
+function doorDraftPlateFacts(flags) {
+  if (!mcMenuEditKey || typeof doorPlateFacts !== 'function') return null;
+  const parts = mcMenuEditKey.split('-');
+  const week = parts[0], day = parts[1], period = parts[2];
+  const overlay = JSON.parse(JSON.stringify(loadMenuBaseOverlay() || {}));
+  if (!overlay[week]) overlay[week] = {};
+  if (!overlay[week][day]) overlay[week][day] = {};
+  doorWriteEditorMeal(overlay[week][day], period, buildMealName(), buildVegAlt(), flags);
+  const was = getDoorPublishMenuOverlayOverride();
+  let dayData = null;
+  try {
+    setDoorPublishMenuOverlayOverride(overlay);
+    const wk = getMenuData()[String(week)];
+    dayData = wk ? wk[day] : null;
+  } finally { setDoorPublishMenuOverlayOverride(was); }
+  const menuEdit = typeof getMenuEdit !== 'undefined' ? getMenuEdit(week, day, period) : null;
+  return doorPlateFacts(dayData, period, { dated: null, menuEdit });
+}
+// S2b: the flags Save would start from (the grid, the dishes, and the meat the dish names say), before its questions.
+function doorEditorDraftFlags(gridFlags) {
+  const flags = { ...buildUnionFlags() };
+  Object.keys(gridFlags || {}).forEach(k => { if (!k.startsWith('_') && gridFlags[k]) flags[k] = true; });
+  ['main', 'mainalt', 'noporkalt'].forEach(id => doorEditorDetectMeat(id).forEach(m => { flags[m.flag] = true; }));
+  return flags;
+}
+// The meat a dish box names (recipe, shown name or typed words). Save sets these flags; only adds.
+const DOOR_EDITOR_MEAT_DETECT = [
+  { kw: /\bchicken\b|\bchik'?n\b|\bdrum\w*\b|\btender\b|\bwing\b/i, flag: 'hasChicken', label: 'chicken' },
+  { kw: /\bbeef\b|\bsteak\b|\bmeatloaf\b|\bmeatball\b/i, flag: 'hasBeef', label: 'beef' },
+  { kw: /\bturkey\b/i, flag: 'hasTurkey', label: 'turkey' },
+  { kw: /\bpork\b|\bham\b|\bsausage\b|\bbacon\b|\bcarnitas\b/i, flag: 'hasPork', label: 'pork' },
+];
+function doorEditorDetectMeat(slotId) {
+  const s = MEAL_SLOT_STATE[slotId];
+  const val = s ? [s.recipeName, s.displayText, s.manual].filter(Boolean).join(' ') : '';
+  if (!val) return [];
+  // S2b: "turkey bacon" is not pork (the import reads it so too, nameDetectFlags). Re-saving a Monday breakfast
+  // ("Pancakes, turkey bacon, ...") added a false Pork tick, which makes it a pork day and clears its halal mark.
+  const v = val.replace(/turkey bacon/gi, 'turkey');
+  return DOOR_EDITOR_MEAT_DETECT.filter(m => m.kw.test(v)).map(m => ({ ...m }));
+}
+const DOOR_SUMMARY_SKIP = { isSpicy: 1, isCarb: 1, halalCertifiedMeat: 1, hasProcessedMeat: 1, hasPork: 1, hasBeef: 1, hasChicken: 1, hasTurkey: 1 };
+// S2b: the plate summary. Each plate as the sheet prints it; a dish whose label is not checked in amber; a halal dish named
+// pork in red; and the allergen ticks no dish explains, as "added by hand".
+function doorPlateSummaryHTML(facts, handKeys) {
+  if (!facts) return '';
+  const words = s => String(s || '').split(',').map(t => t.trim()).filter(Boolean).map(t => t.charAt(0) + t.slice(1).toLowerCase()).join(', ');
+  const line = (label, str) => '<div style="font-size:12px;margin-top:2px;"><b>' + escapeHtml(label) + ' plate contains:</b> '
+    + (str ? escapeHtml(words(str)) : '<span style="color:var(--muted);">nothing on the allergen list</span>') + '</div>';
+  const lab = facts.plateLabels || {};
+  const amber = ['regular', 'vegan', 'halal'].map(k => (lab[k] || []).map(d => d + ' (' + k + ')')).flat();
+  let html = '<div class="door-plate-summary" style="margin:6px 0 8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt, var(--cream));">'
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:2px;">As it will be served (every week)</div>'
+    + line('Regular', facts.allergenStr) + line('Vegan', facts.vegAllergenStr);
+  if (facts.halalAllergenStr || facts.mealHalal) html += line('Halal', facts.halalAllergenStr);
+  if ((facts.halalPorkDishes || []).length) html += '<div style="font-size:12px;margin-top:4px;color:var(--danger-ink, #991b1b);font-weight:700;">'
+    + doorIcon('warning') + ' The halal plate names pork: ' + escapeHtml(facts.halalPorkDishes.join(', ')) + '. Check this dish.</div>';
+  if (amber.length) html += '<div style="font-size:12px;margin-top:4px;color:var(--warn-ink, #92400e);">Label not checked: ' + escapeHtml(amber.join(', ')) + '</div>';
+  if ((handKeys || []).length) html += '<div style="font-size:12px;margin-top:4px;color:var(--muted);">Added by hand (no dish names it): '
+    + escapeHtml(handKeys.map(k => (typeof doorFlagLabel === 'function' ? doorFlagLabel(k) : k)).join(', ')) + '</div>';
+  return html + '</div>';
+}
+// S2b: the allergen ticks on the meal that no dish explains (its recipe, typed tags or words), worked out on the draft.
+function doorHandAddedTicks(gridFlags) {
+  const base = doorEditorDraftFlags({});
+  const plain = doorDraftPlateFacts(base);
+  const explained = (plain && plain.mealFlags) || base;
+  return (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).map(f => f.key)
+    .filter(k => !DOOR_SUMMARY_SKIP[k] && gridFlags && gridFlags[k] && !explained[k]);
+}
 function _finishMenuSave(name, veg, flags) {
   // Re-check after the async halal-certification prompt: source state could
   // have changed while the dialog was open.
   if (!guardStandardMenuWrite('Edit Menu')) return;
   if (typeof doorCheckNewPlainChoices === 'function' && !doorCheckNewPlainChoices(flags)) return;
-
-  const vegFlags = buildVegAltFlags();
-  const vegAllergens = flagsToAllergenStr(vegFlags);
 
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
@@ -22325,23 +22409,7 @@ function _finishMenuSave(name, veg, flags) {
   const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);   // the meal as it was (2026-10-19)
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
-  overlay[week][day][period]              = name;
-  overlay[week][day][period + '_veg']     = veg;
-  const _halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;   // W3b: the halal line's own sides, as a full line the plating sheet uses whole
-  if (_halalLine) overlay[week][day][period + '_halal'] = _halalLine;
-  doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
-  overlay[week][day][period + '_softAlt'] = buildSoftAlt();
-  overlay[week][day][period + '_altMeals'] = buildAltMeals();
-  overlay[week][day][period + '_altMealsNone'] = !!ALT_MEALS_NONE;
-  // The kitchen's alternatives (2026-10-19): an emptied box takes that plate off the meal. It is saved empty, not
-  // deleted: every DOOR computer's base menu is the last published one, so a deleted field would come back from it.
-  Object.entries(doorKitchenAltInputValues()).forEach(([k, v]) => { overlay[week][day][period + '_' + k] = v; });
-  overlay[week][day][period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
-  overlay[week][day][period + '_mainItem'] = buildMainItem(); // v30
-  overlay[week][day][period + '_mainAlt'] = buildMainAltItem(); // v30
-  overlay[week][day][period + '_sides']   = buildSides(); // v30
-  // v30: Save individual slot values for lossless re-open
-  overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
+  doorWriteEditorMeal(overlay[week][day], period, name, veg, flags);
   const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Menu');   // its first change keeps the original
   saveMenuBaseOverlay(overlay);
 
@@ -26162,10 +26230,30 @@ function doorPlateFacts(dayData, period, opts) {
         // the halal plate has no pork, whatever a slot's copied ticks say (Wk4 FRI's "Tandoori Chicken" carries hasPork)
         .split(',').map(t => t.trim()).filter(t => t && t.toUpperCase() !== 'PORK').join(', ') || null
     : null;
+  // S2b (D8, Jason 2026-11-19: "Follow lean"): a dish on the halal plate whose own name says pork is never hidden. The
+  // strip above stays for ticks copied onto a halal slot (Wk4 FRI Tandoori Chicken); a dish named pork is a real mistake,
+  // so the plate says PORK and the editor names the dish in red.
+  const halalPorkDishes = typeof doorHalalPorkDishes === 'function' ? doorHalalPorkDishes(dayData, period) : [];
+  const halalAllergenShown = halalPorkDishes.length
+    ? (halalAllergenStr ? halalAllergenStr + ', PORK' : 'PORK') : halalAllergenStr;
   return {
     mealName, mealVeg, mealHalal, mealMainItem, mealMainAlt, mealSides, mealSoftAlt, mealNoPorkAlt, mealAltMealsNone,
-    mealAltMeals, mealFlags, mealKitchenAlts, mealGfAlt, plateLabels, allergenStr, vegAllergenStr, halalAllergenStr
+    mealAltMeals, mealFlags, mealKitchenAlts, mealGfAlt, plateLabels, allergenStr, vegAllergenStr,
+    halalAllergenStr: halalAllergenShown, halalPorkDishes
   };
+}
+// S2b (D8): the dishes on the halal plate whose own name says pork: the halal line words, the halal main, a halal side
+// version and the halal extras. A "Halal ..." name is not pork (doorRecipeNamesPork).
+function doorHalalPorkDishes(dayData, period) {
+  if (!dayData || typeof doorRecipeNamesPork !== 'function') return [];
+  const names = [];
+  String(dayData[period + '_halal'] || '').split(',').forEach(t => { if (t.trim()) names.push(t.trim()); });
+  const slots = dayData[period + '_slots'];
+  if (slots && typeof doorLinePieces === 'function') {
+    doorLinePieces(slots, 'halal', ['mainalt'].concat(typeof DOOR_LINE_SIDE_IDS !== 'undefined' ? DOOR_LINE_SIDE_IDS : []))
+      .forEach(x => [x.displayText, x.recipeName, x.manual].forEach(t => { if (t) names.push(String(t)); }));
+  }
+  return [...new Set(names.filter(n => doorRecipeNamesPork({ recipeName: n })))];
 }
 // S2a: the plate facts of a rotation slot. With noDated, the every-week meal even when its next service is a swap or a
 // special meal, so a preview of an every-week change never compares a swap with itself.

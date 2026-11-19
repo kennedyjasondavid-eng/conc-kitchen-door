@@ -53,6 +53,23 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Edit Menu shows each plate as it will be served (redesign S2b, `v31-standard.106`)
+- **The summary:** under "Will save as", the regular, vegan and halal plates' allergens, worked out by `doorPlateFacts` on
+  the meal as Save would write it (`doorDraftPlateFacts`: the overlay copied, `doorWriteEditorMeal`, the menu read as
+  plating reads it, the override always put back). A dish whose label is not checked shows in amber; a tick no dish names
+  reads "Added by hand (no dish names it)" (`doorHandAddedTicks`). Save and the summary share one writer
+  (`doorWriteEditorMeal`) and one meat reader (`doorEditorDetectMeat`). The editor's own egg and mustard check for the
+  vegan plate is gone: the preview reads plating's.
+- **D8** (Jason, 2026-11-19: "Follow lean"): a dish on the halal plate whose own name says pork (`doorHalalPorkDishes`)
+  is named in red, and the plate's CONTAINS says PORK. A copied pork tick on a halal chicken dish (Wk4 FRI Tandoori
+  Chicken) stays stripped. Today no meal has one: plating and the routing file are byte-identical.
+- **Found by the summary census and fixed:** re-saving a Monday breakfast ("Pancakes, turkey bacon, …") added a false
+  Pork tick (it made the meal a pork day and cleared its halal mark); Save no longer reads "turkey bacon" as pork.
+- **Gates:** `tests/plate_summary_s2b_gate.mjs` (3, red 3/3 on `main` `7d33af4`) and browser
+  `tests/browser/plate_summary_s2b.mjs` (8, in CI, red on `main`): every published meal opens with a summary equal to
+  plating's every-week facts, and opening it changes nothing. Re-pinned with dated notes: `kitchen_alternatives`,
+  `line_sides`, `make_permanent_whole_dish`, `recipe_attach_s3_meat_union`, `restore_original`, `stale_flags_banner_retired`.
+
 ## Recent (2026-11-19) — one function for a plate's facts (redesign S2a, `v31-standard.105`)
 The plate part of `computePlatingData` moved, unchanged, into `doorPlateFacts(dayData, period, { dated, menuEdit })`
 (reads no resident); `doorPlateFactsFor(week, day, period, { noDated })` plates the every-week meal on a swap date. The

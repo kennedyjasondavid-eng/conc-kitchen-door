@@ -100,7 +100,8 @@ test('the vegan plate\'s allergens follow what the vegan line gets', () => {
 test('Edit Menu keeps the versions: snapshot, open, Save (vegan and halal), the list slots, the side controls', () => {
   assert.match(fnBlock('_buildSlotSnapshot'), /snap\[d\.id\]\.lines = JSON\.parse\(JSON\.stringify\(s\.lines\)\)/);
   assert.match(fnBlock('openMenuEdit'), /doorReadInLineVersions\(dayData, period\)/);
-  assert.match(fnBlock('_finishMenuSave'), /buildHalalLine\(\)[\s\S]{0,160}\[period \+ '_halal'\] = _halalLine/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2b): what Save writes for the meal moved into doorWriteEditorMeal.
+  assert.match(fnBlock('doorWriteEditorMeal'), /buildHalalLine\(\)[\s\S]{0,160}\[period \+ '_halal'\] = _halalLine/);
   assert.match(fnBlock('buildVegAltFlags'), /doorLinePieces\(MEAL_SLOT_STATE, 'vegan'\)/);
   assert.match(fnBlock('buildHalalAltFlags'), /doorLinePieces\(MEAL_SLOT_STATE, 'halal'/);
   assert.match(fnBlock('doorRunOnSlots'), /def\.list/, 'an "also gets" list is not asked about as several dishes');

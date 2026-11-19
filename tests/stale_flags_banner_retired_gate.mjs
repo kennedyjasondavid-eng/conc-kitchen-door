@@ -68,7 +68,9 @@ test('4. the one-shot cleanup itself is kept and still wired to load', () => {
   assert.ok(/sweepAltFlagPollution\(\{\s*dryRun:\s*false\s*\}\)/.test(body), 'still runs the real cleanup once');
   assert.ok(/addEventListener\('load', runAltFlagSweepOnce\)/.test(html), 'still runs at load');
   // Edit Menu save still records the per-slot snapshot (the thing D1's notice keys on).
-  assert.ok(/overlay\[week\]\[day\]\[period \+ '_slots'\] = _buildSlotSnapshot\(\)/.test(fnBlock('_finishMenuSave')));
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2b): what Save writes for the meal moved into doorWriteEditorMeal.
+  assert.ok(/target\[period \+ '_slots'\] = _buildSlotSnapshot\(\)/.test(fnBlock('doorWriteEditorMeal')));
+  assert.ok(/doorWriteEditorMeal\(overlay\[week\]\[day\], period, name, veg, flags\)/.test(fnBlock('_finishMenuSave')));
 });
 
 test('5. running the cleanup never touches a slot-less meal, and needs no banner element', () => {

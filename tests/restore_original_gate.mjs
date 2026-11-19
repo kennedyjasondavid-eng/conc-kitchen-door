@@ -42,7 +42,8 @@ const COPY_SRC = html.includes('const DOOR_MEAL_FIELDS = ') ? between('const DOO
 const MENU_SRC = [CORE, PARTS_SRC, fn('doorEmptyDishParts'), fn('doorSetMealFlags'), COPY_SRC,
   fn('flagsToMenuAllergens'), fn('mergeDoorMenuDataWithOverlay'), fn('dayLabel'), between('const FLAG_DEFS = [', '\n];\n') + '\n];\n',
   fn('appendChangeLog'), fn('makePermanent'), fn('makeSwapPermanentFromBanner'), fn('revertMealSwap'), fn('revertMenuEdit'),
-  fn('saveEditFlags'), fn('_finishMenuSave'), fn('doorMenuSavedMessage'), fn('revertLastChange'), fn('buildMenuJSON')].join('\n');
+  fn('saveEditFlags'), fn('doorWriteEditorMeal'), fn('_finishMenuSave'),   // 2026-11-19 (S2b): the writer moved
+   fn('doorMenuSavedMessage'), fn('revertLastChange'), fn('buildMenuJSON')].join('\n');
   // 2026-11-18 (back-on-track U4): _finishMenuSave's toast now comes from doorMenuSavedMessage; the box loads it too.
 
 const PUBLISHED = json('menu_current.json');
