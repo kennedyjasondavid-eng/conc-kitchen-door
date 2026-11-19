@@ -34,25 +34,37 @@
 End-to-end, splitting "Pork Adobo & Garlic Green Bean" took 13 steps and failed; the target is about 5.
 
 ## 3. Ground rules for every slice
-- **Editor-only first.** The meal record (`_slots`, `_flags`, menu text, line versions, kitchen alternatives) and every
-  published file keep their shape. EXPO, HUB and the sheets read exactly what they read today. A new field is additive,
-  editor-internal and named in the slice (only S3 adds one).
-- **One owner per fact stays.** The plate summary reads the same builders Save and plating read (`buildUnionFlags`,
-  `buildVegAltFlags`, `buildHalalAltFlags`, `doorLinePieces`, `doorPlatesLabelUnchecked`, `computePlatingData`). No
-  second allergen rule.
-- **The allergen facts rule holds** (`docs/DOOR_ALLERGEN_FACTS_RULE.md`): reading only adds; a removal needs a person;
-  an unticked Spicy stays off; a linked dish keeps its ticks until relinked; refreshes only add.
+- **The meal record keeps its shape.** `_slots`, `_flags`, menu text, line versions, kitchen alternatives and every
+  published file keep their shape, and EXPO, HUB and the sheets read what they read today. A new field is additive and
+  named in its slice (only S3 adds one). **Two slices are not editor-only:** S2a moves code inside plating (proved
+  byte-identical), and S4a/D4 changes how a real edit writes the menu text EXPO reads.
+- **One owner per fact stays, and it is plating's.** The editor's plate summary and What changes read one pure
+  function lifted out of `computePlatingData` (S2a, `doorPlateFacts`), never the editor's own builders. Plating builds a
+  plate's CONTAINS from more than the boxes: an operator statement, the vegan line's name match against CODEX, each
+  linked recipe's current CODEX list, the regular ticks as a floor, the soy-free strip, ticks read from dish words, the
+  pork-never-halal guard and opted-in kitchen plates. `buildVegAltFlags` / `buildHalalAltFlags` / `buildUnionFlags`
+  stay what Save writes; they are not a preview.
+- **Safety filters stay filters.** `recipeMatchesSlotDef` is a yes/no rule (the vegan line, CODEX's vegan-friendly
+  flag, no animal family on a vegan alternative) and stays exactly as it is; the wider search ranks with a separate
+  function and never offers a recipe a plate's rule refuses (D7).
+- **The allergen facts rule holds** (`docs/DOOR_ALLERGEN_FACTS_RULE.md`): reading only adds; a removal needs a person
+  and a confirmation; an unticked Spicy stays off; a linked dish keeps its ticks until relinked; refreshes only add.
+  Anaphylactic conflicts are always red with an explicit acknowledgement.
 - **Nothing commits on a click away**, and nothing changes on open (S0 made this true; every slice keeps it).
-- **Kitchen words on screen.** The jargon table in the walkthrough is the word list; "slot", "flag", "overlay",
-  "stream", "publish" and "recipe ID" don't appear. CODEX is "the recipe book (CODEX)" the first time on a screen.
-- **Delivery cadence.** Each slice is one PR: a gate authored red on `main`, the full suite, the CI browser list, a
-  before/after screenshot pair at 1280 and 390 px, and a version bump. Slices marked **review** get an independent
-  review before merge (they touch allergens, plates or saved data).
+- **Kitchen words on screen.** The walkthrough's jargon table is the word list; "slot", "flag", "overlay", "stream",
+  "publish" and "recipe ID" don't appear. CODEX is "the recipe book (CODEX)" the first time on a screen.
+- **Shared code moves together or is pinned.** The Special Meal editor shares `renderSlotCard` and the slot searches;
+  Rex's review shares `recipeMatchesSlotDef` and the save writers. Each slice either carries them along or pins them
+  unchanged with a gate.
+- **Delivery cadence.** One PR per slice part: a gate authored red on `main`, the full suite, the CI browser list, a
+  before/after screenshot pair at 1280 and 390 px, a version bump. Parts marked **review** get an independent review
+  before merge (they touch allergens, plates or saved data).
 - **Keep what works:** close-with-changes question, put back the original, the "Saved on this computer only. Not sent:
   <reason>" line, "gets this / gets instead / doesn't get it", "Link to …? Its allergens come with it".
 
 ## 4. The slices, in order
-Each builds on the one before; each ships usable on its own.
+Each part ships usable on its own. Order: S0 → S1 → S2a → S2b → S3 → ST → S4a → S5a → S4b → S5b → S5c → S6a → S6b →
+S6c → S7 → S8 → U1 (S1 and S2a don't depend on each other; S2a comes before anything that previews a plate).
 
 ### S0 · Two live defects (done, #242)
 An unchanged Save writes nothing (H2); opening focuses nothing and a click away links nothing (H4); the re-save step for
@@ -60,110 +72,196 @@ a label checked since still writes its ticks. Gate `tests/browser/menu_edit_no_s
 
 ### S1 · A search that finds the recipe (T3) · review
 - Search every recipe, any words in any order ("pork adobo" finds "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)").
-  Recipes that fit the box come first; the rest are listed under "Other recipes", never hidden (`recipeMatchesSlotDef`
-  ranks instead of filtering).
+  A new ranking function orders the list; `recipeMatchesSlotDef` is untouched.
+- **Regular boxes:** only the category check relaxes. Recipes that fit the box come first; the rest are listed under
+  "Other recipes".
+- **Vegan and halal boxes:** the vegan-line, animal-family and pork rules stay hard. A refused recipe may be listed
+  greyed out with its reason ("lists Milk", "pork"), never pickable (D7). The vegan and halal "gets instead…" boxes go
+  through the same rule (today they offer and link any recipe).
 - Each result shows its allergens and "label not checked" where it applies.
-- Picking is the only way to link: Enter on a highlighted result, a tap, or "Link to …?". No exact-name link on blur.
-- No match: "Use '<words>' as a typed dish. You say what it contains." (S3 asks the question.)
-- Gate: the adobo case, word order, other-category recipes listed, blur never links, Enter on a highlight links.
+- Picking is the only way to link: Enter on a highlighted result, a tap, or "Link to …?".
+- **A blur on words that match, or start, a listed recipe goes into the W3e hold** (`SLOT_HELD`), and Save asks about
+  it; it is never saved as a typed dish with no ticks. Words that match nothing save as typed, as today, until S3 asks
+  what they contain.
+- No match: "Use '<words>' as a typed dish. You say what it contains."
+- Rex's week import and `doorRecipeSuggestionFor` keep today's rule (pinned).
+- Gate: the adobo case, word order, other-category recipes listed on a regular box; on Vegan Alt a pork recipe and a
+  Milk-listing recipe can't be chosen; on the halal main a pork recipe can't be chosen; a blur on a recipe's name is
+  held, never linked or saved bare; Enter on a highlight links.
+- Re-pins expected: `recipe_binding_v7`, `recipe_attach_p2`/`s2`, `menu_field_freetext`, `slot_editor_live_commit`,
+  `w3e_slot_commit_ticks`, `vegan_friendly`, `stew_side_slot`, `label_unchecked`, `door-smoke`.
 
-### S2 · One true allergen summary per plate (T2) · review
-- A summary per plate, worked out from its dishes with the plating builders: "Regular plate contains: …", vegan, halal
-  and each other plate the kitchen makes. Hand-added ticks show "(added by you)"; label-not-checked items stay amber.
+### S2a · One function for a plate's facts (plating) · review
+- Lift the plate part of `computePlatingData` into one pure function, `doorPlateFacts(dayData, period, opts)`: each
+  plate's dishes, CONTAINS, label-not-checked dishes and whether the vegan plate is egg- and mustard-free. The sheet and
+  `routing_by_meal.json` then call it.
+- It takes the day directly, with "no dated meal" as an explicit option, so a preview can plate the every-week meal on
+  a date that has a swap. Sections still come from `computeSections`; anaphylactic residents are still set apart with
+  `getAnaphConflictRooms`.
+- Remove the editor's own `_vegAltSafe` and its unused `vegAllergens` (they disagree with plating).
+- Gate and proof: every plating sheet (84 HTML, 56 XLSX) and `routing_by_meal.json` byte-identical before and after on
+  today's data; a meal with a swap on its next date plates the every-week meal when asked.
+
+### S2b · One true allergen summary per plate (T2) · review
+- A summary per plate from `doorPlateFacts` on the draft day: "Regular plate contains: …", vegan, halal and each other
+  plate the kitchen makes. Label-not-checked items stay amber.
+- **"Added by hand"** marks a tick that is on the meal but named by no dish's recipe, typed tags or words (not "by
+  you": the tick may be months old).
+- **A halal dish carrying Pork** shows it in red on the summary (and the sheet, D8) instead of the guard hiding it.
 - The "Meal Allergens & Flags" grid becomes **Also contains** (hand ticks, clearly extra) and **About this meal**
   (spicy, halal-certified meat, processed meat, a starch to swap). Same stored fields, new grouping and words.
-- Each dish row shows its ticked allergens as one line ("Soy · Tree nuts"), with **Allergens** to change them. The full
-  21-pill row opens on demand (and always for a typed dish, S3).
-- Gate: on every published meal the summary equals what plating prints (regular, vegan, halal CONTAINS), and a hand
-  tick is labelled.
+- Each dish row shows its ticked allergens as one line ("Soy · Tree nuts") with **Allergens** to change them; the full
+  pill row opens on demand (always for a typed dish, S3).
+- Gate: on every published meal the summary equals what plating prints (regular, vegan, halal CONTAINS); a meal with a
+  known hand tick shows it as added by hand.
 
 ### S3 · A typed dish says what it contains (H7) · review
 - Choosing a typed dish asks once, in place: "What does <dish> contain?" with large choices and **Nothing to declare**.
-- **New field (additive, editor-internal):** `declared: true` on a typed slot when the person answered (with nothing
-  or with ticks). A typed dish without it shows amber "Allergens not set" on its row and in the summary. Published
-  `_slots` carry it verbatim; EXPO ignores `_slots`; HUB reads only `recipeId`. Call **D2**.
-- Gate: a typed side saved without an answer shows the amber line; "Nothing to declare" stores `declared` and no ticks.
+- **New field (additive):** `declared: true` on a typed slot once answered (with nothing or with ticks). Published
+  `_slots` carry it verbatim; EXPO ignores `_slots`; HUB reads only `recipeId`. It changes `doorMealSig` and the F4
+  publication content, both checked by the gate.
+- **The 55 typed dishes saved without ticks** (of 122 typed boxes on the published menu) and what Rex's import and the
+  Special Meal editor write are D2's call; the code already refused a nudge that would fire on all of them (cry-wolf).
+- Gate: a new typed side saved without an answer shows the amber line; "Nothing to declare" stores `declared` and no
+  ticks; legacy typed dishes show what D2 rules.
 
-### S4 · Plates of dishes (T1)
-- The meal opens on its title and next date, then plate cards: Regular (one row per dish), Vegan and Halal ("instead
-  of …", "the rest is the same"), No pork when it exists, Other plates the kitchen makes.
-- Rows map onto today's boxes: Main → `main`, sides → `starch` / `vegside` / `xtra`, extras → `extras`; vegan and
-  halal differences → `veganalt` / `mainalt` and the line versions; "also gets" → `vegextras` / `halalextras`.
-  **+ Add a dish** asks "Main, side or extra?". Empty boxes and "optional" tags go.
-- Reading a meal from its menu text splits at commas (and " & " only where DOOR splits today), one row per dish, in
-  the text's own order (H3). When it had to guess, one quiet line: "DOOR read these dishes from the menu text."
-- Breakfast is a plain list of items (M24).
-- Gate: every published meal opens with the same dishes it has today (row text = today's boxes), and an unchanged Save
-  still writes nothing.
+### ST · Test harness before the layout changes (tests only)
+- Move the 32 source-slicing checks of `openMenuEdit`, `saveMenuEdit`, `updateSlotSummary`, `renderSlotCard` and
+  `slotAutoSave` onto one behaviour harness (open, edit, save through the real functions in a page).
+- Contract gate: for each published meal, a scripted one-dish edit leaves every `menu_current.json` field outside that
+  dish unchanged, and every published meal keeps its `_slots` shape.
+- No app change.
 
-### S5 · What changes, and Save always in view (T4) · review
-- A footer pinned to the bottom of the screen: the regular plate's summary line, **Close**, **Save** (greyed until
-  something changes). On a phone it is a sheet.
-- As soon as something differs, **What changes**: every week or one date; each plate before → after; new allergens;
-  residents who move plates (counts, from `computePlatingData` on the draft against the stored meal); anaphylactic
-  residents named as affected or not; "The kitchen schedule (EXPO) and the staff board (HUB) show it when you save."
-- The five modal questions become inline lines in that panel, in kitchen words. Halal is asked only when the meat
-  changed. The soft-plate choice is a saved setting on the plate card, asked only when the change affects soft
-  residents (M12). At most one confirmation remains, for a food-safety decision. Call **D3**.
-- **Menu words keep their wording** where the dishes didn't change: a real edit rebuilds only what changed and keeps
-  the rest of the text as written (finishes H2). Call **D4**.
-- After Save the page stays on the meal: "Saved and sent to the kitchen · 2:14 pm" or the steady not-sent reason; the
-  meal card on the Menu page shows "Changed today by <name>".
-- Gate: the questions appear inline; residents-moved counts equal plating before and after; words outside the changed
-  dish are byte-identical; Save visible without scrolling at 1280×900 and 390×860.
+### S4a · Read the meal into rows; keep the words (T1, D4) · review
+- Reading a meal from its menu text splits at commas (and " & " only where DOOR splits today), one row per dish, in the
+  text's own order (H3). When it had to guess, one quiet line: "DOOR read these dishes from the menu text."
+- **A real edit keeps the menu words it didn't change** (D4): only the changed dish's words are rebuilt, in place, so
+  EXPO's text doesn't reorder on the next edit of a meal read from text (`buildMealName` orders main, starch, veg side,
+  extra today). The vegan line read-in (`doorReadInLineVersions`) is checked against the new reading.
+- The four regular boxes hold at most four dishes; "+ Add a dish" says so when they are full (today's menu fits).
+- Gate: rows equal today's boxes where saved boxes are restored, and the comma pieces of the text where it is read from
+  text; words outside the changed dish byte-identical; an unchanged Save still writes nothing.
 
-### S6 · One way in (T5) · review
-- The Menu page: week picker, meal cards (dishes, allergen count, spicy, "Changed today"). Tap a card to open the meal
-  view (side panel on desktop, full screen on a phone). No Edit mode.
-- The meal view's first choice is **Every week** or **Just on <date>**. "Just on <date>" saves through the existing
-  dated-swap store (`meal_swaps.json`, whole meal, as Swap Slots already writes), so EXPO and HUB see it as they do
-  today. Call **D1**.
-- The cell panel's Routing / Swap Meal / Edit Flags tabs and **Make Permanent** retire into that one view. **Swap two
-  meals**, Special meal, Rex's week sheet, Replace the whole menu from a file and Try a meal move under **More**.
-  Call **D5**.
-- Gate: one path changes a meal for good; "Just on <date>" writes the same swap record Swap Slots writes; the retired
-  buttons are gone and their deep links (`#menu-config/edit/…`) still open the meal.
+### S5a · Save always in view
+- A footer pinned to the bottom: the regular plate's summary line, **Close**, **Save** (greyed until something
+  changes); a sheet on a phone. After Save the page stays on the meal: "Saved and sent to the kitchen · 2:14 pm" or the
+  steady not-sent reason.
+- "Changed today by <name>" on the meal card reads the synced change log.
+- Gate: Save visible without scrolling at 1280×900 and 390×860; the after-Save line.
+
+### S4b · Plates of dishes (T1)
+- The meal opens on its title and next date, then plate cards over the same state: Regular (one row per dish), Vegan
+  and Halal ("instead of …", "the rest is the same"), No pork when it exists, Other plates. Rows map onto today's boxes
+  (Main → `main`, sides → `starch` / `vegside` / `xtra`, extras → `extras`; vegan and halal differences → `veganalt` /
+  `mainalt` and the line versions; "also gets" → `vegextras` / `halalextras`). Line dropdowns collapse to one line each
+  (M11). Empty boxes and "optional" tags go. Put back the original sits by the title (M25).
+- Breakfast becomes a plain list only after U3/C1's ruled breakfast design is built; until then it keeps today's form.
+- Gate: every published meal opens with the same dishes (ST harness); the §1 always-visible list.
+
+### S5b · What changes (T4) · review
+- As soon as something differs: each plate before → after (from `doorPlateFacts` on the draft against the stored meal,
+  with no dated meal); new allergens; residents who move plates (counts); anaphylactic residents named as affected or
+  not. With no resident list on this computer: "counts not available", never "none".
+- **An every-week Save on a meal with an upcoming one-date change** names it ("Your change for Nov 3 is replaced") or
+  asks (D1).
+- Gate: counts equal plating before and after; a meal with a swap on its next date still shows the every-week moves;
+  no resident list reads "not available".
+
+### S5c · Save's questions (D3) · review
+- **Still blocking:** halal when the meat changed; any allergen removal (default keep; this is the removal's
+  confirmation); a new anaphylactic conflict (red, acknowledged).
+- **Become inline lines in What changes:** the run-on line, the soft-plate choice (a saved setting on the plate card,
+  asked only when the change affects soft residents; still asked when there is no resident list) and held words.
+- Re-pins expected: `save_dialog_styled`, `ticks_follow_dish`, `w3e`, `daily_entry_ask`, browser
+  `halal_context_race` / `editor_dirty_draft` / `menu_edit_no_silent_change`.
+
+### S6a · "Just on <date>" (data path) · review
+- The meal view's first choice is **Every week** or **Just on <date>**. "Just on" writes a whole-meal entry to
+  `meal_swaps.json` as Swap Slots does (`{specialName, veg, allergens, _flagsRaw, _rotationSlot, _meal}`), so EXPO and
+  HUB show it as they do today ("Swap for Nov 3"; D1 rules the wording and `notes`; no new `kind` without EXPO in the
+  same change set). The pork-never-halal guard runs as for every swap.
+- **Refused or asked:** breakfast (the dated readers read only lunch and dinner); a date that already holds a swap or a
+  special meal (a special meal wins, and half a Swap Slots pair would be left behind).
+- **Undo:** a one-date change is taken back by its revert (the swap's), named in D1.
+- Gate: a Swap Slots half and a "Just on" entry for the same meal give the same `_meal`; "Just on" on a breakfast is
+  refused; a date with a special meal is refused; EXPO reads the entry (checked on its swap reader, including a change
+  whose name equals the rotation meal's).
+
+### S6b · One view; retire the cell-panel tabs (T5) · review
+- The cell panel's Routing / Swap Meal / Edit Flags tabs and **Make Permanent** retire into the one meal view. Their
+  checks move to the new path, not deleted: `make_permanent_whole_dish_gate`, `restore_original_gate`,
+  `kitchen_alternatives_gate` 9, `slot_swap_whole_meal_gate`, `swap_revert_reaches_gate`, `anaph_matrix_gate`,
+  `publish_menu_ask_gate`.
+- What Change Log and ↩ Undo Last cover afterwards, and Test Meal's place, are D5's call.
+- Gate: one path changes a meal for good; the carried checks pass; `#menu-config/edit/…` still opens the meal.
+
+### S6c · The Menu page and More
+- Week picker, meal cards (dishes, allergen count, spicy, "Changed today"); tap a card to open the meal view (side panel
+  on desktop, full screen on a phone). No Edit mode. **Swap two meals**, Special meal, Rex's week sheet, Replace the
+  whole menu from a file and Test Meal (if kept) under **More**.
+- Gate: the retired buttons are gone; deep links open the meal; re-pins `phone_hidden_panels`, `readable_themes_gate`,
+  `menu_edit_deeplink`, `staff_walkthrough`.
 
 ### S7 · Phones and tablets (H6, M21, M22)
 - One column; the footer as a bottom sheet; a day picker then three meal cards instead of the sideways grid; touch
-  targets at least 44 px; the ☰ button with its own header bar on this screen.
+  targets at least 44 px, including the allergen pills and × buttons (about 17 px today); the ☰ button with its own
+  header bar on this screen.
 - Gate: the readable-themes census and a phone walkthrough at 390 and 320 px; no sideways scroll.
 
 ### S8 · Other plates the kitchen makes (M13)
 - One line per plate that exists ("Gluten free: <dish> · 4 residents"), **+ Add a plate for…**, and one plain sentence
-  on what happens to residents when a plate isn't made. "Restriction-specific plates", "requirement group" and
-  "draft routing" go.
+  on what happens to residents when a plate isn't made. "Restriction-specific plates", "requirement group" and "draft
+  routing" go. Must fit U3/C1's breakfast plates.
 - Gate: the plate list equals the kitchen alternatives stored; resident counts equal plating.
 
-### S9 · Use it (data)
-Split the four combined meals (Wk1 FRI dinner, Wk4 SUN lunch, Wk4 MON lunch, Wk4 SAT lunch vegan) into their dishes,
-linking each to its recipe where one exists, and fix "Tumeric" → "Turmeric", through the new editor, as one reviewed
-data publish. Also raised for Jason by the walkthrough: Wk4 SUN's vegan line names Tzatziki (usually dairy); Wk1 FRI's
-vegan plate is linked to a pork-named marinade recipe.
+### Then · U1 through the new editor (data)
+Back-on-track U1 owns splitting the combined meals (Wk1 FRI dinner, Wk4 SUN lunch, Wk4 MON lunch, Wk4 SAT lunch vegan)
+and "Tumeric" → "Turmeric"; it is done through the new editor as one reviewed data publish (D9). Also raised by the
+walkthrough: Wk4 SUN's vegan line names Tzatziki (usually dairy); Wk1 FRI's vegan plate is linked to a pork-named
+marinade recipe.
+
+### Small items, folded into the slice that touches them
+M7 badge wording and colours, M8 "Shown on menu as", L4 truncated Event Name (S1/S4b); M9 the routing warning wording,
+L10 the empty preview (S2b); L2 small uppercase labels, L3 the "Seasonal Veg" quick-pick, L9 the stale "(edited)",
+M19 before → after on the row (S4b); L5 three Save names (S5a); L8 Test Meal jargon (S6c).
 
 ## 5. Decisions for Jason (brought one at a time, each with a lean)
-- **D1** "Just on <date>": use the existing dated-swap store (lean) or something new.
-- **D2** A typed dish records that its allergens were answered (`declared`, additive) (lean: yes).
-- **D3** Save's questions move inline; only halal (when the meat changes) and a food-safety confirmation remain (lean).
-- **D4** A real edit keeps the menu words it didn't change (lean: yes; EXPO and HUB read those words).
-- **D5** Retire the cell panel's Edit Flags / Swap Meal / Make Permanent into the one meal view; keep Swap two meals,
-  Special meal, Rex's sheet, Upload and Test Meal under More (lean).
-- **D6** Order: S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8 → S9 (lean: search and the allergen summary first, as they fix
-  wrong-plate risks on today's screen before the layout changes).
+Names here are this plan's (the back-on-track plan has its own D-numbers).
+- **D1** "Just on <date>": the dated-swap store (lean), with breakfast refused, a date already holding a swap or special
+  meal refused, an every-week Save naming the one-date change it replaces, EXPO/HUB's "Swap for" wording kept, and the
+  swap's revert as its undo.
+- **D2** A typed dish records that its allergens were answered (`declared`); what the 55 legacy typed dishes show; and
+  whether Rex's import and Special Meal write it.
+- **D3** Halal (meat changed), allergen removals and new anaphylactic conflicts stay blocking; run-on, soft and held
+  words go inline.
+- **D4** A real edit keeps the menu words it didn't change (in S4a; EXPO reads those words).
+- **D5** Retire Edit Flags / Swap Meal / Make Permanent into one view; what Change Log and ↩ Undo Last cover afterwards;
+  keep or retire Test Meal; Special Meal and Rex's review follow each slice or are pinned.
+- **D6** The order in §4.
+- **D7** The wider search never offers a recipe a plate's rule refuses (listed greyed with the reason, never pickable).
+- **D8** A halal dish carrying Pork: show it in red on the summary and the sheet instead of hiding it.
+- **D9** U1 owns the combined-meal split and Turmeric; this plan does it through the new editor.
 
 ## 6. Risks and how each is held
-- **A cleaner screen hides something needed.** §1's list is a gate item in S2, S4 and S5; reviews check it.
-- **The new reading of a meal changes its dishes.** S4's gate compares every published meal's rows to today's boxes.
-- **Inline questions get skipped.** Halal and food-safety stay blocking; the rest are visible lines in What changes.
-- **"Just on <date>" diverges from Swap Slots.** D1 reuses the same store and the whole-meal record.
+- **A preview disagrees with the sheet.** S2a makes one function; S2b and S5b gates compare with real plating output.
+- **A wider search puts the wrong recipe on a plate.** `recipeMatchesSlotDef` unchanged; D7; gate cases on Vegan Alt and
+  the halal main.
+- **A blur saves a recipe's name with no allergens.** S1 holds it (W3e) until S3 asks.
+- **A swap hides a change's effect.** `doorPlateFacts` plates with no dated meal; gate case.
+- **A cleaner screen hides something needed.** §1's list is a gate item in S2b, S4b and S5a; reviews check it.
+- **The new reading changes a meal's dishes or EXPO's words.** ST's contract gate and S4a's gate; D4 in S4a.
+- **Inline questions get skipped.** Removals, halal and anaphylactic conflicts stay blocking (D3).
+- **"Just on <date>" diverges from Swap Slots.** Same store, same whole-meal record, same gate.
 - **Old tabs open on another computer.** The stale-tab reload (W3d) covers it; retired functions are removed, not hidden.
-- **Gates that read retired code.** Re-pinned with dated notes in the slice that retires the code.
+- **Mass re-pins.** ST first; each slice lists its expected re-pins; retired checks carry their cases forward.
 
 ## 7. Out of scope
-EXPO and HUB screens; the resident list; Rex's week sheet import (its review stays as it is); the plating sheet itself.
+EXPO and HUB screens; the resident list; Rex's week sheet import (pinned unchanged); the plating sheet's layout (S2a
+moves its code without changing a byte).
 
 ## 8. Status
 | Slice | State | PR |
 |---|---|---|
 | S0 two defects | merged (`c470937`); review SHIP | #242 |
-| S1–S9 | planned; decisions D1–D6 pending | |
+| Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
+| S1–S8, U1 | planned; decisions D1–D9 pending | |
