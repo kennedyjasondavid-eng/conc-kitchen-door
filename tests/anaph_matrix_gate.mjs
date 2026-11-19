@@ -212,9 +212,14 @@ test('review P1/P2/P3: the Enter Changes and queue editors keep what they were t
 
 test('review P2: every swap and special-meal "today" is the kitchen\'s local day', () => {
   for (const name of ['renderTodayMealContext', 'clearAllSwaps', 'renderSwapsBanner', 'getSpecialsForRotationSlot', 'getPersistedSwapForSlot',
-    'renderSpecialsBanner', 'clearPastSpecials', 'clearPastSwaps', 'applyMealSwap', 'makePermanent', 'revertMealSwap', 'executeSlotSwap', 'openMealEdit', '_finishMenuSave', 'getMealForDate']) {
+    // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): applyMealSwap, makePermanent, revertMealSwap and openMealEdit are
+    // retired; their date keys moved to doorJustOnTarget / doorSaveJustOn (the one-date change), revertMenuEdit and
+    // revertSwapFromBanner, which are read here instead.
+    'renderSpecialsBanner', 'clearPastSpecials', 'clearPastSwaps', 'doorJustOnTarget', 'doorSaveJustOn', 'revertMenuEdit', 'revertSwapFromBanner',
+    'makeSwapPermanentFromBanner', 'executeSlotSwap', '_finishMenuSave', 'getMealForDate']) {
     assert.doesNotMatch(fn(name), /toISOString\(\)\.slice\(0, ?10\)/, name + ' reads a UTC date');
   }
+  assert.match(fn('doorJustOnTarget'), /const key = doorDateKey\(d\) \+ '-' \+ period;/, 'the one-date change is keyed by the local day');
   // Re-pinned 2026-11-01 (v31-standard.49): the boot sync reads through the one reader (rev=>read('meal_swaps.json')).
   assert.doesNotMatch(between("rev=>read('meal_swaps.json')", '\n'), /toISOString/, 'the boot swap sync');
 });

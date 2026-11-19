@@ -53,6 +53,31 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — one meal view; the old meal panel and Test Meal are retired (redesign S6b, D5, `v31-standard.115`)
+D5, Jason 2026-11-19: "Follow lean".
+- **Clicking a meal in Menu Config opens the meal view** (`handleMealCellClick` → `openMenuEdit`), with or without Edit
+  mode.
+- **Retired with their code:** the old meal panel (`#mc-edit-panel`: Routing / Swap Meal / Edit Flags and its Make
+  Permanent; `openMealEdit`, `applyMealSwap`, `makePermanent`, `revertMealSwap`, `saveEditFlags` and their helpers) and
+  the Test Meal sandbox (`testMealActive`, `#mc-test-meal-panel`, `generateTestPlating` …). Their replacements:
+  - What changes shows the routing;
+  - "Just on <date>" replaces Swap Meal;
+  - the ticks are in the editor;
+  - an every-week Save is the permanent change;
+  - "Put back the original" restores the copy.
+- **Kept:** ↩ Undo Last, the Change Log, and the Active Swaps banner's Make Permanent and Revert. Special Meal and Rex's
+  review are left for their own pass.
+- **Found and fixed:** with no sides of its own, a halal main changed in the editor left the stored halal line, which the
+  sheet prints first, so the halal plate kept the old dish. A halal main changed since the meal opened now replaces it
+  (`doorHalalMainChangedSinceOpen`); one not changed keeps it.
+- **Gates:** `tests/one_meal_view_s6b_gate.mjs` (3) and browser `tests/browser/one_meal_view_s6b.mjs` (8, in CI). The halal
+  case is red without the fix.
+- **Checks moved to the new paths, with dated notes:** `restore_original` (Make Permanent → the every-week Save; Revert to
+  Original → `revertMenuEdit`; the swap case → `revertSwapFromBanner`), `make_permanent_whole_dish`,
+  `slot_swap_whole_meal`, `anaph_matrix`, `kitchen_alternatives` 7/9, `menu_words_kept_s4a`, `phone_hidden_panels`,
+  `publish_menu_ask`, `recipe_attach_s3_meat_union` (the Test Meal parity check retired with Test Meal), `site_guard_g1`
+  (node and browser), `swap_revert_reaches` 4d, `what_changes_s5b`.
+
 ## Recent (2026-11-19) — a meal can change just on its next date (redesign S6a, D1, `v31-standard.114`)
 D1, Jason 2026-11-19: "Go with lean". The meal view opens on **This change is for: Every week / Just on <date>** (the
 slot's next service; `#mc-when-choice`, `doorRenderWhenChoice`, `doorSetSaveWhen`, `_doorSaveWhen`).

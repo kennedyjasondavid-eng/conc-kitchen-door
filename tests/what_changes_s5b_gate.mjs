@@ -14,9 +14,12 @@ const fn = (name) => {
   return html.slice(i, html.indexOf('\n}\n', i) + 2);
 };
 
-test('S5b-1 the editor has a What changes panel, rendered on every draft update outside the test meal', () => {
+test('S5b-1 the editor has a What changes panel, rendered on every draft update', () => {
   assert.match(html, /<div id="mc-what-changes" role="status" aria-live="polite" style="display:none;"><\/div>/);
-  assert.match(html, /if \(!testMealActive && typeof doorRenderWhatChanges === 'function'\) doorRenderWhatChanges\(draftFacts, flags\);/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the Test Meal sandbox is retired, so the panel renders on every
+  // draft update (no testMealActive branch left).
+  assert.match(html, /if \(typeof doorRenderWhatChanges === 'function'\) doorRenderWhatChanges\(draftFacts, flags\);/);
+  assert.ok(!/\btestMealActive\b/.test(html), 'no Test Meal state is left to skip it');
   const r = fn('doorRenderWhatChanges');
   assert.match(r, /doorMenuDraftIsDirty\(\)/, 'shown only once the meal differs');
   assert.match(r, /doorPlateFactsFor\(week, day, period, \{ noDated: true \}\)/, 'before is the every-week meal');

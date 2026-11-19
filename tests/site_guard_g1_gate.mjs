@@ -86,8 +86,11 @@ test('G1-2 one message, from one place: a quiet banner while another site is pic
 
 // Every action that writes the menu, resident list, routing, swaps, special meals, rules or overlay, found through the
 // code (callers of the storage writers and the publisher), refuses first.
-const GUARDED = ['saveMenuEdit', '_finishMenuSave', 'doorRepairMealTicks', 'doorWriteAnswersOnly', 'saveEditFlags', 'makePermanent',
-  'makeSwapPermanentFromBanner', 'revertMenuEdit', 'revertMealSwap', 'revertSwapFromBanner', 'applyMealSwap', 'clearAllSwaps', 'clearPastSpecials',
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): saveEditFlags, makePermanent, revertMealSwap and applyMealSwap are
+// retired with the meal panel. Their writes moved to _finishMenuSave (every week), doorSaveJustOn (one date, reached only
+// through _finishMenuSave's guard, checked below), revertMenuEdit and revertSwapFromBanner, all guarded.
+const GUARDED = ['saveMenuEdit', '_finishMenuSave', 'doorRepairMealTicks', 'doorWriteAnswersOnly',
+  'makeSwapPermanentFromBanner', 'revertMenuEdit', 'revertSwapFromBanner', 'clearAllSwaps', 'clearPastSpecials',
   'saveSpecialMeal', 'removeSpecialMeal', 'enterSlotSwapMode', 'executeSlotSwap', 'publishMenuFromConfig', 'doorUsePublishedMenuDays', 'revertLastChange',
   'triggerRexWeekUpload', 'doorSaveRexWeek', 'triggerMenuUpload', 'addChange', 'saveChangeEdit', 'removeFromQueue', 'clearQueue', 'generateFiles',
   'revertLastGenerate', 'commitImportToQueue', 'addToIntakeQueue', 'commitIntakeQueue', 'saveDirectFromForm', 'addAnaphRoom', 'removeAnaphRoom',
@@ -101,6 +104,10 @@ test('G1-3 every write action refuses first, before it reads a box or writes any
     const firstLine = body.split('\n')[1];
     assert.match(firstLine, /^\s*if \(typeof doorSiteGuard === 'function' && !doorSiteGuard\(\)\) return false;/, name);
   }
+  // The one-date change: its only caller is _finishMenuSave, after the guard; nothing else calls it.
+  const fin = fnBlock('_finishMenuSave');
+  assert.ok(fin.indexOf('doorSiteGuard()') >= 0 && fin.indexOf('doorSiteGuard()') < fin.indexOf('return doorSaveJustOn('), 'the one-date change is refused first');
+  assert.equal((html.match(/doorSaveJustOn\(/g) || []).length, 2, 'doorSaveJustOn: its definition and the one guarded call');
   assert.match(fnBlock('doorApplyMenuUpload').split('\n')[1], /!doorSiteEditable\(\)\) \{ doorSiteGuard\(\); return \{ ok: false, error: DOOR_SITE_GUARD_COPY \}; \}/);
 });
 

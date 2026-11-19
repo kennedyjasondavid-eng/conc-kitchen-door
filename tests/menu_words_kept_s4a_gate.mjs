@@ -76,7 +76,9 @@ test('S4a-3 dishes are whole pieces: never inside another dish; anything not pla
 test('S4a-4 Save, the draft summary and the preview read the kept words; the words are taken at open, before the baseline', () => {
   assert.match(fnBlock('saveMenuEdit'), /const name = doorEditedMealName\(\);/);
   assert.match(fnBlock('doorDraftPlateFacts'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, doorEditedMealName\(\), buildVegAlt\(\), flags\);/);
-  assert.match(fnBlock('updateSlotSummary'), /const name = \(testMealActive \|\| typeof doorEditedMealName !== 'function'\) \? buildMealName\(\) : doorEditedMealName\(\);/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the Test Meal sandbox is retired, so the preview reads the kept
+  // words whenever the helper is there (no testMealActive branch).
+  assert.match(fnBlock('updateSlotSummary'), /const name = \(typeof doorEditedMealName !== 'function'\) \? buildMealName\(\) : doorEditedMealName\(\);/);
   assert.match(fnBlock('openMenuEdit'), /_doorWordsAtOpen = existing \? null : \{ key: mcMenuEditKey, text: String\(dayData\[period\] \|\| ''\), slots: \{\} \};[\s\S]*_doorMenuDraftBaseline = \{key:mcMenuEditKey/);
   assert.match(fnBlock('doorEditedMealName'), /return kept \|\| built;/);
 });

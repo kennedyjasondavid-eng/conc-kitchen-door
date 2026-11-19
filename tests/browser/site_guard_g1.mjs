@@ -52,9 +52,15 @@ try {
     const swapKey = Object.keys(loadMealSwaps())[0], specialKey = Object.keys(loadSpecialMeals())[0];
     const acts = {
       saveMenuEdit: () => { openMenuEdit(1, 'MONDAY', 'lunch'); return saveMenuEdit(); },
-      saveEditFlags: () => saveEditFlags(), makePermanent: () => makePermanent(), makeSwapPermanentFromBanner: () => makeSwapPermanentFromBanner(swapKey),
-      revertMenuEdit: () => revertMenuEdit(), revertMealSwap: () => revertMealSwap(), revertSwapFromBanner: () => revertSwapFromBanner(swapKey),
-      applyMealSwap: () => applyMealSwap(), clearAllSwaps: () => clearAllSwaps(), clearPastSpecials: () => clearPastSpecials(),
+      // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's saveEditFlags, makePermanent, revertMealSwap
+      // and applyMealSwap are retired. Their writes moved to the meal view: the every-week write (_finishMenuSave), the
+      // one-date change (doorSaveJustOn, chosen with doorSetSaveWhen('date')), Put back the original (revertMenuEdit) and
+      // the banner's Revert (revertSwapFromBanner).
+      everyWeekSave: () => { openMenuEdit(1, 'MONDAY', 'lunch'); return _finishMenuSave('Audit Lunch', '', {}); },
+      oneDateSave: () => { openMenuEdit(1, 'MONDAY', 'lunch'); doorSetSaveWhen('date'); try { return _finishMenuSave('Audit Lunch', '', {}); } finally { doorSetSaveWhen('week'); } },
+      makeSwapPermanentFromBanner: () => makeSwapPermanentFromBanner(swapKey),
+      revertMenuEdit: () => revertMenuEdit(), revertSwapFromBanner: () => revertSwapFromBanner(swapKey),
+      clearAllSwaps: () => clearAllSwaps(), clearPastSpecials: () => clearPastSpecials(),
       saveSpecialMeal: () => saveSpecialMeal(), removeSpecialMeal: () => removeSpecialMeal(specialKey), enterSlotSwapMode: () => enterSlotSwapMode(),
       executeSlotSwap: () => executeSlotSwap({ week: 1, day: 'MONDAY', period: 'lunch' }, { week: 1, day: 'TUESDAY', period: 'lunch' }),
       publishMenuFromConfig: () => publishMenuFromConfig(), doorUsePublishedMenuDays: () => doorUsePublishedMenuDays(), revertLastChange: () => revertLastChange(),

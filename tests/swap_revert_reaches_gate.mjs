@@ -170,6 +170,7 @@ test('4c. review P2: a special meal removed on one computer is removed on every 
 });
 
 test('4d. review P2: a slot\'s Revert, Make permanent and Edit Menu save find every upcoming swap of the slot', () => {
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): see the checks at the end of this test.
   const ctx = { Date, Object, String, Number };
   vm.createContext(ctx);
   vm.runInContext(fnBlock('doorDateKey') + fnBlock('doorSwapKeysForSlot') +
@@ -180,7 +181,13 @@ test('4d. review P2: a slot\'s Revert, Make permanent and Edit Menu save find ev
   ctx.Date = class extends RealDate { constructor(...a) { if (!a.length) super(2026, 9, 7, 12); else super(...a); } };
   const keys = vm.runInContext('doorSwapKeysForSlot', ctx)(2, 'THURSDAY', 'lunch', swaps);
   assert.deepEqual(plain(keys), ['2026-11-05-lunch'], 'THU\'s half, on its second date');
-  for (const fn of ['revertMealSwap', 'makePermanent']) assert.match(fnBlock(fn), /doorSwapKeysForSlot\(week, day, period/, fn + ' uses it');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel's revertMealSwap and makePermanent are retired. An
+  // every-week change (the Edit Menu save, below) clears every upcoming swap of the slot through the lookup, What changes
+  // names them from it, and a one-date change is taken back by its own key from the Active Swaps banner.
+  assert.match(fnBlock('doorRenderWhatChanges'), /doorSwapKeysForSlot\(week, day, period, store\)/, 'What changes uses it');
+  const rb = fnBlock('revertSwapFromBanner');
+  assert.match(rb, /delete swaps\[swapKey\];/, 'the banner Revert takes back that date');
+  assert.match(rb, /REVERTED_SWAP_KEYS\.add\(swapKey\)/, 'and it stays taken back on every computer');
   assert.match(fnBlock('_finishMenuSave'), /doorSwapKeysForSlot\(week, day, period, swaps\)/, 'the Edit Menu save uses it');
 });
 

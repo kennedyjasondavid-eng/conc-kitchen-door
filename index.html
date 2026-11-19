@@ -475,7 +475,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     #screen-plating { display: block !important; }
     #screen-plating .content { padding: 0 !important; }
     .main { margin-left: 0 !important; padding: 0 !important; }
-    #ps-print-header, #tm-print-header {
+    #ps-print-header {
       display: block !important;
       font-family: Calibri, sans-serif;
       font-size: 12px;
@@ -484,21 +484,9 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
       border-bottom: 2px solid #333;
       margin-bottom: 4px;
     }
-    #ps-print-header .ph-org, #tm-print-header .ph-org { font-size: 10px; color: var(--text-2, #666); text-transform: uppercase; letter-spacing: 1px; }
-    #ps-print-header .ph-detail, #tm-print-header .ph-detail { font-size: 13px; color: var(--text-1, #000); margin-top: 1px; }
+    #ps-print-header .ph-org { font-size: 10px; color: var(--text-2, #666); text-transform: uppercase; letter-spacing: 1px; }
+    #ps-print-header .ph-detail { font-size: 13px; color: var(--text-1, #000); margin-top: 1px; }
     #ps-preview { padding: 0 !important; }
-    body.tm-printing .screen { display: none !important; }
-    body.tm-printing #screen-plating { display: none !important; }
-    body.tm-printing #screen-menu-config { display: block !important; }
-    body.tm-printing #screen-menu-config .content > *:not(#mc-test-meal-panel) { display: none !important; }
-    body.tm-printing #mc-test-meal-panel { display: block !important; border: none !important; padding: 0 !important; }
-    body.tm-printing #mc-test-meal-panel > *:not(#tm-plating-area) { display: none !important; }
-    body.tm-printing #tm-plating-area { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; }
-    body.tm-printing #tm-plating-area > div:first-child { display: none !important; }
-    body.tm-printing #tm-plating-preview { padding: 0 !important; }
-    body.tm-printing #tm-print-header { display: block !important; }
-    body.tm-printing .sidebar, body.tm-printing .topbar, body.tm-printing .nav-item, body.tm-printing #mobile-menu-btn { display: none !important; }
-    body.tm-printing .main { margin-left: 0 !important; padding: 0 !important; }
     .ps-table { width: 100%; font-size: 10px; table-layout: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .ps-table td, .ps-table th { padding: 2px 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left; line-height: 1.2; }
     .ps-table col.ps-col-restriction { width: 55%; }
@@ -851,7 +839,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.114';
+const DOOR_APP_VERSION = 'v31-standard.115';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2044,7 +2032,6 @@ function updateCODEXBadge() {
       <button class="btn btn-ghost btn-sm" id="mc-clear-swaps" style="display:none" onclick="clearAllSwaps()">Clear All Swaps</button>
       <button class="btn btn-ghost btn-sm" onclick="openSpecialMealPanel()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m12 2 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1 3-7Z"/></svg> Special Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-edit-menu-btn" onclick="toggleEditMenuMode()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M15 4l5 5M4 16l12-12a3 3 0 0 1 4 4L8 20l-5 1 1-5Z"/></svg> Edit Menu</button>
-      <button class="btn btn-ghost btn-sm" onclick="openTestMeal()" style="color:var(--violet-ink, #7c3aed);border-color:#7c3aed;"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M9 3h6m-5 0v7l-6 10a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2l-6-10V3M8 15h8"/></svg> Test Meal</button>
       <button class="btn btn-ghost btn-sm" id="mc-rex-week-btn" onclick="triggerRexWeekUpload()" title="Upload the week's menu sheet Rex sends. DOOR shows what changed and asks about what it can't tell.">↑ Rex&rsquo;s week sheet</button>
       <button class="btn btn-sm btn-mint" id="mc-publish-btn" onclick="publishMenuFromConfig()" title="Send the current menu to the kitchen so EXPO and HUB can use it"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/></svg> Send to kitchen</button>
     </div>
@@ -2103,91 +2090,6 @@ function updateCODEXBadge() {
         <thead id="mc-grid-head"></thead>
         <tbody id="mc-grid-body"></tbody>
       </table>
-    </div>
-
-    <!-- Edit panel (hidden by default) -->
-    <div id="mc-edit-panel" style="display:none;margin-top:20px;background:var(--paper);border:1px solid var(--border);border-radius:10px;padding:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);" id="mc-edit-context"></div>
-          <div style="font-size:16px;font-weight:700;margin-top:2px;" id="mc-edit-title"></div>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="closeMealEdit()">Close</button>
-      </div>
-
-      <!-- Tab bar -->
-      <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
-        <button class="btn btn-sm" id="mc-tab-routing" onclick="switchMealEditTab('routing')" style="border-radius:6px 6px 0 0;border-bottom:none;font-weight:600;">Routing</button>
-        <button class="btn btn-ghost btn-sm" id="mc-tab-swap" onclick="switchMealEditTab('swap')" style="border-radius:6px 6px 0 0;border-bottom:none;">Swap Meal</button>
-        <button class="btn btn-ghost btn-sm" id="mc-tab-editflags" onclick="switchMealEditTab('editflags')" style="border-radius:6px 6px 0 0;border-bottom:none;">Edit Flags</button>
-      </div>
-
-      <!-- TAB: Routing (default) -->
-      <div id="mc-tab-routing-content">
-        <div style="display:flex;gap:16px;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;">
-          <div id="mc-routing-veg" style="font-size:12px;color:var(--muted);"></div>
-        </div>
-        <div id="mc-routing-flags" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px;"></div>
-        <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Activation</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Which dietary sections activate for this meal based on its current flags.</div>
-        <div id="mc-section-preview-routing"></div>
-      </div>
-
-      <!-- TAB: Swap -->
-      <div id="mc-tab-swap-content" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-          <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Replace this meal when the planned item is unavailable. The routing engine recalculates sections based on the new flags.</div>
-            <input id="mc-swap-name" placeholder="Replacement meal name" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:8px;">
-            <input id="mc-swap-veg" placeholder="Veg/vegan alternative" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:8px;">
-            <input id="mc-swap-softalt" placeholder="Plain/soft meal alternative (optional)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:12px;color:var(--cyan-ink, #0e7490);">
-
-            <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Allergen &amp; Routing Flags</div>
-            <div id="mc-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
-
-            <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-mint" onclick="applyMealSwap()">Apply Swap</button>
-              <button class="btn btn-ghost btn-sm" onclick="revertMealSwap()">Revert to Original</button>
-              <div style="flex:1"></div>
-              <button class="btn btn-sm" onclick="makePermanent()" style="background:#be185d;color:#fff;border-color:#be185d;" title="Edit the 4-week rotation itself. Affects every future occurrence of this slot.">Make Permanent</button>
-            </div>
-          </div>
-
-          <div>
-            <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Activation Preview</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">How sections change with the new flags.</div>
-            <div id="mc-section-preview"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB: Edit Flags (v28) -->
-      <div id="mc-tab-editflags-content" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-          <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Edit this meal's allergen and routing flags. Changes save to the rotation and persist across sessions.</div>
-            <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Allergen &amp; Routing Flags</div>
-            <div id="mc-editflags-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
-
-            <div style="margin-top:16px;">
-              <div style="font-weight:600;margin-bottom:6px;font-size:13px;">Soft / Plain Meal Alternative</div>
-              <input id="mc-editflags-softalt" placeholder="e.g. Plain Chicken Leg, Steamed Rice & Seasonal Veg" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-            </div>
-
-            <div style="margin-top:16px;display:flex;gap:8px;">
-              <button class="btn btn-mint" onclick="saveEditFlags()">Save Flags</button>
-              <button class="btn btn-ghost btn-sm" onclick="switchMealEditTab('routing')">Cancel</button>
-            </div>
-            <div id="mc-editflags-status" style="font-size:11px;margin-top:8px;color:var(--forest-mid-text);display:none;"></div>
-          </div>
-
-          <div>
-            <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Activation Preview</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Live preview based on current flag selections.</div>
-            <div id="mc-editflags-section-preview"></div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Day section preview below grid -->
@@ -2254,57 +2156,6 @@ function updateCODEXBadge() {
     </div>
 
     <!-- ===== TEST MEAL PANEL ===== -->
-    <div id="mc-test-meal-panel" style="display:none;margin-top:20px;background:var(--paper);border:1.5px solid #7c3aed;border-radius:10px;padding:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--violet-ink, #7c3aed);font-weight:700;"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M9 3h6m-5 0v7l-6 10a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2l-6-10V3M8 15h8"/></svg> Test Meal Sandbox</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Build a hypothetical meal and preview its plating sheet. Nothing is saved.</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="closeTestMeal()">Close</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-        <div>
-          <div id="tm-slot-panel" style="display:flex;flex-direction:column;gap:10px;"></div>
-          <div id="tm-alt-meals" style="margin-top:10px;"></div>
-          <div class="amber-panel" style="margin-top:14px;padding:12px;background:var(--warn-faint, #fefce8);border:1px solid #fde68a;border-radius:8px;">
-            <div class="amber-panel-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--warn-ink, #92400e);margin-bottom:4px;">Meal Allergens &amp; Flags</div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
-            <div id="tm-edit-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;"></div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-sm" onclick="generateTestPlating()" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">Generate Plating Preview</button>
-            <button class="btn btn-ghost btn-sm" onclick="openTestMeal()">Clear &amp; Reset</button>
-          </div>
-        </div>
-        <div>
-          <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Preview</div>
-          <div id="tm-section-preview"></div>
-          <div id="tm-slot-name-preview" style="margin-top:16px;padding:12px;background:var(--cream);border-radius:8px;font-size:13px;display:none;"></div>
-          <!-- Flag toggle playground -->
-          <div id="tm-flag-playground" style="display:none;margin-top:16px;padding:14px;background:var(--violet-faint, #f5f3ff);border:1px solid #c4b5fd;border-radius:8px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--violet-ink, #7c3aed);margin-bottom:8px;">Flag Toggle Playground</div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Toggle flags to see how routing changes in real time.</div>
-            <div id="tm-playground-flags" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;"></div>
-            <div style="margin-top:10px;">
-              <div style="font-size:11px;font-weight:700;color:var(--violet-ink, #7c3aed);margin-bottom:6px;">Sections with these flags:</div>
-              <div id="tm-playground-sections"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Test plating preview area -->
-      <div id="tm-plating-area" style="display:none;margin-top:20px;border-top:2px solid #c4b5fd;padding-top:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-size:14px;font-weight:700;color:var(--violet-ink, #7c3aed);">Test Plating Sheet</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-ghost btn-sm" onclick="printTestPlating()" style="color:var(--violet-ink, #7c3aed);"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v8H6v-8Zm11-3h1"/></svg> Print</button>
-            <button class="btn btn-sm" onclick="exportTestPlating()" style="background:#7c3aed;color:#fff;border-color:#7c3aed;"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5"/></svg> Export XLSX</button>
-          </div>
-        </div>
-        <div id="tm-print-header" style="display:none;"></div>
-        <div id="tm-plating-preview" style="overflow-x:auto;"></div>
-      </div>
-    </div>
 
     <!-- ===== SPECIAL MEAL PANEL ===== -->
     <div id="mc-special-panel" class="mc-special-noauto" style="display:none;margin-top:20px;background:var(--paper);border:1.5px solid var(--forest-light);border-radius:10px;padding:20px;">
@@ -14808,11 +14659,6 @@ function doorNoteMealChange(overlay, week, day, period, before, how) {
   else if (!kept && changed) node[key] = { meal: before, at: new Date().toISOString(), by: getOperatorName() || '', how: how };
   return { before: before, afterSig: afterSig, first: !kept && changed };
 }
-// The overlay holds a change to the meal: any of its fields, so a change to its ticks or alternatives alone counts.
-function doorOverlayChangesMeal(overlay, week, day, period) {
-  const node = ((overlay || {})[String(week)] || {})[day];
-  return !!node && DOOR_MEAL_FIELDS.concat(['_original']).some(s => Object.prototype.hasOwnProperty.call(node, period + s));
-}
 // The meal's saved copy, or null: never changed, or changed before DOOR kept one.
 function doorSavedOriginal(overlay, week, day, period) {
   const node = ((overlay || {})[String(week)] || {})[day];
@@ -14869,7 +14715,6 @@ async function doorTellNoSavedOriginal(week, day, period, opts) {
     cancelLabel: 'Close', goLabel: o.inEditMenu ? 'OK' : 'Open in Edit Menu'
   });
   if (go && !o.inEditMenu) {
-    if (typeof closeMealEdit === 'function') closeMealEdit();
     location.hash = '#menu-config/edit/' + week + '/' + day + '/' + period;
   }
 }
@@ -14942,7 +14787,7 @@ function doorPlainPlatePickerHTML(target) {
     '<option value="">Choose a plain plate…</option>' + options.map(p => '<option value="'+_escAttr(p.id)+'"'+(p.available?'':' disabled')+'>'+escapeHtml(p.label+(p.available?'':' — recipe unavailable'))+'</option>').join('')+'</select>';
 }
 function doorUsePlainPlate(target, id) {
-  if (!testMealActive && (!mcMenuEditKey || /-breakfast$/.test(mcMenuEditKey))) return false;
+  if (!mcMenuEditKey || /-breakfast$/.test(mcMenuEditKey)) return false;
   const plate = doorPlainPlateRoster().find(p => p.id === id && p.available);
   if (!plate) return false;
   const issue = document.getElementById('door-alt-save-issue');
@@ -14963,7 +14808,7 @@ function doorUsePlainPlate(target, id) {
   return true;
 }
 function doorAltOptionsEnabled() {
-  return testMealActive || !!(mcMenuEditKey && !/-breakfast$/.test(mcMenuEditKey));
+  return !!(mcMenuEditKey && !/-breakfast$/.test(mcMenuEditKey));
 }
 function doorAltEditorOutcomes(flags, values, altMeals, registry = REGISTRY_LIST, rooms) {
   const entries = altMeals.map((meal,index) => ({meal,index})).filter(e => e.meal.text);
@@ -15029,7 +14874,7 @@ function doorCheckNewPlainChoices(flags) {
 }
 function doorRenderAltEditorFeedback(flags) {
   if (!doorAltOptionsEnabled()) return;
-  const values = testMealActive ? {} : {...doorKitchenAltInputValues(),noPorkAlt:buildNoPorkAlt()};
+  const values = {...doorKitchenAltInputValues(),noPorkAlt:buildNoPorkAlt()};
   const outcomes = doorAltEditorOutcomes(flags,values,ALT_MEALS);
   for (const o of outcomes) {
     const el = document.getElementById('door-alt-feedback-'+o.target);
@@ -15084,12 +14929,10 @@ function doorFillKitchenAltInputs(dayData, period) {
 }
 // The editor's preview opens the plates the sheet will (2026-10-19): the kitchen's alternatives and "none needed".
 function doorEditorPlateFlags(flags) {
-  if (typeof testMealActive === 'undefined' || !testMealActive) {
-    const ka = doorKitchenAltInputValues();
-    if (ka.diabeticAlt) flags._diabeticAlt = ka.diabeticAlt;
-    if (ka.noDairyAlt) flags._noDairyAlt = ka.noDairyAlt;
-    if (ka.blandAlt) flags._blandAlt = ka.blandAlt;
-  }
+  const ka = doorKitchenAltInputValues();
+  if (ka.diabeticAlt) flags._diabeticAlt = ka.diabeticAlt;
+  if (ka.noDairyAlt) flags._noDairyAlt = ka.noDairyAlt;
+  if (ka.blandAlt) flags._blandAlt = ka.blandAlt;
   if (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE) flags._altMealsNone = true;
   return flags;
 }
@@ -15243,7 +15086,6 @@ function computeSections(mealFlags, registry) {
 }
 
 let mcWeek = 1; // set to MEAL_DATA.week after initialization
-let mcEditKey = null; // 'week-day-period'
 let mealSwaps = {}; // key → {name, veg, flags}
 let slotSwapMode = false;
 let slotSwapFirst = null; // {week, day, period}
@@ -15350,7 +15192,6 @@ function renderMenuConfig() {
   renderUnmappedAllergenBanner();
   if (typeof renderLabelResaveBanner === 'function') renderLabelResaveBanner();
   if (typeof renderTypedUnansweredList === 'function') renderTypedUnansweredList();
-  closeMealEdit();
 }
 
 // D3 (silent-drift): persistent, un-missable warning when DOOR is serving the
@@ -15387,68 +15228,6 @@ function renderUnmappedAllergenBanner() {
   el.style.display = 'block';
 }
 
-function openMealEdit(week, day, period) {
-  const wkData = getMenuData()[String(week)];
-  const dayData = wkData[day] || {};
-  const flags = dayData[period+'_flags'] || {};
-  const swapKey = week+'-'+day+'-'+period;
-  const swap = mealSwaps[swapKey];
-
-  // Look up any upcoming date-keyed swap for this slot
-  const targetDate = nextDateForSlot(week, day);
-  const swapStore = loadMealSwaps();
-  const skey = targetDate ? doorDateKey(targetDate) + '-' + period : null;
-  const persistedSwap = skey ? swapStore[skey] : null;
-  // Check for permanent override on this slot
-  const overlay = loadMenuBaseOverlay();
-  const isPermanent = overlay[String(week)] && overlay[String(week)][day] && (period in overlay[String(week)][day]);
-
-  mcEditKey = swapKey;
-  const panel = document.getElementById('mc-edit-panel');
-  panel.style.display = 'block';
-
-  let titleSuffix = '';
-  if (persistedSwap) titleSuffix = ` (swap active for ${formatShortDate(targetDate)})`;
-  else if (isPermanent) titleSuffix = ' (permanent change)';
-
-  document.getElementById('mc-edit-context').textContent = `Week ${week} — ${day.charAt(0)+day.slice(1).toLowerCase()} ${period.charAt(0).toUpperCase()+period.slice(1)}`;
-  document.getElementById('mc-edit-title').textContent = (dayData[period] || '—') + titleSuffix;
-
-  // --- Routing tab: current meal's flags (read-only), with the plates the kitchen makes for it (2026-10-19) ---
-  const currentVeg = dayData[period+'_veg'] || '';
-  renderRoutingTab(doorAddKitchenPlateFlags({ ...flags }, dayData, period), currentVeg);
-
-  // --- Swap tab: populate form ---
-  let nameVal = '', vegVal = '', swapFlags = flags;
-  if (persistedSwap) {
-    nameVal = persistedSwap.specialName || '';
-    vegVal = persistedSwap.veg || '';
-    swapFlags = persistedSwap._flagsRaw || {};
-    SM_ALLERGENS.forEach(a => { if ((persistedSwap.allergens||[]).includes(a.key)) swapFlags[a.key] = true; });
-  } else if (swap) {
-    nameVal = swap.name || '';
-    vegVal = swap.veg || '';
-    swapFlags = swap.flags || {};
-  }
-  document.getElementById('mc-swap-name').value = nameVal;
-  document.getElementById('mc-swap-veg').value = vegVal;
-  document.getElementById('mc-swap-softalt').value = dayData[period+'_softAlt'] || '';
-
-  const flagGrid = document.getElementById('mc-flag-grid');
-  flagGrid.innerHTML = FLAG_DEFS.map(f => {
-    const checked = swapFlags[f.key] ? 'checked' : '';
-    return `<label title="${f.tip}" style="display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;">
-      <input type="checkbox" id="mc-flag-${f.key}" ${checked} style="accent-color:${f.color}"> ${f.label}
-      <span style="color:var(--muted);font-size:11px;cursor:help;" tabindex="0" role="img" aria-label="${_escAttr(f.tip)}" title="${_escAttr(f.tip)}">${doorIcon("info")}</span>
-    </label>`;
-  }).join('');
-
-  // Section preview for swap tab
-  renderSectionPreview(swapFlags);
-
-  // Default to Routing tab, unless there's an active swap
-  switchMealEditTab((persistedSwap || swap) ? 'swap' : 'routing');
-}
 
 
 function getSundayStart(date) {
@@ -16565,226 +16344,13 @@ function getSelectedSite() {
   try { return localStorage.getItem('conc_selected_site') || 'unknown'; } catch(e) { return 'unknown'; }
 }
 
-function renderSectionPreview(flags) {
-  const el = document.getElementById('mc-section-preview');
-  if (!el) return;
-  const sections = computeSections(flags, REGISTRY_LIST).slice().sort((a, b) => {
-    if (a.rule.key === 'regular') return -1;
-    if (b.rule.key === 'regular') return 1;
-    return (a.rule.p || 99) - (b.rule.p || 99);
-  });
-  const dk = document.documentElement.getAttribute('data-theme')==='dark';
-  el.innerHTML = sections.map(s => {
-    const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
-    const count = s.residents.length;
-    const active = s.rule.key !== 'regular' || count > 0;
-    const chip = doorColourChip(color, dk);
-    const bg = active ? chip.bg : (dk ? '#21262d' : '#f5f5f5');
-    const border = active ? color : (dk ? '#3a4250' : '#e0e0e0');
-    const textColor = active ? chip.ink : 'var(--muted)';
-    const badge = count > 0 ? ` <span style="font-size:10px;background:${doorFill(color)};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
-      <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
-      <span style="font-size:11px;color:${textColor}">${count > 0 ? '● Active' : '○ Inactive'}</span>
-    </div>`;
-  }).join('');
-}
 
-function applyMealSwap() {
-  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
-  if (!mcEditKey) return;
-  const name = document.getElementById('mc-swap-name').value.trim();
-  if (!name) { alert('Enter a replacement meal name.'); return; }
-  const veg = document.getElementById('mc-swap-veg').value.trim();
-  const flags = {};
-  FLAG_DEFS.forEach(f => {
-    flags[f.key] = document.getElementById('mc-flag-'+f.key).checked;
-  });
-
-  // Parse slot key "week-day-period"
-  const [wkStr, day, period] = mcEditKey.split('-');
-  const week = parseInt(wkStr, 10);
-
-  // Find the next calendar date that maps to this rotation slot
-  const targetDate = nextDateForSlot(week, day);
-  if (!targetDate) { alert('Could not resolve a target date for this slot.'); return; }
-  const dateStr = doorDateKey(targetDate);
-
-  // Write to loadMealSwaps — date-keyed, auto-expires after the date passes
-  const swaps = loadMealSwaps();
-  const key = dateStr + '-' + period;
-  // If this same key was previously reverted, drop the blocklist entry —
-  // the user clearly wants this swap now, and leaving the key in
-  // REVERTED_SWAP_KEYS would cause sync to strip it on next pull.
-  REVERTED_SWAP_KEYS.delete(key);
-  // Convert FLAG_DEFS-shape flags to SM_ALLERGENS-shape allergen list
-  const allergens = SM_ALLERGENS.filter(a => flags[a.key]).map(a => a.key);
-  swaps[key] = {
-    specialName: name,
-    veg,
-    allergens,
-    verified: false,
-    notes: `Swap from Menu Config (Wk${week} ${dayLabel(day)} ${period})`,
-    createdAt: new Date().toISOString(),
-    site: getSelectedSite() || 'unknown',
-    _flagsRaw: flags,
-    _rotationSlot: mcEditKey  // track which rotation slot this swap originated from
-  };
-  saveMealSwaps(swaps);
-
-  // Keep the in-memory mealSwaps as a render hint so the Menu Config grid
-  // shows the swap badge on the rotation slot (not just the specific date).
-  mealSwaps[mcEditKey] = {name, veg, flags};
-
-  // Log and toast
-  logMenuEvent('menu_swap', `Swap applied: Wk${week} ${dayLabel(day)} ${period} → ${name} (effective ${formatShortDate(targetDate)})`);
-  showToast(`Swap applied to ${formatShortDate(targetDate)} — will appear in Today's Meal Context until served.`);
-
-  renderMenuConfig();
-  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-}
 
 // Makes the current edit panel state a permanent change to the 4-week rotation.
 // Writes to the concMenuBase localStorage overlay, which layers on top of the
 // hardcoded MENU_DATA constant. Phase 5 will swap this implementation for a
 // SharePoint write via Microsoft Graph API — call sites don't change.
-async function makePermanent() {
-  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
-  if (!mcEditKey) return;
-  const editKey = mcEditKey;
-  if (!guardStandardMenuWrite('Make Permanent')) return;
-  const name = document.getElementById('mc-swap-name').value.trim();
-  if (!name) { alert('Enter a replacement meal name before making it permanent.'); return; }
-  const veg = document.getElementById('mc-swap-veg').value.trim();
-  const softAlt = document.getElementById('mc-swap-softalt') ? document.getElementById('mc-swap-softalt').value.trim() : '';
-  const flags = {};
-  FLAG_DEFS.forEach(f => {
-    flags[f.key] = document.getElementById('mc-flag-'+f.key).checked;
-  });
 
-  const [wkStr, day, period] = mcEditKey.split('-');
-  const week = parseInt(wkStr, 10);
-
-  const ok = await doorAsk({
-    title: 'Make this a permanent change?',
-    lines: [`Week ${week} · ${dayLabel(day)} · ${period}: ${name}`,
-      `This changes every Wk${week} ${dayLabel(day)} ${period} from now on. Any one-time swap for this meal is cleared.`],
-    cancelLabel: 'Go back', goLabel: 'Make permanent'
-  });
-  if (!ok || mcEditKey !== editKey) return;
-
-  // Write to the overlay
-  const overlay = loadMenuBaseOverlay();
-  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);   // the meal as it was (2026-10-19)
-  if (!overlay[String(week)]) overlay[String(week)] = {};
-  if (!overlay[String(week)][day]) overlay[String(week)][day] = {};
-  // A rotation meal moved here by Swap Slots (2026-11-04) is written whole; what the panel changed goes on top of it.
-  const _swapStore = loadMealSwaps();
-  const _moved = (mealSwaps[editKey] && mealSwaps[editKey].meal)
-    || doorSwapKeysForSlot(week, day, period, _swapStore).map(k => doorSwapWholeMeal(_swapStore[k])).find(Boolean) || null;
-  const whole = _moved && _moved[''] === name ? _moved : null;
-  if (whole) {
-    const node = overlay[String(week)][day];
-    doorWriteMealCopy(node, period, whole);
-    if (veg !== (whole._veg || '')) node[period + '_veg'] = veg;
-    if (doorMealSig({ _flags: flags }) !== doorMealSig({ _flags: whole._flags })) doorSetMealFlags(node, period, flags);
-    if (softAlt && softAlt !== (whole._softAlt || '')) node[period + '_softAlt'] = softAlt;
-  } else {
-    overlay[String(week)][day][period] = name;
-    overlay[String(week)][day][period + '_veg'] = veg;
-    // The new dish comes whole (2026-10-19): Make Permanent doesn't know its slot breakdown, so the old dish's parts,
-    // slots, halal line and alternatives are written empty (not deleted: they came back from the base menu) and the
-    // allergen line follows the new ticks. The meal reads from its text until it is saved in Edit Menu.
-    doorEmptyDishParts(overlay[String(week)][day], period);
-    doorSetMealFlags(overlay[String(week)][day], period, flags);
-    overlay[String(week)][day][period + '_softAlt'] = softAlt;   // the panel's soft alternative
-  }
-  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Make Permanent');   // its first change keeps the original
-  saveMenuBaseOverlay(overlay);
-
-  // Clear any competing one-time swap for this slot (every upcoming one: 2026-10-18)
-  {
-    const swaps = loadMealSwaps();
-    const skeys = doorSwapKeysForSlot(week, day, period, swaps);
-    if (skeys.length) { skeys.forEach(k => { delete swaps[k]; }); saveMealSwaps(swaps); skeys.forEach(k => REVERTED_SWAP_KEYS.add(k)); }
-  }
-  // Clear any lingering menuEdit for this slot (Edit Menu and Make Permanent both
-  // target the same rotation slot — permanent supersedes)
-  const edits = loadMenuEdits();
-  delete edits[mcEditKey];
-  saveMenuEdits(edits);
-
-  // Clear session-only render hint
-  delete mealSwaps[mcEditKey];
-
-  logMenuEvent('menu_permanent', `Permanent menu change: Wk${week} ${dayLabel(day)} ${period} → ${name}`);
-  appendChangeLog({ type: 'permanent_edit', via: 'make_permanent', week: String(week), day, period, oldName: before[''] || '—', newName: name,
-    flags, before: noted.before, afterSig: noted.afterSig, first: noted.first }, { mirror: false });
-  showToast(`Permanent change saved. Rotation updated.`);
-
-  renderMenuConfig();
-  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-  publishAndSync('menu swap made permanent');
-}
-
-async function revertMealSwap() {
-  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
-  if (!mcEditKey) return;
-  const editKey = mcEditKey;
-  const [wkStr, day, period] = mcEditKey.split('-');
-  const week = parseInt(wkStr, 10);
-
-  // What layers are currently active for this slot?
-  const targetDate = nextDateForSlot(week, day);
-  let swaps = loadMealSwaps();
-  // every upcoming swap of this slot, not only the one on its next date (2026-10-18)
-  let skeys = doorSwapKeysForSlot(week, day, period, swaps);
-  let hasSwap = skeys.length > 0;
-
-  let overlay = loadMenuBaseOverlay();
-  // A permanent change puts back the meal's saved copy, as it was before its first change (2026-10-19, Jason: "A").
-  // Deleting the change fell back to the base menu, which holds the change once it is published. A meal changed before
-  // DOOR kept a copy says so instead of quietly changing nothing.
-  const kept = doorSavedOriginal(overlay, week, day, period);
-  const isPermanent = !!kept || doorOverlayChangesMeal(overlay, week, day, period);
-
-  if (kept) {
-    const ok = await doorAsk({
-      title: 'Put the original meal back?',
-      lines: [`Wk${week} ${dayLabel(day)} ${period} goes back to “${kept.meal[''] || '—'}”, ${doorSavedOriginalWhen(kept)}.`]
-        .concat(hasSwap ? ['Its one-time swap is removed too.'] : []),
-      cancelLabel: 'Keep it', goLabel: 'Restore the original'
-    });
-    if (!ok || mcEditKey !== editKey) return;
-    // Read again: the question waited for an answer and a menu sync may have written meanwhile.
-    swaps = loadMealSwaps(); skeys = doorSwapKeysForSlot(week, day, period, swaps); hasSwap = skeys.length > 0;
-    overlay = loadMenuBaseOverlay();
-    const done = doorRestoreMealOriginal(overlay, week, day, period);
-    if (done) {
-      saveMenuBaseOverlay(overlay);
-      const backTo = done.kept.meal[''] || '—';
-      appendChangeLog({ type: 'revert', week: String(week), day, period, oldName: done.before[''] || '—', newName: backTo,
-        before: done.before, original: done.kept, afterSig: doorMealSig(done.kept.meal) }, { mirror: false });
-      logMenuEvent('menu_permanent', `Reverted: Wk${week} ${dayLabel(day)} ${period} back to “${backTo}”`);
-      publishAndSync('menu meal restored');
-    }
-  } else if (isPermanent && !hasSwap) {
-    await doorTellNoSavedOriginal(week, day, period);
-    return;
-  }
-  if (hasSwap) {
-    skeys.forEach(k => { delete swaps[k]; });
-    saveMealSwaps(swaps);
-    skeys.forEach(k => REVERTED_SWAP_KEYS.add(k)); // v28: block sync from re-introducing
-    const _d = skeys.map(k => formatShortDate(new Date(k.slice(0, 10) + 'T12:00:00'))).join(', ');
-    logMenuEvent('menu_swap', `Swap reverted: Wk${week} ${dayLabel(day)} ${period} (was effective ${_d})`);
-    if (isPermanent && !kept) showToast('One-time swap removed. The permanent change stays: DOOR has no copy of the meal from before it was changed.');
-  }
-  delete mealSwaps[mcEditKey];
-
-  renderMenuConfig();
-  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-}
 
 async function clearAllSwaps() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
@@ -16860,164 +16426,13 @@ function showToast(msg) {
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
 }
 
-function closeMealEdit() {
-  document.getElementById('mc-edit-panel').style.display = 'none';
-  mcEditKey = null;
-}
 
 let mcEditTab = 'routing';
-function switchMealEditTab(tab) {
-  mcEditTab = tab;
-  const tabs = ['routing', 'swap', 'editflags'];
-  tabs.forEach(t => {
-    const content = document.getElementById('mc-tab-' + t + '-content');
-    const btn = document.getElementById('mc-tab-' + t);
-    if (content) content.style.display = (t === tab) ? 'block' : 'none';
-    if (btn) btn.className = (t === tab) ? 'btn btn-sm' : 'btn btn-ghost btn-sm';
-  });
-  // Populate edit flags grid when switching to it
-  if (tab === 'editflags' && mcEditKey) {
-    populateEditFlagsTab();
-  }
-}
 
-function renderRoutingTab(flags, vegAlt) {
-  // Read-only flag badges
-  const badgesEl = document.getElementById('mc-routing-flags');
-  if (badgesEl) {
-    badgesEl.innerHTML = FLAG_DEFS.filter(f => flags[f.key]).map(f =>
-      `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${doorColourChip(f.color).bg};color:${doorColourChip(f.color).ink};">${f.label}</span>`
-    ).join('') || '<span style="color:var(--muted);font-size:12px;">No allergen or routing flags set</span>';
-  }
-  const vegEl = document.getElementById('mc-routing-veg');
-  if (vegEl) {
-    vegEl.textContent = vegAlt ? `Veg/vegan alt: ${vegAlt}` : '';
-  }
-  // Full-width section preview
-  const el = document.getElementById('mc-section-preview-routing');
-  if (!el) return;
-  const sections = computeSections(flags, REGISTRY_LIST);
-  const dk = document.documentElement.getAttribute('data-theme')==='dark';
-  el.innerHTML = sections.map(s => {
-    const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
-    const count = s.residents.length;
-    const active = s.rule.key !== 'regular' || count > 0;
-    const chip = doorColourChip(color, dk);
-    const bg = active ? chip.bg : (dk ? '#21262d' : '#f5f5f5');
-    const border = active ? color : (dk ? '#3a4250' : '#e0e0e0');
-    const textColor = active ? chip.ink : 'var(--muted)';
-    const badge = count > 0 ? ` <span style="font-size:10px;background:${doorFill(color)};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
-      <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
-      <span style="font-size:11px;color:${textColor}">${count > 0 ? '● Active' : '○ Inactive'}</span>
-    </div>`;
-  }).join('');
-}
 
 // v28: Edit Flags tab — populate checkboxes from current meal flags
-function populateEditFlagsTab() {
-  if (!mcEditKey) return;
-  const [wkStr, day, period] = mcEditKey.split('-');
-  const week = parseInt(wkStr, 10);
-  const wkData = getMenuData()[String(week)];
-  const dayData = wkData[day] || {};
-  const flags = dayData[period + '_flags'] || {};
 
-  const grid = document.getElementById('mc-editflags-grid');
-  grid.innerHTML = FLAG_DEFS.map(f => {
-    const checked = flags[f.key] ? 'checked' : '';
-    return `<label title="${f.tip}" style="display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;">
-      <input type="checkbox" id="mc-ef-${f.key}" ${checked} onchange="updateEditFlagsPreview()" style="accent-color:${f.color}"> ${f.label}
-      <span style="color:var(--muted);font-size:11px;cursor:help;" tabindex="0" role="img" aria-label="${_escAttr(f.tip)}" title="${_escAttr(f.tip)}">${doorIcon("info")}</span>
-    </label>`;
-  }).join('');
 
-  // Soft alt
-  const softEl = document.getElementById('mc-editflags-softalt');
-  if (softEl) softEl.value = dayData[period + '_softAlt'] || '';
-
-  // Status
-  const statusEl = document.getElementById('mc-editflags-status');
-  if (statusEl) statusEl.style.display = 'none';
-
-  updateEditFlagsPreview();
-}
-
-function updateEditFlagsPreview() {
-  const flags = {};
-  FLAG_DEFS.forEach(f => { flags[f.key] = document.getElementById('mc-ef-' + f.key)?.checked || false; });
-  const el = document.getElementById('mc-editflags-section-preview');
-  if (!el) return;
-  // The rotation meal's own plates come with it (2026-10-19, the kitchen's alternatives).
-  if (mcEditKey) {
-    const [wkStr, day, period] = mcEditKey.split('-');
-    doorAddKitchenPlateFlags(flags, (getMenuData()[wkStr] || {})[day] || {}, period);
-  }
-  const sections = computeSections(flags, REGISTRY_LIST);
-  const dk = document.documentElement.getAttribute('data-theme')==='dark';
-  el.innerHTML = sections.map(s => {
-    const color = SECTION_COLOR_MAP[s.rule.key] || '#9ca3af';
-    const count = s.residents.length;
-    const active = s.rule.key !== 'regular' || count > 0;
-    const chip = doorColourChip(color, dk);
-    const bg = active ? chip.bg : (dk ? '#21262d' : '#f5f5f5');
-    const border = active ? color : (dk ? '#3a4250' : '#e0e0e0');
-    const textColor = active ? chip.ink : 'var(--muted)';
-    const badge = count > 0 ? ` <span style="font-size:10px;background:${doorFill(color)};color:#fff;border-radius:10px;padding:1px 6px;font-weight:700;">${count}</span>` : '';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-left:3px solid ${border};background:${bg};border-radius:0 6px 6px 0;margin-bottom:5px;">
-      <span style="font-size:13px;font-weight:600;color:${textColor}">${s.rule.label}${badge}</span>
-      <span style="font-size:11px;color:${textColor}">${count > 0 ? '● Active' : '○ Inactive'}</span>
-    </div>`;
-  }).join('');
-}
-
-function saveEditFlags() {
-  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
-  if (!mcEditKey) return;
-  if (!guardStandardMenuWrite('Edit Flags')) return;
-  const [wkStr, day, period] = mcEditKey.split('-');
-  const week = wkStr;
-
-  // Gather flags from checkboxes
-  const flags = {};
-  FLAG_DEFS.forEach(f => { flags[f.key] = document.getElementById('mc-ef-' + f.key)?.checked || false; });
-
-  // Save to overlay
-  const overlay = loadMenuBaseOverlay();
-  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);   // the meal as it was (2026-10-19)
-  if (!overlay[week]) overlay[week] = {};
-  if (!overlay[week][day]) overlay[week][day] = {};
-  doorSetMealFlags(overlay[week][day], period, flags);   // with its allergen line (2026-10-19)
-
-  // Save soft alt if present
-  const softVal = (document.getElementById('mc-editflags-softalt')?.value || '').trim();
-  if (softVal) overlay[week][day][period + '_softAlt'] = softVal;
-
-  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Flags');   // its first change keeps the original
-  saveMenuBaseOverlay(overlay);
-
-  // Log the change
-  logMenuEvent('flag_edit', `Flags updated: Wk${week} ${dayLabel(day)} ${period}`);
-  appendChangeLog({ type: 'permanent_edit', via: 'edit_flags', week, day, period, oldName: before[''] || '—', newName: before[''] || '—',
-    flags, before: noted.before, afterSig: noted.afterSig, first: noted.first }, { mirror: false });
-
-  // Show confirmation
-  const statusEl = document.getElementById('mc-editflags-status');
-  if (statusEl) {
-    statusEl.textContent = " Flags saved to rotation";
-    statusEl.style.display = 'block';
-    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
-  }
-
-  // Refresh routing tab and grid
-  const wkData = getMenuData()[week];
-  const dayData = wkData[day] || {};
-  renderRoutingTab(doorAddKitchenPlateFlags({ ...flags }, dayData, period), dayData[period + '_veg'] || '');
-  renderMenuConfig();
-
-  // Publish if sync is configured
-  if (typeof publishAndSync === 'function') publishAndSync('flag edit');
-}
 
 // Find unpaired swaps. By kitchen convention swaps should always come in pairs
 // — either a same-date period-exchange (date X lunch ↔ date X dinner) or a
@@ -17308,14 +16723,12 @@ function clearPastSpecials() {
   renderMenuConfig();
 }
 
+// S6b (Edit Menu redesign, D5; Jason 2026-11-19: "Follow lean"): a meal cell opens the one meal view. The old panel
+// (Routing / Swap Meal / Edit Flags and Make Permanent) is retired: What changes shows the routing, "Just on <date>"
+// replaces Swap Meal, the ticks are in the editor and an every-week Save is the permanent change.
 function handleMealCellClick(week, day, period) {
-  if (editMenuMode) {
-    closeMealEdit();
-    openMenuEdit(week, day, period);
-    return;
-  }
   if (!slotSwapMode) {
-    openMealEdit(week, day, period);
+    openMenuEdit(week, day, period);
     return;
   }
   // Slot swap mode
@@ -17335,7 +16748,6 @@ function enterSlotSwapMode() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   slotSwapMode = true;
   slotSwapFirst = null;
-  closeMealEdit();
   document.getElementById('mc-slot-swap-banner').style.display = 'block';
   document.getElementById('mc-slot-swap-msg').textContent = 'Click the first meal slot to swap.';
   document.getElementById('mc-swap-slots-btn').style.display = 'none';
@@ -20716,7 +20128,6 @@ async function goHome() {
   }
 
   // Close any open dialogs / panels
-  closeMealEdit();
   closeMenuEdit();
   closeSpecialMealPanel();
   closeImportDialog();
@@ -20770,9 +20181,7 @@ let SLOT_HELD = {};
 // its dishes are read from text and carry no recipe link for EXPO to plan from. Display
 // only: set in openMenuEdit, read only by the header notice.
 let _mcSlotsBlockPresent = false;
-let testMealActive = false;
 let _testPlaygroundFlags = {};
-let _lastTestPd = null;
 
 function initSlotState() {
   _doorPlainChoiceTargets.clear();
@@ -20859,7 +20268,7 @@ function setAltMealQP(idx, val) {
 function buildAltMeals() { return ALT_MEALS.filter(a => a.text); }
 
 function renderAltMealsSection() {
-  const containerId = testMealActive ? 'tm-alt-meals' : 'mc-alt-meals';
+  const containerId = 'mc-alt-meals';
   const el = document.getElementById(containerId);
   if (!el) return;
   const hasAny = ALT_MEALS.some(a => a.text);
@@ -21115,7 +20524,7 @@ function doorLabelUncheckedLinesHTML(dishes) {
 
 // ── Slot rendering ────────────────────────────────────────────
 function renderSlots() {
-  const container = document.getElementById(testMealActive ? 'tm-slot-panel' : 'mc-slot-panel');
+  const container = document.getElementById('mc-slot-panel');
   if (!container) return;
   if (typeof doorRefreshLabelChecks === 'function') doorRefreshLabelChecks(MEAL_SLOT_STATE);   // C2: a label checked since brings its allergens
   _slotRenderDepth++;
@@ -21361,9 +20770,6 @@ function buildUnionFlags() {
   return union;
 }
 
-function buildMainFlags() {
-  return _buildSlotGroupFlags(['main','starch','vegside','xtra']);
-}
 
 function buildVegAltFlags() {
   return _unionPieceFlags(doorLinePieces(MEAL_SLOT_STATE, 'vegan'));   // W3b: what the vegan line actually gets
@@ -21373,9 +20779,6 @@ function buildHalalAltFlags() {
   return _unionPieceFlags(doorLinePieces(MEAL_SLOT_STATE, 'halal', ['mainalt'].concat(DOOR_LINE_SIDE_IDS)));
 }
 
-function buildNoPorkAltFlags() {
-  return _buildSlotGroupFlags(['noporkalt','starch','vegside','xtra']);
-}
 
 function _buildSlotGroupFlags(slotIds) {
   const union = {};
@@ -21665,7 +21068,7 @@ function stripDeclaredFreeAllergens(allergenStr, mealVeg) {
 let _LAST_SLOT_FLAGS = {};
 function updateSlotSummary() {
   const slotFlags = buildUnionFlags();
-  const cbPrefix = testMealActive ? 'tm-edit-flag-' : 'mc-edit-flag-';
+  const cbPrefix = 'mc-edit-flag-';
   FLAG_DEFS.forEach(f => {
     const cb = document.getElementById(cbPrefix + f.key);
     if (!cb) return;
@@ -21693,24 +21096,24 @@ function updateSlotSummary() {
   });
   // S2b (Edit Menu redesign): the plate facts come from the one function the plating sheet reads, on the meal as Save
   // would write it; the editor no longer works out its own egg and mustard check for the vegan plate.
-  const draftFacts = (!testMealActive && typeof doorDraftPlateFacts === 'function') ? doorDraftPlateFacts(doorEditorDraftFlags(flags)) : null;
+  const draftFacts = (typeof doorDraftPlateFacts === 'function') ? doorDraftPlateFacts(doorEditorDraftFlags(flags)) : null;
   if (typeof window !== 'undefined') window.__DOOR_PLATE_SUMMARY__ = draftFacts;
-  if (!testMealActive && typeof doorRenderWhatChanges === 'function') doorRenderWhatChanges(draftFacts, flags);   // S5b
+  if (typeof doorRenderWhatChanges === 'function') doorRenderWhatChanges(draftFacts, flags);   // S5b
   if (draftFacts) flags._vegAltSafe = !!draftFacts.mealFlags._vegAltSafe;
   else { const vegFlags = buildVegAltFlags(); flags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard; }
   flags._altMeals = buildAltMeals();
   doorEditorPlateFlags(flags);
-  const prevId = testMealActive ? 'tm-section-preview' : 'mc-menu-edit-preview';
+  const prevId = 'mc-menu-edit-preview';
   const prev = document.getElementById(prevId);
   if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
   if (typeof doorRenderAltEditorFeedback === 'function') doorRenderAltEditorFeedback(flags);
-  const name = (testMealActive || typeof doorEditedMealName !== 'function') ? buildMealName() : doorEditedMealName();
+  const name = (typeof doorEditedMealName !== 'function') ? buildMealName() : doorEditedMealName();
   const veg = buildVegAlt();
   const softAlt = buildSoftAlt();
   const noPorkAlt = buildNoPorkAlt();
   const halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;
-  const summaryId = testMealActive ? 'tm-slot-name-preview' : 'mc-slot-name-preview';
-  const summaryLabel = testMealActive ? 'Test meal preview' : 'Will save as';
+  const summaryId = 'mc-slot-name-preview';
+  const summaryLabel = 'Will save as';
   const summaryEl = document.getElementById(summaryId);
   if (summaryEl) {
     if (name || veg || softAlt || noPorkAlt) {
@@ -21760,7 +21163,7 @@ function updateSlotSummary() {
     if (carbCb && !carbCb.checked && detectIsCarb(carbProbe)) {
       carbCb.checked = true;
       if (carbCb.parentElement) carbCb.parentElement.style.background = '#2563eb10';
-      const hintId = testMealActive ? 'tm-iscarb-hint' : 'mc-iscarb-hint';
+      const hintId = 'mc-iscarb-hint';
       const hint = document.getElementById(hintId);
       if (hint) { hint.textContent = '(auto)'; hint.style.display = 'inline'; }
     }
@@ -21789,8 +21192,6 @@ function toggleEditMenuMode() {
     btn.style.color = 'var(--info-ink, #1e40af)';
     btn.style.border = '1.5px solid #2563eb';
     if (banner) banner.style.display = 'block';
-    if (testMealActive) closeTestMeal();
-    closeMealEdit();
     closeMenuEdit();
   } else {
     btn.innerHTML = doorIcon('edit') + ' Edit Menu';
@@ -22123,9 +21524,9 @@ function smSlotToggleFlag(slotId, key) {
 }
 
 function renderEditFlagGrid(currentFlags) {
-  const gridId = testMealActive ? 'tm-edit-flag-grid' : 'mc-edit-flag-grid';
-  const cbPrefix = testMealActive ? 'tm-edit-flag-' : 'mc-edit-flag-';
-  const carbHintId = testMealActive ? 'tm-iscarb-hint' : 'mc-iscarb-hint';
+  const gridId = 'mc-edit-flag-grid';
+  const cbPrefix = 'mc-edit-flag-';
+  const carbHintId = 'mc-iscarb-hint';
   const grid = document.getElementById(gridId);
   if (!grid) return;
   const slotFlags = buildUnionFlags();
@@ -22392,6 +21793,11 @@ function doorSaveAskSnapshot() {
   const dishes = {};
   Object.keys(MEAL_SLOT_STATE || {}).forEach(id => { const x = MEAL_SLOT_STATE[id]; dishes[id] = _slotText(x) + '|' + JSON.stringify((x && x.lines) || {}) + '|' + JSON.stringify((x && x.list) || []); });
   return { key: mcMenuEditKey, meat: { main: meat('main'), mainalt: meat('mainalt') }, dishes };
+}
+function doorHalalMainChangedSinceOpen() {
+  const o = _doorSaveAskAtOpen;
+  if (!o || o.key !== mcMenuEditKey || !o.dishes) return false;
+  return String(o.dishes.mainalt || '').split('|')[0] !== _slotText(MEAL_SLOT_STATE.mainalt);
 }
 function doorMeatChangedSinceOpen(slotId) {
   const o = _doorSaveAskAtOpen;
@@ -22822,6 +22228,10 @@ function doorWriteEditorMeal(target, period, name, veg, flags) {
   target[period + '_veg']     = veg;
   const _halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;   // W3b: the own sides of the halal line, as a full line the plating sheet uses whole
   if (_halalLine) target[period + '_halal'] = _halalLine;
+  // S6b (D5): with no sides of its own, a halal main changed since the meal opened replaces the stored halal line (the
+  // workbook shape: the dish; the sheet adds the shared sides). The sheet prints a stored line first, so the old dish
+  // stayed on the halal plate. A halal main not changed, or not known at open, leaves the stored line as it was.
+  else if (typeof doorHalalMainChangedSinceOpen === 'function' && doorHalalMainChangedSinceOpen()) target[period + '_halal'] = buildMainAltItem() || '';
   doorSetMealFlags(target, period, flags);   // with its allergen line (2026-10-19)
   target[period + '_softAlt'] = buildSoftAlt();
   target[period + '_altMeals'] = buildAltMeals();
@@ -23161,7 +22571,6 @@ function doorSlotsMatchText(slots, text) {
 }
 function openMenuEdit(week, day, period) {
   if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => openMenuEdit(week, day, period)); return; }
-  if (testMealActive) closeTestMeal();
   const wkData = getMenuData()[String(week)];
   const dayData = (wkData && wkData[day]) || {};
   const existing = getMenuEdit(week, day, period);
@@ -24345,12 +23754,11 @@ function clearPastSwaps() {
 }
 
 function openSpecialMealPanel() {
-  closeMealEdit();
   // Init slots
   initSmSlotState();
-  // Prefill period from mcEditKey if available
-  if (mcEditKey) {
-    const parts = mcEditKey.split('-');
+  // Prefill the period from the meal open in the meal view, if any
+  if (mcMenuEditKey) {
+    const parts = mcMenuEditKey.split('-');
     const p = document.getElementById('sm-period');
     if (p) p.value = parts[2] || 'lunch';
   }
@@ -28115,254 +27523,6 @@ function renderPlatingPreview() {
     console.error('[DOOR plating preview]', e);
   }
 }
-
-
-// ============================================================
-// TEST MEAL SANDBOX
-// ============================================================
-
-function openTestMeal() {
-  if (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => openTestMeal()); return; }
-  closeMenuEdit();
-  closeMealEdit();
-  if (editMenuMode) toggleEditMenuMode();
-  testMealActive = true;
-  _lastTestPd = null;
-  const mcSlotPanel = document.getElementById('mc-slot-panel');
-  if (mcSlotPanel) mcSlotPanel.innerHTML = '';
-  const mcFlagGrid = document.getElementById('mc-edit-flag-grid');
-  if (mcFlagGrid) mcFlagGrid.innerHTML = '';
-  initSlotState();
-  const panel = document.getElementById('mc-test-meal-panel');
-  if (panel) panel.style.display = 'block';
-  renderEditFlagGrid({});
-  renderSlots();
-  updateSlotSummary();
-  const platingArea = document.getElementById('tm-plating-area');
-  if (platingArea) platingArea.style.display = 'none';
-  const pg = document.getElementById('tm-flag-playground');
-  if (pg) pg.style.display = 'none';
-  setTimeout(function() { var s = document.getElementById('slot-search-main'); if (s) s.focus(); }, 80);
-}
-
-function closeTestMeal() {
-  testMealActive = false;
-  _lastTestPd = null;
-  var panel = document.getElementById('mc-test-meal-panel');
-  if (panel) panel.style.display = 'none';
-  var platingArea = document.getElementById('tm-plating-area');
-  if (platingArea) { platingArea.style.display = 'none'; }
-  var preview = document.getElementById('tm-plating-preview');
-  if (preview) preview.innerHTML = '';
-  var printHdr = document.getElementById('tm-print-header');
-  if (printHdr) printHdr.innerHTML = '';
-  var tmSlotPanel = document.getElementById('tm-slot-panel');
-  if (tmSlotPanel) tmSlotPanel.innerHTML = '';
-  var tmFlagGrid = document.getElementById('tm-edit-flag-grid');
-  if (tmFlagGrid) tmFlagGrid.innerHTML = '';
-}
-
-function generateTestPlating() {
-  var name = buildMealName();
-  if (!name) { alert('Add at least a main dish before generating.'); return; }
-
-  var slotFlags = buildUnionFlags();
-  var flags = {};
-  FLAG_DEFS.forEach(function(f) {
-    var cb = document.getElementById('tm-edit-flag-' + f.key);
-    flags[f.key] = cb ? cb.checked : (slotFlags[f.key] || false);
-  });
-
-  var MEAT_DETECT = [
-    { kw: /\bchicken\b|\bchik'?n\b|\bdrum\w*\b|\btender\b|\bwing\b/i, flag: 'hasChicken', label: 'chicken' },
-    { kw: /\bbeef\b|\bsteak\b|\bmeatloaf\b|\bmeatball\b/i, flag: 'hasBeef', label: 'beef' },
-    { kw: /\bturkey\b/i, flag: 'hasTurkey', label: 'turkey' },
-    { kw: /\bpork\b|\bham\b|\bsausage\b|\bbacon\b|\bcarnitas\b/i, flag: 'hasPork', label: 'pork' },
-  ];
-  function _detectSlot(slotId) {
-    var s = MEAL_SLOT_STATE[slotId];
-    // Recipe-attach S3: scan the display rename too (additive) so the Test-Meal preview
-    // matches what saveMenuEdit's _detectInSlot will bake — parity with the save site.
-    var val = s ? [s.recipeName, s.displayText, s.manual].filter(Boolean).join(' ') : '';
-    if (!val) return [];
-    return MEAT_DETECT.filter(function(m) { return m.kw.test(val); });
-  }
-  var mainProteins = _detectSlot('main');
-  var altProteins = _detectSlot('mainalt');
-  var noPorkProteins = _detectSlot('noporkalt');
-  // Only main-slot proteins contribute to mealFlags. Alt-slot proteins are
-  // still inspected below for the halal-cert prompt, but must not leak into
-  // the regular meal's CONTAINS line.
-  mainProteins.forEach(function(m) { flags[m.flag] = true; });
-
-  var hasPorkInMain = mainProteins.some(function(m) { return m.flag === 'hasPork'; });
-  var altMeatProteins = altProteins.filter(function(m) { return m.flag !== 'hasPork'; }).map(function(m) { return m.label; });
-  var mainMeatProteins = mainProteins.filter(function(m) { return m.flag !== 'hasPork'; }).map(function(m) { return m.label; });
-
-  var needsHalalPrompt = hasPorkInMain
-    ? (altMeatProteins.length > 0 && !flags.halalCertifiedMeat)
-    : (mainMeatProteins.length > 0 && !flags.halalCertifiedMeat);
-
-  if (needsHalalPrompt) {
-    var slotBreakdown = {
-      main: mainProteins.map(function(m) { return m.label; }),
-      mainalt: altProteins.map(function(m) { return m.label; }),
-      noporkalt: noPorkProteins.map(function(m) { return m.label; })
-    };
-    var askAbout = hasPorkInMain ? altMeatProteins : mainMeatProteins;
-    _showHalalCertDialog(askAbout.join(' & '), hasPorkInMain, slotBreakdown, function(isHalal) {
-      flags.halalCertifiedMeat = isHalal;
-      _finishTestPlating(flags);
-    });
-    return;
-  }
-  _finishTestPlating(flags);
-}
-
-function _finishTestPlating(flags) {
-  var pd = computeTestPlatingData(flags);
-  if (!pd) { alert('Could not compute plating data.'); return; }
-  _lastTestPd = pd;
-
-  var preview = document.getElementById('tm-plating-preview');
-  if (preview) preview.innerHTML = buildPlatingHtml(pd, true);
-
-  var ph = document.getElementById('tm-print-header');
-  if (ph) ph.innerHTML = '<div class="ph-org">CONC Rexdale</div><div class="ph-detail">TEST MEAL — ' + escapeHtml(pd.mealName) + '</div>';
-
-  var platingArea = document.getElementById('tm-plating-area');
-  if (platingArea) platingArea.style.display = 'block';
-
-  renderTestPlayground(flags);
-  platingArea.scrollIntoView({behavior:'smooth', block:'start'});
-}
-
-function computeTestPlatingData(flags) {
-  var mealMainItem = buildMainItem();
-  var mealMainAlt = buildMainAltItem();
-  var mealSides = buildSides();
-  var mealName = (mealMainItem && mealSides) ? mealMainItem + ', ' + mealSides : buildMealName();
-  var mealVeg = buildVegAlt();
-  var mealSoftAlt = buildSoftAlt();
-  var mealNoPorkAlt = buildNoPorkAlt();
-  var mealFlags = Object.assign({}, flags);
-
-  var mainFlags = buildMainFlags();
-  var allergenStr = flagsToAllergenStr(mainFlags).toUpperCase();
-  var vegFlags = buildVegAltFlags();
-  mealFlags._vegAltSafe = !vegFlags.hasEgg && !vegFlags.hasMustard;
-  mealFlags._altMeals = buildAltMeals();
-  var vegAllergenStr = flagsToAllergenStr(vegFlags).toUpperCase() || (typeof getVegAltAllergenStr !== 'undefined' ? getVegAltAllergenStr(mealVeg) : '') || null;
-  var halalAltFlags = buildHalalAltFlags();
-  var halalAllergenStr = flagsToAllergenStr(halalAltFlags).toUpperCase() || null;
-  var noPorkAltFlags = buildNoPorkAltFlags();
-  var noPorkAllergenStr = flagsToAllergenStr(noPorkAltFlags).toUpperCase() || null;
-
-  var emptyFlags = {};
-  FLAG_DEFS.forEach(function(f) { emptyFlags[f.key] = false; });
-  var conflictRooms = getAnaphConflictRooms(mealFlags, emptyFlags);
-
-  var routingRegistry = [];
-  var anaphSect = [];
-  var sortR = function(a,b) { var na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); };
-  REGISTRY_LIST.forEach(function(r) {
-    if (conflictRooms.has(r.room)) {
-      var isA = doorIsAnaphResident(r);
-      var mateOf = isA ? null : REGISTRY_LIST.find(function(ar) {
-        return (doorIsAnaphResident(ar)) &&
-          getRoomBase(ar.room)===getRoomBase(r.room) && ar.room!==r.room;
-      });
-      anaphSect.push(Object.assign({}, r, {_role:isA?'anaphylactic':'roommate', _anaph_room:mateOf?mateOf.room:''}));
-    } else {
-      routingRegistry.push(r);
-    }
-  });
-  anaphSect.sort(sortR);
-
-  if (mealNoPorkAlt) mealFlags.noPorkAlt = mealNoPorkAlt;
-  if (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE) mealFlags._altMealsNone = true;
-  var sections = computeSections(mealFlags, routingRegistry);
-  var regularSection = sections.find(function(s) { return s.rule.key === 'regular'; });
-  var regCount = regularSection ? regularSection.residents.length : 0;
-  var halalCount = sections.filter(function(s){ return s.rule.key==='halal'; }).reduce(function(sum,s){ return sum+s.residents.length; },0);
-  var veganCount = sections.filter(function(s){ return s.rule.key==='vegan'; }).reduce(function(sum,s){ return sum+s.residents.length; },0);
-  var diabCount = REGISTRY_LIST.filter(function(r) { return (r.tags||[]).includes('Diabetic'); }).length;
-  var altMeals = mealFlags._altMeals || [];
-  var ctx = {mealName:mealName, mealVeg:mealVeg, allergenStr:allergenStr, softAlt:mealSoftAlt, altMeals:altMeals, altMealsNone: (typeof ALT_MEALS_NONE !== 'undefined' && ALT_MEALS_NONE), noPorkAlt:mealNoPorkAlt, mainAlt:mealMainAlt, mainItem:mealMainItem, sides:mealSides, mealFlags:mealFlags, halalAllergenStr:halalAllergenStr, noPorkAllergenStr:noPorkAllergenStr};
-
-  var regularNotes = [];
-  if (regularSection) {
-    regularSection.residents.forEach(function(r) {
-      var conflicts = checkResidentMealConflicts(mealFlags, r);
-      var conflictNote = formatConflictNote(conflicts);
-      var svcNote = doorRegularServiceNote(r, mealFlags);
-      if (conflicts.length || svcNote) {
-        regularNotes.push({ room:r.room, rawRestriction:r.rawRestriction||'', tags:r.tags||[], conflictNote:conflictNote, serviceNote:svcNote });
-      }
-    });
-    regularNotes.sort(function(a,b) { var na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); });
-  }
-
-  return {
-    dayLabel:'Test', periodLabel:'Test Meal', mealName:mealName, mealVeg:mealVeg, mealSoftAlt:mealSoftAlt, mealFlags:mealFlags,
-    allergenStr:allergenStr, vegAllergenStr:vegAllergenStr, conflictRooms:conflictRooms, anaphSect:anaphSect, sections:sections,
-    regCount:regCount, halalCount:halalCount, veganCount:veganCount, diabCount:diabCount, ctx:ctx, sortR:sortR, regularNotes:regularNotes
-  };
-}
-
-function renderTestPlayground(flags) {
-  _testPlaygroundFlags = Object.assign({}, flags);
-  var pg = document.getElementById('tm-flag-playground');
-  if (pg) pg.style.display = 'block';
-  var container = document.getElementById('tm-playground-flags');
-  if (!container) return;
-  container.innerHTML = FLAG_DEFS.map(function(f) {
-    var checked = _testPlaygroundFlags[f.key] ? 'checked' : '';
-    var bg = _testPlaygroundFlags[f.key] ? f.color + '18' : 'var(--cream)';
-    return '<label title="'+f.tip+'" style="display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;background:'+bg+';">'
-      + '<input type="checkbox" '+checked+' style="accent-color:'+f.color+';" onchange="togglePlaygroundFlag(\''+f.key+'\',this.checked)"> '+f.label
-      + '</label>';
-  }).join('');
-  var el = document.getElementById('tm-playground-sections');
-  if (el) renderSectionPreviewInto(_testPlaygroundFlags, el);
-}
-
-function togglePlaygroundFlag(key, checked) {
-  _testPlaygroundFlags[key] = checked;
-  var el = document.getElementById('tm-playground-sections');
-  if (el) renderSectionPreviewInto(_testPlaygroundFlags, el);
-  var pd = computeTestPlatingData(_testPlaygroundFlags);
-  if (pd) {
-    _lastTestPd = pd;
-    var preview = document.getElementById('tm-plating-preview');
-    if (preview) preview.innerHTML = buildPlatingHtml(pd, true);
-    var ph = document.getElementById('tm-print-header');
-    if (ph) ph.innerHTML = '<div class="ph-org">CONC Rexdale</div><div class="ph-detail">TEST MEAL — ' + escapeHtml(pd.mealName) + '</div>';
-  }
-  renderTestPlayground(_testPlaygroundFlags);
-}
-
-function exportTestPlating() {
-  if (!_lastTestPd) { alert('Generate a plating preview first.'); return; }
-  if (doorAssessAnaphAlternative(_lastTestPd).state === 'missing') { alert('Test export NOT READY — name the separate anaphylactic meal.'); return; }
-  var result = buildDaySheet(null, null, null, _lastTestPd);
-  if (!result) { alert('Could not build export sheet.'); return; }
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, result.ws, 'Test Meal');
-  var filename = 'TEST_Plating_' + _lastTestPd.mealName.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'_').substring(0,30) + '.xlsx';
-  XLSX.writeFile(wb, filename);
-}
-
-function printTestPlating() {
-  if (!_lastTestPd) { alert('Generate a plating preview first.'); return; }
-  if (doorAssessAnaphAlternative(_lastTestPd).state === 'missing') { alert('Test print NOT READY — name the separate anaphylactic meal.'); return; }
-  document.body.classList.add('tm-printing');
-  setTimeout(function() {
-    window.print();
-    document.body.classList.remove('tm-printing');
-  }, 100);
-}
-
 
 function showChangeLog() {
   const body = document.getElementById('changelog-modal-body');

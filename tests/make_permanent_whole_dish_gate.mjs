@@ -18,6 +18,10 @@
 //   5. the publish check: an older allergen line in the overlay stops nothing; a contradictory dish still stops
 //   6. one list of a dish's parts: a swap drops the same ones, and DOOR reads the empty values as none
 // Authored to fail on 4bedd9d (1–6). Env: MAKE_PERMANENT_ROOT (another checkout's directory).
+// Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the meal panel (its Make Permanent, Edit Flags and Revert to
+// Original) is retired. Check 1 moved to Edit Menu's every-week Save (_finishMenuSave through doorWriteEditorMeal), its
+// editor holding the new dish; check 3 to the footer's "Put back the original" (revertMenuEdit); check 4 drops the two
+// retired writers from its list. The banner's Make Permanent (check 2) stays as it was.
 import test from 'node:test';
 import { historical, regressionResidents, copy } from './helpers/historical_menu.mjs';
 import assert from 'node:assert/strict';
@@ -54,13 +58,15 @@ const OVERLAY = copy(historical.overlay);
 const W = '3', D = 'TUESDAY', P = 'dinner';  // Caribbean Chicken Curry, Naan: linked slots, a halal plate, the kitchen's plates
 const NEW = { name: 'Beef Burger, Side Salad', veg: 'Veggie Burger, Side Salad', ticks: ['hasBeef', 'hasGluten'] };
 
-// The menu screens' Make Permanent and Restore, run for real against a store of the overlay and swaps.
-function menuBox(store) {
+// The menu screens' every-week Save, the banner's Make Permanent and Put back the original, run for real against a store
+// of the overlay and swaps. The editor holds the new dish as a cook would type it into a fresh meal view.
+const NEW_SLOTS = { main: { manual: 'Beef Burger', flags: { hasBeef: true, hasGluten: true } }, xtra: { manual: 'Side Salad', flags: {} } };
+function menuBox(store, soft = '') {
   const els = {};
   const el = (id) => (els[id] || (els[id] = { id, value: '', checked: false }));
   const box = {
     console, document: { getElementById: el },
-    mcEditKey: W + '-' + D + '-' + P, mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
+    mcMenuEditKey: W + '-' + D + '-' + P, mealSwaps: {}, REVERTED_SWAP_KEYS: new Set(),
     guardStandardMenuWrite: () => true, doorAsk: async () => true, alert() {},
     loadMenuBaseOverlay: () => out(store.overlay), saveMenuBaseOverlay: (o) => { store.overlay = out(o); },
     loadMealSwaps: () => out(store.swaps || {}), saveMealSwaps: (s) => { store.swaps = out(s); },
@@ -69,20 +75,25 @@ function menuBox(store) {
     nextDateForSlot: () => null, formatShortDate: () => '', getMealForDate: () => ({ week: Number(W), day: D }),
     // 2026-10-19 (v31-standard.43): the copy reads the stored meal (the base under the overlay) and goes in the change log.
     MENU_DATA: {}, loadUploadedMenu: () => out(BASE), getOperatorName: () => 'Jason', appendChangeLog() {}, location: { hash: '' },
+    // 2026-11-19 (S6b): Edit Menu's Save and Put back the original read these.
+    getMenuData: () => merged(store), getMenuEdit: () => null, closeMenuEdit() {}, _doorPlainChoiceTargets: new Map(),
+    buildSoftAlt: () => soft, buildAltMeals: () => [], ALT_MEALS_NONE: false,
+    doorKitchenAltInputValues: () => ({ gfAlt: '', diabeticAlt: '', noDairyAlt: '', noEggAlt: '', blandAlt: '', anaphAlt: '' }),
+    buildNoPorkAlt: () => '', buildMainItem: () => 'Beef Burger', buildMainAltItem: () => '', buildSides: () => 'Side Salad',
+    _buildSlotSnapshot: () => out(NEW_SLOTS),
   };
   vm.createContext(box);
-  vm.runInContext([MENU_HELPERS, fn('makePermanent'), fn('makeSwapPermanentFromBanner'), fn('revertMealSwap')].join('\n'), box,
+  vm.runInContext([MENU_HELPERS, fn('makeSwapPermanentFromBanner'), fn('revertMenuEdit'), fn('doorWriteEditorMeal'),
+    fn('doorMenuSavedMessage'), fn('_finishMenuSave')].join('\n'), box,
     { filename: 'index.html#make-permanent', timeout: 5000 });
   box.__els = els;
   return box;
 }
+// Re-pinned 2026-11-19 (S6b, D5): was the meal panel's makePermanent; now the every-week Save of the meal view.
 async function makePermanentOnPanel(store, soft = '') {
-  const box = menuBox(store);
-  box.__els['mc-swap-name'] = { value: NEW.name };
-  box.__els['mc-swap-veg'] = { value: NEW.veg };
-  box.__els['mc-swap-softalt'] = { value: soft };
-  vm.runInContext('FLAG_DEFS', box).forEach((f) => { box.__els['mc-flag-' + f.key] = { checked: NEW.ticks.includes(f.key) }; });
-  await box.makePermanent();
+  const box = menuBox(store, soft);
+  const flags = Object.fromEntries(vm.runInContext('FLAG_DEFS', box).map((f) => [f.key, NEW.ticks.includes(f.key)]));
+  assert.equal(box._finishMenuSave(NEW.name, NEW.veg, flags), true, 'the every-week Save goes through');
   return box;
 }
 const merged = (store) => out(vm.runInNewContext(fn('mergeDoorMenuDataWithOverlay') + ';mergeDoorMenuDataWithOverlay(B, O)', { B: BASE, O: store.overlay }));
@@ -111,14 +122,21 @@ function platingBox(menu) {
 }
 const tokens = (s) => new Set(String(s || '').split(',').map((t) => t.trim().toUpperCase()).filter(Boolean));
 
-test('1. Make Permanent writes the new dish whole; the plating sheet prints it, with nothing of the old dish on its plates', async () => {
+test('1. an every-week change writes the new dish whole; the plating sheet prints it, with nothing of the old dish on its plates', async () => {
   const before = BASE[W][D];
   assert.ok(before[P + '_slots'] && before[P + '_mainItem'] && before[P + '_sides'] && before[P + '_anaphAlt'], 'the published meal has parts to lose');
   const store = { overlay: out(OVERLAY) };
   await makePermanentOnPanel(store);
   const day = merged(store)[W][D];
   assert.equal(day[P], NEW.name);
-  for (const k of DISH_PARTS) assert.deepEqual(day[P + k], EMPTY(k), `the old dish's ${k} doesn't come back from the base menu`);
+  // Re-pinned 2026-11-19 (S6b, D5): the editor writes the new dish's own parts (its main item, side and slots); every
+  // other part is empty, and none of the old dish's comes back from the base menu.
+  const none = (v) => (v === undefined || v === null || v === '' || v === false || (typeof v === 'object' && !Object.keys(v).length) ? undefined : v);
+  const NEW_PARTS = { _mainItem: 'Beef Burger', _sides: 'Side Salad', _slots: NEW_SLOTS };
+  for (const k of DISH_PARTS) {
+    assert.deepEqual(none(day[P + k]), none(k in NEW_PARTS ? NEW_PARTS[k] : EMPTY(k)), `${k} is the new dish's`);
+    if (none(before[P + k]) !== undefined) assert.notDeepEqual(day[P + k], before[P + k], `the old dish's ${k} doesn't come back from the base menu`);
+  }
   assert.equal(day['allergens_' + P], newTicksLine(), 'the allergen line is the new ticks');
   // The sheet: the new dish's name, its halal plate, and the vegan plate without the old vegan dish's allergens.
   const menu = out(BASE); menu[W][D] = day;
@@ -130,7 +148,7 @@ test('1. Make Permanent writes the new dish whole; the plating sheet prints it, 
   const oldOnly = [...tokens(oldVeg.vegAllergenStr)].filter((t) => !tokens(pd.allergenStr).has(t));
   assert.ok(oldOnly.length > 0, 'the old vegan dish had allergens of its own: ' + oldVeg.vegAllergenStr);
   assert.deepEqual(oldOnly.filter((t) => tokens(pd.vegAllergenStr).has(t)), [], 'the vegan plate keeps none of them');
-  // A soft alternative typed on the panel is the new dish's.
+  // A soft alternative typed in the editor is the new dish's.
   const store2 = { overlay: out(OVERLAY) };
   await makePermanentOnPanel(store2, 'Plain chicken, rice');
   assert.equal(merged(store2)[W][D][P + '_softAlt'], 'Plain chicken, rice');
@@ -151,7 +169,7 @@ test('2. the Active Swaps banner\'s Make Permanent brings the swap\'s dish whole
 test('3. Restore the original, before the next sync, brings back every part of the meal', async () => {
   const store = { overlay: out(OVERLAY) };
   const box = await makePermanentOnPanel(store);
-  await box.revertMealSwap();
+  await box.revertMenuEdit();   // re-pinned 2026-11-19 (S6b, D5): was the panel's revertMealSwap; now Put back the original
   const day = merged(store)[W][D], base = BASE[W][D];
   // Re-pinned 2026-10-19 (v31-standard.43): Restore writes the meal's saved copy back, every part written so it holds after
   // the next sync too, so a part the meal never had reads as its empty value: as DOOR reads it, none (test 6).
@@ -163,11 +181,14 @@ test('3. Restore the original, before the next sync, brings back every part of t
 
 test('4. every overlay writer of a meal\'s ticks writes its allergen line with them', () => {
   // Re-pinned 2026-11-19 (Edit Menu redesign S2b): what Save writes for the meal moved into doorWriteEditorMeal.
-  for (const name of ['doorWriteEditorMeal', 'saveEditFlags', 'makePermanent', 'makeSwapPermanentFromBanner']) {
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): saveEditFlags and makePermanent are retired; the every-week Save
+  // writes through doorWriteEditorMeal, and doorWriteMealCopy (restores, a moved whole meal) writes the ticks the same way.
+  for (const name of ['doorWriteEditorMeal', 'doorWriteMealCopy', 'makeSwapPermanentFromBanner']) {
     const body = fn(name);
     assert.match(body, /doorSetMealFlags\(/, name + ' writes the ticks with their allergen line');
     assert.doesNotMatch(body, /\[period \+ '_flags'\]\s*=/, name + ' writes no ticks on their own');
   }
+  assert.match(fn('_finishMenuSave'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, name, veg, flags\)/, 'the every-week Save writes through it');
   assert.equal(typeof has, 'function');
   const box = vm.createContext({});
   vm.runInContext(fn('flagsToMenuAllergens') + fnOpt('doorSetMealFlags'), box);
