@@ -132,10 +132,14 @@ test('4. the card says what was not saved and why; Save asks about it, and going
   assert.match(card, /const currentVal = heldTyped \? heldTyped\.typed :/, 'the box keeps the words');
   assert.match(card, /heldTyped \? doorSlotHeldNoteHTML\(def\.id, heldTyped, state\)/);
 
+  // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3: "Follow lean"): held words are no longer a Save question. Save
+  // leaves them out of the meal (the last saved value stays), names them on the saved line, and with nothing else
+  // changed it saves nothing and says so with the meal left open. The question text below is kept for reference.
   const save = fnBlock('saveMenuEdit');
-  const at = save.indexOf('for (const id of Object.keys(SLOT_HELD))');
-  assert.ok(at > save.indexOf('_commitLiveSlotInputs()') && at < save.indexOf('doorEditedMealName()'), 'asked after the commit, before the name is read');   // re-pinned 2026-11-19 (S4a)
-  assert.match(save.slice(at, at + 600), /await doorAsk\(ask\);\s*if \(mcMenuEditKey !== _heldKey\) return;\s*if \(!ans\) return;/);
+  assert.ok(!save.includes('doorSlotHeldQuestion('), 'Save does not ask about held words');
+  assert.match(save, /const _heldNotSaved = Object\.keys\(SLOT_HELD\)/);
+  assert.match(save, /Nothing was saved: /);
+  assert.match(fnBlock('doorWhatChangesHTML'), /Not saved: “/);
   const q = { MEAL_SLOT_DEFS: [{ id: 'main', label: 'Main' }] };
   vm.createContext(q);
   vm.runInContext(fnBlock('doorSlotHeldQuestion') + '\nthis.f = doorSlotHeldQuestion;', q);
@@ -174,21 +178,22 @@ test('5. linking the main names every warning Save would take off, and keeps the
   // the half-typed and the renamed forms read as the same dish too
   assert.equal(carried(saved, { recipeName: 'Bolognese Sauce', flags: {} }, {}, {}, []).sameDish, true);
   assert.equal(carried(saved, { recipeName: 'Bolognese Sauce', displayText: 'Beef Bolognese', flags: {} }, {}, {}, []).sameDish, true);
-  // a different dish keeps W3a: take them off is the default, each named
+  // Re-pinned 2026-11-19 (S5c, D3): a different dish now defaults to Keep them too; Take them off is the alt choice.
   const ham = { lunch: 'Glazed Ham', dinner: 'Glazed Ham', dinner_flags: { hasPork: true, hasGluten: true }, dinner_slots: { main: { manual: 'Glazed Ham' } } };
   const t = carried(ham, { recipeName: 'Ginger Tofu', flags: {} }, { hasPork: true }, {}, []);
   assert.equal(t.sameDish, false);
   assert.deepEqual(t.list, ['hasPork']);
   assert.deepEqual(t.dropped, ['hasGluten']);
   const tq = ticksQ(t, ['hasGluten', 'hasPork']);
-  assert.equal(tq.goLabel, 'Take them off');
+  assert.equal(tq.goLabel, 'Keep them');
+  assert.equal(tq.altLabel, 'Take them off');
   assert.deepEqual(tq.items, ['Gluten', 'Pork']);
   // nothing changed: nothing asked
   assert.deepEqual(carried(saved, { manual: 'bolognese pasta', flags: {} }, {}, {}, []).dropped, []);
   // Save asks about both kinds, and maps the answer the right way round
   const save = fnBlock('saveMenuEdit');
   assert.match(save, /const _offTicks = \[\.\.\.new Set\(\[\.\.\._carried\.list, \.\.\.\(_carried\.dropped \|\| \[\]\)\]\)\]/);
-  assert.match(save, /if \(!ans\) return;\s*const takeOff = _carried\.sameDish \? ans === 'alt' : ans === true;\s*_offTicks\.forEach\(k => \{ flags\[k\] = !takeOff; \}\);/);
+  assert.match(save, /if \(!ans\) return;\s*const takeOff = ans === 'alt';[^\n]*\n\s*_offTicks\.forEach\(k => \{ flags\[k\] = !takeOff; \}\);/);
 });
 
 test('6. no control characters in the page; a linked "...Beans" dish gets its Beans tick', () => {

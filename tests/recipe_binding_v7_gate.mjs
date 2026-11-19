@@ -99,9 +99,10 @@ test('V7e both editors use the ranked list, and Save asks before it writes anyth
   assert.match(fnBlock('slotSearch'), /doorSlotSearchGroups\(def, q, 6\)/);
   assert.match(fnBlock('doorSlotSearchGroups'), /doorRecipeMatchRank\(r\.recipeName, q\)/);
   assert.match(fnBlock('smSlotSearch'), /doorRankedRecipeMatches\(def, q, 6\)/);
-  const save = fnBlock('saveMenuEdit');
-  const ask = save.indexOf('doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS)');
-  assert.ok(ask > 0 && ask < save.indexOf('buildAltMeals()'), 'the run-on question comes before the alternatives question and any write');
-  assert.match(save, /if \(!ok\) return;\s*\}\s*\/\/ Require an explicit decision/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3: "Follow lean"): a run-on box is a line in What changes, not a
+  // Save question.
+  assert.ok(!fnBlock('saveMenuEdit').includes('More than one dish in a slot?'));
+  assert.match(fnBlock('doorRenderWhatChanges'), /doorRunOnSlots\(MEAL_SLOT_STATE, MEAL_SLOT_DEFS\)/);
+  assert.match(fnBlock('doorWhatChangesHTML'), /reads like more than one dish/);
   assert.match(fnBlock('renderSlotCard'), /_slotLinkSuggestionHTML\(def, state, fn\)/);
 });

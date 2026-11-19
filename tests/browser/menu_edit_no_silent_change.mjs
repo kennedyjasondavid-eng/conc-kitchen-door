@@ -66,6 +66,8 @@ try {
     await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
     await p.close();
     // 2b. S1 review fold (P2, 2026-11-19): a recipe the box refuses, put back from the Save question, writes nothing.
+    // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3: "Follow lean"): Save no longer asks about held words. With
+    // nothing else changed it writes nothing, says what was not saved and keeps the meal open.
     p = await boot(width);
     await p.evaluate(() => openMenuEdit(1, 'MONDAY', 'breakfast'));
     await p.waitForTimeout(300);
@@ -81,8 +83,8 @@ try {
     });
     await p.waitForTimeout(300);
     const after2b = await state(p);
-    check(width + ' a refused recipe name is held, and Save asks once', r2b.held === 'refused' && r2b.asked.length === 1, r2b);
-    check(width + ' putting it back from the question writes nothing', after2b.overlay === before2b.overlay && after2b.bk === before2b.bk && r2b.res === true, [r2b, after2b.overlay.slice(0, 120)]);
+    check(width + ' a refused recipe name is held, and Save asks nothing', r2b.held === 'refused' && r2b.asked.length === 0, r2b);
+    check(width + ' with only held words, Save writes nothing and keeps the meal open', after2b.overlay === before2b.overlay && after2b.bk === before2b.bk && r2b.res === false && after2b.open, [r2b, after2b.overlay.slice(0, 120)]);
     await p.close();
     // 3. Clicking away from a typed dish that was not changed leaves it, ticks and all.
     p = await boot(width);

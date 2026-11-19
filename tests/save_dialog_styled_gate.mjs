@@ -72,18 +72,21 @@ test('1. saveMenuEdit asks through doorAsk — no browser confirm() left in Save
   assert.ok(!/(^|[^.\w$])confirm\s*\(/.test(code(save)), 'no confirm() in saveMenuEdit');
   // 2026-11-08 (W3a): a third question, "Take off the old dish's warnings?", asked when the main changed.
   // 2026-11-09 (W3e): a fourth, first: words a slot box holds that were not saved ("Bolo"), one box at a time.
-  assert.equal((save.match(/await doorAsk\(/g) || []).length, 4, 'all four questions use doorAsk');
-  const runOn = save.indexOf('doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS)');
-  assert.ok(runOn > 0 && runOn < save.indexOf('buildAltMeals()'), 'the run-on question still comes first');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3: "Follow lean"): the run-on box and held words are lines in What
+  // changes now. Save asks three things through doorAsk: the soft plate (only when it can matter), the old dish's
+  // warnings (keep is the default), and a new anaphylactic conflict (red). Halal keeps its own dialog.
+  assert.equal((save.match(/await doorAsk\(/g) || []).length, 3, 'the three questions use doorAsk');
+  assert.ok(!save.includes('doorRunOnSlots('), 'the run-on box is not a Save question');
 });
 
 test('2. after the answer, Save stops if a different meal is open', () => {
   const save = fnBlock('saveMenuEdit');
   assert.match(save, /const editKey = mcMenuEditKey;/);
   // 2026-11-08 (W3a): a third question (the old dish's warnings) comes after the meal is built, with its own re-check.
-  const first = save.indexOf('if (mcMenuEditKey !== editKey) return;');
-  const second = [...save.matchAll(/await doorAsk\(/g)][1].index;
-  assert.ok(first > second && first < save.indexOf('buildVegAlt()'), 'the first two questions are re-checked before anything is built');
+  // Re-pinned 2026-11-19 (S5c): the first question (the soft plate) is re-checked before anything is built.
+  const firstAsk = save.indexOf('await doorAsk(');
+  const first = save.indexOf('if (mcMenuEditKey !== editKey) return;', firstAsk);
+  assert.ok(first > firstAsk && first < save.indexOf('buildVegAlt()'), 'the first question is re-checked before anything is built');
   const last = save.lastIndexOf('await doorAsk(');
   const lastRecheck = save.indexOf('if (mcMenuEditKey !== editKey) return;', last);
   assert.ok(lastRecheck > last && lastRecheck < save.indexOf('_finishMenuSave('), 'the last question is re-checked before the meal is written');
