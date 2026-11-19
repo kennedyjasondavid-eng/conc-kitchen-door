@@ -2,11 +2,11 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-18T16:02:30.196Z",
+    "exported": "2026-11-19T00:22:00.200Z",
     "version": 31,
     "builtFromMenu": {
-      "exported": "2026-11-18T16:02:30.075Z",
-      "hash": "1lajaw4"
+      "exported": "2026-11-19T00:22:00.114Z",
+      "hash": "coo2rc"
     },
     "flow": {
       "calendar": {
@@ -19,14 +19,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:6b2806a91c96abda24ff09bfffece14ecfb21054dec4e42258bccb992cbb871b",
-        "recipe": "sha256:036f6fc2569c48ec9f545b0aa8150ce2402d127522e5ba582d50b2445bb111e7",
+        "menu": "sha256:b2984452ba1388f7fe98b4ebe19e73786be5cad9c1795f4e5efaacbd6413506d",
+        "recipe": "sha256:30911f270be4619e88a2b461550354ad852236695334053d1c942f22437e15a2",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:039592552e3d79bf558a456565090a5484990d1b4d642c42516de123d9a8dfc0",
+      "inputRevision": "sha256:754239de970667deae23c329d6efafe89174d412e370cdb8c4a3c19efa300101",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 33
+        "sequence": 34
       },
       "schema": 1
     }
@@ -152,7 +152,7 @@
           "_components": {
             "Cereal and milk": 160,
             "fruit": 160,
-            "Chex cereal with milk (soy milk where noted)": 4,
+            "Chex cereal with milk (soy or oat milk where noted)": 4,
             "whole fruit": 4
           }
         },
@@ -476,7 +476,7 @@
           "_components": {
             "Cereal and milk": 160,
             "fruit": 160,
-            "Chex cereal with milk (soy milk where noted)": 4,
+            "Chex cereal with milk (soy or oat milk where noted)": 4,
             "whole fruit": 4
           }
         },
@@ -819,7 +819,7 @@
           "_components": {
             "Cereal and milk": 160,
             "fruit": 160,
-            "Chex cereal with milk (soy milk where noted)": 4,
+            "Chex cereal with milk (soy or oat milk where noted)": 4,
             "whole fruit": 4
           }
         },
@@ -1161,7 +1161,7 @@
           "_components": {
             "Cereal and milk": 160,
             "fruit": 160,
-            "Chex cereal with milk (soy milk where noted)": 4,
+            "Chex cereal with milk (soy or oat milk where noted)": 4,
             "whole fruit": 4
           }
         },
@@ -1373,7 +1373,7 @@
   },
   "flow": {
     "schema": 1,
-    "inputRevision": "sha256:039592552e3d79bf558a456565090a5484990d1b4d642c42516de123d9a8dfc0",
+    "inputRevision": "sha256:754239de970667deae23c329d6efafe89174d412e370cdb8c4a3c19efa300101",
     "recipes": {
       "adobo-pork-chicken-tofu-adobo-marinade-and-sauce": {
         "canonicalName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
@@ -2749,6 +2749,12 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
+        "portionBasis": null
+      },
+      "chex-cereal": {
+        "canonicalName": "Chex cereal",
+        "allergenState": "unknown",
+        "allergenFlags": {},
         "portionBasis": null
       },
       "chicken-al-pastor": {
@@ -6015,6 +6021,12 @@
         },
         "portionBasis": null
       },
+      "oat-milk": {
+        "canonicalName": "Oat milk",
+        "allergenState": "unknown",
+        "allergenFlags": {},
+        "portionBasis": null
+      },
       "okra-and-cassava-stew": {
         "canonicalName": "Okra and Cassava Stew",
         "allergenState": "known",
@@ -7807,6 +7819,12 @@
         },
         "portionBasis": null
       },
+      "soy-milk": {
+        "canonicalName": "Soy milk",
+        "allergenState": "unknown",
+        "allergenFlags": {},
+        "portionBasis": null
+      },
       "soy-free-mushroom-fried-rice": {
         "canonicalName": "Soy-Free Mushroom Fried Rice",
         "allergenState": "known",
@@ -9245,6 +9263,12 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
+        "portionBasis": null
+      },
+      "vegan-yoghurt": {
+        "canonicalName": "Vegan yoghurt",
+        "allergenState": "unknown",
+        "allergenFlags": {},
         "portionBasis": null
       },
       "vegetable-curry-spice": {
@@ -10797,7 +10821,7 @@
               "_components": {
                 "Cereal and milk": 160,
                 "fruit": 160,
-                "Chex cereal with milk (soy milk where noted)": 4,
+                "Chex cereal with milk (soy or oat milk where noted)": 4,
                 "whole fruit": 4
               }
             }
@@ -11184,7 +11208,7 @@
               "_components": {
                 "Cereal and milk": 160,
                 "fruit": 160,
-                "Chex cereal with milk (soy milk where noted)": 4,
+                "Chex cereal with milk (soy or oat milk where noted)": 4,
                 "whole fruit": 4
               }
             }
@@ -11590,7 +11614,7 @@
               "_components": {
                 "Cereal and milk": 160,
                 "fruit": 160,
-                "Chex cereal with milk (soy milk where noted)": 4,
+                "Chex cereal with milk (soy or oat milk where noted)": 4,
                 "whole fruit": 4
               }
             }
@@ -11995,7 +12019,7 @@
               "_components": {
                 "Cereal and milk": 160,
                 "fruit": 160,
-                "Chex cereal with milk (soy milk where noted)": 4,
+                "Chex cereal with milk (soy or oat milk where noted)": 4,
                 "whole fruit": 4
               }
             }
