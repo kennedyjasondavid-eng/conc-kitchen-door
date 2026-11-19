@@ -308,7 +308,8 @@ test('two computers merge per rule, newest wins; times are canonical and never i
   s.doorApplyRemoteRules(f);
   assert.equal(s.doorPlatesActive(s.loadDoorRules().plates).length, 1);
   assert.ok(s.doorPlateRulesInForce().notes.length === 1);
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(6[6-9]|[7-9]\d)/);
+  // 2026-11-19: the build stamp passed .99; three-digit stamps count as later.
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(6[6-9]|[7-9]\d|[1-9]\d{2,})'/);
 });
 
 // The page as a D2a-only computer runs it: today's page with its door-rules block swapped for the block at b7f0b89 (D2a,

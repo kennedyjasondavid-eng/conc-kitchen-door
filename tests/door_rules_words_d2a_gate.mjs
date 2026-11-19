@@ -445,7 +445,8 @@ test('door_rules.json is a kitchen file merged at the publish revision: a 409 re
   assert.match(html, /\['door_rules\.json',\s+d => doorApplyRemoteRules\(d\)\]/);
   assert.doesNotMatch(fn('doorFlowStampCandidate'), /door_rules/);
   assert.doesNotMatch(fn('buildMenuJSON') + fn('buildRoutingByMealJSON'), /doorRules|door_rules/);
-  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(6[5-9]|[7-9]\d)/);
+  // 2026-11-19: the build stamp passed .99; three-digit stamps count as later.
+  assert.match(html, /const DOOR_APP_VERSION = 'v31-standard\.(6[5-9]|[7-9]\d|[1-9]\d{2,})'/);
 
   // The real publisher in the F1 publish box. The kitchen holds A; this computer added B; another computer commits C
   // while this one is publishing, so the first ref update is refused and the publish tries again.

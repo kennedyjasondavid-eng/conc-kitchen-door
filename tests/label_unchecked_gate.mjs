@@ -253,7 +253,9 @@ test('a plate holding a dish not checked: "check label" for allergen-restricted 
   const veganOnly = { slots: { main: { recipeName: 'Soy Glazed Chicken' }, veganalt: { recipeName: 'Silk Coconut Yogurt' } } };
   const plates = J(c.doorPlatesLabelUnchecked({ lunch_slots: veganOnly.slots }, 'lunch', null));
   const names = (o) => Object.fromEntries(Object.keys(o).map((k) => [k, o[k].map((x) => x.dish)]));
-  assert.deepEqual(names(plates), { regular: [], vegan: ['Silk Coconut Yogurt'], halal: [], nopork: [] });
+  // Re-pinned 2026-11-19 (call 3, Jason: "Yes follow lean"): the alternative plates are listed too; with no kitchen dish
+  // named each is the regular plate it is made from, and the anaphylactic plate is empty.
+  assert.deepEqual(names(plates), { regular: [], vegan: ['Silk Coconut Yogurt'], halal: [], nopork: [], gf: [], diabetic: [], nodairy: [], noegg: [], bland: [], soft: [] });
   // a typed special meal: its linked recipes and the marks saved with it
   const sp = J(c.doorPlatesLabelUnchecked({}, 'lunch', { entry: { linkedRecipes: { main: 'Gone Bar' }, labelUnchecked: ['main'] } }));
   assert.deepEqual(sp.regular.map((x) => x.dish), ['Gone Bar']);
@@ -354,7 +356,7 @@ test('P2-2: a label checked since names its allergens and asks for a re-save; pu
   assert.match(fn('renderLabelResaveBanner'), /escapeHtml/);
 });
 
-test('P2-3: an anaphylactic resident on a plate DOOR cannot read gets every unchecked dish, in red', () => {
+test('P2-3: an anaphylactic resident on an alternative plate gets every unchecked dish, in red', () => {
   const menu = menuWith('Rice Chex');
   menu[1].MONDAY.lunch_flags.hasGluten = true;
   const res = [R('9201', ['GF'], { isAnaph: true, anaphTags: ['peanuts'] }), R('9202', ['GF'])];
@@ -363,7 +365,9 @@ test('P2-3: an anaphylactic resident on a plate DOOR cannot read gets every unch
   assert.equal(seatOf(pd, '9201').rule.key, 'gf');
   assert.match(noteOf(c, pd, '9201'), /ANAPHYLACTIC: check label: Rice Chex$/);
   assert.equal(c.doorLabelCheckNote(res[0], null, pd.mealFlags).red, true);
-  assert.doesNotMatch(noteOf(c, pd, '9202') || '', /check label/, 'a plate DOOR cannot read says nothing for others');
+  // Re-pinned 2026-11-19 (call 3): the gluten-free plate is read now. With no kitchen GF dish it is the regular plate,
+  // which holds the bought item, so a GF resident on it gets the note too.
+  assert.match(noteOf(c, pd, '9202') || '', /check label: Rice Chex/, 'the gluten-free plate is read');
 });
 
 test('P3: halal and no-pork plates, the list-only anaphylactic room, anaphTags, and every link path marks', () => {
@@ -392,4 +396,60 @@ test('P3: halal and no-pork plates, the list-only anaphylactic room, anaphTags, 
   assert.match(fn('openMenuEdit'), /doorMarkLabelUnchecked : \(x => x\)\)\(\{ recipeName, flags: hubAllergenToFlags\(recipe\.allergens\) \}, recipe\)/);
   // the red XLSX row in both note paths
   assert.match(fn('buildDaySheet'), /if \(r\.labelRed\) addRow\(xCell\(r\.rawRestriction, F\.anaph, 'F2DCDC', B\.anaph\)/);
+});
+
+// ── 5. call 3 (2026-11-19, Jason: "Yes follow lean"): the alternative plates are read too ────────────────────────────
+// A plate the kitchen names (gluten free, diabetic, no dairy, no egg / mustard, bland, soft, anaphylactic) is read from
+// its own text by exact recipe name; one it does not name is the regular plate it is made from. Authored red on main
+// f89e9a8 (the alternative plates are not read there).
+test('call 3: an unchecked bought item on an alternative plate reaches the residents who eat it', () => {
+  const menu = { 1: { MONDAY: {
+    lunch: 'Soy Glazed Chicken, Steamed Rice', lunch_veg: 'Baked Tofu, Steamed Rice',
+    lunch_flags: { hasSoy: true, hasChicken: true, hasGluten: true, isCarb: true, isSpicy: true },
+    lunch_gfAlt: 'Soy Glazed Chicken, Rice Chex', lunch_diabeticAlt: 'Soy Glazed Chicken, Rice Chex',
+    lunch_blandAlt: 'Plain Chicken, Rice Chex',
+    lunch_altMeals: [{ type: 'soft', text: 'Soft Chicken, Silk Coconut Yogurt', flags: {} }],
+    lunch_anaphAlt: 'Plain Chicken, Silk Coconut Yogurt',
+    lunch_slots: { main: { recipeName: 'Soy Glazed Chicken' }, starch: { recipeName: 'Steamed Rice' }, veganalt: { recipeName: 'Baked Tofu' } }
+  } } };
+  const res = [
+    R('9401', ['GF']), R('9402', ['Diabetic', 'No Sesame']), R('9403', ['No Spicy', 'No Sesame']),
+    R('9404', ['Soft Meals', 'No Dairy']), R('9405', ['No Sesame']), R('9406', ['Soft Meals']),
+    R('9407', ['Regular'], { isAnaph: true, anaphTags: ['sesame'] })
+  ];
+  const c = harness(RECIPES, res.map((r) => ({ ...r })), menu);
+  const pd = c.computePlatingData('lunch', '1', 'MONDAY');
+  const p = J(pd.mealFlags._labelUnchecked);
+  assert.ok(p, 'the meal has plates with an unchecked dish');
+  assert.deepEqual(dishesOf(p.gf), ['Rice Chex']);
+  assert.deepEqual(dishesOf(p.diabetic), ['Rice Chex']);
+  assert.deepEqual(dishesOf(p.bland), ['Rice Chex']);
+  assert.deepEqual(dishesOf(p.soft), ['Silk Coconut Yogurt']);
+  assert.deepEqual(dishesOf(p.anaph), ['Silk Coconut Yogurt']);
+  assert.deepEqual(dishesOf(p.regular), [], 'the regular plate holds no unchecked dish');
+  assert.equal(seatOf(pd, '9401').rule.key, 'gf');
+  assert.match(noteOf(c, pd, '9401'), /check label: Rice Chex/);
+  assert.equal(seatOf(pd, '9402').rule.key, 'diabetic');
+  assert.match(noteOf(c, pd, '9402'), /check label: Rice Chex/);
+  assert.equal(seatOf(pd, '9403').rule.key, 'bland');
+  assert.match(noteOf(c, pd, '9403'), /check label: Rice Chex/);
+  assert.equal(seatOf(pd, '9404').rule.key, 'soft');
+  assert.match(noteOf(c, pd, '9404'), /check label: Silk Coconut Yogurt/);
+  assert.doesNotMatch(noteOf(c, pd, '9405') || '', /check label/, 'the regular plate holds none');
+  assert.doesNotMatch(noteOf(c, pd, '9406') || '', /check label/, 'no allergen restriction, no note');
+  // an anaphylactic resident is checked against every plate of the meal, the anaphylactic plate included
+  const an = c.doorLabelCheckNote(res[6], null, pd.mealFlags);
+  assert.equal(an.red, true);
+  assert.match(an.note, /^ANAPHYLACTIC: check label: .*Rice Chex/);
+  assert.match(an.note, /Silk Coconut Yogurt/);
+  // with no kitchen dish named, an alternative plate is the regular plate it is made from
+  const plain = harness(RECIPES, [], { 1: { MONDAY: { lunch: 'Soy Glazed Chicken, Rice Chex', lunch_flags: { hasSoy: true },
+    lunch_slots: { main: { recipeName: 'Soy Glazed Chicken' }, starch: { recipeName: 'Rice Chex' } } } } });
+  const q = J(plain.computePlatingData("lunch", "1", "MONDAY").mealFlags._labelUnchecked);
+  for (const k of ['gf', 'diabetic', 'nodairy', 'noegg', 'bland', 'soft']) assert.deepEqual(dishesOf(q[k]), ['Rice Chex'], k);
+  assert.equal(q.anaph, undefined, 'no anaphylactic plate named, none listed');
+  // each alternative section reads its own plate
+  for (const [at, key] of [['gf_alt', 'gf'], ['diabetic_alt', 'diabetic'], ['nodairy_alt', 'nodairy'], ['modified_main', 'noegg'], ['bland_alt', 'bland'], ['soft', 'soft']]) {
+    assert.equal(c.doorSectionLabelPlate({ rule: { key: 'x', altType: at } }, {}), key, at);
+  }
 });
