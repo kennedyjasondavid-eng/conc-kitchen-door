@@ -53,6 +53,22 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — a typed dish says what it contains (redesign S3, `v31-standard.107`)
+D2, Jason 2026-11-19: "Follow lean". A typed dish (no recipe) is answered when someone said what it contains
+(`declared: true`, which "Nothing to declare" sets) or when it carries an allergen tick (`doorTypedDishUnanswered`;
+Spicy or Carb alone is not an answer). In Edit Menu a dish typed now reads amber, "What does … contain? Tick each allergen
+below, or Nothing to declare"; one the meal opened with reads quietly, "Allergens not answered yet" (`SLOT_TYPED_AT_OPEN`,
+taken before the draft baseline, so opening changes nothing); the plate summary names both. A tick on a typed dish answers
+it. Menu Config lists the typed dishes not answered, each meal linked (`#mc-typed-unanswered`,
+`doorMealsTypedUnanswered`: 89 on 46 published meals). The marker travels in the saved `_slots` (additive; EXPO ignores
+`_slots`, HUB reads only `recipeId`). Rex's import marks a dish its review ticked (an allergen, not Spicy or Carb alone).
+The Special Meal editor keeps no per-dish allergens; line versions (`lines.*`) are not asked about yet.
+**Independent review (SHIP), folded:** a typed main carries the whole meal's ticks and a renamed dish the old dish's
+ticks (`_carried`, never saved), so neither counts as an answer; answering only (nothing else changed) writes just the
+markers into the stored boxes (`doorAnswersOnly`, `doorWriteAnswersOnly`), never rebuilding the menu words; the list's
+links read in dark mode. Gates `tests/typed_dish_s3_gate.mjs` (6, red on `main` `14d6198`) and browser
+`tests/browser/typed_dish_s3.mjs` (23, in CI, red on `main`).
+
 ## Recent (2026-11-19) — Edit Menu shows each plate as it will be served (redesign S2b, `v31-standard.106`)
 - **The summary:** under "Will save as", the regular, vegan and halal plates' allergens, worked out by `doorPlateFacts` on
   the meal as Save would write it (`doorDraftPlateFacts`: the overlay copied, `doorWriteEditorMeal`, the menu read as
