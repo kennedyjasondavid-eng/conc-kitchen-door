@@ -201,6 +201,22 @@ try {
     check('the soft plate is asked with ' + label, r.asked === 'No soft or plain alternative?' && !r.wrote, r);
     await q.close();
   }
+  // U1 review (2026-11-19): splitting a box changes no dish, so a soft resident on the list brings no soft-plate question.
+  {
+    const q = await boot(RES.concat([SOFT]));
+    const r = await q.evaluate(async () => {
+      openMenuEdit(1, 'FRIDAY', 'dinner');
+      const main = MEAL_SLOT_STATE.main;
+      MEAL_SLOT_STATE.main = { manual: 'Pork Adobo', flags: JSON.parse(JSON.stringify(main.flags || {})) };
+      MEAL_SLOT_STATE.vegside = { manual: 'Garlic Green Bean', flags: {} };
+      renderSlots(); updateSlotSummary();
+      const r = await window.__saveAndSee('back', true);
+      closeMenuEdit(true);
+      return r;
+    });
+    check('splitting a box (the same dishes) does not ask the soft-plate question', !(r.seen || []).includes('No soft or plain alternative?'), r);
+    await q.close();
+  }
   check('no page errors', errors.length === 0, errors.slice(0, 3));
 } finally { await browser.close(); }
 const passed = results.filter((r) => r.pass).length;

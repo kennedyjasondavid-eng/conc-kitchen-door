@@ -86,3 +86,16 @@ test('S5c-5 a new anaphylactic conflict is a red question before the halal quest
   assert.match(save, /Not saved: DOOR could not check the anaphylactic residents/);
   assert.match(fn('doorAsk'), /if \(o\.danger\) h\.style\.color = 'var\(--danger-ink, #991b1b\)';/);
 });
+
+test('S5c-6 splitting a box is not a changed dish, so it does not bring the soft-plate question (U1 review, 2026-11-19)', () => {
+  const c = { mcMenuEditKey: '1-FRIDAY-dinner', MEAL_SLOT_STATE: { main: { manual: 'Pork Adobo & Garlic Green Bean' }, starch: { manual: 'Rice' } }, _slotText: (s) => (s && (s.displayText || s.recipeName || s.manual)) || '' };
+  vm.createContext(c);
+  vm.runInContext(['var _doorSaveAskAtOpen = null;', 'const DOOR_EDITOR_MEAT_DETECT = [];', fn('doorEditorDetectMeat'), fn('doorSaveAskSnapshot'), fn('doorDishesChangedSinceOpen')].join('\n'), c);
+  vm.runInContext('_doorSaveAskAtOpen = doorSaveAskSnapshot();', c);
+  c.MEAL_SLOT_STATE.main = { manual: 'Pork Adobo' };
+  c.MEAL_SLOT_STATE.vegside = { manual: 'Garlic Green Bean' };
+  assert.equal(c.doorDishesChangedSinceOpen(), false, 'the same dishes in more boxes');
+  c.MEAL_SLOT_STATE.vegside = { manual: 'Steamed Kale' };
+  assert.equal(c.doorDishesChangedSinceOpen(), true, 'a dish changed');
+});
+

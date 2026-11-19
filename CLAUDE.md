@@ -53,6 +53,14 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — splitting a dish box no longer asks the soft-plate question (`v31-standard.119`)
+Found by the U1 data review. Save asks the soft-plate question only when a dish changed. It compared box contents, so
+moving "Garlic Green Bean" out of the main box into its own read as a change. With a soft resident on the list, Save
+then asked "No soft or plain alternative?", and its main button marks the meal "no soft plate needed". On Wk1 FRI
+dinner, a pork meal, that quietly changes where soft residents eat.
+- **Now:** `doorDishesChangedSinceOpen` compares the meal's dishes, whichever box holds them (`doorSaveAskSnapshot`
+  `pieces`). A dish added, taken out or renamed still asks.
+- **Checks:** node `save_questions_s5c_gate` S5c-6 and browser `save_questions_s5c` (14), both red on `main`.
 ## Recent (2026-11-19) — U1 through the new editor: combined boxes split, the vegan plate without tzatziki (data, publication 39)
 D9, Jason 2026-11-19: "Follow lean on D9". Both walkthrough calls: "Follow lean".
 - **How:** made through DOOR's own meal view and Save, then one publish through DOOR's publisher. It ran against an
