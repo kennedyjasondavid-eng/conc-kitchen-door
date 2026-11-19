@@ -188,7 +188,8 @@ test('8. Edit Menu edits the alternatives: filled when a meal opens, read by the
   assert.match(fn('updateSlotSummary'), /doorEditorPlateFlags\(flags\);/, 'the preview opens the plates the sheet will');
   // An emptied box is saved empty, not deleted: every DOOR computer's base menu is the last published one
   // (menu_current.json is pulled into concUploadedMenu), so a deleted field would come back from it.
-  assert.match(fn('_finishMenuSave'), /Object\.entries\(doorKitchenAltInputValues\(\)\)\.forEach\(\(\[k, v\]\) => \{ overlay\[week\]\[day\]\[period \+ '_' \+ k\] = v; \}\);/,
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2b): what Save writes for the meal moved into doorWriteEditorMeal.
+  assert.match(fn('doorWriteEditorMeal'), /Object\.entries\(doorKitchenAltInputValues\(\)\)\.forEach\(\(\[k, v\]\) => \{ target\[period \+ '_' \+ k\] = v; \}\);/,
     'every box saves as it reads, an emptied one as empty');
   const merge = vm.createContext({});
   vm.runInContext(fn('mergeDoorMenuDataWithOverlay'), merge);

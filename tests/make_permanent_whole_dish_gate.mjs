@@ -162,7 +162,8 @@ test('3. Restore the original, before the next sync, brings back every part of t
 });
 
 test('4. every overlay writer of a meal\'s ticks writes its allergen line with them', () => {
-  for (const name of ['_finishMenuSave', 'saveEditFlags', 'makePermanent', 'makeSwapPermanentFromBanner']) {
+  // Re-pinned 2026-11-19 (Edit Menu redesign S2b): what Save writes for the meal moved into doorWriteEditorMeal.
+  for (const name of ['doorWriteEditorMeal', 'saveEditFlags', 'makePermanent', 'makeSwapPermanentFromBanner']) {
     const body = fn(name);
     assert.match(body, /doorSetMealFlags\(/, name + ' writes the ticks with their allergen line');
     assert.doesNotMatch(body, /\[period \+ '_flags'\]\s*=/, name + ' writes no ticks on their own');

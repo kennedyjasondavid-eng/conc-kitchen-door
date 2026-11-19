@@ -27,9 +27,13 @@ function fnBlock(name) {
 function assertContains(hay, needle, msg) { assert.ok(hay.includes(needle), msg + ' — missing: ' + needle); }
 
 // ---- the save-time meat detector (MEAT_DETECT const + the nested _detectInSlot) ----
-const meatStart = html.indexOf('const MEAT_DETECT = [');
+const meatStart = html.indexOf('const MEAT_DETECT = ');
 const detectStart = html.indexOf('function _detectInSlot(', meatStart);
-const meatBlock = html.slice(meatStart, html.indexOf(';', meatStart) + 1) + '\n' + html.slice(detectStart, braceBlock(detectStart));
+// Re-pinned 2026-11-19 (Edit Menu redesign S2b): the list and the reader moved to DOOR_EDITOR_MEAT_DETECT and
+// doorEditorDetectMeat, shared with the plate summary; _detectInSlot calls the reader.
+const sharedStart = html.indexOf('const DOOR_EDITOR_MEAT_DETECT = [');
+const meatBlock = html.slice(sharedStart, html.indexOf('];', sharedStart) + 2) + '\n' + fnBlock('doorEditorDetectMeat') + '\n'
+  + html.slice(meatStart, html.indexOf(';', meatStart) + 1) + '\n' + html.slice(detectStart, braceBlock(detectStart));
 
 function meatCtx(state) {
   const ctx = { MEAL_SLOT_STATE: state };
@@ -100,7 +104,8 @@ test('guard #3 banner renders the unmapped labels and hides when none', () => {
 });
 
 test('source locks: _detectInSlot reads displayText; the banner is wired', () => {
-  assertContains(fnBlock('_detectInSlot'), 's.displayText', '_detectInSlot scans the display rename (two-site union)');
+  assertContains(fnBlock('doorEditorDetectMeat'), 's.displayText', 'the save reader scans the display rename (two-site union)');
+  assertContains(fnBlock('_detectInSlot'), 'doorEditorDetectMeat(slotId)', '_detectInSlot reads the shared reader');
   // Test-Meal preview parity: its detector reads the display too, so the sandbox matches save
   assertContains(fnBlock('generateTestPlating'), 's.displayText', 'the Test-Meal detector scans the display for save-parity');
   // banner reads the S0.5 surface and is called in the menu render flow
