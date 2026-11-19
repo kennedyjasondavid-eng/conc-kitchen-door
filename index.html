@@ -19749,59 +19749,86 @@ function doorRexMealTitle(m) {
 }
 function doorRexFlagsList(keys) { return keys.map(doorRexFlagLabel).join(', '); }
 // U4 (back-on-track plan): the import review says what each meal keeps and what it replaces, dishes and their links
-// and allergens, so nobody has to read the two columns side by side to see where a recipe link goes.
-function doorRexDishLink(m, dish) {
-  const day = ((typeof getMenuData === 'function' ? getMenuData() : {}) || {})[String(m.week)] || {};
-  const slots = (day[m.day] || {})[m.period + '_slots'] || {};
-  const t = String(dish || '').trim().toLowerCase();
-  if (!t) return '';
-  for (const s of Object.values(slots)) {
-    if (!s || !s.recipeName) continue;
-    const words = String(s.displayText || s.manual || s.recipeName).trim().toLowerCase();
-    if (words === t || String(s.recipeName).trim().toLowerCase() === t) return s.recipeName;
-  }
-  return '';
+// and allergens. Review fold: it reads the slots and ticks doorRexBuildMeal builds from the answers on screen (what Save
+// writes), compares them with the meal as DOOR has it, plate by plate, and is drawn again whenever an answer changes.
+const DOOR_REX_KEPT_LINES = [
+  ['Regular plate', ['extras', 'main', 'starch', 'vegside', 'xtra']],
+  ['Vegan plate', ['veganalt', 'vegextras']],
+  ['Halal plate', ['mainalt', 'noporkalt', 'halalextras']],
+];
+function doorRexSlotWords(s) { return s ? String(s.displayText || s.manual || s.recipeName || '').trim() : ''; }
+function doorRexKeptAnswers(m, root) {
+  const read = root && typeof doorRexReadAnswers === 'function' ? doorRexReadAnswers(root) : null;
+  if (read) return read[m.key] || { removeFlags: [], links: {}, ticks: {}, alts: {} };
+  return { removeFlags: m.removeDefault ? (m.removeFlags || []).slice() : [], links: {}, ticks: {}, alts: {} };
 }
-function doorRexKeptReplacedHTML(m) {
-  const L = m.lines || {};
-  const newLink = (piece) => {
-    const nd = (m.newDishes || []).find(n => String(n.piece).toLowerCase() === String(piece || '').toLowerCase());
-    return nd && nd.lean ? nd.lean : '';
-  };
-  const kept = [], replaced = [];
-  for (const line of [L.reg, L.veg]) {
-    if (!line || line.empty) continue;
-    for (const x of line.diffs || []) {
-      if (x.status === 'same' && x.door) {
-        const ln = doorRexDishLink(m, x.door);
-        kept.push(escapeHtml(x.door) + (ln ? ' <span style="color:var(--muted);">(link to ' + escapeHtml(ln) + ' kept)</span>' : ''));
-      } else if (x.status === 'changed') {
-        const was = doorRexDishLink(m, x.door), now = newLink(x.rex);
-        replaced.push(escapeHtml(x.door) + ' &rarr; ' + escapeHtml(x.rex) + ' <span style="color:var(--muted);">(' +
-          (was ? 'link to ' + escapeHtml(was) + ' replaced' : 'no link before') + (now ? '; links ' + escapeHtml(now) : '; no recipe link yet') + ')</span>');
-      } else if (x.status === 'added') {
-        const now = newLink(x.rex);
-        replaced.push('+ ' + escapeHtml(x.rex) + ' <span style="color:var(--muted);">(' + (now ? 'links ' + escapeHtml(now) : 'no recipe link yet') + ')</span>');
-      } else if (x.status === 'removed') {
-        const was = doorRexDishLink(m, x.door);
-        replaced.push('&minus; ' + escapeHtml(x.door) + (was ? ' <span style="color:var(--muted);">(its link to ' + escapeHtml(was) + ' goes)</span>' : ''));
-      }
+function doorRexKeptModel(before, after, beforeFlags, afterFlags) {
+  const lines = [];
+  for (const [label, ids] of DOOR_REX_KEPT_LINES) {
+    const rows = [];
+    for (const id of ids) {
+      const o = before ? before[id] : null, n = after ? after[id] : null;
+      const ow = doorRexSlotWords(o), nw = doorRexSlotWords(n);
+      const ol = o && o.recipeName ? o.recipeName : '', nl = n && n.recipeName ? n.recipeName : '';
+      if (!ow && !nw) continue;
+      if (ow && !nw) rows.push({ kind: 'removed', was: ow, wasLink: ol });
+      else if (!ow && nw) rows.push({ kind: 'added', now: nw, nowLink: nl });
+      else if (ow.toLowerCase() === nw.toLowerCase() && ol === nl) rows.push({ kind: 'kept', now: nw, nowLink: nl });
+      else rows.push({ kind: 'replaced', was: ow, wasLink: ol, now: nw, nowLink: nl });
     }
+    if (rows.length) lines.push({ label, rows });
   }
-  const off = m.removeDefault ? (m.removeFlags || []) : [];
-  const keptFlags = (m.beforeFlags || []).filter(k => off.indexOf(k) < 0 && (m.removeDefault || (m.removeFlags || []).indexOf(k) < 0));
-  const flagLine = [
-    keptFlags.length ? 'kept: ' + escapeHtml(doorRexFlagsList(keptFlags)) : '',
-    (m.addFlags || []).length ? 'added: ' + escapeHtml(doorRexFlagsList(m.addFlags)) : '',
-    off.length ? 'coming off (untick below to keep): ' + escapeHtml(doorRexFlagsList(off)) : '',
-    !m.removeDefault && (m.removeFlags || []).length ? 'kept unless you tick them off: ' + escapeHtml(doorRexFlagsList(m.removeFlags)) : '',
+  const on = (f) => Object.keys(f || {}).filter(k => f[k] === true && /^has|^isSpicy$/.test(k));
+  const b = on(beforeFlags), a = on(afterFlags);
+  return { lines, flagsKept: b.filter(k => a.indexOf(k) >= 0), flagsAdded: a.filter(k => b.indexOf(k) < 0), flagsOff: b.filter(k => a.indexOf(k) < 0) };
+}
+function doorRexKeptReplacedHTML(model, choice) {
+  if (choice === 'keep') return '<div class="rex-kept-body" style="margin-top:6px;font-size:12px;color:var(--muted);">Keeping DOOR’s meal: nothing changes.</div>';
+  const link = (l, none) => l ? ' <span style="color:var(--muted);">(' + escapeHtml(l) + ')</span>' : (none ? ' <span style="color:var(--muted);">(' + none + ')</span>' : '');
+  const parts = model.lines.map(L => {
+    const rep = [], kept = [];
+    for (const r of L.rows) {
+      if (r.kind === 'kept') kept.push(escapeHtml(r.now) + link(r.nowLink));
+      else if (r.kind === 'added') rep.push('+ ' + escapeHtml(r.now) + link(r.nowLink, 'no recipe link'));
+      else if (r.kind === 'removed') rep.push('&minus; ' + escapeHtml(r.was) + (r.wasLink ? ' <span style="color:var(--muted);">(its link to ' + escapeHtml(r.wasLink) + ' goes)</span>' : ''));
+      else if (r.wasLink && r.wasLink === r.nowLink) rep.push(escapeHtml(r.was) + ' &rarr; ' + escapeHtml(r.now) + ' <span style="color:var(--muted);">(same recipe, ' + escapeHtml(r.nowLink) + ', new words)</span>');
+      else rep.push(escapeHtml(r.was) + link(r.wasLink) + ' &rarr; ' + escapeHtml(r.now) + link(r.nowLink, 'no recipe link'));
+    }
+    if (!rep.length && !kept.length) return '';
+    return '<div><strong>' + escapeHtml(L.label) + ':</strong> ' +
+      (rep.length ? 'changes ' + rep.join('; ') : '') + (rep.length && kept.length ? '. ' : '') + (kept.length ? 'keeps ' + kept.join('; ') : '') + '</div>';
+  }).filter(Boolean);
+  const fl = [
+    model.flagsAdded.length ? 'added: ' + escapeHtml(doorRexFlagsList(model.flagsAdded)) : '',
+    model.flagsOff.length ? 'coming off: ' + escapeHtml(doorRexFlagsList(model.flagsOff)) : '',
+    model.flagsKept.length ? 'kept: ' + escapeHtml(doorRexFlagsList(model.flagsKept)) : '',
   ].filter(Boolean).join(' · ');
-  const once = (a) => a.filter((x, i) => a.indexOf(x) === i);   // a dish on both lines is listed once
-  if (!kept.length && !replaced.length && !flagLine) return '';
-  return '<div class="rex-kept" style="margin-top:6px;font-size:12px;line-height:1.5;">' +
-    (replaced.length ? '<div><strong>Replaced:</strong> ' + once(replaced).join('; ') + '</div>' : '') +
-    (kept.length ? '<div><strong>Kept:</strong> ' + once(kept).join('; ') + '</div>' : '') +
-    (flagLine ? '<div><strong>Allergens</strong> ' + flagLine + '</div>' : '') + '</div>';
+  if (!parts.length && !fl) return '';
+  return '<div class="rex-kept-body" style="margin-top:6px;font-size:12px;line-height:1.5;">' + parts.join('') +
+    (fl ? '<div><strong>Allergens on the regular plate</strong> ' + fl + '</div>' : '') +
+    '<div style="color:var(--muted);">As Save will write it with the answers below.</div></div>';
+}
+function doorRexKeptFor(m, root, ctx) {
+  try {
+    const p = m.period, door = (((getMenuData() || {})[String(m.week)] || {})[m.day]) || {};
+    const ans = doorRexKeptAnswers(m, root);
+    const built = doorRexBuildMeal(m, door, ans, ctx);
+    const model = doorRexKeptModel(door[p + '_slots'] || {}, built.slots || {}, door[p + '_flags'] || {}, built.flags || {});
+    return doorRexKeptReplacedHTML(model, ans.choice || (root ? null : m.defaultChoice));
+  } catch (e) { console.warn('[DOOR] review summary', e); return ''; }
+}
+function doorRexRefreshKept(root) {
+  const R = _rexReview;
+  if (!R || !root) return;
+  const ctx = doorRexWeekCtx(R.start);
+  root.querySelectorAll('.rex-kept[data-rex-kept-for]').forEach(el => {
+    const m = R.plan.meals.find(x => x.key === el.dataset.rexKeptFor);
+    if (m) el.innerHTML = doorRexKeptFor(m, root, ctx);
+  });
+}
+function doorRexKeptSlot(m) {
+  // Filled by doorRexRefreshKept once the review is on screen, from the answers there.
+  return '<div class="rex-kept" data-rex-kept-for="' + _escAttr(m.key) + '"></div>';
 }
 function doorRexRemovalsHTML(m) {
   if (!m.removeFlags.length) return '';
@@ -19887,7 +19914,7 @@ function doorRexQuestionHTML(m, idx) {
   return '<div class="rex-q" data-rex-meal="' + _escAttr(m.key) + '" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">' +
     '<div style="font-weight:700;font-size:13px;margin-bottom:4px;">' + escapeHtml(doorRexMealTitle(m)) + '</div>' +
     '<div style="overflow-x:auto;"><table style="font-size:12px;border-collapse:collapse;width:100%;"><thead><tr><th></th><th style="text-align:left;padding:0 8px;color:var(--muted);font-weight:600;">Rex’s sheet</th><th style="text-align:left;padding:0 0 0 8px;color:var(--muted);font-weight:600;">DOOR now</th></tr></thead><tbody>' +
-    row('Regular', L.reg) + row('Vegetarian', L.veg) + halalRow + '</tbody></table></div>' + doorRexKeptReplacedHTML(m) + notes + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) +
+    row('Regular', L.reg) + row('Vegetarian', L.veg) + halalRow + '</tbody></table></div>' + doorRexKeptSlot(m) + notes + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) +
     '<div style="margin-top:6px;">' + choices + '</div></div>';
 }
 function doorRexAutoHTML(m) {
@@ -19898,7 +19925,7 @@ function doorRexAutoHTML(m) {
   return '<div class="rex-auto" data-rex-meal="' + _escAttr(m.key) + '" style="font-size:12px;padding:6px 0;border-top:1px solid var(--border);">' +
     '<strong>' + escapeHtml(doorRexMealTitle(m)) + ':</strong> ' + what +
     ' <label style="margin-left:8px;color:var(--muted);"><input type="checkbox" data-rex-auto-keep="' + _escAttr(m.key) + '"> keep DOOR’s</label>' +
-    doorRexKeptReplacedHTML(m) + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) + '</div>';
+    doorRexKeptSlot(m) + doorRexAddsHTML(m) + doorRexRemovalsHTML(m) + '</div>';
 }
 function doorRenderRexWeekReview() {
   const R = _rexReview;
@@ -19949,6 +19976,10 @@ function doorRenderRexWeekReview() {
   overlay.querySelectorAll('select[data-rex-link]').forEach(sel => {
     sel.onchange = () => { const t = overlay.querySelector('[data-rex-ticks="' + sel.id + '"]'); if (t) t.style.display = sel.value ? 'none' : ''; };
   });
+  // U4 review fold: each meal summary follows the answers on screen.
+  overlay.addEventListener('change', () => doorRexRefreshKept(overlay));
+  overlay.addEventListener('input', () => doorRexRefreshKept(overlay));
+  doorRexRefreshKept(overlay);
 }
 
 // The answers on the review, per meal.

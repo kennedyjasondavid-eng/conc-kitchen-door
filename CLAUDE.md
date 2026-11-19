@@ -55,12 +55,21 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 
 ## Recent (2026-11-19) — Rex's week review says what each meal keeps and replaces (U4, `v31-standard.121`)
 Back-on-track plan §5 U4 ("Import review shows which dishes, links and allergens are kept and which are replaced"). Each
-meal in Rex's week-sheet review, asked or applied without a question, now carries a short summary under its table
-(`doorRexKeptReplacedHTML`, `doorRexDishLink`): **Replaced** (old → new dish, the recipe link that goes and the one the
-new dish takes, or "no recipe link yet"; added and removed dishes), **Kept** (each dish kept, with the link it keeps),
-and **Allergens** kept, added, coming off by default, or kept unless ticked off. A dish on both lines is listed once;
-every name is escaped. Display only: what Save writes is unchanged. Gate `tests/import_review_kept_u4_gate.mjs` (5).
-The browser `rex_week_review` (not in CI) reads 52/66 on `main` and this build alike (pinned to older menu data).
+meal in Rex's week-sheet review, asked or applied without a question, carries a summary under its table, plate by plate
+(Regular, Vegan, Halal): the dishes it changes (old words and recipe link → new words and the link Save writes, or "no
+recipe link"; added and removed dishes; "same recipe, new words"), the dishes it keeps with their links, and the regular
+plate's allergens added, coming off and kept. **It reads what Save writes:** `doorRexKeptFor` runs `doorRexBuildMeal` with
+the answers on screen (`doorRexReadAnswers`) and compares its slots and ticks with the meal as stored
+(`doorRexKeptModel`, `DOOR_REX_KEPT_LINES`); `doorRexRefreshKept` redraws every summary on each change or input in the
+review. Keep DOOR's reads "nothing changes". Display only; every name escaped.
+- **Independent review (FIX FIRST), folded:** the first cut guessed links from the review's new-dish list, so it said "no
+  recipe link yet" for dishes Save links (exact matches, sides, breakfast), never updated after a pick, and did not say
+  which plate a dish is on. Now it reads the builder, per plate, and follows the answers.
+- **Found, raised with Jason:** on Rex's Week 4 sheet, Wk4 THU lunch's "Side Salad" links Potato Salad (for Honey BBQ
+  Drums) through the remembered-links lookup (`doorRexKnownLinks`), a wrong link that predates this change; the summary
+  now shows it.
+- Gate `tests/import_review_kept_u4_gate.mjs` (4). The browser `rex_week_review` (not in CI) reads 52/66 on `main` and this
+  build alike (pinned to older menu data).
 
 ## Recent (2026-11-19) — a full browser allowance frees DOOR's kept copies first (HOUSE storage S1-D, `v31-standard.120`)
 HOUSE storage plan `conc-kitchen-house/docs/HOUSE_STORAGE_PLAN_2026-11-19.md` §2 (Jason, 2026-11-19: "do the storage
