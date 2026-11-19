@@ -44,7 +44,7 @@ test('S4b-2 kitchen words on every box; no "optional" tags; no "Seasonal Veg" qu
 test('S4b-3 the vegan and halal choices under a side fold into one line, open when one differs', () => {
   const start = html.indexOf('function _slotLinesHTML(');
   const body = html.slice(start, html.indexOf('\n}\n', start));
-  assert.match(body, /<details class="slot-lines-fold"' \+ \(_same \? '' : ' open'\)/);
+  assert.match(body, /const _open = !_same \|\| DOOR_LINES_FOLD_OPEN\.has\(id\)/);
   assert.match(body, /Same on the vegan and halal plates/);
   assert.match(body, /data-slot-line="' \+ id \+ '-' \+ line \+ '"/, 'the choices keep their names');
 });

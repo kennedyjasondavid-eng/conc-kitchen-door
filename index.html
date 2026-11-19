@@ -21144,8 +21144,8 @@ let _noPorkAltVisible = false;
 // S4b: the plates the boxes make, and each box in kitchen words. The saved meal and every box id are unchanged.
 const DOOR_PLATE_CARDS = [
   { key: 'regular', title: 'Regular plate', note: 'What most residents get.', ids: ['main', 'starch', 'vegside', 'xtra', 'extras'] },
-  { key: 'vegan', title: 'Vegan plate', note: 'Gets the vegan main instead of the main. The sides are the same, unless a side below says otherwise.', ids: ['veganalt', 'vegextras'] },
-  { key: 'halal', title: 'Halal plate', note: 'Gets the halal main instead of the main. The rest is the same.', ids: ['mainalt', 'halalextras', 'noporkalt'] },
+  { key: 'vegan', title: 'Vegan plate', note: 'Gets the vegan main instead of the main. The sides are the same as the regular plate, unless a side there says otherwise.', ids: ['veganalt', 'vegextras'] },
+  { key: 'halal', title: 'Halal plate', note: 'Gets the halal main instead of the main, and the regular sides unless a side says otherwise. A no-pork main, when there is one, is for No Pork residents who are not halal.', ids: ['mainalt', 'halalextras', 'noporkalt'] },
 ];
 const DOOR_SLOT_KITCHEN_LABEL = {
   main: 'Main dish', starch: 'Side (starch)', vegside: 'Vegetable side', xtra: 'Also served', extras: 'Event name, if any',
@@ -21814,11 +21814,12 @@ function _slotLinesHTML(id) {
   const _say = line => { const m = _modeOf(line), v = (s.lines || {})[line]; return m === 'none' ? 'doesn’t get it' : m === 'swap' ? 'gets ' + (_slotText(v) || '…') + ' instead' : 'gets this'; };
   const _same = _modeOf('vegan') === 'same' && _modeOf('halal') === 'same';
   const _summary = _same ? 'Same on the vegan and halal plates' : 'Vegan plate ' + _say('vegan') + ' · Halal plate ' + _say('halal');
-  return '<details class="slot-lines-fold"' + (_same ? '' : ' open') + ' style="margin-top:6px;font-size:11px;"><summary style="cursor:pointer;color:var(--muted);">' + escapeHtml(_summary) + ' · change</summary>'
+  const _open = !_same || DOOR_LINES_FOLD_OPEN.has(id);
+  return '<details class="slot-lines-fold" data-fold="' + _escAttr(id) + '"' + (_open ? ' open' : '') + ' ontoggle="doorNoteFoldToggle(this)" style="margin-top:6px;font-size:11px;"><summary onmousedown="event.preventDefault()" style="cursor:pointer;color:var(--muted);">' + escapeHtml(_summary) + ' · change</summary>'
     + '<div class="slot-lines" style="margin-top:6px;font-size:11px;display:grid;gap:4px;">' + ['vegan', 'halal'].map(line => {
     const v = (s.lines || {})[line];
     const mode = v ? v.mode : 'same';
-    const label = line === 'vegan' ? 'Vegan line' : 'Halal line';
+    const label = line === 'vegan' ? 'Vegan plate' : 'Halal plate';
     const opt = (val, txt) => '<option value="' + val + '"' + (mode === val ? ' selected' : '') + '>' + txt + '</option>';
     const sel = '<select data-slot-line="' + id + '-' + line + '" onchange="slotLineMode(\'' + id + '\',\'' + line + '\',this.value)" style="font-size:11px;padding:1px 4px;">' +
       opt('same', 'gets this') + opt('swap', 'gets instead…') + opt('none', 'doesn’t get it') + '</select>';
@@ -21827,6 +21828,13 @@ function _slotLinesHTML(id) {
       : '';
     return '<div><span style="color:var(--muted);">' + label + ':</span> ' + sel + txt + '</div>';
   }).join('') + '</div></details>';
+}
+// S4b: a fold opened by hand stays open over a redraw from another box (reset when a meal opens).
+const DOOR_LINES_FOLD_OPEN = new Set();
+function doorNoteFoldToggle(el) {
+  const id = el && el.getAttribute('data-fold');
+  if (!id) return;
+  if (el.open) DOOR_LINES_FOLD_OPEN.add(id); else DOOR_LINES_FOLD_OPEN.delete(id);
 }
 function slotLineMode(id, line, mode) {
   const s = MEAL_SLOT_STATE[id];
@@ -21871,7 +21879,7 @@ function renderSlotCard(def, ns) {
   if (def.manual) {
     const val = (state && state.manual) ? state.manual : '';
     return `<div style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--paper);">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;">${escapeHtml(def.label)}${optLabel}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text-2, var(--muted));margin-bottom:6px;">${escapeHtml(kitchenLabel)}${optLabel}</div>
       <input type="text" id="${_escAttr(pfx)}-manual-${_escAttr(def.id)}" aria-label="${_escAttr(def.label)}" placeholder="${_escAttr(def.ph)}" value="${_escAttr(val)}"
         oninput="${_escAttr(fn + 'SetManual(' + _jsArgLiteral(def.id) + ',this.value)')}"
         style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;">
@@ -23067,6 +23075,7 @@ function openMenuEdit(week, day, period) {
   // last meal's slot state.
   _LAST_SLOT_FLAGS = {};
   SLOT_TYPED_AT_OPEN = {}; SLOT_DECLARED_AT_OPEN = {};
+  if (typeof DOOR_LINES_FOLD_OPEN !== "undefined") DOOR_LINES_FOLD_OPEN.clear();
   // S4a (D4): the words this meal opened with and its boxes then; a legacy edit (concMenuEdits) rebuilds as before.
   if (typeof _doorWordsAtOpen !== 'undefined') _doorWordsAtOpen = existing ? null : { key: mcMenuEditKey, text: String(dayData[period] || ''), slots: {} };
   if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof DOOR_WORD_SLOT_IDS !== 'undefined') ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { _doorWordsAtOpen.slots[id] = _slotText(MEAL_SLOT_STATE[id]); });
