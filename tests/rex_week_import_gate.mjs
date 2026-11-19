@@ -310,11 +310,15 @@ test('13. a dish linked before on DOOR’s menu is linked again, with its recipe
   const c = rexCtx(api, { recipes, known: api.doorRexKnownLinks(menu), datesFrom: '2026-10-25', today: TODAY });
   assert.equal(out(api.doorRexBuildMeal(p, menu['1'].SATURDAY, { links: { 'reg|Chicken a la King': '' } }, c)).slots.main.manual, 'Chicken a la King');
 
-  // Rex's spelling: one letter off in a long word still finds the link (Week 3: "Carribean Chickpea Curry")
+  // Re-pinned 2026-11-19 (Jason, "Follow leans on all four": a remembered link is picked only for the same words). Rex's
+  // spelling one letter off in a long word no longer picks the link; it is offered first as a suggestion.
   const sp = out(MENU);
   sp['2'].MONDAY.lunch_slots = Object.assign({}, sp['2'].MONDAY.lunch_slots || {}, { main: { recipeName: 'Garden a la King', displayText: 'Chicken a la Kings', flags: {} } });
   rex.days.SATURDAY.lunch.reg = 'Chiken a la King, Sweet Potato Biscuit';
-  assert.equal(run(sp).built.slots.main.recipeName, 'Garden a la King');
+  const spRun = run(sp);
+  assert.notEqual(spRun.built.slots.main.recipeName, 'Garden a la King', 'a near spelling is not picked');
+  const spNd = spRun.p.newDishes.find(n => n.piece === 'Chiken a la King');
+  assert.ok(spNd && !spNd.lean && spNd.suggest[0] === 'Garden a la King', 'it is offered first');
   rex.days.SATURDAY.lunch.reg = 'Chicken a la King, Sweet Potato Biscuit';
 
   // a remembered link must still fit the slot: the regular recipe is never the vegan line's

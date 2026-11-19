@@ -18,8 +18,8 @@ in-memory fake GitHub (W6 harness), with today's CODEX feed (`main`) and `librar
 - **Menu words:** unchanged on every meal (each linked box keeps its words as what the menu shows).
 - **Beans on Wk1 FRI dinner:** the one real gap. A No Beans resident on another plate (today one on the halal plate;
   offline, one on the vegan plate, which also gains BEANS) now gets a "no beans" note on this dinner. A No Beans
-  resident on the regular plate gets no line note, before or after: No Beans is a preference, which the regular-plate
-  conflict check does not read (existing behaviour, not changed here). No resident moves plate on any of the 84 meals.
+  resident on the regular plate gets "No Beans" in the regular plate's notes (corrected 2026-11-19: the regular-plate
+  check reads each resident's accommodations, and both No Beans residents carry it there). No resident moves plate on any of the 84 meals.
 - **Routing (`routing_by_meal.json`):** section and dish counts unchanged; only its stamps move.
 - **Save asked nothing** on any of the four meals. The soft-plate question was held off, as in U1: no dish changed.
 - **Other files:** `door_state.json`, `registry_summary.json` (stamps), `change_log.json`, `recent_log.json`,
