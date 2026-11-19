@@ -114,10 +114,11 @@ test('4b. a manual-only slot is never routed through slotAutoSave', () => {
 test('5. saveMenuEdit commits the live inputs BEFORE it reads state', () => {
   const body = fnBlock('saveMenuEdit');
   const commit = body.indexOf('_commitLiveSlotInputs(');
-  const read = body.indexOf('buildMealName(');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S4a, D4): Save reads the name through doorEditedMealName (kept words).
+  const read = body.indexOf('doorEditedMealName(');
   assert.ok(commit >= 0, 'saveMenuEdit does not commit the live inputs');
-  assert.ok(read >= 0, 'saveMenuEdit no longer calls buildMealName — re-pin this gate');
-  assert.ok(commit < read, 'the commit must run before buildMealName reads MEAL_SLOT_STATE');
+  assert.ok(read >= 0, 'saveMenuEdit no longer reads the name — re-pin this gate');
+  assert.ok(commit < read, 'the commit must run before the name is read from MEAL_SLOT_STATE');
   // and after the write guard, so a blocked save never mutates state
   const guard = body.indexOf('guardStandardMenuWrite(');
   assert.ok(guard >= 0 && guard < commit, 'the standard-menu write guard must still run first');

@@ -134,7 +134,7 @@ test('4. the card says what was not saved and why; Save asks about it, and going
 
   const save = fnBlock('saveMenuEdit');
   const at = save.indexOf('for (const id of Object.keys(SLOT_HELD))');
-  assert.ok(at > save.indexOf('_commitLiveSlotInputs()') && at < save.indexOf('buildMealName()'), 'asked after the commit, before the name is read');
+  assert.ok(at > save.indexOf('_commitLiveSlotInputs()') && at < save.indexOf('doorEditedMealName()'), 'asked after the commit, before the name is read');   // re-pinned 2026-11-19 (S4a)
   assert.match(save.slice(at, at + 600), /await doorAsk\(ask\);\s*if \(mcMenuEditKey !== _heldKey\) return;\s*if \(!ans\) return;/);
   const q = { MEAL_SLOT_DEFS: [{ id: 'main', label: 'Main' }] };
   vm.createContext(q);

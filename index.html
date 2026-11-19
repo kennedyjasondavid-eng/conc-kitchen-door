@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.108';
+const DOOR_APP_VERSION = 'v31-standard.109';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21119,6 +21119,61 @@ let _noPorkAltVisible = false;
 // those this resolves to exactly `recipeName || manual` as before (byte-identical).
 function _slotText(s) { return s ? (s.displayText || s.recipeName || s.manual || '') : ''; }
 
+// S4a (Edit Menu redesign, D4; Jason 2026-11-19: "Follow lean"): a real edit rewrites only the dish that changed. The
+// menu words the meal opened with are kept as written, in their order; a changed dish has its words replaced where they
+// stood, a dish taken out loses its words and one separator, a new dish goes at the end. When a changed dish cannot be
+// found in the words (boxes behind the words, a joined box, the Event Name), the line is rebuilt from the boxes as before.
+const DOOR_WORD_SLOT_IDS = ['main', 'starch', 'vegside', 'xtra'];
+function doorFindDishWords(text, words) {
+  const t = String(text || ''), w = String(words || '').trim();
+  if (!w) return -1;
+  const letter = c => /[A-Za-z0-9]/.test(c || '');
+  // The words as written first; then without case (a box can read "Okra and Cassava Stew" over "Okra and cassava stew").
+  for (const [hay, needle] of [[t, w], [t.toLowerCase(), w.toLowerCase()]]) {
+    let i = hay.indexOf(needle);
+    while (i >= 0) {
+      if (!letter(hay[i - 1]) && !letter(hay[i + needle.length])) return i;
+      i = hay.indexOf(needle, i + 1);
+    }
+  }
+  return -1;
+}
+// Pure. text: the words the meal opened with; before / after: { slotId: shown words } at open and now.
+// Returns the new words, or null when they have to be rebuilt from the boxes.
+function doorKeepMenuWords(text, before, after) {
+  let t = String(text || '');
+  before = before || {}; after = after || {};
+  if (String(before.extras || '').trim() !== String(after.extras || '').trim()) return null;
+  const added = [];
+  for (const id of DOOR_WORD_SLOT_IDS) {
+    const was = String(before[id] || '').trim(), now = String(after[id] || '').trim();
+    if (was === now) continue;
+    if (!was) { added.push(now); continue; }
+    const at = doorFindDishWords(t, was);
+    if (at < 0) return null;
+    if (now) { t = t.slice(0, at) + now + t.slice(at + was.length); continue; }
+    // taken out: its words and one separator (the one before it, else the one after)
+    const left = t.slice(0, at), right = t.slice(at + was.length);
+    const sepBefore = left.match(/\s*(?:,|&|—|\+|;)\s*$/), sepAfter = right.match(/^\s*(?:,|&|—|\+|;)\s*/);
+    if (sepBefore) t = left.slice(0, left.length - sepBefore[0].length) + right;
+    else if (sepAfter) t = left + right.slice(sepAfter[0].length);
+    else t = left + right;
+  }
+  added.forEach(w => { if (doorFindDishWords(t, w) < 0) t = t.trim() ? t.replace(/\s+$/, '') + ', ' + w : w; });
+  t = t.trim();
+  return t || null;
+}
+// The words the open meal had, and its boxes then (set by openMenuEdit before the draft baseline).
+var _doorWordsAtOpen = null;
+function doorEditedMealName() {
+  const built = buildMealName();
+  const o = _doorWordsAtOpen;
+  if (!o || o.key !== mcMenuEditKey || !o.text) return built;
+  const now = {};
+  ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { now[id] = _slotText(MEAL_SLOT_STATE[id]); });
+  const kept = doorKeepMenuWords(o.text, o.slots, now);
+  return kept || built;
+}
 function buildMealName() {
   // extras (Event Name) leads if set, then components
   const extra = _slotText(MEAL_SLOT_STATE['extras']);
@@ -21581,7 +21636,7 @@ function updateSlotSummary() {
   const prev = document.getElementById(prevId);
   if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
   if (typeof doorRenderAltEditorFeedback === 'function') doorRenderAltEditorFeedback(flags);
-  const name = buildMealName();
+  const name = (testMealActive || typeof doorEditedMealName !== 'function') ? buildMealName() : doorEditedMealName();
   const veg = buildVegAlt();
   const softAlt = buildSoftAlt();
   const noPorkAlt = buildNoPorkAlt();
@@ -22233,7 +22288,7 @@ async function saveMenuEdit() {
     closeMenuEdit(true);
     return true;
   }
-  const name = buildMealName();
+  const name = doorEditedMealName();   // S4a (D4): the words that did not change stay as written
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   const editKey = mcMenuEditKey;
   // V7: a slot that reads like several dishes is asked about here, not guessed at later by EXPO.
@@ -22549,7 +22604,7 @@ function doorDraftPlateFacts(flags) {
   const overlay = JSON.parse(JSON.stringify(loadMenuBaseOverlay() || {}));
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
-  doorWriteEditorMeal(overlay[week][day], period, buildMealName(), buildVegAlt(), flags);
+  doorWriteEditorMeal(overlay[week][day], period, doorEditedMealName(), buildVegAlt(), flags);
   const was = getDoorPublishMenuOverlayOverride();
   let dayData = null;
   try {
@@ -22897,6 +22952,9 @@ function openMenuEdit(week, day, period) {
   // last meal's slot state.
   _LAST_SLOT_FLAGS = {};
   SLOT_TYPED_AT_OPEN = {}; SLOT_DECLARED_AT_OPEN = {};
+  // S4a (D4): the words this meal opened with and its boxes then; a legacy edit (concMenuEdits) rebuilds as before.
+  if (typeof _doorWordsAtOpen !== 'undefined') _doorWordsAtOpen = existing ? null : { key: mcMenuEditKey, text: String(dayData[period] || ''), slots: {} };
+  if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof DOOR_WORD_SLOT_IDS !== 'undefined') ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { _doorWordsAtOpen.slots[id] = _slotText(MEAL_SLOT_STATE[id]); });
   Object.keys(MEAL_SLOT_STATE).forEach(id => { const x = MEAL_SLOT_STATE[id]; if (x && !x.recipeName && x.manual) { SLOT_TYPED_AT_OPEN[id] = String(x.manual).trim(); if (x.declared === true) SLOT_DECLARED_AT_OPEN[id] = true; } });
   renderSlots();
   updateSlotSummary();

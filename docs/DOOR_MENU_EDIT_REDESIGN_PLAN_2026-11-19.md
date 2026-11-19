@@ -237,7 +237,8 @@ Names here are this plan's (the back-on-track plan has its own D-numbers).
   keeps no per-dish allergens (its meal grid is the answer).
 - **D3** Halal (meat changed), allergen removals and new anaphylactic conflicts stay blocking; run-on, soft and held
   words go inline.
-- **D4** A real edit keeps the menu words it didn't change (in S4a; EXPO reads those words).
+- **D4** A real edit keeps the menu words it didn't change (in S4a; EXPO reads those words). **Ruled 2026-11-19 (Jason:
+  "Follow lean").**
 - **D5** Retire Edit Flags / Swap Meal / Make Permanent into one view; what Change Log and ↩ Undo Last cover afterwards;
   keep or retire Test Meal; Special Meal and Rex's review follow each slice or are pinned.
 - **D6** The order in §4.
@@ -280,5 +281,7 @@ moves its code without changing a byte).
 | S1 search | merged (`f246523`, `v31-standard.104`); reviews FIX FIRST ×2, folded; SHIP | #244 |
 | S2a plate facts | merged (`7d33af4`, `v31-standard.105`); review SHIP | #245 |
 | S2b plate summary | merged (`14d6198`, `v31-standard.106`); review SHIP | #246 |
-| S3 typed dishes | built (`v31-standard.107`); D2 ruled; review SHIP, P2s folded | #247 |
-| ST–S8, U1 | planned; D2, D7, D8 ruled; D1, D3–D6, D9 pending | |
+| S3 typed dishes | merged (`7f8483b`, `v31-standard.107`); review SHIP, P2s folded | #247 |
+| ST test harness | folded into each slice: each slice's gate is a behaviour gate in the real page, and a source check it breaks is re-pinned or turned into one then (S4a's contract gate edits every published meal) | |
+| S4a kept words | built (`v31-standard.109`); D4 ruled; reading a meal into rows (H3) moves to S4b with the rows, since kept words no longer depend on how the boxes were read; review pending | |
+| S5a–S8, U1 | planned; D2, D4, D7, D8 ruled; D1, D3, D5, D6, D9 pending | |
