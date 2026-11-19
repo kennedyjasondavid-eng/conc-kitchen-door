@@ -27,8 +27,6 @@ try {
   const census = await p.evaluate(async () => {
     window.doorAsk = async () => true; window.publishAndSync = () => {}; window.showToast = () => {};
     const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const letter = (c) => /[A-Za-z0-9]/.test(c || '');
-    const whole = (t, w) => { for (const [h, n] of [[t, w], [t.toLowerCase(), w.toLowerCase()]]) { let i = h.indexOf(n); while (i >= 0) { if (!letter(h[i - 1]) && !letter(h[i + n.length])) return i; i = h.indexOf(n, i + 1); } } return -1; };
     // the halal question answers itself (yes: the meat is halal-certified, as stored)
     new MutationObserver(() => { const y = document.getElementById('_halal-yes'); if (y) y.click(); }).observe(document.body, { childList: true, subtree: true });
     const out = { meals: 0, kept: 0, rebuilt: [], wrong: [], notSaved: [] };
@@ -40,9 +38,15 @@ try {
       openMenuEdit(Number(wk), day, per);
       const veg = MEAL_SLOT_STATE.vegside && (MEAL_SLOT_STATE.vegside.recipeName || MEAL_SLOT_STATE.vegside.manual) ? _slotText(MEAL_SLOT_STATE.vegside) : '';
       let expected;
-      if (veg && whole(text, veg) >= 0) { const at = whole(text, veg); expected = text.slice(0, at) + 'Audit Greens' + text.slice(at + veg.length); MEAL_SLOT_STATE.vegside = { manual: 'Audit Greens', flags: {}, declared: true }; }
+      // the side as a whole piece between separators (review fold): exactly one, else the line is rebuilt
+      const parts = text.split(/(\s*(?:,|&|\u2014|;|\+)\s*)/);
+      // runs of whole pieces that read as the side (a box can hold "Peas & Carrots")
+      const runs = [];
+      if (veg) for (let a = 0; a < parts.length; a += 2) { let run = ''; for (let b = a; b < parts.length; b += 2) { run += (b > a ? parts[b - 1] : '') + parts[b];
+        const r = run.trim().replace(/\s+/g, ' ').toLowerCase(), w = veg.trim().replace(/\s+/g, ' ').toLowerCase(); if (r === w) { runs.push([a, b]); break; } if (r.length > w.length) break; } }
+      if (veg && runs.length === 1) { const [a, b] = runs[0]; parts.splice(a, b - a + 1, 'Audit Greens'); expected = parts.join(''); MEAL_SLOT_STATE.vegside = { manual: 'Audit Greens', flags: {}, declared: true }; }
       else if (!veg) { expected = text.replace(/\s+$/, '') + ', Audit Greens'; MEAL_SLOT_STATE.vegside = { manual: 'Audit Greens', flags: {}, declared: true }; }
-      else { out.rebuilt.push(wk + ' ' + day + ' ' + per + ': box "' + veg + '" not in "' + text + '"'); closeMenuEdit(true); continue; }
+      else { out.rebuilt.push(wk + ' ' + day + ' ' + per + ': box "' + veg + '" is not one piece of "' + text + '"'); closeMenuEdit(true); continue; }
       renderSlots(); updateSlotSummary();
       const r = await Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('timeout'), 4000))]);
       const after = String(((getMenuData()[wk] || {})[day] || {})[per] || '');

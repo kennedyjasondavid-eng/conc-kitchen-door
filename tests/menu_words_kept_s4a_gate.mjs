@@ -26,7 +26,8 @@ function fnBlock(name) {
 function ctx() {
   const c = {};
   vm.createContext(c);
-  vm.runInContext([/const DOOR_WORD_SLOT_IDS = [^\n]*/.exec(html)[0], fnBlock('doorFindDishWords'), fnBlock('doorKeepMenuWords')].join('\n'), c);
+  vm.runInContext([/const DOOR_WORD_SLOT_IDS = [^\n]*/.exec(html)[0], /const DOOR_WORD_SEP_RE = [^\n]*/.exec(html)[0],
+    fnBlock('doorWordPieces'), fnBlock('doorFindDishRun'), fnBlock('doorKeepMenuWords')].join('\n'), c);
   return c;
 }
 const B = { main: 'Pancakes', starch: 'turkey bacon', vegside: '', xtra: 'fruit & yoghurt' };
@@ -47,13 +48,27 @@ test('S4a-2 a dish taken out loses its words and one separator; a new dish goes 
   assert.equal(c.doorKeepMenuWords(text, B, { ...B, vegside: 'Steamed Broccoli' }), 'Pancakes, turkey bacon, fruit & yoghurt, Steamed Broccoli');
 });
 
-test('S4a-3 a word inside another word is not a dish; a dish the words do not hold, or a new Event Name, rebuilds', () => {
+test('S4a-3 dishes are whole pieces: never inside another dish; anything not placed exactly rebuilds', () => {
   const c = ctx();
-  assert.equal(c.doorFindDishWords('Riced Cauliflower, Rice', 'Rice'), 19, 'the whole word, not the start of Riced');
+  // review fold P1-1: a side whose words sit inside the main is the whole piece, never the main
+  assert.equal(c.doorKeepMenuWords('Beef and Broccoli, Rice, Broccoli', { main: 'Beef and Broccoli', starch: 'Rice', vegside: 'Broccoli' },
+    { main: 'Beef and Broccoli', starch: 'Rice', vegside: 'Green Beans' }), 'Beef and Broccoli, Rice, Green Beans');
+  assert.equal(c.doorKeepMenuWords('Rice and Peas Chicken, Rice', { main: 'Rice and Peas Chicken', starch: 'Rice' },
+    { main: 'Rice and Peas Chicken', starch: 'Potatoes' }), 'Rice and Peas Chicken, Potatoes');
   assert.equal(c.doorKeepMenuWords('Yetisse Fish, Okra and cassava stew', { vegside: 'Okra and Cassava Stew' }, { vegside: 'Callaloo' }), 'Yetisse Fish, Callaloo', 'found without case');
-  assert.equal(c.doorKeepMenuWords('Beef Chili, Cornbread', { main: 'Chili' }, { main: 'Stew' }), 'Beef Stew, Cornbread', 'a word found whole is replaced');
-  assert.equal(c.doorKeepMenuWords('Beef Chili', { main: 'Beef Stew' }, { main: 'Lamb Stew' }), null, 'not in the words: rebuild');
-  assert.equal(c.doorKeepMenuWords('Jerk Night — Jerk Chicken', { extras: 'Jerk Night', main: 'Jerk Chicken' }, { extras: 'BBQ Night', main: 'Jerk Chicken' }), null);
+  assert.equal(c.doorKeepMenuWords('Beef Chili, Cornbread', { main: 'Chili' }, { main: 'Stew' }), null, 'words inside a dish are not a dish: rebuild');
+  assert.equal(c.doorKeepMenuWords('Rice, Rice', { starch: 'Rice' }, { starch: 'Quinoa' }), null, 'two places it could be: rebuild');
+  // P1-2: edits are placed on the words as they opened, so one never makes words another then matches
+  assert.equal(c.doorKeepMenuWords('Chicken, Rice', { main: 'Chicken', starch: 'Rice' }, { main: 'Rice Bowl', starch: 'Quinoa' }), 'Rice Bowl, Quinoa');
+  // P2-1: a new dish whose words sit inside another dish is still added
+  assert.equal(c.doorKeepMenuWords('Fried Rice, Bok Choy', { main: 'Fried Rice', vegside: 'Bok Choy' }, { main: 'Fried Rice', vegside: 'Bok Choy', starch: 'Rice' }), 'Fried Rice, Bok Choy, Rice');
+  assert.equal(c.doorKeepMenuWords('Fried Rice, Rice', { main: 'Fried Rice' }, { main: 'Fried Rice', starch: 'Rice' }), 'Fried Rice, Rice', 'already a piece: not added twice');
+  // P3: the Event Name keeps its dash when the dish after it is taken out
+  assert.equal(c.doorKeepMenuWords('Jerk Night — Jerk Chicken, Rice', { extras: 'Jerk Night', main: 'Jerk Chicken', starch: 'Rice' },
+    { extras: 'Jerk Night', main: '', starch: 'Rice' }), 'Jerk Night — Rice');
+  assert.equal(c.doorKeepMenuWords('Jerk Night — Jerk Chicken', { extras: 'Jerk Night', main: 'Jerk Chicken' }, { extras: 'BBQ Night', main: 'Jerk Chicken' }), null, 'a new Event Name rebuilds');
+  // a joined box ("A & B") is the run of its pieces
+  assert.equal(c.doorKeepMenuWords('Pancakes, turkey bacon, fruit & yoghurt', { main: 'Pancakes', xtra: 'fruit & yoghurt' }, { main: 'Pancakes', xtra: 'Fruit Cup' }), 'Pancakes, turkey bacon, Fruit Cup');
 });
 
 test('S4a-4 Save, the draft summary and the preview read the kept words; the words are taken at open, before the baseline', () => {

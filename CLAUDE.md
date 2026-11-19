@@ -58,8 +58,13 @@ D4, Jason 2026-11-19: "Follow lean". Save rebuilt the whole menu line from the d
 ", " or " & "), so changing one side reworded meals EXPO, HUB and the sheets read. Now `doorEditedMealName` keeps the words
 the meal opened with (`_doorWordsAtOpen`, taken before the draft baseline): a changed dish has its words replaced where they
 stood (`doorKeepMenuWords`, found whole, then without case), a dish taken out loses its words and one separator, a new dish
-goes at the end. A changed Event Name, a box not in the words, or a legacy edit rebuild from the boxes as before. Save, the
-plate summary and "Will save as" read it. Gates `tests/menu_words_kept_s4a_gate.mjs` (4) and browser
+goes at the end. **Independent review (FIX FIRST), folded:** dishes are matched as whole pieces between separators
+(`doorWordPieces`, `doorFindDishRun`: exactly one run of whole pieces, any case), never inside another dish (Broccoli in
+"Beef and Broccoli"); edits are placed on the words as they opened and overlapping ones rebuild; a new dish is added unless
+it is already a whole piece; the Event Name keeps its dash. A changed Event Name, a box not exactly one piece run, or a
+legacy edit rebuild from the boxes as before. D4 covers the regular line; the vegan line is still built from its boxes
+(W3b reads all 55 back unchanged). Save, the
+plate summary and "Will save as" read it. Gates `tests/menu_words_kept_s4a_gate.mjs` (4, with the review's cases) and browser
 `tests/browser/menu_words_kept_s4a.mjs` (3, in CI): a one-dish edit on every published meal (84) leaves every other word
 as written; on `main` 40 meals were reworded. Re-pinned with dated notes: `plate_summary_s2b`, `slot_editor_live_commit`,
 `w3e_slot_commit_ticks`. The plan's ST step is folded into each slice (behaviour gates, re-pins as code moves).

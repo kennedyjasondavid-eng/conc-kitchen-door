@@ -21121,45 +21121,64 @@ function _slotText(s) { return s ? (s.displayText || s.recipeName || s.manual ||
 
 // S4a (Edit Menu redesign, D4; Jason 2026-11-19: "Follow lean"): a real edit rewrites only the dish that changed. The
 // menu words the meal opened with are kept as written, in their order; a changed dish has its words replaced where they
-// stood, a dish taken out loses its words and one separator, a new dish goes at the end. When a changed dish cannot be
-// found in the words (boxes behind the words, a joined box, the Event Name), the line is rebuilt from the boxes as before.
+// stood, a dish taken out loses its words and one separator, a new dish goes at the end. Dishes are matched as whole
+// pieces between separators (", " "&" "—" ";" "+"), never inside another dish; anything that cannot be placed exactly (a
+// box not in the words, two boxes on the same words, the Event Name) rebuilds the line from the boxes, as before.
 const DOOR_WORD_SLOT_IDS = ['main', 'starch', 'vegside', 'xtra'];
-function doorFindDishWords(text, words) {
-  const t = String(text || ''), w = String(words || '').trim();
-  if (!w) return -1;
-  const letter = c => /[A-Za-z0-9]/.test(c || '');
-  // The words as written first; then without case (a box can read "Okra and Cassava Stew" over "Okra and cassava stew").
-  for (const [hay, needle] of [[t, w], [t.toLowerCase(), w.toLowerCase()]]) {
-    let i = hay.indexOf(needle);
-    while (i >= 0) {
-      if (!letter(hay[i - 1]) && !letter(hay[i + needle.length])) return i;
-      i = hay.indexOf(needle, i + 1);
+const DOOR_WORD_SEP_RE = /(\s*(?:,|&|—|;|\+)\s*)/;
+function doorWordPieces(text) {
+  const parts = String(text || '').split(DOOR_WORD_SEP_RE);
+  return { pieces: parts.filter((x, i) => i % 2 === 0), seps: parts.filter((x, i) => i % 2 === 1) };
+}
+// The one run of whole pieces that reads as these words (any case, spaces evened): [start, end] piece indexes, or null
+// when none or more than one run does.
+function doorFindDishRun(tok, words) {
+  const norm = x => String(x || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const w = norm(words);
+  if (!w) return null;
+  const hits = [];
+  for (let a = 0; a < tok.pieces.length; a++) {
+    let run = '';
+    for (let b = a; b < tok.pieces.length; b++) {
+      run += (b > a ? tok.seps[b - 1] : '') + tok.pieces[b];
+      const r = norm(run);
+      if (r === w) { hits.push([a, b]); break; }
+      if (r.length > w.length) break;
     }
   }
-  return -1;
+  return hits.length === 1 ? hits[0] : null;
 }
 // Pure. text: the words the meal opened with; before / after: { slotId: shown words } at open and now.
 // Returns the new words, or null when they have to be rebuilt from the boxes.
 function doorKeepMenuWords(text, before, after) {
-  let t = String(text || '');
   before = before || {}; after = after || {};
   if (String(before.extras || '').trim() !== String(after.extras || '').trim()) return null;
-  const added = [];
+  const tok = doorWordPieces(text);
+  const edits = [], added = [];
   for (const id of DOOR_WORD_SLOT_IDS) {
     const was = String(before[id] || '').trim(), now = String(after[id] || '').trim();
     if (was === now) continue;
     if (!was) { added.push(now); continue; }
-    const at = doorFindDishWords(t, was);
-    if (at < 0) return null;
-    if (now) { t = t.slice(0, at) + now + t.slice(at + was.length); continue; }
-    // taken out: its words and one separator (the one before it, else the one after)
-    const left = t.slice(0, at), right = t.slice(at + was.length);
-    const sepBefore = left.match(/\s*(?:,|&|—|\+|;)\s*$/), sepAfter = right.match(/^\s*(?:,|&|—|\+|;)\s*/);
-    if (sepBefore) t = left.slice(0, left.length - sepBefore[0].length) + right;
-    else if (sepAfter) t = left + right.slice(sepAfter[0].length);
-    else t = left + right;
+    const run = doorFindDishRun(tok, was);
+    if (!run) return null;
+    edits.push({ run, now });
   }
-  added.forEach(w => { if (doorFindDishWords(t, w) < 0) t = t.trim() ? t.replace(/\s+$/, '') + ', ' + w : w; });
+  // every edit on its own pieces of the words as they opened; overlapping edits rebuild
+  edits.sort((x, y) => x.run[0] - y.run[0]);
+  for (let k = 1; k < edits.length; k++) if (edits[k].run[0] <= edits[k - 1].run[1]) return null;
+  const pieces = tok.pieces.slice(), seps = tok.seps.slice();
+  for (let k = edits.length - 1; k >= 0; k--) {
+    const [a, b] = edits[k].run, now = edits[k].now;
+    if (now) { pieces.splice(a, b - a + 1, now); seps.splice(a, b - a); continue; }
+    // taken out: its pieces and one separator (the one before it, unless that leads the Event Name or it is first)
+    const before = a > 0 ? seps[a - 1] : null;
+    const useBefore = before != null && !/—/.test(before);
+    pieces.splice(a, b - a + 1);
+    if (useBefore) seps.splice(a - 1, b - a + 1);
+    else seps.splice(a, b - a + 1);
+  }
+  let t = pieces.map((x, i) => x + (i < seps.length ? seps[i] : '')).join('');
+  added.forEach(w => { if (!doorFindDishRun(doorWordPieces(t), w)) t = t.trim() ? t.replace(/\s+$/, '') + ', ' + w : w; });
   t = t.trim();
   return t || null;
 }
