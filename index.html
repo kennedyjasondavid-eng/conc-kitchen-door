@@ -22231,7 +22231,8 @@ function doorWriteEditorMeal(target, period, name, veg, flags) {
   // S6b (D5): with no sides of its own, a halal main changed since the meal opened replaces the stored halal line (the
   // workbook shape: the dish; the sheet adds the shared sides). The sheet prints a stored line first, so the old dish
   // stayed on the halal plate. A halal main not changed, or not known at open, leaves the stored line as it was.
-  else if (typeof doorHalalMainChangedSinceOpen === 'function' && doorHalalMainChangedSinceOpen()) target[period + '_halal'] = buildMainAltItem() || '';
+  // Review fold (P3): an emptied halal main box keeps the stored line (blank would make the sheet invent "Halal <main>").
+  else if (typeof doorHalalMainChangedSinceOpen === 'function' && doorHalalMainChangedSinceOpen() && buildMainAltItem()) target[period + '_halal'] = buildMainAltItem();
   doorSetMealFlags(target, period, flags);   // with its allergen line (2026-10-19)
   target[period + '_softAlt'] = buildSoftAlt();
   target[period + '_altMeals'] = buildAltMeals();
@@ -27612,7 +27613,7 @@ function printPlatingPreview() {
 
 // Ctrl+P uses the same current preview. Its warning is inside the printable table, not a hidden toolbar.
 window.addEventListener('beforeprint', function() {
-  if (!document.body.classList.contains('printing-labels') && !document.body.classList.contains('tm-printing')) renderPlatingPreview();
+  if (!document.body.classList.contains('printing-labels')) renderPlatingPreview();
 });
 
 function printLabels() {

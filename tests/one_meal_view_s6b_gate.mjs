@@ -23,6 +23,7 @@ test('S6b-2 what stays: the banner Make Permanent and Revert, the footer Put bac
 });
 
 test('S6b-3 a halal main changed since the meal opened replaces the stored halal line', () => {
-  assert.match(fn('doorWriteEditorMeal'), /else if \(typeof doorHalalMainChangedSinceOpen === 'function' && doorHalalMainChangedSinceOpen\(\)\) target\[period \+ '_halal'\] = buildMainAltItem\(\) \|\| '';/);
+  assert.match(fn('doorWriteEditorMeal'), /else if \(typeof doorHalalMainChangedSinceOpen === 'function' && doorHalalMainChangedSinceOpen\(\) && buildMainAltItem\(\)\) target\[period \+ '_halal'\] = buildMainAltItem\(\);/, 'an emptied box keeps the stored line');
+  assert.ok(!html.includes('tm-printing'), 'the Test Meal print class is gone');
   assert.match(fn('doorHalalMainChangedSinceOpen'), /if \(!o \|\| o\.key !== mcMenuEditKey \|\| !o\.dishes\) return false;/, 'unknown: the stored line is kept');
 });

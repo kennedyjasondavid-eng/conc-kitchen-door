@@ -69,7 +69,12 @@ D5, Jason 2026-11-19: "Follow lean".
   review are left for their own pass.
 - **Found and fixed:** with no sides of its own, a halal main changed in the editor left the stored halal line, which the
   sheet prints first, so the halal plate kept the old dish. A halal main changed since the meal opened now replaces it
-  (`doorHalalMainChangedSinceOpen`); one not changed keeps it.
+  (`doorHalalMainChangedSinceOpen`). One not changed, or emptied, keeps it (blank would make the sheet invent
+  "Halal <main>").
+- **Independent review: SHIP.** P3s folded: an emptied halal main keeps the stored line, and the leftover Test Meal
+  print class is gone. Noted, not changed:
+  - "Just on" refuses breakfast, which the old Swap Meal tab allowed, though no sheet read a breakfast swap;
+  - a Swap Slots pair is taken back with two Reverts, one per date.
 - **Gates:** `tests/one_meal_view_s6b_gate.mjs` (3) and browser `tests/browser/one_meal_view_s6b.mjs` (8, in CI). The halal
   case is red without the fix.
 - **Checks moved to the new paths, with dated notes:** `restore_original` (Make Permanent → the every-week Save; Revert to
