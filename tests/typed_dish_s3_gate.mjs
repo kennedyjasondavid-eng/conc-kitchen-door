@@ -45,6 +45,10 @@ test('S3-1 answered means declared or an allergen tick; Spicy or Carb alone is n
   assert.equal(c.doorTypedDishUnanswered({ manual: 'Chili', flags: { isSpicy: true, isCarb: true } }), true);
   assert.equal(c.doorTypedDishUnanswered({ recipeName: 'Rice Pilaf', flags: {} }), false, 'a linked dish has its recipe');
   assert.equal(c.doorTypedDishUnanswered(null), false);
+  // Review fold (P2): a typed main carries the meal ticks, and a renamed dish the old dish ticks; neither is an answer.
+  assert.equal(c.doorTypedDishUnanswered({ manual: 'Jerk Chicken', flags: { hasSoy: true } }, 'main'), true);
+  assert.equal(c.doorTypedDishUnanswered({ manual: 'Jerk Chicken', flags: { hasSoy: true }, declared: true }, 'main'), false);
+  assert.equal(c.doorTypedDishUnanswered({ manual: 'Coleslaw', flags: { hasGluten: true }, _carried: true }, 'vegside'), true);
 });
 
 test('S3-2 a dish typed now reads amber; one the meal opened with reads quietly; both offer Nothing to declare', () => {
@@ -82,6 +86,15 @@ test('S3-4 Menu Config lists the typed dishes not answered, by meal; the publish
   assert.match(fnBlock('renderTypedUnansweredList'), /#menu-config\/edit\//, 'each meal links to Edit Menu');
 });
 
-test('S3-5 Rex import marks a typed dish its review ticked', () => {
-  assert.match(fnBlock('doorRexBuildMeal'), /if \(\(\(a\.ticks \|\| \{\}\)\[ln \+ '\|' \+ piece\] \|\| \[\]\)\.length\) typed\.declared = true;/);
+test('S3-5 Rex import marks a typed dish its review ticked (an allergen, not Spicy or Carb alone)', () => {
+  assert.match(fnBlock('doorRexBuildMeal'), /\.some\(k => !_meal\(k\)\)\) typed\.declared = true;/);
+});
+
+test('S3-6 an answer-only Save writes only the answers into the stored boxes', () => {
+  const save = fnBlock('saveMenuEdit');
+  assert.ok(save.indexOf('doorAnswersOnly(editSession)') > 0 && save.indexOf('doorAnswersOnly(editSession)') < save.indexOf('!doorMenuDraftIsDirty()'), 'checked before the unchanged-Save check');
+  const w = fnBlock('doorWriteAnswersOnly');
+  assert.match(w, /overlay\[week\]\[day\]\[period \+ '_slots'\] = slots;/);
+  assert.doesNotMatch(w, /doorWriteEditorMeal|doorSetMealFlags|buildMealName/, 'no menu words or ticks are rebuilt');
+  assert.match(fnBlock('doorAnswersOnly'), /finally \{ ids\.forEach\(id => \{ MEAL_SLOT_STATE\[id\]\.declared = true; \}\); \}/);
 });

@@ -280,5 +280,5 @@ moves its code without changing a byte).
 | S1 search | merged (`f246523`, `v31-standard.104`); reviews FIX FIRST ×2, folded; SHIP | #244 |
 | S2a plate facts | merged (`7d33af4`, `v31-standard.105`); review SHIP | #245 |
 | S2b plate summary | merged (`14d6198`, `v31-standard.106`); review SHIP | #246 |
-| S3 typed dishes | built (`v31-standard.107`); D2 ruled; review pending | |
+| S3 typed dishes | built (`v31-standard.107`); D2 ruled; review SHIP, P2s folded | #247 |
 | ST–S8, U1 | planned; D2, D7, D8 ruled; D1, D3–D6, D9 pending | |

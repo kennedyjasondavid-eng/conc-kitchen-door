@@ -16283,8 +16283,11 @@ function doorMealsToResave(menu) {
 }
 // S3 (Edit Menu redesign, D2; Jason 2026-11-19: "Follow lean"): a typed dish (no recipe) says what it contains. It is
 // answered when someone said so (declared: true, "Nothing to declare" included) or when it carries an allergen tick.
-function doorTypedDishUnanswered(state) {
+// Review fold (S3, P2): the Main box takes the whole meal ticks when a meal opens, and a renamed dish keeps the old dish
+// ticks (the safe side), so neither counts as an answer there; only declared does.
+function doorTypedDishUnanswered(state, slotId) {
   if (!state || state.recipeName || !String(state.manual || '').trim() || state.declared === true) return false;
+  if (slotId === 'main' || state._carried === true) return true;
   const f = state.flags || {};
   return !(typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).some(d => !d.mealLevel && f[d.key] === true);
 }
@@ -16297,7 +16300,7 @@ function doorMealsTypedUnanswered(menu) {
   Object.keys(m || {}).forEach(week => Object.keys(m[week] || {}).forEach(day => ['breakfast', 'lunch', 'dinner'].forEach(period => {
     const slots = m[week][day] && m[week][day][period + '_slots'];
     if (!slots || typeof slots !== 'object') return;
-    const dishes = DOOR_TYPED_DISH_IDS.filter(id => doorTypedDishUnanswered(slots[id])).map(id => String(slots[id].manual).trim());
+    const dishes = DOOR_TYPED_DISH_IDS.filter(id => doorTypedDishUnanswered(slots[id], id)).map(id => String(slots[id].manual).trim());
     if (dishes.length) out.push({ week: String(week), day, period, dishes: [...new Set(dishes)] });
   })));
   return out;
@@ -16310,7 +16313,7 @@ function renderTypedUnansweredList() {
   const n = list.reduce((t, x) => t + x.dishes.length, 0);
   el.innerHTML = '<details><summary style="cursor:pointer;color:var(--muted);">Typed dishes with allergens not answered yet: ' + n
     + ' on ' + list.length + ' meals. Open each meal and say what each one contains (or Nothing to declare).</summary>'
-    + '<ul style="margin:6px 0 0 18px;padding:0;">' + list.map(x => '<li><a href="#menu-config/edit/' + encodeURIComponent(x.week) + '/'
+    + '<ul style="margin:6px 0 0 18px;padding:0;">' + list.map(x => '<li><a style="color:var(--info-ink, #1d4ed8);" href="#menu-config/edit/' + encodeURIComponent(x.week) + '/'
       + encodeURIComponent(x.day) + '/' + encodeURIComponent(x.period) + '">' + escapeHtml('Wk' + x.week + ' ' + x.day.slice(0, 3) + ' ' + x.period)
       + '</a>: ' + escapeHtml(x.dishes.join(', ')) + '</li>').join('') + '</ul></details>';
   el.style.display = 'block';
@@ -16318,8 +16321,9 @@ function renderTypedUnansweredList() {
 // The typed dishes a meal had when it was opened: one of those not answered reads quietly (it was saved before S3); a dish
 // typed now reads amber until someone answers.
 var SLOT_TYPED_AT_OPEN = {};
+var SLOT_DECLARED_AT_OPEN = {};
 function doorTypedDishNoteHTML(def, state) {
-  if (!doorTypedDishUnanswered(state)) return '';
+  if (!doorTypedDishUnanswered(state, def.id)) return '';
   const legacy = SLOT_TYPED_AT_OPEN[def.id] === String(state.manual || '').trim();
   const dish = escapeHtml(String(state.manual).trim());
   const btn = '<button type="button" onclick="' + _escAttr('slotDeclareNothing(' + _jsArgLiteral(def.id) + ')') + '" class="btn btn-ghost btn-sm" style="font-size:11px;margin-left:6px;">Nothing to declare</button>';
@@ -18174,7 +18178,8 @@ function doorRexBuildMeal(plan, door, ans, ctx) {
     }
     const typed = { manual: piece, flags: f };
     // S3: the review asked what this dish contains and someone ticked its allergens.
-    if (((a.ticks || {})[ln + '|' + piece] || []).length) typed.declared = true;
+    const _meal = k => (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).some(d => d.key === k && d.mealLevel);
+    if (((a.ticks || {})[ln + '|' + piece] || []).some(k => !_meal(k))) typed.declared = true;
     return typed;
   };
   const slots = {};
@@ -21832,7 +21837,7 @@ function slotToggleFlag(slotId, key) {
   if (!MEAL_SLOT_STATE[slotId].flags) MEAL_SLOT_STATE[slotId].flags = {};
   MEAL_SLOT_STATE[slotId].flags[key] = !MEAL_SLOT_STATE[slotId].flags[key];
   // S3: setting the allergens of a typed dish by hand answers what it contains (an untick back to none stays answered).
-  if (!MEAL_SLOT_STATE[slotId].recipeName && MEAL_SLOT_STATE[slotId].manual) MEAL_SLOT_STATE[slotId].declared = true;
+  if (!MEAL_SLOT_STATE[slotId].recipeName && MEAL_SLOT_STATE[slotId].manual) { MEAL_SLOT_STATE[slotId].declared = true; delete MEAL_SLOT_STATE[slotId]._carried; }
   renderSlots(); updateSlotSummary();
 }
 
@@ -22083,6 +22088,10 @@ async function saveMenuEdit() {
   // H2 (2026-11-19): a meal opened and saved with nothing changed writes nothing. Saving rebuilt its menu text from the
   // dish boxes, so a meal read from its text came back reworded ("Pancakes, turkey bacon, fruit & yoghurt" became
   // "Pancakes & turkey bacon & fruit & yoghurt"), and that text is what EXPO, HUB and the sheets read.
+  // S3 review fold: when the only change is answering what typed dishes contain, only the answers are written; a full
+  // Save would rebuild the menu words from the boxes (the H2 rewording) for every meal on the Menu Config list.
+  const _answers = typeof doorAnswersOnly === 'function' && editSession && editSession.key === mcMenuEditKey ? doorAnswersOnly(editSession) : null;
+  if (_answers) { const done = doorWriteAnswersOnly(_answers); if (done) return done; }
   if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
     // Review fold (2026-11-19, P1): opening the meal can bring in ticks the stored meal lacks (a recipe label checked
     // since it was linked; a dish tick missing from the meal). The "re-save the meal" step relies on Save writing
@@ -22363,6 +22372,43 @@ function doorRepairMealTicks(repair) {
   return true;
 }
 
+// S3 review fold: the typed dishes answered since the meal opened, when nothing else changed (null otherwise).
+function doorAnswersOnly(session) {
+  const ids = Object.keys(MEAL_SLOT_STATE).filter(id => { const x = MEAL_SLOT_STATE[id];
+    return x && !x.recipeName && x.manual && x.declared === true && !SLOT_DECLARED_AT_OPEN[id] && SLOT_TYPED_AT_OPEN[id] === String(x.manual).trim(); });
+  if (!ids.length || !session || typeof doorMenuDraftSignature !== 'function') return null;
+  ids.forEach(id => { delete MEAL_SLOT_STATE[id].declared; });
+  let same = false;
+  try { same = doorMenuDraftSignature() === session.signature; } finally { ids.forEach(id => { MEAL_SLOT_STATE[id].declared = true; }); }
+  return same ? ids : null;
+}
+// Writes only the answers into the stored dish boxes; the menu words, ticks and every other field stay as stored.
+function doorWriteAnswersOnly(ids) {
+  if (!guardStandardMenuWrite('Edit Menu')) return true;
+  const parts = mcMenuEditKey.split('-');
+  const week = parts[0], day = parts[1], period = parts[2];
+  const dayData = (getMenuData()[String(week)] || {})[day] || {};
+  const stored = dayData[period + '_slots'];
+  if (!stored || typeof stored !== 'object' || !ids.every(id => stored[id] && !stored[id].recipeName && String(stored[id].manual || '').trim() === String(MEAL_SLOT_STATE[id].manual).trim())) return null;
+  const overlay = loadMenuBaseOverlay();
+  const before = doorMealCopy(doorStoredMenuDay(overlay, week, day), period);
+  if (!overlay[week]) overlay[week] = {};
+  if (!overlay[week][day]) overlay[week][day] = {};
+  const slots = JSON.parse(JSON.stringify(stored));
+  ids.forEach(id => { slots[id].declared = true; });
+  overlay[week][day][period + '_slots'] = slots;
+  const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Menu');
+  saveMenuBaseOverlay(overlay);
+  const name = dayData[period] || '—';
+  const dishes = ids.map(id => String(MEAL_SLOT_STATE[id].manual).trim());
+  appendChangeLog({ type: 'permanent_edit', week, day, period, oldName: name, newName: name,
+    before: noted.before, afterSig: noted.afterSig, first: noted.first });
+  closeMenuEdit(true);
+  renderMenuConfig();
+  showToast('Saved the allergen answers for ' + dishes.join(', ') + '. The menu words are unchanged.');
+  publishAndSync('menu edit saved');
+  return true;
+}
 // S2b (Edit Menu redesign): what Save writes for the open meal, in one place, so the plate summary reads the meal exactly
 // as Save will write it.
 function doorWriteEditorMeal(target, period, name, veg, flags) {
@@ -22447,7 +22493,7 @@ function doorPlateSummaryHTML(facts, handKeys) {
   if (amber.length) html += '<div style="font-size:12px;margin-top:4px;color:var(--warn-ink, #92400e);">Label not checked: ' + escapeHtml(amber.join(', ')) + '</div>';
   // S3: typed dishes nobody has said the allergens of (amber when typed now, quiet when saved before).
   if (typeof MEAL_SLOT_STATE !== 'undefined' && typeof doorTypedDishUnanswered === 'function') {
-    const unanswered = DOOR_TYPED_DISH_IDS.filter(id => doorTypedDishUnanswered(MEAL_SLOT_STATE[id]));
+    const unanswered = DOOR_TYPED_DISH_IDS.filter(id => doorTypedDishUnanswered(MEAL_SLOT_STATE[id], id));
     const fresh = unanswered.filter(id => SLOT_TYPED_AT_OPEN[id] !== String(MEAL_SLOT_STATE[id].manual).trim()).map(id => String(MEAL_SLOT_STATE[id].manual).trim());
     const old = unanswered.filter(id => SLOT_TYPED_AT_OPEN[id] === String(MEAL_SLOT_STATE[id].manual).trim()).map(id => String(MEAL_SLOT_STATE[id].manual).trim());
     if (fresh.length) html += '<div style="font-size:12px;margin-top:4px;color:var(--warn-ink, #92400e);font-weight:600;">Allergens not set: ' + escapeHtml(fresh.join(', ')) + '</div>';
@@ -22739,8 +22785,8 @@ function openMenuEdit(week, day, period) {
   // opened meal doesn't auto-uncheck flags that were carried over from the
   // last meal's slot state.
   _LAST_SLOT_FLAGS = {};
-  SLOT_TYPED_AT_OPEN = {};
-  Object.keys(MEAL_SLOT_STATE).forEach(id => { const x = MEAL_SLOT_STATE[id]; if (x && !x.recipeName && x.manual) SLOT_TYPED_AT_OPEN[id] = String(x.manual).trim(); });
+  SLOT_TYPED_AT_OPEN = {}; SLOT_DECLARED_AT_OPEN = {};
+  Object.keys(MEAL_SLOT_STATE).forEach(id => { const x = MEAL_SLOT_STATE[id]; if (x && !x.recipeName && x.manual) { SLOT_TYPED_AT_OPEN[id] = String(x.manual).trim(); if (x.declared === true) SLOT_DECLARED_AT_OPEN[id] = true; } });
   renderSlots();
   updateSlotSummary();
   if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
@@ -23449,6 +23495,9 @@ function slotAutoSave(slotId, val, how) {
       ? doorSlotHoldTyped(val, current, (typeof SLOT_OFFERED !== 'undefined' ? SLOT_OFFERED[slotId] : null)) : null;
     if (hold) { held[slotId] = hold; renderSlots(); updateSlotSummary(); return; }
     MEAL_SLOT_STATE[slotId] = { manual: val, flags: (current && current.flags) || {} };
+    // S3 review fold (P2): new words keep the old dish ticks (never dropped without a person) but they do not answer
+    // what the new dish contains.
+    if (current && (current.manual || current.recipeName) && Object.keys(current.flags || {}).some(k => current.flags[k] === true)) MEAL_SLOT_STATE[slotId]._carried = true;
   }
   if (held) delete held[slotId];
   renderSlots();

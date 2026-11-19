@@ -68,6 +68,30 @@ try {
     });
     check(width + ' a tick on a typed dish answers it', ticked.declared === true && !ticked.note, ticked);
     await p.evaluate(() => closeMenuEdit(true));
+    // 4b. Review fold: answering a dish the meal opened with writes only the answer; the menu words stay as stored.
+    const only = await p.evaluate(async () => {
+      const before = JSON.parse(JSON.stringify(getMenuData()['1'].WEDNESDAY));
+      openMenuEdit(1, 'WEDNESDAY', 'lunch');
+      slotDeclareNothing('vegside');
+      const r = await Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('timeout'), 4000))]);
+      const after = getMenuData()['1'].WEDNESDAY;
+      const changed = Object.keys(Object.assign({}, before, after)).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+      return { r, changed, declared: after.lunch_slots && after.lunch_slots.vegside && after.lunch_slots.vegside.declared, words: after.lunch === before.lunch };
+    });
+    check(width + ' answering only writes the answer (and the meal kept as it was, editor-only): the menu words and every other field stay as stored', only.r === true && only.declared === true && only.words && only.changed.every((k) => k === 'lunch_slots' || k === 'lunch_original') && only.changed.includes('lunch_slots'), only);
+    // 4c. Review fold: a typed main reads unanswered though it carries the meal ticks; a renamed dish keeps its ticks but asks.
+    const main = await p.evaluate(() => {
+      openMenuEdit(1, 'MONDAY', 'dinner');
+      const note = [...document.querySelectorAll('.slot-typed-note')].find((n) => /Jerk Chicken/.test(n.innerText));
+      MEAL_SLOT_STATE.vegside = { manual: 'Garlic Bread', flags: { hasGluten: true }, declared: true };
+      slotAutoSave('vegside', 'Audit Slaw', 'enter');
+      const s = MEAL_SLOT_STATE.vegside;
+      const renamed = [...document.querySelectorAll('.slot-typed-note.slot-typed-new')].some((n) => /Audit Slaw/.test(n.innerText));
+      closeMenuEdit(true);
+      return { main: note ? note.className : '', keptGluten: !!(s && s.flags && s.flags.hasGluten), declared: s && s.declared, renamed };
+    });
+    check(width + ' a typed main reads unanswered though the meal ticks sit on it', /slot-typed-old/.test(main.main), main);
+    check(width + ' a renamed dish keeps the old ticks but asks again', main.keptGluten && main.declared !== true && main.renamed, main);
     // 5. Menu Config lists the typed dishes not answered, with links.
     const list = await p.evaluate(() => { renderTypedUnansweredList(); const el = document.getElementById('mc-typed-unanswered');
       return { shown: el && el.style.display !== 'none', text: el ? el.innerText : '', links: el ? el.querySelectorAll('a[href^="#menu-config/edit/"]').length : 0 }; });

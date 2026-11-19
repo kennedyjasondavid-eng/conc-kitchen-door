@@ -60,10 +60,14 @@ Spicy or Carb alone is not an answer). In Edit Menu a dish typed now reads amber
 below, or Nothing to declare"; one the meal opened with reads quietly, "Allergens not answered yet" (`SLOT_TYPED_AT_OPEN`,
 taken before the draft baseline, so opening changes nothing); the plate summary names both. A tick on a typed dish answers
 it. Menu Config lists the typed dishes not answered, each meal linked (`#mc-typed-unanswered`,
-`doorMealsTypedUnanswered`: 54 on 39 published meals). The marker travels in the saved `_slots` (additive; EXPO ignores
-`_slots`, HUB reads only `recipeId`). Rex's import marks a dish its review ticked. The Special Meal editor keeps no
-per-dish allergens. Gates `tests/typed_dish_s3_gate.mjs` (5, red 5/5 on `main` `14d6198`) and browser
-`tests/browser/typed_dish_s3.mjs` (17, in CI, red on `main`).
+`doorMealsTypedUnanswered`: 89 on 46 published meals). The marker travels in the saved `_slots` (additive; EXPO ignores
+`_slots`, HUB reads only `recipeId`). Rex's import marks a dish its review ticked (an allergen, not Spicy or Carb alone).
+The Special Meal editor keeps no per-dish allergens; line versions (`lines.*`) are not asked about yet.
+**Independent review (SHIP), folded:** a typed main carries the whole meal's ticks and a renamed dish the old dish's
+ticks (`_carried`, never saved), so neither counts as an answer; answering only (nothing else changed) writes just the
+markers into the stored boxes (`doorAnswersOnly`, `doorWriteAnswersOnly`), never rebuilding the menu words; the list's
+links read in dark mode. Gates `tests/typed_dish_s3_gate.mjs` (6, red on `main` `14d6198`) and browser
+`tests/browser/typed_dish_s3.mjs` (23, in CI, red on `main`).
 
 ## Recent (2026-11-19) — Edit Menu shows each plate as it will be served (redesign S2b, `v31-standard.106`)
 - **The summary:** under "Will save as", the regular, vegan and halal plates' allergens, worked out by `doorPlateFacts` on
