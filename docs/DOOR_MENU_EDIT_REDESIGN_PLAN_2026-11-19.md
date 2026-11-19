@@ -266,5 +266,5 @@ moves its code without changing a byte).
 |---|---|---|
 | S0 two defects | merged (`c470937`); review SHIP | #242 |
 | Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
-| S1 search | built (`v31-standard.104`); gate `tests/recipe_search_s1_gate.mjs` (10) red on `d7a3e65`; review FIX FIRST, folded | #244 |
+| S1 search | built (`v31-standard.104`); gate `tests/recipe_search_s1_gate.mjs` (10) red on `d7a3e65`; reviews FIX FIRST ×2, folded | #244 |
 | S2a–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |

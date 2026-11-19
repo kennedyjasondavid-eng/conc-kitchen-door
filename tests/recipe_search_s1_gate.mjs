@@ -204,6 +204,7 @@ test('S1i a refused recipe name is held and refused, never saved as a typed dish
   assert.equal(c.MEAL_SLOT_STATE.mainalt.manual, 'Halal Lamb Stew', 'words naming no recipe still save as typed');
   const q = fnBlock('doorSlotHeldQuestion');
   assert.match(q, /h\.kind === 'refused'[\s\S]*Put the box back/);
+  assert.match(html, /\n  slotDropHeld: true,/, 'the card button is an allowed inline handler (the browser gate found it missing)');
   assert.match(fnBlock('saveMenuEdit'), /if \(h\.kind === 'refused'\) slotDropHeld\(id\);/);
   assert.match(fnBlock('slotSearch'), /groups\.refused\.some\(x => x\.r\.recipeName\.toLowerCase\(\) === q\)/, 'no typed-dish row for a refused exact name');
 });

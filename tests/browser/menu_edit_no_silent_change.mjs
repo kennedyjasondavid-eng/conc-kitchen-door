@@ -65,6 +65,25 @@ try {
     check(width + ' the editor closes and says nothing changed (no question asked)', r === true && !after.open, r);
     await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
     await p.close();
+    // 2b. S1 review fold (P2, 2026-11-19): a recipe the box refuses, put back from the Save question, writes nothing.
+    p = await boot(width);
+    await p.evaluate(() => openMenuEdit(1, 'MONDAY', 'breakfast'));
+    await p.waitForTimeout(300);
+    const before2b = await state(p);
+    const r2b = await p.evaluate(async () => {
+      DOOR_RECIPE_DATA = DOOR_RECIPE_DATA.concat([{ recipeName: 'Audit Pork Roast', recipeId: 'audit-pork-roast', allergens: [], category: 'protein', stream: 'regular' }]);
+      slotAutoSave('mainalt', 'Audit Pork Roast');
+      const held = SLOT_HELD.mainalt && SLOT_HELD.mainalt.kind;
+      const asked = [];
+      window.doorAsk = async (q) => { asked.push(q.title); return true; };
+      const res = await Promise.race([saveMenuEdit(), new Promise((r) => setTimeout(() => r('timeout'), 3000))]);
+      return { held, asked, res };
+    });
+    await p.waitForTimeout(300);
+    const after2b = await state(p);
+    check(width + ' a refused recipe name is held, and Save asks once', r2b.held === 'refused' && r2b.asked.length === 1, r2b);
+    check(width + ' putting it back from the question writes nothing', after2b.overlay === before2b.overlay && after2b.bk === before2b.bk && r2b.res === true, [r2b, after2b.overlay.slice(0, 120)]);
+    await p.close();
     // 3. Clicking away from a typed dish that was not changed leaves it, ticks and all.
     p = await boot(width);
     await p.evaluate(() => openMenuEdit(4, 'SATURDAY', 'lunch'));

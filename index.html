@@ -5552,6 +5552,7 @@ const DOOR_INLINE_HANDLER_ALLOWLIST = {
   removeRefusal: true,
   slotSelect: true,
   slotRenameShown: true,
+  slotDropHeld: true,   // S1 review fold: put a refused box back
   smSlotSelect: true,
   slotSaveManual: true,
   smSlotSaveManual: true
@@ -22038,6 +22039,14 @@ async function saveMenuEdit() {
     else if (h.kind === 'exact') slotSelect(id, h.recipe);
     else if (h.kind === 'half') { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotSelect(id, h.recipe); }
     else { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotRenameShown(id, h.typed); }
+  }
+  // S1 review fold (P2): putting a refused box back can leave the meal as it opened. Then Save writes nothing, as above.
+  if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
+    const repair2 = doorOpenRepairTicks();
+    if (repair2) return doorRepairMealTicks(repair2);
+    showToast('Nothing changed, so nothing was saved.', 'info');
+    closeMenuEdit(true);
+    return true;
   }
   const name = buildMealName();
   if (!name) { alert('Add at least a main dish before saving.'); return; }
