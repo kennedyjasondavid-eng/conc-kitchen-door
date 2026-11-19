@@ -49,6 +49,7 @@ const RECIPES = [
   { recipeName: 'Red Red Bean Stew', category: 'stew_main', stream: 'regular', veganFriendly: true, allergens: [] },
   { recipeName: 'Garlic Green Bean', category: 'veg_side', stream: 'regular', allergens: [] },
   { recipeName: 'Cornbread', category: 'starch_side', stream: 'regular', allergens: ['Gluten', 'Milk', 'Eggs'] },
+  { recipeName: 'Butter Chicken', category: 'protein', stream: 'regular', veganFriendly: false, allergens: ['Tree Nuts (Coconut)'] },
 ];
 const DEFS = {
   main: { id: 'main', cats: ['protein', 'stew_main', 'salad'], streams: ['regular', ''] },
@@ -144,15 +145,77 @@ test('S1g clicking away from a recipe name links nothing: it is held and Save as
   assert.match(fnBlock('doorSlotHeldNoteHTML'), /h\.kind === 'exact'/);
 });
 
-test('S1h the vegan and halal "gets instead" boxes link no recipe the line refuses', () => {
+// Review fold (2026-11-19, P1-A): a recipe the line refuses is refused out loud at the "gets instead" box; the line keeps
+// what it had. The open-time read-in keeps linking by name (nothing changes on open). Re-pinned from the first cut,
+// which saved the words as a typed dish with no allergens.
+test('S1h the vegan and halal "gets instead" boxes refuse a recipe the line refuses, out loud', () => {
   const c = ctx();
-  c.doorLinkFlags = () => ({ linked: true });
-  vm.runInContext(fnBlock('doorMakeLineVersion'), c);
-  assert.equal(c.doorMakeLineVersion('Cornbread', 'vegan').recipeName, undefined, 'Cornbread lists Milk: kept as typed on the vegan line');
-  assert.equal(c.doorMakeLineVersion('Cornbread', 'vegan').manual, 'Cornbread');
-  assert.equal(c.doorMakeLineVersion('Cornbread', 'halal').recipeName, 'Cornbread');
-  assert.equal(c.doorMakeLineVersion('Pork Griot', 'halal').manual, 'Pork Griot');
-  assert.equal(c.doorMakeLineVersion('Cornbread').recipeName, 'Cornbread', 'no line given: as before');
+  const toasts = [];
+  Object.assign(c, { doorLinkFlags: () => ({ linked: true }), showToast: (m) => toasts.push(m), renderSlots: () => {}, updateSlotSummary: () => {},
+    MEAL_SLOT_STATE: { starch: { recipeName: 'Rice', flags: {} } } });
+  for (const f of ['doorMakeLineVersion', 'doorRefusedExactRecipe', 'slotLineText']) vm.runInContext(fnBlock(f), c);
+  c.slotLineText('starch', 'vegan', 'Cornbread');
+  assert.equal(c.MEAL_SLOT_STATE.starch.lines, undefined, 'the vegan line keeps what it had');
+  assert.match(toasts[0], /Cornbread” can’t go on the vegan line: lists Milk/);
+  c.slotLineText('starch', 'halal', 'Pork Griot');
+  assert.equal(c.MEAL_SLOT_STATE.starch.lines, undefined);
+  assert.match(toasts[1], /halal line: pork/);
+  c.slotLineText('starch', 'halal', 'Cornbread');
+  assert.equal(c.MEAL_SLOT_STATE.starch.lines.halal.recipeName, 'Cornbread', 'allowed on the halal line, linked');
+  c.slotLineText('starch', 'vegan', 'Butter Chicken');
+  assert.equal(c.MEAL_SLOT_STATE.starch.lines.vegan, undefined, 'P1-B: a meat recipe (CODEX veganFriendly false) is refused on the vegan line');
+  assert.match(toasts[2], /Butter Chicken” can’t go on the vegan line: not vegan/);
+  assert.equal(c.doorMakeLineVersion('Cornbread').recipeName, 'Cornbread', 'the read-in still links by name');
   assert.match(html, /list="door-recipe-names-' \+ line \+ '"/);
   assert.match(html, /DOOR_RECIPE_DATA\.filter\(r => typeof doorLineRefusal !== 'function' \|\| !doorLineRefusal\(line, r\)\)/);
+});
+
+// Review fold (P1-A): a click away, Enter, or Save on words naming a refused recipe never saves a bare typed dish.
+function slotCtx(state) {
+  const c = ctx();
+  const toasts = [];
+  Object.assign(c, { showToast: (m) => toasts.push(m), renderSlots: () => {}, updateSlotSummary: () => {}, document: { getElementById: () => null },
+    MEAL_SLOT_DEFS: Object.values(DEFS).concat([{ id: 'vegextras', list: true, streams: null }, { id: 'halalextras', list: true, streams: null }]),
+    MEAL_SLOT_STATE: state || {}, SLOT_HELD: {}, SLOT_OFFERED: {}, _slotRenderDepth: 0, doorMarkLabelUnchecked: (x) => x,
+    doorKeepCapturedFlags: () => false, doorLinkFlags: () => ({ linked: true }), doorSlotHoldTyped: () => null, toasts });
+  for (const f of ['doorRefusedExactRecipe', 'slotAutoSave', 'slotSaveManual', 'slotDropHeld']) vm.runInContext(fnBlock(f), c);
+  return c;
+}
+test('S1i a refused recipe name is held and refused, never saved as a typed dish (blur, Enter, the typed row)', () => {
+  const c = slotCtx({ mainalt: { recipeName: 'Chicken Griot', flags: { hasChicken: true } } });
+  for (const how of [undefined, 'enter']) {
+    c.slotAutoSave('mainalt', 'Pork Griot', how);
+    assert.equal(c.MEAL_SLOT_STATE.mainalt.recipeName, 'Chicken Griot', 'the last saved value stays (' + how + ')');
+    assert.equal(c.SLOT_HELD.mainalt.kind, 'refused');
+    assert.equal(c.SLOT_HELD.mainalt.reason, 'pork');
+  }
+  c.slotSaveManual('mainalt', 'Pork Griot');
+  assert.equal(c.MEAL_SLOT_STATE.mainalt.recipeName, 'Chicken Griot', 'the typed-dish row refuses it too');
+  c.slotDropHeld('mainalt');
+  assert.equal(c.SLOT_HELD.mainalt, undefined, 'Put the box back clears the words');
+  c.slotAutoSave('vegextras', 'Butter Chicken');
+  assert.equal(c.MEAL_SLOT_STATE.vegextras, undefined, 'P1-B: Vegan line also gets refuses a meat recipe');
+  assert.equal(c.SLOT_HELD.vegextras.reason, 'not vegan');
+  c.slotAutoSave('vegextras', 'Jamcaican Patty Dough');
+  assert.equal(c.SLOT_HELD.vegextras.reason, 'lists Milk');
+  c.slotAutoSave('halalextras', 'Pork Griot');
+  assert.equal(c.SLOT_HELD.halalextras.reason, 'pork');
+  c.slotAutoSave('mainalt', 'Halal Lamb Stew');
+  assert.equal(c.MEAL_SLOT_STATE.mainalt.manual, 'Halal Lamb Stew', 'words naming no recipe still save as typed');
+  const q = fnBlock('doorSlotHeldQuestion');
+  assert.match(q, /h\.kind === 'refused'[\s\S]*Put the box back/);
+  assert.match(fnBlock('saveMenuEdit'), /if \(h\.kind === 'refused'\) slotDropHeld\(id\);/);
+  assert.match(fnBlock('slotSearch'), /groups\.refused\.some\(x => x\.r\.recipeName\.toLowerCase\(\) === q\)/, 'no typed-dish row for a refused exact name');
+});
+
+test('S1j "Link to …?" never offers a refused recipe; the Special Meal search widens only its word order', () => {
+  const c = ctx();
+  vm.runInContext(fnBlock('doorRecipeSuggestionFor'), c);
+  assert.equal(c.doorRecipeSuggestionFor(DEFS.mainalt, 'pork griot'), null);
+  assert.equal(c.doorRecipeSuggestionFor(DEFS.main, 'pork griot').recipeName, 'Pork Griot');
+  // Pinned: the Special Meal editor keeps its filter (recipeMatchesSlotDef) and links on a click away as before; only the
+  // shared rank reads words in any order.
+  assert.match(fnBlock('smSlotSearch'), /doorRankedRecipeMatches\(def, q, 6\)/);
+  assert.match(fnBlock('doorRankedRecipeMatches'), /DOOR_RECIPE_DATA\.filter\(r => recipeMatchesSlotDef\(def, r\)\)/);
+  assert.doesNotMatch(fnBlock('smSlotAutoSave'), /doorSlotRefusal|SLOT_HELD/);
 });

@@ -65,7 +65,12 @@ Plan `docs/DOOR_MENU_EDIT_REDESIGN_PLAN_2026-11-19.md` (status owner); D7, Jason
   recipe?". Enter on the name, a pick or Link on the card still links.
 - The vegan and halal "gets instead" boxes link no recipe the line refuses and suggest only allowed ones.
 - No saved link changes (census: no published vegan, halal or line version links a refused recipe).
-- Gate `tests/recipe_search_s1_gate.mjs` (8), red 8/8 on `main` `d7a3e65`. Re-pinned with dated notes: `door-smoke`,
+- **Independent review (FIX FIRST), folded:** P1-A, words naming a refused recipe exactly were saved as a typed dish
+  with no allergens; now they are refused out loud and held (kind `refused`, "Put the box back"), on a blur, Enter, the
+  typed-dish row and the "gets instead" boxes (the open-time read-in still links by name). P1-B, the vegan "also gets"
+  and "gets instead" boxes let meat through; the vegan line now also refuses CODEX `veganFriendly: false` (a missing or
+  null flag is not a refusal). P2: "Link to …?" never offers a refused recipe.
+- Gate `tests/recipe_search_s1_gate.mjs` (10), red on `main` `d7a3e65`. Re-pinned with dated notes: `door-smoke`,
   `label_unchecked_gate`, `recipe_binding_v7_gate`, `vegan_friendly_gate`, browser `menu_edit_no_silent_change` (37).
 
 ## Recent (2026-11-19) — Edit Menu changes nothing nobody chose (walkthrough H2 + H4, `v31-standard.103`)

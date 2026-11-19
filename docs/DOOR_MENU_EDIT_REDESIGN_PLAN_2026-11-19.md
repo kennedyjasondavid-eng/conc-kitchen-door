@@ -241,6 +241,7 @@ Names here are this plan's (the back-on-track plan has its own D-numbers).
 - **D7** The wider search never offers a recipe a plate's rule refuses (listed greyed with the reason, never pickable).
   **Ruled 2026-11-19 (Jason: "Follow lean").**
 - **D8** A halal dish carrying Pork: show it in red on the summary and the sheet instead of hiding it.
+  **Ruled 2026-11-19 (Jason: "Follow lean").**
 - **D9** U1 owns the combined-meal split and Turmeric; this plan does it through the new editor.
 
 ## 6. Risks and how each is held
@@ -265,5 +266,5 @@ moves its code without changing a byte).
 |---|---|---|
 | S0 two defects | merged (`c470937`); review SHIP | #242 |
 | Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
-| S1 search | built (`v31-standard.104`); gate `tests/recipe_search_s1_gate.mjs` red 8/8 on `d7a3e65`; review pending | |
-| S2a–S8, U1 | planned; D7 ruled; D1–D6, D8, D9 pending | |
+| S1 search | built (`v31-standard.104`); gate `tests/recipe_search_s1_gate.mjs` (10) red on `d7a3e65`; review FIX FIRST, folded | #244 |
+| S2a–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |

@@ -75,14 +75,16 @@ test('DOOR reads the flag in these places only (the vegan plate\'s allergen gues
   const code = html.split('\n').filter(l => /veganFriendly/.test(l) && !/^\s*\/\//.test(l)
     && !/^const DOOR_RECIPE_DATA_FALLBACK = /.test(l));
   // Re-pinned 2026-11-19 (Edit Menu redesign S1): doorSlotRefusal names the vegan rule, reading the same flag.
-  assert.equal(code.length, 7, code.join('\n'));
+  // Review fold (S1, P1-B): doorLineRefusal refuses a recipe CODEX found an animal ingredient in on the vegan line.
+  assert.equal(code.length, 8, code.join('\n'));
+  assert.ok(code.some(l => /if \(recipe\.veganFriendly === false\) return 'not vegan';/.test(l)));
   assert.ok(code.some(l => /&& !def\.streams\.includes\(recipe\.stream\) && recipe\.veganFriendly !== true\) return 'not a vegan recipe'/.test(l)));
   assert.ok(/out\.veganFriendly = d\.veganFriendly/.test(code[0]));
   assert.ok(/d\.veganFriendly === true && doorNamesAnimalFamily\(d\.allergens\)/.test(code[1]));
   assert.ok(/d\.veganFriendly = false/.test(code[2]));
   assert.ok(/const same = /.test(code[3]));
   assert.ok(/veganFriendly:typeof r\.veganFriendly === 'boolean' \? r\.veganFriendly : null/.test(code[4]));
-  assert.ok(/recipe\.veganFriendly === true/.test(code[6]));
+  assert.ok(/recipe\.veganFriendly === true/.test(code[7]));
 });
 
 // Against CODEX's checked-in feed (when conc-recipe-hub is beside this repo): the Vegan Alt slot gains exactly the one
