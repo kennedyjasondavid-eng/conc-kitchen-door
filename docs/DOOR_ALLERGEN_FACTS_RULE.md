@@ -13,6 +13,9 @@ Written 2026-11-19 for the back-on-track plan's U2 (`docs/DOOR_BACK_ON_TRACK_PLA
 3. **An unticked Spicy stays off.** Whether a dish is served spicy is the kitchen's call. CODEX's Spicy label does not tick a meal by itself (Wk3 WED lunch's beef nachos, 2026-11-19).
 4. **A linked dish keeps the ticks it captured until it is linked again.** A slot's saved ticks are a snapshot from when it was linked. When CODEX later names more, the vegan plate already reads CODEX. A refresh adds the new ticks to the snapshot, and never removes any.
 
+## What the editor shows
+Each linked slot in Edit Menu and Special Meal carries a badge: Linked to CODEX, Recipe unavailable, Ambiguous or Conflicting (review link), Linked by name, or Unlinked (manual). Beside a good link, an amber note says when the CODEX list names a family this slot has not ticked ("CODEX lists Beans, not ticked here"). The note can't tell a recipe that changed from a tick someone took off. Its **Add them** button adds those ticks and never takes one off (`doorSlotRecipeChanged`, `doorAddCodexTicks`). Spicy, the meats, carb and halal-certified are never offered.
+
 ## A label not checked
 A bought item whose package has not been read has `allergens: null`. That means unknown, never safe (`doorRecipeLabelUnchecked`). Every plate holding it says "check label" for residents with an allergen restriction (C2, call 3). CODEX's package panel is where a supervisor fills it in (CODEX #385).
 

@@ -53,6 +53,15 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — saved ticks follow CODEX, add only; the allergen facts rule; the badge says what CODEX lists (C4 / U2, `v31-standard.102`)
+Jason, 2026-11-19: "Follow lean". The 42 linked slots whose saved ticks differ from CODEX were compared; none left a
+resident unwarned. 23 slots took CODEX's newer families (mostly Beans and Mushroom), add only, publication 36. Spicy (the
+kitchen decides) and Butter Chickpeas' Milk (awaiting its CODEX removal) were left out. `docs/DOOR_ALLERGEN_FACTS_RULE.md`
+writes down the rule DOOR follows. In the editor, beside a good link, "CODEX lists Beans, not ticked here" with **Add them**
+(`doorSlotRecipeChanged`, `doorAddCodexTicks`: reads only the CODEX list, never adds Spicy or the meal marks, never
+removes). Gate `tests/recipe_changed_badge_gate.mjs` (5), red 5/5 on `main` `04eb4ac`; `label_unchecked_gate` 6 re-pinned
+(dated).
+
 ## Recent (2026-11-19) — a No Dairy resident's breakfast note names the vegan yoghurt (call 4, `v31-standard.101`)
 Jason, 2026-11-19: "Follow lean". On a breakfast plate that serves dairy yoghurt (`doorYoghurtPlates`, keyed as the label
 check is; `doorNamesDairyYoghurt` reads "fruit & yoghurt" and "lactose-free yoghurt" as dairy, "DF", "dairy-free",

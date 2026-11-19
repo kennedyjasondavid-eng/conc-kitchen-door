@@ -189,7 +189,8 @@ test('the editor shows an amber "label not checked" tag and a preview line; Save
   assert.deepEqual(J(c.doorUncheckedSlotDishes(c.MEAL_SLOT_STATE)), ['Rice Chex']);
   // wired: both slot cards, both summaries
   assert.match(fn('renderSlotCard'), /doorSlotLabelUnchecked\(state\) \? doorLabelUncheckedTagHTML\(\)/);
-  assert.match(fn('renderSlotCard'), /\$\{matchBadge\}\$\{labelTag\}/);
+  // Re-pinned 2026-11-19 (U2): the badge's Add them button sits between the badge and the label tag.
+  assert.match(fn('renderSlotCard'), /\$\{matchBadge\}\$\{changedBtn\}\$\{labelTag\}/);
   assert.match(fn('updateSlotSummary'), /doorLabelUncheckedLinesHTML\(doorUncheckedSlotDishes\(MEAL_SLOT_STATE\)\)/);
   assert.match(fn('updateSmSlotSummary'), /doorLabelUncheckedLinesHTML\(doorUncheckedSlotDishes\(SM_SLOT_STATE\)\)/);
   assert.match(fn('renderSlots'), /doorRefreshLabelChecks\(MEAL_SLOT_STATE\)/);

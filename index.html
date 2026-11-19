@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.101';
+const DOOR_APP_VERSION = 'v31-standard.102';
 const DOOR_BUILD_DATE = '2026-11-18';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21593,7 +21593,11 @@ function renderSlotCard(def, ns) {
       const ids = rows.filter(r => r.recipeId && String(r.recipeId) === String(state.recipeId));
       if (ids.length !== 1) return {ok:false, label:ids.length ? 'Ambiguous recipe — review link' : 'Recipe unavailable — review link'};
       if (names.some(r => r.recipeId && String(r.recipeId) !== String(state.recipeId))) return {ok:false, label:'Conflicting recipe — review link'};
-      return {ok:true, label:'Linked to CODEX'};
+      // U2 (2026-11-19, Jason: "Follow lean"): the link is fine, and a family the CODEX list names that this slot has not
+      // ticked is said beside it (the recipe changed since the link, or someone unticked it here; the saved ticks cannot
+      // tell which). Adding the ticks is a person pressing Add them; nothing is added or taken off by itself.
+      const changed = typeof doorSlotRecipeChanged === 'function' ? doorSlotRecipeChanged(state, ids[0]) : [];
+      return {ok:true, label:'Linked to CODEX', changed: changed.length ? changed : null};
     }
     return names.length === 1
       ? {ok:false, label:ns === 'sm-slot' ? 'Linked by name' : 'Linked by name — confirm recipe'}
@@ -21602,6 +21606,10 @@ function renderSlotCard(def, ns) {
   const badgeText = binding ? binding.label : 'Unlinked (manual)';
   const matchBadge = hasValue
     ? '<span style="font-size:10px;padding:1px 6px;background:' + (binding && binding.ok ? 'var(--ok-faint, #d1fae5)' : 'var(--amber-pale)') + ';color:' + (binding && binding.ok ? 'var(--ok-ink, #065f46)' : 'var(--warn-ink, #92400e)') + ';border-radius:8px;font-weight:600;margin-left:6px;">' + doorIcon(binding && binding.ok ? 'check' : 'warning') + ' ' + escapeHtml(badgeText) + '</span>' : '';
+  const changedBtn = binding && binding.changed
+    ? '<span class="door-codex-lists" style="font-size:10px;padding:1px 6px;background:var(--amber-pale);color:var(--warn-ink, #92400e);border-radius:8px;font-weight:600;margin-left:6px;text-transform:none;letter-spacing:0;">'
+      + escapeHtml('CODEX lists ' + binding.changed.map(doorFlagLabel).join(', ') + ', not ticked here') + '</span>'
+      + '<button type="button" onclick="' + _escAttr(fn + 'AddCodexTicks(' + _jsArgLiteral(def.id) + ')') + '" style="margin-left:6px;font-size:10px;padding:1px 8px;border:1px solid var(--border);border-radius:8px;background:var(--paper);cursor:pointer;text-transform:none;letter-spacing:0;">Add them</button>' : '';
   const borderColor = hasValue ? (binding && binding.ok ? '#10b981' : '#60a5fa') : 'var(--border)';
   const labelTag = hasValue && typeof doorSlotLabelUnchecked === 'function' && doorSlotLabelUnchecked(state) ? doorLabelUncheckedTagHTML() : '';
   // Recipe-attach S2: "Shown on menu as" — ANY bound slot (main group + the alt slots),
@@ -21619,7 +21627,7 @@ function renderSlotCard(def, ns) {
     : '';
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;">
-      ${escapeHtml(def.label)}${optLabel}${matchBadge}${labelTag}
+      ${escapeHtml(def.label)}${optLabel}${matchBadge}${changedBtn}${labelTag}
       ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear" aria-label="Clear ${_escAttr(def.label)}">×</button>` : ''}
     </div>
     <div style="position:relative;">
@@ -21745,6 +21753,37 @@ function slotToggleFlag(slotId, key) {
   if (!MEAL_SLOT_STATE[slotId].flags) MEAL_SLOT_STATE[slotId].flags = {};
   MEAL_SLOT_STATE[slotId].flags[key] = !MEAL_SLOT_STATE[slotId].flags[key];
   renderSlots(); updateSlotSummary();
+}
+
+// U2 (2026-11-19): the families CODEX now names for a linked slot that its saved ticks lack. Spicy is the call of the kitchen
+// (an unticked Spicy stays off), and meats, carb and halal-certified are marks of the meal itself, so none of those is
+// offered. A slot linked while its label was not checked says so elsewhere and is not read here.
+const DOOR_RECIPE_CHANGE_SKIP = ['isSpicy', 'isCarb', 'halalCertifiedMeat', 'hasPork', 'hasBeef', 'hasChicken', 'hasTurkey', 'hasProcessedMeat'];
+function doorSlotRecipeChanged(state, recipe) {
+  if (!state || !recipe || state.labelUnchecked === true || typeof hubAllergenToFlags !== 'function') return [];
+  if (typeof doorRecipeLabelUnchecked === 'function' && doorRecipeLabelUnchecked(recipe)) return [];
+  // Only what the CODEX list names: a word in the dish name is not a change CODEX made.
+  const now = hubAllergenToFlags(recipe.allergens) || {}, was = state.flags || {};
+  return Object.keys(now).filter(k => now[k] === true && !was[k] && DOOR_RECIPE_CHANGE_SKIP.indexOf(k) < 0);
+}
+function doorFlagLabel(key) {
+  const d = (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).find(x => x.key === key);
+  return d ? d.label : String(key).replace(/^has/, '');
+}
+function doorAddCodexTicks(states, slotId) {
+  const s = states[slotId];
+  const r = s && typeof doorSlotRecipeToday === 'function' ? doorSlotRecipeToday(s) : null;
+  const add = doorSlotRecipeChanged(s, r);
+  if (!add.length) return [];
+  if (!s.flags) s.flags = {};
+  add.forEach(k => { s.flags[k] = true; });
+  return add;
+}
+function slotAddCodexTicks(slotId) {
+  if (doorAddCodexTicks(MEAL_SLOT_STATE, slotId).length) { renderSlots(); updateSlotSummary(); }
+}
+function smSlotAddCodexTicks(slotId) {
+  if (doorAddCodexTicks(SM_SLOT_STATE, slotId).length) { renderSmSlots(); updateSmSlotSummary(); }
 }
 
 function smSlotToggleFlag(slotId, key) {
