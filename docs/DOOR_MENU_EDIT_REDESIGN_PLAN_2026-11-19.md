@@ -245,6 +245,14 @@ Names here are this plan's (the back-on-track plan has its own D-numbers).
   **Ruled 2026-11-19 (Jason: "Follow lean").**
 - **D9** U1 owns the combined-meal split and Turmeric; this plan does it through the new editor.
 
+## 5b. Carried from the S2b review (P3, for the slice that touches them)
+- S5b: `doorCheckNewPlainChoices` still reads the editor's own egg and mustard check; feed it the draft's value.
+- S5a: the summary runs the menu read twice per keystroke (about 7 ms of parsing on desktop); share one draft or debounce.
+- D8 reads pork words only (pork, ham, bacon, pepperoni, prosciutto, chorizo, pancetta). Bare "sausages", "carnitas",
+  "griot" and "salami" are not read as pork, because chicken, beef and vegan versions use those words.
+- Save's meat reader still reads "sausage" as pork ("Halal beef sausages" on a halal main sets Pork at Save; those are
+  pork days today, so nothing moves). For S3 or the U1 data pass.
+
 ## 6. Risks and how each is held
 - **A preview disagrees with the sheet.** S2a makes one function; S2b and S5b gates compare with real plating output.
 - **A wider search puts the wrong recipe on a plate.** `recipeMatchesSlotDef` unchanged; D7; gate cases on Vegan Alt and
@@ -269,5 +277,5 @@ moves its code without changing a byte).
 | Plan | independent review READY WITH CHANGES (4 P1, 8 P2, 4 P3), all folded 2026-11-19 | #243 |
 | S1 search | merged (`f246523`, `v31-standard.104`); reviews FIX FIRST ×2, folded; SHIP | #244 |
 | S2a plate facts | merged (`7d33af4`, `v31-standard.105`); review SHIP | #245 |
-| S2b plate summary | built (`v31-standard.106`); the grid regrouping and one-line dish allergens move to S4b (layout); review pending | |
+| S2b plate summary | built (`v31-standard.106`); the grid regrouping and one-line dish allergens move to S4b (layout); review SHIP, P3-b folded | #246 |
 | S3–S8, U1 | planned; D7, D8 ruled; D1–D6, D9 pending | |

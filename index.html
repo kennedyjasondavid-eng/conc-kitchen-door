@@ -22388,6 +22388,8 @@ function doorPlateSummaryHTML(facts, handKeys) {
 // S2b: the allergen ticks on the meal that no dish explains (its recipe, typed tags or words), worked out on the draft.
 function doorHandAddedTicks(gridFlags) {
   const base = doorEditorDraftFlags({});
+  // Review fold (P3-b): the meal ticks cover the halal dish too, so a tick the halal plate names is not added by hand.
+  if (typeof buildHalalAltFlags === 'function') Object.entries(buildHalalAltFlags() || {}).forEach(([k, v]) => { if (v === true) base[k] = true; });
   const plain = doorDraftPlateFacts(base);
   const explained = (plain && plain.mealFlags) || base;
   return (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).map(f => f.key)
