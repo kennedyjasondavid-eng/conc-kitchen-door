@@ -615,6 +615,29 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
   .empty-icon { font-size: 40px; margin-bottom: 10px; }
 
+  /* ── S7 (Edit Menu redesign): Menu page and meal view on phones, tablets and wide screens ── */
+  .mc-day-picker { display: none; }
+  @media screen and (max-width: 768px) {   /* "screen and": the phone_hidden_panels gate reads the first plain 768 block */
+    .mc-day-picker { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 12px; }
+    .mc-day-picker button { min-height: 44px; min-width: 44px; }
+    #mc-grid .mc-day-col:not(.mc-day-on) { display: none; }
+    #screen-menu-config .topbar { padding-left: 66px; }
+    /* below the dialogs (.modal-overlay 200) so Save's questions show over it; below the stale banner, which can sit on top */
+    #mc-menu-edit-panel.mc-open { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 190; margin: 0 !important; border-radius: 0 !important; border: none !important; overflow-y: auto; padding: 16px 16px 112px !important; }
+    #mc-menu-edit-panel.mc-open > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+    body.mc-meal-open { overflow: hidden; }
+  }
+  @media (max-width: 768px), (pointer: coarse) {
+    #mc-menu-edit-panel .slot-pill { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px !important; font-size: 12px !important; }
+    #mc-menu-edit-panel button, #mc-menu-edit-panel .slot-clear { min-height: 44px; min-width: 44px; }
+  }
+  @media (min-width: 1500px) {
+    #mc-menu-edit-panel.mc-open { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, calc(100vw - 820px)); z-index: 150; margin: 0 !important; border-radius: 0 !important; overflow-y: auto; box-shadow: -8px 0 24px rgba(0,0,0,.18); }
+    #mc-menu-edit-panel.mc-open > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+    #mc-menu-edit-panel.mc-open { padding-bottom: 0 !important; }
+    #mc-menu-edit-panel.mc-open #mc-menu-edit-footer { margin-bottom: 0 !important; border-radius: 0 !important; }
+  }
+
   /* ── MOBILE HAMBURGER BUTTON ── */
   #mobile-menu-btn {
     display: none;
@@ -837,7 +860,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.116';
+const DOOR_APP_VERSION = 'v31-standard.117';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2078,6 +2101,8 @@ function updateCODEXBadge() {
       </div>
     </div>
 
+    <!-- S7 (Edit Menu redesign): on a phone, a day picker and that day's meals instead of the sideways week -->
+    <div id="mc-day-picker" class="mc-day-picker" role="group" aria-label="Day"></div>
     <!-- 7-day grid -->
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:13px;" id="mc-grid">
@@ -15100,13 +15125,21 @@ function renderMenuConfig() {
   // Grid header — compute actual dates for this week's occurrence
   const headEl = document.getElementById('mc-grid-head');
   const weekSunday = getWeekStartDate(mcWeek);
+  // S7: the day a phone shows (today on the current week, else Sunday); the picker sets it.
+  if (mcPhoneDay === null || mcPhoneDayWeek !== mcWeek) {
+    const ti = DAYS_ORDER.indexOf(MEAL_DATA.day);
+    mcPhoneDay = (mcWeek === MEAL_DATA.week && ti >= 0) ? ti : 0;
+    mcPhoneDayWeek = mcWeek;
+  }
+  const pickerEl = document.getElementById('mc-day-picker');
+  if (pickerEl) pickerEl.innerHTML = DAYS_SHORT.map((d, i) => '<button type="button" class="btn btn-sm ' + (i === mcPhoneDay ? 'btn-primary' : 'btn-ghost') + '" aria-pressed="' + (i === mcPhoneDay) + '" onclick="mcSetPhoneDay(' + i + ')">' + escapeHtml(d) + '</button>').join('');
   headEl.innerHTML = '<tr><th style="padding:8px 6px;text-align:left;border-bottom:2px solid var(--border);width:70px;font-size:12px;"></th>' +
     DAYS_SHORT.map((d,i) => {
       const isToday = mcWeek === MEAL_DATA.week && DAYS_ORDER[i] === MEAL_DATA.day;
       const colDate = new Date(weekSunday);
       colDate.setDate(weekSunday.getDate() + i);
       const dateLabel = colDate.toLocaleDateString('en-CA', {month:'short', day:'numeric'});
-      return `<th style="padding:8px 6px;text-align:left;border-bottom:2px solid var(--border);font-size:12px;${isToday?'background:rgba(52,211,153,0.08);border-bottom:2px solid var(--forest-light);':''}">` +
+      return `<th class="mc-day-col${i === mcPhoneDay ? ' mc-day-on' : ''}" style="padding:8px 6px;text-align:left;border-bottom:2px solid var(--border);font-size:12px;${isToday?'background:rgba(52,211,153,0.08);border-bottom:2px solid var(--forest-light);':''}">` +
         `<div style="font-size:15px;font-weight:700;letter-spacing:0.01em;">${d}</div>` +
         `<div style="font-size:10px;color:var(--muted);font-weight:400;margin-top:1px;">${dateLabel}</div>` +
         `<div style="font-size:10px;color:var(--forest-mid-text);font-weight:600;margin-top:1px;">Day ${i+1}</div></th>`;
@@ -15165,6 +15198,7 @@ function renderMenuConfig() {
       const specialNote = nextSpecial ? '<div style="font-size:9px;color:var(--ok-ink, #065f46);margin-top:2px;">' + escapeHtml(nextSpecial.specialName) + (slotSpecials.length > 1 ? ' (+' + (slotSpecials.length-1) + ' more)' : '') + '</div>' : '';
 
       const td = document.createElement('td');
+      td.className = 'mc-day-col' + (di === mcPhoneDay ? ' mc-day-on' : '');   // S7
       const specialBg = nextSpecial ? 'background:rgba(52,211,153,0.06);' : (isToday ? 'background:rgba(52,211,153,0.08);' : '');
       const _dk = document.documentElement.getAttribute('data-theme')==='dark';
       td.style.cssText = `padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;min-width:120px;${specialBg}`;
@@ -16740,6 +16774,22 @@ if (typeof document !== 'undefined') {
     document.querySelectorAll('details.mc-more[open]').forEach(d => { d.removeAttribute('open'); const sm = d.querySelector('summary'); if (sm) sm.focus(); });
   });
 }
+// S7 review fold: where the open meal view starts. On a phone (full screen) below the out-of-date bar, so Close stays in
+// reach; as a side panel (1500 px and wider) below the sticky header, so More and Send to kitchen stay in reach.
+function doorPlaceMealPanel() {
+  if (typeof document === 'undefined' || typeof window === 'undefined' || !window.matchMedia) return;
+  const panel = document.getElementById('mc-menu-edit-panel');
+  if (!panel || !panel.classList || !panel.classList.contains('mc-open')) return;
+  const bar = document.getElementById('door-stale-banner');
+  const top = document.querySelector('#screen-menu-config .topbar');
+  if (window.matchMedia('(max-width: 768px)').matches) panel.style.top = (bar ? bar.offsetHeight : 0) + 'px';
+  else if (window.matchMedia('(min-width: 1500px)').matches) panel.style.top = (top ? top.offsetHeight : 0) + 'px';
+  else panel.style.top = '';
+}
+if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (typeof doorPlaceMealPanel === 'function') doorPlaceMealPanel(); });
+// S7: the day a phone shows on the Menu page.
+var mcPhoneDay = null, mcPhoneDayWeek = null;
+function mcSetPhoneDay(i) { mcPhoneDay = i; mcPhoneDayWeek = mcWeek; renderMenuConfig(); }
 function handleMealCellClick(week, day, period) {
   if (!slotSwapMode) {
     openMenuEdit(week, day, period);
@@ -21334,7 +21384,7 @@ function renderSlotCard(def, ns) {
   return `<div style="padding:10px 12px;border:1px solid ${borderColor};border-radius:8px;background:var(--paper);">
     <div style="font-size:12px;font-weight:600;color:var(--text-2, var(--muted));margin-bottom:6px;display:flex;align-items:center;flex-wrap:wrap;">
       ${escapeHtml(kitchenLabel)}${optLabel}${matchBadge}${changedBtn}${labelTag}
-      ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear" aria-label="Clear ${_escAttr(def.label)}">×</button>` : ''}
+      ${hasValue ? `<button onclick="${_escAttr(fn + 'Clear(' + _jsArgLiteral(def.id) + ')')}" class="slot-clear" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0;line-height:1;" title="Clear" aria-label="Clear ${_escAttr(def.label)}">×</button>` : ''}
     </div>
     <div style="position:relative;">
       <input type="text" id="${_escAttr(pfx)}-search-${_escAttr(def.id)}" autocomplete="off" aria-label="${_escAttr(def.label)} recipe"
@@ -21432,7 +21482,7 @@ function slotManualFlagRow(slotId, currentFlags, ns) {
     const bg = active ? doorFill(fd.color) : 'transparent';
     const border = active ? doorFill(fd.color) : 'var(--border)';
     const text = active ? '#fff' : 'var(--muted)';
-    return '<span onclick="'+fn+'(\''+slotId+'\',\''+fd.key+'\')" title="'+fd.tip+'"'
+    return '<span class="slot-pill" onclick="'+fn+'(\''+slotId+'\',\''+fd.key+'\')" title="'+fd.tip+'"'
       + ' style="cursor:pointer;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;'
       + 'background:'+bg+';color:'+text+';border:1px solid '+border+';transition:all .12s;">'
       + fd.label+'</span>';
@@ -22496,7 +22546,8 @@ function closeMenuEdit(savedOrDiscarded) {
   if (!savedOrDiscarded && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => closeMenuEdit(true)); return; }
   _doorMenuDraftBaseline = null;
   const panel = document.getElementById('mc-menu-edit-panel');
-  if (panel) panel.style.display = 'none';
+  if (panel) { panel.style.display = 'none'; if (panel.classList) panel.classList.remove('mc-open'); }
+  if (typeof document !== 'undefined' && document.body && document.body.classList) document.body.classList.remove('mc-meal-open');
   mcMenuEditKey = null;
   _noPorkAltVisible = false; // v30
 }
@@ -22564,7 +22615,9 @@ function openMenuEdit(week, day, period) {
 
   mcMenuEditKey = week + '-' + day + '-' + period;
   const panel = document.getElementById('mc-menu-edit-panel');
-  if (panel) panel.style.display = 'block';
+  if (panel) { panel.style.display = 'block'; if (panel.classList) panel.classList.add('mc-open'); }   // S7: full screen on a phone, a side panel on a wide screen
+  if (typeof doorPlaceMealPanel === 'function') doorPlaceMealPanel();
+  if (typeof document !== 'undefined' && document.body && document.body.classList) document.body.classList.add('mc-meal-open');
 
   const dayDisplay = day.charAt(0) + day.slice(1).toLowerCase();
   const periodDisplay = period.charAt(0).toUpperCase() + period.slice(1);
@@ -25524,7 +25577,8 @@ function showStaleVersionBanner(newStamp) {
   bar.dataset.waiting = String(waiting);
   document.getElementById('door-stale-reload').onclick = doorStaleReloadNow;
   const dismiss = document.getElementById('door-stale-dismiss');
-  if (dismiss) dismiss.onclick = function() { bar.remove(); };
+  if (dismiss) dismiss.onclick = function() { bar.remove(); if (typeof doorPlaceMealPanel === 'function') doorPlaceMealPanel(); };
+  if (typeof doorPlaceMealPanel === 'function') doorPlaceMealPanel();   // S7 review fold: a phone meal view starts below this bar
 }
 
 checkForFreshDoorVersion();
