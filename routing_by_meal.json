@@ -2,10 +2,10 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-19T10:10:59.445Z",
+    "exported": "2026-11-19T15:40:04.398Z",
     "version": 31,
     "builtFromMenu": {
-      "exported": "2026-11-19T10:10:59.312Z",
+      "exported": "2026-11-19T15:40:04.328Z",
       "hash": "1l61zab"
     },
     "flow": {
@@ -20,13 +20,13 @@
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
         "menu": "sha256:abdb8e723f6592882cf0f5213d60df58aaea383566fc87e00fce365dfe226240",
-        "recipe": "sha256:ca45bb342350ce8b8b2b176f26ce74cedfec24ec5fba58ab681b45622cea182b",
+        "recipe": "sha256:c28fd4f350236a3f1ce27eae54df9a3d8f068b33ea144bfa207791a625bffcf8",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:2f8061a3cded62c32d57ac30acb7020791c970aa7bfd55684ad01e45d7b54d34",
+      "inputRevision": "sha256:d5bbd1be965ea26dc93c95509f5e855a3beb2a6c8e5ae9b05292fd2d954bf7f5",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 37
+        "sequence": 38
       },
       "schema": 1
     }
@@ -1373,7 +1373,7 @@
   },
   "flow": {
     "schema": 1,
-    "inputRevision": "sha256:2f8061a3cded62c32d57ac30acb7020791c970aa7bfd55684ad01e45d7b54d34",
+    "inputRevision": "sha256:d5bbd1be965ea26dc93c95509f5e855a3beb2a6c8e5ae9b05292fd2d954bf7f5",
     "recipes": {
       "adobo-pork-chicken-tofu-adobo-marinade-and-sauce": {
         "canonicalName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
@@ -10015,6 +10015,38 @@
         },
         "portionBasis": null
       },
+      "mexican-bean-salad": {
+        "canonicalName": "Mexican Bean Salad",
+        "allergenState": "known",
+        "allergenFlags": {
+          "hasGluten": false,
+          "hasDairy": false,
+          "hasEgg": false,
+          "hasFish": false,
+          "hasPeanuts": false,
+          "hasSoy": false,
+          "hasTreeNuts": false,
+          "hasSesame": false,
+          "hasMustard": false,
+          "hasShellfish": false,
+          "hasSulphites": true,
+          "hasPork": false,
+          "hasBeef": false,
+          "hasChicken": false,
+          "hasTurkey": false,
+          "isSpicy": false,
+          "isCarb": false,
+          "halalCertifiedMeat": false,
+          "hasProcessedMeat": false,
+          "hasBeans": true,
+          "hasMushroom": false,
+          "hasCoconut": false,
+          "hasNightshades": true,
+          "hasBrassicas": false,
+          "hasCorn": true
+        },
+        "portionBasis": null
+      },
       "mushroom-donburi-vegan": {
         "canonicalName": "Mushroom Donburi (Vegan)",
         "allergenState": "known",
@@ -10843,7 +10875,7 @@
           "hasCoconut": false,
           "hasNightshades": true,
           "hasBrassicas": false,
-          "hasCorn": false
+          "hasCorn": true
         },
         "portionBasis": null
       }
