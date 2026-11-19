@@ -2621,9 +2621,14 @@ function updateResidentCountDisplays(liveCount) {
 const DOOR_EDITABLE_SITE_KEY = 'rexdale';
 const DOOR_SITE_GUARD_COPY = 'DOOR’s published menu and resident list are Rexdale’s. Switch to Rexdale to change them. Other sites’ menus come later.';
 function doorSiteEditable() {
-  if (typeof currentSite === 'undefined' || !currentSite) return true;   // no site picked yet: DOOR starts on Rexdale
-  const rec = typeof doorHouseSiteFor === 'function' ? doorHouseSiteFor(doorHouseSitesNow(), currentSite.key) : null;
-  return String((rec && rec.key) || currentSite.key || '').trim().toLowerCase() === DOOR_EDITABLE_SITE_KEY;
+  // Review fold (P2-1): before the picker is set up at load, the site saved on this computer counts (a background send at
+  // boot, such as the past-swaps cleanup, would otherwise go out for a computer saved to another site). Nothing saved
+  // means DOOR starts on Rexdale.
+  let key = (typeof currentSite !== 'undefined' && currentSite) ? currentSite.key : null;
+  if (!key) { try { key = localStorage.getItem('conc_selected_site'); } catch (e) { key = null; } }
+  if (!key || key === 'unknown') return true;
+  const rec = typeof doorHouseSiteFor === 'function' ? doorHouseSiteFor(doorHouseSitesNow(), key) : null;
+  return String((rec && rec.key) || key || '').trim().toLowerCase() === DOOR_EDITABLE_SITE_KEY;
 }
 // The quiet banner while another site is picked; red once something was refused.
 function doorRenderSiteGuardBanner(refused) {
@@ -2633,6 +2638,7 @@ function doorRenderSiteGuardBanner(refused) {
   const name = currentSite && currentSite.name ? currentSite.name : 'another site';
   el.textContent = 'DOOR is set to ' + name + '. ' + (refused ? 'Not saved. ' : '') + DOOR_SITE_GUARD_COPY;
   if (refused) { el.setAttribute('data-refused', '1'); el.style.borderColor = 'var(--red-text, #b91c1c)'; el.style.color = 'var(--danger-ink, #991b1b)'; }
+  else { el.removeAttribute('data-refused'); el.style.borderColor = ''; el.style.color = ''; }   // review fold P3-1
   el.style.display = 'block';
 }
 // Every write path asks this first. Refused: nothing is written, and the screen says why.
@@ -2645,6 +2651,7 @@ function doorSiteGuard() {
 function selectSite(siteKey) {
   const rec = doorSiteRecord(doorHouseSitesNow(), SITE_CONFIGS, siteKey);
   if (!rec) return;
+  const _wasEditable = !currentSite || doorSiteEditable();   // G1 review fold P3-2
   currentSite = rec;
   localStorage.setItem('conc_selected_site', siteKey);
 
@@ -2673,6 +2680,11 @@ function selectSite(siteKey) {
   if (settingsSiteLabel) settingsSiteLabel.textContent = currentSite.name;
   doorShowSiteNotes();
   doorRenderSiteGuardBanner(false);   // G1
+  // G1 review fold (P3-2): back on Rexdale from another site, what waited in the outbox is sent and the skip is cleared.
+  if (!_wasEditable && doorSiteEditable()) {
+    try { const last = JSON.parse(localStorage.getItem('concLastPublishSkip') || 'null'); if (last && last.reason === 'other_site') localStorage.removeItem('concLastPublishSkip'); } catch (e) {}
+    if (typeof doorOutboxDrain === 'function') doorOutboxDrain('site');
+  }
 }
 
 function initSiteSelector() {
@@ -12736,7 +12748,7 @@ window.addEventListener('storage',event=>{if(event.key===DOOR_DELIVERY_KEY)doorD
 let _ghWriteQueue = Promise.resolve();
 
 async function ghPushFile(creds, path, content) {
-  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) throw new Error(DOOR_SITE_GUARD_COPY);   // G1 backstop: nothing is written for another site
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) throw new Error(DOOR_SITE_GUARD_COPY);   // G1 backstop: nothing is written for another site (checked when asked; a write queued on Rexdale still runs)
   if (typeof doorIsPublishDependency === 'function' && doorIsPublishDependency(path)) return doorRequestCoherentPublish(path);
   const next = _ghWriteQueue.then(() => _ghPushFileNow(creds, path, content));
   _ghWriteQueue = next.catch(() => {});
@@ -12805,7 +12817,7 @@ async function _ghEvaluateWriteGuards(creds, path, content, revision) {
 // holds the complete candidate. A changed ref returns to the owner for a fresh
 // read/merge/build; it never reparents a stale dependent candidate.
 async function ghPushFilesAtomic(creds, files, message, revision) {
-  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) throw new Error(DOOR_SITE_GUARD_COPY);   // G1 backstop: nothing is written for another site
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) throw new Error(DOOR_SITE_GUARD_COPY);   // G1 backstop: nothing is written for another site (checked when asked; a write queued on Rexdale still runs)
   if (!revision && (files || []).some(f => doorIsPublishDependency(f.path))) throw new Error('Dependent publish requires a verified input revision.');
   const next = _ghWriteQueue.then(() => _ghPushFilesAtomicNow(creds, files, message, revision));
   _ghWriteQueue = next.catch(() => {});
@@ -24754,6 +24766,7 @@ function diffImportAgainstRegistry(entries) {
 let IMPORT_STATE = null;  // { entries, diff, selections: {intakes: Set, discharges: Set, updates: Map} }
 
 function openUploadDialog() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 review fold P2-2: the import review writes shared rules and the daily-import stamp
   IMPORT_STATE = null;
   document.getElementById('import-step-pick').style.display = 'block';
   document.getElementById('import-step-review').style.display = 'none';
@@ -24769,6 +24782,7 @@ function closeImportDialog() {
 }
 
 function handleImportFile(file) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 review fold P2-2: the import review writes shared rules and the daily-import stamp
   if (!file) return;
   const errEl = document.getElementById('import-parse-error');
   errEl.style.display = 'none';

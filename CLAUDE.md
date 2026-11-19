@@ -72,8 +72,14 @@ stamped `rexdale`, so editing with Lansdowne picked overwrote Rexdale's files wi
   Incoming syncs, reading, viewing and printing are unchanged; the picker still changes paths, labels and notes; nothing
   published, no `_meta.version` or schema changes.
 - **Gates:** `tests/site_guard_g1_gate.mjs` (5, red 5/5 on `main` `7f8483b`) and browser `tests/browser/site_guard_g1.mjs`
-  (10, in CI, red on `main`: with Lansdowne picked every action refuses in words, no storage key changes, no file is
+  (14, in CI, red on `main`: with Lansdowne picked every action refuses in words, no storage key changes, no file is
   written, a send skips as `other_site` and stays in the outbox; back on Rexdale the same actions work). Made-up residents only.
+- **Independent review (FIX FIRST), folded:** P2-1, before the picker is set up at load the site saved on this computer
+  counts (a boot send such as the past-swaps cleanup went out for a computer saved to Lansdowne); P2-2, the resident-list
+  import is refused before a list is read (its review wrote shared tag rules and silenced Rexdale's daily-import prompt);
+  P3, the banner is quiet again on another site, and back on Rexdale the other-site skip clears and the outbox is sent.
+  Noted, not changed: an action started on Rexdale whose kitchen read is still running when the site is switched still
+  saves locally (its send is refused); a write already queued on Rexdale still runs.
 
 ## Recent (2026-11-19) — a typed dish says what it contains (redesign S3, `v31-standard.107`)
 D2, Jason 2026-11-19: "Follow lean". A typed dish (no recipe) is answered when someone said what it contains

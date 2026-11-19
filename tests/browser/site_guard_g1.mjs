@@ -73,6 +73,7 @@ try {
       doorRulesAddWord: () => doorRulesAddWord('menu'), doorRulesTakeBackWord: () => doorRulesTakeBackWord('menu', 'x'), doorRulesAddLead: () => doorRulesAddLead(),
       doorRulesRemoveLead: () => doorRulesRemoveLead('x'), doorRulesUndo: () => doorRulesUndo(), doorPlatesAddRule: () => doorPlatesAddRule('trigger'),
       doorPlatesTakeBackRule: () => doorPlatesTakeBackRule('x'),
+      openUploadDialog: () => openUploadDialog(), handleImportFile: () => handleImportFile(new File(['Room,Restriction\n9101,GF'], 'list.csv')),
     };
     const out = {};
     for (const [name, fn] of Object.entries(acts)) {
@@ -103,9 +104,16 @@ try {
   });
   check('a send skips as other_site and the outbox keeps it; the drain sends nothing', send.after === send.before + 1 && send.reason === 'other_site'
     && send.last && send.last.r && send.last.r.reason === 'other_site' && send.drained === 0 && writes.length === 0, send);
+  // Review fold (P3-1): on to another site, the banner is quiet again.
+  const bloor = await p.evaluate(() => { selectSite('bloor'); const el = document.getElementById('door-site-guard-banner'); return { refused: el.hasAttribute('data-refused'), color: el.style.color, text: el.textContent }; });
+  check('on to another site after a refusal, the banner is quiet again', !bloor.refused && bloor.color === '' && /Bloor/.test(bloor.text), bloor);
   // Back to Rexdale: the same actions work as before.
   const back = await p.evaluate(async () => {
+    const drains = []; const realDrain = window.doorOutboxDrain; window.doorOutboxDrain = (t) => { drains.push(t); return realDrain(t); };
     selectSite('rexdale');
+    window.doorOutboxDrain = realDrain;
+    const drainedOnSwitch = drains.includes('site');   // review fold P3-2: what waited is sent (this page has no key, so nothing goes out)
+    const skipCleared = !(JSON.parse(localStorage.getItem('concLastPublishSkip') || 'null') || {}).reason || JSON.parse(localStorage.getItem('concLastPublishSkip')).reason !== 'other_site';
     const banner = document.getElementById('door-site-guard-banner').style.display;
     const swapsBefore = Object.keys(loadMealSwaps()).length;
     await clearAllSwaps();
@@ -117,12 +125,28 @@ try {
     await publishMenuFromConfig().catch(() => {});
     const special = Object.keys(loadSpecialMeals())[0];
     await removeSpecialMeal(special);
-    return { banner, swapsBefore, swapsAfter, anaph, published: window.__pub.length > pubBefore, specialGone: !loadSpecialMeals()[special],
+    return { drainedOnSwitch, skipCleared, banner, swapsBefore, swapsAfter, anaph, published: window.__pub.length > pubBefore, specialGone: !loadSpecialMeals()[special],
       skip: (window.__pub[window.__pub.length - 1] || {}).r };
   });
   check('Rexdale: the banner goes', back.banner === 'none', back);
+  check('Rexdale: the other-site skip is cleared and the outbox is sent', back.skipCleared && back.drainedOnSwitch, back);
   check('Rexdale: clearing swaps, the anaphylactic list and removing a special meal work as before', back.swapsAfter < back.swapsBefore && back.anaph && back.specialGone, back);
   check('Rexdale: sending reaches the publisher and is not skipped as another site', back.published && !(back.skip && back.skip.reason === 'other_site'), back);
+  // Review fold (P2-1): a computer saved to Lansdowne is guarded from the first moment of the page, before the picker.
+  const q = await browser.newPage();
+  await q.route(/^https?:/, (r) => { const m = r.request().method(); if (m !== 'GET' && m !== 'HEAD') writes.push(m + ' ' + r.request().url()); return r.abort(); });
+  await q.addInitScript(() => {
+    if (sessionStorage.getItem('_b')) return; sessionStorage.setItem('_b', '1');
+    localStorage.setItem('conc_selected_site', 'lansdowne');
+    document.addEventListener('DOMContentLoaded', () => { try { window.__earlyEditable = doorSiteEditable(); window.__earlySite = typeof currentSite !== 'undefined' && currentSite ? currentSite.key : null; } catch (e) { window.__earlyEditable = 'err ' + e.message; } });
+    window.Chart = function () { return { destroy() {}, update() {} }; };
+  });
+  await q.goto(pathToFileURL(source).href);
+  await q.waitForFunction(() => typeof openMenuEdit === 'function');
+  const early = await q.evaluate(() => ({ editable: window.__earlyEditable, site: window.__earlySite }));
+  check('saved to Lansdowne: guarded before the picker is set up (boot sends refused)', early.editable === false && !early.site, early);
+  await q.close();
+  check('no GitHub write at any point', writes.length === 0, writes);
   check('no uncaught browser errors', errors.length === 0, errors);
 } finally { await browser.close(); }
 const failed = results.filter((r) => !r.pass).length;

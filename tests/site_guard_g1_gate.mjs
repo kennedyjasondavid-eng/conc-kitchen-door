@@ -33,7 +33,9 @@ const REG = { schema: 1, sites: [{ key: 'rexdale', aliases: ['rex'], name: 'Rexd
 function ctx() {
   const toasts = [];
   const banner = { style: {}, textContent: '', attrs: {}, setAttribute(k, v) { this.attrs[k] = v; }, removeAttribute(k) { delete this.attrs[k]; } };
-  const c = { currentSite: null, doorHouseSitesNow: () => REG, showToast: (m) => toasts.push(m), toasts, banner,
+  const store = {};
+  const c = { currentSite: null, doorHouseSitesNow: () => REG, store,
+    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } }, showToast: (m) => toasts.push(m), toasts, banner,
     document: { getElementById: (id) => (id === 'door-site-guard-banner' ? banner : null) } };
   vm.createContext(c);
   vm.runInContext([fnBlock('doorHouseSiteFor'), constLine('DOOR_EDITABLE_SITE_KEY'), constLine('DOOR_SITE_GUARD_COPY'),
@@ -48,6 +50,11 @@ test('G1-1 Rexdale is editable however the record names it; every other site is 
   assert.equal(c.doorSiteEditable(), true, 'no site picked yet: DOOR starts on Rexdale');
   for (const key of ['rexdale', 'Rexdale', 'REX', 'rex']) { c.pick({ key, name: 'x' }); assert.equal(c.doorSiteEditable(), true, key); }
   for (const key of ['lansdowne', 'lan', 'bloor', '854', 'unknown-site']) { c.pick({ key, name: 'x' }); assert.equal(c.doorSiteEditable(), false, key); }
+  // Review fold (P2-1): before the picker is set up at load, the site saved on this computer counts.
+  c.pick(null);
+  c.store.conc_selected_site = 'lansdowne'; assert.equal(c.doorSiteEditable(), false, 'saved Lansdowne, picker not set up yet');
+  c.store.conc_selected_site = 'rexdale'; assert.equal(c.doorSiteEditable(), true);
+  c.store.conc_selected_site = 'unknown'; assert.equal(c.doorSiteEditable(), true, 'nothing saved: DOOR starts on Rexdale');
 });
 
 test('G1-2 one message, from one place: a quiet banner while another site is picked, red only once refused', () => {
@@ -61,6 +68,11 @@ test('G1-2 one message, from one place: a quiet banner while another site is pic
   assert.equal(c.doorSiteGuard(), false);
   assert.equal(c.toasts[0], 'Not saved. ' + COPY);
   assert.equal(c.banner.attrs['data-refused'], '1');
+  // Review fold (P3-1): on to another site, the banner is quiet again.
+  c.pick({ key: 'bloor', name: 'Bloor' });
+  c.doorRenderSiteGuardBanner(false);
+  assert.equal(c.banner.attrs['data-refused'], undefined); assert.equal(c.banner.style.color, '');
+  assert.match(fnBlock('selectSite'), /if \(!_wasEditable && doorSiteEditable\(\)\) \{[\s\S]*doorOutboxDrain\('site'\)/, 'back on Rexdale, what waited is sent');
   c.pick({ key: 'rexdale', name: 'Rexdale' });
   assert.equal(c.doorSiteGuard(), true);
   c.doorRenderSiteGuardBanner(false);
@@ -79,7 +91,7 @@ const GUARDED = ['saveMenuEdit', '_finishMenuSave', 'doorRepairMealTicks', 'door
   'saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'batchResolveCompliance', 'submitResolve', 'reopenComplianceItem',
   'updateComplianceField', 'revertResident', 'confirmRevertResidentFromEditor', 'seedRegistryFromRoster', 'nrAddPending', 'nrAddAmbiguous',
   'nrRemovePending', 'nrDoneReview', 'nrUndoReview', 'doorRulesAddWord', 'doorRulesTakeBackWord', 'doorRulesAddLead', 'doorRulesRemoveLead',
-  'doorRulesUndo', 'doorPlatesAddRule', 'doorPlatesTakeBackRule'];
+  'doorRulesUndo', 'doorPlatesAddRule', 'doorPlatesTakeBackRule', 'openUploadDialog', 'handleImportFile'];
 test('G1-3 every write action refuses first, before it reads a box or writes anything', () => {
   for (const name of GUARDED) {
     const body = fnBlock(name);
