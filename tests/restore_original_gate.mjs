@@ -213,7 +213,7 @@ test('3. the banner, Edit Menu and Edit Flags keep the copy; a later change keep
   load(S, publish(S));
   await makeBox(S).revertMenuEdit();
   const q = S.asked.at(-1);
-  assert.equal(q.title, 'Reset this meal?');
+  assert.equal(q.title, 'Put back the original?');   // re-pinned 2026-11-19 (Edit Menu redesign S5a): the button and its question say Put back the original
   assert.match(q.lines[0], /^“Beef Burger, Side Salad” goes back to “Caribbean Chicken Curry, Naan”, as it was before it was changed/, q.lines[0]);
   assert.equal(reads(mealOf(S)), reads(ORIGINAL), 'Reset puts the whole meal back');
   assert.ok(S.published.includes('menu meal reset'), 'and sends it');

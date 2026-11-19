@@ -15072,7 +15072,7 @@ function doorFillKitchenAltInputs(dayData, period) {
   if (title) title.textContent = period === 'breakfast' ? 'Alternatives the kitchen makes' : 'Restriction-specific plates';
   if (help) help.textContent = period === 'breakfast'
     ? 'The dish each plate gets. Leave a box empty when the kitchen makes no such plate: diabetics then eat the regular plate ("extra veg less starch"), No Dairy residents the vegan plate, and No Spicy residents the regular plate, noted "No Spicy".'
-    : 'Assign a complete plate to an existing requirement group. Type your own plate or choose a CODEX option. Draft feedback shows recipients and checks; nothing applies until Save Edit. Leaving a box empty keeps the existing fallback.';
+    : 'Assign a complete plate to an existing requirement group. Type your own plate or choose a CODEX option. Draft feedback shows recipients and checks; nothing applies until Save. Leaving a box empty keeps the existing fallback.';
   box.innerHTML = Object.keys(DOOR_KITCHEN_ALT_LABELS).map(k =>
     '<label for="mc-kalt-' + k + '">' + escapeHtml(DOOR_KITCHEN_ALT_LABELS[k]) + '</label>' +
     '<div style="min-width:0;"><input id="mc-kalt-' + k + '" class="form-input" style="width:100%;box-sizing:border-box;min-width:0;font-size:12px;padding:5px 8px;" oninput="updateSlotSummary()" value="' + _escAttr((dayData && dayData[period + '_' + k]) || '') + '">'+
@@ -16846,6 +16846,11 @@ function showToast(msg) {
     document.body.appendChild(t);
   }
   t.textContent = msg;
+  // S5a review fold: a toast never covers the pinned Save; it sits above the footer and lets clicks through.
+  t.style.pointerEvents = 'none';
+  const _ft = document.getElementById('mc-menu-edit-footer');
+  const _fr = _ft && _ft.offsetParent && _ft.getBoundingClientRect ? _ft.getBoundingClientRect() : null;
+  t.style.bottom = (_fr && _fr.top < window.innerHeight && _fr.bottom > 0) ? Math.round(window.innerHeight - _fr.top + 12) + 'px' : '24px';
   t.style.opacity = '1';
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
@@ -20868,7 +20873,7 @@ function renderAltMealsSection() {
     return;
   }
   h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Specify plain and/or soft alternatives for residents who cannot eat the standard meal.</div>';
-  if (doorAltOptionsEnabled()) h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Optional CODEX plates: choose chicken, basa or tofu with rice, yams or no starch. Carrot/zucchini is included. Choosing a plate changes this draft only; Save Edit applies it. Keep all resident preparation instructions.</div>';
+  if (doorAltOptionsEnabled()) h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Optional CODEX plates: choose chicken, basa or tofu with rice, yams or no starch. Carrot/zucchini is included. Choosing a plate changes this draft only; Save applies it. Keep all resident preparation instructions.</div>';
   ALT_MEALS.forEach((alt, i) => {
     const af = alt.flags || {};
     const activeCount = FLAG_DEFS.filter(fd => af[fd.key]).length;
@@ -22567,9 +22572,11 @@ function doorRepairMealTicks(repair) {
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
   const labels = repair.added.map(k => (FLAG_DEFS.find(f => f.key === k) || { label: k }).label);
-  showToast(labels.length ? 'Saved: this meal now carries ' + labels.join(', ') + '. Its menu words are unchanged.'
-    : 'Saved the checked recipe label. The menu words are unchanged.');
+  const _repairMsg = labels.length ? 'Saved: this meal now carries ' + labels.join(', ') + '. Its menu words are unchanged.'
+    : 'Saved the checked recipe label. The menu words are unchanged.';
+  showToast(_repairMsg);
   publishAndSync('menu edit saved');
+  if (typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, _repairMsg);   // S5a review fold P3-1
   return true;
 }
 
@@ -22607,8 +22614,10 @@ function doorWriteAnswersOnly(ids) {
     before: noted.before, afterSig: noted.afterSig, first: noted.first });
   closeMenuEdit(true);
   renderMenuConfig();
-  showToast('Saved the allergen answers for ' + dishes.join(', ') + '. The menu words are unchanged.');
+  const _answersMsg = 'Saved the allergen answers for ' + dishes.join(', ') + '. The menu words are unchanged.';
+  showToast(_answersMsg);
   publishAndSync('menu edit saved');
+  if (typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, _answersMsg);   // S5a review fold P3-1
   return true;
 }
 // S2b (Edit Menu redesign): what Save writes for the open meal, in one place, so the plate summary reads the meal exactly
@@ -22771,9 +22780,9 @@ async function revertMenuEdit() {
   const currentName = (existing && existing.name) || dayData[period] || '—';
   const origName = kept ? (kept.meal[''] || '—') : (dayData[period] || '—');
   const ok = await doorAsk({
-    title: 'Reset this meal?',
+    title: 'Put back the original?',
     lines: ['“' + currentName + '” goes back to “' + origName + '”' + (kept ? ', ' + doorSavedOriginalWhen(kept) : '') + '.'],
-    cancelLabel: 'Keep it', goLabel: 'Reset'
+    cancelLabel: 'Keep it', goLabel: 'Put it back'
   });
   if (!ok || mcMenuEditKey !== editKey) return;
   // Read again: the question waited for an answer and a menu sync may have written meanwhile.
@@ -22792,6 +22801,7 @@ async function revertMenuEdit() {
   closeMenuEdit(true);
   renderMenuConfig();
   if (done) publishAndSync('menu meal reset');
+  if (done && typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, 'Put back the original: “' + (done.kept.meal[''] || origName) + '”.');   // S5a review fold P3-1
 }
 // Draft protection belongs to the editor, not the saved menu or publication state.
 var _doorMenuDraftBaseline = null;
@@ -22845,6 +22855,12 @@ function doorRefreshSaveBar() {
   }
   if (ready) doorSetSaveStatus('');
 }
+// Review fold (P2-1): Save follows every keystroke and choice in the open meal, so the first click on Save is never lost
+// to a box that commits its words only when it loses focus.
+if (typeof document !== 'undefined' && document.addEventListener) ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  const t = e && e.target;
+  if (t && t.closest && t.closest('#mc-menu-edit-panel') && typeof doorRefreshSaveBar === 'function') doorRefreshSaveBar();
+}, true));
 function doorSetSaveStatus(text, refused) {
   const el = typeof document !== 'undefined' ? document.getElementById('mc-footer-status') : null;
   if (!el) return;
@@ -22852,9 +22868,11 @@ function doorSetSaveStatus(text, refused) {
   el.style.color = refused ? 'var(--warn-ink, #92400e)' : 'var(--ok-ink, #065f46)';
 }
 // S5a: after a save the meal stays open; the line says when it was saved and whether it was sent.
+var _doorReopenAfterSave = false;
 function doorStayOnSavedMeal(week, day, period, message) {
   if (typeof openMenuEdit !== 'function') return;
-  openMenuEdit(week, day, period);
+  _doorReopenAfterSave = true;   // review fold P3-3: the page keeps its place
+  try { openMenuEdit(week, day, period); } finally { _doorReopenAfterSave = false; }
   const t = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
   doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /only|Not sent/.test(message || ''));
 }
@@ -23036,7 +23054,7 @@ function openMenuEdit(week, day, period) {
   // Review fold P3: keyboard users start at the meal name, at once (a later move could blur a box someone is typing in).
   const _title = document.getElementById('mc-menu-edit-title');
   if (_title && typeof _title.focus === 'function') { if (_title.setAttribute) _title.setAttribute('tabindex', '-1'); try { _title.focus({ preventScroll: true }); } catch (e) { /* focus is a courtesy */ } }
-  setTimeout(() => { const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' }); }, 80);
+  if (!(typeof _doorReopenAfterSave !== 'undefined' && _doorReopenAfterSave)) setTimeout(() => { const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' }); }, 80);
 }
 
 // ============================================================
@@ -23059,7 +23077,8 @@ function doorChangedToday(week, day, period) {
   let log = [];
   try { log = loadChangeLog(); } catch (e) { return ''; }
   const today = typeof doorDateKey === 'function' ? doorDateKey(new Date()) : new Date().toISOString().slice(0, 10);
-  const e = (Array.isArray(log) ? log : []).find(x => x && String(x.week) === String(week) && x.day === day && x.period === period);
+  const e = (Array.isArray(log) ? log : []).filter(x => x && String(x.week) === String(week) && x.day === day && x.period === period && x.timestamp)
+    .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))[0];   // review fold P3-5: the newest, however the log is ordered
   if (!e || !e.timestamp || (typeof doorDateKey === 'function' ? doorDateKey(new Date(e.timestamp)) : String(e.timestamp).slice(0, 10)) !== today) return '';
   return e.by ? 'Changed today by ' + e.by : 'Changed today';
 }
@@ -25830,7 +25849,8 @@ function doorStaleReloadState() {
   try { reloadedFor = sessionStorage.getItem('door_auto_reload_for') || ''; } catch (e) {}
   return {
     stale: !!_doorTabStale, stamp: _doorStaleStamp, reloadedFor, typing,
-    editOpen: (typeof mcMenuEditKey !== 'undefined') && !!mcMenuEditKey,
+    // S5a review fold (P2-2): the meal stays open after Save, so only unsaved changes hold the reload.
+    editOpen: (typeof mcMenuEditKey !== 'undefined') && !!mcMenuEditKey && (typeof doorMenuDraftIsDirty !== 'function' || doorMenuDraftIsDirty()),
     reviewOpen: (typeof _rexReview !== 'undefined') && !!_rexReview,
     dialogOpen: !!document.querySelector('.modal-overlay'),
     // A visible box whose words differ from what the page drew there: typed, not saved (a half-filled intake form).

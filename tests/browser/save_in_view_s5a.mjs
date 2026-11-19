@@ -49,6 +49,16 @@ try {
       return { r, open: mcMenuEditKey, status: document.getElementById('mc-footer-status').textContent, disabled: document.getElementById('mc-menu-save-btn').disabled };
     });
     check(w + ' after Save the meal stays open, and the line says it was saved, with the time', after.r === true && after.open === '2-TUESDAY-dinner' && /Saved/.test(after.status) && /\d:\d\d/.test(after.status) && after.disabled, after);
+    // Review fold (P2-2): a meal left open after Save does not hold an out-of-date page's reload; unsaved changes do.
+    const reload = await p.evaluate(() => { const a = doorStaleReloadState().editOpen; slotSaveManual('starch', 'Audit Rice'); const b = doorStaleReloadState().editOpen; return { afterSave: a, unsaved: b }; });
+    check(w + ' after Save the open meal does not hold the reload; unsaved changes do', reload.afterSave === false && reload.unsaved === true, reload);
+    await p.evaluate(() => { closeMenuEdit(true); openMenuEdit(2, 'TUESDAY', 'dinner'); });
+    // Review fold (P2-1): type in a dish box and press Save once: it saves (the first click is not lost to the box).
+    await p.locator('#slot-search-vegside').fill('Audit Typed Greens');
+    await p.locator('#mc-menu-save-btn').click();
+    await p.waitForTimeout(600);
+    const typed = await p.evaluate(() => ({ open: mcMenuEditKey, words: getMenuData()['2'].TUESDAY.dinner, status: document.getElementById('mc-footer-status').textContent }));
+    check(w + ' typing in a box then one click on Save saves', /Audit Typed Greens/.test(typed.words) && /Saved/.test(typed.status), typed);
     const card = await p.evaluate(() => { closeMenuEdit(true); mcWeek = 2; renderMenuConfig(); return [...document.querySelectorAll('.mc-changed-today')].map((e) => e.textContent); });
     check(w + ' the meal card says "Changed today by QA Lead"', card.includes('Changed today by QA Lead'), card);
     await p.close();

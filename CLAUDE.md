@@ -61,8 +61,14 @@ how it opened, or a checked label waits to be written (`doorRefreshSaveBar`). Af
 footer says what the toast says, with the time (`doorStayOnSavedMeal`, `doorSetSaveStatus`). The change log records who
 (`by`), and a meal card in Menu Config says "Changed today by <name>" (`doorChangedToday`). Gates
 `tests/save_in_view_s5a_gate.mjs` (4, red 4/4 on `main`) and browser `tests/browser/save_in_view_s5a.mjs` (11, in CI: Save on
-screen at 1280×900 and 390×860 mid-meal, grey until a change, the saved line, the card). Re-pinned with a dated note:
-`menu_save_message_gate`.
+screen at 1280×900 and 390×860 mid-meal, grey until a change, the saved line, the card). Re-pinned with dated notes:
+`menu_save_message_gate`, `restore_original_gate` (the question says "Put back the original?").
+**Independent review (FIX FIRST), folded:** P2-1, Save stayed grey while typing in a dish box (the box commits on blur),
+so the first click was lost; Save now follows every input and change in the open meal. P2-2, a meal left open after Save
+held an out-of-date page's reload for good; only unsaved changes hold it now. P3: the label-repair, answers-only and Put
+back paths stay on the meal too; leftover "Reset" and "Save Edit" words; no jump to the top after Save; "Changed today"
+reads the newest entry. Found by the new click test: the toast sat over the pinned Save and took its clicks; it now sits
+above the footer and lets clicks through. Browser gate 15.
 
 ## Recent (2026-11-19) — a real edit rewrites only the dish that changed (redesign S4a, D4, `v31-standard.109`)
 D4, Jason 2026-11-19: "Follow lean". Save rebuilt the whole menu line from the dish boxes (in box order, joined with
