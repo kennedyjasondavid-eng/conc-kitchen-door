@@ -55,6 +55,9 @@ test('G1-1 Rexdale is editable however the record names it; every other site is 
   c.store.conc_selected_site = 'lansdowne'; assert.equal(c.doorSiteEditable(), false, 'saved Lansdowne, picker not set up yet');
   c.store.conc_selected_site = 'rexdale'; assert.equal(c.doorSiteEditable(), true);
   c.store.conc_selected_site = 'unknown'; assert.equal(c.doorSiteEditable(), true, 'nothing saved: DOOR starts on Rexdale');
+  c.SITE_CONFIGS = { rexdale: {}, lansdowne: {} };
+  c.store.conc_selected_site = 'old-site'; assert.equal(c.doorSiteEditable(), true, 'a saved key DOOR has no details for falls back to Rexdale, as at load');
+  c.store.conc_selected_site = 'lansdowne'; assert.equal(c.doorSiteEditable(), false);
 });
 
 test('G1-2 one message, from one place: a quiet banner while another site is picked, red only once refused', () => {

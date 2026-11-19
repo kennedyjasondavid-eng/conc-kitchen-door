@@ -2627,6 +2627,8 @@ function doorSiteEditable() {
   let key = (typeof currentSite !== 'undefined' && currentSite) ? currentSite.key : null;
   if (!key) { try { key = localStorage.getItem('conc_selected_site'); } catch (e) { key = null; } }
   if (!key || key === 'unknown') return true;
+  // Re-review P3: a saved key DOOR has no details for falls back to Rexdale at load (initSiteSelector), so it does here too.
+  if (!(typeof currentSite !== 'undefined' && currentSite) && typeof SITE_CONFIGS !== 'undefined' && !SITE_CONFIGS[key]) return true;
   const rec = typeof doorHouseSiteFor === 'function' ? doorHouseSiteFor(doorHouseSitesNow(), key) : null;
   return String((rec && rec.key) || key || '').trim().toLowerCase() === DOOR_EDITABLE_SITE_KEY;
 }
