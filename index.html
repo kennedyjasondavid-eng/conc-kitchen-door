@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.107';
+const DOOR_APP_VERSION = 'v31-standard.108';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1189,6 +1189,7 @@ function updateCODEXBadge() {
 </aside>
 
 <main class="main">
+<div id="door-site-guard-banner" role="status" style="display:none;margin:0 0 12px;padding:10px 14px;border-radius:8px;background:var(--surface-alt, var(--cream));border:1px solid var(--border);color:var(--text-1, var(--ink));font-size:13px;"></div>
 
 <!-- ===== ENTER CHANGES ===== -->
 <div class="screen active" id="screen-enter">
@@ -2586,6 +2587,7 @@ function doorRefreshSites() {
   const settingsSiteLabel = document.getElementById('settings-site-label');
   if (settingsSiteLabel) settingsSiteLabel.textContent = currentSite.name;
   doorShowSiteNotes();
+  doorRenderSiteGuardBanner(false);   // G1
 }
 
 function updateResidentCountDisplays(liveCount) {
@@ -2611,9 +2613,47 @@ function updateResidentCountDisplays(liveCount) {
   if (badge) badge.textContent = count + ' residents';
 }
 
+// G1 (HOUSE multi-site menus plan, slice G1, 2026-11-19): DOOR keeps one menu, one resident list, one routing, one set of
+// swaps and special meals and one set of rules, all Rexdale's, under storage keys with no site in them, and every published
+// file is stamped rexdale. While the picker is on another site, every write to that shared data and every send to the
+// kitchen is refused, with one message. The picker still changes SharePoint paths, labels and notes; reading, viewing and
+// printing stay allowed. The site is read through the HOUSE registry by key or alias, any case (doorHouseSiteFor).
+const DOOR_EDITABLE_SITE_KEY = 'rexdale';
+const DOOR_SITE_GUARD_COPY = 'DOOR’s published menu and resident list are Rexdale’s. Switch to Rexdale to change them. Other sites’ menus come later.';
+function doorSiteEditable() {
+  // Review fold (P2-1): before the picker is set up at load, the site saved on this computer counts (a background send at
+  // boot, such as the past-swaps cleanup, would otherwise go out for a computer saved to another site). Nothing saved
+  // means DOOR starts on Rexdale.
+  let key = (typeof currentSite !== 'undefined' && currentSite) ? currentSite.key : null;
+  if (!key) { try { key = localStorage.getItem('conc_selected_site'); } catch (e) { key = null; } }
+  if (!key || key === 'unknown') return true;
+  // Re-review P3: a saved key DOOR has no details for falls back to Rexdale at load (initSiteSelector), so it does here too.
+  if (!(typeof currentSite !== 'undefined' && currentSite) && typeof SITE_CONFIGS !== 'undefined' && !SITE_CONFIGS[key]) return true;
+  const rec = typeof doorHouseSiteFor === 'function' ? doorHouseSiteFor(doorHouseSitesNow(), key) : null;
+  return String((rec && rec.key) || key || '').trim().toLowerCase() === DOOR_EDITABLE_SITE_KEY;
+}
+// The quiet banner while another site is picked; red once something was refused.
+function doorRenderSiteGuardBanner(refused) {
+  const el = typeof document !== 'undefined' ? document.getElementById('door-site-guard-banner') : null;
+  if (!el) return;
+  if (doorSiteEditable()) { el.style.display = 'none'; el.removeAttribute('data-refused'); return; }
+  const name = currentSite && currentSite.name ? currentSite.name : 'another site';
+  el.textContent = 'DOOR is set to ' + name + '. ' + (refused ? 'Not saved. ' : '') + DOOR_SITE_GUARD_COPY;
+  if (refused) { el.setAttribute('data-refused', '1'); el.style.borderColor = 'var(--red-text, #b91c1c)'; el.style.color = 'var(--danger-ink, #991b1b)'; }
+  else { el.removeAttribute('data-refused'); el.style.borderColor = ''; el.style.color = ''; }   // review fold P3-1
+  el.style.display = 'block';
+}
+// Every write path asks this first. Refused: nothing is written, and the screen says why.
+function doorSiteGuard() {
+  if (doorSiteEditable()) return true;
+  if (typeof showToast === 'function') showToast('Not saved. ' + DOOR_SITE_GUARD_COPY);
+  doorRenderSiteGuardBanner(true);
+  return false;
+}
 function selectSite(siteKey) {
   const rec = doorSiteRecord(doorHouseSitesNow(), SITE_CONFIGS, siteKey);
   if (!rec) return;
+  const _wasEditable = !currentSite || doorSiteEditable();   // G1 review fold P3-2
   currentSite = rec;
   localStorage.setItem('conc_selected_site', siteKey);
 
@@ -2641,6 +2681,12 @@ function selectSite(siteKey) {
   const settingsSiteLabel = document.getElementById('settings-site-label');
   if (settingsSiteLabel) settingsSiteLabel.textContent = currentSite.name;
   doorShowSiteNotes();
+  doorRenderSiteGuardBanner(false);   // G1
+  // G1 review fold (P3-2): back on Rexdale from another site, what waited in the outbox is sent and the skip is cleared.
+  if (!_wasEditable && doorSiteEditable()) {
+    try { const last = JSON.parse(localStorage.getItem('concLastPublishSkip') || 'null'); if (last && last.reason === 'other_site') localStorage.removeItem('concLastPublishSkip'); } catch (e) {}
+    if (typeof doorOutboxDrain === 'function') doorOutboxDrain('site');
+  }
 }
 
 function initSiteSelector() {
@@ -5642,6 +5688,7 @@ function clearResidentHistory(r) {
 }
 
 async function revertResident(room, historyIndex) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const r0 = REGISTRY_MAP[room.toLowerCase()];
   if (!r0 || !r0._history || !r0._history[historyIndex]) { showToast('No history to revert.'); return false; }
   // The earlier state is read from this computer's history; then the kitchen's newer list, and the revert lands on its
@@ -5673,6 +5720,7 @@ async function revertResident(room, historyIndex) {
 }
 
 async function confirmRevertResidentFromEditor(room, historyIndex) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!(await doorAsk({ title: 'Revert Room ' + room, lines: ['Put Room ' + room + ' back to this earlier state?'], goLabel: 'Revert', cancelLabel: 'Go back' }))) return;
   if (!(await revertResident(room, historyIndex))) return;
   closeChangeEditor();
@@ -6093,6 +6141,7 @@ function openEditFromRegistry(room) {
 }
 
 async function clearQueue() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!changesQueue.length) { showToast('Queue is already empty.'); return; }
   if (!(await doorAsk({ title: 'Clear the queue', lines: [`Clear all ${changesQueue.length} change${changesQueue.length!==1?'s':''} from the queue? They have not been saved.`], goLabel: 'Clear queue', cancelLabel: 'Keep them' }))) return;
   changesQueue = [];
@@ -6125,6 +6174,7 @@ function clearForm() {
 }
 
 async function addChange() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const room = document.getElementById('room-number').value.trim();
   const type = document.getElementById('change-type').value;
   const notes = document.getElementById('change-notes').value.trim();
@@ -6466,6 +6516,7 @@ function updateCERoutePreview() {
 }
 
 async function saveChangeEdit() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (ceMode === 'registry') {
     await saveRegistryEdit();
     return;
@@ -7163,6 +7214,7 @@ function nrGetTag(sid) {
 }
 
 function nrAddPending(room, sid) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const action = nrGetAction(sid);
   const value  = action === 'map' ? nrGetTag(sid) : '';
   if (action === 'map' && !value) { showToast('Select a tag first.'); return; }
@@ -7182,6 +7234,7 @@ function nrAddPending(room, sid) {
 // P6: one answer to "Which did intake mean?" for a bare noun. choice: 'no' | 'prefers' | 'skip'.
 // A second answer for the same noun REPLACES the first (one judgment per noun).
 function nrAddAmbiguous(room, sid, noun, choice) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const n = String(noun || '').trim(); if (!n) return;
   const entry = choice === 'no' ? { action: 'note', value: 'No ' + n, noun: n }
               : choice === 'prefers' ? { action: 'note', value: 'Prefers ' + n, noun: n }
@@ -7197,6 +7250,7 @@ function nrAddAmbiguous(room, sid, noun, choice) {
 }
 
 function nrRemovePending(room, idx) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   let nrRes = {};
   try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
   const key = '_pending_' + room;
@@ -7208,6 +7262,7 @@ function nrRemovePending(room, idx) {
 }
 
 function nrDoneReview(room) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   let nrRes = {};
   try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
   const pending = nrRes['_pending_' + room] || [];
@@ -7302,6 +7357,7 @@ function nrApplyReview(room, sid) {
 }
 
 function nrUndoReview(room) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   let nrRes = {};
   try { nrRes = JSON.parse(localStorage.getItem('concNRResolutions') || '{}'); } catch(e) {}
   delete nrRes[room];
@@ -8031,6 +8087,7 @@ const DOOR_PUBLISH_SKIP_REASONS = Object.freeze({
   'stale-tab-cancelled':       { label: 'the last send was cancelled because this page is out of date', action: 'reload' },
   missing_auth:                { label: 'no connection key on this computer', action: 'connect' },
   viewing_key:                 { label: 'this computer can view the kitchen’s lists but not send changes (viewing key)', action: 'connect' }, // 2026-11-01
+  other_site:                  { label: 'DOOR is set to another site; Rexdale’s menu and resident list are sent only with Rexdale picked', action: 'settings' }, // G1
   not_hydrated:                { label: 'this page hadn’t finished loading the latest list', action: 'reload' },
   empty_clobber:               { label: 'this computer’s copy was out of date — reload first', action: 'reload' },
   size_regression:             { label: 'this computer’s copy was out of date — reload first', action: 'reload' },
@@ -8319,6 +8376,7 @@ function doorOutboxDrain(trigger) {
   const hasKey = !!((typeof PublishAuth !== 'undefined' && PublishAuth.getSavedToken) ? PublishAuth.getSavedToken() : '');
   if (!hasKey) return 0;
   if (typeof PublishAuth.isViewingKey === 'function' && PublishAuth.isViewingKey()) return 0; // a viewing key sends nothing (2026-11-01)
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) return 0;   // G1: another site picked; the outbox keeps it
   const count = list.length || 1;
   if (typeof publishAndSync === 'function') publishAndSync('sending ' + count + ' unpublished change set' + (count === 1 ? '' : 's') + ' (' + (trigger || 'drain') + ')');
   return count;
@@ -8610,6 +8668,7 @@ function dedupeRegistryList() {
 }
 
 function seedRegistryFromRoster(entries) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const newResidents = entries.map(e => {
     const isRegular = tagLabels.length === 0 || (tagLabels.length === 1 && tagLabels[0] === 'Regular');
     return {
@@ -8696,7 +8755,7 @@ function publishAndSync(context) {
       // P2: no connection key is the one skip staff can fix on the spot — open the card.
       if (result.reason === 'missing_auth') _doorConnectCardOpen = true;
       // 2026-11-01: a viewing key says so, in its own words (it isn't a failure to retry).
-      const _skipWhy = result.reason === 'viewing_key' ? ' ' + DOOR_VIEWING_KEY_COPY : '';
+      const _skipWhy = result.reason === 'viewing_key' ? ' ' + DOOR_VIEWING_KEY_COPY : result.reason === 'other_site' ? ' ' + DOOR_SITE_GUARD_COPY : '';
       updateSyncBar('Saved on this computer — not sent to the kitchen yet · ' + timeStr + _skipWhy, 'var(--danger-ink, #b91c1c)');
       if (typeof showToast === 'function') showToast('Saved on this computer — not sent to the kitchen yet.' + _skipWhy);
       return;
@@ -8764,6 +8823,7 @@ function ensureOperatorName() {
 
 // v25: Revert registry to pre-generate snapshot
 async function revertLastGenerate() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const raw = localStorage.getItem('concRegistrySnapshot');
   if (!raw) { showToast('Nothing to undo — no earlier version saved.'); return; }
   const snap = JSON.parse(raw);
@@ -9096,6 +9156,7 @@ async function doorAskGenerateWithoutKitchenList() {
 
 let _doorGenerateBusy = false;   // a second click while Generate waits on the kitchen or its question does nothing
 async function generateFiles() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   // v25: Ensure operator is identified for change attribution
   if (!ensureOperatorName()) return;
   if (_doorGenerateBusy) return;
@@ -9297,6 +9358,7 @@ function openInlineNoteEdit(room) {
 }
 
 async function saveInlineNote(room) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const input = document.getElementById('reg-note-input-' + room);
   if (!input) return;
   const note = input.value.trim();
@@ -9432,6 +9494,7 @@ function updateComplianceBatchBar() {
 }
 
 async function batchConfirmCompliance() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
   if (!(await doorAsk({ title: 'Confirm documentation', lines: [`Mark ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as documentation verified?`], goLabel: 'Confirm', cancelLabel: 'Go back' }))) return;
@@ -9456,6 +9519,7 @@ async function batchConfirmCompliance() {
 }
 
 async function batchSetDeadline() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
   const deadline = prompt(`Set compliance deadline for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} (YYYY-MM-DD):`);
@@ -9469,6 +9533,7 @@ async function batchSetDeadline() {
 }
 
 async function batchResolveCompliance() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
   const revert = await doorAsk({ title: 'Resolve compliance', lines: [`Resolve ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as confirmed? Their restrictions are kept.`], goLabel: 'Resolve as confirmed', cancelLabel: 'Go back' });
@@ -9916,6 +9981,7 @@ function renderComplianceView() {
 
 // --- Re-open resolved compliance item (#6) ---
 async function reopenComplianceItem(room) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   let r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) return;
   if (!(await doorAsk({ title: 'Re-open review', lines: [`Re-open compliance review for Room ${room}? They move back to the active list.`], goLabel: 'Re-open', cancelLabel: 'Go back' }))) return;
@@ -9995,6 +10061,7 @@ function toggleRevertWarning() {
 }
 
 async function submitResolve() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const room = _resolveRoom;
   if (!REGISTRY_LIST.find(x => x.room === room)) return;
 
@@ -10062,6 +10129,7 @@ async function submitResolve() {
 }
 
 function updateComplianceField(room, field, value) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (r) r[field] = value;
   _compliancePendingFields.push({ room, field, value });
@@ -10410,6 +10478,10 @@ const PublishAuth = {
       this.showSidePublishResult(label + ' — saved on this computer. ' + DOOR_VIEWING_KEY_COPY, 'var(--warn-ink, #92400e)', visible, 300);
       return Promise.resolve({ skipped:true, reason:'viewing_key' });
     }
+    if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) {   // G1: another site picked; nothing is sent
+      this.showSidePublishResult(label + ' — not sent. ' + DOOR_SITE_GUARD_COPY, 'var(--warn-ink, #92400e)', visible, 300);
+      return Promise.resolve({ skipped:true, reason:'other_site' });
+    }
     return ghPushFile(creds, path, content).then(result => {
       if (result && result.skipped) {
         const msg = label + ' — saved on this computer, not sent to the kitchen.';
@@ -10736,6 +10808,7 @@ function renderAnaphList() {
 }
 
 async function addAnaphRoom() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const input = document.getElementById('anaph-input');
   const room = (input.value || '').trim();
   if (!room || anaphRooms.includes(room)) { input.value = ''; return; }
@@ -10751,6 +10824,7 @@ async function addAnaphRoom() {
 }
 
 async function removeAnaphRoom(room) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   // Asked once, and the resident's own flag goes with the room (2026-10-18, Jason: "List removal clears the flag"):
   // the flag stayed set, so the room stayed contained after it came off the list.
   if (!(await doorAskTakeOffAnaphList(room))) return;
@@ -12676,6 +12750,7 @@ window.addEventListener('storage',event=>{if(event.key===DOOR_DELIVERY_KEY)doorD
 let _ghWriteQueue = Promise.resolve();
 
 async function ghPushFile(creds, path, content) {
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) throw new Error(DOOR_SITE_GUARD_COPY);   // G1 backstop: nothing is written for another site (checked when asked; a write queued on Rexdale still runs)
   if (typeof doorIsPublishDependency === 'function' && doorIsPublishDependency(path)) return doorRequestCoherentPublish(path);
   const next = _ghWriteQueue.then(() => _ghPushFileNow(creds, path, content));
   _ghWriteQueue = next.catch(() => {});
@@ -12744,6 +12819,7 @@ async function _ghEvaluateWriteGuards(creds, path, content, revision) {
 // holds the complete candidate. A changed ref returns to the owner for a fresh
 // read/merge/build; it never reparents a stale dependent candidate.
 async function ghPushFilesAtomic(creds, files, message, revision) {
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) throw new Error(DOOR_SITE_GUARD_COPY);   // G1 backstop: nothing is written for another site (checked when asked; a write queued on Rexdale still runs)
   if (!revision && (files || []).some(f => doorIsPublishDependency(f.path))) throw new Error('Dependent publish requires a verified input revision.');
   const next = _ghWriteQueue.then(() => _ghPushFilesAtomicNow(creds, files, message, revision));
   _ghWriteQueue = next.catch(() => {});
@@ -12929,6 +13005,7 @@ function renderOverlayDiffBanner() {
 }
 // Take the published copy of each listed day, with its stamp. Written locally only — it already matches the published file.
 function doorUsePublishedMenuDays() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const cloud = (_doorOverlayCloudDiff || {}).cloud;
   if (!cloud) return 0;
   const local = loadMenuBaseOverlay();
@@ -12983,6 +13060,12 @@ async function _doPublishToGitHub(manual) {
   if(!manual){
     const cb=document.querySelector('[onclick*="gh_auto_publish"]');
     if(cb&&!cb.querySelector('input').checked) return { skipped:true, reason:'auto_publish_off', message:'auto-publish is off' };
+  }
+  // G1: another site picked. Nothing is read or sent; the caller keeps the work in the outbox.
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) {
+    if(statusEl){ statusEl.textContent='Not sent. ' + DOOR_SITE_GUARD_COPY; statusEl.style.color='var(--warn-ink, #92400e)'; }
+    if(manual && typeof doorSiteGuard === 'function') doorSiteGuard();
+    return { skipped:true, reason:'other_site', message:'another site is picked — ' + DOOR_SITE_GUARD_COPY };
   }
   // Stale-tab publish guard: if this tab is running an older DOOR build than
   // what's deployed (checkForFreshDoorVersion set _doorTabStale), publishing
@@ -16489,6 +16572,7 @@ function renderSectionPreview(flags) {
 }
 
 function applyMealSwap() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!mcEditKey) return;
   const name = document.getElementById('mc-swap-name').value.trim();
   if (!name) { alert('Enter a replacement meal name.'); return; }
@@ -16546,6 +16630,7 @@ function applyMealSwap() {
 // hardcoded MENU_DATA constant. Phase 5 will swap this implementation for a
 // SharePoint write via Microsoft Graph API — call sites don't change.
 async function makePermanent() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!mcEditKey) return;
   const editKey = mcEditKey;
   if (!guardStandardMenuWrite('Make Permanent')) return;
@@ -16624,6 +16709,7 @@ async function makePermanent() {
 }
 
 async function revertMealSwap() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!mcEditKey) return;
   const editKey = mcEditKey;
   const [wkStr, day, period] = mcEditKey.split('-');
@@ -16682,6 +16768,7 @@ async function revertMealSwap() {
 }
 
 async function clearAllSwaps() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const swaps = loadMealSwaps();
   const today = doorDateKey(new Date());
   const activeSwaps = Object.keys(swaps).filter(k => k.slice(0,10) >= today);
@@ -16860,6 +16947,7 @@ function updateEditFlagsPreview() {
 }
 
 function saveEditFlags() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!mcEditKey) return;
   if (!guardStandardMenuWrite('Edit Flags')) return;
   const [wkStr, day, period] = mcEditKey.split('-');
@@ -17003,6 +17091,7 @@ function renderSwapsBanner() {
 
 // Make a specific swap permanent from the Active Swaps banner.
 async function makeSwapPermanentFromBanner(swapKey) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!guardStandardMenuWrite('Make Permanent')) return;
   const swaps = loadMealSwaps();
   const sw = swaps[swapKey];
@@ -17064,6 +17153,7 @@ async function makeSwapPermanentFromBanner(swapKey) {
 
 // Revert a specific swap from the Active Swaps banner.
 function revertSwapFromBanner(swapKey) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const swaps = loadMealSwaps();
   if (!swaps[swapKey]) return;
   const date = swapKey.slice(0,10);
@@ -17168,6 +17258,7 @@ function renderSpecialsBanner() {
 }
 
 async function removeSpecialMeal(key) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!(await doorAsk({
     title: 'Remove this special meal?',
     lines: ['The special meal for ' + key + ' is removed. The rotation meal is served instead.'],
@@ -17181,6 +17272,7 @@ async function removeSpecialMeal(key) {
 }
 
 function clearPastSpecials() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const meals = loadSpecialMeals();
   const today = doorDateKey(new Date());
   let removed = 0;
@@ -17214,6 +17306,7 @@ function handleMealCellClick(week, day, period) {
 }
 
 function enterSlotSwapMode() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   slotSwapMode = true;
   slotSwapFirst = null;
   closeMealEdit();
@@ -17231,6 +17324,7 @@ function exitSlotSwapMode() {
 }
 
 function executeSlotSwap(a, b) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   // Get data for both slots (respecting any existing custom swaps)
   function getSlotData(s) {
     const key = s.week+'-'+s.day+'-'+s.period;
@@ -19364,6 +19458,7 @@ function doorRulesMovesLines(moves) {
     .concat(moves.length > 12 ? ['and ' + (moves.length - 12) + ' more'] : []);
 }
 async function doorRulesAddWord(list) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!doorRulesHasList(list)) return;
   let who = doorRulesWhoHere();
   if (!who.canEdit) { doorRulesMsg(list, who.why); return; }
@@ -19428,6 +19523,7 @@ function doorRulesTakeBackImpact(list, word, target) {
   return { meals, residents };
 }
 async function doorRulesTakeBackWord(list, word) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!doorRulesHasList(list)) return;
   const who = doorRulesWhoHere();
   if (!who.canEdit) { doorRulesMsg(list, who.why); return; }
@@ -19458,6 +19554,7 @@ function doorRulesShowStillMarked(list, label, meals) {
     '<a href="#menu-config/edit/' + encodeURIComponent(m.week) + '/' + encodeURIComponent(m.day) + '/' + encodeURIComponent(m.period) + '">' + escapeHtml(doorRulesMealLabel(m)) + '</a>').join(' · '));
 }
 async function doorRulesAddLead() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const who = doorRulesWhoHere();
   const msg = (t) => doorRulesMsg('leads', t);
   if (!who.canEditLeads) { msg('Only Jason changes the leads list.'); return; }
@@ -19476,6 +19573,7 @@ async function doorRulesAddLead() {
   doorRulesChanged(name + ' is a lead. It goes to the kitchen with the next send.');
 }
 async function doorRulesRemoveLead(name) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!doorRulesWhoHere().canEditLeads || doorRulesNormName(name) === doorRulesNormName(DOOR_RULES_OWNER)) return;
   const ok = await doorAsk({ title: 'Take ' + name + ' off the leads list?', lines: ['Words ' + name + ' added stay. ' + name + ' can no longer add or take back words.'], cancelLabel: 'Go back', goLabel: 'Take off' });
   if (!ok || !doorRulesWhoHere().canEditLeads) return;
@@ -19503,6 +19601,7 @@ function doorRulesUndoStillLatest(u, rules) {
   const cur = r.additions.find(x => x.list === u.list && x.word === u.word); return !!cur && cur.at === u.at;
 }
 async function doorRulesUndo() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const u = doorRulesGetUndo();
   if (!u) return;
   const who = doorRulesWhoHere();
@@ -19841,6 +19940,7 @@ function doorPlateFormRec(kind) {
 function doorPlateMsg(text) { const el = document.getElementById('door-plate-msg'); if (el) el.textContent = text || ''; }
 const DOOR_PLATE_ROUTING_NOTE = 'An added plate rule changes the plating sheets and the counts in routing_by_meal.json, which EXPO and HUB read. The counts change at the next send to the kitchen, stamped as usual; EXPO and HUB need no change (they read counts, not rules).';
 async function doorPlatesAddRule(kind) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   let who = doorRulesWhoHere();
   if (!who.canEdit) { doorPlateMsg(who.why); return; }
   const rec = doorPlateFormRec(kind);
@@ -19882,6 +19982,7 @@ async function doorPlatesAddRule(kind) {
   doorRulesChanged('Added the plate rule. It goes to the kitchen with the next send.');
 }
 async function doorPlatesTakeBackRule(key) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const who = doorRulesWhoHere();
   if (!who.canEdit) { doorPlateMsg(who.why); return; }
   const cur = doorPlatesActive(loadDoorRules().plates).find(x => doorPlateKey(x) === key);
@@ -19989,6 +20090,7 @@ function doorUploadReadHTML(check, fileName, note) {
     '<div style="font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all;">File: ' + escapeHtml(fileName || '') + (many ? ' · dates are each week’s next turn in the rotation' : '') + '</div></div>' + warn + '</div>';
 }
 function triggerRexWeekUpload() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.xlsx,.xls';
@@ -20224,6 +20326,7 @@ function doorRexReadAnswers(root) {
 }
 
 async function doorSaveRexWeek() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const R = _rexReview;
   if (!R || !guardStandardMenuWrite('Rex’s week sheet')) return false;
   const root = document.querySelector('.rex-week-review');
@@ -20329,6 +20432,7 @@ function parseMenuWorkbook(wb) {
 // top of publishToGitHub's own toast. No-token / stale-tab / Gate-9 cases are
 // all handled inside publishToGitHub.
 async function publishMenuFromConfig() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const btn = document.getElementById('mc-publish-btn');
   const label = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = 'Sending…'; }
@@ -20348,6 +20452,7 @@ async function publishMenuFromConfig() {
 }
 
 function triggerMenuUpload() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.xlsx,.xls';
@@ -20405,6 +20510,7 @@ function doorUploadWeekPickerChanged(el) {
 // assign set: only the assigned weeks are replaced in this computer's base (concUploadedMenu), only their overlay days
 // are cleared, and every other week stays byte for byte. -> { ok, partial, replaced, kept, error }
 function doorApplyMenuUpload(fileMenu, assign) {
+  if (typeof doorSiteEditable === 'function' && !doorSiteEditable()) { doorSiteGuard(); return { ok: false, error: DOOR_SITE_GUARD_COPY }; }   // G1
   if (!assign) {
     saveUploadedMenu(fileMenu);
     // Clear the base overlay (individual permanent changes no longer apply to old slots), on every computer: the four
@@ -22080,6 +22186,7 @@ function doorSlotHeldQuestion(id, h) {
   };
 }
 async function saveMenuEdit() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!mcMenuEditKey) return;
   // A reopened editor can have the same service key but a different draft.
   const editSession = typeof _doorMenuDraftBaseline !== 'undefined' ? _doorMenuDraftBaseline : null;
@@ -22344,6 +22451,7 @@ function doorOpenRepairTicks() {
 // Writes only the meal ticks (and, for a meal with saved dish boxes, the boxes): the menu words, sides and plate text
 // stay exactly as stored, so nothing is reworded. Never takes a tick off.
 function doorRepairMealTicks(repair) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 backstop (the questions before Save wait for an answer)
   if (!guardStandardMenuWrite('Edit Menu')) return;
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
@@ -22384,6 +22492,7 @@ function doorAnswersOnly(session) {
 }
 // Writes only the answers into the stored dish boxes; the menu words, ticks and every other field stay as stored.
 function doorWriteAnswersOnly(ids) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 backstop (the questions before Save wait for an answer)
   if (!guardStandardMenuWrite('Edit Menu')) return true;
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
@@ -22514,6 +22623,7 @@ function doorHandAddedTicks(gridFlags) {
     .filter(k => !DOOR_SUMMARY_SKIP[k] && gridFlags && gridFlags[k] && !explained[k]);
 }
 function _finishMenuSave(name, veg, flags) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 backstop (the questions before Save wait for an answer)
   // Re-check after the async halal-certification prompt: source state could
   // have changed while the dialog was open.
   if (!guardStandardMenuWrite('Edit Menu')) return;
@@ -22551,6 +22661,7 @@ function _finishMenuSave(name, veg, flags) {
 }
 
 async function revertMenuEdit() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!mcMenuEditKey) return;
   const editKey = mcMenuEditKey;
   const parts = mcMenuEditKey.split('-');
@@ -22861,6 +22972,7 @@ function appendChangeLog(entry, opts) {
 }
 
 async function revertLastChange() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const log = loadChangeLog();
   if (!log.length) { alert('No changes to undo.'); return; }
 
@@ -23893,6 +24005,7 @@ function renderSmAllergenGrid(checked) {
 }
 
 function saveSpecialMeal() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   _commitLiveSmSlotInputs();   // save reads SM_SLOT_STATE — take whatever is in the boxes right now
   const date   = document.getElementById('sm-date').value;
   const period = document.getElementById('sm-period').value;
@@ -24655,6 +24768,7 @@ function diffImportAgainstRegistry(entries) {
 let IMPORT_STATE = null;  // { entries, diff, selections: {intakes: Set, discharges: Set, updates: Map} }
 
 function openUploadDialog() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 review fold P2-2: the import review writes shared rules and the daily-import stamp
   IMPORT_STATE = null;
   document.getElementById('import-step-pick').style.display = 'block';
   document.getElementById('import-step-review').style.display = 'none';
@@ -24670,6 +24784,7 @@ function closeImportDialog() {
 }
 
 function handleImportFile(file) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1 review fold P2-2: the import review writes shared rules and the daily-import stamp
   if (!file) return;
   const errEl = document.getElementById('import-parse-error');
   errEl.style.display = 'none';
@@ -25265,6 +25380,7 @@ function updateImportFooterCount() {
 
 // Turn selected import rows into changesQueue entries
 function commitImportToQueue() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!IMPORT_STATE) return;
   const { diff, selections } = IMPORT_STATE;
 
@@ -25892,6 +26008,7 @@ function saveIntakeQueue() {
 }
 
 async function addToIntakeQueue() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const type = document.getElementById('change-type').value;
   const room = (document.getElementById('room-number').value || '').trim();
   if (!room) { showToast('Enter a room number first.'); return; }
@@ -25929,6 +26046,7 @@ async function addToIntakeQueue() {
 }
 
 function removeFromQueue(id) {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const idx = INTAKE_QUEUE.findIndex(q => q.id === id);
   if (idx !== -1) {
     const item = INTAKE_QUEUE[idx];
@@ -25959,6 +26077,7 @@ function editQueueItem(id) {
 }
 
 async function commitIntakeQueue() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   if (!INTAKE_QUEUE.length) { showToast('Queue is empty.'); return; }
   const parts = [];
   const ic = INTAKE_QUEUE.filter(q => q.type === 'intake').length;
@@ -26092,6 +26211,7 @@ function renderIntakeQueue() {
 
 // Direct save from Enter Changes form (intake mode)
 async function saveDirectFromForm() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const type = document.getElementById('change-type').value;
   const room = (document.getElementById('room-number').value || '').trim();
   if (!room) { showToast('Enter a room number first.'); return; }
