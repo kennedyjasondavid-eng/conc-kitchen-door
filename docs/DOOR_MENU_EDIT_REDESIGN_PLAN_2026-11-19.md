@@ -283,5 +283,6 @@ moves its code without changing a byte).
 | S2b plate summary | merged (`14d6198`, `v31-standard.106`); review SHIP | #246 |
 | S3 typed dishes | merged (`7f8483b`, `v31-standard.107`); review SHIP, P2s folded | #247 |
 | ST test harness | folded into each slice: each slice's gate is a behaviour gate in the real page, and a source check it breaks is re-pinned or turned into one then (S4a's contract gate edits every published meal) | |
-| S4a kept words | built (`v31-standard.109`); D4 ruled; reading a meal into rows (H3) moves to S4b with the rows, since kept words no longer depend on how the boxes were read; review pending | |
-| S5a–S8, U1 | planned; D2, D4, D7, D8 ruled; D1, D3, D5, D6, D9 pending | |
+| S4a kept words | merged (`c807b54`, `v31-standard.109`); reviews FIX FIRST, folded, SHIP | #249 |
+| S5a Save in view | built (`v31-standard.110`); Close stays by the title (one Close); review pending | |
+| S4b, S5b–S8, U1 | planned; D2, D4, D7, D8 ruled; D1, D3, D5, D6, D9 pending | |
