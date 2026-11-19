@@ -860,7 +860,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.119';
+const DOOR_APP_VERSION = 'v31-standard.120';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1057,7 +1057,7 @@ function _doorApplySharedRecipes() {
     if (Array.isArray(data) && data.length > 0) {
       _doorRecipeBase = data;
       _recipeDataSource = 'live';
-      try { localStorage.setItem('door_recipe_data_cache', JSON.stringify(data)); } catch(e) {}
+      try { const _v = JSON.stringify(data); if (typeof doorSetItemSafe === 'function') doorSetItemSafe('door_recipe_data_cache', _v); else localStorage.setItem('door_recipe_data_cache', _v); } catch(e) {}
       console.log('[DOOR] CODEX recipe data loaded live (' + data.length + ' recipes)');
       _doorApplySharedRecipes();
       return;
@@ -1092,7 +1092,7 @@ function _doorApplySharedRecipes() {
     if (!data || !Array.isArray(data.recipes)) throw new Error('not a shared Library file');
     _doorSharedLibrary = data;
     _doorSharedLibrarySource = 'live';
-    try { localStorage.setItem('door_shared_library_cache', JSON.stringify(data)); } catch (e) {}
+    try { const _v = JSON.stringify(data); if (typeof doorSetItemSafe === 'function') doorSetItemSafe('door_shared_library_cache', _v); else localStorage.setItem('door_shared_library_cache', _v); } catch (e) {}
   } catch (e) {
     try {
       const cached = JSON.parse(localStorage.getItem('door_shared_library_cache') || 'null');
@@ -8211,23 +8211,64 @@ async function doorConnectCardSubmit() {
 // Every skipped or failed publish appends {ts, context, reason, registryModifiedAt} —
 // never a payload; the state is already in localStorage. Drain = publish CURRENT state
 // once (after Connect, at boot when a key exists). Only a landed publish clears it.
-// Writes go through doorSetItemSafe — HOUSE_PROVEN_SEAMS row 1 ported for DOOR: on
-// quota, drop the expendable pre-Generate undo snapshot and retry once; fail loud.
+// Writes go through doorSetItemSafe — HOUSE_PROVEN_SEAMS row 1 ported for DOOR.
+// HOUSE storage plan 2026-11-19 (slice S1-D): DOOR, EXPO, HUB and CODEX share one
+// browser allowance. On a quota failure DOOR frees its own expendable keys IN ORDER,
+// retrying the write after each, and stops as soon as it lands. Only keys DOOR itself
+// writes are listed: a kept copy of a published file whose reader falls back on the
+// next fetch (the CODEX recipe list, the HOUSE site registry), then the pre-Generate
+// undo snapshot, and LAST the shared Library copy (offline, Library-only recipes and
+// Option C kept allergens are hidden until the next fetch). Working data (the outbox,
+// menu base, upload, overlay, change log, registry, residents, rules, connection key)
+// and every other app key (door_routing_cache and the other HUB caches included) are
+// never listed. Still full: loud on the console, return false, nothing else removed.
 const DOOR_PUBLISH_OUTBOX_KEY = 'concPublishOutbox';
 const DOOR_OUTBOX_MAX = 50;
-const DOOR_EXPENDABLE_KEYS = ['concRegistrySnapshot'];
+const DOOR_EXPENDABLE_KEYS = [
+  'door_recipe_data_cache',
+  'door_house_sites_cache',
+  'concRegistrySnapshot',
+  'door_shared_library_cache'
+];
 
 function doorSetItemSafe(key, value) {
   try { localStorage.setItem(key, value); return true; }
   catch (e) {
-    try { DOOR_EXPENDABLE_KEYS.forEach(function(k) { localStorage.removeItem(k); }); } catch (e2) {}
-    try { localStorage.setItem(key, value); return true; }
-    catch (e3) {
-      console.warn('[DOOR] doorSetItemSafe: write to "' + key + '" failed even after dropping expendable keys — ' + ((e3 && e3.message) || e3));
-      return false;
+    let lastErr = e;
+    for (let i = 0; i < DOOR_EXPENDABLE_KEYS.length; i++) {
+      const k = DOOR_EXPENDABLE_KEYS[i];
+      if (k === key) continue;
+      let held = null;
+      try { held = localStorage.getItem(k); } catch (e1) {}
+      if (held === null) continue;
+      try { localStorage.removeItem(k); } catch (e2) { continue; }
+      console.warn('[DOOR] storage full: freed "' + k + '" (' + held.length + ' characters, a copy DOOR can fetch again) to save "' + key + '"');
+      try { localStorage.setItem(key, value); return true; }
+      catch (e3) { lastErr = e3; }
     }
+    console.warn('[DOOR] doorSetItemSafe: write to "' + key + '" failed even after dropping expendable keys — ' + ((lastErr && lastErr.message) || lastErr));
+    return false;
   }
 }
+
+// door_menu_reno_cache: a kept copy of menu_reno.json that HUB wrote before d52b320
+// (HUB: load current DOOR menu). No HOUSE app reads or writes it now, so it only
+// takes room in the shared allowance. Removed once at boot, named on the console.
+const DOOR_RETIRED_KEYS = ['door_menu_reno_cache'];
+function doorDropRetiredKeys() {
+  const dropped = [];
+  DOOR_RETIRED_KEYS.forEach(function(k) {
+    try {
+      const held = localStorage.getItem(k);
+      if (held === null) return;
+      localStorage.removeItem(k);
+      dropped.push(k);
+      console.info('[DOOR] removed the retired key "' + k + '" (' + held.length + ' characters, read by nothing)');
+    } catch (e) {}
+  });
+  return dropped;
+}
+try { doorDropRetiredKeys(); } catch (e) {}
 
 function doorOutboxRead() {
   let raw = null;

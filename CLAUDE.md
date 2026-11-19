@@ -53,6 +53,23 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — a full browser allowance frees DOOR's kept copies first (HOUSE storage S1-D, `v31-standard.120`)
+HOUSE storage plan `conc-kitchen-house/docs/HOUSE_STORAGE_PLAN_2026-11-19.md` §2 (Jason, 2026-11-19: "do the storage
+fix"). DOOR, EXPO, HUB and CODEX share one origin's localStorage, and Jason's device filled it.
+- **`doorSetItemSafe`** (proven-seams row 1): on a quota failure it frees `DOOR_EXPENDABLE_KEYS` in order, retrying after
+  each, and stops once the write lands; each freed key is named on the console. Order: `door_recipe_data_cache` (CODEX
+  recipe list; reader falls back to the built-in list), `door_house_sites_cache` (built-in registry copy),
+  `concRegistrySnapshot` (the undo snapshot, as before), and last `door_shared_library_cache` (offline, Library-only
+  recipes and Option C kept allergens are hidden until the next fetch). Still full: loud, `false`, nothing else removed.
+- **Only DOOR's own keys** (§2: each app frees what it writes). `door_routing_cache`, `door_menu_rexdale_current_cache`
+  and `door_recipe_prod_records_cache` are HUB's despite the prefix (written and read only by HUB), so they are left for
+  HUB's slice S1-U. Working data (outbox, menu base, upload, overlay, change log, registry, rules, key) is never listed.
+- **The two CODEX copies** are written through `doorSetItemSafe` (guarded with `typeof`: they load in the head script).
+- **`door_menu_reno_cache`**: HUB's old kept copy of `menu_reno.json` (dropped by HUB `d52b320`); no app reads or writes
+  it. `doorDropRetiredKeys` removes it once at boot, named on the console.
+- **Gate:** `tests/storage_headroom_gate.mjs` (7), red 5/7 on `main` `5e2d7a3` (4 and 5 lock the loud failure and the
+  self-skip).
+
 ## Recent (2026-11-19) — splitting a side box no longer asks the soft-plate question (`v31-standard.119`)
 Found by the U1 data review. Save asks the soft-plate question only when a dish changed, and it compared box contents. So
 splitting one box into two read as a changed dish. Its main button marks the meal "no soft plate needed".
