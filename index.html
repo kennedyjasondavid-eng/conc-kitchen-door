@@ -22225,11 +22225,16 @@ function doorOpenRepairTicks() {
   const dayData = (getMenuData()[String(week)] || {})[day] || {};
   const stored = dayData[period + '_flags'] || {};
   const held = doorEditorTickUnion();
-  const added = Object.keys(held).filter(k => held[k] === true && stored[k] !== true);
+  // Carb-swap is worked out from the dish names on open, not an allergen nobody chose to add (second review, P3).
+  const added = Object.keys(held).filter(k => held[k] === true && stored[k] !== true && k !== 'isCarb');
   const storedSlots = dayData[period + '_slots'] || {};
+  const waited = (was, now) => !!(was && was.labelUnchecked === true && now && now.recipeName && now.labelUnchecked !== true);
+  // A dish, or its vegan or halal line version, linked while its label was not checked (second review, P2).
   const labelWaiting = Object.keys(storedSlots).some(id => {
     const was = storedSlots[id], now = MEAL_SLOT_STATE[id];
-    return was && was.labelUnchecked === true && now && now.recipeName && now.labelUnchecked !== true;
+    if (waited(was, now)) return true;
+    const wl = (was && was.lines) || {}, nl = (now && now.lines) || {};
+    return Object.keys(wl).some(l => waited(wl[l], nl[l]));
   });
   if (!added.length && !labelWaiting) return null;
   const out = { ...stored };
@@ -22248,7 +22253,10 @@ function doorRepairMealTicks(repair) {
   if (!overlay[week][day]) overlay[week][day] = {};
   doorSetMealFlags(overlay[week][day], period, repair.flags);
   const dayData = (getMenuData()[String(week)] || {})[day] || {};
-  if (dayData[period + '_slots']) overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
+  // The dish boxes are written only when the saved boxes still match the menu words; boxes behind the words were not
+  // what the editor showed, so their recipe links are left alone (second review, P3).
+  const storedSlots = dayData[period + '_slots'];
+  if (storedSlots && (typeof doorSlotsMatchText !== 'function' || doorSlotsMatchText(storedSlots, dayData[period]))) overlay[week][day][period + '_slots'] = _buildSlotSnapshot();
   const noted = doorNoteMealChange(overlay, week, day, period, before, 'Edit Menu');
   saveMenuBaseOverlay(overlay);
   const name = dayData[period] || '\u2014';
@@ -22559,11 +22567,10 @@ function openMenuEdit(week, day, period) {
   if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
   // H4 (2026-11-19): opening a meal focuses nothing. The Main box used to take focus with its words selected, so the
   // first key wiped the dish and a click away re-read it. The page brings the meal heading into view instead.
-  setTimeout(() => {
-    const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' });
-    const t = document.getElementById('mc-menu-edit-title');   // review fold P3: keyboard users start at the meal name
-    if (t) { t.setAttribute('tabindex', '-1'); try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
-  }, 80);
+  // Review fold P3: keyboard users start at the meal name, at once (a later move could blur a box someone is typing in).
+  const _title = document.getElementById('mc-menu-edit-title');
+  if (_title) { _title.setAttribute('tabindex', '-1'); try { _title.focus({ preventScroll: true }); } catch (e) { _title.focus(); } }
+  setTimeout(() => { const h = document.getElementById('mc-menu-edit-panel'); if (h && h.scrollIntoView) h.scrollIntoView({ block: 'start' }); }, 80);
 }
 
 // ============================================================

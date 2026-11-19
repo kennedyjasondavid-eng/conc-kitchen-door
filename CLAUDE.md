@@ -67,7 +67,10 @@ redesign keeps the wording. **Independent review (FIX FIRST), folded:** P1, the 
 checked since (and a dish tick missing from the meal) relied on an unchanged Save; now `doorOpenRepairTicks` spots
 ticks the stored meal lacks and `doorRepairMealTicks` writes only those ticks (and the dish boxes), never removing one,
 menu words untouched (gate cases 5, red 4/27 on the unfolded `4b00eb7`, and 6, a real change still saves). P3: the meal
-heading takes keyboard focus on open. An unchanged Save no longer clears a leftover swap or legacy edit of the slot.
+heading takes keyboard focus on open (at once). An unchanged Save no longer clears a leftover swap or legacy edit of the slot.
+Second review (FIX FIRST), folded: P2, a vegan or halal line version waiting on its label counts too; P3, Carb-swap found
+on open is not written, and dish boxes behind the menu words are not overwritten by the repair. Gate 35 checks, red 4/35
+on the first fold `0630d92`.
 
 ## Recent (2026-11-19) — saved ticks follow CODEX, add only; the allergen facts rule; the badge says what CODEX lists (C4 / U2, `v31-standard.102`)
 Jason, 2026-11-19: "Follow lean". The 42 linked slots whose saved ticks differ from CODEX were compared; none left a

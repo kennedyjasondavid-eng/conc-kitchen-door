@@ -19,6 +19,13 @@ Object.assign(sun, { dinner: 'Audit Stew', dinner_veg: 'Audit Stew', dinner_main
   dinner_flags: {}, dinner_slots: { main: { recipeName: 'Audit Stew', recipeId: 'audit-stew', flags: {}, labelUnchecked: true } },
   dinner_altMeals: [], dinner_altMealsNone: true, dinner_softAlt: '', dinner_noPorkAlt: '' });
 delete sun.dinner_original;
+// Second review (P2): the same wait on a vegan line version of a side. Wk3 SUN lunch: typed main and starch, the starch
+// served to the vegan line as "Audit Stew", linked while its label was not checked.
+Object.assign(sun, { lunch: 'Audit Plate, Side Salad', lunch_veg: 'Audit Plate, Audit Stew', lunch_mainItem: '', lunch_mainAlt: '', lunch_sides: '', lunch_halal: '',
+  lunch_flags: {}, lunch_slots: { main: { manual: 'Audit Plate', flags: {} }, starch: { manual: 'Side Salad', flags: {},
+    lines: { vegan: { mode: 'swap', recipeName: 'Audit Stew', recipeId: 'audit-stew', flags: {}, labelUnchecked: true } } } },
+  lunch_altMeals: [], lunch_altMealsNone: true, lunch_softAlt: '', lunch_noPorkAlt: '' });
+delete sun.lunch_original;
 const browser = await chromium.launch();
 async function boot(width) {
   const p = await browser.newPage({ viewport: { width, height: 900 } });
@@ -87,6 +94,32 @@ try {
     check(width + ' a label checked since: Save writes its new allergen', r5 === true && after5.flags.hasPeanuts === true, [r5, after5.flags]);
     check(width + ' the dish no longer waits for its label', after5.slot && after5.slot.labelUnchecked !== true, after5.slot);
     check(width + ' its menu words stay as they were', after5.text === 'Audit Stew', after5.text);
+    const words5 = await p.evaluate(() => { const o = JSON.parse(localStorage.getItem('concMenuBase') || '{}'); const d = (o['3'] || {}).SUNDAY || {};
+      return ['dinner', 'dinner_veg', 'dinner_halal', 'dinner_sides', 'dinner_mainItem'].filter((k) => k in d); });
+    check(width + ' the repair writes no menu words, sides or plate text', words5.length === 0, words5);
+    await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
+    await p.close();
+    // 5b. Second review P2: a vegan line version waiting on its label is written too.
+    p = await boot(width);
+    await p.evaluate(() => openMenuEdit(3, 'SUNDAY', 'lunch'));
+    await p.waitForTimeout(300);
+    const r5b = await p.evaluate(() => Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('asked a question'), 3000))]));
+    await p.waitForTimeout(300);
+    const line5b = await p.evaluate(() => { const o = JSON.parse(localStorage.getItem('concMenuBase') || '{}'); const d = (o['3'] || {}).SUNDAY || {};
+      const st = (d.lunch_slots || {}).starch; return { line: st && st.lines && st.lines.vegan, text: getMenuData()['3'].SUNDAY.lunch, veg: getMenuData()['3'].SUNDAY.lunch_veg }; });
+    check(width + ' a vegan line version waiting on its label is written on Save', r5b === true && line5b.line && line5b.line.labelUnchecked !== true && line5b.line.flags && line5b.line.flags.hasPeanuts === true, [r5b, line5b.line]);
+    check(width + ' and both lines keep their words', line5b.text === 'Audit Plate, Side Salad' && line5b.veg === 'Audit Plate, Audit Stew', line5b);
+    await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
+    await p.close();
+    // 5c. Second review P3: Carb-swap found on open is not a change nobody chose (Wk1 SAT breakfast).
+    p = await boot(width);
+    await p.evaluate(() => openMenuEdit(1, 'SATURDAY', 'breakfast'));
+    await p.waitForTimeout(300);
+    const before5c = await p.evaluate(() => localStorage.getItem('concMenuBase'));
+    const r5c = await p.evaluate(() => Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('asked a question'), 3000))]));
+    await p.waitForTimeout(300);
+    const after5c = await p.evaluate(() => localStorage.getItem('concMenuBase'));
+    check(width + ' an unchanged meal where only Carb-swap is found on open writes nothing', r5c === true && after5c === before5c, [r5c, String(after5c).slice(0, 160)]);
     await p.evaluate(() => { document.querySelectorAll('.door-ask').forEach((e) => e.remove()); });
     await p.close();
     // 6. A real one-field change still saves (a tick added on the meal grid).
