@@ -53,6 +53,38 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — a meal can change just on its next date (redesign S6a, D1, `v31-standard.114`)
+D1, Jason 2026-11-19: "Go with lean". The meal view opens on **This change is for: Every week / Just on <date>** (the
+slot's next service; `#mc-when-choice`, `doorRenderWhenChoice`, `doorSetSaveWhen`, `_doorSaveWhen`).
+- **How "Just on" saves:** Save asks its usual questions, then writes a one-date entry to `meal_swaps.json`, the way
+  Swap Slots stores a moved meal (`doorSaveJustOn`).
+  - The entry holds `specialName`, `veg`, `_flagsRaw` (pork never halal), `_rotationSlot` and the whole meal in `_meal`.
+    `_meal` is built by the every-week writer on a copy and carries `_meal[''] = specialName`.
+  - The plating sheet, the routing file, EXPO and HUB read it as a swap ("Swap for Nov 23"); no `kind` is added.
+  - The every-week meal is never written. The swap's revert takes it back.
+- **Refused** (`doorJustOnTarget`): breakfast (the dated readers read lunch and dinner only), and a date that already
+  holds a special meal or a one-date change.
+- **What changes** says "just on <date>".
+- **Independent review (FIX FIRST), folded:**
+  - P1: a one-date change that kept the meal name (ticks or lines only) was hidden from Active Swaps as a no-op, so it
+    could not be reverted. Entries now carry `_oneDate: true` (additive; EXPO ignores it), and `_isNoopSwap` never
+    hides them.
+  - P2: every one-date change read as "1 unpaired swap"; the orphan check now skips them.
+  - P3:
+    - ↩ Undo Last points to Revert;
+    - the change log and Recent Activity name it;
+    - "Changed today" on the card is for every-week changes only;
+    - the saved line is no longer amber;
+    - the answer-only and repair shortcuts are skipped in date mode (they write the every-week meal).
+  - Re-pinned with a dated note: `save_in_view_s5a` 3 (only "this computer only" reads as a warning).
+- **Gates:** `tests/just_on_date_s6a_gate.mjs` (3, red on `main`) and browser `tests/browser/just_on_date_s6a.mjs` (17, in
+  CI). The browser gate covers:
+  - the entry, read by EXPO's rules, and the plating sheet serving it on that date;
+  - the same whole meal an every-week save of the same change writes;
+  - revert;
+  - the three refusals;
+  - phone width.
+
 ## Recent (2026-11-19) — Save asks only what it must (redesign S5c, D3, `v31-standard.113`)
 D3, Jason 2026-11-19: "Follow lean on D3".
 - **Still asked:**

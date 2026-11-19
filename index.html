@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.113';
+const DOOR_APP_VERSION = 'v31-standard.114';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2204,6 +2204,8 @@ function updateCODEXBadge() {
           <div style="font-size:16px;font-weight:700;margin-top:2px;" id="mc-menu-edit-title"></div>
           <!-- D1: filled by openMenuEdit when this meal is still read from the menu text -->
           <div id="mc-menu-edit-legacy"></div>
+          <!-- S6a (Edit Menu redesign, D1): Every week or Just on the next date -->
+          <div id="mc-when-choice" style="margin-top:8px;"></div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="closeMenuEdit()">Close</button>
       </div>
@@ -17057,6 +17059,7 @@ function findOrphanSwaps(upcomingSwaps) {
 // edited directly afterward). The swap has nothing to actually swap, so it
 // shouldn't surface in the banner or count toward the unpaired check.
 function _isNoopSwap(swapKey, sw) {
+  if (sw && sw._oneDate) return false;   // S6a review fold (P1): a one-date change keeping the name still changes the meal
   try {
     const date = swapKey.slice(0,10);
     const period = swapKey.slice(11);
@@ -17085,7 +17088,7 @@ function renderSwapsBanner() {
   banner.style.display = 'block';
   clearBtn.style.display = 'inline-flex';
 
-  const orphans = new Set(findOrphanSwaps(upcomingSwaps));
+  const orphans = new Set(findOrphanSwaps(upcomingSwaps.filter(([, sw]) => !(sw && sw._oneDate))));   // S6a review fold (P2)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const list = document.getElementById('mc-swaps-list');
   const orphanWarning = orphans.size > 0
@@ -22292,6 +22295,79 @@ function doorTicksQuestion(c, ticks) {
     cancelLabel: 'Go back', altLabel: 'Keep them', goLabel: 'Take them off'
   };
 }
+// S6a (Edit Menu redesign, D1; Jason 2026-11-19: "Go with lean"): a change for the next service only. It is stored the
+// way Swap Slots stores a moved meal (meal_swaps.json, the whole meal in _meal), so the plating sheet, the routing file,
+// EXPO and HUB read it as they read a swap ("Swap for Nov 23"); its revert is the swap revert. Breakfast is refused
+// (the dated readers read lunch and dinner only), and so is a date that already holds a swap or a special meal.
+var _doorSaveWhen = 'week';
+function doorJustOnTarget(editKey) {
+  const [week, day, period] = String(editKey || '').split('-');
+  if (period !== 'lunch' && period !== 'dinner') return { refused: 'A one-date change is not available for breakfast.' };
+  const d = typeof nextDateForSlot === 'function' ? nextDateForSlot(Number(week), day) : null;
+  if (!d) return { refused: 'DOOR could not work out the next date of this meal.' };
+  const key = doorDateKey(d) + '-' + period;
+  const label = d.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+  const sm = (typeof loadSpecialMeals === 'function' ? loadSpecialMeals() : {})[key];
+  if (sm && sm.specialName) return { key, label, refused: 'A special meal (' + sm.specialName + ') is already set for ' + label + '.' };
+  const sw = loadMealSwaps()[key];
+  if (sw && sw.specialName) return { key, label, refused: 'A one-date change (' + sw.specialName + ') is already set for ' + label + '. Revert it from Active Swaps first.' };
+  return { key, label, week, day, period };
+}
+function doorRenderWhenChoice() {
+  const el = typeof document !== 'undefined' ? document.getElementById('mc-when-choice') : null;
+  if (!el) return;
+  if (!mcMenuEditKey) { el.innerHTML = ''; return; }
+  const t = doorJustOnTarget(mcMenuEditKey);
+  const btn = (val, text, disabled) => '<button type="button" class="btn btn-sm ' + (_doorSaveWhen === val ? 'btn-primary' : 'btn-ghost') + '" aria-pressed="' + (_doorSaveWhen === val) + '"'
+    + (disabled ? ' disabled' : ' onclick="doorSetSaveWhen(\'' + val + '\')"') + ' style="margin-right:6px;">' + escapeHtml(text) + '</button>';
+  el.innerHTML = '<div style="font-size:12px;color:var(--text-2, var(--muted));margin-bottom:4px;">This change is for:</div>'
+    + btn('week', 'Every week', false) + btn('date', t.label ? 'Just on ' + t.label : 'Just on one date', !!t.refused)
+    + (t.refused ? '<div class="door-when-refused" style="font-size:11px;color:var(--muted);margin-top:4px;">' + escapeHtml(t.refused) + '</div>'
+      : _doorSaveWhen === 'date' ? '<div style="font-size:11px;color:var(--muted);margin-top:4px;">Only ' + escapeHtml(t.label) + ' changes. The every-week meal stays as it is.</div>' : '');
+}
+function doorSetSaveWhen(val) {
+  const t = doorJustOnTarget(mcMenuEditKey);
+  _doorSaveWhen = val === 'date' && !t.refused ? 'date' : 'week';
+  doorRenderWhenChoice();
+  if (typeof updateSlotSummary === 'function') updateSlotSummary();
+}
+function doorSaveJustOn(name, veg, flags) {
+  const t = doorJustOnTarget(mcMenuEditKey);
+  if (t.refused) { showToast('Not saved: ' + t.refused, 'error'); if (typeof doorSetSaveStatus === 'function') doorSetSaveStatus('Not saved: ' + t.refused, true); return false; }
+  const { week, day, period, key, label } = t;
+  const pnh = typeof doorPorkNeverHalal === 'function' ? doorPorkNeverHalal : (f => f);
+  // The whole meal as the every-week Save would write it, read back through the menu reader (as doorDraftPlateFacts).
+  const overlay = JSON.parse(JSON.stringify(loadMenuBaseOverlay() || {}));
+  if (!overlay[week]) overlay[week] = {};
+  if (!overlay[week][day]) overlay[week][day] = {};
+  doorWriteEditorMeal(overlay[week][day], period, name, veg, flags);
+  const was = getDoorPublishMenuOverlayOverride();
+  let dayData = null;
+  try { setDoorPublishMenuOverlayOverride(overlay); dayData = (getMenuData()[String(week)] || {})[day] || null; }
+  finally { setDoorPublishMenuOverlayOverride(was); }
+  const meal = doorMealCopy(dayData, period);
+  meal[''] = name;
+  if (meal._flags) meal._flags = pnh(meal._flags);
+  const allergens = typeof SM_ALLERGENS !== 'undefined' ? SM_ALLERGENS.filter(al => flags[al.key]).map(al => al.key) : [];
+  const swaps = loadMealSwaps();
+  swaps[key] = {
+    specialName: name, veg: veg || '', allergens, verified: false,
+    notes: 'One-date change from Edit Menu (Wk' + week + ' ' + dayLabel(day) + ' ' + period + ')',
+    createdAt: new Date().toISOString(), site: getSelectedSite() || 'unknown',
+    _flagsRaw: pnh({ ...flags }), _rotationSlot: mcMenuEditKey, _meal: meal,
+    _oneDate: true   // S6a review fold: a one-date change from Edit Menu (no partner, may keep the meal name); EXPO ignores it
+  };
+  saveMealSwaps(swaps);
+  appendChangeLog({ type: 'one_date', week, day, period, date: key.slice(0, 10), newName: name, flags });
+  closeMenuEdit(true);
+  renderMenuConfig();
+  if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
+  const msg = 'Saved for ' + label + ' only. Showing the every-week meal, which is unchanged; revert the ' + label + ' change from Active Swaps to take it back.';
+  showToast(msg);
+  publishAndSync('one-date change saved');
+  if (typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, msg);
+  return true;
+}
 // S5c (D3, Jason 2026-11-19: "Follow lean"): Save asks only what it must. Halal when the meat changed, an allergen
 // removal (keep is the default), and a new anaphylactic conflict (red, acknowledged). The rest are lines in What changes.
 var _doorSaveAskAtOpen = null, _doorSaveNote = '';
@@ -22407,13 +22483,14 @@ async function saveMenuEdit() {
   // "Pancakes & turkey bacon & fruit & yoghurt"), and that text is what EXPO, HUB and the sheets read.
   // S3 review fold: when the only change is answering what typed dishes contain, only the answers are written; a full
   // Save would rebuild the menu words from the boxes (the H2 rewording) for every meal on the Menu Config list.
-  const _answers = typeof doorAnswersOnly === 'function' && editSession && editSession.key === mcMenuEditKey ? doorAnswersOnly(editSession) : null;
+  const _dateMode = typeof _doorSaveWhen !== 'undefined' && _doorSaveWhen === 'date';   // S6a review fold: these write the every-week meal
+  const _answers = !_dateMode && typeof doorAnswersOnly === 'function' && editSession && editSession.key === mcMenuEditKey ? doorAnswersOnly(editSession) : null;
   if (_answers) { const done = doorWriteAnswersOnly(_answers); if (done) return done; }
   if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorDraftDirtyWithoutHeld()) {
     // Review fold (2026-11-19, P1): opening the meal can bring in ticks the stored meal lacks (a recipe label checked
     // since it was linked; a dish tick missing from the meal). The "re-save the meal" step relies on Save writing
     // them, so they are written, and only added, with the menu words left as stored.
-    const repair = doorOpenRepairTicks();
+    const repair = _dateMode ? null : doorOpenRepairTicks();
     if (repair) return doorRepairMealTicks(repair);
     const _held0 = Object.keys(SLOT_HELD).filter(id => SLOT_HELD[id]);
     if (_held0.length) {   // S5c (D3): held words are not a question; say what was not saved and keep the meal open
@@ -22849,6 +22926,8 @@ function _finishMenuSave(name, veg, flags) {
   if (!guardStandardMenuWrite('Edit Menu')) return;
   if (typeof doorCheckNewPlainChoices === 'function' && !doorCheckNewPlainChoices(flags)) return;
 
+  // S6a (D1): "Just on <date>" writes a one-date change for the next service; the every-week meal stays as it is.
+  if (typeof _doorSaveWhen !== 'undefined' && _doorSaveWhen === 'date') return doorSaveJustOn(name, veg, flags);
   const parts = mcMenuEditKey.split('-');
   const week = parts[0], day = parts[1], period = parts[2];
   const wkData = getMenuData()[String(week)];
@@ -23014,7 +23093,7 @@ function doorStayOnSavedMeal(week, day, period, message) {
   }
   if (message && typeof showToast === 'function') showToast(message);   // re-review P3: placed above the footer, now on screen
   const t = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
-  doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /only|Not sent/.test(message || ''));
+  doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /this computer only|Not sent/.test(message || ''));
 }
 function closeMenuEdit(savedOrDiscarded) {
   if (!savedOrDiscarded && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => closeMenuEdit(true)); return; }
@@ -23184,6 +23263,8 @@ function openMenuEdit(week, day, period) {
   // S4a (D4): the words this meal opened with and its boxes then; a legacy edit (concMenuEdits) rebuilds as before.
   if (typeof _doorWordsAtOpen !== 'undefined') _doorWordsAtOpen = existing ? null : { key: mcMenuEditKey, text: String(dayData[period] || ''), slots: {} };
   if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof DOOR_WORD_SLOT_IDS !== 'undefined') ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { _doorWordsAtOpen.slots[id] = _slotText(MEAL_SLOT_STATE[id]); });
+  _doorSaveWhen = 'week';   // S6a: every meal opens on Every week
+  if (typeof doorRenderWhenChoice === 'function') doorRenderWhenChoice();
   // S5c (D3): the meat each main box named and the dishes when the meal opened; Save asks about halal only when the meat changed.
   if (typeof _doorSaveAskAtOpen !== 'undefined') _doorSaveAskAtOpen = doorSaveAskSnapshot();
   Object.keys(MEAL_SLOT_STATE).forEach(id => { const x = MEAL_SLOT_STATE[id]; if (x && !x.recipeName && x.manual) { SLOT_TYPED_AT_OPEN[id] = String(x.manual).trim(); if (x.declared === true) SLOT_DECLARED_AT_OPEN[id] = true; } });
@@ -23220,7 +23301,7 @@ function doorChangedToday(week, day, period) {
   let log = [];
   try { log = loadChangeLog(); } catch (e) { return ''; }
   const today = typeof doorDateKey === 'function' ? doorDateKey(new Date()) : new Date().toISOString().slice(0, 10);
-  const e = (Array.isArray(log) ? log : []).filter(x => x && String(x.week) === String(week) && x.day === day && x.period === period && x.timestamp)
+  const e = (Array.isArray(log) ? log : []).filter(x => x && x.type !== 'one_date' && String(x.week) === String(week) && x.day === day && x.period === period && x.timestamp)
     .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))[0];   // review fold P3-5: the newest, however the log is ordered
   if (!e || !e.timestamp || (typeof doorDateKey === 'function' ? doorDateKey(new Date(e.timestamp)) : String(e.timestamp).slice(0, 10)) !== today) return '';
   return e.by ? 'Changed today by ' + e.by : 'Changed today';
@@ -23254,6 +23335,8 @@ function appendChangeLog(entry, opts) {
     } else if (entry.type === 'special_meal') {
       desc = 'Special meal “' + (entry.specialName || '') + '” on ' + (entry.date || '') + ' ' + (entry.period || '');
       color = '#0891b2';
+    } else if (entry.type === 'one_date') {
+      desc = 'Changed Wk' + entry.week + ' ' + dayStr + ' ' + entry.period + ' just on ' + (entry.date || '') + ' — ' + (entry.newName || '');
     } else {
       desc = 'Menu change (' + entry.type + ')';
     }
@@ -23287,6 +23370,8 @@ async function revertLastChange() {
     description = `revert of "${last.oldName}" back to "${last.newName}" (Week ${last.week} · ${last.day} · ${last.period})`;
   } else if (last.type === 'special_meal') {
     description = `special meal "${last.specialName}" on ${last.date} ${last.period}`;
+  } else if (last.type === 'one_date') {
+    alert('The last change is a one-date change for ' + (last.date || 'one date') + '. Take it back with Revert on the Active Swaps banner.'); return;
   } else {
     alert('Cannot undo this type of entry.'); return;
   }
@@ -23374,7 +23459,7 @@ function renderChangeLog() {
   el.innerHTML = filtered.map(e => {
     const d = new Date(e.timestamp);
     const ds = d.toLocaleDateString('en-CA') + ' ' + d.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit'});
-    const typeLabel = { permanent_edit: 'Permanent edit', special_meal: 'Special meal', revert: 'Revert' }[e.type] || e.type;
+    const typeLabel = { permanent_edit: 'Permanent edit', special_meal: 'Special meal', revert: 'Revert', one_date: 'One-date change' }[e.type] || e.type;
     const site = e.site || 'unknown';
     let detail = '';
     if (e.type === 'permanent_edit' || e.type === 'revert') {
@@ -23384,6 +23469,9 @@ function renderChangeLog() {
         : '"' + (e.oldName||'') + '" \u2192 "' + (e.newName||'') + '"');
     } else if (e.type === 'special_meal') {
       detail = (e.date||'') + ' ' + (e.period||'') + ' \u2014 "' + (e.specialName||'') + '"' + (e.verified ? '' : " Warning: allergens unverified");
+    } else if (e.type === 'one_date') {
+      const day = e.day ? e.day.charAt(0)+e.day.slice(1).toLowerCase() : '';
+      detail = 'Wk ' + e.week + ' ' + day + ' ' + (e.period||'') + ' just on ' + (e.date||'') + ' \u2014 "' + (e.newName||'') + '"';
     }
     return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:120px 130px 1fr;gap:6px;align-items:start;">' +
       '<span style="color:var(--muted);">' + escapeHtml(ds) + '</span>' +
@@ -26861,7 +26949,7 @@ function doorWhatChangesHTML(m) {
   const words = a => a.map(t => t.charAt(0) + t.slice(1).toLowerCase()).join(', ');
   const row = (html, style) => '<div style="font-size:12px;margin-top:3px;' + (style || '') + '">' + html + '</div>';
   let h = '<div class="door-what-changes" style="margin:0 0 10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--paper);">'
-    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">What changes (every week)</div>';
+    + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">What changes (' + escapeHtml(m.whenLabel || 'every week') + ')</div>';
   if ((m.newUnchecked || []).length) h += row(doorIcon('warning') + ' Label not checked: ' + escapeHtml(m.newUnchecked.join(', ')) + '. Its allergens are unknown until someone reads the package.', 'color:var(--warn-ink, #92400e);font-weight:700;');
   else if (!m.plates.length) h += row('<span style="color:var(--muted);">No plate gains or loses an allergen.</span>');
   m.plates.forEach(p => {
@@ -26928,6 +27016,11 @@ function doorRenderWhatChanges(draftFacts, draftFlags) {
       model = doorWhatChanges(before, after, typeof REGISTRY_LIST !== 'undefined' ? REGISTRY_LIST : [], undefined, swaps);
       model.held = heldIds.map(id => ({ typed: SLOT_HELD[id].typed, label: (typeof DOOR_SLOT_KITCHEN_LABEL !== 'undefined' && DOOR_SLOT_KITCHEN_LABEL[id]) || id }));
       model.specials = specials;
+      if (typeof _doorSaveWhen !== 'undefined' && _doorSaveWhen === 'date') {   // S6a: the one date only; nothing else is replaced
+        const t = doorJustOnTarget(mcMenuEditKey);
+        model.whenLabel = 'just on ' + (t.label || 'one date');
+        model.swaps = []; model.specials = [];
+      }
       model.runOn = typeof doorRunOnSlots === 'function' ? doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS).map(r => ({ text: r.text, label: (typeof DOOR_SLOT_KITCHEN_LABEL !== 'undefined' && DOOR_SLOT_KITCHEN_LABEL[r.id]) || r.label })) : [];
       const _list = typeof REGISTRY_LIST !== 'undefined' ? REGISTRY_LIST : [];
       model.softNone = typeof buildAltMeals === 'function' && !buildAltMeals().length && !ALT_MEALS_NONE

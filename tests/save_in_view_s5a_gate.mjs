@@ -43,7 +43,8 @@ test('S5a-3 after a real Save the meal stays open and the line says when, and wh
   assert.match(fnBlock('_finishMenuSave'), /doorStayOnSavedMeal\(week, day, period, _savedMsg\)/);
   const stay = fnBlock('doorStayOnSavedMeal');
   assert.match(stay, /openMenuEdit\(week, day, period\);/);
-  assert.match(stay, /doorSetSaveStatus\(\(message \|\| 'Saved\.'\) \+ ' · ' \+ t, \/only\|Not sent\/\.test/);
+  // Re-pinned 2026-11-19 (S6a review fold): "Saved for <date> only" is a success; only "this computer only" warns.
+  assert.match(stay, /doorSetSaveStatus\(\(message \|\| 'Saved\.'\) \+ ' · ' \+ t, \/this computer only\|Not sent\/\.test/);
 });
 
 test('S5a-4 the change log records who; a meal card says "Changed today by <name>" for an entry today', () => {
