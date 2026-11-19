@@ -272,11 +272,13 @@ test('both renderers draw the note through the one owner, red for an anaphylacti
 });
 
 // ── 4. today's data is unchanged ─────────────────────────────────────────────────────────────────────────────────────
-test('today: no recipe is not checked, and every published meal plates exactly as without the label check', () => {
+test('today: only the four C2 bought items are not checked, and every published meal plates exactly as without the label check', () => {
   const fallback = vm.runInNewContext(lineOf('const DOOR_RECIPE_DATA_FALLBACK = ') + ';DOOR_RECIPE_DATA_FALLBACK');
   assert.deepEqual(J(fallback.filter((r) => sb.unchecked(r)).map((r) => r.recipeName)), []);
   const sibling = new URL('../../conc-recipe-hub/DOOR_RECIPE_DATA.json', import.meta.url);
-  if (fs.existsSync(sibling)) assert.deepEqual(JSON.parse(fs.readFileSync(sibling, 'utf8')).filter((r) => sb.unchecked(r)).map((r) => r.recipeName), []);
+  // Re-pinned 2026-11-18 (CODEX #383, call C2): CODEX now lists four bought items whose label is not checked yet. DOOR reads
+  // them by exact name in the regular, vegan and halal texts; today no such text names one, so every meal plates as before.
+  if (fs.existsSync(sibling)) assert.deepEqual(JSON.parse(fs.readFileSync(sibling, 'utf8')).filter((r) => sb.unchecked(r)).map((r) => r.recipeName).sort(), ['Chex cereal', 'Oat milk', 'Soy milk', 'Vegan yoghurt']);
   const menu = json('menu_current.json').menu, state = json('door_state.json');
   assert.doesNotMatch(JSON.stringify(menu), /labelUnchecked/);
   const withCheck = harness(fallback, state.residents.map((r) => ({ ...r })), menu);
