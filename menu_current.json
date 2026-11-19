@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-19T15:40:04.328Z",
+    "exported": "2026-11-19T18:46:59.926Z",
     "version": 32,
     "flow": {
       "calendar": {
@@ -15,14 +15,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:abdb8e723f6592882cf0f5213d60df58aaea383566fc87e00fce365dfe226240",
+        "menu": "sha256:55724ef738e3ac62ab1bc97d2d0d935f4f47584263927f82ef223f4590dc38a3",
         "recipe": "sha256:c28fd4f350236a3f1ce27eae54df9a3d8f068b33ea144bfa207791a625bffcf8",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:d5bbd1be965ea26dc93c95509f5e855a3beb2a6c8e5ae9b05292fd2d954bf7f5",
+      "inputRevision": "sha256:c9cd63a2b32150d9cd459f9be63a37581ba910abbaefa27ec85c04bc8911e478",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 38
+        "sequence": 39
       },
       "schema": 1
     }
@@ -1442,12 +1442,12 @@
           "isCarb": true,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": true,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": true,
+          "hasCoconut": true,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": true
         },
         "breakfast_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
         "breakfast_altMeals": [
@@ -1556,7 +1556,7 @@
         },
         "dinner_slots": {
           "main": {
-            "manual": "Pork Adobo & Garlic Green Bean",
+            "manual": "Pork Adobo",
             "flags": {
               "hasGluten": false,
               "hasDairy": false,
@@ -1615,10 +1615,14 @@
               "hasCorn": true
             },
             "recipeId": "adobo-pork-chicken-tofu-adobo-marinade-and-sauce",
-            "displayText": "Vegetarian Adobo, Garlic Green Bean"
+            "displayText": "Vegetarian Adobo"
           },
           "starch": {
             "manual": "Rice",
+            "flags": {}
+          },
+          "vegside": {
+            "manual": "Garlic Green Bean",
             "flags": {}
           }
         },
@@ -1626,7 +1630,17 @@
         "lunch_softAlt": "",
         "lunch_altMealsNone": true,
         "dinner_anaphAlt": "Plain Chicken Leg with Rice and Vegetables",
-        "breakfast_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt"
+        "breakfast_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt",
+        "dinner_softAlt": "",
+        "dinner_altMeals": [],
+        "dinner_altMealsNone": false,
+        "dinner_gfAlt": "",
+        "dinner_diabeticAlt": "",
+        "dinner_noDairyAlt": "",
+        "dinner_noEggAlt": "",
+        "dinner_blandAlt": "",
+        "dinner_noPorkAlt": "",
+        "dinner_mainAlt": ""
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -5568,7 +5582,7 @@
           "hasCorn": false
         },
         "lunch": "Pork Souvlaki, Naan, Steamed Carrots, Tzatziki",
-        "lunch_veg": "Black bean patty, Naan, Steamed Carrots, Tzatziki",
+        "lunch_veg": "Black bean patty, Naan, Steamed Carrots",
         "lunch_halal": "Halal chicken Souvlaki",
         "lunch_mainItem": "Pork Souvlaki",
         "lunch_sides": "Naan, Steamed Carrots, Tzatziki",
@@ -5592,12 +5606,12 @@
           "isCarb": true,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "White Chilli Chicken Pasta Casserole, Broccoli",
         "dinner_veg": "Vegan White Chilli Pasta Casserole, Broccoli",
@@ -5739,7 +5753,7 @@
         "allergens_dinner": "gluten, sulphites",
         "lunch_slots": {
           "main": {
-            "manual": "Pork Souvlaki & Steamed Carrots & Tzatziki",
+            "manual": "Pork Souvlaki",
             "flags": {
               "hasGluten": true,
               "hasDairy": true,
@@ -5798,11 +5812,27 @@
               "hasCorn": false
             },
             "recipeId": "vegan-bean-patties",
-            "displayText": "Black bean patty, Steamed Carrots, Tzatziki"
+            "displayText": "Black bean patty"
           },
           "starch": {
             "manual": "Naan",
             "flags": {}
+          },
+          "vegside": {
+            "manual": "Steamed Carrots",
+            "flags": {}
+          },
+          "xtra": {
+            "manual": "Tzatziki",
+            "flags": {
+              "hasDairy": true,
+              "hasSulphites": true
+            },
+            "lines": {
+              "vegan": {
+                "mode": "none"
+              }
+            }
           }
         },
         "lunch_gfAlt": "Halal Chicken Souvlaki, Seasoned Rice, Carrot Coins",
@@ -5822,7 +5852,13 @@
         "dinner_noEggAlt": "",
         "dinner_blandAlt": "",
         "dinner_anaphAlt": "",
-        "breakfast_gfAlt": "GF roll, chicken deli, egg, cheese, yoghurt, fruit"
+        "breakfast_gfAlt": "GF roll, chicken deli, egg, cheese, yoghurt, fruit",
+        "lunch_diabeticAlt": "",
+        "lunch_noEggAlt": "",
+        "lunch_blandAlt": "",
+        "lunch_anaphAlt": "",
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": ""
       },
       "MONDAY": {
         "breakfast": "Pancakes, turkey bacon, fruit & yoghurt",
@@ -5857,7 +5893,7 @@
           "hasBeans": false
         },
         "lunch": "Chicken Ranch Salad Sandwich, Fruit and Chips",
-        "lunch_veg": "Falafel  Sandwich, Fruit and Chips, Sub Bun",
+        "lunch_veg": "Falafel Sandwich, Fruit and Chips, Sub Bun",
         "lunch_mainItem": "Chicken Ranch Salad Sandwich",
         "lunch_sides": "Fruit and Chips",
         "lunch_flags": {
@@ -5880,12 +5916,12 @@
           "isCarb": false,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": true,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Fish Curry, Steamed Rice, Roasted Zucchini",
         "dinner_veg": "Tofu Curry, Steamed Rice, Roasted Zucchini",
@@ -6002,7 +6038,7 @@
         "allergens_dinner": "fish, tree nuts, soy, sulphites",
         "lunch_slots": {
           "main": {
-            "manual": "Chicken Ranch Salad Sandwich & Fruit and Chips",
+            "manual": "Chicken Ranch Salad Sandwich",
             "flags": {
               "hasGluten": true,
               "hasDairy": true,
@@ -6061,7 +6097,15 @@
               "hasCorn": true
             },
             "recipeId": "rexdale-falafel",
-            "displayText": "Falafel  Sandwich, Fruit and Chips, Sub Bun"
+            "displayText": "Falafel Sandwich"
+          },
+          "xtra": {
+            "manual": "Fruit and Chips",
+            "flags": {}
+          },
+          "vegextras": {
+            "manual": "Sub Bun",
+            "flags": {}
           }
         },
         "lunch_gfAlt": "Roasted Chicken Leg, Roasted Yams, Stirfry Vegetables",
@@ -6081,7 +6125,12 @@
         ],
         "dinner_altMealsNone": false,
         "dinner_anaphAlt": "Plain Basa with Rice and Vegetables",
-        "breakfast_gfAlt": "Gluten-free pancakes, turkey bacon, fresh fruit, yoghurt"
+        "breakfast_gfAlt": "Gluten-free pancakes, turkey bacon, fresh fruit, yoghurt",
+        "lunch_diabeticAlt": "",
+        "lunch_blandAlt": "",
+        "lunch_anaphAlt": "",
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": ""
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk, fruit",
@@ -7363,7 +7412,7 @@
           "hasBeans": false
         },
         "lunch": "Lime-Spiced Chicken Legs, Garlic Bread, Steamed Broccoli",
-        "lunch_veg": "Roasted Veg and Tofu Medley, Tumeric Quinoa, Garlic Bread, Steamed Broccoli",
+        "lunch_veg": "Roasted Veg and Tofu Medley, Garlic Bread, Steamed Broccoli, Turmeric Quinoa",
         "lunch_mainItem": "Lime-Spiced Chicken Legs",
         "lunch_sides": "Garlic Bread, Steamed Broccoli",
         "lunch_flags": {
@@ -7386,12 +7435,12 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": true,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": true,
-          "hasBeans": false
+          "hasBrassicas": true,
+          "hasCorn": false
         },
         "dinner": "Beef Massaman Curry, Rice",
         "dinner_veg": "Vegetarian Massaman Curry, Rice",
@@ -7520,7 +7569,7 @@
             }
           },
           "veganalt": {
-            "manual": "Roasted Veg and Tofu Medley, Tumeric Quinoa",
+            "manual": "Roasted Veg and Tofu Medley",
             "flags": {
               "hasSoy": true
             }
@@ -7532,9 +7581,13 @@
           "vegside": {
             "manual": "Steamed Broccoli",
             "flags": {}
+          },
+          "vegextras": {
+            "manual": "Turmeric Quinoa",
+            "flags": {}
           }
         },
-        "lunch_diabeticAlt": "Lime-Spiced Chicken Legs, Tumeric Quinoa, Broccoli",
+        "lunch_diabeticAlt": "Lime-Spiced Chicken Legs, Turmeric Quinoa, Broccoli",
         "lunch_altMeals": [],
         "lunch_softAlt": "",
         "lunch_altMealsNone": true,
@@ -7544,7 +7597,14 @@
         "dinner_noDairyAlt": "",
         "dinner_noEggAlt": "",
         "dinner_blandAlt": "",
-        "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit"
+        "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit",
+        "lunch_gfAlt": "",
+        "lunch_noDairyAlt": "",
+        "lunch_noEggAlt": "",
+        "lunch_blandAlt": "",
+        "lunch_anaphAlt": "",
+        "lunch_noPorkAlt": "",
+        "lunch_mainAlt": ""
       }
     }
   }

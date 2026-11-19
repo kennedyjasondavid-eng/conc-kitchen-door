@@ -53,6 +53,23 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — U1 through the new editor: combined boxes split, the vegan plate without tzatziki (data, publication 39)
+D9, Jason 2026-11-19: "Follow lean on D9". Both walkthrough calls: "Follow lean".
+- **How:** made through DOOR's own meal view and Save, then one publish through DOOR's publisher. It ran against an
+  in-memory GitHub (EXPO's W6 harness) with today's CODEX feed and shared Library.
+- **Combined boxes split:** the main boxes holding two or three dishes are split on Wk1 FRI dinner, Wk4 SUN lunch and
+  Wk4 MON lunch, and the vegan box on Wk4 SAT lunch.
+- **Wk4 SUN lunch:** the vegan plate no longer gets the tzatziki (Tzatziki 160 → 150 portions).
+- **Text fixes:** Turmeric is spelled right; "Falafel  Sandwich" loses its double space.
+- **Unchanged:** the regular menu words, the section counts and the publication's recipe facts.
+- **The soft-plate question was not asked:** splitting a box changes no dish, and answering it would have marked a meal
+  "no soft plate needed".
+- **Waiting on CODEX:** four vegan links to shared pots (Wk1 FRI, Wk2 SUN, MON, FRI dinner) stay until CODEX gives each
+  pot its own vegan record (a CODEX data edition).
+- **Receipt:** `docs/receipts/door_u1_split_boxes_2026-11-19.md`. **Gate:** `tests/u1_split_boxes_gate.mjs` (6). Independent review: SHIP
+  (plating identical on all 84 meals). **After merge:** republish EXPO once (Review DOOR menu → Apply), or HUB shows its
+  menu-drift banner for the three vegan lines.
+
 ## Recent (2026-11-19) — "Other plates the kitchen makes" (redesign S8, M13, `v31-standard.118`)
 The editor's "Restriction-specific plates" (and, at breakfast, "Alternatives the kitchen makes") becomes **Other plates the
 kitchen makes**, with one plain sentence on a plate not made (`doorFillKitchenAltInputs`).
