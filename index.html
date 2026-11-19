@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.112';
+const DOOR_APP_VERSION = 'v31-standard.113';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -22203,6 +22203,7 @@ function doorAsk(opts) {
     box.className = 'modal-box'; box.style.maxWidth = '520px';
     const head = document.createElement('div'); head.className = 'modal-header';
     const h = document.createElement('h2'); h.textContent = o.title || 'Check before saving'; head.appendChild(h);
+    if (o.danger) h.style.color = 'var(--danger-ink, #991b1b)';
     const body = document.createElement('div'); body.className = 'modal-body'; body.style.padding = '16px 20px';
     (o.lines || []).forEach(line => {
       const para = document.createElement('p'); para.style.margin = '0 0 10px'; para.style.fontSize = '13px';
@@ -22282,12 +22283,87 @@ function doorTicksQuestion(c, ticks) {
     items: ticks.map(label),
     cancelLabel: 'Go back', altLabel: 'Take them off', goLabel: 'Keep them'
   };
+  // S5c review fold (P2): this question now carries only the meat and routing marks (DOOR_MEAT_MARKS). They follow the
+  // dish (W3a: a pork mark left behind makes the meal a pork day). Allergens come off only through doorRemovalQuestion.
   return {
-    title: 'Take off the old dish’s warnings?',
-    lines: [head, 'Nothing on the new plate names these warnings, so they look like the old dish’s. Saving takes off:'],
+    title: 'Take off the old dish’s meat marks?',
+    lines: [head, 'Nothing on the new plate names these, so they look like the old dish’s. They set the pork day and the halal plate. Saving takes off:'],
     items: ticks.map(label),
     cancelLabel: 'Go back', altLabel: 'Keep them', goLabel: 'Take them off'
   };
+}
+// S5c (D3, Jason 2026-11-19: "Follow lean"): Save asks only what it must. Halal when the meat changed, an allergen
+// removal (keep is the default), and a new anaphylactic conflict (red, acknowledged). The rest are lines in What changes.
+var _doorSaveAskAtOpen = null, _doorSaveNote = '';
+// The marks that follow the dish (W3a); every other tick is an allergen or a warning and comes off only when confirmed.
+const DOOR_MEAT_MARKS = ['hasPork', 'hasBeef', 'hasChicken', 'hasTurkey', 'hasProcessedMeat', 'isCarb'];
+function doorAllergenRemovals(editKey, flags) {
+  const parts = String(editKey || '').split('-');
+  if (parts.length !== 3) return [];
+  const [week, day, period] = parts;
+  const saved = (((typeof getMenuData === 'function' ? getMenuData() : {}) || {})[week] || {})[day] || {};
+  const stored = saved[period + '_flags'] || {};
+  return Object.keys(stored).filter(k => stored[k] === true && !flags[k] && k !== 'halalCertifiedMeat' && !DOOR_MEAT_MARKS.includes(k)).sort();
+}
+function doorRemovalQuestion(keys) {
+  const label = k => { const f = (typeof FLAG_DEFS !== 'undefined' ? FLAG_DEFS : []).find(x => x.key === k); return f ? f.label : k; };
+  return { title: 'Take these allergens off the meal?',
+    lines: ['The meal as saved says it contains these, and this save would take them off. They stay unless you take them off:'],
+    items: keys.map(label), cancelLabel: 'Go back', altLabel: 'Take them off', goLabel: 'Keep them' };
+}
+function doorSaveAskSnapshot() {
+  const meat = id => (typeof doorEditorDetectMeat === 'function' ? doorEditorDetectMeat(id) : []).map(m => m.flag).sort().join(',');
+  const dishes = {};
+  Object.keys(MEAL_SLOT_STATE || {}).forEach(id => { const x = MEAL_SLOT_STATE[id]; dishes[id] = _slotText(x) + '|' + JSON.stringify((x && x.lines) || {}) + '|' + JSON.stringify((x && x.list) || []); });
+  return { key: mcMenuEditKey, meat: { main: meat('main'), mainalt: meat('mainalt') }, dishes };
+}
+function doorMeatChangedSinceOpen(slotId) {
+  const o = _doorSaveAskAtOpen;
+  if (!o || o.key !== mcMenuEditKey) return true;   // unknown: ask, as before
+  return doorSaveAskSnapshot().meat[slotId] !== o.meat[slotId];
+}
+function doorDishesChangedSinceOpen() {
+  const o = _doorSaveAskAtOpen;
+  if (!o || o.key !== mcMenuEditKey) return true;
+  const now = doorSaveAskSnapshot().dishes;
+  return Object.keys(now).some(id => now[id] !== o.dishes[id]);
+}
+// The soft-plate choice is asked only when the change can affect soft residents (a dish changed and someone on the list
+// eats soft), and always when this computer has no resident list.
+function doorSoftQuestionNeeded() {
+  const list = typeof REGISTRY_LIST !== 'undefined' && Array.isArray(REGISTRY_LIST) ? REGISTRY_LIST : [];
+  if (!list.length) return true;
+  return list.some(r => (r.tags || []).includes('Soft Meals')) && doorDishesChangedSinceOpen();
+}
+// The red question for a new anaphylactic conflict: a room this save moves onto the anaphylactic plate, or a dish whose
+// label is not checked newly on a meal while anaphylactic residents are on the list. Null when there is none.
+function doorAnaphSaveQuestion(flags) {
+  try { return doorAnaphSaveQuestionInner(flags); }
+  catch (e) {
+    // A check that cannot run holds Save and says so (CLAUDE.md rules).
+    console.warn('[DOOR] the anaphylactic check could not run:', e);
+    return { hold: true };
+  }
+}
+function doorAnaphSaveQuestionInner(flags) {
+  if (!mcMenuEditKey || typeof doorWhatChanges !== 'function') return null;
+  const [week, day, period] = mcMenuEditKey.split('-');
+  const list = typeof REGISTRY_LIST !== 'undefined' ? REGISTRY_LIST : [];
+  if (!list.length) return null;
+  const legacy = typeof getMenuEdit !== 'undefined' && getMenuEdit(week, day, period);
+  const after = doorDraftPlateFacts(flags, legacy ? { noMenuEdit: true } : undefined);
+  const m = doorWhatChanges(doorPlateFactsFor(week, day, period, { noDated: true }), after, list, undefined, []);
+  // Review fold (P3): the roommates the sheet contains with them are named too.
+  const sb = doorSeatsForFacts(doorPlateFactsFor(week, day, period, { noDated: true }), list), sa = doorSeatsForFacts(after, list);
+  const into = list.filter(r => sb[r.room] !== 'Anaphylactic Alternative' && sa[r.room] === 'Anaphylactic Alternative')
+    .map(r => 'Room ' + r.room + (doorIsAnaphResident(r) ? ' (anaphylactic)' : ' (shares the room)'));
+  const label = m.newUnchecked.length && m.anaphRooms.length;
+  if (!into.length && !label) return null;
+  const lines = [];
+  if (into.length) lines.push('This change puts an allergen they are anaphylactic to on this meal. The plating sheet moves them to the Anaphylactic Alternative:');
+  if (label) lines.push('The label of ' + m.newUnchecked.join(', ') + ' is not checked, so its allergens are unknown. Check it before serving rooms ' + m.anaphRooms.join(', ') + '.');
+  return { title: 'Anaphylactic residents affected', danger: true, lines, items: into,
+    cancelLabel: 'Go back', goLabel: 'I understand, save' };
 }
 // W3e (2026-11-09): the Save question for a box whose words were not saved (see doorSlotHoldTyped). Going back is the
 // default; go takes the recipe (or shows the words on the menu with the recipe kept); alt keeps the words as typed.
@@ -22333,61 +22409,38 @@ async function saveMenuEdit() {
   // Save would rebuild the menu words from the boxes (the H2 rewording) for every meal on the Menu Config list.
   const _answers = typeof doorAnswersOnly === 'function' && editSession && editSession.key === mcMenuEditKey ? doorAnswersOnly(editSession) : null;
   if (_answers) { const done = doorWriteAnswersOnly(_answers); if (done) return done; }
-  if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
+  if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorDraftDirtyWithoutHeld()) {
     // Review fold (2026-11-19, P1): opening the meal can bring in ticks the stored meal lacks (a recipe label checked
     // since it was linked; a dish tick missing from the meal). The "re-save the meal" step relies on Save writing
     // them, so they are written, and only added, with the menu words left as stored.
     const repair = doorOpenRepairTicks();
     if (repair) return doorRepairMealTicks(repair);
+    const _held0 = Object.keys(SLOT_HELD).filter(id => SLOT_HELD[id]);
+    if (_held0.length) {   // S5c (D3): held words are not a question; say what was not saved and keep the meal open
+      const msg = 'Nothing was saved: ' + _held0.map(id => '“' + SLOT_HELD[id].typed + '”').join(', ') + (_held0.length > 1 ? ' are' : ' is') + ' not in the meal yet. See the note under the box.';
+      showToast(msg, 'info');
+      if (typeof doorSetSaveStatus === 'function') doorSetSaveStatus(msg, true);
+      return false;
+    }
     showToast('Nothing changed, so nothing was saved.', 'info');
     closeMenuEdit(true);
     return true;
   }
   // W3e (2026-11-09): words a box holds that were not saved are asked about here, one box at a time, never saved
   // silently. Going back saves nothing.
-  const _heldKey = mcMenuEditKey;
-  for (const id of Object.keys(SLOT_HELD)) {
-    const h = SLOT_HELD[id];
-    if (!h) continue;
-    const ask = doorSlotHeldQuestion(id, h);
-    const ans = await doorAsk(ask);
-    if (mcMenuEditKey !== _heldKey) return;
-    if (!ans) return;
-    if (editSession && _doorMenuDraftBaseline !== editSession) return;
-    if (h.kind === 'refused') slotDropHeld(id);
-    else if (h.kind === 'exact') slotSelect(id, h.recipe);
-    else if (h.kind === 'half') { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotSelect(id, h.recipe); }
-    else { if (ans === 'alt') slotAutoSave(id, h.typed, 'enter'); else slotRenameShown(id, h.typed); }
-  }
-  // S1 review fold (P2): putting a refused box back can leave the meal as it opened. Then Save writes nothing, as above.
-  if (typeof doorMenuDraftIsDirty === 'function' && editSession && editSession.key === mcMenuEditKey && !doorMenuDraftIsDirty()) {
-    const repair2 = doorOpenRepairTicks();
-    if (repair2) return doorRepairMealTicks(repair2);
-    showToast('Nothing changed, so nothing was saved.', 'info');
-    closeMenuEdit(true);
-    return true;
-  }
+  // S5c (D3, Jason 2026-11-19: "Follow lean"): held words are no longer a question. They stay out of the saved meal, the
+  // note under the box says why and offers the choices, What changes lists them, and the saved line names them.
+  const _heldNotSaved = Object.keys(SLOT_HELD).filter(id => SLOT_HELD[id]).map(id => '“' + SLOT_HELD[id].typed + '”');
+
   const name = doorEditedMealName();   // S4a (D4): the words that did not change stay as written
   if (!name) { alert('Add at least a main dish before saving.'); return; }
   const editKey = mcMenuEditKey;
   // V7: a slot that reads like several dishes is asked about here, not guessed at later by EXPO.
-  const _runOn = doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS);
-  if (_runOn.length) {
-    const ok = await doorAsk({
-      title: 'More than one dish in a slot?',
-      lines: ['These slots read like more than one dish:',
-        'EXPO plans one dish per slot, so it may miss one of them. Put each dish in its own slot (Starch Side, Veg Side, Extras).'],
-      items: _runOn.map(r => r.label + ': "' + r.text + '"'),
-      cancelLabel: 'Go back and split them', goLabel: 'Save as it is'
-    });
-    if (mcMenuEditKey !== editKey) return;
-    if (editSession && _doorMenuDraftBaseline !== editSession) return;
-    if (!ok) return;
-  }
+  // S5c (D3): a box that reads like several dishes is a line in What changes now, not a question.
   // Require an explicit decision on soft/plain alternatives: either at least one
   // is specified, or the user has affirmatively marked "none required".
   const _alts = buildAltMeals();
-  if (!_alts.length && !ALT_MEALS_NONE) {
+  if (!_alts.length && !ALT_MEALS_NONE && doorSoftQuestionNeeded()) {
     const ok = await doorAsk({
       title: 'No soft or plain alternative?',
       lines: ['No soft/plain alternative meals are specified.',
@@ -22435,7 +22488,8 @@ async function saveMenuEdit() {
   const _carried = doorCarriedTicks(editKey, flags, slotFlags, [...mainProteins, ...altProteins, ...noPorkProteins].map(m => m.flag));
   // W3e (2026-11-09): the question names every warning this save would take off, the ones the new recipe already took
   // off included. When the two mains share a word (the same dish, linked or renamed) keeping them is the default.
-  const _offTicks = [...new Set([..._carried.list, ...(_carried.dropped || [])])].sort();
+  // S5c review fold: the main-changed question carries the meat and routing marks only; allergens are asked below.
+  const _offTicks = [...new Set([..._carried.list, ...(_carried.dropped || [])])].filter(k => DOOR_MEAT_MARKS.includes(k)).sort();
   if (_offTicks.length) {
     const ask = doorTicksQuestion(_carried, _offTicks);
     const ans = await doorAsk(ask);
@@ -22446,6 +22500,32 @@ async function saveMenuEdit() {
     _offTicks.forEach(k => { flags[k] = !takeOff; });
   }
 
+  // S5c (D3) review fold (P1): any allergen the stored meal carries and this save would take off is asked about, keep
+  // being the default, whatever the main did (a dish tag switched off, a side cleared or relinked).
+  const _removed = doorAllergenRemovals(editKey, flags);
+  if (_removed.length) {
+    const ans = await doorAsk(doorRemovalQuestion(_removed));
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
+    if (!ans) return;
+    if (ans !== 'alt') _removed.forEach(k => { flags[k] = true; });
+  }
+  // S5c (D3, Jason 2026-11-19: "Follow lean"): a new anaphylactic conflict is acknowledged, in red, before anything is
+  // written. Read on the meal with the allergens this save will write.
+  const _anaphAsk = doorAnaphSaveQuestion(flags);
+  if (_anaphAsk && _anaphAsk.hold) {
+    const msg = 'Not saved: DOOR could not check the anaphylactic residents for this change. Try again, or reload the page.';
+    showToast(msg, 'error');
+    if (typeof doorSetSaveStatus === 'function') doorSetSaveStatus(msg, true);
+    return false;
+  }
+  if (_anaphAsk) {
+    const ok = await doorAsk(_anaphAsk);
+    if (mcMenuEditKey !== editKey) return;
+    if (editSession && _doorMenuDraftBaseline !== editSession) return;
+    if (!ok) return;
+  }
+  _doorSaveNote = _heldNotSaved.length ? 'Not saved: ' + _heldNotSaved.join(', ') + ' (see the note under the box).' : '';
   // Halal cert question is about the Main Alt protein specifically:
   // - On pork days: halal section activates regardless, question is about Main Alt
   // - On non-pork days: question is about Main protein (does halal section need to activate?)
@@ -22453,9 +22533,11 @@ async function saveMenuEdit() {
   const altMeatProteins = altProteins.filter(m => m.flag !== 'hasPork').map(m => m.label);
   const mainMeatProteins = mainProteins.filter(m => m.flag !== 'hasPork').map(m => m.label);
 
-  const needsHalalPrompt = hasPorkInMain
+  // S5c (D3): asked only when the meat it is about changed since the meal opened.
+  const needsHalalPrompt = (hasPorkInMain
     ? (altMeatProteins.length > 0 && !flags.halalCertifiedMeat)  // pork day: ask about alt protein
-    : (mainMeatProteins.length > 0 && !flags.halalCertifiedMeat); // no pork: ask about main protein
+    : (mainMeatProteins.length > 0 && !flags.halalCertifiedMeat)) // no pork: ask about main protein
+    && doorMeatChangedSinceOpen(hasPorkInMain ? 'mainalt' : 'main');
 
   if (needsHalalPrompt) {
     const slotBreakdown = {
@@ -22793,7 +22875,8 @@ function _finishMenuSave(name, veg, flags) {
   closeMenuEdit(true);
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-  const _savedMsg = doorMenuSavedMessage(week, day, period);
+  const _savedMsg = doorMenuSavedMessage(week, day, period) + (typeof _doorSaveNote !== 'undefined' && _doorSaveNote ? ' ' + _doorSaveNote : '');
+  if (typeof _doorSaveNote !== 'undefined') _doorSaveNote = '';
   showToast(_savedMsg);
   publishAndSync('menu edit saved');
   if (typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, _savedMsg);   // S5a: the meal stays open
@@ -22853,6 +22936,18 @@ function doorMenuDraftSignature() {
     ? Object.fromEntries(Object.keys(value).sort().map(k => [k, sorted(value[k])])) : value;
   return JSON.stringify(sorted({slots:MEAL_SLOT_STATE, held:SLOT_HELD, alternatives:ALT_MEALS, none:ALT_MEALS_NONE, fields}));
 }
+// S5c (D3): held words are never saved, so whether the meal changed is decided with them set aside (the boxes show
+// their saved values for the moment of the check). Otherwise a box holding only unsaved words rewrote the meal.
+function doorDraftDirtyWithoutHeld() {
+  const held = typeof SLOT_HELD !== 'undefined' ? Object.keys(SLOT_HELD).filter(id => SLOT_HELD[id]) : [];
+  if (!held.length || typeof renderSlots !== 'function') return doorMenuDraftIsDirty();
+  const keep = {};
+  held.forEach(id => { keep[id] = SLOT_HELD[id]; delete SLOT_HELD[id]; });
+  let dirty;
+  try { renderSlots(); dirty = doorMenuDraftIsDirty(); }
+  finally { Object.keys(keep).forEach(id => { SLOT_HELD[id] = keep[id]; }); renderSlots(); }
+  return dirty;
+}
 function doorMenuDraftIsDirty() {
   return !!(_doorMenuDraftBaseline && mcMenuEditKey === _doorMenuDraftBaseline.key &&
     doorMenuDraftSignature() !== _doorMenuDraftBaseline.signature);
@@ -22889,7 +22984,9 @@ function doorRefreshSaveBar() {
     const words = x => String(x || '').split(',').map(t => t.trim()).filter(Boolean).map(t => t.charAt(0) + t.slice(1).toLowerCase()).join(', ');
     sum.textContent = f ? 'Regular plate contains: ' + (f.allergenStr ? words(f.allergenStr) : 'nothing on the allergen list') : '';
   }
-  if (ready) doorSetSaveStatus('');
+  // S5c review fold: words held out of the last save keep its line (they make the draft differ until resolved).
+  const heldNow = typeof SLOT_HELD !== 'undefined' && Object.keys(SLOT_HELD).some(id => SLOT_HELD[id]);
+  if (ready && !heldNow) doorSetSaveStatus('');
 }
 // Review fold (P2-1): Save follows every keystroke and choice in the open meal, so the first click on Save is never lost
 // to a box that commits its words only when it loses focus.
@@ -22908,7 +23005,13 @@ var _doorReopenAfterSave = false;
 function doorStayOnSavedMeal(week, day, period, message) {
   if (typeof openMenuEdit !== 'function') return;
   _doorReopenAfterSave = true;   // review fold P3-3: the page keeps its place
+  // S5c review fold (P2): words held out of the save stay in their box, with their note, after the meal reopens.
+  const _held = typeof SLOT_HELD !== 'undefined' ? Object.assign({}, SLOT_HELD) : {};
   try { openMenuEdit(week, day, period); } finally { _doorReopenAfterSave = false; }
+  if (Object.keys(_held).some(id => _held[id]) && typeof renderSlots === 'function') {
+    Object.keys(_held).forEach(id => { if (_held[id]) SLOT_HELD[id] = _held[id]; });
+    renderSlots(); updateSlotSummary();
+  }
   if (message && typeof showToast === 'function') showToast(message);   // re-review P3: placed above the footer, now on screen
   const t = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
   doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /only|Not sent/.test(message || ''));
@@ -23081,6 +23184,8 @@ function openMenuEdit(week, day, period) {
   // S4a (D4): the words this meal opened with and its boxes then; a legacy edit (concMenuEdits) rebuilds as before.
   if (typeof _doorWordsAtOpen !== 'undefined') _doorWordsAtOpen = existing ? null : { key: mcMenuEditKey, text: String(dayData[period] || ''), slots: {} };
   if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof DOOR_WORD_SLOT_IDS !== 'undefined') ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { _doorWordsAtOpen.slots[id] = _slotText(MEAL_SLOT_STATE[id]); });
+  // S5c (D3): the meat each main box named and the dishes when the meal opened; Save asks about halal only when the meat changed.
+  if (typeof _doorSaveAskAtOpen !== 'undefined') _doorSaveAskAtOpen = doorSaveAskSnapshot();
   Object.keys(MEAL_SLOT_STATE).forEach(id => { const x = MEAL_SLOT_STATE[id]; if (x && !x.recipeName && x.manual) { SLOT_TYPED_AT_OPEN[id] = String(x.manual).trim(); if (x.declared === true) SLOT_DECLARED_AT_OPEN[id] = true; } });
   renderSlots();
   updateSlotSummary();
@@ -26793,6 +26898,10 @@ function doorWhatChangesHTML(m) {
   (m.specials || []).forEach(sp => {
     h += row('The special meal on ' + escapeHtml(when(sp.key)) + (sp.name ? ' (' + escapeHtml(sp.name) + ')' : '') + ' stays: that date serves the special meal, not this change.', 'color:var(--muted);');
   });
+  // S5c (D3): what Save no longer asks about, said here.
+  (m.runOn || []).forEach(r => { h += row('“' + escapeHtml(r.text) + '” in the ' + escapeHtml(r.label) + ' box reads like more than one dish. EXPO plans one dish per box, so it may miss one; put each dish in its own box.', 'color:var(--warn-ink, #92400e);'); });
+  (m.held || []).forEach(x => { h += row('Not saved: “' + escapeHtml(x.typed) + '” in the ' + escapeHtml(x.label) + ' box. See the note under the box.', 'color:var(--warn-ink, #92400e);'); });
+  if (m.softNone) h += row('No soft plate is set for this meal: the plating sheet will ask for one. Set one, or mark none needed, under Soft / plain alternatives.', 'color:var(--muted);');
   // Review fold (P3-3): Save still asks its questions; their answers can change what is shown here.
   h += row('Save may still ask about old allergen ticks or halal meat; your answers can change this.', 'color:var(--muted);font-size:11px;');
   return h + '</div>';
@@ -26803,7 +26912,8 @@ function doorRenderWhatChanges(draftFacts, draftFlags) {
   if (!el) return;
   let model = null;
   try {
-    if (draftFacts && mcMenuEditKey && typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) {
+    const heldIds = typeof SLOT_HELD !== 'undefined' ? Object.keys(SLOT_HELD).filter(id => SLOT_HELD[id]) : [];
+    if (draftFacts && mcMenuEditKey && typeof doorMenuDraftIsDirty === 'function' && (doorMenuDraftIsDirty() || heldIds.length)) {
       const [week, day, period] = mcMenuEditKey.split('-');
       const before = doorPlateFactsFor(week, day, period, { noDated: true });
       const store = loadMealSwaps();
@@ -26816,7 +26926,12 @@ function doorRenderWhatChanges(draftFacts, draftFlags) {
       const legacy = typeof getMenuEdit !== 'undefined' && getMenuEdit(week, day, period);
       const after = legacy && draftFlags ? doorDraftPlateFacts(doorEditorDraftFlags(draftFlags), { noMenuEdit: true }) : draftFacts;
       model = doorWhatChanges(before, after, typeof REGISTRY_LIST !== 'undefined' ? REGISTRY_LIST : [], undefined, swaps);
+      model.held = heldIds.map(id => ({ typed: SLOT_HELD[id].typed, label: (typeof DOOR_SLOT_KITCHEN_LABEL !== 'undefined' && DOOR_SLOT_KITCHEN_LABEL[id]) || id }));
       model.specials = specials;
+      model.runOn = typeof doorRunOnSlots === 'function' ? doorRunOnSlots(MEAL_SLOT_STATE, MEAL_SLOT_DEFS).map(r => ({ text: r.text, label: (typeof DOOR_SLOT_KITCHEN_LABEL !== 'undefined' && DOOR_SLOT_KITCHEN_LABEL[r.id]) || r.label })) : [];
+      const _list = typeof REGISTRY_LIST !== 'undefined' ? REGISTRY_LIST : [];
+      model.softNone = typeof buildAltMeals === 'function' && !buildAltMeals().length && !ALT_MEALS_NONE
+        && (!_list.length || _list.some(r => (r.tags || []).includes('Soft Meals')));
     }
   } catch (e) { console.warn('[DOOR] What changes could not be worked out:', e); }
   if (typeof window !== 'undefined') window.__DOOR_WHAT_CHANGES__ = model;

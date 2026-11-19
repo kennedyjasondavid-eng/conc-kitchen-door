@@ -53,6 +53,47 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Save asks only what it must (redesign S5c, D3, `v31-standard.113`)
+D3, Jason 2026-11-19: "Follow lean on D3".
+- **Still asked:**
+  - halal, only when the meat it is about changed since the meal opened (`doorMeatChangedSinceOpen`, the open snapshot
+    `doorSaveAskSnapshot`);
+  - **any allergen coming off**, whatever the main did (a dish tag switched off, a side cleared or relinked): asked
+    with **keep as the default** (`doorAllergenRemovals`, `doorRemovalQuestion`);
+  - the old dish's meat and routing marks (`DOOR_MEAT_MARKS`: Pork, Beef, Chicken, Turkey, Processed Meat, Carb-swap)
+    still follow the dish as W3a ruled, so a different main takes them off by default (`doorTicksQuestion`);
+  - a new anaphylactic conflict, in red, before anything is written (`doorAnaphSaveQuestion`: a room this save moves
+    onto the anaphylactic plate, or a newly added dish whose label is not checked while anaphylactic residents are on
+    the list; `doorAsk` gains `danger`).
+- **Lines in What changes instead of questions:**
+  - a box that reads like more than one dish;
+  - held words: they stay out of the meal, the saved line names them, and with nothing else changed Save saves nothing
+    and says so with the meal left open;
+  - the soft plate: still asked when a soft resident is on the list and a dish changed (`doorSoftQuestionNeeded`), and
+    always with no resident list.
+- **Gates:** `tests/save_questions_s5c_gate.mjs` (5, red 5/5 on `main`) and browser `tests/browser/save_questions_s5c.mjs`
+  (10, in CI, red on `main`; made-up residents).
+- **Re-pinned with dated notes:** `save_dialog_styled` (three doorAsk questions), `ticks_follow_dish`, `w3e_slot_commit_ticks`,
+  `recipe_search_s1` (the note under the box offers the held-word choices), `recipe_binding_v7` (run-on is a line),
+  `menu_save_message` (the saved line names held words), `typed_dish_s3` (the unchanged-Save check), browser
+  `menu_edit_no_silent_change` 2b (held words alone write nothing and keep the meal open), browser `halal_context_race`
+  (each forced save also clears the open snapshot, so the meat reads as changed).
+- **Independent review (FIX FIRST), folded:**
+  - P1: only a main change asked; an allergen switched off on a dish came off silently. It is now asked whatever the
+    main did.
+  - P2: keep-by-default also kept the old dish's Pork mark (the Week 3 halal failure). Meat marks now follow the dish
+    again.
+  - P2: held words were dropped when the meal reopened after a Save; they now stay in their box with their note.
+  - P3:
+    - the anaphylactic question names the roommates it contains;
+    - a check that cannot run holds Save and says so;
+    - the soft line shows only when someone eats soft and says the sheet will ask for a plate;
+    - the dish snapshot covers every box and line version;
+    - the held-words message is grammatical.
+- **Found while building, fixed:** the draft-changed check counts held words, so with Save no longer asking, a box
+  holding only unsaved words made Save rewrite the meal (the H2 class). Save now decides whether the meal changed with
+  held words set aside (`doorDraftDirtyWithoutHeld`).
+
 ## Recent (2026-11-19) — Edit Menu says what a change does before Save (redesign S5b, `v31-standard.112`)
 Once a meal differs from how it opened, **What changes** (`#mc-what-changes`) shows, for the every-week meal:
 - **The plates:** each plate's allergens before → after, with what is new (amber) and what comes off. Before is the

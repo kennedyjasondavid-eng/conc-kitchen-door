@@ -141,7 +141,10 @@ test('S1g clicking away from a recipe name links nothing: it is held and Save as
   assert.match(sa, /!refused\(r\)/, 'a refused recipe is never linked by name');
   const q = fnBlock('doorSlotHeldQuestion');
   assert.match(q, /h\.kind === 'exact'[\s\S]*Link the recipe\?/);
-  assert.match(fnBlock('saveMenuEdit'), /if \(h\.kind === 'exact'\) slotSelect\(id, h\.recipe\);/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3: "Follow lean"): held words are no longer a Save question. They
+  // stay out of the saved meal; the note under the box links the recipe, and What changes lists them.
+  assert.ok(!fnBlock('saveMenuEdit').includes('doorSlotHeldQuestion('), 'Save no longer asks about held words');
+  assert.match(fnBlock('doorSlotHeldNoteHTML'), /btn\('Link “' \+ escapeHtml\(h\.recipe\) \+ '”', 'slotSelect', \[slotId, h\.recipe\]\)/);
   assert.match(fnBlock('doorSlotHeldNoteHTML'), /h\.kind === 'exact'/);
 });
 
@@ -205,7 +208,8 @@ test('S1i a refused recipe name is held and refused, never saved as a typed dish
   const q = fnBlock('doorSlotHeldQuestion');
   assert.match(q, /h\.kind === 'refused'[\s\S]*Put the box back/);
   assert.match(html, /\n  slotDropHeld: true,/, 'the card button is an allowed inline handler (the browser gate found it missing)');
-  assert.match(fnBlock('saveMenuEdit'), /if \(h\.kind === 'refused'\) slotDropHeld\(id\);/);
+  // Re-pinned 2026-11-19 (S5c, D3): the note puts the box back; Save no longer asks.
+  assert.match(fnBlock('doorSlotHeldNoteHTML'), /btn\('Put the box back', 'slotDropHeld', \[slotId\]\)/);
   assert.match(fnBlock('slotSearch'), /groups\.refused\.some\(x => x\.r\.recipeName\.toLowerCase\(\) === q\)/, 'no typed-dish row for a refused exact name');
 });
 

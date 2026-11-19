@@ -92,7 +92,8 @@ test('S3-5 Rex import marks a typed dish its review ticked (an allergen, not Spi
 
 test('S3-6 an answer-only Save writes only the answers into the stored boxes', () => {
   const save = fnBlock('saveMenuEdit');
-  assert.ok(save.indexOf('doorAnswersOnly(editSession)') > 0 && save.indexOf('doorAnswersOnly(editSession)') < save.indexOf('!doorMenuDraftIsDirty()'), 'checked before the unchanged-Save check');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S5c): the unchanged-Save check sets held words aside (doorDraftDirtyWithoutHeld).
+  assert.ok(save.indexOf('doorAnswersOnly(editSession)') > 0 && save.indexOf('doorAnswersOnly(editSession)') < save.indexOf('!doorDraftDirtyWithoutHeld()'), 'checked before the unchanged-Save check');
   const w = fnBlock('doorWriteAnswersOnly');
   assert.match(w, /overlay\[week\]\[day\]\[period \+ '_slots'\] = slots;/);
   assert.doesNotMatch(w, /doorWriteEditorMeal|doorSetMealFlags|buildMealName/, 'no menu words or ticks are rebuilt');

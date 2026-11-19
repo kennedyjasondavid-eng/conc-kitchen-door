@@ -35,7 +35,8 @@ test('a failed capability check never claims it was sent', () => {
 });
 test('Edit Menu save uses the line; the old wording is gone', () => {
   // Re-pinned 2026-11-19 (Edit Menu redesign S5a): the same message is the toast and the line under the meal, which stays open.
-  assert.match(fnBlock('_finishMenuSave'), /const _savedMsg = doorMenuSavedMessage\(week, day, period\);\s*showToast\(_savedMsg\);/);
+  // Re-pinned 2026-11-19 (S5c, D3): the line also names words held out of the meal (_doorSaveNote).
+  assert.match(fnBlock('_finishMenuSave'), /const _savedMsg = doorMenuSavedMessage\(week, day, period\) \+ \(typeof _doorSaveNote[^\n]*\n[^\n]*\n\s*showToast\(_savedMsg\);/);
   assert.match(fnBlock('_finishMenuSave'), /doorStayOnSavedMeal\(week, day, period, _savedMsg\)/);
   assert.ok(!html.includes('Saved permanently to rotation'));
   assert.ok(!html.includes('save to link'));

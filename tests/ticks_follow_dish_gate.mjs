@@ -89,14 +89,17 @@ test('Edit Menu: a new main finds the warnings only the old one gave', () => {
   assert.deepEqual(meat.list, ['hasProcessedMeat'], 'a meat the new name names stays');
 });
 
-test('Edit Menu: Save asks once, defaulting to take them off, then re-checks the open meal', () => {
+test('Edit Menu: Save asks once about the meat marks, defaulting to take them off, then re-checks the open meal', () => {
   const save = fnBlock('saveMenuEdit');
   const at = save.indexOf('doorCarriedTicks(editKey');
   assert.ok(at > 0, 'Save looks for carried ticks');
   // 2026-11-09 (W3e): the question moved to doorTicksQuestion and names every tick Save would take off; a different
   // dish still defaults to Take them off (the same dish defaults to Keep them: w3e_slot_commit_ticks_gate 5).
-  assert.match(save.slice(at, at + 1200), /await doorAsk\(ask\);\s*if \(mcMenuEditKey !== editKey\) return;[\s\S]{0,120}const takeOff = _carried\.sameDish \? ans === 'alt' : ans === true;/);
-  assert.match(fnBlock('doorTicksQuestion'), /title: 'Take off the old dish’s warnings\?'[\s\S]{0,250}cancelLabel: 'Go back', altLabel: 'Keep them', goLabel: 'Take them off'/);
+  // Re-pinned 2026-11-19 (Edit Menu redesign S5c, D3): this question now carries only the meat and routing marks, which
+  // follow the dish as W3a ruled (a different dish: Take them off). Allergens come off only through doorRemovalQuestion.
+  assert.match(save.slice(at, at + 1400), /await doorAsk\(ask\);\s*if \(mcMenuEditKey !== editKey\) return;[\s\S]{0,120}const takeOff = _carried\.sameDish \? ans === 'alt' : ans === true;/);
+  assert.match(fnBlock('doorTicksQuestion'), /title: 'Take off the old dish’s meat marks\?'[\s\S]{0,300}cancelLabel: 'Go back', altLabel: 'Keep them', goLabel: 'Take them off'/);
+  assert.match(save, /\.filter\(k => DOOR_MEAT_MARKS\.includes\(k\)\)/);
 });
 
 test('linking a slot keeps the Mushroom and Beans ticks CODEX has no family for', () => {
