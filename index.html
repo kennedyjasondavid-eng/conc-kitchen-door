@@ -851,7 +851,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.109';
+const DOOR_APP_VERSION = 'v31-standard.110';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -2222,10 +2222,6 @@ function updateCODEXBadge() {
             <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Recipe-matched items auto-set flags. Check any additional allergens present in this meal.</div>
             <div id="mc-edit-flag-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;"></div>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary btn-sm" onclick="saveMenuEdit()">Save Edit</button>
-            <button class="btn btn-ghost btn-sm" onclick="revertMenuEdit()" id="mc-menu-revert-btn" style="display:none;">Reset to Original</button>
-          </div>
         </div>
         <div>
           <div style="font-weight:600;margin-bottom:8px;font-size:13px;">Section Preview</div>
@@ -2233,6 +2229,25 @@ function updateCODEXBadge() {
           <div id="mc-slot-name-preview" style="margin-top:16px;padding:12px;background:var(--cream);border-radius:8px;font-size:13px;display:none;"></div>
         </div>
       </div>
+      <!-- S5a (Edit Menu redesign): Save always in view (Close stays by the title). Pinned to the bottom of the screen; Save
+           stays grey until something changes; after Save the meal stays open and the line says what happened. -->
+      <div id="mc-menu-edit-footer" style="position:sticky;bottom:0;z-index:40;margin:16px -20px -20px;padding:10px 20px;background:var(--paper);border-top:1px solid var(--border);border-radius:0 0 10px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;box-shadow:0 -4px 12px rgba(0,0,0,.08);">
+        <div style="flex:1 1 220px;min-width:0;font-size:12px;line-height:1.4;">
+          <div id="mc-footer-summary" style="color:var(--text-2, var(--muted));"></div>
+          <div id="mc-footer-status" role="status" style="font-weight:600;"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="revertMenuEdit()" id="mc-menu-revert-btn" style="display:none;">Put back the original</button>
+        <button class="btn btn-primary btn-sm" id="mc-menu-save-btn" onclick="saveMenuEdit()">Save</button>
+      </div>
+      <style>
+        /* S5a: on a phone the page scrolls inside the layout, where a sticky footer does not stick; it is fixed to the
+           bottom of the screen instead, and the meal leaves room for it. */
+        @media (max-width: 768px) {
+          #mc-menu-edit-footer { position: fixed !important; left: 0; right: 0; bottom: 0; margin: 0 !important; border-radius: 0 !important; }
+          #mc-menu-edit-panel { padding-bottom: 96px !important; }
+        }
+        #mc-menu-save-btn:disabled { opacity: .55; cursor: not-allowed; }
+      </style>
     </div>
 
     <!-- ===== TEST MEAL PANEL ===== -->
@@ -15309,9 +15324,10 @@ function renderMenuConfig() {
       td.style.cssText = `padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;cursor:pointer;min-width:120px;${specialBg || editModeBg}`;
       if (nextSpecial) td.style.outline = '1.5px solid #6ee7b7';
       if (editMenuMode) td.style.outline = '1.5px dashed #93c5fd';
+      const changedToday = typeof doorChangedToday === 'function' ? doorChangedToday(mcWeek, dayName, period) : '';
       td.innerHTML = `<div style="font-size:12px;font-weight:500;margin-bottom:3px;line-height:1.3;">${escapeHtml(mealName)}</div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${escapeHtml(mealVeg)}</div>
-        <div>${flagBadges}${swapBadge}${editBadge}${softAltBadge}${specialBadge}</div>${specialNote}`;
+        <div>${flagBadges}${swapBadge}${editBadge}${softAltBadge}${specialBadge}</div>${specialNote}${changedToday ? '<div class="mc-changed-today" style="font-size:10px;color:var(--info-ink, #1d4ed8);margin-top:2px;">' + escapeHtml(changedToday) + '</div>' : ''}`;
       td.onclick = () => handleMealCellClick(mcWeek, dayName, period);
       if (slotSwapMode) {
         const isFirst = slotSwapFirst && slotSwapFirst.week === mcWeek && slotSwapFirst.day === dayName && slotSwapFirst.period === period;
@@ -21640,6 +21656,7 @@ function updateSlotSummary() {
     }
   });
   _LAST_SLOT_FLAGS = slotFlags;
+  if (typeof setTimeout === 'function' && typeof doorRefreshSaveBar === 'function') setTimeout(doorRefreshSaveBar, 0);   // S5a: Save follows the draft
   const flags = {};
   FLAG_DEFS.forEach(f => {
     const cb = document.getElementById(cbPrefix + f.key);
@@ -22731,8 +22748,10 @@ function _finishMenuSave(name, veg, flags) {
   closeMenuEdit(true);
   renderMenuConfig();
   if (typeof renderTodayMealContext === 'function') renderTodayMealContext();
-  showToast(doorMenuSavedMessage(week, day, period));
+  const _savedMsg = doorMenuSavedMessage(week, day, period);
+  showToast(_savedMsg);
   publishAndSync('menu edit saved');
+  if (typeof doorStayOnSavedMeal === 'function') doorStayOnSavedMeal(week, day, period, _savedMsg);   // S5a: the meal stays open
   return true;
 }
 
@@ -22809,6 +22828,36 @@ async function doorMenuDraftLeave(next) {
 window.addEventListener('beforeunload', event => {
   if (doorMenuDraftIsDirty()) { event.preventDefault(); event.returnValue = ''; }
 });
+// S5a: Save is grey until the meal differs from how it opened (or a checked label waits to be written); the line beside
+// it says what the regular plate contains, read from the plate summary.
+function doorRefreshSaveBar() {
+  const btn = typeof document !== 'undefined' ? document.getElementById('mc-menu-save-btn') : null;
+  if (!btn || !mcMenuEditKey) return;
+  let ready = false;
+  try { ready = (typeof doorMenuDraftIsDirty === 'function' && doorMenuDraftIsDirty()) || !!(typeof doorOpenRepairTicks === 'function' && doorOpenRepairTicks()); } catch (e) { ready = true; }
+  btn.disabled = !ready;
+  btn.title = ready ? '' : 'Nothing has changed yet';
+  const sum = document.getElementById('mc-footer-summary');
+  const f = typeof window !== 'undefined' ? window.__DOOR_PLATE_SUMMARY__ : null;
+  if (sum) {
+    const words = x => String(x || '').split(',').map(t => t.trim()).filter(Boolean).map(t => t.charAt(0) + t.slice(1).toLowerCase()).join(', ');
+    sum.textContent = f ? 'Regular plate contains: ' + (f.allergenStr ? words(f.allergenStr) : 'nothing on the allergen list') : '';
+  }
+  if (ready) doorSetSaveStatus('');
+}
+function doorSetSaveStatus(text, refused) {
+  const el = typeof document !== 'undefined' ? document.getElementById('mc-footer-status') : null;
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = refused ? 'var(--warn-ink, #92400e)' : 'var(--ok-ink, #065f46)';
+}
+// S5a: after a save the meal stays open; the line says when it was saved and whether it was sent.
+function doorStayOnSavedMeal(week, day, period, message) {
+  if (typeof openMenuEdit !== 'function') return;
+  openMenuEdit(week, day, period);
+  const t = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
+  doorSetSaveStatus((message || 'Saved.') + ' · ' + t, /only|Not sent/.test(message || ''));
+}
 function closeMenuEdit(savedOrDiscarded) {
   if (!savedOrDiscarded && doorMenuDraftIsDirty()) { doorMenuDraftLeave(() => closeMenuEdit(true)); return; }
   _doorMenuDraftBaseline = null;
@@ -22980,6 +23029,8 @@ function openMenuEdit(week, day, period) {
   renderSlots();
   updateSlotSummary();
   if (typeof doorMenuDraftSignature === 'function') _doorMenuDraftBaseline = {key:mcMenuEditKey, signature:doorMenuDraftSignature()};
+  if (typeof doorSetSaveStatus === 'function') doorSetSaveStatus('');
+  if (typeof doorRefreshSaveBar === 'function') doorRefreshSaveBar();   // S5a
   // H4 (2026-11-19): opening a meal focuses nothing. The Main box used to take focus with its words selected, so the
   // first key wiped the dish and a click away re-read it. The page brings the meal heading into view instead.
   // Review fold P3: keyboard users start at the meal name, at once (a later move could blur a box someone is typing in).
@@ -23003,12 +23054,22 @@ function saveChangeLog(arr) {
     PublishAuth.sidePublish('change_log.json', JSON.stringify(arr, null, 2), 'Change log', true);
   } catch(e) {}
 }
+// S5a: "Changed today by <name>" on a meal card, from the change log (it reaches every DOOR computer).
+function doorChangedToday(week, day, period) {
+  let log = [];
+  try { log = loadChangeLog(); } catch (e) { return ''; }
+  const today = typeof doorDateKey === 'function' ? doorDateKey(new Date()) : new Date().toISOString().slice(0, 10);
+  const e = (Array.isArray(log) ? log : []).find(x => x && String(x.week) === String(week) && x.day === day && x.period === period);
+  if (!e || !e.timestamp || (typeof doorDateKey === 'function' ? doorDateKey(new Date(e.timestamp)) : String(e.timestamp).slice(0, 10)) !== today) return '';
+  return e.by ? 'Changed today by ' + e.by : 'Changed today';
+}
 function appendChangeLog(entry, opts) {
   const log = loadChangeLog();
   log.unshift({
     id: Date.now(),
     timestamp: new Date().toISOString(),
     site: getSelectedSite() || 'unknown',
+    by: (typeof getOperatorName === 'function' ? getOperatorName() : '') || '',   // S5a: who, for "Changed today by"
     ...entry
   });
   // ↩ Undo Last only undoes the newest entry, so only the newest few keep their meal copies (2026-10-19).

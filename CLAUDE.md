@@ -53,6 +53,17 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Save is always in view; the meal stays open after Save (redesign S5a, `v31-standard.110`)
+The walkthrough found Save 3,200 px down the page and the result only a toast. A footer (`#mc-menu-edit-footer`) is pinned
+to the bottom while a meal is open (sticky; fixed on a phone, where sticky does not stick): the regular plate line from the
+plate summary, **Put back the original** and **Save**. Close stays by the title. Save is grey until the meal differs from
+how it opened, or a checked label waits to be written (`doorRefreshSaveBar`). After a real Save the meal stays open and the
+footer says what the toast says, with the time (`doorStayOnSavedMeal`, `doorSetSaveStatus`). The change log records who
+(`by`), and a meal card in Menu Config says "Changed today by <name>" (`doorChangedToday`). Gates
+`tests/save_in_view_s5a_gate.mjs` (4, red 4/4 on `main`) and browser `tests/browser/save_in_view_s5a.mjs` (11, in CI: Save on
+screen at 1280×900 and 390×860 mid-meal, grey until a change, the saved line, the card). Re-pinned with a dated note:
+`menu_save_message_gate`.
+
 ## Recent (2026-11-19) — a real edit rewrites only the dish that changed (redesign S4a, D4, `v31-standard.109`)
 D4, Jason 2026-11-19: "Follow lean". Save rebuilt the whole menu line from the dish boxes (in box order, joined with
 ", " or " & "), so changing one side reworded meals EXPO, HUB and the sheets read. Now `doorEditedMealName` keeps the words
