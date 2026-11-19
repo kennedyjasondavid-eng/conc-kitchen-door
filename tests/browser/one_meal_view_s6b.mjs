@@ -31,7 +31,6 @@ try {
     const p = await boot(width);
     // 1. A meal cell opens the meal view, without Edit mode.
     const open = await p.evaluate(() => {
-      if (typeof editMenuMode !== 'undefined' && editMenuMode && typeof toggleEditMenuMode === 'function') toggleEditMenuMode();
       const cell = [...document.querySelectorAll('#mc-grid-body td')].find((td) => typeof td.onclick === 'function');
       cell.click();
       const panel = document.getElementById('mc-menu-edit-panel');

@@ -63,7 +63,8 @@ test('the route opens the editor on that week in edit mode, after the boot menu 
   assert.match(body, /doorParseHashRoute\(/, 'uses the parser');
   assert.match(body, /_doorBootMenuSync/, 'waits for the boot menu sync');
   assert.match(body, /mcWeek\s*=/, 'shows the linked week in the grid');
-  assert.match(body, /toggleEditMenuMode\(\)/, 'turns Edit Menu on');
+  // Re-pinned 2026-11-19 (Edit Menu redesign S6c): there is no Edit mode any more; the route opens the meal view directly.
+  assert.ok(!/toggleEditMenuMode|editMenuMode/.test(body), 'no Edit mode to turn on');
   assert.match(body, /openMenuEdit\(/, 'opens that meal');
   assert.match(body, /history\.replaceState/, 'clears the hash so a reload does not reopen it');
 });

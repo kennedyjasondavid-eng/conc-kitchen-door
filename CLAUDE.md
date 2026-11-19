@@ -53,6 +53,20 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — the Menu page: no Edit mode, meal cards, and a More menu (redesign S6c, `v31-standard.116`)
+- **No Edit mode.** Its button, banner, state (`editMenuMode`) and toggle are gone, along with "Leave Edit Menu". A
+  meal card opens the meal view, and so does the `#menu-config/edit/…` link.
+- **Meal cards** show the dishes, how many allergens the meal holds ("3 allergens", with the list in the hover text) and
+  Spicy, instead of a chip per tick. Meat and routing marks are not counted (`DOOR_SUMMARY_SKIP`). The swap, special,
+  soft and "Changed today" marks stay.
+- **More** holds Swap two meals, Special meal, Rex's week sheet and Replace the whole menu from a file
+  (`details.mc-more`, closing after a choice or a click outside; the buttons keep their ids). The toolbar shows More
+  and Send to kitchen.
+- **Moved to S7:** the meal view as a side panel on a desktop and full screen on a phone.
+- **Gates:** `tests/menu_page_s6c_gate.mjs` (3) and browser `tests/browser/menu_page_s6c.mjs` (15, in CI).
+- **Re-pinned with dated notes:** `menu_edit_deeplink` (no Edit mode to turn on), `phone_hidden_panels` (the banner
+  went), `daily_entry_ask` (goHome asks one question), browser `rex_week_review` (opens More first).
+
 ## Recent (2026-11-19) — one meal view; the old meal panel and Test Meal are retired (redesign S6b, D5, `v31-standard.115`)
 D5, Jason 2026-11-19: "Follow lean".
 - **Clicking a meal in Menu Config opens the meal view** (`handleMealCellClick` → `openMenuEdit`), with or without Edit
