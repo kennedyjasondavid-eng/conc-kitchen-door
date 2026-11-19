@@ -16,7 +16,7 @@ const fn = (name) => {
 
 test('S5b-1 the editor has a What changes panel, rendered on every draft update outside the test meal', () => {
   assert.match(html, /<div id="mc-what-changes" role="status" aria-live="polite" style="display:none;"><\/div>/);
-  assert.match(html, /if \(!testMealActive && typeof doorRenderWhatChanges === 'function'\) doorRenderWhatChanges\(draftFacts\);/);
+  assert.match(html, /if \(!testMealActive && typeof doorRenderWhatChanges === 'function'\) doorRenderWhatChanges\(draftFacts, flags\);/);
   const r = fn('doorRenderWhatChanges');
   assert.match(r, /doorMenuDraftIsDirty\(\)/, 'shown only once the meal differs');
   assert.match(r, /doorPlateFactsFor\(week, day, period, \{ noDated: true \}\)/, 'before is the every-week meal');
@@ -55,4 +55,10 @@ test('S5b-3 the words: counts not available with no list, the anaphylactic room 
   assert.match(h, /var\(--danger-ink, #991b1b\)/);
   assert.match(h, /is replaced: Save puts this every-week meal on that date too\./);
   assert.match(h, /escapeHtml\(/, 'every name is escaped');
+  // Review fold: a dish whose label is not checked, a special meal on the date, Save questions still to come.
+  assert.match(h, /Label not checked: /);
+  assert.match(h, /check the label of /);
+  assert.match(h, /!hit\.length && !\(m\.unchecked \|\| \[\]\)\.length/, 'never "not affected" while a label is unread');
+  assert.match(h, /stays: that date serves the special meal, not this change\./);
+  assert.match(h, /Save may still ask about old allergen ticks or halal meat/);
 });

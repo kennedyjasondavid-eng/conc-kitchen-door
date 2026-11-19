@@ -68,6 +68,18 @@ Display only: nothing saved or published changes. Gates `tests/what_changes_s5b_
 browser `tests/browser/what_changes_s5b.mjs` (12, in CI, red on `main`; made-up residents). On all 56 lunches and dinners,
 with Egg and Peanuts ticked, the counts equal `computePlatingData` before and after. A meal with a swap on its next date
 still shows the every-week moves.
+**Independent review (FIX FIRST), folded:**
+- **P2:** an added dish whose label is not checked sets no flag, so nobody moved and the panel said "not affected". It
+  now names the dish ("Label not checked") and tells the anaphylactic rooms to check its label before serving; it
+  never says "not affected" while a label is unread.
+- **P3:**
+  - a special meal on the next date is said to stay, and a swap under it is "cleared", not "replaced";
+  - the after side never reads a legacy edit (Save deletes it);
+  - one line says Save may still ask about old ticks or halal meat;
+  - the live region is rewritten only when its text changes.
+- **Also fixed:** S2b's summary printed "[object Object]" for a dish whose label is not checked.
+
+Browser gate 15.
 
 ## Recent (2026-11-19) — Edit Menu groups the dishes into plate cards (redesign S4b, `v31-standard.111`)
 The dish boxes sit in the plates they make (`DOOR_PLATE_CARDS`): **Regular plate** (main dish, side, vegetable side, also

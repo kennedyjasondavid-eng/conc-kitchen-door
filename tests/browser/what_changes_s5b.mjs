@@ -21,6 +21,9 @@ const TAGS = [['Regular'], ['Vegan'], ['Vegetarian'], ['Halal'], ['No Pork'], ['
 const RES = TAGS.map((tags, i) => ({ room: String(100 + i) + 'z', tags, rawRestriction: tags.join(', '), section: '' }));
 RES.push({ room: '900z', tags: ['No Peanuts'], rawRestriction: 'No Peanuts', isAnaph: true, anaphTags: ['noPeanuts'] });
 RES.push({ room: '901z', tags: ['No Eggs'], rawRestriction: 'No Eggs', isAnaph: true, anaphTags: ['noEggs'] });
+// Review fold: an anaphylactic room with a roommate (the roommate is contained with them).
+RES.push({ room: '950a', tags: ['No Tree Nuts'], rawRestriction: 'No Tree Nuts', isAnaph: true, anaphTags: ['noTreeNuts'] });
+RES.push({ room: '950b', tags: ['Regular'], rawRestriction: 'Regular' });
 const browser = await chromium.launch();
 async function boot(width, withResidents) {
   const p = await browser.newPage({ viewport: { width, height: 900 } });
@@ -141,6 +144,52 @@ try {
   });
   check('a meal with a swap on its next date still shows the every-week moves', swap.same && swap.some && swap.moved === swap.want, swap);
   check('it names the one-date change the Save replaces', swap.swaps === 1 && /one-date change for .*Peanut Satay Test.*is replaced/.test(swap.t), swap.t.slice(0, 500));
+
+  // 5. Review fold (P2): a dish whose label is not checked is never "not affected" for the anaphylactic rooms.
+  const unk = await p.evaluate(async () => {
+    DOOR_RECIPE_DATA.push({ recipeName: 'Unread Bought Item', allergens: null, labelUnchecked: true, category: 'Side', stream: 'regular' });
+    openMenuEdit(1, 'MONDAY', 'lunch');
+    await new Promise((r) => setTimeout(r, 10));
+    slotSelect('xtra', 'Unread Bought Item');
+    updateSlotSummary();
+    const m = window.__DOOR_WHAT_CHANGES__;
+    const t = document.getElementById('mc-what-changes').textContent;
+    closeMenuEdit(true);
+    return { t, unchecked: m && m.newUnchecked };
+  });
+  check('a dish whose label is not checked is named, and the anaphylactic rooms are told to check it, never "not affected"',
+    /Label not checked: Unread Bought Item/.test(unk.t) && /Anaphylactic rooms .*900z.*check the label of Unread Bought Item/.test(unk.t) && !/not affected/.test(unk.t) && !/No plate gains or loses/.test(unk.t), unk);
+
+  // 6. Review fold (P3-1): a special meal on the next date stays, and a swap under it is cleared, not "replaced".
+  const sp = await p.evaluate(async () => {
+    const key = doorDateKey(nextDateForSlot(1, 'MONDAY')) + '-lunch';
+    const sm = loadSpecialMeals(); sm[key] = { specialName: 'Holiday Feast Test', _flagsRaw: {} }; saveSpecialMeals(sm);
+    const sw = loadMealSwaps(); sw[key] = { specialName: 'Swap Under Test', _flagsRaw: {}, _rotationSlot: '1-MONDAY-lunch' }; saveMealSwaps(sw);
+    openMenuEdit(1, 'MONDAY', 'lunch');
+    const cb = document.getElementById('mc-edit-flag-hasSesame'); if (cb && !cb.checked) cb.click();
+    updateSlotSummary();
+    const t = document.getElementById('mc-what-changes').textContent;
+    closeMenuEdit(true);
+    const sm2 = loadSpecialMeals(); delete sm2[key]; saveSpecialMeals(sm2);
+    const sw2 = loadMealSwaps(); delete sw2[key]; saveMealSwaps(sw2);
+    return t;
+  });
+  check('a special meal on the next date stays, and the swap under it is cleared, not said to be replaced by this meal',
+    /special meal on .*Holiday Feast Test.* stays/.test(sp) && /Swap Under Test\) is cleared/.test(sp) && !/Swap Under Test\) is replaced/.test(sp), sp.slice(0, 600));
+
+  // 7. Review fold: a tree-nut meal moves the anaphylactic room and its roommate, and names only the anaphylactic room.
+  const mate = await p.evaluate(() => {
+    openMenuEdit(2, 'THURSDAY', 'lunch');
+    const cb = document.getElementById('mc-edit-flag-hasTreeNuts'); if (cb && !cb.checked) cb.click();
+    updateSlotSummary();
+    const m = window.__DOOR_WHAT_CHANGES__;
+    const want = window.__expected('2', 'THURSDAY', 'lunch');
+    const t = document.getElementById('mc-what-changes').textContent;
+    closeMenuEdit(true);
+    return { same: JSON.stringify(Object.entries(window.__gotTally(m)).sort()) === JSON.stringify(Object.entries(want.tally).sort()), t };
+  });
+  check('an anaphylactic room and its roommate move together, and only the anaphylactic room is named',
+    mate.same && /Room 950a \(anaphylactic\)/.test(mate.t) && !/Room 950b/.test(mate.t), mate);
   await p.close();
 
   // 4. No resident list: counts not available, never none.
