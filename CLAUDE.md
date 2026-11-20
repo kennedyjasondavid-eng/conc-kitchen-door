@@ -53,6 +53,29 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — a real edit keeps the vegan line, the halal line and the sides as written (`v31-standard.125`)
+Found relinking the vegan dishes (#269): changing only the vegan dish's link (its words kept) and pressing Save rewrote
+text nobody chose. Wk2 SUN dinner's `dinner_veg` lost its "Pasta" (no box holds it), and Wk2 MON dinner's `dinner_sides`
+"Green Beans, Rice" became "Rice, Green Beans" (the vegan line followed). D4 kept only the regular line; the vegan line
+(`buildVegAlt`), the halal line (`buildHalalLine`) and `_sides` (`buildSides`) were rebuilt from the boxes in box order,
+and EXPO and HUB read those words (HUB's menu-drift banner compares them).
+- **Now** each line keeps the words it opened with when none of its dishes changed, and a changed dish is placed with D4's
+  rule (`doorKeepLineWords`, which `doorKeepMenuWords` now calls). `openMenuEdit` takes each line's stored words and what
+  each box gave it (`_doorWordsAtOpen.lines`, `doorLineWordMap`: a side's own vegan or halal version, nothing for "doesn't
+  get it"); Save, the draft plate facts and "Will save as" write `doorEditedVegLine`, `doorEditedHalalLine` and
+  `doorEditedSides` (`doorKeptLineWords`, `DOOR_LINE_WORD_IDS`).
+- **Still rebuilt from the boxes, as before:** a line with no stored words; a line no box held a dish of at open (most
+  breakfasts' sides); a dish at open that is not one whole piece of the words; two boxes on the same words; a halal line
+  that had no sides of its own at open. Nothing published changes until a meal is saved.
+- **Gates:** `tests/line_words_kept_gate.mjs` (4, red 4/4 on `main` `82501c9`) and browser `tests/browser/line_words_kept.mjs`
+  (in CI, red 3/7 on `main`): the two #269 cases, then on all 84 published meals a new main (no line moves) and a new vegan
+  main (only that dish moves in the vegan line; 83 placed). On `main` 38 meals' lines moved (most breakfasts' `_sides`
+  were emptied by a main edit). Re-pinned with dated notes: `menu_words_kept_s4a` (loads `doorKeepLineWords`),
+  `line_sides` (the halal line through `doorEditedHalalLine`), `plate_summary_s2b`, `save_dialog_styled`.
+- **Found, not changed:** Wk2 SAT dinner's vegan main box holds "BBQ Vegan Meatloaf, Roasted Zucchini, Butternut Squash"
+  while its vegan line also names Mashed Potato, so a change to that box rebuilds the line (and drops Mashed Potato), as
+  on `main`.
+
 ## Recent (2026-11-20) — four vegan dishes link their own CODEX records (data, publication 42)
 Jason, 2026-11-19, on the U1 call ("Follow lean"): vegan dishes linked to a shared pot keep the link until CODEX gives
 each pot its own vegan record. CODEX #392 and #394 did. Wk1 FRI (Tofu Adobo), Wk2 SUN (Vegan Sausage and Greens Pasta
