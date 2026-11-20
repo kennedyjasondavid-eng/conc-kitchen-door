@@ -27,7 +27,9 @@ function ctx() {
   const c = {};
   vm.createContext(c);
   vm.runInContext([/const DOOR_WORD_SLOT_IDS = [^\n]*/.exec(html)[0], /const DOOR_WORD_SEP_RE = [^\n]*/.exec(html)[0],
-    fnBlock('doorWordPieces'), fnBlock('doorFindDishRun'), fnBlock('doorKeepMenuWords')].join('\n'), c);
+    // Re-pinned 2026-11-20 (line words kept): doorKeepMenuWords places its edits through doorKeepLineWords, shared with
+    // the vegan line, the halal line and the sides text.
+    fnBlock('doorWordPieces'), fnBlock('doorFindDishRun'), fnBlock('doorKeepMenuWords'), fnBlock('doorKeepLineWords')].join('\n'), c);
   return c;
 }
 const B = { main: 'Pancakes', starch: 'turkey bacon', vegside: '', xtra: 'fruit & yoghurt' };
@@ -75,7 +77,8 @@ test('S4a-3 dishes are whole pieces: never inside another dish; anything not pla
 
 test('S4a-4 Save, the draft summary and the preview read the kept words; the words are taken at open, before the baseline', () => {
   assert.match(fnBlock('saveMenuEdit'), /const name = doorEditedMealName\(\);/);
-  assert.match(fnBlock('doorDraftPlateFacts'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, doorEditedMealName\(\), buildVegAlt\(\), flags\);/);
+  // Re-pinned 2026-11-20 (line words kept): the vegan line is the kept words too (doorEditedVegLine).
+  assert.match(fnBlock('doorDraftPlateFacts'), /doorWriteEditorMeal\(overlay\[week\]\[day\], period, doorEditedMealName\(\), doorEditedVegLine\(\), flags\);/);
   // Re-pinned 2026-11-19 (Edit Menu redesign S6b, D5): the Test Meal sandbox is retired, so the preview reads the kept
   // words whenever the helper is there (no testMealActive branch).
   assert.match(fnBlock('updateSlotSummary'), /const name = \(typeof doorEditedMealName !== 'function'\) \? buildMealName\(\) : doorEditedMealName\(\);/);

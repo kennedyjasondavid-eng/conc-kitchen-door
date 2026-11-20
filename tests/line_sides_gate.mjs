@@ -101,7 +101,10 @@ test('Edit Menu keeps the versions: snapshot, open, Save (vegan and halal), the 
   assert.match(fnBlock('_buildSlotSnapshot'), /snap\[d\.id\]\.lines = JSON\.parse\(JSON\.stringify\(s\.lines\)\)/);
   assert.match(fnBlock('openMenuEdit'), /doorReadInLineVersions\(dayData, period\)/);
   // Re-pinned 2026-11-19 (Edit Menu redesign S2b): what Save writes for the meal moved into doorWriteEditorMeal.
-  assert.match(fnBlock('doorWriteEditorMeal'), /buildHalalLine\(\)[\s\S]{0,160}\[period \+ '_halal'\] = _halalLine/);
+  // Re-pinned 2026-11-20 (line words kept): Save writes the halal line through doorEditedHalalLine, which builds it with
+  // buildHalalLine and keeps the stored words when none of its dishes changed.
+  assert.match(fnBlock('doorWriteEditorMeal'), /doorEditedHalalLine\(\)[\s\S]{0,160}\[period \+ '_halal'\] = _halalLine/);
+  assert.match(fnBlock('doorEditedHalalLine'), /const built = buildHalalLine\(\);/);
   assert.match(fnBlock('buildVegAltFlags'), /doorLinePieces\(MEAL_SLOT_STATE, 'vegan'\)/);
   assert.match(fnBlock('buildHalalAltFlags'), /doorLinePieces\(MEAL_SLOT_STATE, 'halal'/);
   assert.match(fnBlock('doorRunOnSlots'), /def\.list/, 'an "also gets" list is not asked about as several dishes');
