@@ -53,6 +53,17 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-19) — Rex's week sheet picks no recipe it only guessed (`v31-standard.122`)
+Jason, 2026-11-19: "Follow leans on all four" (the U4 review found Week 4 THU lunch's "Side Salad" picked as Potato Salad
+(for Honey BBQ Drums), wrong allergens, by default).
+- **A plain staple** (`doorRexIsStaple`: "Side Salad", "Rice") is never linked to a longer recipe by default
+  (`doorRexRecipeFor`'s `same` skips it); its recipes stay in the suggestions. The cause was the "same dish under a longer
+  name" rule: "side" is a modifier and "potato" is not a dish type, so "salad" matched every salad recipe.
+- **A remembered link** (`doorRexKnownLinks`, the menu's own links) is picked only for the same words, any case or order. A
+  near spelling (one letter off) is offered first as a suggestion, never picked.
+- **Gate:** `tests/rex_no_default_guess_gate.mjs` (3), red 2/3 on `main` `b284b00` (NG-2 locks a dish under a longer name
+  still linking). Re-pinned with a dated note: `rex_week_import_gate` 13 (a near spelling is suggested, not picked).
+
 ## Recent (2026-11-19) — Rex's week review says what each meal keeps and replaces (U4, `v31-standard.121`)
 Back-on-track plan §5 U4 ("Import review shows which dishes, links and allergens are kept and which are replaced"). Each
 meal in Rex's week-sheet review, asked or applied without a question, carries a summary under its table, plate by plate
@@ -96,8 +107,8 @@ publish through DOOR's publisher (EXPO's W6 harness). Wk1 FRI dinner's Garlic Gr
 Garlic Green Beans (`garlic-green-beans`), so the meal gains **Beans**; Wk4 SAT lunch's Turmeric Quinoa links CODEX's
 `tumeric-quinoa` (CODEX's rename keeps that id); Steamed Carrots and Fruit and Chips have nothing to declare; the Sub Bun
 carries Gluten only. Menu words and routing counts unchanged; independent review SHIP (no resident changes plate on any
-of 84 meals). A No Beans resident on the regular plate still gets no note (No Beans is a preference, which the
-regular-plate conflict check does not read; not changed). Receipt `docs/receipts/door_u1_side_answers_2026-11-19.md`;
+of 84 meals). Corrected 2026-11-19: a No Beans resident on the regular plate does get "No Beans" on the regular
+plate's notes (`checkResidentMealConflicts` reads `accommodations`); the review's note saying otherwise was wrong. Receipt `docs/receipts/door_u1_side_answers_2026-11-19.md`;
 gate `tests/u1_side_answers_gate.mjs` (4). After merge: republish EXPO once.
 
 ## Recent (2026-11-19) — splitting a side box no longer asks the soft-plate question (`v31-standard.119`)

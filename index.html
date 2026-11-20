@@ -860,7 +860,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.121';
+const DOOR_APP_VERSION = 'v31-standard.122';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -17624,12 +17624,15 @@ function doorRexRecipeFor(piece, recipes, accept, known) {
   const list = (recipes || []).filter(r => r && r.recipeName && (!accept || accept(r)));
   let exact = list.find(r => { const R = doorRexTokens(r.recipeName); return R.length === T.length && T.every(t => doorRexHas(R, t)); }) || null;
   let linkedAt = '';
-  // The same words, spelt as the sheet spells them ("Carribean" = Caribbean): one letter off in a long word, as
-  // doorRexSameDish reads it. Only when every such name points at one recipe.
-  let kn = !exact && known ? known[T.slice().sort().join(' ')] : null;
+  // A remembered link spelt one letter off in a long word ("Carribean" = Caribbean, as doorRexSameDish reads it), when
+  // every such name points at one recipe, is only suggested.
+  // Ruled 2026-11-19 (Jason: follow lean): a remembered link is picked only when its words are the same words, any
+  // case and order. A near spelling is offered as a suggestion, never picked.
+  const kn = !exact && known ? known[T.slice().sort().join(' ')] : null;
+  let knownNear = null;
   if (!exact && known && !kn) {
     const hits = Object.keys(known).filter(k => { const K = k.split(' '); return K.length === T.length && T.every(t => doorRexHas(K, t)); });
-    if (hits.length && hits.every(k => known[k].recipeName === known[hits[0]].recipeName)) kn = known[hits[0]];
+    if (hits.length && hits.every(k => known[k].recipeName === known[hits[0]].recipeName)) knownNear = list.find(r => r.recipeName === known[hits[0]].recipeName) || null;
   }
   if (kn) { exact = list.find(r => r.recipeName === kn.recipeName) || null; if (exact) linkedAt = kn.where; }
   // The same dish under a longer recipe name: every word of the dish that says what it is is in the recipe's name
@@ -17641,7 +17644,13 @@ function doorRexRecipeFor(piece, recipes, accept, known) {
     const shared = T.filter(t => !REX_MODIFIERS.has(t) && doorRexHas(R, t)).length;
     return { r, score: shared ? shared / (T.length + R.length - shared) + (sameAs(r) ? 1 : 0) : 0 };
   }).filter(x => x.score > 0 && x.r !== exact).sort((a, b) => b.score - a.score).slice(0, 5).map(x => x.r);
-  return { exact, close, same: !exact && close[0] && sameAs(close[0]) ? close[0] : null, linkedAt };
+  // Ruled 2026-11-19: a plain staple ("Side Salad", "Rice") is never linked to a longer recipe by default; Week 4 read
+  // "Side Salad" as Potato Salad (for Honey BBQ Drums). A staple main still lists them as suggestions; a staple side is
+  // saved as a typed dish, which Edit Menu then lists as not answered.
+  const plain = typeof doorRexIsStaple === 'function' && doorRexIsStaple(piece);
+  const same = !exact && !plain && close[0] && sameAs(close[0]) ? close[0] : null;
+  if (knownNear && close.indexOf(knownNear) < 0) close.unshift(knownNear);
+  return { exact, close, same, linkedAt };
 }
 // A plain staple needs no recipe: its name says what it holds (gluten in noodles, a roll, naan).
 const REX_STAPLES = new Set(['rice','pasta','noodle','naan','bread','bun','roll','tortilla','pita','wrap','roti','bagel','toast','chip','fry','cereal','fruit','yogurt','milk','sub','burger','sausage','hotdog','potato','couscous','quinoa','veg','salad','soup','milk','cheese','granola','oatmeal','cream']);
