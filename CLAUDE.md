@@ -83,6 +83,11 @@ section, count or routing changes.
   editor writes the note on a queued change only when changed there; Edit clears the box first; both queues show it.
 - **Gates:** `tests/breakfast_note_s1_gate.mjs` (7, red 6/7 on `main` `b284b00`; 7 is the privacy lock; case 6 also red on
   the pre-fold build) and browser `tests/browser/breakfast_note_s1.mjs` (32, in CI; made-up residents).
+- **Data (publication 41, 2026-11-20):** 301a "oat milk only" and 1007 "smaller breakfast starch portion plus extra
+  protein", through the editor's notes-only save and DOOR's publisher (W6 harness); nothing else moves. The repository is
+  public, so the notes are readable in `door_state.json` on GitHub (Jason, 2026-11-20: notes in now, private later).
+  301a's Tuesday vegan breakfast names plain milk, so its row reads CHECK (raised with Jason). Receipt
+  `docs/receipts/door_u3_breakfast_notes_2026-11-20.md`; gate `tests/u3_breakfast_notes_data_gate.mjs` (4).
 
 ## Recent (2026-11-20) — DOOR draws a little larger on a wide screen (`v31-standard.123`)
 Jason, 2026-11-20: "can we make this the default scale?" (he runs DOOR at 125% browser zoom), then "Try 110% equiv".
