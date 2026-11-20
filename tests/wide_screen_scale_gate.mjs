@@ -35,3 +35,15 @@ test('WS-3 the toast reads the scale; the scale is 1 when not zoomed', () => {
   assert.match(f, /return z > 0 \? z : 1;/);
   assert.match(html, /Math\.round\(\(window\.innerHeight - _fr\.top\) \/ _zs \+ 12\)/);
 });
+test('WS-4 review fold: chart events are divided by the zoom, and the chart area is judged again', () => {
+  const i = html.indexOf('function doorNewChart(');
+  const f = html.slice(i, html.indexOf('\n}\n', i) + 2);
+  assert.match(f, /beforeEvent\(chart, args\)/);
+  assert.match(f, /e\.x = e\.x \/ z; e\.y = e\.y \/ z;/);
+  assert.match(f, /args\.inChartArea = chart\.isPointInArea\(e\)/);
+  assert.equal((html.match(/new Chart\(ctx, \{/g) || []).length, 0, 'every chart goes through doorNewChart');
+  assert.equal((html.match(/doorNewChart\(ctx, \{/g) || []).length, 6);
+});
+test('WS-5 review fold: the side panel starts at the header edge under the zoom', () => {
+  assert.match(html, /Math\.ceil\(top\.getBoundingClientRect\(\)\.height \/ doorScreenScale\(\)\)/);
+});

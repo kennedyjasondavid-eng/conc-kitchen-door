@@ -13447,7 +13447,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar', data: { labels, datasets: [{ label: 'Uptake %', data, backgroundColor: colors, borderRadius: 4 }] },
       options: { responsive: true, plugins: { legend: { display: false } },
         scales: { y: { min: 70, max: 100, ticks: { callback: v => v + '%' } }, x: { ticks: { maxRotation: 45, font: { size: 9 } } } } }
@@ -13477,7 +13477,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar', data: { labels, datasets: [{ label: 'Uptake %', data: uptakes, backgroundColor: colors, borderRadius: 4 }] },
       options: { responsive: true, plugins: { legend: { display: false } },
         scales: { y: { min: 70, max: 100, ticks: { callback: v => v + '%' } }, x: { ticks: { font: { size: 11 } } } } }
@@ -13658,7 +13658,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar',
       data: {
         labels: mealsSorted.map(m => m.name.length > 22 ? m.name.slice(0,22)+'…' : m.name),
@@ -13726,7 +13726,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar',
       data: {
         labels: monthLabels,
@@ -13806,7 +13806,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'line',
       data: { labels: mLabels, datasets },
       options: {
@@ -14107,7 +14107,7 @@ function renderReport() {
   if (uptakeChart) uptakeChart.destroy();
   const ctx = document.getElementById('uptake-chart');
   if (ctx) {
-    uptakeChart = new Chart(ctx, {
+    uptakeChart = doorNewChart(ctx, {
       type: 'bar',
       data: {
         labels,
@@ -16890,6 +16890,23 @@ function doorScreenScale() {
   const z = parseFloat(getComputedStyle(document.body).zoom);
   return z > 0 ? z : 1;
 }
+// 2026-11-20 (review of the wide-screen zoom): Chart.js reads the mouse in screen pixels and draws in page pixels, so
+// under the zoom a tooltip pointed at the wrong bar. One plugin, registered once, divides the event position by the zoom.
+function doorNewChart(ctx, cfg) {
+  if (typeof Chart !== 'undefined' && Chart.register && !doorNewChart.registered) {
+    Chart.register({ id: 'doorScreenZoom', beforeEvent(chart, args) {
+      const z = typeof doorScreenScale === 'function' ? doorScreenScale() : 1;
+      const e = args && args.event;
+      if (z !== 1 && e && typeof e.x === 'number' && typeof e.y === 'number') {
+        e.x = e.x / z; e.y = e.y / z;
+        // Chart.js judged inside the chart area before this hook, on the screen position: judge it again.
+        if (typeof chart.isPointInArea === 'function') args.inChartArea = chart.isPointInArea(e);
+      }
+    } });
+    doorNewChart.registered = true;
+  }
+  return new Chart(ctx, cfg);
+}
 function doorPlaceMealPanel() {
   if (typeof document === 'undefined' || typeof window === 'undefined' || !window.matchMedia) return;
   const panel = document.getElementById('mc-menu-edit-panel');
@@ -16897,7 +16914,8 @@ function doorPlaceMealPanel() {
   const bar = document.getElementById('door-stale-banner');
   const top = document.querySelector('#screen-menu-config .topbar');
   if (window.matchMedia('(max-width: 768px)').matches) panel.style.top = (bar ? bar.offsetHeight : 0) + 'px';
-  else if (window.matchMedia('(min-width: 1500px)').matches) panel.style.top = (top ? top.offsetHeight : 0) + 'px';
+  // 2026-11-20 review fold: under the wide-screen zoom offsetHeight rounds below the header edge; take the exact height.
+  else if (window.matchMedia('(min-width: 1500px)').matches) panel.style.top = (top ? Math.ceil(top.getBoundingClientRect().height / doorScreenScale()) : 0) + 'px';
   else panel.style.top = '';
 }
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (typeof doorPlaceMealPanel === 'function') doorPlaceMealPanel(); });

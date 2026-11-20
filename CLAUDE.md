@@ -61,6 +61,10 @@ by the zoom (sidebar, page, dialogs) so the page fits the window; the toast's pl
 the plating sheets, tablets and phones keep their size. Checked in Chromium at 1920, 1650, 1600 and 1280 px: sidebar,
 side panel and footer in the window, no sideways scroll, print scale 1. Gate `tests/wide_screen_scale_gate.mjs` (3).
 A computer already set to 125% in the browser should go back to 100% (Ctrl+0), or it compounds.
+Independent review (FIX FIRST), folded: Chart.js read the mouse in screen pixels, so Reports' tooltips pointed at the
+wrong bar; every chart now goes through `doorNewChart`, whose plugin divides the event by the zoom and judges the chart
+area again (all 6 bars hover right at 1920 and 1700 px). The side panel's top takes the header's exact height (it
+overlapped by 1 px). Gate grows to 5.
 
 ## Recent (2026-11-19) — Rex's week sheet picks no recipe it only guessed (`v31-standard.122`)
 Jason, 2026-11-19: "Follow leans on all four" (the U4 review found Week 4 THU lunch's "Side Salad" picked as Potato Salad

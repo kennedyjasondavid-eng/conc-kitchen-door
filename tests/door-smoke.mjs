@@ -827,6 +827,8 @@ test('custom uptake-by-meal report renders synced meal names safely', () => {
     Math,
     window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
     document: { getElementById: el },
+    // Re-pinned 2026-11-20 (wide-screen zoom review fold): every chart is made through doorNewChart.
+    doorNewChart: function doorNewChart() { return { destroy() {} }; },
     Chart: function Chart() { return { destroy() {} }; },
     crChart: null,
     checkedBoxes: {
@@ -1076,6 +1078,8 @@ test('report dashboard renders synced welfare and section payloads safely', () =
     Math,
     window: { location: { href: 'https://kennedyjasondavid-eng.github.io/conc-kitchen-door/' } },
     document: { getElementById: el },
+    // Re-pinned 2026-11-20 (wide-screen zoom review fold): every chart is made through doorNewChart.
+    doorNewChart: function doorNewChart() { return { destroy() {} }; },
     Chart: function Chart() { return { destroy() {} }; },
     uptakeChart: null,
     BASE_SECTIONS: [{ name: payload, color: 'background:url(javascript:alert(1))' }],
