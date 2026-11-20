@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const menu = JSON.parse(fs.readFileSync('menu_current.json', 'utf8')).menu;
+const overlay = JSON.parse(fs.readFileSync('menu_overlay.json', 'utf8'));
 const ROWS = [
   ['1', 'FRIDAY', 'Vegetarian Adobo', 'tofu-adobo-adobo-marinade-and-sauce', 'Tofu Adobo (Adobo Marinade & Sauce)'],
   ['2', 'SUNDAY', 'Vegan Sausage and Vegetable Pasta', 'vegan-sausage-and-greens-pasta-sauce', 'Vegan Sausage and Greens Pasta Sauce'],
@@ -44,4 +45,13 @@ test('VR-4 the other three keep the allergens they had (same families as the pot
   assert.equal(on(slot('1', 'FRIDAY').flags), 'hasCoconut,hasCorn,hasSoy,hasSulphites,hasTreeNuts');
   assert.equal(on(slot('2', 'MONDAY').flags), 'hasBeans,hasCoconut,hasNightshades,hasPeanuts,hasSulphites,hasTreeNuts,isSpicy');
   assert.equal(on(slot('2', 'FRIDAY').flags), 'hasCorn,hasGluten,hasSoy');
+});
+test('VR-5 the shared overlay carries the same four links, so no computer puts a pot link back', () => {
+  for (const [w, d, words, id] of ROWS) {
+    const s = (((overlay[w] || {})[d] || {}).dinner_slots || {}).veganalt || {};
+    assert.equal(s.recipeId, id, 'overlay Wk' + w + ' ' + d + ' dinner');
+    assert.equal(s.displayText, words);
+  }
+  const f = ((overlay['2'].SUNDAY.dinner_slots || {}).veganalt || {}).flags || {};
+  assert.equal(f.hasSoy, false); assert.equal(f.hasSulphites, true); assert.equal(f.hasNightshades, true);
 });

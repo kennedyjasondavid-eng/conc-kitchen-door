@@ -60,7 +60,7 @@ Sauce), Wk2 MON (Vegan African Peanut Stew) and Wk2 FRI dinner (Vegan Arroz con 
 the menu's words. The Wk2 SUN slot loses Soy and gains Sulphites and Nightshades (the sausage label Jason read); its
 vegan plate still says SOY through the name guess (over-warns only). Text, ticks and routing counts unchanged. Written
 through `saveMenuBaseOverlay`, not Edit Menu's Save, which also rewrote the vegan line and the sides (found, raised
-separately). Receipt `docs/receipts/door_vegan_pot_relink_2026-11-20.md`; gate `tests/vegan_pot_relink_gate.mjs` (4).
+separately). Receipt `docs/receipts/door_vegan_pot_relink_2026-11-20.md`; gate `tests/vegan_pot_relink_gate.mjs` (5).
 
 ## Recent (2026-11-20) — a breakfast note on the resident (U3 S1, `v31-standard.124`)
 Back-on-track plan §5 U3, call C1 (the simple breakfast design); Jason, 2026-11-19: "Follow leans on all four". One field

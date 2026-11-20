@@ -29,8 +29,15 @@ and both are live on CODEX Pages. This edition relinks the four dishes.
   DOOR's name guess for the vegan line ("Vegan Sausage" reads CODEX's Vegan Sausage record, which lists Soy). That
   over-warns only; it changes when the line's words or that guess change. Only the order of two words moves
   (`BEANS, SULPHITES` → `SULPHITES, BEANS`).
-- **Unchanged:** every meal's text, vegan line, sides and ticks; `routing_by_meal.json`'s counts (only its stamps move);
-  `door_state.json` and `registry_summary.json` (stamps only).
+- **Unchanged:** every meal's text, vegan line, sides and ticks; `routing_by_meal.json`'s counts and `_components`.
+  Its flow recipe vector moves: it gains the five new CODEX records, carries the pot's allergen change, and reads
+  `tumeric-quinoa` as a duplicate id (unknown) until CODEX's shared copy is saved again. EXPO and HUB read only its
+  digests. `door_state.json` and `registry_summary.json` change in stamps and `lastModifiedBy` (which reads "Edit Menu: …"
+  though the change went through the overlay writer).
+- **DOOR's sheet and HUB's menu panel disagree on Wk2 SUN:** HUB builds the vegan line's allergens from the slot (no
+  Soy; Sulphites, Nightshades), while DOOR's plating sheet still prints SOY and GLUTEN through its name guess, which reads
+  CODEX's standalone "Vegan Sausage" record (Gluten, Oats, Soy, Nightshades). That record doesn't match the bought sausage
+  Jason read; raised with CODEX. The one No Soy resident is Halal and eats the halal plate on this pork dinner.
 - **Files:** `menu_current.json` and `menu_overlay.json` (the four slots: 12 fields each), `routing_by_meal.json`,
   `door_state.json`, `registry_summary.json` (stamps), `door_flow_publication.json` (sequence 41 → 42).
 - **Not done here:**
@@ -43,8 +50,11 @@ and both are live on CODEX Pages. This edition relinks the four dishes.
 - **Celery:** the sausage label lists celery, and DOOR has no celery family; no DOOR resident's record mentions celery.
 
 ## Checks
-- New gate `tests/vegan_pot_relink_gate.mjs` (4), red 3/4 on `main` `40418b4` (VR-4 locks the three unchanged sets).
-- Node suite 1123 pass, 1 skipped (no re-pins).
+- New gate `tests/vegan_pot_relink_gate.mjs` (5), red 4/5 on `main` `40418b4` (VR-4 locks the three unchanged sets).
+- Node suite 1124 pass, 1 skipped (no re-pins).
+- Independent review: SHIP (no P1/P2). Folded: the flow vector and `lastModifiedBy` wording (P3-1, P3-4), the Wk2 SUN
+  sheet vs HUB note (P3-2), the gate also reads `menu_overlay.json` (P3-3). Checked against EXPO's real app: 301 of 301
+  recipe ids mapped, its HUB payload identical (526 items), conflicts unchanged.
 - `scripts/check_published_flow.mjs` passes.
 
 ## After merge
