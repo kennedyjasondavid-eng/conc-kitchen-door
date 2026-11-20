@@ -2,13 +2,13 @@
   "_meta": {
     "source": "KitchenDOOR",
     "version": 30,
-    "exported": "2026-11-19T20:22:44.701Z",
-    "registryModifiedAt": "2026-11-19T15:40:02.756Z",
+    "exported": "2026-11-20T00:46:15.152Z",
+    "registryModifiedAt": "2026-11-20T00:46:14.935Z",
     "site": "rexdale",
     "count": 168,
-    "lastModifiedBy": "Edit Menu: allergen answers for the U1 side boxes",
+    "lastModifiedBy": "Jason (confirmed breakfast notes, U3 S1)",
     "builtFromMenu": {
-      "exported": "2026-11-19T20:22:44.589Z",
+      "exported": "2026-11-20T00:46:15.034Z",
       "hash": "1wuj0yy"
     },
     "flow": {
@@ -29,7 +29,7 @@
       "inputRevision": "sha256:ff7b24912c5a9d0ce2fbd0bdff4ff271d674e574e58330cc25e0d879f0fd500f",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 40
+        "sequence": 41
       },
       "schema": 1
     }
@@ -5338,6 +5338,47 @@
         {
           "snapshot": {
             "room": "301a",
+            "section": "Vegan / Vegetarian",
+            "tags": [
+              "GF",
+              "Lactose Intolerant",
+              "Vegetarian",
+              "No Beans"
+            ],
+            "restrictions": [
+              "GF",
+              "Lactose Intolerant",
+              "Vegetarian"
+            ],
+            "allergenFlags": [],
+            "accommodations": [
+              "No Beans"
+            ],
+            "preferences": [
+              "No Beans"
+            ],
+            "avoidances": [
+              "No Beans"
+            ],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "rawRestriction": "GF, Lactose Intolerant, Vegetarian, No Beans",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "",
+            "_tierMigrated": true
+          },
+          "ts": "2026-11-20T00:46:14.884Z",
+          "date": "Nov 19",
+          "desc": "Notes edit",
+          "by": "Jason (confirmed breakfast notes, U3 S1)"
+        },
+        {
+          "snapshot": {
+            "room": "301a",
             "section": "Gluten Free",
             "tags": [
               "Halal",
@@ -5371,7 +5412,8 @@
           "desc": "Queue update — GF, Lactose Intolerant, Vegetarian, No Beans → Vegan / Vegetarian",
           "by": "Joan Wandera"
         }
-      ]
+      ],
+      "breakfastNote": "oat milk only"
     },
     {
       "room": "813",
@@ -5524,6 +5566,47 @@
         {
           "snapshot": {
             "room": "1007",
+            "section": "Diabetic",
+            "tags": [
+              "Low Sodium",
+              "Low Carb"
+            ],
+            "restrictions": [
+              "Regular"
+            ],
+            "allergenFlags": [],
+            "accommodations": [
+              "Low Sodium",
+              "Low Carb"
+            ],
+            "preferences": [
+              "Low Sodium",
+              "Low Carb"
+            ],
+            "avoidances": [
+              "Low Sodium",
+              "Low Carb"
+            ],
+            "confirm": "Provisional",
+            "confirmBy": "—",
+            "isAnaph": false,
+            "anaphTags": [],
+            "rawRestriction": "Low Sodium, Low Carb",
+            "isModerate": false,
+            "moderateNote": "",
+            "complianceDeadline": "",
+            "pendingReversion": false,
+            "serviceNote": "Prefers Protein; Low Sodium /Low Carbohydrates diet/No Rice /Pasta -Flavouring Beans / Protein",
+            "_tierMigrated": true
+          },
+          "ts": "2026-11-20T00:46:14.935Z",
+          "date": "Nov 19",
+          "desc": "Notes edit",
+          "by": "Jason (confirmed breakfast notes, U3 S1)"
+        },
+        {
+          "snapshot": {
+            "room": "1007",
             "section": "Regular",
             "tags": [
               "Low Sodium"
@@ -5557,47 +5640,10 @@
           "date": "Sep 24",
           "desc": "Queue update — Low Sodium, Low Carb → Diabetic",
           "by": "Joan Wandera"
-        },
-        {
-          "snapshot": {
-            "room": "1007",
-            "section": "Gluten Free",
-            "tags": [
-              "GF",
-              "Low Sodium"
-            ],
-            "restrictions": [
-              "GF"
-            ],
-            "allergenFlags": [],
-            "accommodations": [
-              "Low Sodium"
-            ],
-            "preferences": [
-              "Low Sodium"
-            ],
-            "avoidances": [
-              "Low Sodium"
-            ],
-            "confirm": "Provisional",
-            "confirmBy": "—",
-            "isAnaph": false,
-            "anaphTags": [],
-            "rawRestriction": "GF, Low Sodium",
-            "isModerate": false,
-            "moderateNote": "",
-            "complianceDeadline": "",
-            "pendingReversion": false,
-            "serviceNote": "Prefers Protein; Low Sodium /Low Carbohydrates diet/No Rice /Pasta -Flavouring Beans / Protein",
-            "_tierMigrated": true
-          },
-          "ts": "2026-09-21T16:31:10.574Z",
-          "date": "Sep 21",
-          "desc": "Queue update — Low Sodium → Regular",
-          "by": "Joan Wandera"
         }
       ],
-      "anaphTags": []
+      "anaphTags": [],
+      "breakfastNote": "smaller breakfast starch portion plus extra protein"
     },
     {
       "room": "716a",
