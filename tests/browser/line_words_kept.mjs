@@ -56,6 +56,28 @@ try {
     check(n.meal + ': the menu, vegan line, sides and halal line are word for word as they were', moved.length === 0, moved);
   }
 
+  // Review fold: line versions, a dish named twice, and a halal line that gains and then loses its own sides.
+  const versions = await p.evaluate(async () => {
+    const wk = '2', day = 'MONDAY', per = 'dinner';
+    const read = () => JSON.parse(JSON.stringify(getMenuData()[wk][day]));
+    const step = async (fn) => { openMenuEdit(Number(wk), day, per); fn(); renderSlots(); updateSlotSummary();
+      const r = await Promise.race([saveMenuEdit(), new Promise((res) => setTimeout(() => res('timeout'), 4000))]); if (mcMenuEditKey) closeMenuEdit(true); return { r, d: read() }; };
+    const start = read(), out = { start: { veg: start[per + '_veg'], sides: start[per + '_sides'], halal: start[per + '_halal'] } };
+    const setV = (id, line, v) => { const s = MEAL_SLOT_STATE[id]; s.lines = Object.assign({}, s.lines); if (v) s.lines[line] = v; else delete s.lines[line]; };
+    out.none = await step(() => setV('vegside', 'vegan', { mode: 'none' }));
+    out.back = await step(() => setV('vegside', 'vegan', null));
+    out.dup = await step(() => setV('vegside', 'vegan', { mode: 'swap', manual: 'Rice' }));
+    out.halalAdd = await step(() => { if (!MEAL_SLOT_STATE.mainalt) MEAL_SLOT_STATE.mainalt = { manual: 'Halal Chicken Stew', flags: {}, declared: true }; MEAL_SLOT_STATE.halalextras = { manual: 'Samosa', flags: {}, declared: true }; });
+    out.halalDrop = await step(() => { MEAL_SLOT_STATE.halalextras = null; });
+    return out;
+  });
+  const v = versions, P = 'dinner';
+  check('a side the vegan line no longer gets loses its words; the sides text stays', v.none.r === true && v.none.d[P + '_veg'] === 'Vegetarian Peanut Stew, Rice' && v.none.d[P + '_sides'] === v.start.sides, { start: v.start, after: v.none.d[P + '_veg'], sides: v.none.d[P + '_sides'] });
+  check('given back to the vegan line, it is named again', v.back.r === true && /Green Beans/.test(v.back.d[P + '_veg']) && v.back.d[P + '_sides'] === v.start.sides, v.back.d[P + '_veg']);
+  check('a version that repeats a dish on the line never names it twice', v.dup.r === true && !/Rice,\s*Rice/.test(v.dup.d[P + '_veg']), v.dup.d[P + '_veg']);
+  check('a halal extra added is on the halal line; taken off, the halal line no longer names it', v.halalAdd.r === true && /Samosa/.test(v.halalAdd.d[P + '_halal'] || '') && v.halalDrop.r === true && !/Samosa/.test(v.halalDrop.d[P + '_halal'] || ''),
+    { added: v.halalAdd.d[P + '_halal'], dropped: v.halalDrop.d[P + '_halal'] });
+
   const census = await p.evaluate(async () => {
     const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const out = { meals: 0, mainEdits: 0, vegEdits: 0, vegReplaced: 0, vegRebuilt: [], wrong: [], notSaved: [] };
@@ -81,7 +103,7 @@ try {
       if (r !== true) { out.notSaved.push(meal + ' (main): ' + r); if (mcMenuEditKey) closeMenuEdit(true); continue; }
       out.mainEdits++;
       let after = read();
-      ['_veg', '_sides', '_halal'].forEach(f => { if (typeof before[per + f] === 'string' && after[per + f] !== before[per + f]) out.wrong.push({ meal, edit: 'main', field: per + f, before: before[per + f], after: after[per + f] }); });
+      ['_veg', '_sides', '_halal', '_mainAlt'].forEach(f => { if ((before[per + f] || '') !== (after[per + f] || '')) out.wrong.push({ meal, edit: 'main', field: per + f, before: before[per + f], after: after[per + f] }); });
       // 2. A new vegan main: the sides and the halal line stay; the vegan line changes only where that dish stood.
       before = read();
       openMenuEdit(Number(wk), day, per);
@@ -95,7 +117,7 @@ try {
       if (r !== true) { out.notSaved.push(meal + ' (vegan): ' + r); if (mcMenuEditKey) closeMenuEdit(true); continue; }
       out.vegEdits++;
       after = read();
-      ['_sides', '_halal'].forEach(f => { if (typeof before[per + f] === 'string' && after[per + f] !== before[per + f]) out.wrong.push({ meal, edit: 'vegan', field: per + f, before: before[per + f], after: after[per + f] }); });
+      ['_sides', '_halal', '_mainItem', '_mainAlt'].forEach(f => { if ((before[per + f] || '') !== (after[per + f] || '')) out.wrong.push({ meal, edit: 'vegan', field: per + f, before: before[per + f], after: after[per + f] }); });
       if (found) {
         const parts = found.parts.slice(); parts.splice(found.run[0], found.run[1] - found.run[0] + 1, 'Audit Vegan Dish');
         const expected = parts.join('');

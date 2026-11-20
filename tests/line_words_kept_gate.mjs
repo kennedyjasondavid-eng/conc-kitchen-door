@@ -88,6 +88,13 @@ test('LW-3 anything that cannot be placed exactly rebuilds (null)', () => {
   assert.equal(c.doorKeptLineWords('fruit & yoghurt', c.doorLineWordMap('sides', {}), c.doorLineWordMap('sides', { starch: { manual: 'Toast' } }), ids.sides), null);
   // ...but with nothing changed the stored words stand, even when no box holds them
   assert.equal(c.doorKeptLineWords('fruit & yoghurt', c.doorLineWordMap('sides', {}), c.doorLineWordMap('sides', {}), ids.sides), 'fruit & yoghurt');
+  // review fold (P3): an edit that would name a dish twice rebuilds
+  const r = { veganalt: { manual: 'Vegetarian Peanut Stew' }, starch: { manual: 'Rice' }, vegside: { manual: 'Green Beans' } };
+  assert.equal(c.doorKeptLineWords('Vegetarian Peanut Stew, Green Beans, Rice', c.doorLineWordMap('veg', r),
+    c.doorLineWordMap('veg', { ...r, vegside: { manual: 'Green Beans', lines: { vegan: { mode: 'swap', manual: 'Rice' } } } }), ids.veg), null);
+  // the main dish and the halal main as written: kept unless their box changed (breakfast session, #270)
+  assert.equal(c.doorKeptLineWords('Cereal and milk', c.doorLineWordMap('mainItem', { main: { manual: 'Cereal and milk, fruit' } }),
+    c.doorLineWordMap('mainItem', { main: { manual: 'Cereal and milk, fruit' } }), ids.mainItem), 'Cereal and milk');
   // D4 itself is unchanged
   assert.equal(c.doorKeepMenuWords('Pancakes, turkey bacon, fruit & yoghurt', { main: 'Pancakes', starch: 'turkey bacon' }, { main: 'Pancakes', starch: 'pork sausage' }), 'Pancakes, pork sausage, fruit & yoghurt');
 });
@@ -101,5 +108,9 @@ test('LW-4 Save, the draft summary and the preview write the kept lines; the lin
   const u = fnBlock('updateSlotSummary');
   assert.match(u, /const veg = \(typeof doorEditedVegLine === 'function'\) \? doorEditedVegLine\(\) : buildVegAlt\(\);/);
   assert.match(u, /const halalLine = \(typeof doorEditedHalalLine === 'function'\) \? doorEditedHalalLine\(\) : null;/);
+  assert.match(w, /target\[period \+ '_mainItem'\] = \(typeof doorEditedMainItem === 'function'\) \? doorEditedMainItem\(\) : buildMainItem\(\);/);
+  assert.match(w, /target\[period \+ '_mainAlt'\] = \(typeof doorEditedMainAlt === 'function'\) \? doorEditedMainAlt\(\) : buildMainAltItem\(\);/);
+  // review fold (P2): a halal line that lost its own sides is written as the dish alone
+  assert.match(w, /else if \(typeof doorHalalLostOwnSides === 'function' && doorHalalLostOwnSides\(\)\) target\[period \+ '_halal'\] = buildMainAltItem\(\) \|\| '';/);
   assert.match(fnBlock('openMenuEdit'), /_doorWordsAtOpen\.lines = \{[\s\S]*halal: doorLineHasOwnSides\(MEAL_SLOT_STATE, 'halal'\)[\s\S]*_doorMenuDraftBaseline = \{key:mcMenuEditKey/);
 });

@@ -63,13 +63,24 @@ and EXPO and HUB read those words (HUB's menu-drift banner compares them).
   rule (`doorKeepLineWords`, which `doorKeepMenuWords` now calls). `openMenuEdit` takes each line's stored words and what
   each box gave it (`_doorWordsAtOpen.lines`, `doorLineWordMap`: a side's own vegan or halal version, nothing for "doesn't
   get it"); Save, the draft plate facts and "Will save as" write `doorEditedVegLine`, `doorEditedHalalLine` and
-  `doorEditedSides` (`doorKeptLineWords`, `DOOR_LINE_WORD_IDS`).
+  `doorEditedSides` (`doorKeptLineWords`, `DOOR_LINE_WORD_IDS`). `_mainItem` and `_mainAlt` keep their words the same
+  way (`doorEditedMainItem`, `doorEditedMainAlt`): the breakfast session (#270) found a vegan-only edit re-split
+  `breakfast_mainItem` and `breakfast_sides`.
 - **Still rebuilt from the boxes, as before:** a line with no stored words; a line no box held a dish of at open (most
   breakfasts' sides); a dish at open that is not one whole piece of the words; two boxes on the same words; a halal line
   that had no sides of its own at open. Nothing published changes until a meal is saved.
+- **Independent review (SHIP), folded:**
+  - P2 (older than this change): a halal line that lost its own sides kept its old full line, so the halal plate still
+    named a dish it no longer got (a halal extra taken off). It is now written as the halal main alone
+    (`doorHalalLostOwnSides`).
+  - P3: an edit that would name a dish twice ("Rice, Rice") rebuilds instead.
+  - P3: the browser gate covers line versions (not served, back again), a repeat and a halal extra added and taken off.
+  - Noted, not changed: words no box holds (Wk2 SUN's vegan "Pasta") stay until a change forces a rebuild.
+  - Also noted, not changed: Save always writes `_slots`, even on a breakfast stored without them.
 - **Gates:** `tests/line_words_kept_gate.mjs` (4, red 4/4 on `main` `82501c9`) and browser `tests/browser/line_words_kept.mjs`
-  (in CI, red 3/7 on `main`): the two #269 cases, then on all 84 published meals a new main (no line moves) and a new vegan
-  main (only that dish moves in the vegan line; 83 placed). On `main` 38 meals' lines moved (most breakfasts' `_sides`
+  (11, in CI, red 4/11 on `main`; the fold's 3 checks red on the pre-fold build). It covers the two #269 cases and the
+  review's cases. Then, on all 84 published meals, it saves a new main (no line moves) and a new vegan main (only that dish
+  moves in the vegan line; 83 placed). On `main` 38 meals' lines moved (most breakfasts' `_sides`
   were emptied by a main edit). Re-pinned with dated notes: `menu_words_kept_s4a` (loads `doorKeepLineWords`),
   `line_sides` (the halal line through `doorEditedHalalLine`), `plate_summary_s2b`, `save_dialog_styled`.
 - **Found, not changed:** Wk2 SAT dinner's vegan main box holds "BBQ Vegan Meatloaf, Roasted Zucchini, Butternut Squash"
