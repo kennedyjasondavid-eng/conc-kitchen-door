@@ -876,8 +876,8 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.123';
-const DOOR_BUILD_DATE = '2026-11-19';
+const DOOR_APP_VERSION = 'v31-standard.124';
+const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -1336,6 +1336,12 @@ function updateCODEXBadge() {
                 <div class="form-group">
                   <label>Service Note — preferences, clarifications, H&W context</label>
                   <textarea id="change-notes" placeholder="e.g. Prefers rice over bread. No onions. Confirmed by H&W nurse April 7."></textarea>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="change-breakfast-note">Breakfast note — a confirmed standing instruction, printed beside them at breakfast</label>
+                  <input type="text" id="change-breakfast-note" maxlength="200" placeholder="e.g. oat milk only">
                 </div>
               </div>
               <div class="anaph-section">
@@ -5563,7 +5569,7 @@ function doorTrustedColor(value, fallback) {
 const _HISTORY_SNAPSHOT_KEYS = ['room','section','tags','restrictions','allergenFlags',
   'accommodations','preferences','avoidances','confirm','confirmBy','isAnaph','anaphTags',
   'rawRestriction','isModerate','moderateNote','complianceDeadline','pendingReversion',
-  'serviceNote','_tierMigrated'];
+  'serviceNote','breakfastNote','_tierMigrated'];
 
 function snapshotResident(r) {
   const snap = {};
@@ -5608,6 +5614,8 @@ async function revertResident(room, historyIndex) {
   _HISTORY_SNAPSHOT_KEYS.forEach(k => {
     if (target[k] !== undefined) r[k] = JSON.parse(JSON.stringify(target[k]));
   });
+  // U3 S1: a breakfast note added since that state goes too (a snapshot keeps only the fields that were set).
+  if (target.breakfastNote === undefined) delete r.breakfastNote;
   // Sync anaph rooms. A revert only ever adds (2026-10-18): a snapshot's isAnaph can be false for a room on the
   // anaphylactic list (one room: an import reset the flag), and taking the room off silently ended its lockout.
   // Taking a room off stays a deliberate act: the resident editor's checkbox or the anaphylactic list's Remove.
@@ -5645,6 +5653,9 @@ function diffResidentStates(before, after) {
   const bNote = before.serviceNote || '';
   const aNote = after.serviceNote || '';
   if (bNote !== aNote) changes.push({ field: 'Service Note', from: bNote || '—', to: aNote || '—' });
+  const bBf = before.breakfastNote || '';   // U3 S1
+  const aBf = after.breakfastNote || '';
+  if (bBf !== aBf) changes.push({ field: 'Breakfast note', from: bBf || '—', to: aBf || '—' });
   return changes;
 }
 
@@ -5862,6 +5873,10 @@ function buildResidentDetailHTML(r) {
   if (r.serviceNote) {
     parts.push(`<div style="margin-top:4px;font-size:12px;color:var(--info-ink, #1e40af);">${doorIcon("edit")} ${escapeHtml(r.serviceNote)}</div>`);
   }
+  // U3 S1: the breakfast note, printed at breakfast
+  if (typeof doorBreakfastNoteText === 'function' && doorBreakfastNoteText(r)) {
+    parts.push(`<div class="door-bf-note" style="margin-top:4px;font-size:12px;color:var(--info-ink, #1e40af);">Breakfast note: ${escapeHtml(doorBreakfastNoteText(r))}</div>`);
+  }
   return parts.join('');
 }
 
@@ -5869,6 +5884,9 @@ function buildResidentDetailHTML(r) {
 // lookup turned on for one resident must not ride along to the next room typed.
 let _doorAnaphPrefilled = null;
 function lookupRoom(val) {
+  { const bfEl = document.getElementById('change-breakfast-note');   // U3 S1: a note filled for one room never rides to the next
+    const typeEl = document.getElementById('change-type');
+    if (bfEl && bfEl.dataset.room && (String(bfEl.dataset.room).toLowerCase() !== String(val || '').trim().toLowerCase() || (typeEl && typeEl.value !== 'update'))) { bfEl.value = ''; bfEl.dataset.room = ''; } }
   if (_doorAnaphPrefilled) {
     const at = document.getElementById('anaph-toggle');
     anaphActive = false; if (at) at.classList.remove('on');
@@ -5952,6 +5970,9 @@ function lookupRoom(val) {
       // Pre-fill service note from existing resident
       const notesEl = document.getElementById('change-notes');
       if (notesEl && exact.serviceNote) notesEl.value = exact.serviceNote;
+      // U3 S1: the breakfast note as the resident has it; marked as filled for this room, so emptying it clears the note.
+      const bfEl = document.getElementById('change-breakfast-note');
+      if (bfEl && typeof doorBreakfastNoteText === 'function') { bfEl.value = doorBreakfastNoteText(exact); bfEl.dataset.room = exact.room; }
     }
   } else {
     if (type === 'intake') {
@@ -6058,6 +6079,7 @@ function clearForm() {
   document.getElementById('room-number').value = '';
   document.getElementById('room-dest') && (document.getElementById('room-dest').value = '');
   document.getElementById('change-notes').value = '';
+  { const bfEl = document.getElementById('change-breakfast-note'); if (bfEl) { bfEl.value = ''; bfEl.dataset.room = ''; } }   // U3 S1
   document.getElementById('change-type').value = 'intake';
   document.querySelectorAll('.cb-item').forEach(el => el.classList.remove('checked'));
   checkedBoxes = {};
@@ -6077,11 +6099,27 @@ function clearForm() {
   onTypeChange();
 }
 
+// U3 S1: what the Enter Changes form says about the breakfast note, for the change it is adding. Undefined (keep the
+// note as it is) when the box is empty and was not filled from this room; a box filled from the room and emptied clears it.
+function doorFormBreakfastNote(room, type) {
+  if (type !== 'intake' && type !== 'update') return undefined;
+  const el = typeof document !== 'undefined' ? document.getElementById('change-breakfast-note') : null;
+  if (!el) return undefined;
+  const filled = String((el.dataset && el.dataset.room) || '').toLowerCase(), here = String(room || '').trim().toLowerCase();
+  // Review fold (P2-1, P2-2): a box filled from one resident is never sent with another room (the lookup runs 250 ms after
+  // typing stops), nor with a new intake (a new person).
+  if (filled && (filled !== here || type === 'intake')) return undefined;
+  const v = String(el.value || '').replace(/\s+/g, ' ').trim();
+  if (v) return v;
+  return type === 'update' && el.dataset && String(el.dataset.room || '').toLowerCase() === String(room || '').trim().toLowerCase() ? '' : undefined;
+}
+
 async function addChange() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const room = document.getElementById('room-number').value.trim();
   const type = document.getElementById('change-type').value;
   const notes = document.getElementById('change-notes').value.trim();
+  const breakfastNote = typeof doorFormBreakfastNote === 'function' ? doorFormBreakfastNote(room, type) : undefined;   // U3 S1
 
   if (!room) {
     const inp = document.getElementById('room-number');
@@ -6125,7 +6163,9 @@ async function addChange() {
     }
   }
 
-  changesQueue.push({ room, type, tags, tagLabels, route, notes, isAnaph: anaphActive, anaphCleared, isModerate: moderateActive, moderateNote, hadSection: existingResident ? existingResident.section : null });
+  const item = { room, type, tags, tagLabels, route, notes, isAnaph: anaphActive, anaphCleared, isModerate: moderateActive, moderateNote, hadSection: existingResident ? existingResident.section : null };
+  if (breakfastNote !== undefined) item.breakfastNote = breakfastNote;
+  changesQueue.push(item);
   renderQueue();
   clearForm();
   updateBadge();
@@ -6168,6 +6208,7 @@ function renderQueue() {
           (c.tagLabels.length ? c.tagLabels.map(t => `<span class="tag ${_escAttr(getTagClass(t))}">${escapeHtml(t)}</span>`).join('') : '<span class="tag">Regular</span>')}
       </div>
       <span class="change-route" style="font-size:11px;font-weight:600;color:var(--forest-mid-text)">→ ${escapeHtml(c.route)}</span>
+      ${typeof c.breakfastNote === 'string' ? `<span class="change-bf-note" style="font-size:11px;color:var(--info-ink, #1e40af);">${c.breakfastNote ? 'Breakfast note: ' + escapeHtml(c.breakfastNote) : 'Breakfast note cleared'}</span>` : ''}
       <button class="remove-btn" onclick="${_escAttr('removeChange(' + Number(i) + ')')}" aria-label="Remove">${doorIcon("close")}</button>
     </div>
   `;}).join('');
@@ -6223,6 +6264,9 @@ function openChangeEditor(idx) {
   toggleAnaphDetail();
   const existingNote = c.notes || (existing ? existing.serviceNote : '') || '';
   document.getElementById('ce-notes').value = existingNote;
+  // U3 S1: the change own breakfast note, else (an update) the resident as they are; a new intake starts with none.
+  { const bfEl = document.getElementById('ce-breakfast-note');
+    if (bfEl) { bfEl.value = typeof c.breakfastNote === 'string' ? c.breakfastNote : (existing && c.type !== 'intake' && typeof doorBreakfastNoteText === 'function' ? doorBreakfastNoteText(existing) : ''); bfEl.dataset.filled = bfEl.value; } }
 
   document.getElementById('ce-remove-btn').style.display = '';
   document.getElementById('ce-save-btn').textContent = 'Save Changes';
@@ -6256,6 +6300,7 @@ function openRegistryEditor(room) {
   populateAnaphTags(r);
   toggleAnaphDetail();
   document.getElementById('ce-notes').value = r.serviceNote || '';
+  { const bfEl = document.getElementById('ce-breakfast-note'); if (bfEl) bfEl.value = typeof doorBreakfastNoteText === 'function' ? doorBreakfastNoteText(r) : ''; }   // U3 S1
 
   document.getElementById('ce-remove-btn').style.display = 'none'; // no "remove" in registry mode
   document.getElementById('ce-save-btn').textContent = 'Save to Registry';
@@ -6449,11 +6494,27 @@ async function saveChangeEdit() {
   c.route = route;
   c.notes = notes;
   c.isAnaph = isAnaph;
+  // U3 S1, review fold (P3-4): written only when changed here (or already on the change), so a queued change opened in
+  // the editor never carries a copy that could overwrite a newer note from the other computer.
+  { const bfEl = document.getElementById('ce-breakfast-note');
+    if (bfEl) { const v = bfEl.value.replace(/\s+/g, ' ').trim(); if (typeof c.breakfastNote === 'string' || v !== String(bfEl.dataset.filled || '').replace(/\s+/g, ' ').trim()) c.breakfastNote = v; } }
 
   closeChangeEditor();
   renderQueue();
   if (typeof buildReview === 'function') buildReview();
   showToast('Room ' + c.room + " updated");
+}
+
+// U3 S1: true when the resident editor holds the record restrictions, anaphylactic state and anaphylactic tags as they
+// are (any order), so its save can only be changing the notes.
+function doorEditorChangesOnlyNotes(r, tagLabels, isAnaph, pickedAnaphTags) {
+  if (!r) return false;
+  const norm = (list) => [...new Set((list || []).filter(t => t && t !== 'Regular'))].sort().join('|');
+  if (norm(r.tags) !== norm(tagLabels)) return false;
+  const wasAnaph = typeof doorIsAnaphResident === 'function' ? doorIsAnaphResident(r) : !!r.isAnaph;
+  if (!!isAnaph !== wasAnaph) return false;
+  if (isAnaph && norm(r.anaphTags) !== norm(pickedAnaphTags)) return false;
+  return true;
 }
 
 async function saveRegistryEdit() {
@@ -6465,10 +6526,33 @@ async function saveRegistryEdit() {
   const tagLabels = getTagLabels(tags);
   const isAnaph = document.getElementById('ce-anaph').checked;
   const notes = document.getElementById('ce-notes').value.trim();
+  const bfEl = document.getElementById('ce-breakfast-note');   // U3 S1
+  const breakfastNote = bfEl ? bfEl.value : undefined;
   const pickedAnaphTags = isAnaph ? getAnaphTagsFromEditor() : [];
   await doorTakeNewerKitchenList();
   const r = REGISTRY_MAP[room.toLowerCase()];
   if (!r) { showToast('Room ' + room + ' is no longer on the kitchen’s list — nothing saved.'); closeChangeEditor(); renderRegistry(REGISTRY_LIST); return; }
+  // U3 S1: a save that changes only the notes writes only the notes. The full save below re-routes the resident by
+  // the lunch served today and rewrites the restriction words from the ticked boxes, so a note alone moved a resident between
+  // stored sections (the published headcounts) and reworded the list words.
+  if (doorEditorChangesOnlyNotes(r, tagLabels, isAnaph, pickedAnaphTags)) {
+    const bfBefore = typeof doorBreakfastNoteText === 'function' ? doorBreakfastNoteText(r) : '';
+    const bfAfter = breakfastNote === undefined ? bfBefore : String(breakfastNote).replace(/\s+/g, ' ').trim();
+    if ((r.serviceNote || '') === notes && bfBefore === bfAfter) { closeChangeEditor(); showToast('Nothing changed for Room ' + room + '.'); return; }
+    pushResidentHistory(r, 'Notes edit', getOperatorName());
+    r.serviceNote = notes;
+    typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, { breakfastNote }, false);
+    setRegistryProvenance();
+    saveRegistryState();
+    publishAndSync('registry notes: Room ' + room);
+    const _dn = new Date();
+    RECENT_LOG.unshift({ ts:_dn.toISOString(), date:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_dn.getMonth()] + ' ' + _dn.getDate(), room:room, type:'update', desc:'Notes edited', color:'#2563eb', _real:true, by:getOperatorName() });
+    saveRecentLog();
+    closeChangeEditor();
+    renderRegistry(REGISTRY_LIST);
+    showToast('Room ' + room + ' notes saved');
+    return;
+  }
   const route = routeResident(tags, doorTodayMealFlags('lunch'), room, isAnaph);
 
   // v30: Snapshot before mutation
@@ -6487,6 +6571,7 @@ async function saveRegistryEdit() {
   r.isAnaph = isAnaph;
   r.anaphTags = pickedAnaphTags;
   r.serviceNote = notes;
+  typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, { breakfastNote }, false);   // U3 S1
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
   r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
 
@@ -6957,6 +7042,83 @@ function formatConflictNote(conflicts) {
   if (accoms.length) parts.push(accoms.join(', '));
   return parts.join(' · ');
 }
+
+/* DOOR_TESTABLE_CORE_START breakfast-note */
+// U3 S1 (2026-11-19, Jason: "Follow leans on all four"; call C1, the simple breakfast design): one breakfast note on the
+// resident, a confirmed standing instruction such as "oat milk only". It is stored on the resident record (published only
+// in door_state.json, never registry_summary.json or anything Pages serves), prints beside the resident at breakfast
+// only, and is checked against the words of the plate they are seated on. A conflict is shown in amber, never fixed: the
+// plate and the routing stay as they are. Only the "<kind> milk only" form is checked today; any other note just prints.
+function doorBreakfastNoteText(r) {
+  return r && typeof r.breakfastNote === 'string' ? r.breakfastNote.replace(/\s+/g, ' ').trim() : '';
+}
+const DOOR_MILK_KINDS = ['oat', 'soy', 'almond', 'rice', 'coconut', 'cashew', 'pea', 'hemp', 'lactose-free', 'dairy-free'];
+// Plant milks, and the words that mean any of them. A dairy-free note is met by any of these; lactose-free milk is dairy.
+const DOOR_PLANT_MILKS = ['oat', 'soy', 'almond', 'rice', 'coconut', 'cashew', 'pea', 'hemp', 'dairy-free'];
+const DOOR_MILK_KIND_RE = '(?:oat|soy|almond|rice|coconut|cashew|pea|hemp|lactose[- ]free|dairy[- ]free|non[- ]dairy|plant(?:[- ]based)?|vegan)';
+function doorMilkKind(word) {
+  const w = String(word || '').toLowerCase().replace(/\s+/g, '-');
+  if (/^(non-dairy|plant|plant-based|vegan|dairy-free)$/.test(w)) return 'dairy-free';
+  return DOOR_MILK_KINDS.includes(w) ? w : null;
+}
+const doorMilkKindsIn = (words) => (String(words || '').toLowerCase().match(new RegExp('\\b' + DOOR_MILK_KIND_RE, 'g')) || []).map(doorMilkKind).filter(Boolean);
+// The milks a note allows: "oat milk only", "only soy milk", "oat or soy milk only", "oatmilk only". Null when the note
+// says no such thing (and for "no soy milk only", which reads the other way).
+function doorNoteMilkOnly(note) {
+  const t = String(note || '').toLowerCase();
+  const list = '\\b(' + DOOR_MILK_KIND_RE + '(?:\\s*(?:\\/|\\bor\\b|,)\\s*' + DOOR_MILK_KIND_RE + ')*)\\s*(?:milk|drink|beverage)';
+  const m = t.match(new RegExp('(\\bno\\s+)?' + list + '\\s+only\\b')) || t.match(new RegExp('(\\bno\\s+)?\\bonly\\s+' + list.slice(2)));
+  if (!m || m[1]) return null;
+  const kinds = doorMilkKindsIn(m[2]);
+  return kinds.length ? kinds : null;
+}
+// The milks a plate names. "Cereal & Milk" names plain milk; "soy or oat milk" names both; "oat drink" names oat milk.
+// Only "or" and "/" join a list, so "Rice & oat milk" names oat milk and rice, not rice milk. Buttermilk and milk
+// chocolate are not milk to pour.
+function doorPlateMilks(text) {
+  const t = String(text || '').toLowerCase();
+  const kinds = new Set();
+  let plain = false;
+  const re = new RegExp('(\\b' + DOOR_MILK_KIND_RE + '(?:\\s*(?:\\/|\\bor\\b)\\s*' + DOOR_MILK_KIND_RE + ')*\\s*)?\\b(milk|drink|beverage)\\b(?!\\s+chocolate)|\\b(oatmilk|soymilk)\\b', 'g');
+  let m;
+  while ((m = re.exec(t))) {
+    if (m[3]) { kinds.add(m[3].slice(0, -4)); continue; }
+    const named = m[1] ? doorMilkKindsIn(m[1]) : [];
+    if (named.length) named.forEach(k => kinds.add(k));
+    else if (m[2] === 'milk') plain = true;
+  }
+  return { any: plain || kinds.size > 0, plain, kinds };
+}
+// Empty when the plate agrees with the note (or the note has nothing to check, or the plate is not named yet).
+function doorBreakfastNoteConflict(note, plateText) {
+  const want = doorNoteMilkOnly(note);
+  if (!want || plateText == null) return '';
+  const milks = doorPlateMilks(plateText);
+  if (!milks.any) return '';
+  const meets = (k) => want.includes(k) || (want.includes('dairy-free') && DOOR_PLANT_MILKS.includes(k));
+  if ([...milks.kinds].some(meets)) return '';
+  const named = (milks.plain ? ['milk'] : []).concat([...milks.kinds].map(k => (k === 'dairy-free' ? 'plant milk' : k + ' milk'))).join(' and ');
+  const wanted = want.map(k => k + ' milk').join(' or ');
+  return 'CHECK: the plate names ' + named + ', not ' + wanted;
+}
+// What the plating sheet prints for one resident at breakfast, or null when they have no breakfast note.
+function doorBreakfastNoteFor(r, plateText) {
+  const note = doorBreakfastNoteText(r);
+  if (!note) return null;
+  const conflict = doorBreakfastNoteConflict(note, plateText);
+  return { text: 'Breakfast note: ' + note + (conflict ? ' (' + conflict + ')' : ''), note, conflict };
+}
+// Applies a change to the resident record: a new person starts with none; a change that carries the field (the forms and
+// the resident editor do) sets it, an empty one clears it; a change without it (an import, an older queued change) keeps it.
+function doorApplyBreakfastNote(r, change, freshPerson) {
+  if (!r) return;
+  if (freshPerson) delete r.breakfastNote;
+  if (change && typeof change.breakfastNote === 'string') {
+    const v = change.breakfastNote.replace(/\s+/g, ' ').trim();
+    if (v) r.breakfastNote = v; else delete r.breakfastNote;
+  }
+}
+/* DOOR_TESTABLE_CORE_END breakfast-note */
 
 // A Regular resident's service note (2026-10-19, the plating review): "extra veg less starch" for Low Carb, and for a
 // diabetic on a starchy meal (the kitchen makes a diabetic plate on few meals; diabetics otherwise eat the regular
@@ -7780,6 +7942,7 @@ function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, an
         serviceNote: filterServiceNote(c.serviceNote, c.notes),
         _tierMigrated: true
       };
+      typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(newResident, c, true);   // U3 S1: a new person; the change may carry their note
       if (existing !== -1) {
         // v30: Snapshot before overwrite
         pushResidentHistory(REGISTRY_LIST[existing], 'Intake overwrite', getOperatorName());
@@ -7815,6 +7978,7 @@ function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, an
         r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
         const newNote = filterServiceNote(c.serviceNote, c.notes);
         if (newNote) r.serviceNote = dedupeServiceNote(r.serviceNote, newNote);
+        typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, c, false);   // U3 S1: kept unless the change carries one
       }
 
     } else if (c.type === 'switch') {
@@ -26094,6 +26258,7 @@ async function addToIntakeQueue() {
   // The toggle is "on" when switched on (it read "active", which it never is, 2026-10-18).
   let isAnaph = document.getElementById('anaph-toggle').classList.contains('on');
   const notes = document.getElementById('change-notes').value.trim();
+  const breakfastNote = typeof doorFormBreakfastNote === 'function' ? doorFormBreakfastNote(room, type) : undefined;   // U3 S1
 
   const existing = REGISTRY_MAP[room.toLowerCase()];
   let anaphCleared = false;
@@ -26107,13 +26272,15 @@ async function addToIntakeQueue() {
   const dupeIdx = INTAKE_QUEUE.findIndex(q => q.room.toLowerCase() === room.toLowerCase());
   if (dupeIdx !== -1) INTAKE_QUEUE.splice(dupeIdx, 1);
 
-  INTAKE_QUEUE.push({
+  const queued = {
     id: 'iq_' + Date.now(), type, room,
     tags: tagLabels, rawTags: { ...tags },
     isAnaph, anaphCleared, notes, route, isOverwrite,
     existingRoute: existing ? existing.section : null,
     ts: new Date().toISOString(), by: getOperatorName(),
-  });
+  };
+  if (breakfastNote !== undefined) queued.breakfastNote = breakfastNote;
+  INTAKE_QUEUE.push(queued);
 
   saveIntakeQueue();
   renderIntakeQueue();
@@ -26142,6 +26309,8 @@ function editQueueItem(id) {
   // registry, and running after the item was put back it replaced the item's tags and anaphylactic toggle with the
   // resident's. The item's own tags and toggle go back last. (The tags were also never put back: the boxes are .cb-item
   // with class "checked", not [data-tag] with "active".)
+  // U3 S1, second review: the breakfast box is emptied before the lookup, so an update shows the note the resident has.
+  { const bfEl0 = document.getElementById('change-breakfast-note'); if (bfEl0) { bfEl0.value = ''; bfEl0.dataset.room = ''; } }
   clearTimeout(lookupDebounce);
   lookupRoom(item.room);
   prePopulateCheckboxes(item.tags || []);
@@ -26149,6 +26318,10 @@ function editQueueItem(id) {
   { const at = document.getElementById('anaph-toggle'); if (at) at.classList.toggle('on', anaphActive); }
   _doorAnaphPrefilled = null;
   if (item.notes) document.getElementById('change-notes').value = item.notes;
+  // U3 S1: the item own note goes back. Marked as filled for the room only on an update: an intake note was typed for the
+  // new person, and a box marked as filled from a resident is never sent with an intake (second review P2).
+  { const bfEl = document.getElementById('change-breakfast-note');
+    if (bfEl && typeof item.breakfastNote === 'string') { bfEl.value = item.breakfastNote; bfEl.dataset.room = item.type === 'update' ? item.room : ''; } }
   removeFromQueue(id);
 }
 
@@ -26201,6 +26374,7 @@ async function commitIntakeQueue() {
       // A new intake over an occupied room is a new person: nothing anaphylactic carries from the last resident (2026-10-18).
       if (q.type === 'intake' && existing) { r.anaphTags = []; r.isModerate = false; r.moderateNote = ''; r.serviceNote = ''; }
       if (q.notes) r.serviceNote = dedupeServiceNote(r.serviceNote, q.notes);
+      typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, q, q.type === 'intake');   // U3 S1
       r.rawRestriction = q.tags.join(', ') || 'Regular';
       r.confirm = requiresDocumentation(q.tags) ? 'Provisional' : (q.tags.length && !q.tags.every(t => t === 'Regular') ? 'Confirmed' : 'N/A');
       r.confirmBy = requiresDocumentation(q.tags) ? (r.confirmBy || '\u2014') : 'Auto';
@@ -26255,6 +26429,7 @@ function renderIntakeQueue() {
       '<div style="font-size:13px;font-weight:600">' + icon + ' <b>' + _impEsc(q.room) + '</b> \u00b7 ' + typeLabel + warn + '</div>' +
       '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + tagsStr + ' \u2192 ' + routeStr + '</div>' +
       (q.notes ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;font-style:italic">' + _impEsc(q.notes) + '</div>' : '') +
+      (typeof q.breakfastNote === 'string' ? '<div class="change-bf-note" style="font-size:10px;color:var(--info-ink, #1e40af);margin-top:1px">' + (q.breakfastNote ? 'Breakfast note: ' + _impEsc(q.breakfastNote) : 'Breakfast note cleared') + '</div>' : '') +
       '<div style="font-size:9px;color:var(--muted);margin-top:2px">' + _impEsc(time) + ' \u00b7 ' + _impEsc(q.by || 'Unknown') + '</div>' +
       '</div>' +
       '<button onclick="' + _escJsAttrCall('editQueueItem', [q.id]) + '" style="background:none;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--ink)">Edit</button>' +
@@ -26326,6 +26501,7 @@ async function saveDirectFromForm() {
   const tagLabels = getTagLabels(tags);
   let isAnaph = document.getElementById('anaph-toggle').classList.contains('on');   // "on", not "active" (2026-10-18)
   const notes = document.getElementById('change-notes').value.trim();
+  const formBreakfastNote = typeof doorFormBreakfastNote === 'function' ? doorFormBreakfastNote(room, type) : undefined;   // U3 S1
 
   const existing = REGISTRY_MAP[room.toLowerCase()];
   if (type === 'update' && !isAnaph && existing && doorIsAnaphResident(existing) && !(await doorAskTakeOffAnaphList(existing.room))) isAnaph = true;
@@ -26355,6 +26531,7 @@ async function saveDirectFromForm() {
   // the last one's coconut instead. Applying the Daily Entry queue already starts a fresh record.
   if (type === 'intake' && existing) { r.anaphTags = []; r.isModerate = false; r.moderateNote = ''; r.serviceNote = ''; }
   if (notes) r.serviceNote = dedupeServiceNote(r.serviceNote, notes);
+  typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, { breakfastNote: formBreakfastNote }, type === 'intake');   // U3 S1
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
   r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
   r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
@@ -26772,7 +26949,8 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
       const conflictNote = formatConflictNote(conflicts);
       const svcNote = doorRegularServiceNote(r, mealFlags);
       const label = plateLabels ? doorLabelCheckNote(r, 'regular', mealFlags) : null;
-      if (conflicts.length || svcNote || (label && label.note)) {
+      const bfNote = period === 'breakfast' && typeof doorBreakfastNoteText === 'function' && !!doorBreakfastNoteText(r);   // U3 S1
+      if (conflicts.length || svcNote || (label && label.note) || bfNote) {
         const row = { room: r.room, rawRestriction: r.rawRestriction || '', tags: r.tags || [], conflictNote, serviceNote: svcNote };
         if (label && label.note) { row.labelNote = label.note; row.labelRed = label.red; }
         regularNotes.push(row);
@@ -26781,11 +26959,48 @@ function computePlatingData(period, weekNum, dayName, registry = REGISTRY_LIST, 
     regularNotes.sort((a,b) => { const na=parseInt(a.room),nb=parseInt(b.room); return na!==nb?na-nb:a.room.localeCompare(b.room); });
   }
 
-  return {
+  const pd = {
     dayLabel, periodLabel, mealName, mealVeg, mealSoftAlt, mealFlags,
     allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
     regCount, halalCount, veganCount, diabCount, ctx, sortR, regularNotes, dated
   };
+  // U3 S1: each resident breakfast note, checked against the plate they are seated on (breakfast only; display only).
+  if (period === 'breakfast' && typeof doorPlatingBreakfastNotes === 'function') pd.breakfastNotes = doorPlatingBreakfastNotes(pd);
+  return pd;
+}
+
+// U3 S1: room to { text, conflict } for every resident with a breakfast note, read against the words of the plate the
+// sheet seats them on: the regular meal, their section plate, or the separate anaphylactic meal. A plate not named yet
+// (the gluten-free breakfast gap) is not checked: that sheet is already a draft.
+function doorPlatingBreakfastNotes(pd) {
+  const out = {};
+  if (!pd || pd.periodLabel !== 'Breakfast' || typeof doorBreakfastNoteFor !== 'function') return out;
+  const put = (r, plate) => { const n = doorBreakfastNoteFor(r, plate); if (n) out[r.room] = n; };
+  const plateOf = (fn) => { try { return fn(); } catch (e) { return null; } };
+  const gap = typeof doorBreakfastDefinitionGap === 'function' ? plateOf(() => doorBreakfastDefinitionGap(pd)) : null;
+  (pd.anaphSect || []).forEach(r => put(r, typeof doorAnaphAlternativeLine === 'function' ? plateOf(() => doorAnaphAlternativeLine(pd)) : null));
+  (pd.sections || []).forEach(s => (s.residents || []).forEach(r => {
+    let plate = null;
+    if (s.rule.key === 'regular') plate = pd.mealName;
+    else if (s.rule.key === 'soft' && pd.ctx && pd.ctx.altMeals && pd.ctx.altMeals.length > 1) {
+      // Review fold (P3-2): several soft or plain plates: the one this resident gets, as the sheet picks it.
+      const isSoft = (r.tags || []).includes('Soft Meals');
+      const pick = pd.ctx.altMeals.find(a => isSoft ? a.type === 'soft' : a.type === 'plain') || pd.ctx.altMeals[0];
+      plate = pick ? pick.text : null;
+    }
+    else if (!(gap && s.rule.altType === 'gf_alt') && typeof getAltMeal === 'function') plate = plateOf(() => getAltMeal(s.rule.altType, pd.ctx));
+    put(r, plate);
+  }));
+  return out;
+}
+// The note cell of a plating-sheet row in HTML: the existing notes, then the breakfast note, its CHECK in amber.
+function doorPlatingNoteCellHTML(notes, bf) {
+  const base = escapeHtml(notes || '');
+  if (!bf) return base;
+  const sep = notes ? ' · ' : '';
+  const note = escapeHtml('Breakfast note: ' + bf.note);
+  const check = bf.conflict ? ' <span class="ps-bf-check" style="background:#FFE699;color:#7c2d12;font-weight:700;padding:0 3px;">' + escapeHtml(bf.conflict) + '</span>' : '';
+  return base + sep + '<span class="ps-bf-note">' + note + '</span>' + check;
 }
 
 // The line a plating sheet prints when the meal is a swap or a special meal for a date (2026-10-18).
@@ -26933,6 +27148,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
           allergenStr, vegAllergenStr, conflictRooms, anaphSect, sections,
           regCount, halalCount, veganCount, diabCount, ctx, regularNotes } = pd;
 
+  const bfNotes = pd.breakfastNotes || {};   // U3 S1: the breakfast note follows the other notes; a CHECK turns the cell amber
+  const bfText = (notes, room) => { const bf = bfNotes[room]; return bf ? [notes, bf.text].filter(Boolean).join(' \u00B7 ') : notes; };
+  const bfAmber = (room) => !!(bfNotes[room] && bfNotes[room].conflict);
   const COL_W = [44, 10, 26]; // column widths — match on-screen 55/12/33 proportions
   const LINE_H = 13; // height per line — tighter for 1-2 page fit
 
@@ -26993,9 +27211,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     addMerged(doorAnaphAlternativeLine(pd)+'  |  '+allergens.toUpperCase(), F.stdB, 'FCE4D6', B.thin, 22);
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
-        addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell('ANAPHYLACTIC',F.noteRed,'F2DCDC',B.anaph,A.center), 14);
+        addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell(bfText('ANAPHYLACTIC', r.room),F.noteRed,'F2DCDC',B.anaph,A.center), 14);
       } else {
-        addRow(xCell(r.rawRestriction,F.amber,'FFF3E0',B.amber), xCell(r.room,F.amber,'FFF3E0',B.amber,A.center), xCell('Room ('+r._anaph_room+')',F.noteAmb,'FFF3E0',B.amber,A.center), 14);
+        addRow(xCell(r.rawRestriction,F.amber,'FFF3E0',B.amber), xCell(r.room,F.amber,'FFF3E0',B.amber,A.center), xCell(bfText('Room ('+r._anaph_room+')', r.room),F.noteAmb,'FFF3E0',B.amber,A.center), 14);
       }
     });
     addRow(xCell('Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(anaphSect.length),F.stdB,'FFFF00',B.thin,A.center), 14);
@@ -27036,9 +27254,10 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
         if (liveLabel !== null) lineNote = doorSectionLineNotes(r, s, mealFlags, pickStr);
         altNote = (isSoft ? 'SOFT' : 'PLAIN') + ': ' + pick.text + (pickStr ? ' [CONTAINS: ' + pickStr + ']' : '');
       }
-      const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
+      const allNotes = bfText([altNote, lineNote, r.serviceNote].filter(Boolean).join(' · '), r.room);
       if (mealFlags._labelUnchecked && doorLabelCheckNote(r, doorSectionLabelPlate(s, mealFlags), mealFlags).red)
         addRow(xCell(r.rawRestriction,F.anaph,'F2DCDC',B.anaph), xCell(r.room,F.anaph,'F2DCDC',B.anaph,A.center), xCell(allNotes,F.noteRed,'F2DCDC',B.anaph), 14);
+      else if (bfAmber(r.room)) addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.noteAmb,'FFE699',B.thin), 14);
       else addRow(xCell(r.rawRestriction,F.std,bg,B.thin), xCell(r.room,F.std,bg,B.thin,A.center), xCell(allNotes,F.std,bg,B.thin), 14);
     });
     addRow(xCell(sectionLabel+' Total',F.stdB,'F0F0F0',B.thin), xCell('',F.std,'F0F0F0',B.thin), xCell(String(s.residents.length),F.stdB,'FFFF00',B.thin,A.center), 14);
@@ -27051,8 +27270,9 @@ function buildDaySheet(period, weekNum, dayName, providedPd) {
     addMerged('Regular Meal \u2014 Notes', F.stdB, 'D9E2F3', B.thick, 16);
     addMerged('Standard meal with the following modifications', F.std, 'D9E2F3', B.thin, 14);
     regularNotes.forEach(r => {
-      const note = [r.conflictNote, r.serviceNote, r.labelNote].filter(Boolean).join(' \u00B7 ');
+      const note = bfText([r.conflictNote, r.serviceNote, r.labelNote].filter(Boolean).join(' \u00B7 '), r.room);
       if (r.labelRed) addRow(xCell(r.rawRestriction, F.anaph, 'F2DCDC', B.anaph), xCell(r.room, F.anaph, 'F2DCDC', B.anaph, A.center), xCell(note, F.noteRed, 'F2DCDC', B.anaph), 14);
+      else if (bfAmber(r.room)) addRow(xCell(r.rawRestriction, F.std, 'E8EDF5', B.thin), xCell(r.room, F.std, 'E8EDF5', B.thin, A.center), xCell(note, F.noteAmb, 'FFE699', B.thin), 14);
       else addRow(xCell(r.rawRestriction, F.std, 'E8EDF5', B.thin), xCell(r.room, F.std, 'E8EDF5', B.thin, A.center), xCell(note, F.std, 'E8EDF5', B.thin), 14);
     });
   }
@@ -27693,6 +27913,8 @@ function buildPlatingHtml(pd, isTest) {
 
   const assessment = doorAssessAnaphAlternative(pd);
   const breakfastGap = doorBreakfastDefinitionGap(pd);
+  const bfNotes = pd.breakfastNotes || {};   // U3 S1
+  const noteCell = typeof doorPlatingNoteCellHTML === 'function' ? doorPlatingNoteCellHTML : (n) => escapeHtml(n || '');
   let h = '<table class="ps-table"><colgroup><col class="ps-col-restriction"><col class="ps-col-room"><col class="ps-col-notes"></colgroup>';
   if (breakfastGap) h += '<tr><td colspan="3" class="ps-banner" style="border:3px solid #991b1b;color:#991b1b!important;background:#fff!important;font-weight:800;">DRAFT / NOT FOR SERVICE — ' + escapeHtml(breakfastGap.reason) + '. Rooms ' + escapeHtml(breakfastGap.rooms.join(', ')) + '.</td></tr>';
   if (assessment.state === 'missing') h += '<tr><td colspan="3" class="ps-banner" style="border:3px solid #991b1b;color:#991b1b!important;background:#fff!important;font-weight:800;">DRAFT / NOT FOR SERVICE — Separate anaphylactic meal not named. Rooms ' + escapeHtml(assessment.rooms.join(', ')) + '. ' + escapeHtml(pd.dayLabel + ' ' + pd.periodLabel + ': ' + pd.mealName) + '</td></tr>';
@@ -27721,9 +27943,9 @@ function buildPlatingHtml(pd, isTest) {
     h += `<tr><td colspan="3" class="ps-meal">${escapeHtml(doorAnaphAlternativeLine(pd))}  |  ${escapeHtml(alg.toUpperCase())}</td></tr>`;
     anaphSect.forEach(r => {
       if (r._role==='anaphylactic') {
-        h += `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${doorIcon("warning")} ANAPHYLACTIC</td></tr>`;
+        h += `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${doorIcon("warning")} ${noteCell('ANAPHYLACTIC', bfNotes[r.room])}</td></tr>`;
       } else {
-        h += `<tr class="ps-roommate-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${doorIcon("warning")} Room (${escapeHtml(r._anaph_room)})</td></tr>`;
+        h += `<tr class="ps-roommate-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${doorIcon("warning")} ${noteCell('Room (' + r._anaph_room + ')', bfNotes[r.room])}</td></tr>`;
       }
     });
     h += `<tr class="ps-sect-total"><td>${doorIcon("warning")} Anaphylactic Total</td><td></td><td>${anaphSect.length}</td></tr>`;
@@ -27764,7 +27986,7 @@ function buildPlatingHtml(pd, isTest) {
       const allNotes = [altNote, lineNote, r.serviceNote].filter(Boolean).join(' · ');
       const labelRed = !!mealFlags._labelUnchecked && doorLabelCheckNote(r, doorSectionLabelPlate(s, mealFlags), mealFlags).red;
       const cls = labelRed ? ' class="ps-anaph-row"' : isDiab ? ' class="ps-diabetic"' : '';
-      h += `<tr${cls}><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(allNotes)}</td></tr>`;
+      h += `<tr${cls}><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${noteCell(allNotes, bfNotes[r.room])}</td></tr>`;
     });
     h += `<tr class="ps-sect-total"><td>${escapeHtml(sectionLabel)} Total</td><td></td><td>${res.length}</td></tr>`;
   });
@@ -27774,8 +27996,8 @@ function buildPlatingHtml(pd, isTest) {
     regularNotes.forEach(r => {
       const note = [r.conflictNote, r.serviceNote, r.labelNote].filter(Boolean).join(' · ');
       h += r.labelRed
-        ? `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(note)}</td></tr>`
-        : `<tr class="ps-notes-row" style="background:#E8EDF5;"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${escapeHtml(note)}</td></tr>`;
+        ? `<tr class="ps-anaph-row"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${noteCell(note, bfNotes[r.room])}</td></tr>`
+        : `<tr class="ps-notes-row" style="background:#E8EDF5;"><td>${escapeHtml(r.rawRestriction)}</td><td>${escapeHtml(r.room)}</td><td>${noteCell(note, bfNotes[r.room])}</td></tr>`;
     });
   }
   h += `<tr class="ps-sect-total" style="border-top:3px solid #333;"><td>Total Restrictions</td><td></td><td>${restCount}</td></tr>`;
@@ -28110,6 +28332,11 @@ window.addEventListener('load', runAltFlagSweepOnce);
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;font-weight:600;color:var(--muted);">Service Note</label>
         <input type="text" id="ce-notes" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="e.g., prefers extra sauce, no onions">
+      </div>
+      <!-- U3 S1: breakfast note -->
+      <div style="margin-bottom:12px;">
+        <label for="ce-breakfast-note" style="font-size:11px;font-weight:600;color:var(--muted);">Breakfast note (printed beside them at breakfast)</label>
+        <input type="text" id="ce-breakfast-note" maxlength="200" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="e.g., oat milk only">
       </div>
       <!-- Live routing preview -->
       <div style="padding:10px 14px;background:var(--ok-faint, #f0fdf4);border:1px solid #bbf7d0;border-radius:8px;font-size:12px;line-height:1.8;">
