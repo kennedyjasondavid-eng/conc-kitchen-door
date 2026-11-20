@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.124';
+const DOOR_APP_VERSION = 'v31-standard.125';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -21056,9 +21056,15 @@ function doorFindDishRun(tok, words) {
 function doorKeepMenuWords(text, before, after) {
   before = before || {}; after = after || {};
   if (String(before.extras || '').trim() !== String(after.extras || '').trim()) return null;
+  return doorKeepLineWords(text, before, after, DOOR_WORD_SLOT_IDS);
+}
+// The same rule for any line: ids are the boxes whose words the line holds (2026-11-20, the vegan and halal lines and
+// the sides text use it too).
+function doorKeepLineWords(text, before, after, ids) {
+  before = before || {}; after = after || {};
   const tok = doorWordPieces(text);
   const edits = [], added = [];
-  for (const id of DOOR_WORD_SLOT_IDS) {
+  for (const id of ids) {
     const was = String(before[id] || '').trim(), now = String(after[id] || '').trim();
     if (was === now) continue;
     if (!was) { added.push(now); continue; }
@@ -21097,6 +21103,83 @@ function doorEditedMealName() {
   ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { now[id] = _slotText(MEAL_SLOT_STATE[id]); });
   const kept = doorKeepMenuWords(o.text, o.slots, now);
   return kept || built;
+}
+// 2026-11-20 (found relinking the vegan dishes, #269): the vegan line, the halal line and the sides text keep their
+// words too. Save rebuilt them from the boxes in box order, so a one-dish edit reworded them ("Green Beans, Rice" became
+// "Rice, Green Beans"; a vegan line lost a "Pasta" no box held), and EXPO and HUB read those words. Each line keeps the
+// words it opened with when none of its dishes changed; a changed dish is placed with the D4 rule; anything that cannot be
+// placed exactly (a dish at open not one whole piece of the words, two dishes on the same words) rebuilds, as before.
+const DOOR_LINE_WORD_IDS = {
+  veg: ['veganalt', 'starch', 'vegside', 'xtra', 'vegextras'],
+  halal: ['mainalt', 'starch', 'vegside', 'xtra', 'halalextras'],
+  sides: ['starch', 'vegside', 'xtra'],
+  // the main dish and the halal main as written (the breakfast session, #270: a vegan edit re-split breakfast_mainItem)
+  mainItem: ['main'],
+  mainAlt: ['mainalt'],
+};
+// What each box gives the line now: the own version of a side on the vegan or halal line, nothing when the line does not get it.
+function doorLineWordMap(which, slots) {
+  slots = slots || MEAL_SLOT_STATE;
+  const line = which === 'veg' ? 'vegan' : which === 'halal' ? 'halal' : null;
+  const out = {};
+  DOOR_LINE_WORD_IDS[which].forEach(id => {
+    const s = slots[id];
+    let t = '';
+    if (s) {
+      const v = line && DOOR_LINE_SIDE_IDS.indexOf(id) >= 0 && s.lines && s.lines[line];
+      if (v && v.mode === 'none') t = '';
+      else if (v && v.mode === 'swap' && (v.recipeName || v.manual)) t = _slotText(v);
+      else t = _slotText(s);
+    }
+    out[id] = String(t || '').trim();
+  });
+  return out;
+}
+// Pure. text: the line as stored when the meal opened; before / after: doorLineWordMap at open and now.
+// Returns the words to save, or null when the line has to be rebuilt from the boxes.
+function doorKeptLineWords(text, before, after, ids) {
+  text = String(text || '');
+  if (!text.trim()) return null;
+  before = before || {}; after = after || {};
+  if (ids.every(id => String(before[id] || '').trim() === String(after[id] || '').trim())) return text;   // none of its dishes changed
+  // every dish the line held at open is one whole piece run of the words, and no two share one
+  if (ids.every(id => !String(before[id] || '').trim())) return null;   // no box held a dish of it at open: rebuild
+  const tok = doorWordPieces(text), used = [];
+  for (const id of ids) {
+    const w = String(before[id] || '').trim();
+    if (!w) continue;
+    const run = doorFindDishRun(tok, w);
+    if (!run || used.some(r => !(run[1] < r[0] || run[0] > r[1]))) return null;
+    used.push(run);
+  }
+  const kept = doorKeepLineWords(text, before, after, ids);
+  // Review fold (P3): an edit never leaves a dish named twice that the words named once ("Rice, Rice"): rebuild instead.
+  const count = t => { const m = {}; doorWordPieces(t).pieces.forEach(x => { const k = x.trim().replace(/\s+/g, ' ').toLowerCase(); if (k) m[k] = (m[k] || 0) + 1; }); return m; };
+  if (kept) { const was = count(text), now = count(kept); if (Object.keys(now).some(k => now[k] > 1 && now[k] > (was[k] || 0))) return null; }
+  return kept;
+}
+// The line Save writes: the kept words, else the line built from the boxes.
+function doorEditedLine(which, built) {
+  const o = _doorWordsAtOpen;
+  if (!o || o.key !== mcMenuEditKey || !o.lines || !o.lines[which]) return built;
+  const at = o.lines[which];
+  const kept = doorKeptLineWords(at.text, at.slots, doorLineWordMap(which), DOOR_LINE_WORD_IDS[which]);
+  return kept == null ? built : kept;
+}
+function doorEditedVegLine() { return doorEditedLine('veg', buildVegAlt()); }
+function doorEditedSides() { return doorEditedLine('sides', buildSides()); }
+function doorEditedMainItem() { return doorEditedLine('mainItem', buildMainItem()); }
+function doorEditedMainAlt() { return doorEditedLine('mainAlt', buildMainAltItem()); }
+// Review fold (P2, older than this change): a halal line that had its own sides at open and has none now. Its stored
+// full line names sides the halal plate no longer gets, and the sheet prints it whole.
+function doorHalalLostOwnSides() {
+  const o = _doorWordsAtOpen;
+  return !!(o && o.key === mcMenuEditKey && o.lines && o.lines.halal) && !doorLineHasOwnSides(MEAL_SLOT_STATE, 'halal');
+}
+// The halal line is a full line only when it has its own sides; it keeps its words only when it was one at open too.
+function doorEditedHalalLine() {
+  const built = buildHalalLine();
+  return built == null ? null : doorEditedLine('halal', built);
 }
 function buildMealName() {
   // extras (Event Name) leads if set, then components
@@ -21557,10 +21640,10 @@ function updateSlotSummary() {
   if (prev && typeof renderSectionPreviewInto === 'function') renderSectionPreviewInto(flags, prev);
   if (typeof doorRenderAltEditorFeedback === 'function') doorRenderAltEditorFeedback(flags);
   const name = (typeof doorEditedMealName !== 'function') ? buildMealName() : doorEditedMealName();
-  const veg = buildVegAlt();
+  const veg = (typeof doorEditedVegLine === 'function') ? doorEditedVegLine() : buildVegAlt();   // 2026-11-20: the kept words
   const softAlt = buildSoftAlt();
   const noPorkAlt = buildNoPorkAlt();
-  const halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;
+  const halalLine = (typeof doorEditedHalalLine === 'function') ? doorEditedHalalLine() : null;
   const summaryId = 'mc-slot-name-preview';
   const summaryLabel = 'Will save as';
   const summaryEl = document.getElementById(summaryId);
@@ -22375,7 +22458,7 @@ async function saveMenuEdit() {
   // The questions wait for an answer, so the editor could have closed or moved to another meal meanwhile.
   if (mcMenuEditKey !== editKey) return;
   if (editSession && _doorMenuDraftBaseline !== editSession) return;
-  const veg  = buildVegAlt();
+  const veg  = doorEditedVegLine();   // 2026-11-20: the vegan line keeps its words unless one of its dishes changed
   const slotFlags = buildUnionFlags();
   const flags = { ...slotFlags };
   FLAG_DEFS.forEach(f => {
@@ -22662,8 +22745,10 @@ function doorWriteAnswersOnly(ids) {
 function doorWriteEditorMeal(target, period, name, veg, flags) {
   target[period]              = name;
   target[period + '_veg']     = veg;
-  const _halalLine = (typeof buildHalalLine === 'function') ? buildHalalLine() : null;   // W3b: the own sides of the halal line, as a full line the plating sheet uses whole
+  const _halalLine = (typeof doorEditedHalalLine === 'function') ? doorEditedHalalLine() : null;   // 2026-11-20: kept words. W3b: the own sides of the halal line, as a full line the plating sheet uses whole
   if (_halalLine) target[period + '_halal'] = _halalLine;
+  // Review fold (P2): the halal line lost its own sides in this edit: the dish alone (the sheet adds the shared sides).
+  else if (typeof doorHalalLostOwnSides === 'function' && doorHalalLostOwnSides()) target[period + '_halal'] = buildMainAltItem() || '';
   // S6b (D5): with no sides of its own, a halal main changed since the meal opened replaces the stored halal line (the
   // workbook shape: the dish; the sheet adds the shared sides). The sheet prints a stored line first, so the old dish
   // stayed on the halal plate. A halal main not changed, or not known at open, leaves the stored line as it was.
@@ -22677,9 +22762,9 @@ function doorWriteEditorMeal(target, period, name, veg, flags) {
   // deleted: the base menu of every DOOR computer is the last published one, so a deleted field would come back from it.
   Object.entries(doorKitchenAltInputValues()).forEach(([k, v]) => { target[period + '_' + k] = v; });
   target[period + '_noPorkAlt'] = buildNoPorkAlt(); // v30
-  target[period + '_mainItem'] = buildMainItem(); // v30
-  target[period + '_mainAlt'] = buildMainAltItem(); // v30
-  target[period + '_sides']   = buildSides(); // v30
+  target[period + '_mainItem'] = (typeof doorEditedMainItem === 'function') ? doorEditedMainItem() : buildMainItem(); // v30; 2026-11-20: kept words
+  target[period + '_mainAlt'] = (typeof doorEditedMainAlt === 'function') ? doorEditedMainAlt() : buildMainAltItem(); // v30; 2026-11-20: kept words
+  target[period + '_sides']   = (typeof doorEditedSides === 'function') ? doorEditedSides() : buildSides(); // v30; 2026-11-20: the sides text keeps its words
   // v30: Save individual slot values for lossless re-open
   target[period + '_slots'] = _buildSlotSnapshot();
   return target;
@@ -22693,7 +22778,7 @@ function doorDraftPlateFacts(flags, opts) {
   const overlay = JSON.parse(JSON.stringify(loadMenuBaseOverlay() || {}));
   if (!overlay[week]) overlay[week] = {};
   if (!overlay[week][day]) overlay[week][day] = {};
-  doorWriteEditorMeal(overlay[week][day], period, doorEditedMealName(), buildVegAlt(), flags);
+  doorWriteEditorMeal(overlay[week][day], period, doorEditedMealName(), doorEditedVegLine(), flags);
   const was = getDoorPublishMenuOverlayOverride();
   let dayData = null;
   try {
@@ -23112,6 +23197,14 @@ function openMenuEdit(week, day, period) {
   // S4a (D4): the words this meal opened with and its boxes then; a legacy edit (concMenuEdits) rebuilds as before.
   if (typeof _doorWordsAtOpen !== 'undefined') _doorWordsAtOpen = existing ? null : { key: mcMenuEditKey, text: String(dayData[period] || ''), slots: {} };
   if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof DOOR_WORD_SLOT_IDS !== 'undefined') ['extras'].concat(DOOR_WORD_SLOT_IDS).forEach(id => { _doorWordsAtOpen.slots[id] = _slotText(MEAL_SLOT_STATE[id]); });
+  // 2026-11-20: the vegan line, the halal line (when it has its own sides) and the sides text as they opened.
+  if (typeof _doorWordsAtOpen !== 'undefined' && _doorWordsAtOpen && typeof doorLineWordMap === 'function') _doorWordsAtOpen.lines = {
+    veg: { text: String(dayData[period + '_veg'] || ''), slots: doorLineWordMap('veg') },
+    halal: doorLineHasOwnSides(MEAL_SLOT_STATE, 'halal') ? { text: String(dayData[period + '_halal'] || ''), slots: doorLineWordMap('halal') } : null,
+    sides: { text: String(dayData[period + '_sides'] || ''), slots: doorLineWordMap('sides') },
+    mainItem: { text: String(dayData[period + '_mainItem'] || ''), slots: doorLineWordMap('mainItem') },
+    mainAlt: { text: String(dayData[period + '_mainAlt'] || ''), slots: doorLineWordMap('mainAlt') },
+  };
   _doorSaveWhen = 'week';   // S6a: every meal opens on Every week
   if (typeof doorRenderWhenChoice === 'function') doorRenderWhenChoice();
   // S5c (D3): the meat each main box named and the dishes when the meal opened; Save asks about halal only when the meat changed.

@@ -87,7 +87,8 @@ test('2. after the answer, Save stops if a different meal is open', () => {
   // Re-pinned 2026-11-19 (S5c): the first question (the soft plate) is re-checked before anything is built.
   const firstAsk = save.indexOf('await doorAsk(');
   const first = save.indexOf('if (mcMenuEditKey !== editKey) return;', firstAsk);
-  assert.ok(first > firstAsk && first < save.indexOf('buildVegAlt()'), 'the first question is re-checked before anything is built');
+  // Re-pinned 2026-11-20 (line words kept): the vegan line is built through doorEditedVegLine().
+  assert.ok(first > firstAsk && first < save.indexOf('doorEditedVegLine()'), 'the first question is re-checked before anything is built');
   const last = save.lastIndexOf('await doorAsk(');
   const lastRecheck = save.indexOf('if (mcMenuEditKey !== editKey) return;', last);
   assert.ok(lastRecheck > last && lastRecheck < save.indexOf('_finishMenuSave('), 'the last question is re-checked before the meal is written');
