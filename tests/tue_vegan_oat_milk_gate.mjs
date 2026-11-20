@@ -56,3 +56,15 @@ test('TO-5 an "oat milk only" breakfast note reads the vegan plate without a CHE
     assert.match(ctx.conflict('oat milk only', menu[w].TUESDAY.breakfast), /CHECK/, 'Wk' + w + ' regular still names plain milk');
   }
 });
+
+test('TO-6 nothing else on the four breakfasts moved: every other field is the kept original', () => {
+  for (const w of WEEKS) {
+    const orig = ((overlay.menu || overlay)[w] || {}).TUESDAY.breakfast_original.meal;
+    const b = menu[w].TUESDAY;
+    for (const s of Object.keys(orig)) {
+      if (s === '_veg') continue;
+      assert.deepEqual(b['breakfast' + s], orig[s], 'Wk' + w + ' breakfast' + s);
+    }
+    for (const s of ['_slots', '_altMeals', '_altMealsNone', '_softAlt']) if (!(s in orig)) assert.ok(!(('breakfast' + s) in b), 'Wk' + w + ' gained breakfast' + s);
+  }
+});

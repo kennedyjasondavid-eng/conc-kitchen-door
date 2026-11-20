@@ -37,9 +37,18 @@ come up.
   the newest-10 rule), `recent_log.json`, `door_state.json` and `registry_summary.json` (stamps only),
   `door_flow_publication.json` (sequence 42 → 43).
 
+- **Labels written by DOOR's own writers:** each kept original says `"how": "Edit Menu"` (the label the writer it
+  copies uses), and `recent_log.json`'s four lines read "Edited WkN Tue breakfast — Cereal and milk, fruit" (the meal's
+  name, which is the regular line). Both are cosmetic; the change itself is the vegan line only.
+- **EXPO and HUB:** EXPO plans no breakfast (its menu reader skips it), so its board does not move and needs no
+  republish. HUB isn't checked here; if it shows its menu-drift banner for the Tuesday breakfasts, republish EXPO once.
+
 ## The soft-plate state
 Untouched: no soft plate set and none marked "not needed" on these mornings, so the sheet keeps asking for one as before
 (gate TO-2).
 
 ## Checks
-- New gate `tests/tue_vegan_oat_milk_gate.mjs` (5), red 4/5 on `main` `82501c9` (TO-2 locks the soft-plate state).
+- New gate `tests/tue_vegan_oat_milk_gate.mjs` (6), red 5/6 on `main` `82501c9` (TO-2 locks the soft-plate state).
+- Node suite 1129 pass, 0 fail, 1 skipped; the CI browser list passes locally (42 gates).
+- Independent review: SHIP (no P1 or P2). Folded: the S1 entry's CHECK line dated (P3-1); the labels note (P3-2); EXPO
+  and HUB after merge (P3-3); TO-6, nothing else on the four breakfasts moved (P3-4).
