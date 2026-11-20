@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.124';
+const DOOR_APP_VERSION = 'v31-standard.126';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -14749,7 +14749,7 @@ function getAltMeal(altType, ctx) {
         ? ctx.mealName + ' — modified (no ' + _has.join('/') + ')'
         : ctx.mealName + ' — modified';
     }
-    case 'noproc_alt':    return ctx && ctx.softAlt ? ctx.softAlt : 'Non-processed alternative — plain protein, rice \u0026 veg';
+    case 'noproc_alt':    return (ctx && ctx.noProcessedAlt) || (ctx && ctx.softAlt ? ctx.softAlt : 'Non-processed alternative — plain protein, rice \u0026 veg');
     case 'soft':
       // 2026-05-19: when a single altMeal entry is defined, it IS the
       // section title (the standard alternative for the ~13 plain-alt
@@ -14780,7 +14780,8 @@ function getAltMeal(altType, ctx) {
 // manual plating sheets into the menu as `<period>_diabeticAlt`, `_noDairyAlt`, `_blandAlt`, `_noEggAlt` and
 // `_anaphAlt`, beside the existing `_gfAlt` and `_softAlt`. Each is the dish that plate gets; empty when the kitchen
 // makes none.
-const DOOR_KITCHEN_ALT_FIELDS = ['diabeticAlt', 'noDairyAlt', 'blandAlt', 'noEggAlt', 'anaphAlt'];
+// noProcessedAlt (2026-11-20, Jason: plating sheets line up with the kitchen's manuals): the No Processed Food plate.
+const DOOR_KITCHEN_ALT_FIELDS = ['diabeticAlt', 'noDairyAlt', 'blandAlt', 'noEggAlt', 'anaphAlt', 'noProcessedAlt'];
 // The parts of a meal that belong to its dish: its parts and slots, its halal line and its alternatives (2026-10-19).
 // A swap's dish brings none of them (doorApplyDatedMeal), and a permanent change writes them empty, with these values:
 // every DOOR computer's base menu is the last published one, so a part deleted from the overlay came back from it, and
@@ -15060,10 +15061,11 @@ function doorAltEditorOutcomes(flags, values, altMeals, registry = REGISTRY_LIST
   if (values.diabeticAlt) f._diabeticAlt = values.diabeticAlt;
   if (values.noDairyAlt) f._noDairyAlt = values.noDairyAlt;
   if (values.blandAlt) f._blandAlt = values.blandAlt;
+  if (values.noProcessedAlt) f._noProcessedAlt = values.noProcessedAlt;
   if (values.noPorkAlt) f.noPorkAlt = values.noPorkAlt;
   const excluded = getAnaphConflictRooms(f,{},registry,rooms);
   const sections = computeSections(f,registry.filter(r => !excluded.has(r.room)));
-  const keys = {gfAlt:'gf',diabeticAlt:'diabetic',noDairyAlt:'no_dairy',noEggAlt:'no_egg',blandAlt:'bland',anaphAlt:'anaph'};
+  const keys = {gfAlt:'gf',diabeticAlt:'diabetic',noDairyAlt:'no_dairy',noEggAlt:'no_egg',blandAlt:'bland',anaphAlt:'anaph',noProcessedAlt:'no_processed'};
   const outcomes = [];
   const add = (target,text,residents,explanation) => {
     const facts = text ? doorNamedPlateFacts(text) : {known:false,flags:{},missing:[]};
@@ -15082,7 +15084,8 @@ function doorAltEditorOutcomes(flags, values, altMeals, registry = REGISTRY_LIST
     add(target,values[target] || '',residents,key === 'anaph' ? 'Separate preparation and the existing anaphylactic checks still apply.' : 'Other requirements can place a resident in another section.');
   }
   const soft = (sections.find(s => s.rule.key === 'soft') || {residents:[]}).residents;
-  const nonProcessed = (sections.find(s => s.rule.key === 'no_processed') || {residents:[]}).residents;
+  // A named No Processed Food plate counts its own residents (its row above); else the soft row supplies them.
+  const nonProcessed = values.noProcessedAlt ? [] : (sections.find(s => s.rule.key === 'no_processed') || {residents:[]}).residents;
   const controlling = choices.find(a => a.type === 'soft') || choices[0];
   entries.forEach(({meal:a,index:i}) => add(i,a.text || '',soft.filter(r => {
     if (choices.length === 1) return true;
@@ -15166,12 +15169,13 @@ function doorAddKitchenPlateFlags(mealFlags, dayData, period) {
   if (ka.diabeticAlt) mealFlags._diabeticAlt = ka.diabeticAlt;
   if (ka.noDairyAlt) mealFlags._noDairyAlt = ka.noDairyAlt;
   if (ka.blandAlt) mealFlags._blandAlt = ka.blandAlt;
+  if (ka.noProcessedAlt) mealFlags._noProcessedAlt = ka.noProcessedAlt;
   if (dayData && dayData[period + '_altMealsNone'] === true) mealFlags._altMealsNone = true;
   return mealFlags;
 }
 
 // Edit Menu's "Alternatives the kitchen makes" (2026-10-19): filled when a meal opens, read by the preview and saved.
-const DOOR_KITCHEN_ALT_LABELS = { gfAlt: 'Gluten free', diabeticAlt: 'Diabetic', noDairyAlt: 'No dairy', noEggAlt: 'No egg / mustard', blandAlt: 'Bland (no spicy)', anaphAlt: 'Anaphylactic' };
+const DOOR_KITCHEN_ALT_LABELS = { gfAlt: 'Gluten free', diabeticAlt: 'Diabetic', noDairyAlt: 'No dairy', noEggAlt: 'No egg / mustard', blandAlt: 'Bland (no spicy)', anaphAlt: 'Anaphylactic', noProcessedAlt: 'No processed food' };
 // S8 (Edit Menu redesign, M13): "Other plates the kitchen makes". One row per plate the meal has, "+ Add a plate for..."
 // for the rest, and one plain sentence on what happens when a plate is not made. The boxes, their ids and what is saved
 // are unchanged; a hidden row is an empty box.
@@ -15182,6 +15186,7 @@ const DOOR_KITCHEN_ALT_NOT_MADE = {
   noEggAlt: 'Not made: No Egg / Mustard residents get the vegan plate when it has neither, else the regular plate made without.',
   blandAlt: 'Not made: No Spicy residents eat the regular plate, noted “not spicy”. (A bland plate is used only on a spicy meal.)',
   anaphAlt: 'Not named: the plating sheet stays NOT READY until the separate anaphylactic meal is named.',
+  noProcessedAlt: 'Not made: No Processed Food residents get the soft plate when there is one, else a plain protein with rice and veg; on a pork meal, the halal plate.',
 };
 function doorFillKitchenAltInputs(dayData, period) {
   const box = document.getElementById('mc-kitchen-alt-fields');
@@ -15307,7 +15312,8 @@ function computeSections(mealFlags, registry) {
   // - Bland/No Spicy residents join GF (same plain meal — Roast Chicken, Rice, Veg)
   const _mergedInto = {};
   if (mealFlags && mealFlags.hasPork) {
-    if (pools['no_processed'] && pools['halal'] && pools['no_processed'].length) {
+    // A plate the kitchen names for No Processed Food is served to them, not the halal plate (2026-11-20).
+    if (pools['no_processed'] && pools['halal'] && pools['no_processed'].length && !mealFlags._noProcessedAlt) {
       pools['halal'].push(...pools['no_processed']);
       pools['no_processed'] = [];
       (_mergedInto['halal'] = _mergedInto['halal'] || []).push('No Processed');

@@ -212,7 +212,8 @@ test('8. Edit Menu edits the alternatives: filled when a meal opens, read by the
     fn('doorEditorPlateFlags')].join('\n'), e);
   e.doorFillKitchenAltInputs({ lunch_diabeticAlt: 'WW Wrap "x"><img src=x>', lunch_gfAlt: 'GF bun' }, 'lunch');
   assert.ok(!/<img/.test(box.innerHTML), 'staff text is escaped');
-  assert.equal(Object.keys(inputs).length, 6, 'six boxes: GF, diabetic, no dairy, no egg, bland, anaphylactic');
+  // Re-pinned 2026-11-20 (`v31-standard.126`): No processed food is a seventh kitchen plate.
+  assert.equal(Object.keys(inputs).length, 7, 'seven boxes: GF, diabetic, no dairy, no egg, bland, anaphylactic, no processed');
   inputs['mc-kalt-noDairyAlt'].value = '  DF Burger  ';
   const vals = out(e.doorKitchenAltInputValues());
   assert.equal(vals.noDairyAlt, 'DF Burger'); assert.equal(vals.gfAlt, 'GF bun');

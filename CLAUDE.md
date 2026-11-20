@@ -53,6 +53,19 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — the kitchen can name a No Processed Food plate (`v31-standard.126`)
+Jason, 2026-11-20: plating sheets line up with the kitchen's manuals, "creating systems to support it, and can add as we go
+as long as it's easy". Edit Menu's "+ Add a plate for…" lists **No processed food** beside the other kitchen plates, at
+breakfast, lunch and dinner; the meal stores `<period>_noProcessedAlt` (a seventh `DOOR_KITCHEN_ALT_FIELDS` entry, so a
+swap or permanent change clears it and the kept original carries it). The No Processed Food section prints it (it printed
+the soft plate, else "Non-processed alternative — plain protein, rice & veg"); on a pork meal a named plate keeps those
+residents on it instead of the halal plate; the editor counts it on its own row (the soft row stops supplying it). No meal
+names one today, so every sheet, count and published file is unchanged until someone adds one. Additive in
+`menu_current.json`: EXPO's dated-meal drop list (`_DATED_MEAL_DROPS`) mirrors DOOR's and should gain `_noProcessedAlt`
+(it reads no kitchen plate, so its board doesn't move). Gate `tests/no_processed_plate_gate.mjs` (5, red 5/5 on `main`
+`e82e0f6`); re-pinned with dated notes: `kitchen_alternatives_gate` 8 (seven boxes), `make_permanent_whole_dish_gate` 6
+(the parts list), browser `other_plates_s8` (seven plates).
+
 ## Recent (2026-11-20) — the Tuesday vegan breakfast names oat milk (data, publication 43)
 Jason, 2026-11-20: "yes, make the Tuesday vegan breakfast oat milk". Wk1–4 TUE breakfast's vegan line reads "Cereal and
 oat milk, fruit" (was "Cereal and milk, fruit"), written as Edit Menu's writer writes a permanent change (original kept,
