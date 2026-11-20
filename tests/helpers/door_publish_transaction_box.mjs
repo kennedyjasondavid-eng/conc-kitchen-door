@@ -265,6 +265,8 @@ export function publishBox(options = {}) {
     'preMergeOverlayWithCloud', 'preMergeSwapsWithCloud', 'reportDoorPublishValidation', 'reportDoorOverlayMergeAdvisory',
     'ghPushFile', '_ghPushFileNow', 'ghPushFilesAtomic', '_ghPushFilesAtomicNow',
     'doorSetItemSafe', 'doorOutboxRead', 'doorOutboxAppend', 'doorOutboxClear', 'doorOutboxDrain',
+    // 2026-11-20: the publish merges the kitchen's recent log, read at its revision, before staging it.
+    'doorRecentLogKey', 'doorMergeRecentLogs', 'doorPublishReadRecentLog',
     '_doPublishToGitHub', 'publishToGitHub', 'publishAndSync'
   ];
   const optional = html.includes('/* DOOR_TESTABLE_CORE_START publish-transaction */') ? core('publish-transaction') : '';

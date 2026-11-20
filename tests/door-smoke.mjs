@@ -405,6 +405,10 @@ function loadPublishFlowHarness(options = {}) {
     // the kitchen's first; a computer with none sends nothing, so the publish set here is unchanged.
     doorPullRexAnswers: options.doorPullRexAnswers || (async () => ({})),
     loadSpecialMeals: () => [],
+    // 2026-11-20: the publish merges the kitchen's recent log first (read at its revision); none here.
+    doorPublishReadRecentLog: options.doorPublishReadRecentLog || (async () => ({ ok: true, entries: [] })),
+    doorMergeRecentLogs: (local) => (local || []).slice(),
+    saveRecentLog: () => {},
     RECENT_LOG: [],
     REGISTRY_LIST: [{ room: '101' }, { room: '102' }],
     updateSyncBar(message, color) {

@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.127';
+const DOOR_APP_VERSION = 'v31-standard.128';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -13159,6 +13159,27 @@ async function preMergeOverlayWithCloud(creds, localOverlay) {
   const revision = await doorPublishReadRevision(creds);
   return doorMergeMenuOverlayWithCloud(localOverlay, revision.data['menu_overlay.json']).merged;
 }
+// The kitchen copy of recent_log.json at the publish revision (2026-11-20). Absent means an empty kitchen log; anything
+// unreadable says so, and the caller sends no recent log over it.
+async function doorPublishReadRecentLog(creds, revision) {
+  try {
+    if (!revision || !revision.paths || !revision.paths['recent_log.json']) return { ok: true, entries: [] };
+    const body = await doorPublishReadJSON(creds, '/contents/recent_log.json?ref=' + encodeURIComponent(revision.head));
+    if (!body || typeof body.content !== 'string') return { ok: false, reason: 'no content' };
+    const value = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g, '')))));
+    return Array.isArray(value) ? { ok: true, entries: value } : { ok: false, reason: 'not a list' };
+  } catch (e) { return { ok: false, reason: String((e && e.message) || e) }; }
+}
+// This computer recent log and the kitchen copy as one list, each entry once (doorRecentLogKey), this computer first.
+function doorMergeRecentLogs(local, kitchen) {
+  const seen = new Set(), out = [];
+  [...(local || []), ...(kitchen || [])].filter(e => e && typeof e === 'object' && e._real !== false).forEach(e => {
+    const k = doorRecentLogKey(e);
+    if (!seen.has(k)) { seen.add(k); out.push(e); }
+  });
+  return out;
+}
+
 async function preMergeSwapsWithCloud(creds) {
   return doorPublishCapture(await doorPublishReadRevision(creds));
 }
@@ -13349,8 +13370,19 @@ async function _doPublishToGitHub(manual) {
         _push(DOOR_RULES_FILE, JSON.stringify(_rulesSentAt,null,2));
       }
     }
-    const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
-    _push('recent_log.json', JSON.stringify(_logToSync,null,2));
+    // 2026-11-20 (the #273 review): the kitchen copy of the recent log is merged in first, read at this revision, so a
+    // computer that publishes before its next sync never drops what other computers logged. A kitchen copy that
+    // cannot be read sends no recent log at all (it would be shortened); a missing one sends this computer own list.
+    const _kitchenLog = await doorPublishReadRecentLog(creds, revision);
+    if (_kitchenLog.ok) {
+      const _merged = doorMergeRecentLogs(RECENT_LOG, _kitchenLog.entries);
+      RECENT_LOG.length = 0; _merged.forEach(e => RECENT_LOG.push(e));
+      try { saveRecentLog(); } catch (e) {}
+      const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
+      _push('recent_log.json', JSON.stringify(_logToSync,null,2));
+    } else {
+      console.warn('[DOOR] recent log not sent: the kitchen copy could not be read (' + _kitchenLog.reason + ')');
+    }
     // One commit for the complete candidate; any blocked dependency holds it all.
     let _atomic;
     try {
