@@ -21,6 +21,10 @@ test('BN-2 a note alone moved nobody: both keep their section and restriction wo
   // The notes-only save writes only the notes (the full save re-routed 1007 to Regular in the dry run).
   assert.equal(byRoom.get('1007').section, 'Diabetic');
   assert.equal(byRoom.get('301a').section, 'Vegan / Vegetarian');
+  assert.equal(byRoom.get('301a').rawRestriction, 'GF, Lactose Intolerant, Vegetarian, No Beans');
+  assert.deepEqual(byRoom.get('301a').tags, ['GF', 'Lactose Intolerant', 'Vegetarian', 'No Beans']);
+  assert.equal(byRoom.get('1007').rawRestriction, 'Low Sodium, Low Carb');
+  assert.deepEqual(byRoom.get('1007').tags, ['Low Sodium', 'Low Carb']);
 });
 
 test('BN-3 no other resident carries a breakfast note', () => {
