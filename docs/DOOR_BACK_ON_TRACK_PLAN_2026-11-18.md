@@ -157,6 +157,13 @@ model. The simpler fix copies what the manual sheets do:
 - Keep the existing guard: a breakfast with an occupied GF section and no named plate can't print a final sheet.
 - Done when: every one of the 28 breakfasts has named plates or a visible "not set yet"; every resident has one plate
   per breakfast and their note prints; Joan's comparison shows no lost requirement.
+- **Status, 2026-11-20 (Jason):** "we're not designing this from the ground up and the current system already works
+  fine"; "just creating systems to support it, and can add as we go as long as it's easy". The baseline is matching
+  the current kitchen manuals ("I don't want to get stuck on edge cases"). So the named breakfast plates (S2) and the
+  per-resident plate choice (S3) are not being built as designed. Kitchen plates are added as the kitchen settles them,
+  through the existing editor: the resident breakfast note (S1, #266, the two confirmed notes #268), the Tuesday vegan
+  breakfast naming oat milk (#270, publication 43), and a No Processed Food plate in "+ Add a plate for" (#272,
+  `.126`). The soft and no-egg plates already work at breakfast.
 
 ### U4 Finish the editor (Stage 4, what is left)
 Already done: the keyboard picker and link badges (#210), unsaved-draft protection (#211), plain plates (#206), line
@@ -210,7 +217,7 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 - [ ] U1 Every active component has a clear identity. *Done: all 12 name-only links carry their CODEX recipe IDs (publications 25 and 26, 2026-11-18; C3 ruled "link both" after EXPO's cards proved identical). Left: run-on slots, misspelled names; done through the new menu editor (redesign plan D9).*
 - [ ] **Edit Menu redesign** (Jason, 2026-11-19): walkthrough `docs/DOOR_EDIT_MENU_WALKTHROUGH_2026-11-19.md`; plan and status `docs/DOOR_MENU_EDIT_REDESIGN_PLAN_2026-11-19.md` (owns this line). *Done: S0, the two live defects (#242).*
 - [x] U2 Every saved-versus-CODEX difference decided; facts rule written. *Done 2026-11-19 (C4, Jason: "Follow lean"): `docs/DOOR_ALLERGEN_FACTS_RULE.md`; 23 vegan and side slots refreshed, add only (publication 36). The editor's link badge says Linked to CODEX / Recipe unavailable / Ambiguous / Linked by name / Unlinked (manual), and beside a good link "CODEX lists Beans, not ticked here" with Add them (add only; Spicy never offered), `v31-standard.102`.*
-- [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for. *Done: C2 DOOR half (a recipe whose label is not checked reads as unknown: "label not checked" in the editor, "check label" on the plate, `.97`). CODEX bought-item records (CODEX #383, edition 2026-11-18-bought-items): Chex cereal, Soy milk, Oat milk and Vegan yoghurt, label not checked; the GF cereal line names soy or oat milk (publication 34). Since then: CODEX #384 read the four labels (publication 35), call 3 made the label check read every alternative plate (`.100`), and call 4 names the vegan yoghurt on a No Dairy resident's breakfast note (`.101`). C1 slice S1, the resident breakfast note, is done (`.124`, #266; the two confirmed notes, publication 41). Left: the rest of the C1 design (named breakfast plates, a plate choice where the rules can't place a resident), which needs the shared resolved-plate model in `docs/DOOR_BREAKFAST_MATRIX_AND_REPRESENTATION_2026-11-16.md` and the product facts listed there.*
+- [ ] U3 All 28 breakfasts and every resident's breakfast plate accounted for. *Done: C2 DOOR half (a recipe whose label is not checked reads as unknown: "label not checked" in the editor, "check label" on the plate, `.97`). CODEX bought-item records (CODEX #383, edition 2026-11-18-bought-items): Chex cereal, Soy milk, Oat milk and Vegan yoghurt, label not checked; the GF cereal line names soy or oat milk (publication 34). Since then: CODEX #384 read the four labels (publication 35), call 3 made the label check read every alternative plate (`.100`), and call 4 names the vegan yoghurt on a No Dairy resident's breakfast note (`.101`). C1 slice S1, the resident breakfast note, is done (`.124`, #266; the two confirmed notes, publication 41). Since then (2026-11-20): the Tuesday vegan breakfast names oat milk (#270, publication 43) and a No Processed Food plate can be named (#272, `.126`). The rest of the C1 design (S2 named breakfast plates, S3 a per-resident plate choice) is not being built as designed (Jason, 2026-11-20: "can add as we go as long as it's easy"); plates are added through the editor as the kitchen settles them (§5 U3 status).*
 - [ ] U4 Editor: plates at a glance, one save line, undo preview, import review, quieter default. *Done: one save line and plain notice (#226, .95); counts unavailable without a list and the halal plate named (#227, .96); undo and reset already name what they put back; a refused Download All says why beside its button and keeps focus there (.99, #235). Import review kept/replaced built (`.121`). Left: quieter default (the redesign's plate cards and folded line choices cover most of it).*
 - [ ] U5 End-to-end journey passes; HUB 21/20 explained.
 - [ ] U6 Supervisor walkthrough done without developer help.
@@ -219,6 +226,12 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
 
 **Ruled 2026-11-18 (Jason, on the leans):** R-a to R-d accepted ("roll it back … no dead code"). C1: the simple breakfast design. C2: CODEX bought-item records with label allergens and a "label checked" date. C3: EXPO's 30 tuna, mushroom and Portobello cards were identical before and after linking; Jason: link both (follow lean). C4: still open; it comes as one list with a lean per dish once U1 is done. Tags could not be pushed from the cloud session; the removed code stays in git history before each removal commit.
 
+- **C1 narrowed (2026-11-20, Jason):** "just creating systems to support it, and can add as we go as long as it's easy";
+  the baseline is the kitchen's manuals, not edge cases. S2 and S3 are not built as designed (§5 U3 status).
+- **Name-guessed vegan allergens stay (2026-11-20, Jason: "Follow lean, leave it for now"):** DOOR's vegan plate keeps
+  adding allergens it guesses from the vegan line's words (`getVegAltAllergenStr`), even when the dish links its own
+  recipe. It only over-warns: Wk2 SUN dinner's vegan pasta prints SOY and GLUTEN from CODEX's house-made Vegan Sausage
+  record while its linked sauce (the bought Beyond Sausage) has neither (#269). Revisit with a census of every meal.
 - **C1 Breakfast design (U3):** named plates plus a resident breakfast note plus a per-resident plate choice only where
   the rules can't place them. Lean: yes. Consequence: no resolver; breakfast stays in DOOR's existing fields and
   resident record.

@@ -123,3 +123,25 @@ test('today: every published yoghurt breakfast gives a No Dairy resident the swa
   assert.equal(breakfasts, 28);
   assert.ok(swaps >= 20, 'most published breakfasts serve yoghurt: ' + swaps);
 });
+
+// 2026-11-20 (Jason: "Fold it into the next DOOR PR"; #272 fold review P3): a named No Processed Food plate is read
+// like the other kitchen plates (doorYoghurtPlates noproc, doorSectionLabelPlate noproc_alt → noproc only when named).
+test('a named No Processed Food plate serving dairy yoghurt gives its No Dairy residents the swap; one without yoghurt does not', () => {
+  const base = { breakfast: 'Pancakes, turkey bacon, fruit & yoghurt', breakfast_veg: 'Pancakes, Vegan Breakfast Sausage, fruit & yoghurt',
+    breakfast_flags: { hasDairy: true, hasGluten: true, hasProcessedMeat: true } };
+  const who = [R('9701', ['No Processed Food', 'Lactose Intolerant']), R('9702', ['No Processed Food'])];
+  const run = (alt) => {
+    const c = harness(RECIPES, who.map((r) => ({ ...r })), { 1: { MONDAY: { ...base, breakfast_noProcessedAlt: alt } } });
+    const pd = c.computePlatingData('breakfast', '1', 'MONDAY');
+    return { c, pd, seat: seatOf(pd, '9701') };
+  };
+  const y = run('Plain scrambled eggs, toast, fruit & yoghurt');
+  assert.equal(y.seat.rule.key, 'no_processed', 'seated on the No Processed Food plate');
+  assert.equal(y.c.doorSectionLabelPlate(y.seat, y.pd.mealFlags), 'noproc');
+  assert.ok(y.pd.mealFlags._yoghurtPlates.noproc, 'the named plate is read for yoghurt');
+  assert.match(noteOf(y.c, y.pd, '9701'), /dairy-free: vegan yoghurt/);
+  assert.doesNotMatch(noteOf(y.c, y.pd, '9702') || '', /vegan yoghurt/, 'no dairy restriction, no swap');
+  const n = run('Plain scrambled eggs, toast, fruit');
+  assert.ok(!n.pd.mealFlags._yoghurtPlates.noproc, 'a named plate without yoghurt is not a yoghurt plate');
+  assert.doesNotMatch(noteOf(n.c, n.pd, '9701') || '', /vegan yoghurt/);
+});
