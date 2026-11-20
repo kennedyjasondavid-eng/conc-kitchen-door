@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — switching the theme redraws the menu (`v31-standard.131`)
+Jason, 2026-11-20: the Menu Config badges looked harsh in dark mode; a refresh showed the soft dark badges. The meal
+cards draw their badge colours for the theme they were drawn in (`doorColourChip`), so switching to dark left the light
+badges on the dark page (the known limit noted in `.72`). `toggleDarkMode` now redraws Menu Config when it is showing.
+Other screens' code-drawn chips still follow the theme at their next redraw. Gate `tests/theme_menu_redraw_gate.mjs`
+(2, red 1/2 on `main` `bd6f1d1`; TM-2 locks that other screens are not redrawn).
+
 ## Recent (2026-11-20) — No Turkey warns nowhere (`v31-standard.130`)
 Jason, 2026-11-20: the "no turkey" note "feels like noise"; on the call, "Stop warning". No Turkey was already filed as a
 preference (`COMPLIANCE_TIERS` auto), but it printed an amber "no turkey" line note and raised a Generate conflict. Both
