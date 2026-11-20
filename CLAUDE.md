@@ -53,7 +53,7 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-11-20) — Wk2 SUN dinner's halal plate names its dish (`v31-standard.129`, publication 47)
+## Recent (2026-11-20) — Wk2 SUN dinner's halal plate names its dish (`v31-standard.129`, publication 48)
 The #274 review's P2-2 (Jason: "Follow lean"): the No Turkey resident on Wk2 SUN dinner's halal plate got no note. The
 meal gains a halal dish box, `dinner_slots.mainalt` "Halal Turkey Sausage" (Turkey, Corn, Gluten, Beans, Processed Meat),
 through the overlay (original kept), one publish (W6 harness); its halal section now prints a CONTAINS line. The meal's

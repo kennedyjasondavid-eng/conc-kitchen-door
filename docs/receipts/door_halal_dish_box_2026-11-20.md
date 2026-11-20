@@ -1,4 +1,4 @@
-# Receipt: Wk2 SUN dinner's halal plate names its dish (publication 47, `v31-standard.129`, 2026-11-20)
+# Receipt: Wk2 SUN dinner's halal plate names its dish (publication 48, `v31-standard.129`, 2026-11-20)
 
 The #274 review (P2-2) found that the one No Turkey resident on Wk2 SUN dinner's halal plate got no note. The halal plate
 serves the Solmaz halal turkey sausage, but the meal had no halal dish box: its halal section printed no CONTAINS line, and
@@ -14,7 +14,7 @@ the meal's own ticks (a pork meal) carry no Turkey. Jason, 2026-11-20, on giving
   - Every other meal.
   - `routing_by_meal.json` counts and `registry_summary.json` (only stamps). `door_state.json` changes only its stamps
     and `lastModifiedBy`.
-  - `door_flow_publication.json` goes from sequence 46 to 47.
+  - `door_flow_publication.json` goes from sequence 47 to 48.
 - **Plates:** the halal section now prints "WHEAT, BEANS, CORN, PROCESSED MEAT, SULPHITES". That is the box's ticks over
   the meal's ticks without pork, the floor the vegan line uses. Sulphites comes from that floor (the pork sausage's lemon
   juice solids), so on the halal plate it only over-warns. No resident changes plate (Vegan 10, Halal 59, Gluten Free 3,
