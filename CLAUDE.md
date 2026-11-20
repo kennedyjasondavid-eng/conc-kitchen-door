@@ -53,6 +53,19 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — Recent Activity keeps a second same-day entry; the quinoa link reads Turmeric (`v31-standard.127`, publication 45)
+From the breakfast-line session (Jason, 2026-11-20: "send both to the review session queue"). Merging this computer's
+recent log with the kitchen's keyed each entry on room, date and words, so a second real change the same day (the same
+note saved twice, a revert and a redo) was dropped. `doorRecentLogKey` adds the time the entry was made (`ts`, the same
+on every computer; an entry from before `ts` gets noon on its day in this computer's timezone, all Toronto); an entry
+without one keeps the old key. Both merges (`pullSecondaryState`, the boot sync) read it.
+Gate `tests/recent_log_key_gate.mjs` (4, red 2/4 on `main` `ad85a91`; independent review SHIP, P3s folded). Data: Wk4 SAT lunch's vegan quinoa slot's
+recipeName reads Turmeric Quinoa (CODEX renamed the record and its shared copy; same `tumeric-quinoa` id), written through
+`saveMenuBaseOverlay`, one publish (W6 harness); nothing else moves (`u1_side_answers_gate` U1A-4 re-pinned, dated).
+Test-only: `yoghurt_swap_gate` covers a named No Processed Food plate (#272 review P3). Plan: back-on-track §5 U3 says S2
+and S3 are not built as designed, and §9 records "Follow lean, leave it for now" on name-guessed vegan allergens.
+The Wk2 SUN sausage ticks (Corn, Sulphites) wait for CODEX to record the two meat sausage labels.
+
 ## Recent (2026-11-20) — the kitchen can name a No Processed Food plate (`v31-standard.126`)
 Jason, 2026-11-20: plating sheets line up with the kitchen's manuals, "creating systems to support it, and can add as we go
 as long as it's easy". Edit Menu's "+ Add a plate for…" lists **No processed food** beside the other kitchen plates, at

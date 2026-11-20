@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.126';
+const DOOR_APP_VERSION = 'v31-standard.127';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -5386,6 +5386,15 @@ function saveRecentLog() {
   try { localStorage.setItem('concRecentLog', JSON.stringify(RECENT_LOG.filter(e => e._real !== false).slice(0, 200))); } catch(e) {}
 }
 
+// One key for an entry when two copies of the recent log are merged (2026-11-20, from the breakfast-line session).
+// Room, date and words alone dropped a real second entry made the same day (the same note saved twice, a revert and
+// a redo). An entry carries the time it was made (ts), and the same entry keeps that time on every computer, so the
+// time joins the key. An entry without one keeps the old key.
+function doorRecentLogKey(e) {
+  if (!e) return '';
+  return e.ts ? [e.room, e.ts, e.desc].join('|') : (e.room + e.date + e.desc);
+}
+
 function loadPersistedLog() {
   try {
     const s = JSON.parse(localStorage.getItem('concRecentLog') || '[]');
@@ -9119,7 +9128,7 @@ async function pullSecondaryState(repo) {
       const local = RECENT_LOG.filter(e => e._real !== false);
       const seen = new Set();
       const merged = [...local, ...d]
-        .filter(e => { const k=e.room+e.date+e.desc; return seen.has(k)?false:(seen.add(k),true); });
+        .filter(e => { const k=doorRecentLogKey(e); return seen.has(k)?false:(seen.add(k),true); });
       RECENT_LOG.length = 0; merged.forEach(e => RECENT_LOG.push(e));
       saveRecentLog(); renderRecentLog(); // saveRecentLog prunes + sorts
     }],
@@ -26166,7 +26175,7 @@ initDynamic();
     read('recent_log.json').then(remote=>{
       if(!remote||!Array.isArray(remote))return;
       const local=RECENT_LOG.filter(e=>e._real!==false);const seen=new Set();
-      const merged=[...local,...remote].filter(e=>{const k=e.room+e.date+e.desc;return seen.has(k)?false:(seen.add(k),true);});
+      const merged=[...local,...remote].filter(e=>{const k=doorRecentLogKey(e);return seen.has(k)?false:(seen.add(k),true);});
       RECENT_LOG.length=0;merged.forEach(e=>RECENT_LOG.push(e));saveRecentLog();if(typeof renderRecentLog==='function')renderRecentLog();
     }).catch(()=>{});
     // change_log.json — pull cloud change log so a fresh browser/device sees

@@ -28,4 +28,6 @@ test('U1A-4 Wk4 SAT lunch: the quinoa links CODEX and still reads Turmeric on th
   const s = slot('4', 'SATURDAY', 'lunch', 'vegextras');
   assert.equal(s.recipeId, 'tumeric-quinoa');
   assert.equal(s.displayText, 'Turmeric Quinoa');
+  // 2026-11-20 (publication 45): CODEX renamed the record (shared-library 9ac5a8d), so the link reads Turmeric too.
+  assert.equal(s.recipeName, 'Turmeric Quinoa');
 });
