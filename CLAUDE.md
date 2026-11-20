@@ -53,6 +53,16 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — Wk2 SUN dinner's halal plate names its dish (`v31-standard.129`, publication 48)
+The #274 review's P2-2 (Jason: "Follow lean"): the No Turkey resident on Wk2 SUN dinner's halal plate got no note. The
+meal gains a halal dish box, `dinner_slots.mainalt` "Halal Turkey Sausage" (Turkey, Corn, Gluten, Beans, Processed Meat),
+through the overlay (original kept), one publish (W6 harness); its halal section now prints a CONTAINS line. The meal's
+ticks, words and routing counts are unchanged (Turkey stays off a pork meal). Code: the allergen line names no Turkey or
+Chicken, so `doorPlateFacts` hands the halal box ticks to the notes (`mealFlags._halalDishFlags`, not enumerable, pork
+never) and `doorSectionLineNotes` reads them for the halal section only. Gate `tests/halal_dish_box_gate.mjs` (4, red 3/4
+on `main` `4da2c52`). Independent review SHIP. Noted, not changed: the next Edit Menu Save of this meal ticks Turkey on the meal
+(`doorEditorDetectMeat` reads the halal box words; over-warns only). Receipt `docs/receipts/door_halal_dish_box_2026-11-20.md`.
+
 ## Recent (2026-11-20) — Wk2 SUN dinner carries the meat sausage labels; a publish keeps other computers' Recent Activity (`v31-standard.128`, publication 46)
 Jason read the pork (corn syrup solids, lemon juice solids) and halal turkey (corn starch, corn syrup solids) sausage
 labels; CODEX #396 recorded them. Wk2 SUN dinner gains Corn and Sulphites (and Beans, the pot's shared bean base;

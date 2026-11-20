@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.128';
+const DOOR_APP_VERSION = 'v31-standard.129';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -16591,10 +16591,11 @@ function doorSectionLineNotes(r, section, mealFlags, plateAllergenStr) {
   const f = mealFlags || {};
   const plate = plateAllergenStr ? doorAllergenStrFlags(plateAllergenStr) : {};
   const key = section && section.rule ? section.rule.key : '';
+  const dish = key === 'halal' && f._halalDishFlags ? f._halalDishFlags : {};
   const notes = [];
   if (tags.includes('Soft Meals') && key !== 'soft' && !(key === 'halal' && f.hasPork && !(f._altMeals && f._altMeals.length))) notes.push('soft');
   (typeof doorConflictRows === 'function' ? doorConflictRows() : CONFLICT_MAP).forEach(rule => {
-    if ((f[rule.mealFlag] || plate[rule.mealFlag]) && tags.includes(rule.residentTag) && !notes.includes(rule.note)) notes.push(rule.note);
+    if ((f[rule.mealFlag] || plate[rule.mealFlag] || dish[rule.mealFlag]) && tags.includes(rule.residentTag) && !notes.includes(rule.note)) notes.push(rule.note);
   });
   if (typeof doorYoghurtSwapFor === 'function' && doorYoghurtSwapFor(r, doorSectionLabelPlate(section, f), f)) {
     const at = notes.indexOf('dairy-free');
@@ -26880,6 +26881,12 @@ function doorPlateFacts(dayData, period, opts) {
   // S2b (D8, Jason 2026-11-19: "Follow lean"): a dish on the halal plate whose own name says pork is never hidden. The
   // strip above stays for ticks copied onto a halal slot (Wk4 FRI Tandoori Chicken); a dish named pork is a real mistake,
   // so the plate says PORK and the editor names the dish in red.
+  // 2026-11-20 (Jason: "Follow lean", Wk2 SUN dinner): the allergen line names no Turkey or Chicken, so a halal dish
+  // box ticked Turkey reached no No Turkey resident on the halal plate. Its notes also read the box ticks (not
+  // enumerable, so no copy, count or published file reads it).
+  if (halalSlots && halalSlots.mainalt && halalSlots.mainalt.flags) {
+    Object.defineProperty(mealFlags, '_halalDishFlags', { value: { ...halalSlots.mainalt.flags, hasPork: false }, enumerable: false, configurable: true });
+  }
   const halalPorkDishes = typeof doorHalalPorkDishes === 'function' ? doorHalalPorkDishes(dayData, period) : [];
   const halalAllergenShown = halalPorkDishes.length
     ? (halalAllergenStr ? halalAllergenStr + ', PORK' : 'PORK') : halalAllergenStr;

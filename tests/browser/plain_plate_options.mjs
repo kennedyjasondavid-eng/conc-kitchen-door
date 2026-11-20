@@ -61,7 +61,9 @@ try {
  // 2026-11-20 (U3 S1 data, Jason: "We'll move forward with the notes in"): the published residents now carry breakfast
  // notes, which the baseline build does not print. They are their own gates' (breakfast_note_s1, u3_breakfast_notes_data);
  // switched off first, so the yoghurt comparison and the identity checks still read every other byte.
- await current.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});});
+ // 2026-11-20 (publication 47, Jason: "Follow lean"): the halal section notes read the halal dish box
+ // (_halalDishFlags), which the baseline build does not; tests/halal_dish_box_gate.mjs owns that note, switched off here.
+ await current.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});const pf=window.doorPlateFacts;window.doorPlateFacts=(...a)=>{const f=pf(...a);if(f&&f.mealFlags)delete f.mealFlags._halalDishFlags;return f;};});
  const withSwap=await snapshot(current.b);
  await current.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});
  const after=await snapshot(current.b);
