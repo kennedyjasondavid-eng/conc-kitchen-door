@@ -53,6 +53,15 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — the Tuesday vegan breakfast names oat milk (data, publication 43)
+Jason, 2026-11-20: "yes, make the Tuesday vegan breakfast oat milk". Wk1–4 TUE breakfast's vegan line reads "Cereal and
+oat milk, fruit" (was "Cereal and milk, fruit"), written as Edit Menu's writer writes a permanent change (original kept,
+change-log entry, `saveMenuBaseOverlay`) but without its box rebuild, which re-split the meals' parts and asked the
+soft-plate question on a first run; then one publish (W6 harness). Only `breakfast_veg` moves in `menu_current.json`; the
+vegan plate's CONTAINS gains OATS; 301a's "oat milk only" note no longer reads CHECK; `_components` splits the cereal
+(147 milk, 13 oat milk). EXPO plans no breakfast, so its board does not move.
+Receipt `docs/receipts/door_tue_vegan_oat_milk_2026-11-20.md`; gate `tests/tue_vegan_oat_milk_gate.mjs` (5).
+
 ## Recent (2026-11-20) — four vegan dishes link their own CODEX records (data, publication 42)
 Jason, 2026-11-19, on the U1 call ("Follow lean"): vegan dishes linked to a shared pot keep the link until CODEX gives
 each pot its own vegan record. CODEX #392 and #394 did. Wk1 FRI (Tofu Adobo), Wk2 SUN (Vegan Sausage and Greens Pasta
@@ -95,7 +104,7 @@ section, count or routing changes.
 - **Data (publication 41, 2026-11-20):** 301a "oat milk only" and 1007 "smaller breakfast starch portion plus extra
   protein", through the editor's notes-only save and DOOR's publisher (W6 harness); nothing else moves. The repository is
   public, so the notes are readable in `door_state.json` on GitHub (Jason, 2026-11-20: notes in now, private later).
-  301a's Tuesday vegan breakfast names plain milk, so its row reads CHECK (raised with Jason). Receipt
+  301a's Tuesday vegan breakfast named plain milk, so its row read CHECK (2026-11-20: oat milk since publication 43). Receipt
   `docs/receipts/door_u3_breakfast_notes_2026-11-20.md`; gate `tests/u3_breakfast_notes_data_gate.mjs` (4).
 
 ## Recent (2026-11-20) — DOOR draws a little larger on a wide screen (`v31-standard.123`)
