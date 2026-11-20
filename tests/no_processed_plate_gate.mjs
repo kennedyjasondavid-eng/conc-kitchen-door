@@ -75,3 +75,19 @@ function findOutcomes() {
   const start = html.lastIndexOf('\nfunction ', i) + 10;
   return html.slice(start, html.indexOf('(', start));
 }
+
+// Independent review fold (2026-11-20): P2-1, the editor's section preview seats them as the sheet does; and a lock that
+// a named plate never takes a Halal or No Pork resident off the halal plate on a pork meal (halal is higher priority).
+test('NP-6 the editor preview carries a named plate, so it seats them as the sheet does', () => {
+  const e = vm.createContext({ ALT_MEALS_NONE: false });
+  vm.runInContext(fn('doorEditorPlateFlags') + '\nfunction doorKitchenAltInputValues() { return { noProcessedAlt: "' + PLATE + '" }; }', e);
+  const flags = e.doorEditorPlateFlags({ hasPork: true, hasProcessedMeat: true });
+  assert.equal(flags._noProcessedAlt, PLATE);
+  assert.equal(seatOf(out(flags), resident('SYN-NP', ['No Processed Food'])), 'no_processed');
+});
+
+test('NP-7 a named plate keeps Halal and No Pork residents on the halal plate on a pork meal', () => {
+  const named = c.doorAddKitchenPlateFlags({ hasPork: true, hasProcessedMeat: true }, { lunch_noProcessedAlt: PLATE }, 'lunch');
+  assert.equal(seatOf(named, resident('SYN-H', ['Halal', 'No Processed Food'])), 'halal');
+  assert.equal(seatOf(named, resident('SYN-P', ['No Pork', 'No Processed Food'])), 'halal');
+});

@@ -59,11 +59,14 @@ as long as it's easy". Edit Menu's "+ Add a plate for…" lists **No processed f
 breakfast, lunch and dinner; the meal stores `<period>_noProcessedAlt` (a seventh `DOOR_KITCHEN_ALT_FIELDS` entry, so a
 swap or permanent change clears it and the kept original carries it). The No Processed Food section prints it (it printed
 the soft plate, else "Non-processed alternative — plain protein, rice & veg"); on a pork meal a named plate keeps those
-residents on it instead of the halal plate; the editor counts it on its own row (the soft row stops supplying it). No meal
-names one today, so every sheet, count and published file is unchanged until someone adds one. Additive in
+residents on it instead of the halal plate; the editor counts it on its own row (the soft row stops supplying it), and its
+preview seats them as the sheet does. A named plate is read by the label-not-checked check and the yoghurt note like the
+other plates. No meal names one today, so sheets and counts don't change until someone adds one (the next Save of a meal
+writes an empty key with the other plates). Additive in
 `menu_current.json`: EXPO's dated-meal drop list (`_DATED_MEAL_DROPS`) mirrors DOOR's and should gain `_noProcessedAlt`
-(it reads no kitchen plate, so its board doesn't move). Gate `tests/no_processed_plate_gate.mjs` (5, red 5/5 on `main`
-`e82e0f6`); re-pinned with dated notes: `kitchen_alternatives_gate` 8 (seven boxes), `make_permanent_whole_dish_gate` 6
+(it reads no kitchen plate, so its board doesn't move). Gate `tests/no_processed_plate_gate.mjs` (7, red on `main`
+`e82e0f6`) and a `label_unchecked_gate` case; independent review (FIX FIRST) folded: the label check and yoghurt note read
+a named plate (P1-1), the editor preview carries it (P2-1), the plate-rule proof tries it. Re-pinned with dated notes: `kitchen_alternatives_gate` 8 (seven boxes), `make_permanent_whole_dish_gate` 6
 (the parts list), browser `other_plates_s8` (seven plates).
 
 ## Recent (2026-11-20) — a real edit keeps the vegan line, the halal line and the sides as written (`v31-standard.125`)
