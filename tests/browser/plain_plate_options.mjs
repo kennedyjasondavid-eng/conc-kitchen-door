@@ -58,6 +58,10 @@ try {
  current=await boot(path.resolve('index.html'),'new');
  // 2026-11-19 (call 4, Jason: "Follow lean"): the "dairy-free: vegan yoghurt" breakfast note is the one intended sheet
  // change since the baseline; it is compared on its own, then switched off for the identity check below.
+ // 2026-11-20 (U3 S1 data, Jason: "We'll move forward with the notes in"): the published residents now carry breakfast
+ // notes, which the baseline build does not print. They are their own gates' (breakfast_note_s1, u3_breakfast_notes_data);
+ // switched off first, so the yoghurt comparison and the identity checks still read every other byte.
+ await current.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});});
  const withSwap=await snapshot(current.b);
  await current.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});
  const after=await snapshot(current.b);
