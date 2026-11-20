@@ -39,6 +39,10 @@ try {
   const b=await boot(path.resolve('index.html'),mode+'-guard',mode,false);
   // 2026-11-19 (call 4, Jason: "Follow lean"): No Dairy residents on a dairy-yoghurt breakfast now read "dairy-free: vegan
   // yoghurt". That note is the one intended change since the baseline; it is compared on its own, then switched off here.
+  // 2026-11-20 (U3 S1 data, Jason: "We'll move forward with the notes in"): the published residents now carry breakfast
+  // notes, which the baseline build does not print. They are their own gates' (breakfast_note_s1, u3_breakfast_notes_data);
+  // switched off first, so the yoghurt comparison and the baseline comparison still read every other byte.
+  await b.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});});
   const withSwap=await snapshot(b.b);
   await b.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});
   const guard=await snapshot(b.b);
