@@ -853,6 +853,22 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     [data-theme="dark"] .daily-update-manual { background: #2a2520; border-color: #5c4d30; }
     [data-theme="dark"] .daily-update-sub { color: #c9a46a; }
   }
+  /* Jason, 2026-11-20: DOOR a little larger on a wide screen by default ("can we make this the default scale?", then
+     "Try 110% equiv"). Screen only, from 1650 px wide: the zoomed layout is then at least 1500 px, so every breakpoint
+     the page uses (the side panel from 1500) still holds. Print and the plating sheets keep their size. Viewport heights
+     are divided by the scale so the sidebar, page and dialogs fit the window. One number: --door-zoom (keep the
+     min-width at 1500 times it). doorScreenScale() in the script reads the zoom. */
+  @media screen and (min-width: 1650px) {
+    :root { --door-zoom: 1.1; }
+    body { zoom: var(--door-zoom); min-height: calc(100vh / var(--door-zoom)); }
+    .main { min-height: calc(100vh / var(--door-zoom)); }
+    #app-shell { min-height: calc(100vh / var(--door-zoom)) !important; }
+    .sidebar { height: calc(100vh / var(--door-zoom)); }
+    .modal-box { max-height: calc(80vh / var(--door-zoom)); }
+    .modal-box[style*="max-height:90vh"] { max-height: calc(90vh / var(--door-zoom)) !important; }
+    div[style*="max-height:88vh"] { max-height: calc(88vh / var(--door-zoom)) !important; }
+    .modal-body[style*="max-height:70vh"] { max-height: calc(70vh / var(--door-zoom)) !important; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -860,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.122';
+const DOOR_APP_VERSION = 'v31-standard.123';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -16544,7 +16560,9 @@ function showToast(msg) {
   const _ft = document.getElementById('mc-menu-edit-footer');
   const _pn = document.getElementById('mc-menu-edit-panel');
   const _fr = _ft && _pn && _pn.style.display !== 'none' && _ft.getBoundingClientRect ? _ft.getBoundingClientRect() : null;   // re-review P3: offsetParent is null for a fixed footer
-  t.style.bottom = (_fr && _fr.top < window.innerHeight && _fr.bottom > 0) ? Math.round(window.innerHeight - _fr.top + 12) + 'px' : '24px';
+  // 2026-11-20: under the wide-screen zoom the footer rect and the window are in screen pixels, the toast bottom in page pixels.
+  const _zs = (typeof doorScreenScale === 'function') ? doorScreenScale() : 1;
+  t.style.bottom = (_fr && _fr.top < window.innerHeight && _fr.bottom > 0) ? Math.round((window.innerHeight - _fr.top) / _zs + 12) + 'px' : '24px';
   t.style.opacity = '1';
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
@@ -16866,6 +16884,12 @@ if (typeof document !== 'undefined') {
 }
 // S7 review fold: where the open meal view starts. On a phone (full screen) below the out-of-date bar, so Close stays in
 // reach; as a side panel (1500 px and wider) below the sticky header, so More and Send to kitchen stay in reach.
+// 2026-11-20: the wide-screen zoom (CSS --door-zoom, screen only, from 1650 px), else 1.
+function doorScreenScale() {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function' || !document.body) return 1;
+  const z = parseFloat(getComputedStyle(document.body).zoom);
+  return z > 0 ? z : 1;
+}
 function doorPlaceMealPanel() {
   if (typeof document === 'undefined' || typeof window === 'undefined' || !window.matchMedia) return;
   const panel = document.getElementById('mc-menu-edit-panel');
