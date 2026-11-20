@@ -853,6 +853,22 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     [data-theme="dark"] .daily-update-manual { background: #2a2520; border-color: #5c4d30; }
     [data-theme="dark"] .daily-update-sub { color: #c9a46a; }
   }
+  /* Jason, 2026-11-20: DOOR a little larger on a wide screen by default ("can we make this the default scale?", then
+     "Try 110% equiv"). Screen only, from 1650 px wide: the zoomed layout is then at least 1500 px, so every breakpoint
+     the page uses (the side panel from 1500) still holds. Print and the plating sheets keep their size. Viewport heights
+     are divided by the scale so the sidebar, page and dialogs fit the window. One number: --door-zoom (keep the
+     min-width at 1500 times it). doorScreenScale() in the script reads the zoom. */
+  @media screen and (min-width: 1650px) {
+    :root { --door-zoom: 1.1; }
+    body { zoom: var(--door-zoom); min-height: calc(100vh / var(--door-zoom)); }
+    .main { min-height: calc(100vh / var(--door-zoom)); }
+    #app-shell { min-height: calc(100vh / var(--door-zoom)) !important; }
+    .sidebar { height: calc(100vh / var(--door-zoom)); }
+    .modal-box { max-height: calc(80vh / var(--door-zoom)); }
+    .modal-box[style*="max-height:90vh"] { max-height: calc(90vh / var(--door-zoom)) !important; }
+    div[style*="max-height:88vh"] { max-height: calc(88vh / var(--door-zoom)) !important; }
+    .modal-body[style*="max-height:70vh"] { max-height: calc(70vh / var(--door-zoom)) !important; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -860,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.122';
+const DOOR_APP_VERSION = 'v31-standard.123';
 const DOOR_BUILD_DATE = '2026-11-19';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -13431,7 +13447,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar', data: { labels, datasets: [{ label: 'Uptake %', data, backgroundColor: colors, borderRadius: 4 }] },
       options: { responsive: true, plugins: { legend: { display: false } },
         scales: { y: { min: 70, max: 100, ticks: { callback: v => v + '%' } }, x: { ticks: { maxRotation: 45, font: { size: 9 } } } } }
@@ -13461,7 +13477,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar', data: { labels, datasets: [{ label: 'Uptake %', data: uptakes, backgroundColor: colors, borderRadius: 4 }] },
       options: { responsive: true, plugins: { legend: { display: false } },
         scales: { y: { min: 70, max: 100, ticks: { callback: v => v + '%' } }, x: { ticks: { font: { size: 11 } } } } }
@@ -13642,7 +13658,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar',
       data: {
         labels: mealsSorted.map(m => m.name.length > 22 ? m.name.slice(0,22)+'…' : m.name),
@@ -13710,7 +13726,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'bar',
       data: {
         labels: monthLabels,
@@ -13790,7 +13806,7 @@ function runCustomReport() {
 
     if (crChart) crChart.destroy();
     const ctx = document.getElementById('cr-chart');
-    if (ctx) crChart = new Chart(ctx, {
+    if (ctx) crChart = doorNewChart(ctx, {
       type: 'line',
       data: { labels: mLabels, datasets },
       options: {
@@ -14091,7 +14107,7 @@ function renderReport() {
   if (uptakeChart) uptakeChart.destroy();
   const ctx = document.getElementById('uptake-chart');
   if (ctx) {
-    uptakeChart = new Chart(ctx, {
+    uptakeChart = doorNewChart(ctx, {
       type: 'bar',
       data: {
         labels,
@@ -16544,7 +16560,9 @@ function showToast(msg) {
   const _ft = document.getElementById('mc-menu-edit-footer');
   const _pn = document.getElementById('mc-menu-edit-panel');
   const _fr = _ft && _pn && _pn.style.display !== 'none' && _ft.getBoundingClientRect ? _ft.getBoundingClientRect() : null;   // re-review P3: offsetParent is null for a fixed footer
-  t.style.bottom = (_fr && _fr.top < window.innerHeight && _fr.bottom > 0) ? Math.round(window.innerHeight - _fr.top + 12) + 'px' : '24px';
+  // 2026-11-20: under the wide-screen zoom the footer rect and the window are in screen pixels, the toast bottom in page pixels.
+  const _zs = (typeof doorScreenScale === 'function') ? doorScreenScale() : 1;
+  t.style.bottom = (_fr && _fr.top < window.innerHeight && _fr.bottom > 0) ? Math.round((window.innerHeight - _fr.top) / _zs + 12) + 'px' : '24px';
   t.style.opacity = '1';
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
@@ -16866,6 +16884,29 @@ if (typeof document !== 'undefined') {
 }
 // S7 review fold: where the open meal view starts. On a phone (full screen) below the out-of-date bar, so Close stays in
 // reach; as a side panel (1500 px and wider) below the sticky header, so More and Send to kitchen stay in reach.
+// 2026-11-20: the wide-screen zoom (CSS --door-zoom, screen only, from 1650 px), else 1.
+function doorScreenScale() {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function' || !document.body) return 1;
+  const z = parseFloat(getComputedStyle(document.body).zoom);
+  return z > 0 ? z : 1;
+}
+// 2026-11-20 (review of the wide-screen zoom): Chart.js reads the mouse in screen pixels and draws in page pixels, so
+// under the zoom a tooltip pointed at the wrong bar. One plugin, registered once, divides the event position by the zoom.
+function doorNewChart(ctx, cfg) {
+  if (typeof Chart !== 'undefined' && Chart.register && !doorNewChart.registered) {
+    Chart.register({ id: 'doorScreenZoom', beforeEvent(chart, args) {
+      const z = typeof doorScreenScale === 'function' ? doorScreenScale() : 1;
+      const e = args && args.event;
+      if (z !== 1 && e && typeof e.x === 'number' && typeof e.y === 'number') {
+        e.x = e.x / z; e.y = e.y / z;
+        // Chart.js judged inside the chart area before this hook, on the screen position: judge it again.
+        if (typeof chart.isPointInArea === 'function') args.inChartArea = chart.isPointInArea(e);
+      }
+    } });
+    doorNewChart.registered = true;
+  }
+  return new Chart(ctx, cfg);
+}
 function doorPlaceMealPanel() {
   if (typeof document === 'undefined' || typeof window === 'undefined' || !window.matchMedia) return;
   const panel = document.getElementById('mc-menu-edit-panel');
@@ -16873,7 +16914,8 @@ function doorPlaceMealPanel() {
   const bar = document.getElementById('door-stale-banner');
   const top = document.querySelector('#screen-menu-config .topbar');
   if (window.matchMedia('(max-width: 768px)').matches) panel.style.top = (bar ? bar.offsetHeight : 0) + 'px';
-  else if (window.matchMedia('(min-width: 1500px)').matches) panel.style.top = (top ? top.offsetHeight : 0) + 'px';
+  // 2026-11-20 review fold: under the wide-screen zoom offsetHeight rounds below the header edge; take the exact height.
+  else if (window.matchMedia('(min-width: 1500px)').matches) panel.style.top = (top ? Math.ceil(top.getBoundingClientRect().height / doorScreenScale()) : 0) + 'px';
   else panel.style.top = '';
 }
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (typeof doorPlaceMealPanel === 'function') doorPlaceMealPanel(); });
