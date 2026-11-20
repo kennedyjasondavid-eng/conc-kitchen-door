@@ -55,10 +55,11 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 
 ## Recent (2026-11-20) — the Tuesday vegan breakfast names oat milk (data, publication 43)
 Jason, 2026-11-20: "yes, make the Tuesday vegan breakfast oat milk". Wk1–4 TUE breakfast's vegan line reads "Cereal and
-oat milk, fruit" (was "Cereal and milk, fruit"), through DOOR's meal view and Save and one publish (W6 harness). The regular
-line, ticks and section counts are unchanged; the vegan plate's CONTAINS gains OATS; 301a's "oat milk only" note no longer
-reads CHECK; `_components` splits the cereal (147 milk, 13 oat milk). The soft-plate question was held off for these saves
-(its only Save answer marks the meal "no soft plate needed", which nobody ruled), so the soft-plate state is as it was.
+oat milk, fruit" (was "Cereal and milk, fruit"), written as Edit Menu's writer writes a permanent change (original kept,
+change-log entry, `saveMenuBaseOverlay`) but without its box rebuild, which re-split the meals' parts and asked the
+soft-plate question on a first run; then one publish (W6 harness). Only `breakfast_veg` moves in `menu_current.json`; the
+vegan plate's CONTAINS gains OATS; 301a's "oat milk only" note no longer reads CHECK; `_components` splits the cereal
+(147 milk, 13 oat milk).
 Receipt `docs/receipts/door_tue_vegan_oat_milk_2026-11-20.md`; gate `tests/tue_vegan_oat_milk_gate.mjs` (5).
 
 ## Recent (2026-11-20) — four vegan dishes link their own CODEX records (data, publication 42)

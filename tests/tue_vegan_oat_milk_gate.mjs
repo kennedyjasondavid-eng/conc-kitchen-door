@@ -1,5 +1,6 @@
 // The Tuesday vegan breakfast names oat milk (Jason, 2026-11-20: "yes, make the Tuesday vegan breakfast oat milk"),
-// made through DOOR's meal view and Save and one publish through DOOR's publisher (publication 43). Reads the published
+// written as Edit Menu's writer writes a permanent change, without its box rebuild, and one publish through DOOR's
+// publisher (publication 43). Reads the published
 // menu_current.json, menu_overlay.json and routing_by_meal.json; a later reviewed menu change that touches these
 // breakfasts re-pins this with a dated note.
 import test from 'node:test';
@@ -20,7 +21,7 @@ test('TO-1 each Tuesday vegan breakfast names oat milk; the regular line is unch
 });
 
 test('TO-2 the soft plate is as it was: none set, and none marked "not needed"', () => {
-  // The save held off the soft-plate question (its only Save answer marks the meal "no soft plate needed").
+  // Only the vegan line was written; the soft-plate state (no soft plate, none marked "not needed") is as it was.
   for (const w of WEEKS) {
     const b = menu[w].TUESDAY;
     assert.notEqual(b.breakfast_altMealsNone, true, 'Wk' + w);
