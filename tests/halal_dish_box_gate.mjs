@@ -2,7 +2,7 @@
 // dish box, so its section printed no CONTAINS line, and a No Turkey resident on it got no note. The halal plate now has
 // its own box, "Halal Turkey Sausage" (Turkey, Corn, Gluten, Beans, Processed Meat), and the halal section's notes also
 // read that box's ticks: the allergen line has no word for Turkey or Chicken, so the plate's line alone could not carry
-// it. The meal's own ticks and every line's words do not move. Residents here are made up. Authored red on main 4da2c52.
+// it. (2026-11-20: No Turkey itself now warns nowhere; HD-3 shows the box path on No Corn.) The meal's own ticks and every line's words do not move. Residents here are made up. Authored red on main 4da2c52.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -35,15 +35,17 @@ test('HD-2 nothing else moves: the meal ticks (no Turkey on a pork meal), the wo
 });
 test('HD-3 the halal section notes read the halal dish box; other sections and the meal do not', () => {
   const c = {
-    CONFLICT_MAP: [{ mealFlag: 'hasTurkey', residentTag: 'No Turkey', note: 'no turkey' }],
+    // 2026-11-20 (Jason: the no turkey note is noise): No Turkey warns nowhere now, so the mechanism is shown on No Corn,
+    // which the halal box also carries.
+    CONFLICT_MAP: [{ mealFlag: 'hasCorn', residentTag: 'No Corn', note: 'no corn' }],
     doorAllergenStrFlags: () => ({}), hasCarbAccommodation: () => false,
   };
   vm.createContext(c);
   vm.runInContext(fn('doorSectionLineNotes'), c);
-  const r = { tags: ['Halal', 'No Turkey'] };
+  const r = { tags: ['Halal', 'No Corn'] };
   const f = { hasPork: true };
-  Object.defineProperty(f, '_halalDishFlags', { value: { hasTurkey: true }, enumerable: false });
-  assert.equal(c.doorSectionLineNotes(r, { rule: { key: 'halal' } }, f, 'WHEAT, CORN'), 'no turkey');
+  Object.defineProperty(f, '_halalDishFlags', { value: { hasCorn: true }, enumerable: false });
+  assert.equal(c.doorSectionLineNotes(r, { rule: { key: 'halal' } }, f, 'WHEAT'), 'no corn');
   assert.equal(c.doorSectionLineNotes(r, { rule: { key: 'vegan' } }, f, 'WHEAT'), '', 'only the halal plate eats the halal box');
   assert.equal(c.doorSectionLineNotes(r, { rule: { key: 'halal' } }, { hasPork: true }, 'WHEAT'), '', 'no box, no note');
 });

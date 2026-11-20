@@ -108,7 +108,7 @@ Column meanings:
 | No Processed Food | 1 | routing | no_processed (hasProcessedMeat) | hasProcessedMeat (was –) | "no processed meat" (was –) | not offered | doc | F8, F11 fixed |
 | No Soy | 1 | allergen | – | hasSoy | "no soy" | hasSoy | doc | |
 | No Tree Nuts | 1 | allergen | – | hasTreeNuts | "no tree nuts" | hasTreeNuts | doc | |
-| No Turkey | 1 | accom | – | hasTurkey | "no turkey" (was –) | not offered | auto | F8 fixed |
+| No Turkey | 1 | accom | – | – (was hasTurkey) | – (was "no turkey") | not offered | auto | 2026-11-20: a preference, warns nowhere (Jason: the note is noise) |
 | Bland Diet | 0 | routing | bland (isSpicy with blandAlt; was in no section) | isSpicy (was –) | "not spicy" (was –) | not offered | doc* | F2 fixed |
 | No Brassicas | 0 | accom | – | hasBrassicas | "no broccoli/cauliflower/cabbage" | not offered | auto | |
 | No Fried Food | 0 | accom | – | – | – | not offered | doc | F6 |

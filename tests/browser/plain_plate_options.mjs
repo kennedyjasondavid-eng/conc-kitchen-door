@@ -53,7 +53,11 @@ async function snapshot(b) {
 }
 let old,current;
 try {
- old=await boot(originalPath,'old');const before=await snapshot(old.b);
+ old=await boot(originalPath,'old');
+ // 2026-11-20 (Jason: the no turkey note is noise): the current build names No Turkey nowhere; the baseline build's
+ // No Turkey row is taken out here so both read the same.
+ await old.b.page.evaluate(()=>{const i=CONFLICT_MAP.findIndex(r=>r.residentTag==='No Turkey');if(i>=0)CONFLICT_MAP.splice(i,1);delete RESIDENT_TO_MEAL_FLAG['No Turkey'];});
+ const before=await snapshot(old.b);
  await old.b.publish();const oldPublished=structuredClone(old.b.remote.files);
  current=await boot(path.resolve('index.html'),'new');
  // 2026-11-19 (call 4, Jason: "Follow lean"): the "dairy-free: vegan yoghurt" breakfast note is the one intended sheet

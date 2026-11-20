@@ -76,7 +76,8 @@ export const NOTES = [
   ['hasGluten', 'GF', 'gluten-free'], ['hasDairy', 'No Dairy', 'dairy-free'], ['hasDairy', 'Lactose Intolerant', 'dairy-free'],
   // F8 (Jason, 2026-10-18: "Yes, both"): a restriction only the routing engine knew is named on the line too.
   ['isSpicy', 'No Spicy', 'not spicy'], ['isSpicy', 'Bland Diet', 'not spicy'], ['hasBeef', 'No Beef', 'no beef'],
-  ['hasTurkey', 'No Turkey', 'no turkey'], ['hasProcessedMeat', 'No Processed Food', 'no processed meat'],
+  // 2026-11-20 (Jason: the no turkey note is noise): No Turkey is a preference and is not named on a line.
+  ['hasProcessedMeat', 'No Processed Food', 'no processed meat'],
 ];
 
 // The notes a resident seated in a non-Regular section must carry (R0). `plateFlags` are the allergens DOOR knows for

@@ -53,6 +53,16 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — No Turkey warns nowhere (`v31-standard.130`)
+Jason, 2026-11-20: the "no turkey" note "feels like noise"; on the call, "Stop warning". No Turkey was already filed as a
+preference (`COMPLIANCE_TIERS` auto), but it printed an amber "no turkey" line note and raised a Generate conflict. Both
+are gone: its `CONFLICT_MAP` row and its `RESIDENT_TO_MEAL_FLAG` entry are removed, so a No Turkey resident also gets no
+"check label" note. The tag stays on the resident, the label and the registry; routing never read it. The halal dish box
+path (`_halalDishFlags`, `.129`) stays for the other notes; the next Edit Menu Save of Wk2 SUN dinner (Turkey on the meal)
+now moves nothing. Re-pinned with dated notes: `tag_table_consistency_gate` (the census row, red on `main` `6f8cb6e`),
+`routing_replay_gate` (the turkey example now checks the note is absent), `tests/helpers/routing_oracle.mjs`, and browser
+`library_recipe_lookup_boundary` and `plain_plate_options` (the baseline build's row is taken out). Rules doc §4 updated.
+
 ## Recent (2026-11-20) — Wk2 SUN dinner's halal plate names its dish (`v31-standard.129`, publication 48)
 The #274 review's P2-2 (Jason: "Follow lean"): the No Turkey resident on Wk2 SUN dinner's halal plate got no note. The
 meal gains a halal dish box, `dinner_slots.mainalt` "Halal Turkey Sausage" (Turkey, Corn, Gluten, Beans, Processed Meat),
