@@ -27,3 +27,10 @@ the meal's own ticks (a pork meal) carry no Turkey. Jason, 2026-11-20, on giving
     "no turkey".
   - Adding Turkey to the allergen line was not chosen: it would change CONTAINS on every turkey meal.
 - **Check:** `tests/halal_dish_box_gate.mjs` (4), red 3/4 on `main` `4da2c52`. HD-2 locks what must not move.
+- **Independent review: SHIP** (no P1 or P2). Noted, not changed:
+  - P3-1: Edit Menu's Save adds every meat named in the main and halal boxes to the meal's ticks
+    (`doorEditorDetectMeat`). So the next real Save of this meal turns on Turkey for the whole meal. No Turkey residents
+    on the regular plate would then get a "no turkey" note too. That only over-warns, and routing doesn't move. HD-2
+    goes red at that point; re-pin it with a dated note.
+  - P3-2: the same Save also writes `dinner_mainAlt` ("Halal Turkey Sausage"), which is empty today. Harmless.
+  - P3-3: HD-3 and HD-4 test the note and the source, not `doorPlateFacts` running on the published meal.

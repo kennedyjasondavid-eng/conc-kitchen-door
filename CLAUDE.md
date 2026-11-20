@@ -60,7 +60,8 @@ through the overlay (original kept), one publish (W6 harness); its halal section
 ticks, words and routing counts are unchanged (Turkey stays off a pork meal). Code: the allergen line names no Turkey or
 Chicken, so `doorPlateFacts` hands the halal box ticks to the notes (`mealFlags._halalDishFlags`, not enumerable, pork
 never) and `doorSectionLineNotes` reads them for the halal section only. Gate `tests/halal_dish_box_gate.mjs` (4, red 3/4
-on `main` `4da2c52`). Receipt `docs/receipts/door_halal_dish_box_2026-11-20.md`.
+on `main` `4da2c52`). Independent review SHIP. Noted, not changed: the next Edit Menu Save of this meal ticks Turkey on the meal
+(`doorEditorDetectMeat` reads the halal box words; over-warns only). Receipt `docs/receipts/door_halal_dish_box_2026-11-20.md`.
 
 ## Recent (2026-11-20) — Wk2 SUN dinner carries the meat sausage labels; a publish keeps other computers' Recent Activity (`v31-standard.128`, publication 46)
 Jason read the pork (corn syrup solids, lemon juice solids) and halal turkey (corn starch, corn syrup solids) sausage
