@@ -53,6 +53,14 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — the Tuesday vegan breakfast names oat milk (data, publication 43)
+Jason, 2026-11-20: "yes, make the Tuesday vegan breakfast oat milk". Wk1–4 TUE breakfast's vegan line reads "Cereal and
+oat milk, fruit" (was "Cereal and milk, fruit"), through DOOR's meal view and Save and one publish (W6 harness). The regular
+line, ticks and section counts are unchanged; the vegan plate's CONTAINS gains OATS; 301a's "oat milk only" note no longer
+reads CHECK; `_components` splits the cereal (147 milk, 13 oat milk). The soft-plate question was held off for these saves
+(its only Save answer marks the meal "no soft plate needed", which nobody ruled), so the soft-plate state is as it was.
+Receipt `docs/receipts/door_tue_vegan_oat_milk_2026-11-20.md`; gate `tests/tue_vegan_oat_milk_gate.mjs` (5).
+
 ## Recent (2026-11-20) — four vegan dishes link their own CODEX records (data, publication 42)
 Jason, 2026-11-19, on the U1 call ("Follow lean"): vegan dishes linked to a shared pot keep the link until CODEX gives
 each pot its own vegan record. CODEX #392 and #394 did. Wk1 FRI (Tofu Adobo), Wk2 SUN (Vegan Sausage and Greens Pasta

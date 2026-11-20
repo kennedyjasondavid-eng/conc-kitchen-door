@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-20T03:29:39.147Z",
+    "exported": "2026-11-20T11:46:04.378Z",
     "version": 32,
     "flow": {
       "calendar": {
@@ -15,14 +15,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:f6db3844af02f16ac31746a206bfb6084b95a566a2b74ad77700ab5de4697cba",
+        "menu": "sha256:8452aeaf35049105ac213f6b377060706ebd71e5a8a26f9bacf92e9a6ca59ac0",
         "recipe": "sha256:074589c2b14e83091a13cb8a33768a8b4dab80dd1ebd2c4e39b2f87119c586e9",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:b596c56e197b5a23efe9ced51df8b2969956851769aa7cc987a85ab1459727a4",
+      "inputRevision": "sha256:260162c1594b4b0bf07a132ac7e2e45a94e1336ba4a246bf09b396fcd32bac71",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 42
+        "sequence": 43
       },
       "schema": 1
     }
@@ -529,9 +529,9 @@
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk, fruit",
-        "breakfast_veg": "Cereal and milk, fruit",
-        "breakfast_mainItem": "Cereal and milk",
-        "breakfast_sides": "fruit",
+        "breakfast_veg": "Cereal and oat milk, fruit",
+        "breakfast_mainItem": "Cereal and milk & fruit",
+        "breakfast_sides": "",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -552,12 +552,12 @@
           "isCarb": false,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Pork Carnitas, Spanish Rice and Vegetables, Broccoli",
         "dinner_veg": "Vegan Mushroom Carnitas, Spanish Rice and Vegetables, Broccoli",
@@ -810,7 +810,53 @@
             "flags": {}
           }
         },
-        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit"
+        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit",
+        "breakfast_softAlt": "",
+        "breakfast_altMeals": [],
+        "breakfast_altMealsNone": false,
+        "breakfast_diabeticAlt": "",
+        "breakfast_noDairyAlt": "",
+        "breakfast_noEggAlt": "",
+        "breakfast_blandAlt": "",
+        "breakfast_anaphAlt": "",
+        "breakfast_noPorkAlt": "",
+        "breakfast_mainAlt": "",
+        "breakfast_slots": {
+          "main": {
+            "manual": "Cereal and milk & fruit",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Cereal and oat milk, fruit",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -2465,9 +2511,9 @@
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk, fruit",
-        "breakfast_veg": "Cereal and milk, fruit",
-        "breakfast_mainItem": "Cereal and milk",
-        "breakfast_sides": "fruit",
+        "breakfast_veg": "Cereal and oat milk, fruit",
+        "breakfast_mainItem": "Cereal and milk & fruit",
+        "breakfast_sides": "",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -2488,12 +2534,12 @@
           "isCarb": false,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "dinner": "Pork Vindaloo, Steamed Broccoli, Steamed Rice",
         "dinner_veg": "Vegetarian Vindaloo, Steamed Broccoli, Steamed Rice",
@@ -2742,7 +2788,53 @@
           }
         },
         "lunch_diabeticAlt": "Whole Wheat Pita, Tuna Salad Sandwich, Seasonal Soup or Salad",
-        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit"
+        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit",
+        "breakfast_softAlt": "",
+        "breakfast_altMeals": [],
+        "breakfast_altMealsNone": false,
+        "breakfast_diabeticAlt": "",
+        "breakfast_noDairyAlt": "",
+        "breakfast_noEggAlt": "",
+        "breakfast_blandAlt": "",
+        "breakfast_anaphAlt": "",
+        "breakfast_noPorkAlt": "",
+        "breakfast_mainAlt": "",
+        "breakfast_slots": {
+          "main": {
+            "manual": "Cereal and milk & fruit",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Cereal and oat milk, fruit",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
@@ -4079,9 +4171,9 @@
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk, fruit",
-        "breakfast_veg": "Cereal and milk, fruit",
-        "breakfast_mainItem": "Cereal and milk",
-        "breakfast_sides": "fruit",
+        "breakfast_veg": "Cereal and oat milk, fruit",
+        "breakfast_mainItem": "Cereal and milk & fruit",
+        "breakfast_sides": "",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -4102,12 +4194,12 @@
           "isCarb": false,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "lunch": "Ginger Beef, Rice, Garlic corn & Bean",
         "lunch_veg": "Ginger Portobello and Tofu, Garlic Corn & Bean, Rice",
@@ -4352,7 +4444,53 @@
         "lunch_halal": "",
         "lunch_mainAlt": "",
         "lunch_noPorkAlt": "",
-        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit"
+        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit",
+        "breakfast_softAlt": "",
+        "breakfast_altMeals": [],
+        "breakfast_altMealsNone": false,
+        "breakfast_diabeticAlt": "",
+        "breakfast_noDairyAlt": "",
+        "breakfast_noEggAlt": "",
+        "breakfast_blandAlt": "",
+        "breakfast_anaphAlt": "",
+        "breakfast_noPorkAlt": "",
+        "breakfast_mainAlt": "",
+        "breakfast_slots": {
+          "main": {
+            "manual": "Cereal and milk & fruit",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Cereal and oat milk, fruit",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Ham Frittata, fruit & yoghurt, roll",
@@ -6167,9 +6305,9 @@
       },
       "TUESDAY": {
         "breakfast": "Cereal and milk, fruit",
-        "breakfast_veg": "Cereal and milk, fruit",
-        "breakfast_mainItem": "Cereal and milk",
-        "breakfast_sides": "fruit",
+        "breakfast_veg": "Cereal and oat milk, fruit",
+        "breakfast_mainItem": "Cereal and milk & fruit",
+        "breakfast_sides": "",
         "breakfast_flags": {
           "hasGluten": true,
           "hasDairy": true,
@@ -6190,12 +6328,12 @@
           "isCarb": false,
           "halalCertifiedMeat": false,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": false,
-          "hasBeans": false
+          "hasBrassicas": false,
+          "hasCorn": false
         },
         "allergens_breakfast": "gluten, dairy",
         "lunch": "Japanese Beef Donburi, Rice, Sauteed Cabbage",
@@ -6530,7 +6668,53 @@
         "dinner_noEggAlt": "",
         "dinner_blandAlt": "",
         "dinner_anaphAlt": "",
-        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit"
+        "breakfast_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit",
+        "breakfast_softAlt": "",
+        "breakfast_altMeals": [],
+        "breakfast_altMealsNone": false,
+        "breakfast_diabeticAlt": "",
+        "breakfast_noDairyAlt": "",
+        "breakfast_noEggAlt": "",
+        "breakfast_blandAlt": "",
+        "breakfast_anaphAlt": "",
+        "breakfast_noPorkAlt": "",
+        "breakfast_mainAlt": "",
+        "breakfast_slots": {
+          "main": {
+            "manual": "Cereal and milk & fruit",
+            "flags": {
+              "hasGluten": true,
+              "hasDairy": true,
+              "hasEgg": false,
+              "hasFish": false,
+              "hasPeanuts": false,
+              "hasSoy": false,
+              "hasTreeNuts": false,
+              "hasSesame": false,
+              "hasMustard": false,
+              "hasShellfish": false,
+              "hasSulphites": false,
+              "hasPork": false,
+              "hasBeef": false,
+              "hasChicken": false,
+              "hasTurkey": false,
+              "isSpicy": false,
+              "isCarb": false,
+              "halalCertifiedMeat": false,
+              "hasProcessedMeat": false,
+              "hasCoconut": false,
+              "hasMushroom": false,
+              "hasBrassicas": false,
+              "hasCorn": false,
+              "hasNightshades": false,
+              "hasBeans": false
+            }
+          },
+          "veganalt": {
+            "manual": "Cereal and oat milk, fruit",
+            "flags": {}
+          }
+        }
       },
       "WEDNESDAY": {
         "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
