@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.129';
+const DOOR_APP_VERSION = 'v31-standard.130';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -6792,7 +6792,6 @@ const RESIDENT_TO_MEAL_FLAG = {
   'Bland Diet':     'isSpicy',   // is No Spicy (2026-10-18, Jason: "Bland Diet routes as No Spicy")
   'No Beef':        'hasBeef',
   'No Pork':        'hasPork',
-  'No Turkey':      'hasTurkey',
   'No Processed Food': 'hasProcessedMeat'   // the routing audit (2026-10-18): every tag with a line note is checked here too
 };
 
@@ -16343,7 +16342,7 @@ const CONFLICT_MAP = [
   { mealFlag:'isSpicy',        residentTag:'No Spicy',          label:'Spicy',         note:'not spicy',                          severity:'amber' },
   { mealFlag:'isSpicy',        residentTag:'Bland Diet',        label:'Spicy',         note:'not spicy',                          severity:'amber' },
   { mealFlag:'hasBeef',        residentTag:'No Beef',           label:'Beef',          note:'no beef',                            severity:'amber' },
-  { mealFlag:'hasTurkey',      residentTag:'No Turkey',         label:'Turkey',        note:'no turkey',                          severity:'amber' },
+  // No Turkey is a preference and warns nowhere (Jason, 2026-11-20: the note is noise). The tag stays on the resident.
   { mealFlag:'hasProcessedMeat', residentTag:'No Processed Food', label:'Processed Meat', note:'no processed meat',               severity:'amber' },
 ];
 

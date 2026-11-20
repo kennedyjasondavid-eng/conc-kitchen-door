@@ -124,7 +124,8 @@ const CENSUS = {
   'No Nightshades': ['allergen', '', 'hasNightshades', 'hasNightshades', 'hasNightshades', 'auto'], 'No Oats': ['allergen', '', '', '', '', 'doc*'],
   'No Beans': ['accommodation', '', 'hasBeans', 'hasBeans', '', 'auto'], 'No Mushroom': ['accommodation', '', 'hasMushroom', 'hasMushroom', '', 'auto'],
   'No Corn': ['accommodation', '', 'hasCorn', 'hasCorn', '', 'doc'], 'No Brassicas': ['accommodation', '', 'hasBrassicas', 'hasBrassicas', '', 'auto'],
-  'No Turkey': ['accommodation', '', 'hasTurkey', 'hasTurkey', '', 'auto'],
+  // 2026-11-20 (Jason: the no turkey note is noise): No Turkey is a preference and warns nowhere.
+  'No Turkey': ['accommodation', '', '', '', '', 'auto'],
 };
 test('the census: every tag\'s rules are the rules table\'s row', () => {
   const row = (t) => [

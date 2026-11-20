@@ -136,7 +136,8 @@ const examples = [
   ['soft_halal', ['Halal', 'Soft Meals'], '1|THURSDAY|lunch', 'halal', 'soft'],
   ['processed', ['No Processed Food'], '2|THURSDAY|dinner', 'halal', 'no processed meat'],
   ['beef_halal', ['Halal', 'No Beef'], '1|THURSDAY|lunch', 'halal', 'no beef'],
-  ['turkey_halal', ['Halal', 'No Turkey'], '3|FRIDAY|breakfast', 'halal', 'no turkey'],
+  // 2026-11-20 (Jason: the no turkey note is noise): a turkey meal no longer names No Turkey (the ! row checks it is absent).
+  ['turkey_halal', ['Halal', 'No Turkey'], '3|FRIDAY|breakfast', 'halal', '!no turkey'],
   ['gluten_vegan', ['Vegan', 'GF'], '2|THURSDAY|dinner', 'vegan', 'gluten-free'],
   ['beans_vegan', ['Vegan', 'No Beans'], '2|FRIDAY|lunch', 'vegan', 'no beans'],
   ['egg_halal', ['Halal', 'No Eggs'], '2|SATURDAY|lunch', 'halal', 'no egg'],
@@ -146,7 +147,8 @@ test('fixed audit examples name each restriction, independent of current dishes 
   const replay = liftCornDoor(html).engine(historical.menu, null, residents).out;
   for (const [id, , meal, plate, note] of examples) {
     assert.equal(replay[meal].seat['case_' + id], plate, id + ' plate');
-    assert.ok(splitNotes(replay[meal].notes['case_' + id]).has(note), id + ': missing ' + note);
+    if (note.startsWith('!')) assert.ok(!splitNotes(replay[meal].notes['case_' + id]).has(note.slice(1)), id + ': should not name ' + note.slice(1));
+    else assert.ok(splitNotes(replay[meal].notes['case_' + id]).has(note), id + ': missing ' + note);
   }
 });
 
