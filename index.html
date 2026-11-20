@@ -13167,7 +13167,7 @@ async function doorPublishReadRecentLog(creds, revision) {
     const body = await doorPublishReadJSON(creds, '/contents/recent_log.json?ref=' + encodeURIComponent(revision.head));
     if (!body || typeof body.content !== 'string') return { ok: false, reason: 'no content' };
     const value = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g, '')))));
-    if (!Array.isArray(value)) return { ok: false, reason: 'not a list' };
+    if (!Array.isArray(value)) return { ok: true, entries: [], repaired: true };   // not a list: nothing to keep, this computer list repairs it
     if (revision.data) revision.data['recent_log.json'] = value;   // read once: the unchanged check reuses it
     return { ok: true, entries: value };
   } catch (e) { return { ok: false, reason: String((e && e.message) || e) }; }
@@ -13378,8 +13378,8 @@ async function _doPublishToGitHub(manual) {
     const _kitchenLog = await doorPublishReadRecentLog(creds, revision);
     if (_kitchenLog.ok) {
       const _merged = doorMergeRecentLogs(RECENT_LOG, _kitchenLog.entries);
+      // Kept in memory only: saveRecentLog prunes undated entries, and the publish never prunes what it sends.
       RECENT_LOG.length = 0; _merged.forEach(e => RECENT_LOG.push(e));
-      try { saveRecentLog(); } catch (e) {}
       const _logToSync = RECENT_LOG.filter(e=>e._real!==false).slice(0,200);
       _push('recent_log.json', JSON.stringify(_logToSync,null,2));
     } else {

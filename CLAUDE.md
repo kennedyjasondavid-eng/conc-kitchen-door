@@ -61,7 +61,8 @@ through `doorSetMealFlags` and `saveMenuBaseOverlay` (original kept), one publis
 the vegan plate also reads CORN through the copied floor (over-warns only). Code (the #273 review's follow-up): a full
 publish merged nothing before sending this computer's recent log, so one that published before syncing dropped other
 computers' entries; it now merges the kitchen copy read at its revision (`doorPublishReadRecentLog`,
-`doorMergeRecentLogs`), and an unreadable copy sends none. Gates `tests/sausage_labels_ticks_gate.mjs` (3) and
+`doorMergeRecentLogs`), and an unreadable copy sends none; a copy that is not a list is repaired by this computer's, and the
+publish never prunes what it sends (CI's `menu_flow_f6_dedupe` D14/D16b). Gates `tests/sausage_labels_ticks_gate.mjs` (3) and
 `tests/recent_log_publish_merge_gate.mjs` (4, red 4/4 on `main` `548e402`); the publish harnesses load the new functions
 (dated). Receipt `docs/receipts/door_sausage_labels_2026-11-20.md`.
 

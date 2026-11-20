@@ -38,6 +38,15 @@ test('RP-2 no kitchen copy yet: this computer list goes; an unreadable copy: not
   assert.deepEqual(JSON.parse(JSON.stringify(await c.doorPublishReadRecentLog({}, { head: 'h', paths: {} }))), { ok: true, entries: [] });
   assert.equal((await c.doorPublishReadRecentLog({}, { head: 'h', paths: { 'recent_log.json': {} } })).ok, false);
 });
+test('RP-5 a kitchen copy that is not a list is repaired by this computer list; the publish never prunes what it sends', async () => {
+  // Added 2026-11-20 (CI on #274: menu_flow_f6_dedupe D14 and D16b). saveRecentLog prunes undated entries, and a
+  // malformed kitchen copy left unsent read as unchanged; main sent this computer list over it.
+  const c = ctx({ 'recent_log.json': { malformed: 'not a list' } });
+  const got = await c.doorPublishReadRecentLog({}, { head: 'h', paths: { 'recent_log.json': {} } });
+  assert.equal(got.ok, true); assert.equal(got.entries.length, 0);
+  const s = html.indexOf('const _kitchenLog = await doorPublishReadRecentLog(creds, revision);');
+  assert.doesNotMatch(html.slice(s, s + 900), /saveRecentLog\(|pruneRecentLog\(/, 'the publish prunes the log it sends');
+});
 test('RP-3 the publish merges before it stages, and skips the file when the kitchen copy cannot be read', () => {
   const s = html.indexOf('const _kitchenLog = await doorPublishReadRecentLog(creds, revision);');
   assert.ok(s > 0, 'the publish does not read the kitchen copy');
