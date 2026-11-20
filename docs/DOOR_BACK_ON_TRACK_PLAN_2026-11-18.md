@@ -230,8 +230,8 @@ happened. Fix what trips them up. Then, and only then, call it staff-ready.
   the baseline is the kitchen's manuals, not edge cases. S2 and S3 are not built as designed (§5 U3 status).
 - **Name-guessed vegan allergens stay (2026-11-20, Jason: "Follow lean, leave it for now"):** DOOR's vegan plate keeps
   adding allergens it guesses from the vegan line's words (`getVegAltAllergenStr`), even when the dish links its own
-  recipe. It only over-warns: Wk2 SUN dinner's vegan pasta prints SOY and GLUTEN from CODEX's house-made Vegan Sausage
-  record while its linked sauce (the bought Beyond Sausage) has neither (#269). Revisit with a census of every meal.
+  recipe. It only over-warns: Wk2 SUN dinner's vegan pasta prints SOY from CODEX's house-made Vegan Sausage record
+  while its linked sauce (the bought Beyond Sausage) has none (#269). Revisit with a census of every meal.
 - **C1 Breakfast design (U3):** named plates plus a resident breakfast note plus a per-resident plate choice only where
   the rules can't place them. Lean: yes. Consequence: no resolver; breakfast stays in DOOR's existing fields and
   resident record.

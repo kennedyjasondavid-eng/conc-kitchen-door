@@ -57,8 +57,9 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 From the breakfast-line session (Jason, 2026-11-20: "send both to the review session queue"). Merging this computer's
 recent log with the kitchen's keyed each entry on room, date and words, so a second real change the same day (the same
 note saved twice, a revert and a redo) was dropped. `doorRecentLogKey` adds the time the entry was made (`ts`, the same
-on every computer); an entry without one keeps the old key. Both merges (`pullSecondaryState`, the boot sync) read it.
-Gate `tests/recent_log_key_gate.mjs` (3, red 2/3 on `main` `ad85a91`). Data: Wk4 SAT lunch's vegan quinoa slot's
+on every computer; an entry from before `ts` gets noon on its day in this computer's timezone, all Toronto); an entry
+without one keeps the old key. Both merges (`pullSecondaryState`, the boot sync) read it.
+Gate `tests/recent_log_key_gate.mjs` (4, red 3/4 on `main` `ad85a91`; independent review SHIP, P3s folded). Data: Wk4 SAT lunch's vegan quinoa slot's
 recipeName reads Turmeric Quinoa (CODEX renamed the record and its shared copy; same `tumeric-quinoa` id), written through
 `saveMenuBaseOverlay`, one publish (W6 harness); nothing else moves (`u1_side_answers_gate` U1A-4 re-pinned, dated).
 Test-only: `yoghurt_swap_gate` covers a named No Processed Food plate (#272 review P3). Plan: back-on-track §5 U3 says S2

@@ -30,3 +30,8 @@ test('RL-3 the same entry held on both computers is kept once; entries without a
   const o = { date: 'Nov 2', room: '101b', desc: 'Intake' };
   assert.equal(merge([o], [{ ...o }]).length, 1);
 });
+test('RL-4 entries one Generate makes in the same millisecond for different rooms both survive', () => {
+  const t = '2026-11-20T14:00:00.000Z';
+  const a = { ts: t, date: 'Nov 20', room: '101a', desc: 'Intake' }, b = { ts: t, date: 'Nov 20', room: '101b', desc: 'Intake' };
+  assert.equal(merge([a], [a, b]).length, 2);
+});
