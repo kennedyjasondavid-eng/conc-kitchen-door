@@ -53,6 +53,22 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-20) — the kitchen can name a No Processed Food plate (`v31-standard.126`)
+Jason, 2026-11-20: plating sheets line up with the kitchen's manuals, "creating systems to support it, and can add as we go
+as long as it's easy". Edit Menu's "+ Add a plate for…" lists **No processed food** beside the other kitchen plates, at
+breakfast, lunch and dinner; the meal stores `<period>_noProcessedAlt` (a seventh `DOOR_KITCHEN_ALT_FIELDS` entry, so a
+swap or permanent change clears it and the kept original carries it). The No Processed Food section prints it (it printed
+the soft plate, else "Non-processed alternative — plain protein, rice & veg"); on a pork meal a named plate keeps those
+residents on it instead of the halal plate; the editor counts it on its own row (the soft row stops supplying it), and its
+preview seats them as the sheet does. A named plate is read by the label-not-checked check and the yoghurt note like the
+other plates. No meal names one today, so sheets and counts don't change until someone adds one (the next Save of a meal
+writes an empty key with the other plates). Additive in
+`menu_current.json`: EXPO's dated-meal drop list (`_DATED_MEAL_DROPS`) mirrors DOOR's and should gain `_noProcessedAlt`
+(it reads no kitchen plate, so its board doesn't move). Gate `tests/no_processed_plate_gate.mjs` (7, red on `main`
+`e82e0f6`) and a `label_unchecked_gate` case; independent review (FIX FIRST) folded: the label check and yoghurt note read
+a named plate (P1-1), the editor preview carries it (P2-1), the plate-rule proof tries it. Re-pinned with dated notes: `kitchen_alternatives_gate` 8 (seven boxes), `make_permanent_whole_dish_gate` 6
+(the parts list), browser `other_plates_s8` (seven plates).
+
 ## Recent (2026-11-20) — a real edit keeps the vegan line, the halal line and the sides as written (`v31-standard.125`)
 Found relinking the vegan dishes (#269): changing only the vegan dish's link (its words kept) and pressing Save rewrote
 text nobody chose. Wk2 SUN dinner's `dinner_veg` lost its "Pasta" (no box holds it), and Wk2 MON dinner's `dinner_sides`

@@ -81,7 +81,8 @@ try {
     return out;
   }, RES);
   for (const m of r.meals) {
-    check(m.meal + ': one row per plate the meal has, and the others offered under + Add a plate for…', JSON.stringify(m.shown.sort()) === JSON.stringify(m.stored.sort()) && m.select.length === 6 - m.stored.length, m);
+    // Re-pinned 2026-11-20 (`v31-standard.126`): seven kitchen plates (No processed food added).
+    check(m.meal + ': one row per plate the meal has, and the others offered under + Add a plate for…', JSON.stringify(m.shown.sort()) === JSON.stringify(m.stored.sort()) && m.select.length === 7 - m.stored.length, m);
     check(m.meal + ': each plate’s resident count equals the plating sheet', m.counts.length > 0 && m.counts.every((c) => c.shown === c.plating), m.counts);
     check(m.meal + ': plain words, no routing jargon', m.title === 'Other plates the kitchen makes' && !/Draft routing|requirement group|existing fallback|Restriction-specific|CODEX declarations/.test(m.text), m.title);
     check(m.meal + ': opening the meal changes nothing', !m.dirty, m);

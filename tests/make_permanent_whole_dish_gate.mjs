@@ -48,8 +48,9 @@ const MENU_HELPERS = [PARTS_SRC, fnOpt('doorEmptyDishParts'), fnOpt('doorSetMeal
   fn('flagsToMenuAllergens'), fn('mergeDoorMenuDataWithOverlay'), fn('dayLabel'), between('const FLAG_DEFS = [', '\n];\n') + '\n];\n'].join('\n');
 
 // The parts of a meal's dish, as a swap dropped them before this change (doorApplyDatedMeal, v31-standard.41).
+// Re-pinned 2026-11-20 (`v31-standard.126`): the kitchen's No Processed Food plate (`_noProcessedAlt`) joins the list.
 const DISH_PARTS = ['_mainItem', '_mainAlt', '_sides', '_halal', '_softAlt', '_noPorkAlt', '_gfAlt', '_altMeals', '_altMealsNone', '_slots',
-  '_diabeticAlt', '_noDairyAlt', '_blandAlt', '_noEggAlt', '_anaphAlt'];
+  '_diabeticAlt', '_noDairyAlt', '_blandAlt', '_noEggAlt', '_anaphAlt', '_noProcessedAlt'];
 const EMPTY = (k) => (k === '_altMeals' ? [] : k === '_altMealsNone' ? false : k === '_slots' ? null : '');
 
 const PUBLISHED = json('menu_current.json');

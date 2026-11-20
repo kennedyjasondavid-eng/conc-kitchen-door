@@ -459,3 +459,28 @@ test('call 3: an unchecked bought item on an alternative plate reaches the resid
     assert.equal(c.doorSectionLabelPlate({ rule: { key: 'x', altType: at } }, {}), key, at);
   }
 });
+
+// 2026-11-20 (`v31-standard.126`, the No Processed Food plate; independent review P1-1): a named No Processed Food plate
+// is read like the other alternative plates, so an unchecked bought item on it reaches the residents who eat it. With no
+// plate named the section reads no plate, as before (an anaphylactic resident still gets every plate's unchecked dishes).
+test('no processed: an unchecked bought item on a named No Processed Food plate reaches the residents who eat it', () => {
+  const menu = { 1: { MONDAY: {
+    lunch: 'Turkey Deli Sandwich, Steamed Rice', lunch_veg: 'Baked Tofu, Steamed Rice',
+    lunch_flags: { hasProcessedMeat: true, hasTurkey: true, hasGluten: true },
+    lunch_noProcessedAlt: 'Plain Chicken, Rice Chex',
+    lunch_slots: { main: { recipeName: 'Soy Glazed Chicken' }, starch: { recipeName: 'Steamed Rice' }, veganalt: { recipeName: 'Baked Tofu' } }
+  } } };
+  const res = [R('9410', ['No Processed Food', 'No Sesame']), R('9411', ['Regular'], { isAnaph: true, anaphTags: ['sesame'] })];
+  const c = harness(RECIPES, res.map((r) => ({ ...r })), menu);
+  const pd = c.computePlatingData('lunch', '1', 'MONDAY');
+  const p = J(pd.mealFlags._labelUnchecked);
+  assert.ok(p, 'the meal has a plate with an unchecked dish');
+  assert.deepEqual(dishesOf(p.noproc), ['Rice Chex'], 'the named plate is read');
+  assert.equal(seatOf(pd, '9410').rule.key, 'no_processed');
+  assert.match(noteOf(c, pd, '9410'), /check label: Rice Chex/, 'the resident on the plate gets the note');
+  const an = c.doorLabelCheckNote(res[1], null, pd.mealFlags);
+  assert.equal(an.red, true);
+  assert.match(an.note, /^ANAPHYLACTIC: check label: .*Rice Chex/, 'an anaphylactic resident is checked against it too');
+  assert.equal(c.doorSectionLabelPlate({ rule: { key: 'no_processed', altType: 'noproc_alt' } }, { _noProcessedAlt: 'x' }), 'noproc');
+  assert.equal(c.doorSectionLabelPlate({ rule: { key: 'no_processed', altType: 'noproc_alt' } }, {}), null, 'no plate named: no plate, as before');
+});
