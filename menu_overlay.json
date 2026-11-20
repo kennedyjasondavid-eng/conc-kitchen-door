@@ -2021,7 +2021,7 @@
           }
         },
         "veganalt": {
-          "recipeName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
+          "recipeName": "Tofu Adobo (Adobo Marinade & Sauce)",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -2049,7 +2049,7 @@
             "hasBrassicas": false,
             "hasCorn": true
           },
-          "recipeId": "adobo-pork-chicken-tofu-adobo-marinade-and-sauce",
+          "recipeId": "tofu-adobo-adobo-marinade-and-sauce",
           "displayText": "Vegetarian Adobo"
         },
         "starch": {
@@ -2837,7 +2837,7 @@
           }
         },
         "veganalt": {
-          "recipeName": "Arroz Con Pollo (Regular + Vegan)",
+          "recipeName": "Vegan Arroz con Pollo",
           "flags": {
             "hasGluten": true,
             "hasDairy": false,
@@ -2865,7 +2865,7 @@
             "hasBrassicas": false,
             "hasCorn": true
           },
-          "recipeId": "arroz-con-pollo-regular-vegan",
+          "recipeId": "vegan-arroz-con-pollo",
           "displayText": "Vegan Arroz con Pollo"
         },
         "starch": {
@@ -3956,8 +3956,9 @@
           }
         },
         "veganalt": {
-          "recipeName": "African Peanut Chicken Stew",
+          "recipeName": "Vegan African Peanut Stew",
           "flags": {
+            "hasGluten": false,
             "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
@@ -3983,7 +3984,7 @@
             "hasBrassicas": false,
             "hasCorn": false
           },
-          "recipeId": "african-peanut-chicken-stew",
+          "recipeId": "vegan-african-peanut-stew",
           "displayText": "Vegetarian Peanut Stew"
         },
         "starch": {
@@ -4464,19 +4465,19 @@
           }
         },
         "veganalt": {
-          "recipeName": "Sausage and Greens Pasta Sauce (Pork, Halal Chicken + Vegan)",
+          "recipeName": "Vegan Sausage and Greens Pasta Sauce",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
-            "hasSoy": true,
+            "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
             "hasShellfish": false,
-            "hasSulphites": false,
+            "hasSulphites": true,
             "hasPork": false,
             "hasBeef": false,
             "hasChicken": false,
@@ -4488,11 +4489,11 @@
             "hasBeans": true,
             "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": false,
+            "hasNightshades": true,
             "hasBrassicas": false,
             "hasCorn": false
           },
-          "recipeId": "sausage-and-greens-pasta-sauce-pork-halal-chicken-vegan",
+          "recipeId": "vegan-sausage-and-greens-pasta-sauce",
           "displayText": "Vegan Sausage and Vegetable Pasta"
         }
       },
@@ -10625,14 +10626,14 @@
       "4|THURSDAY": 1795017603184,
       "4|SATURDAY": 1795119762497,
       "1|SATURDAY": 1795081678597,
-      "1|FRIDAY": 1795119761688,
+      "1|FRIDAY": 1795145377246,
       "2|WEDNESDAY": 1795017748161,
-      "2|MONDAY": 1795081678597,
+      "2|MONDAY": 1795145377246,
       "2|TUESDAY": 1795081678597,
       "4|FRIDAY": 1795017603184,
       "4|SUNDAY": 1795119761947,
       "4|WEDNESDAY": 1795081678597,
-      "2|FRIDAY": 1795017603184,
+      "2|FRIDAY": 1795145377246,
       "3|SATURDAY": 1795081678597,
       "3|THURSDAY": 1795017603184,
       "3|MONDAY": 1795017603184,
@@ -10640,7 +10641,7 @@
       "1|MONDAY": 1795081678597,
       "3|TUESDAY": 1795081678597,
       "1|THURSDAY": 1795017603184,
-      "2|SUNDAY": 1795081678597
+      "2|SUNDAY": 1795145377246
     },
     "site": "rexdale",
     "flow": {
@@ -10654,14 +10655,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:28fa4e9c81c792feaae44485fe088f4c328543d3188317b2902622cb7827cf21",
-        "recipe": "sha256:c28fd4f350236a3f1ce27eae54df9a3d8f068b33ea144bfa207791a625bffcf8",
+        "menu": "sha256:f6db3844af02f16ac31746a206bfb6084b95a566a2b74ad77700ab5de4697cba",
+        "recipe": "sha256:074589c2b14e83091a13cb8a33768a8b4dab80dd1ebd2c4e39b2f87119c586e9",
         "registry": "sha256:aa23ffb35bdaf814b5110562305156f410774f6a38df5d19f07f3610612ed24a"
       },
-      "inputRevision": "sha256:ff7b24912c5a9d0ce2fbd0bdff4ff271d674e574e58330cc25e0d879f0fd500f",
+      "inputRevision": "sha256:b596c56e197b5a23efe9ced51df8b2969956851769aa7cc987a85ab1459727a4",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 41
+        "sequence": 42
       },
       "schema": 1
     }
