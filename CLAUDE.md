@@ -11,7 +11,7 @@ DOOR is one app in **HOUSE** (CONC shelter-catering ops; Hospitality Operations 
 
 ## What this is
 Daily operational interface for Rexdale shelter meal service. Staff enter resident changes once (intakes / discharges / restriction updates) and DOOR generates all plating sheets, dietary labels, and support files in one run. Allergen + anaphylactic routing checked **before** service.
-- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-11-01'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
+- `index.html`, single-file HTML/CSS/JS, ~20K lines. **`DOOR_APP_VERSION`** + `DOOR_BUILD_DATE = '2026-11-20'` drive a staff-visible build stamp; `menu_current.json` `_meta.version` **32**, `menu_reno.json` 2. `DOOR_SCHEMA_VERSIONS.menu_current` = 32 (mirror, gate-checked).
 - **Menu source truth:** Jason's July 2 workbook import, stored as `concUploadedMenu`, is the standard-menu base. `concMenuBase` is only a post-import delta layer. A standing `standardCutover` marker prunes pre-2026-07-13 overlay days at boot, daily sync, and publish pre-merge so old reno edits cannot resurrect from another device or the cloud.
 - Live: https://kennedyjasondavid-eng.github.io/conc-kitchen-door/ — Pages serves only the app and the files other apps read (`.github/workflows/pages.yml`, since 2026-10-31; README "What GitHub Pages serves").
 
@@ -52,6 +52,37 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **Stale-tab guard:** publishing from a tab opened before a deploy is detected (`checkForFreshDoorVersion`); auto-syncs skip, a manual publish confirms; the "publish anyway" override is scoped to manual publishes only.
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
+
+## Recent (2026-11-20) — a breakfast note on the resident (U3 S1, `v31-standard.124`)
+Back-on-track plan §5 U3, call C1 (the simple breakfast design); Jason, 2026-11-19: "Follow leans on all four". One field
+on the resident, `breakfastNote`, for a confirmed standing instruction ("oat milk only"). Display and check only: no plate,
+section, count or routing changes.
+- **Kept through:** the resident editor (`#ce-breakfast-note`), Enter Changes (`#change-breakfast-note`, filled for the room
+  typed and never carried to the next, `doorFormBreakfastNote`), the Daily Entry queue and the Intake Portal, the direct
+  save, history (`_HISTORY_SNAPSHOT_KEYS`, `diffResidentStates`), revert (a state without one takes it off), and the
+  two-computer merge (it travels with the list). One writer, `doorApplyBreakfastNote`: a new person starts without one; a
+  change that carries the field sets it (empty clears); a change without it (an import, an older queued change) keeps it.
+- **Published only in `door_state.json`** (a kitchen file, never served by Pages). Never in `registry_summary.json`; not in
+  the F4 registry input (`doorFlowRegistryInput`), since it changes no count.
+- **Prints at breakfast only**, on the plating sheet (preview, print, XLSX), in the resident row: "Breakfast note: …".
+  A regular resident with only a breakfast note gets a Regular notes row. `doorPlatingBreakfastNotes(pd)` (in
+  `computePlatingData`, breakfast only) reads each note against the words of the plate the sheet seats them on (regular
+  meal, their section plate, or the separate anaphylactic meal; a gluten-free plate not named yet is not checked).
+- **The check** (`DOOR_TESTABLE_CORE breakfast-note`): a "<kind> milk only" note on a plate that names milk without that
+  kind reads "CHECK: the plate names milk, not oat milk", in amber (HTML `.ps-bf-check`, XLSX cell FFE699). Never fixed.
+  Any other note (1007's "smaller breakfast starch portion plus extra protein") prints only.
+- **A notes-only editor save writes only the notes** (`doorEditorChangesOnlyNotes`; found entering the confirmed notes):
+  the full save re-routes the resident by the lunch served today and rewrites the restriction words from the ticked
+  boxes, so a note alone moved 1007 from Diabetic to Regular in the stored sections (`registry_summary.json` headcounts)
+  and reworded 301a's list words. An unchanged save sends nothing.
+- **Independent review (FIX FIRST), folded:** P2-1, switching Update to New intake gave the new occupant the old note
+  (the lookup clears a filled box once the type is not Update; an intake never sends a box filled from a resident); P2-2,
+  a room retyped before the 250 ms lookup took the other room's note. P3: a dairy-free note is met by any plant milk;
+  "oat or soy milk only" is a list; "no soy milk only" reads the other way; only "or" and "/" join plate milks ("Rice &
+  oat milk" is not rice milk); one-word oatmilk; a soft section with several plates checks the resident's own pick; the
+  editor writes the note on a queued change only when changed there; Edit clears the box first; both queues show it.
+- **Gates:** `tests/breakfast_note_s1_gate.mjs` (7, red 6/7 on `main` `b284b00`; 7 is the privacy lock; case 6 also red on
+  the pre-fold build) and browser `tests/browser/breakfast_note_s1.mjs` (32, in CI; made-up residents).
 
 ## Recent (2026-11-20) — DOOR draws a little larger on a wide screen (`v31-standard.123`)
 Jason, 2026-11-20: "can we make this the default scale?" (he runs DOOR at 125% browser zoom), then "Try 110% equiv".
