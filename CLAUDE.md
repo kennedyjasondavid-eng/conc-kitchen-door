@@ -55,7 +55,8 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 
 ## Recent (2026-11-20) — Wk2 SUN dinner carries the meat sausage labels; a publish keeps other computers' Recent Activity (`v31-standard.128`, publication 46)
 Jason read the pork (corn syrup solids, lemon juice solids) and halal turkey (corn starch, corn syrup solids) sausage
-labels; CODEX #396 recorded them. Wk2 SUN dinner gains Corn and Sulphites on its ticks and main dish, add only,
+labels; CODEX #396 recorded them. Wk2 SUN dinner gains Corn and Sulphites (and Beans, the pot's shared bean base;
+review fold) on its ticks and main dish, add only,
 through `doorSetMealFlags` and `saveMenuBaseOverlay` (original kept), one publish (W6 harness). Routing counts unchanged;
 the vegan plate also reads CORN through the copied floor (over-warns only). Code (the #273 review's follow-up): a full
 publish merged nothing before sending this computer's recent log, so one that published before syncing dropped other

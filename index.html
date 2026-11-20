@@ -13167,7 +13167,9 @@ async function doorPublishReadRecentLog(creds, revision) {
     const body = await doorPublishReadJSON(creds, '/contents/recent_log.json?ref=' + encodeURIComponent(revision.head));
     if (!body || typeof body.content !== 'string') return { ok: false, reason: 'no content' };
     const value = JSON.parse(decodeURIComponent(escape(atob(body.content.replace(/\n/g, '')))));
-    return Array.isArray(value) ? { ok: true, entries: value } : { ok: false, reason: 'not a list' };
+    if (!Array.isArray(value)) return { ok: false, reason: 'not a list' };
+    if (revision.data) revision.data['recent_log.json'] = value;   // read once: the unchanged check reuses it
+    return { ok: true, entries: value };
   } catch (e) { return { ok: false, reason: String((e && e.message) || e) }; }
 }
 // This computer recent log and the kitchen copy as one list, each entry once (doorRecentLogKey), this computer first.
