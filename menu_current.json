@@ -2,7 +2,7 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-21T13:15:00.789Z",
+    "exported": "2026-11-21T20:22:24.001Z",
     "version": 32,
     "flow": {
       "calendar": {
@@ -15,14 +15,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:d944df45290ae51c6b3e3382b7456f7eee6ed7bb265bb8b33e9c462fffebbd93",
+        "menu": "sha256:3bb54bef463b306e3c9c44bba48da0e60fd3025831deb449960113a6989514a8",
         "recipe": "sha256:9d92035ac076341c28ac8301a74e0f91477016644286062640ff17f7d8fb41d7",
         "registry": "sha256:7ea83f6b176a07b2cbbdab223a96f09a8f04f07ccef6f3dbed9d10c4766d01af"
       },
-      "inputRevision": "sha256:c0ec5e874b0e3356b3affcdf35f31d4413f18d21bcf8d0be813715383801f242",
+      "inputRevision": "sha256:98bb64e01c4b4bd7dff575f0448f64b7f1b15d28c1580e8b6963a6191109eebc",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 49
+        "sequence": 50
       },
       "schema": 1
     }
@@ -7201,11 +7201,11 @@
           "hasBrassicas": false,
           "hasCorn": false
         },
-        "dinner": "Kimchi Chicken Fried Rice",
-        "dinner_veg": "Kimchi Fried Rice",
+        "dinner": "Kimchi Chicken Fried Rice, Bok Choy",
+        "dinner_veg": "Kimchi Fried Rice, Bok Choy",
         "dinner_halal": "",
         "dinner_mainItem": "Kimchi Chicken Fried Rice",
-        "dinner_sides": "",
+        "dinner_sides": "Bok Choy",
         "dinner_flags": {
           "hasGluten": true,
           "hasDairy": false,
@@ -7226,15 +7226,21 @@
           "isCarb": true,
           "halalCertifiedMeat": true,
           "hasProcessedMeat": false,
-          "hasCoconut": false,
+          "hasBeans": false,
           "hasMushroom": false,
-          "hasBrassicas": false,
-          "hasCorn": false,
+          "hasCoconut": false,
           "hasNightshades": true,
-          "hasBeans": false
+          "hasBrassicas": true,
+          "hasCorn": false
         },
-        "dinner_softAlt": "",
-        "dinner_altMeals": [],
+        "dinner_softAlt": "Plain Chicken Leg, Steamed Rice and Steamed Veg",
+        "dinner_altMeals": [
+          {
+            "text": "Plain Chicken Leg, Steamed Rice and Steamed Veg",
+            "type": "plain",
+            "flags": {}
+          }
+        ],
         "dinner_altMealsNone": false,
         "dinner_noPorkAlt": "",
         "dinner_mainAlt": "",
@@ -7264,7 +7270,9 @@
               "hasBrassicas": false,
               "hasCorn": false,
               "hasNightshades": true,
-              "hasBeans": false
+              "hasBeans": false,
+              "isCarb": true,
+              "halalCertifiedMeat": true
             },
             "recipeId": "kimchi-chicken-fried-rice"
           },
@@ -7297,6 +7305,11 @@
             },
             "recipeId": "kimchi-fried-rice-vegan",
             "displayText": "Kimchi Fried Rice"
+          },
+          "vegside": {
+            "manual": "Bok Choy",
+            "flags": {},
+            "declared": true
           }
         },
         "allergens_breakfast": "gluten, dairy, egg, pork",
@@ -7440,7 +7453,14 @@
         "lunch_blandAlt": "",
         "lunch_noEggAlt": "",
         "lunch_anaphAlt": "",
-        "breakfast_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt"
+        "breakfast_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt",
+        "dinner_gfAlt": "",
+        "dinner_diabeticAlt": "",
+        "dinner_noDairyAlt": "",
+        "dinner_noEggAlt": "",
+        "dinner_blandAlt": "",
+        "dinner_anaphAlt": "",
+        "dinner_noProcessedAlt": ""
       },
       "SATURDAY": {
         "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
