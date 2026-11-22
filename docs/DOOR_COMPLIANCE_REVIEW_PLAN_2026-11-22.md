@@ -193,3 +193,15 @@ needing a note was No Pork read Confirmed and leave the worklist. Found while do
 restrictions name no allergen (only Halal or No Pork, say) read nothing to do; it now reads "no allergen recorded" and is
 listed with the anaphylactic rooms, whether or not anaphylactic tags were picked (`doorDocAnaphNoAllergen`). No
 anaphylactic room on today's list moves. Gate `tests/compliance_anaph_allergen_gate.mjs` 8 (red on `main` `be3fe33`).
+
+## 13. Every choice says what it does to meals (2026-11-22, `v31-standard.141`)
+
+Jason, 2026-11-22: "All choices should be clear about outcomes. If clicking just a preference means the plating sheet
+won't take it seriously then that needs to be clear." It does not: an answer is paperwork (`r.docs`), and no plate,
+label or warning reads it. The question now says so: one line above the choices ("Meals already follow every restriction
+listed here. Only Not needed any more changes them.") and each choice names its effect (Confirmed and It's a preference:
+meals don't change; Not needed any more: changes meals once it comes off the record; Still waiting: records nothing).
+The batch preference question and the preference nudge say meals don't change. Gate
+`tests/compliance_choice_outcomes_gate.mjs` (4, red 3/4 on `main` `396f0ef`; 4 locks that no plating, routing or
+warning builder reads an answer); browser `compliance_worklist` (74) checks the plating sheets are identical before and
+after It's a preference.

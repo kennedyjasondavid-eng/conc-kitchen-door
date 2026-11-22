@@ -912,6 +912,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
   .cx-late-red { color:var(--red-text); font-weight:700; }
   .cx-saved { color:var(--forest-mid-text); }
   .cx-more-rows { background:transparent; border:0; border-top:1px solid var(--border); padding:9px 14px; text-align:left; font:inherit; font-size:12.5px; color:var(--forest-mid-text); cursor:pointer; }
+  .cx-meals-line { font-size:12.5px; color:var(--ink-mid); margin:2px 0 8px; }
   .cx-selbar { position:sticky; bottom:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:var(--paper); border:1px solid var(--forest-mid); border-radius:10px; padding:10px 12px; box-shadow:0 6px 18px rgba(0,0,0,.12); z-index:15; }
   .cx-selcount { font-size:13px; font-weight:600; margin-right:auto; color:var(--ink); }
   .cx-done { display:flex; flex-direction:column; gap:8px; }
@@ -962,7 +963,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.140';
+const DOOR_APP_VERSION = 'v31-standard.141';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9813,7 +9814,7 @@ async function batchPreferenceCompliance() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  if (!(await doorAsk({ title: 'Mark as preferences', lines: [`Record ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as a preference? Their restrictions stay on the plate; no note from Health & Wellness is needed.`], goLabel: 'Mark as preferences', cancelLabel: 'Go back' }))) return;
+  if (!(await doorAsk({ title: 'Mark as preferences', lines: [`Record ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as a preference? Their meals don’t change: the plating sheet, labels and warnings follow each restriction exactly as now. No note from Health & Wellness is needed, and they leave this list.`], goLabel: 'Mark as preferences', cancelLabel: 'Go back' }))) return;
   if (!ensureOperatorName()) { showToast('Nothing recorded: add your name first, so the record says who.'); return; }
   await doorTakeNewerKitchenList();
   const by = getOperatorName();
@@ -10158,7 +10159,7 @@ function cxRenderNudge(items, today) {
         : 'They are already kept off their allergens; the note makes it official.';
     } else if (n.group === 'preference') {
       head = n.rooms.length + ' room' + (n.rooms.length !== 1 ? 's are' : ' is') + ' only No Spicy.';
-      body = 'These are usually preferences. Check with the residents, then select them and choose It’s a preference.';
+      body = 'These are usually preferences. Check with the residents, then select them and choose It’s a preference. Their meals don’t change.';
     } else {
       head = 'Next: ' + n.rooms.length + (n.group === 'allergy' ? (n.rooms.length === 1 ? ' room with an allergy' : ' rooms with allergies') : (n.rooms.length === 1 ? ' room with a medical diet' : ' rooms with medical diets')) + '.';
       body = n.asked ? n.asked + ' already asked and waiting.' : 'Ask Health &amp; Wellness for the notes in one email.';
@@ -29107,11 +29108,12 @@ window.addEventListener('load', runAltFlagSweepOnce);
       <div id="settle-ask" class="cx-ask">
         <div id="settle-question" class="cx-question"></div>
         <div id="settle-tags" class="cx-tagpick"></div>
+        <div class="cx-meals-line">Meals already follow every restriction listed here. Only <b>Not needed any more</b> changes them.</div>
         <div class="cx-choice" role="radiogroup" aria-labelledby="settle-question">
-          <label class="cx-opt"><input type="radio" name="settle-how" value="note" checked onchange="settleChoiceChanged()"><span><b>Confirmed — keep it</b><small>Marked documented. Nothing about the meals changes.</small></span></label>
-          <label class="cx-opt" id="settle-opt-preference"><input type="radio" name="settle-how" value="preference" onchange="settleChoiceChanged()"><span><b>It’s a preference</b><small>Stays on the plate; no note needed. Won’t come back here.</small></span></label>
-          <label class="cx-opt"><input type="radio" name="settle-how" value="notneeded" onchange="settleChoiceChanged()"><span><b>Not needed any more</b><small>Opens the resident’s record to take it off. It asks first.</small></span></label>
-          <label class="cx-opt"><input type="radio" name="settle-how" value="waiting" onchange="settleChoiceChanged()"><span><b>Still waiting</b><small>Remind me in
+          <label class="cx-opt"><input type="radio" name="settle-how" value="note" checked onchange="settleChoiceChanged()"><span><b>Confirmed — keep it</b><small>Files the note. Meals don’t change: the plating sheet, labels and warnings keep following it.</small></span></label>
+          <label class="cx-opt" id="settle-opt-preference"><input type="radio" name="settle-how" value="preference" onchange="settleChoiceChanged()"><span><b>It’s a preference</b><small>The resident’s own choice; no note needed. Meals don’t change: the plating sheet, labels and warnings follow it exactly as they follow a documented restriction. It leaves this list.</small></span></label>
+          <label class="cx-opt"><input type="radio" name="settle-how" value="notneeded" onchange="settleChoiceChanged()"><span><b>Not needed any more</b><small><b>Changes meals:</b> once it comes off the resident’s record, the plating sheet, labels and warnings stop following it. Opens the record, which asks first.</small></span></label>
+          <label class="cx-opt"><input type="radio" name="settle-how" value="waiting" onchange="settleChoiceChanged()"><span><b>Still waiting</b><small>Records nothing; meals don’t change. Remind me in
             <select id="settle-wait-days" aria-label="Remind me in" onclick="event.stopPropagation()" onchange="document.querySelector('input[name=settle-how][value=waiting]').checked=true;settleChoiceChanged()"><option value="7">1 week</option><option value="14">2 weeks</option></select></small></span></label>
         </div>
       </div>

@@ -53,6 +53,17 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — every Compliance Review choice says what it does to meals (`v31-standard.141`)
+Jason, 2026-11-22: "All choices should be clear about outcomes. If clicking just a preference means the plating sheet
+won't take it seriously then that needs to be clear." It doesn't: an answer is paperwork (`r.docs`); no plate, label or
+warning reads it. The question now has one line above its choices ("Meals already follow every restriction listed here.
+Only Not needed any more changes them.") and each choice names its effect: Confirmed and It's a preference, meals don't
+change (the plating sheet, labels and warnings keep following it); Not needed any more, **changes meals** once it comes
+off the record (the record asks first); Still waiting, records nothing. The batch preference question and the nudge say
+the same. Gate `tests/compliance_choice_outcomes_gate.mjs` (4, red 3/4 on `main` `396f0ef`; 4 locks that no plating,
+routing or warning builder reads an answer); browser `compliance_worklist` (74) compares the plating sheets before and
+after It's a preference. Plan §13.
+
 ## Recent (2026-11-22) — No Pork needs no note (`v31-standard.140`)
 Jason, 2026-11-22: "we don't usually request docs for no pork". `COMPLIANCE_TIERS` files No Pork as self-declared (auto,
 as Halal); the worklist's "Usually a preference" group is No Spicy only. On today's list 16 rooms whose only restriction
