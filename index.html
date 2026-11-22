@@ -869,6 +869,83 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
     div[style*="max-height:88vh"] { max-height: calc(88vh / var(--door-zoom)) !important; }
     .modal-body[style*="max-height:70vh"] { max-height: calc(70vh / var(--door-zoom)) !important; }
   }
+  /* ── COMPLIANCE WORKLIST (compliance C2, 2026-11-22). Paperwork only: grouped by what to ask, one action per row. ── */
+  /* The main column shrinks to its content (the page wrapper is a flex item), so the worklist takes the window width. */
+  .cx-page { display:flex; flex-direction:column; gap:14px; box-sizing:border-box; width:calc(100vw - var(--sidebar-w)); max-width:100%; }
+  @media screen and (min-width: 1650px) { .cx-page { width:calc(100vw / var(--door-zoom) - var(--sidebar-w)); } }   /* the wide-screen zoom */
+  @media (max-width: 768px) { .cx-page { width:100vw; } }
+  .cx-page > * { width:100%; max-width:980px; }
+  .cx-page [hidden], .cx-sheet [hidden] { display:none !important; }   /* the flex rules below must not show a hidden part */
+  .cx-intro { margin:0; font-size:13.5px; color:var(--ink-mid); max-width:70ch; line-height:1.5; }
+  .cx-progress { display:flex; flex-direction:column; gap:6px; }
+  .cx-prow { display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .cx-meter { height:8px; border-radius:99px; background:var(--border); overflow:hidden; }
+  .cx-meter i { display:block; height:100%; background:var(--forest-mid); }
+  .cx-groups { display:flex; flex-direction:column; gap:16px; }
+  .cx-group { display:flex; flex-direction:column; gap:8px; }
+  .cx-ghead { display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .cx-ghead h3 { margin:0; font-size:14.5px; font-weight:700; color:var(--ink); }
+  .cx-why { font-size:12.5px; color:var(--muted); }
+  .cx-card { background:var(--paper); border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; }
+  .cx-item { display:grid; grid-template-columns:24px 64px minmax(0,1fr) auto; gap:6px 12px; align-items:center; padding:10px 14px; border-top:1px solid var(--border); }
+  .cx-item:first-child { border-top:0; }
+  .cx-item-anaph { box-shadow:inset 3px 0 0 var(--red-text); }
+  .cx-room { font-family:'DM Mono', monospace; font-weight:600; font-size:14.5px; color:var(--ink); }
+  .cx-chips { display:flex; flex-wrap:wrap; gap:5px; min-width:0; }
+  .cx-chip { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid var(--border); color:var(--muted); line-height:1.5; }
+  .cx-chip-need { border-color:transparent; background:var(--amber-pale); color:var(--amber-text); font-weight:600; }
+  .cx-chip-anaph { border-color:transparent; background:var(--red-pale); color:var(--red-text); font-weight:700; }
+  .cx-acts { display:flex; gap:4px; align-items:center; }
+  .cx-go { min-height:34px; }
+  .cx-more { position:relative; }
+  .cx-more > summary { list-style:none; cursor:pointer; padding:6px 10px; border-radius:6px; color:var(--ink-mid); font-weight:700; }
+  .cx-more > summary::-webkit-details-marker { display:none; }
+  .cx-more > summary:focus-visible { outline:2px solid var(--blue-text); outline-offset:2px; }
+  .cx-menu { position:absolute; right:0; top:100%; z-index:20; min-width:220px; background:var(--paper); border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.14); padding:6px; display:flex; flex-direction:column; gap:2px; }
+  .cx-menu button { text-align:left; background:transparent; border:0; padding:8px 10px; border-radius:6px; font:inherit; font-size:13px; color:var(--ink); cursor:pointer; }
+  .cx-menu button:hover { background:var(--bg-soft); }
+  .cx-note-field { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--muted); padding:6px 10px; }
+  .cx-note-field input { font-size:13px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; }
+  .cx-subline { grid-column:3 / 5; font-size:12px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; }
+  .cx-subline:empty { display:none; }
+  .cx-late { color:var(--amber-text); font-weight:600; }
+  .cx-late-red { color:var(--red-text); font-weight:700; }
+  .cx-saved { color:var(--forest-mid-text); }
+  .cx-more-rows { background:transparent; border:0; border-top:1px solid var(--border); padding:9px 14px; text-align:left; font:inherit; font-size:12.5px; color:var(--forest-mid-text); cursor:pointer; }
+  .cx-selbar { position:sticky; bottom:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:var(--paper); border:1px solid var(--forest-mid); border-radius:10px; padding:10px 12px; box-shadow:0 6px 18px rgba(0,0,0,.12); z-index:15; }
+  .cx-selcount { font-size:13px; font-weight:600; margin-right:auto; color:var(--ink); }
+  .cx-done { display:flex; flex-direction:column; gap:8px; }
+  .cx-done-head { display:flex; align-items:center; gap:10px; background:transparent; border:1px dashed var(--border); border-radius:10px; padding:10px 14px; font:inherit; font-size:13px; color:var(--muted); cursor:pointer; text-align:left; }
+  .cx-done-head > span:first-child { font-weight:600; color:var(--ink-mid); }
+  .cx-done-last { flex:1; }
+  .cx-count { font-size:11px; background:var(--border); color:var(--ink-mid); border-radius:10px; padding:1px 8px; font-weight:600; }
+  .cx-tools { display:flex; gap:6px; flex-wrap:wrap; align-items:center; border-top:1px solid var(--border); padding-top:12px; }
+  .cx-tools > span { font-size:12px; color:var(--muted); margin-right:auto; }
+  .cx-empty { text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; padding:28px 10px; background:var(--paper); border:1px solid var(--border); border-radius:10px; color:var(--muted); }
+  .cx-empty b { color:var(--ink); }
+  .cx-empty-mark { width:44px; height:44px; border-radius:50%; background:var(--mint-pale); color:var(--forest-mid-text); display:grid; place-items:center; font-size:22px; font-weight:900; }
+  .cx-toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:14px; background:var(--forest); color:#eef6f1; border-radius:10px; padding:10px 14px; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:10001; max-width:calc(100vw - 32px); }
+  .cx-undo { background:transparent; border:0; color:#fff; font:inherit; font-weight:700; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:4px; }
+  .cx-sheet .cx-question { font-size:14px; font-weight:700; color:var(--ink); }
+  .cx-ask { display:flex; flex-direction:column; gap:8px; }
+  .cx-tagpick { display:flex; gap:10px; flex-wrap:wrap; font-size:13px; }
+  .cx-choice { display:flex; flex-direction:column; gap:6px; }
+  .cx-opt { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--border); border-radius:9px; padding:10px 12px; cursor:pointer; margin:0; font-weight:400; text-transform:none; letter-spacing:normal; font-size:13px; color:var(--ink); }
+  .cx-opt *, .cx-tag { text-transform:none; letter-spacing:normal; }
+  .cx-opt:has(input:checked) { border-color:var(--forest-mid); box-shadow:0 0 0 1px var(--forest-mid); }
+  .cx-opt input[type=radio] { margin-top:3px; flex-shrink:0; }
+  .cx-opt b { display:block; font-size:13.5px; color:var(--ink); }
+  .cx-opt small { display:block; color:var(--muted); font-size:12px; line-height:1.45; }
+  .cx-opt select { font-size:12px; padding:1px 4px; width:auto; display:inline-block; margin-left:4px; }
+  .cx-what { font-size:13px; line-height:1.5; color:var(--ink-mid); }
+  .cx-what:empty { display:none; }
+  @media (max-width: 600px) {
+    .cx-item { grid-template-columns:24px 52px minmax(0,1fr); }
+    .cx-acts { grid-column:1 / 4; justify-content:flex-end; }
+    .cx-subline { grid-column:1 / 4; }
+    .cx-menu { right:0; }
+  }
+  @media print { .cx-selbar, .cx-toast, .cx-tools { display:none !important; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -876,7 +953,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.135';
+const DOOR_APP_VERSION = 'v31-standard.136';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1562,53 +1639,34 @@ function updateCODEXBadge() {
   </div>
 </div>
 
-<!-- ===== COMPLIANCE REVIEW (v29 — standalone screen) ===== -->
+<!-- ===== COMPLIANCE REVIEW (compliance C2, 2026-11-22: a worklist grouped by what to ask) ===== -->
 <div class="screen" id="screen-compliance">
   <div class="topbar">
     <div>
       <div class="topbar-title">Compliance Review</div>
-      <div class="topbar-sub" id="compliance-topbar-sub">Outstanding dietary restrictions requiring H&W documentation</div>
-    </div>
-    <div class="topbar-right">
-      <button class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">› Draft Digest</button>
-      <button class="btn btn-ghost btn-sm" onclick="printComplianceList()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M6 8V3h12v5M6 17H3V8h18v9h-3M6 14h12v8H6v-8Zm11-3h1"/></svg> Print</button>
-      <button class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">↓ Export xlsx</button>
+      <div class="topbar-sub" id="compliance-topbar-sub">Restrictions that need a note from Health &amp; Wellness</div>
     </div>
   </div>
-  <div class="content">
-    <div id="compliance-summary-bar" style="display:none;font-size:13px;margin-bottom:10px;padding:8px 12px;background:var(--bg-soft, #f9fafb);border-radius:8px;border:1px solid var(--border);"></div>
-    <!-- Batch toolbar -->
-    <div id="compliance-batch-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--border);border-radius:8px;">
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;">
-        <input type="checkbox" id="compliance-select-all" onchange="toggleAllCompliance(this.checked)"> Select all
-      </label>
-      <span id="compliance-selected-count" style="font-size:11px;color:var(--muted);white-space:nowrap;">0 selected</span>
-      <div style="height:16px;border-left:1px solid var(--border);"></div>
-      <select id="compliance-filter" onchange="renderComplianceView()" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:5px;max-width:200px;">
-        <option value="all">All restrictions</option>
-      </select>
-      <div style="flex:1"></div>
-      <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);white-space:nowrap;" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Mark documented</button>
-      <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
+  <div class="content cx-page">
+    <p class="cx-intro">Restrictions that need a note from Health &amp; Wellness before they are confirmed. Meals already follow every restriction, so nothing here changes a plate.</p>
+    <div id="cx-nudge" class="cx-nudge" hidden></div>
+    <div id="cx-progress" class="cx-progress" hidden></div>
+    <div id="cx-groups" class="cx-groups"></div>
+    <div id="cx-selbar" class="cx-selbar" hidden role="region" aria-label="Selected rooms">
+      <span id="compliance-selected-count" class="cx-selcount">0 selected</span>
+      <button type="button" class="btn btn-mint btn-sm" id="compliance-batch-confirm" onclick="batchConfirmCompliance()">Got the notes</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="compliance-batch-preference" onclick="batchPreferenceCompliance()">It’s a preference</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="compliance-batch-deadline" onclick="batchSetDeadline(7)">Remind me in a week</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="cxClearSelection()">Clear</button>
     </div>
-    <div id="compliance-pending-banner" style="display:none;background:var(--warn-faint, #fef3c7);border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
-      <strong style="color:var(--warn-ink, #92400e);">Saving…</strong>
-    </div>
-    <div class="card">
-      <div class="registry-scroll">
-        <table class="reg-table">
-          <thead id="compliance-thead"><tr><th>Room</th><th>Restrictions</th><th>Status</th><th>Deadline</th><th>Reason</th><th>Notes</th><th></th></tr></thead>
-          <tbody id="compliance-body"></tbody>
-        </table>
-      </div>
-    </div>
-    <!-- Resolved section -->
-    <div id="compliance-resolved-section" style="display:none;margin-top:20px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;" onclick="toggleResolvedSection()">
-        <span style="font-size:13px;font-weight:600;color:var(--muted);">Documented</span>
-        <span id="compliance-resolved-count" style="font-size:11px;background:var(--border);color:var(--ink-mid);border-radius:10px;padding:1px 8px;font-weight:600;"></span>
-        <span id="compliance-resolved-chevron" style="font-size:11px;color:var(--muted);margin-left:2px;"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m6 9 6 6 6-6"/></svg> Show</span>
-      </div>
+    <!-- Documented: the answers on file, newest first -->
+    <div id="compliance-resolved-section" class="cx-done" style="display:none;">
+      <button type="button" class="cx-done-head" onclick="toggleResolvedSection()" aria-controls="compliance-resolved-body-wrap">
+        <span>Documented</span>
+        <span id="compliance-resolved-count" class="cx-count"></span>
+        <span id="compliance-resolved-last" class="cx-done-last"></span>
+        <span id="compliance-resolved-chevron" class="cx-done-chev">Show</span>
+      </button>
       <div id="compliance-resolved-body-wrap" style="display:none;">
         <div class="card">
           <div class="registry-scroll">
@@ -1620,6 +1678,13 @@ function updateCODEXBadge() {
         </div>
       </div>
     </div>
+    <div class="cx-tools">
+      <span>Share or keep a copy</span>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="draftComplianceDigest()">Email to H&amp;W</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="printComplianceList()">Print</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="compliance-export-btn" onclick="exportComplianceXlsx()">Spreadsheet</button>
+    </div>
+    <div id="cx-toast" class="cx-toast" hidden role="status" aria-live="polite"></div>
   </div>
 </div>
 
@@ -9652,8 +9717,6 @@ function getComplianceReason(r) {
 }
 
 // --- Compliance sort state (#8) ---
-let _complianceSortCol = 'deadline'; // 'room', 'status', 'deadline', 'reason'
-let _complianceSortAsc = true;
 
 // v29: Batch selection state
 const _complianceSelected = new Set();
@@ -9663,21 +9726,24 @@ function toggleComplianceSelect(room, checked) {
   updateComplianceBatchBar();
 }
 
-function toggleAllCompliance(checked) {
-  const filterEl = document.getElementById('compliance-filter');
-  const activeFilter = filterEl ? filterEl.value : 'all';
-  const relevant = getComplianceResidents(false);
-  const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
+function cxClearSelection() {
   _complianceSelected.clear();
-  if (checked) filtered.forEach(r => _complianceSelected.add(r.room));
   renderComplianceView();
 }
 
 function updateComplianceBatchBar() {
+  // compliance C2: the bar rises only when rooms are selected, and offers only what fits every one of them.
   const n = _complianceSelected.size;
   const countEl = document.getElementById('compliance-selected-count');
   if (countEl) countEl.textContent = n + ' selected';
-  ['compliance-batch-confirm', 'compliance-batch-deadline'].forEach(id => {
+  const bar = document.getElementById('cx-selbar');
+  if (bar) bar.hidden = n === 0;
+  const pref = document.getElementById('compliance-batch-preference');
+  if (pref) {
+    const anyAnaph = [..._complianceSelected].some(room => { const r = REGISTRY_LIST.find(x => x.room === room); return r && doorComplianceStateOf(r).anaph; });
+    pref.hidden = anyAnaph;   // plan review P2-5: an anaphylactic room is never filed as a preference
+  }
+  ['compliance-batch-confirm', 'compliance-batch-deadline', 'compliance-batch-preference'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = (n === 0);
   });
@@ -9689,14 +9755,14 @@ async function batchConfirmCompliance() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  if (!(await doorAsk({ title: 'Mark documented', lines: [`Record a note from Health & Wellness for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}? Each restriction that still needs one is marked documented. Their restrictions and meals don’t change.`], goLabel: 'Mark documented', cancelLabel: 'Go back' }))) return;
+  if (!(await doorAsk({ title: 'Mark documented', lines: [`Record a note from Health & Wellness for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}? Each restriction that still needs one is marked documented. Their restrictions and meals don’t change.`], goLabel: 'Got the notes', cancelLabel: 'Go back' }))) return;
   if (!ensureOperatorName()) { showToast('Nothing recorded: add your name first, so the record says who.'); return; }
   // The kitchen's newer list first; the answers are then marked as this computer's change (2026-10-18).
   await doorTakeNewerKitchenList();
   const by = getOperatorName();
   const at = doorComplianceToday();
   const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
-  let n = 0;
+  const done = [];
   rooms.forEach(room => {
     const r = REGISTRY_LIST.find(x => x.room === room);
     if (!r) return;
@@ -9704,27 +9770,56 @@ async function batchConfirmCompliance() {
     if (!st.needs.length) return;
     pushResidentHistory(r, 'Documented: ' + st.needs.join(', '), by); // v30
     doorRecordDocs(r, st.needs, 'note', by, at, 'Marked with others');
-    n++;
+    done.push({ room, tags: st.needs.slice() });
     RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Documented ${st.needs.join(', ')} by ${by}`, color: '#2563eb', by });
   });
   _complianceSelected.clear();
   setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance confirm');
-  showToast(n + ' resident' + (n !== 1 ? 's' : '') + ' documented.');
+  cxShowToast(done.length + ' resident' + (done.length !== 1 ? 's' : '') + ' documented.' + cxLeftText(), { kind: 'docs', done });
 }
 
-async function batchSetDeadline() {
+// compliance C3: "Remind me" in place of the typed-date prompt (F4). The reminder is the resident's complianceDeadline.
+async function batchSetDeadline(days) {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  const deadline = prompt(`Set compliance deadline for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} (YYYY-MM-DD):`);
-  if (!deadline) return;
-  if (!doorDocParseDay(deadline.trim())) { showToast('Not set: “' + deadline + '” is not a date like 2026-12-01.'); return; }
+  const n = Number(days) > 0 ? Number(days) : 7;
   await doorTakeNewerKitchenList();   // then marked as this computer's change (2026-10-18)
+  const on = cxDayPlus(n);
+  const prev = [];
   rooms.forEach(room => {
     const r = REGISTRY_LIST.find(x => x.room === room);
-    if (r) r.complianceDeadline = deadline;
+    if (r) { prev.push({ room, deadline: r.complianceDeadline || '' }); r.complianceDeadline = on; }
   });
+  _complianceSelected.clear();
   setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch deadline set');
+  cxShowToast('Reminder set for ' + prev.length + ' room' + (prev.length !== 1 ? 's' : '') + ': ' + formatCompactDate(on) + '.', { kind: 'deadline', prev });
+}
+// compliance C3: the selected rooms are preferences (Jason, 2026-11-22: "It's a preference can clear"). Never for an
+// anaphylactic room (plan review P2-5).
+async function batchPreferenceCompliance() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
+  const rooms = [..._complianceSelected];
+  if (!rooms.length) return;
+  if (!(await doorAsk({ title: 'Mark as preferences', lines: [`Record ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as a preference? Their restrictions stay on the plate; no note from Health & Wellness is needed.`], goLabel: 'Mark as preferences', cancelLabel: 'Go back' }))) return;
+  if (!ensureOperatorName()) { showToast('Nothing recorded: add your name first, so the record says who.'); return; }
+  await doorTakeNewerKitchenList();
+  const by = getOperatorName();
+  const at = doorComplianceToday();
+  const done = [];
+  rooms.forEach(room => {
+    const r = REGISTRY_LIST.find(x => x.room === room);
+    if (!r) return;
+    const st = doorComplianceStateOf(r);
+    if (!st.needs.length || st.anaph) return;
+    pushResidentHistory(r, 'Preference: ' + st.needs.join(', '), by);
+    doorRecordDocs(r, st.needs, 'preference', by, at, 'Marked with others');
+    done.push({ room, tags: st.needs.slice() });
+    RECENT_LOG.unshift({ ts: new Date().toISOString(), date: cxShortDate(), room, type: 'update', desc: `Preference: ${st.needs.join(', ')} by ${by}`, color: '#2563eb', by });
+  });
+  _complianceSelected.clear();
+  setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance preference');
+  cxShowToast(done.length + ' marked as a preference.' + cxLeftText(), { kind: 'docs', done });
 }
 
 
@@ -9928,21 +10023,63 @@ function draftComplianceDigest() {
   w.focus();
 }
 
-function setComplianceSort(col) {
-  if (_complianceSortCol === col) _complianceSortAsc = !_complianceSortAsc;
-  else { _complianceSortCol = col; _complianceSortAsc = true; }
-  renderComplianceView();
+// compliance C2/C3 helpers: dates, the left count, the toast with Undo.
+function cxDayPlus(days) {
+  const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + days);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function cxShortDate() {
+  const d = new Date();
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate();
+}
+function cxLeftText() {
+  const left = getComplianceResidents(false);
+  if (!left.length) return ' Everything is documented.';
+  const anaph = left.filter(r => doorComplianceStateOf(r).anaph).length;
+  return ' ' + left.length + ' to go' + (anaph ? ', ' + anaph + ' anaphylactic' : '') + '.';
+}
+let _cxUndo = null;
+let _cxToastTimer = null;
+// The change is saved and sent at once; Undo is a new change, made on the kitchen newer list (plan review P3-10).
+function cxShowToast(msg, undo) {
+  const t = document.getElementById('cx-toast');
+  if (!t) { showToast(msg); return; }
+  _cxUndo = undo || null;
+  t.innerHTML = '<span>' + escapeHtml(msg) + '</span>' + (undo ? '<button type="button" class="cx-undo" onclick="cxUndoLast()">Undo</button>' : '');
+  t.hidden = false;
+  clearTimeout(_cxToastTimer);
+  _cxToastTimer = setTimeout(() => { t.hidden = true; _cxUndo = null; }, 10000);
+}
+async function cxUndoLast() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
+  const u = _cxUndo;
+  const t = document.getElementById('cx-toast');
+  if (t) t.hidden = true;
+  _cxUndo = null;
+  if (!u) return;
+  await doorTakeNewerKitchenList();
+  const by = getOperatorName();
+  if (u.kind === 'docs') {
+    u.done.forEach(({ room, tags }) => {
+      const r = REGISTRY_LIST.find(x => x.room === room);
+      if (!r) return;
+      pushResidentHistory(r, 'Undone: ' + tags.join(', '), by);
+      doorClearDocs(r, tags);
+    });
+  } else if (u.kind === 'deadline') {
+    u.prev.forEach(({ room, deadline }) => { const r = REGISTRY_LIST.find(x => x.room === room); if (r) r.complianceDeadline = deadline; });
+  }
+  setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('compliance undo');
+  showToast('Undone.');
 }
 
 // --- Compliance badge on sidebar nav + topbar subtitle ---
 function updateComplianceBadge() {
   const active = getComplianceResidents(false);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const overdue = active.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl < today;
-  }).length;
+  const today = doorComplianceToday();
+  const states = active.map(r => doorComplianceStateOf(r));
+  const overdue = states.filter(st => st.remindOn && st.remindOn < today).length;
+  const anaph = states.filter(st => st.anaph).length;
 
   // Sidebar nav badge
   const badge = document.getElementById('compliance-nav-badge');
@@ -9960,11 +10097,12 @@ function updateComplianceBadge() {
   const sub = document.getElementById('compliance-topbar-sub');
   if (sub) {
     if (!active.length) {
-      sub.textContent = 'All dietary restrictions documented — no outstanding items';
+      sub.textContent = 'Everything is documented';
     } else {
-      const parts = [active.length + ' outstanding'];
-      if (overdue) parts.push(overdue + ' overdue');
-      sub.textContent = parts.join(' · ') + ' — H&W documentation required';
+      const parts = [active.length + ' need' + (active.length === 1 ? 's' : '') + ' a note'];
+      if (anaph) parts.push(anaph + ' anaphylactic');
+      if (overdue) parts.push(overdue + ' past their reminder');
+      sub.textContent = parts.join(' · ');
     }
   }
 }
@@ -9986,14 +10124,13 @@ function debouncedComplianceSave() {
     setRegistryProvenance();
     saveRegistryState();
     publishAndSync('compliance field update');
-    // Update banner to saved state
-    const banner = document.getElementById('compliance-pending-banner');
-    if (banner && banner.style.display !== 'none') {
-      banner.innerHTML = ('<strong style="color:var(--ok-ink, #15803d);">' + doorIcon('check') + ' Saved</strong> — resident list updated.');
-      banner.style.background = 'var(--ok-faint, #f0fdf4)';
-      banner.style.borderColor = '#86efac';
-      setTimeout(() => { banner.style.display = 'none'; banner.innerHTML = '<strong style="color:var(--warn-ink, #92400e);">Unsaved changes</strong> — saving…'; banner.style.background = 'var(--warn-faint, #fef3c7)'; banner.style.borderColor = '#f59e0b'; }, 2000);
-    }
+    // compliance C2: saving is quiet, a small "Saved" beside the row that changed (it replaced the amber page banner)
+    [...new Set(pending.map(p => p.room))].forEach(room => {
+      const el = document.getElementById('cx-saved-' + cxRoomId(room));
+      if (!el) return;
+      el.textContent = 'Saved ✓';
+      setTimeout(() => { if (el.textContent === 'Saved ✓') el.textContent = ''; }, 2000);
+    });
   }, 1500);
 }
 
@@ -10005,134 +10142,114 @@ function setRegistryView(view) {
   }
 }
 
-function renderComplianceView() {
-  const body = document.getElementById('compliance-body');
-  const thead = document.getElementById('compliance-thead');
-  const today = new Date(); today.setHours(0,0,0,0);
-
-  // --- Shared filter (#3) ---
-  const relevant = getComplianceResidents(false);
-
-  // --- Sorting (#8) ---
-  const dir = _complianceSortAsc ? 1 : -1;
-  const _anaphOf = (x) => doorComplianceStateOf(x).anaph ? 0 : 1;
-  relevant.sort((a,b) => {
-    // compliance C1: anaphylactic rooms always first, whatever the sort
-    const ap = _anaphOf(a) - _anaphOf(b);
-    if (ap) return ap;
-    switch (_complianceSortCol) {
-      case 'room': return dir * a.room.localeCompare(b.room, undefined, {numeric: true});
-      case 'status': return dir * (a.confirm || '').localeCompare(b.confirm || '');
-      case 'reason': return dir * getComplianceReason(a).localeCompare(getComplianceReason(b));
-      case 'deadline': default: {
-        if (a.complianceDeadline && b.complianceDeadline) return dir * a.complianceDeadline.localeCompare(b.complianceDeadline);
-        if (a.complianceDeadline) return -1;
-        if (b.complianceDeadline) return 1;
-        return 0;
-      }
-    }
+const CX_GROUPS = [
+  { key: 'anaph', title: 'Anaphylactic · ask first', why: 'Already kept off their allergens at every meal' },
+  { key: 'allergy', title: 'Allergies', why: '' },
+  { key: 'medical', title: 'Medical diets', why: '' },
+  { key: 'preference', title: 'Usually a preference', why: 'Only No Pork or No Spicy; no note expected' },
+];
+const CX_GROUP_ROWS = 6;
+const _cxOpenGroups = new Set();
+function cxRoomId(room) { return String(room).replace(/[^A-Za-z0-9_-]/g, '_'); }
+function cxToggleGroup(key) {
+  if (_cxOpenGroups.has(key)) _cxOpenGroups.delete(key); else _cxOpenGroups.add(key);
+  renderComplianceView();
+}
+function cxReminderLine(r, st, today) {
+  if (!st.remindOn) return '';
+  if (st.remindOn < today) return '<span class="cx-sub ' + (st.anaph ? 'cx-late-red' : 'cx-late') + '">Reminder was ' + escapeHtml(formatCompactDate(st.remindOn)) + '</span>';
+  if (st.remindOn === today) return '<span class="cx-sub cx-late">Reminder today</span>';
+  return '<span class="cx-sub">Reminder ' + escapeHtml(formatCompactDate(st.remindOn)) + '</span>';
+}
+function cxRowHtml(r, st, today) {
+  const id = cxRoomId(r.room);
+  const chips = [];
+  if (st.anaph) chips.push('<span class="cx-chip cx-chip-anaph">Anaphylactic' + (st.anaphNoAllergen ? ': no allergen recorded' : '') + '</span>');
+  (r.tags || []).filter(t => t !== 'Regular').forEach(t => {
+    if (st.needs.includes(t)) chips.push('<span class="cx-chip cx-chip-need" title="Needs a note">' + escapeHtml(t) + '</span>');
+    else chips.push('<span class="cx-chip">' + escapeHtml(t) + (st.done.includes(t) ? ' ✓' : '') + '</span>');
   });
+  if (r.isModerate) chips.push('<span class="cx-chip cx-chip-need">Moderate allergy</span>');
+  const checked = _complianceSelected.has(r.room) ? ' checked' : '';
+  const primary = st.needs.length
+    ? (st.group === 'preference'
+      ? '<button type="button" class="btn btn-ghost btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Answer…</button>'
+      : '<button type="button" class="btn btn-mint btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Got the note…</button>')
+    : '<button type="button" class="btn btn-ghost btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Open…</button>';
+  const sub = [cxReminderLine(r, st, today), st.done.length ? '<span class="cx-sub">Documented: ' + escapeHtml(st.done.join(', ')) + '</span>' : ''].filter(Boolean).join(' · ');
+  return `<div class="cx-item${st.anaph ? ' cx-item-anaph' : ''}" id="cx-row-${id}">
+    <input type="checkbox" class="cx-pick" aria-label="Select room ${escapeHtml(r.room)}"${checked} onchange="${_escAttr('toggleComplianceSelect(' + _jsStringLiteral(r.room) + ',this.checked)')}">
+    <span class="cx-room">${escapeHtml(r.room)}</span>
+    <div class="cx-chips">${chips.join('')}</div>
+    <div class="cx-acts">${primary}
+      <details class="cx-more"><summary aria-label="More for room ${escapeHtml(r.room)}">⋯</summary>
+        <div class="cx-menu">
+          <button type="button" onclick="${_escJsAttrCall('openResidentHistory', [r.room])}">Change history</button>
+          <button type="button" onclick="${_escJsAttrCall('openEditResident', [r.room])}">Edit restrictions</button>
+          <button type="button" onclick="${_escAttr('cxRemindRoom(' + _jsStringLiteral(r.room) + ',7)')}">Remind me in a week</button>
+          <label class="cx-note-field">H&amp;W note<input type="text" value="${_escAttr(r.moderateNote || '')}" placeholder="Optional" oninput="${_escAttr('updateComplianceField(' + _jsStringLiteral(r.room) + ',' + _jsStringLiteral('moderateNote') + ',this.value)')}"></label>
+        </div>
+      </details>
+    </div>
+    <div class="cx-subline">${sub}<span class="cx-saved" id="cx-saved-${id}" aria-live="polite"></span></div>
+  </div>`;
+}
+async function cxRemindRoom(room, days) {
+  _complianceSelected.clear();
+  _complianceSelected.add(room);
+  return batchSetDeadline(days);
+}
+function renderComplianceView() {
+  const wrap = document.getElementById('cx-groups');
+  if (!wrap) return;
+  const today = doorComplianceToday();
+  const outstanding = getComplianceResidents(false);
+  const byGroup = {};
+  outstanding.forEach(r => {
+    const st = doorComplianceStateOf(r);
+    const key = st.group || (r.isModerate ? 'allergy' : 'medical');
+    (byGroup[key] = byGroup[key] || []).push({ r, st });
+  });
+  // Anything past its reminder first, then the oldest reminder, then room order.
+  const order = (a, b) => {
+    const ad = a.st.remindOn || '9999', bd = b.st.remindOn || '9999';
+    if (ad !== bd) return ad.localeCompare(bd);
+    return a.r.room.localeCompare(b.r.room, undefined, { numeric: true });
+  };
+  // The selection holds only rooms still listed.
+  [..._complianceSelected].forEach(room => { if (!outstanding.some(r => r.room === room)) _complianceSelected.delete(room); });
 
-  // --- Sortable column headers (#8) ---
-  const arrow = (col) => _complianceSortCol === col ? (_complianceSortAsc ? ' ▲' : ' ▼') : '';
-  if (thead) {
-    thead.innerHTML = `<tr>
-      <th style="width:32px;"></th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('room')">Room${arrow('room')}</th>
-      <th>Restrictions</th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('status')">Status${arrow('status')}</th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('deadline')">Deadline${arrow('deadline')}</th>
-      <th style="cursor:pointer;user-select:none;" onclick="setComplianceSort('reason')">Reason${arrow('reason')}</th>
-      <th>Notes</th>
-      <th style="font-size:10px;">Last on List</th>
-      <th></th>
-    </tr>`;
-  }
-
-  // --- Group summary banner (#8) ---
-  const overdueCount = relevant.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl < today;
-  }).length;
-  const soonCount = relevant.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl >= today && (dl - today) <= 7 * 86400000;
-  }).length;
-  const noDeadline = relevant.filter(r => !r.complianceDeadline).length;
-  const summaryEl = document.getElementById('compliance-summary-bar');
-  if (summaryEl && relevant.length) {
-    const parts = [];
-    if (overdueCount) parts.push(`<span style="color:var(--danger-ink, #b91c1c);font-weight:600;">Overdue (${overdueCount})</span>`);
-    if (soonCount) parts.push(`<span style="color:var(--warn-ink, #b45309);font-weight:600;">Due This Week (${soonCount})</span>`);
-    if (noDeadline) parts.push(`<span style="color:var(--muted);font-weight:600;">No Deadline (${noDeadline})</span>`);
-    summaryEl.innerHTML = parts.join(' · ');
-    summaryEl.style.display = 'block';
-  } else if (summaryEl) {
-    summaryEl.style.display = 'none';
-  }
-
-  // v29: Populate filter dropdown
-  const filterEl = document.getElementById('compliance-filter');
-  if (filterEl) {
-    const allTags = new Set();
-    relevant.forEach(r => (r.tags || []).forEach(t => { if (t !== 'Regular') allTags.add(t); }));
-    const sortedTags = [...allTags].sort();
-    const currentFilter = filterEl.value;
-    filterEl.innerHTML = '<option value="all">All restrictions (' + relevant.length + ')</option>' +
-      sortedTags.map(t => {
-        const count = relevant.filter(r => (r.tags || []).includes(t)).length;
-        return `<option value="${_escAttr(t)}" ${currentFilter === t ? 'selected' : ''}>${escapeHtml(t)} (${count})</option>`;
-      }).join('');
-  }
-
-  // v29: Apply filter
-  const activeFilter = filterEl ? filterEl.value : 'all';
-  const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
-
-  if (!filtered.length) {
-    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No residents with outstanding compliance requirements.</td></tr>';
+  if (!outstanding.length) {
+    wrap.innerHTML = '<div class="cx-empty"><div class="cx-empty-mark">✓</div><b>Everything is documented.</b><span>A new restriction that needs a note will show up here.</span></div>';
   } else {
-    body.innerHTML = filtered.map((r) => {
-      const dl = r.complianceDeadline ? new Date(r.complianceDeadline) : null;
-      if (dl) dl.setHours(0,0,0,0);
-      const overdue = dl && dl < today;
-      const soon = dl && !overdue && (dl - today) <= 7 * 86400000;
-      const dlColor = overdue ? 'var(--red)' : soon ? '#d97706' : 'inherit';
-      const rowBg = overdue ? 'background:var(--danger-faint, #fef2f2);' : soon ? 'background:var(--warn-faint, #fffbeb);' : '';
-      const rowBorder = overdue ? 'border-left:3px solid #dc2626;' : soon ? 'border-left:3px solid #d97706;' : 'border-left:3px solid transparent;';
-      const moderateBadge = r.isModerate ? ('<span class="tag tag-moderate" style="font-size:11px;">' + doorIcon('warning') + ' Moderate</span>') : '';
-      // compliance C1: anaphylactic rooms marked red; the restrictions that need a note in amber, the rest plain
-      const st = doorComplianceStateOf(r);
-      const anaphBadge = st.anaph ? '<span class="tag" style="font-size:11px;background:var(--red-pale);color:var(--red-text);font-weight:700;margin-right:4px;">Anaphylactic' + (st.anaphNoAllergen ? ': no allergen recorded' : '') + '</span>' : '';
-      const restrictionChips = (r.tags || []).filter(t => t !== 'Regular').map(t => st.needs.includes(t)
-        ? '<span class="tag" style="font-size:11px;background:var(--amber-pale);color:var(--amber-text);font-weight:600;margin:1px 3px 1px 0;" title="Needs a note">' + escapeHtml(t) + '</span>'
-        : '<span style="font-size:11px;color:var(--muted);margin-right:4px;">' + escapeHtml(t) + (st.done.includes(t) ? ' ✓' : '') + '</span>').join('');
-      const rowBorderAnaph = st.anaph ? 'border-left:3px solid var(--red-text);' : '';
-      const reason = getComplianceReason(r);
-      const reasonColor = reason.includes('Overdue') ? '#dc2626' : reason.includes('this week') ? '#d97706' : 'var(--muted)';
-      const isChecked = _complianceSelected.has(r.room) ? 'checked' : '';
-      const importedDate = r.lastImported ? formatCompactDate(r.lastImported) : '—';
-      return `<tr style="${rowBg}${rowBorderAnaph || rowBorder}">
-        <td style="width:32px;text-align:center;"><input type="checkbox" ${isChecked} onchange="${_escAttr('toggleComplianceSelect(' + _jsStringLiteral(r.room) + ',this.checked)')}"></td>
-        <td><span class="room-num">${escapeHtml(r.room)}</span></td>
-        <td style="font-size:12px;">${anaphBadge}${restrictionChips} ${moderateBadge}</td>
-        <td><span style="font-size:12px;font-weight:600;color:${r.confirm==='Provisional'?'var(--amber-text)':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid-text)'}">${escapeHtml(r.confirm)}</span></td>
-        <td><input type="date" value="${_escAttr(r.complianceDeadline || '')}" style="font-size:12px;color:${dlColor};border:1px solid var(--border);border-radius:6px;padding:3px 6px;" onchange="${_escAttr('updateComplianceField(' + _jsStringLiteral(r.room) + ',' + _jsStringLiteral('complianceDeadline') + ',this.value)')}"></td>
-        <td style="font-size:12px;color:${reasonColor};">${escapeHtml(reason)}</td>
-        <td><input type="text" value="${_escAttr(r.moderateNote || '')}" placeholder="H&W notes…" style="font-size:12px;width:100%;border:1px solid var(--border);border-radius:6px;padding:3px 6px;" oninput="${_escAttr('updateComplianceField(' + _jsStringLiteral(r.room) + ',' + _jsStringLiteral('moderateNote') + ',this.value)')}"></td>
-        <td style="font-size:11px;color:var(--muted);white-space:nowrap;">${escapeHtml(importedDate)}</td>
-        <td style="text-align:right;white-space:nowrap;">
-          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openResidentHistory', [r.room])}" title="View change history">${doorIcon("clock")}</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openEditResident', [r.room])}" title="Edit restrictions">Edit</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openResolveModal', [r.room])}">${st.needs.length ? 'Got the note…' : 'Open…'}</button>
-        </td>
-      </tr>`;
+    wrap.innerHTML = CX_GROUPS.filter(g => byGroup[g.key] && byGroup[g.key].length).map(g => {
+      const items = byGroup[g.key].sort(order);
+      const open = _cxOpenGroups.has(g.key);
+      const shown = open ? items : items.slice(0, CX_GROUP_ROWS);
+      const more = items.length - shown.length;
+      const why = g.key === 'medical' || g.key === 'allergy'
+        ? (() => { const c = {}; items.forEach(x => x.st.needs.forEach(t => { c[t] = (c[t] || 0) + 1; })); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, n]) => t + ' ' + n).join(', '); })()
+        : g.why;
+      return `<section class="cx-group" aria-labelledby="cx-g-${g.key}">
+        <div class="cx-ghead"><h3 id="cx-g-${g.key}">${escapeHtml(g.title)}</h3><span class="cx-why">${items.length} room${items.length !== 1 ? 's' : ''}${why ? ' · ' + escapeHtml(why) : ''}</span></div>
+        <div class="cx-card">${shown.map(x => cxRowHtml(x.r, x.st, today)).join('')}
+          ${more > 0 ? `<button type="button" class="cx-more-rows" onclick="${_escJsAttrCall('cxToggleGroup', [g.key])}">Show ${more} more</button>` : (open && items.length > CX_GROUP_ROWS ? `<button type="button" class="cx-more-rows" onclick="${_escJsAttrCall('cxToggleGroup', [g.key])}">Show fewer</button>` : '')}
+        </div>
+      </section>`;
     }).join('');
   }
 
-  // --- Documented section with Re-open (compliance C1: the answers on file, newest first) ---
+  // Progress: residents fully documented against everyone who needs or needed a note.
+  const allWithDocs = getComplianceResidents('resolved-only').filter(r => !doorComplianceStateOf(r).needs.length);
+  const total = allWithDocs.length + outstanding.length;
+  const prog = document.getElementById('cx-progress');
+  if (prog) {
+    prog.hidden = total === 0;
+    const pct = total ? Math.round(allWithDocs.length / total * 100) : 0;
+    prog.innerHTML = `<div class="cx-prow"><span>${allWithDocs.length} of ${total} documented</span><span>${outstanding.length} to go</span></div><div class="cx-meter" aria-hidden="true"><i style="width:${pct}%"></i></div>`;
+  }
+
+  // --- Documented section with Re-open (the answers on file, newest first) ---
   const resolved = getComplianceResidents('resolved-only').map(r => {
     const docs = doorDocRecords(r);
     const st = doorComplianceStateOf(r);
@@ -10143,9 +10260,12 @@ function renderComplianceView() {
   const resolvedSection = document.getElementById('compliance-resolved-section');
   const resolvedBody = document.getElementById('compliance-resolved-body');
   const resolvedCount = document.getElementById('compliance-resolved-count');
+  const resolvedLast = document.getElementById('compliance-resolved-last');
   if (resolved.length) {
     resolvedSection.style.display = 'block';
     resolvedCount.textContent = resolved.length;
+    const top = resolved[0];
+    if (resolvedLast) resolvedLast.textContent = top.newest ? 'most recent Room ' + top.r.room + (top.newest.d.at ? ', ' + formatCompactDate(top.newest.d.at) : '') + (top.newest.d.by ? ', by ' + top.newest.d.by : '') : '';
     resolvedBody.innerHTML = resolved.map(({ r, recs, newest }) => {
       const hows = [...new Set(recs.map(x => x.d.how === 'preference' ? 'Preference' : 'Note from H&W'))].join(', ');
       const bys = [...new Set(recs.map(x => x.d.by).filter(Boolean))].join(', ');
@@ -10165,12 +10285,8 @@ function renderComplianceView() {
     resolvedSection.style.display = 'none';
   }
 
-  // Update badge (#2)
   updateComplianceBadge();
-  // v29: Update batch selection bar
   updateComplianceBatchBar();
-  const selectAllEl = document.getElementById('compliance-select-all');
-  if (selectAllEl) selectAllEl.checked = (filtered.length > 0 && _complianceSelected.size >= filtered.length);
 }
 
 // --- Re-open resolved compliance item (#6) ---
@@ -10210,13 +10326,9 @@ async function reopenComplianceItem(room) {
 function toggleResolvedSection() {
   const wrap = document.getElementById('compliance-resolved-body-wrap');
   const chevron = document.getElementById('compliance-resolved-chevron');
-  if (wrap.style.display === 'none') {
-    wrap.style.display = 'block';
-    chevron.innerHTML = doorIcon('up') + ' Hide';
-  } else {
-    wrap.style.display = 'none';
-    chevron.innerHTML = doorIcon('down') + ' Show';
-  }
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? 'block' : 'none';
+  if (chevron) chevron.textContent = open ? 'Hide' : 'Show';
 }
 
 let _resolveRoom = null;
@@ -10229,30 +10341,60 @@ function openResolveModal(room) {
   document.getElementById('settle-room-label').textContent = room;
   const restrictionEl = document.getElementById('settle-current-restrictions');
   const tags = (r.tags || []).filter(t => t !== 'Regular');
-  const chip = (t) => {
-    const need = st.needs.includes(t);
-    const done = st.done.includes(t);
-    const style = need ? 'background:var(--amber-pale);color:var(--amber-text);font-weight:600;' : '';
-    return `<span class="tag" style="font-size:12px;margin-right:4px;${style}">${escapeHtml(t)}${done ? ' ✓' : ''}</span>`;
-  };
-  restrictionEl.innerHTML = (st.anaph ? '<span class="tag" style="font-size:12px;margin-right:4px;background:var(--red-pale);color:var(--red-text);font-weight:700;">Anaphylactic</span>' : '') +
+  const chip = (t) => st.needs.includes(t)
+    ? '<span class="cx-chip cx-chip-need">' + escapeHtml(t) + '</span>'
+    : '<span class="cx-chip">' + escapeHtml(t) + (st.done.includes(t) ? ' ✓' : '') + '</span>';
+  restrictionEl.innerHTML = (st.anaph ? '<span class="cx-chip cx-chip-anaph">Anaphylactic</span>' : '') +
     (tags.length ? tags.map(chip).join('') : '<span style="color:var(--muted);font-size:13px;">Regular — no restriction recorded</span>');
+  const ask = document.getElementById('settle-ask');
   const what = document.getElementById('settle-what');
-  const submit = document.getElementById('settle-submit');
+  const q = document.getElementById('settle-question');
+  const tagBox = document.getElementById('settle-tags');
   if (st.needs.length) {
-    what.innerHTML = 'Mark documented records a note from Health &amp; Wellness for <strong>' + escapeHtml(st.needs.join(', ')) + '</strong>. Meals don’t change.';
-    if (submit) submit.disabled = false;
+    ask.hidden = false;
+    q.textContent = 'What did Health & Wellness say about ' + (st.needs.length === 1 ? st.needs[0] : 'these') + '?';
+    // More than one restriction: each can be answered on its own (all ticked by default).
+    tagBox.innerHTML = st.needs.length > 1 ? st.needs.map(t => `<label class="cx-tag"><input type="checkbox" class="settle-tag" value="${_escAttr(t)}" checked> ${escapeHtml(t)}</label>`).join('') : '';
+    tagBox.hidden = st.needs.length < 2;
+    // Plan review P2-5: an anaphylactic room is never filed as a preference.
+    const prefOpt = document.getElementById('settle-opt-preference');
+    if (prefOpt) prefOpt.hidden = st.anaph;
+    const def = (st.group === 'preference') ? 'preference' : 'note';
+    document.querySelectorAll('input[name=settle-how]').forEach(i => { i.checked = (i.value === def); });
+    document.getElementById('settle-wait-days').value = '7';
+    what.textContent = '';
   } else {
+    ask.hidden = true;
     what.innerHTML = st.anaphNoAllergen
       ? 'This room is on the anaphylactic list but its restriction names no allergen. Open the resident’s record and add the allergen.'
       : r.isModerate
         ? 'A moderate allergy is flagged. Once Health &amp; Wellness confirms it, open the resident’s record and untick Moderate allergy.'
         : 'Nothing here needs a note.';
-    if (submit) submit.disabled = true;
   }
   document.getElementById('settle-resolved-by').value = getOperatorName();
   document.getElementById('settle-resolution-note').value = '';
+  settleChoiceChanged();
   document.getElementById('settle-compliance-modal').classList.add('open');
+}
+
+function settleChoiceChanged() {
+  const askEl = document.getElementById('settle-ask');
+  const asking = askEl && !askEl.hidden;
+  const sel = document.querySelector('input[name=settle-how]:checked');
+  const how = asking && sel ? sel.value : '';
+  const submit = document.getElementById('settle-submit');
+  const name = getOperatorName() || (document.getElementById('settle-resolved-by').value || '').trim();
+  if (submit) {
+    if (!asking) { submit.textContent = 'Open the resident’s record'; submit.disabled = false; }
+    else if (how === 'notneeded') { submit.textContent = 'Open the resident’s record'; submit.disabled = false; }
+    else if (how === 'waiting') { submit.textContent = 'Set the reminder'; submit.disabled = false; }
+    else { submit.textContent = 'Save' + (name ? ' · by ' + name : ''); submit.disabled = false; }
+  }
+  const byWrap = document.getElementById('settle-by-wrap');
+  const noteWrap = document.getElementById('settle-note-wrap');
+  const recording = asking && (how === 'note' || how === 'preference');
+  if (byWrap) byWrap.hidden = !recording || !!getOperatorName();
+  if (noteWrap) noteWrap.hidden = !recording;
 }
 
 function closeResolveModal() {
@@ -10271,36 +10413,57 @@ function settleOpenResidentRecord() {
 async function submitResolve() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const room = _resolveRoom;
-  if (!REGISTRY_LIST.find(x => x.room === room)) return;
+  const r0 = REGISTRY_LIST.find(x => x.room === room);
+  if (!r0) return;
+  const askEl = document.getElementById('settle-ask');
+  const asking = !askEl || !askEl.hidden;
+  const sel = document.querySelector('input[name=settle-how]:checked');
+  const how = sel ? sel.value : 'note';
+  // Nothing to answer, or "Not needed any more": the restriction comes off in the resident record, which asks first.
+  if (!asking || how === 'notneeded') { settleOpenResidentRecord(); return; }
 
-  const resolvedBy = document.getElementById('settle-resolved-by').value.trim();
-  if (!resolvedBy) {
-    document.getElementById('settle-resolved-by').focus();
-    document.getElementById('settle-resolved-by').style.borderColor = 'var(--red)';
+  const byEl = document.getElementById('settle-resolved-by');
+  const resolvedBy = (byEl.value || '').trim() || getOperatorName();
+  if ((how === 'note' || how === 'preference') && !resolvedBy) {
+    const wrap = document.getElementById('settle-by-wrap');
+    if (wrap) wrap.hidden = false;
+    byEl.focus();
+    byEl.style.borderColor = 'var(--red)';
     return;
   }
-  document.getElementById('settle-resolved-by').style.borderColor = '';
+  byEl.style.borderColor = '';
+  if (resolvedBy && !getOperatorName()) setOperatorName(resolvedBy);
   const note = document.getElementById('settle-resolution-note').value.trim();
-  const today = new Date();
-  const dateStr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()] + ' ' + today.getDate();
+  const picked = [...document.querySelectorAll('.settle-tag')].filter(i => i.checked).map(i => i.value);
+  const waitDays = Number((document.getElementById('settle-wait-days') || {}).value) || 7;
   // What the form says is read first and the form closes (so a second click can't resolve twice); then the kitchen's
   // newer list, and the answer lands on its record and is marked as this computer's change (2026-10-18).
   closeResolveModal();
   await doorTakeNewerKitchenList();
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) { showToast('Room ' + room + ' is no longer on the kitchen’s list — nothing saved.'); renderComplianceView(); return; }
-  // compliance C1: a note for each restriction that still needs one; the status follows from the answers, so the
-  // resident can never read resolved while still Provisional. Restrictions, routing and the anaphylactic list are untouched.
   const st = doorComplianceStateOf(r);
-  if (!st.needs.length) { showToast('Room ' + room + ': nothing here needs a note now.'); renderComplianceView(); return; }
-  pushResidentHistory(r, 'Documented: ' + st.needs.join(', '), resolvedBy);
-  doorRecordDocs(r, st.needs, 'note', resolvedBy, doorComplianceToday(), note);
+  if (how === 'waiting') {
+    const prev = [{ room, deadline: r.complianceDeadline || '' }];
+    r.complianceDeadline = cxDayPlus(waitDays);
+    setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('compliance reminder');
+    cxShowToast('Room ' + room + ': reminder set for ' + formatCompactDate(r.complianceDeadline) + '.', { kind: 'deadline', prev });
+    return;
+  }
+  // compliance C1: an answer for each restriction chosen that still needs one; the status follows from the answers, so
+  // the resident can never read resolved while still Provisional. Restrictions, routing and the anaphylactic list are
+  // untouched. A preference is never recorded for an anaphylactic room (plan review P2-5).
+  if (how === 'preference' && st.anaph) { showToast('Room ' + room + ' is anaphylactic: record a note from Health & Wellness instead.'); renderComplianceView(); return; }
+  const tags = (picked.length ? picked : st.needs).filter(t => st.needs.includes(t));
+  if (!tags.length) { showToast('Room ' + room + ': nothing here needs a note now.'); renderComplianceView(); return; }
+  pushResidentHistory(r, (how === 'preference' ? 'Preference: ' : 'Documented: ') + tags.join(', '), resolvedBy);
+  doorRecordDocs(r, tags, how, resolvedBy, doorComplianceToday(), note);
   RECENT_LOG.unshift({
     ts:new Date().toISOString(),
-    date: dateStr,
+    date: cxShortDate(),
     room: r.room,
     type: 'update',
-    desc: 'Documented ' + st.needs.join(', ') + ' by ' + resolvedBy + (note ? ' — ' + note : ''),
+    desc: (how === 'preference' ? 'Preference: ' : 'Documented ') + tags.join(', ') + ' by ' + resolvedBy + (note ? ' — ' + note : ''),
     color: '#2563eb',
     by: resolvedBy
   });
@@ -10310,7 +10473,7 @@ async function submitResolve() {
   renderComplianceView();
   // v25: Sync compliance changes to GitHub for multi-device access
   publishAndSync('compliance update');
-  showToast('Room ' + room + ' documented.');
+  cxShowToast('Room ' + room + (how === 'preference' ? ': marked as a preference.' : ' documented.') + cxLeftText(), { kind: 'docs', done: [{ room, tags }] });
 }
 
 function updateComplianceField(room, field, value) {
@@ -10318,14 +10481,8 @@ function updateComplianceField(room, field, value) {
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (r) r[field] = value;
   _compliancePendingFields.push({ room, field, value });
-  // Show saving banner
-  const banner = document.getElementById('compliance-pending-banner');
-  if (banner) {
-    banner.innerHTML = '<strong style="color:var(--warn-ink, #92400e);">Saving…</strong>';
-    banner.style.display = 'block';
-    banner.style.background = 'var(--warn-faint, #fef3c7)';
-    banner.style.borderColor = '#f59e0b';
-  }
+  const el = document.getElementById('cx-saved-' + cxRoomId(room));
+  if (el) el.textContent = 'Saving…';
   // Debounced persist (#1)
   debouncedComplianceSave();
   // Update badge in case deadline change shifts counts
@@ -28779,40 +28936,39 @@ window.addEventListener('load', runAltFlagSweepOnce);
   </div>
 </div>
 
-<!-- ===== SETTLE COMPLIANCE MODAL ===== -->
+<!-- ===== SETTLE COMPLIANCE MODAL (compliance C3, 2026-11-22: one question) ===== -->
 <div class="modal-overlay" id="settle-compliance-modal" onclick="if(event.target===this)closeResolveModal()">
-  <div class="modal-box" style="max-width:500px;">
+  <div class="modal-box cx-sheet" style="max-width:520px;" role="dialog" aria-modal="true" aria-labelledby="settle-title">
     <div class="modal-header">
-      <h2>Resolve — Room <span id="settle-room-label"></span></h2>
+      <h2 id="settle-title">Room <span id="settle-room-label"></span></h2>
       <button class="btn btn-ghost btn-sm" onclick="closeResolveModal()" aria-label="Close"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M6 6l12 12M6 18L18 6"/></svg></button>
     </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;padding-top:4px;">
-      <!-- Current restrictions display -->
-      <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Current Restrictions</div>
-        <div id="settle-current-restrictions" style="font-size:13px;line-height:1.6;"></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding-top:4px;">
+      <div id="settle-current-restrictions" style="font-size:13px;line-height:1.7;"></div>
+      <div id="settle-ask" class="cx-ask">
+        <div id="settle-question" class="cx-question"></div>
+        <div id="settle-tags" class="cx-tagpick"></div>
+        <div class="cx-choice" role="radiogroup" aria-labelledby="settle-question">
+          <label class="cx-opt"><input type="radio" name="settle-how" value="note" checked onchange="settleChoiceChanged()"><span><b>Confirmed — keep it</b><small>Marked documented. Nothing about the meals changes.</small></span></label>
+          <label class="cx-opt" id="settle-opt-preference"><input type="radio" name="settle-how" value="preference" onchange="settleChoiceChanged()"><span><b>It’s a preference</b><small>Stays on the plate; no note needed. Won’t come back here.</small></span></label>
+          <label class="cx-opt"><input type="radio" name="settle-how" value="notneeded" onchange="settleChoiceChanged()"><span><b>Not needed any more</b><small>Opens the resident’s record to take it off. It asks first.</small></span></label>
+          <label class="cx-opt"><input type="radio" name="settle-how" value="waiting" onchange="settleChoiceChanged()"><span><b>Still waiting</b><small>Remind me in
+            <select id="settle-wait-days" aria-label="Remind me in" onclick="event.stopPropagation()" onchange="document.querySelector('input[name=settle-how][value=waiting]').checked=true;settleChoiceChanged()"><option value="7">1 week</option><option value="14">2 weeks</option></select></small></span></label>
+        </div>
       </div>
-      <!-- compliance C1 (2026-11-22): no status to pick and no revert box. Resolve records a note from H&W for each
-           restriction that needs one; taking a restriction off goes through the resident record and its questions. -->
-      <div id="settle-what" style="font-size:13px;line-height:1.5;"></div>
-      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;">Restrictions changed or no longer needed?
-        <button type="button" class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="settleOpenResidentRecord()">Open the resident’s record</button>
-      </div>
-      <!-- Resolved by -->
-      <div class="form-group" style="margin:0;">
-        <label>Resolved by</label>
+      <div id="settle-what" class="cx-what"></div>
+      <div class="form-group" style="margin:0;" id="settle-by-wrap">
+        <label for="settle-resolved-by">Your name</label>
         <input type="text" id="settle-resolved-by" placeholder="Your name" style="font-size:13px;">
-        <div class="form-hint">Saved with the answer, so the record says who.</div>
       </div>
-      <!-- Resolution note -->
-      <div class="form-group" style="margin:0;">
-        <label>Resolution note <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
-        <textarea id="settle-resolution-note" placeholder="e.g. Allergy confirmed with H&W — keeping Halal only. Deadline extended." style="font-size:13px;min-height:72px;"></textarea>
+      <div class="form-group" style="margin:0;" id="settle-note-wrap">
+        <label for="settle-resolution-note">A line for the record <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
+        <input type="text" id="settle-resolution-note" placeholder="e.g. Doctor’s note on file, Nov 20" style="font-size:13px;">
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--border);margin-top:8px;">
-      <button class="btn btn-ghost" onclick="closeResolveModal()">Cancel</button>
-      <button class="btn btn-mint" id="settle-submit" onclick="submitResolve()">Mark documented</button>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--border);margin-top:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="closeResolveModal()">Go back</button>
+      <button class="btn btn-mint" id="settle-submit" onclick="submitResolve()">Save</button>
     </div>
   </div>
 </div>
