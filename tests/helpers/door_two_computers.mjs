@@ -85,7 +85,8 @@ export function twoComputers(html, { fns = [], optFns = [], extraSrc = '', ctx =
       console: { log() {}, warn() {}, info() {}, error: console.error }, Date: FakeDate, fetch: fetchStub, setTimeout, clearTimeout, Promise,
       REGISTRY_LIST: [], REGISTRY_MAP: {}, anaphRooms: [], changesQueue: [],
       localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
-      document: { getElementById: (id) => (id in c.__els ? c.__els[id] : null) },
+      // querySelector(All) added 2026-11-22 (compliance C3: the answer dialog reads its radios; none here means the default)
+      document: { getElementById: (id) => (id in c.__els ? c.__els[id] : null), querySelector: () => null, querySelectorAll: () => [] },
       PublishAuth: { getRepo: () => 'kennedyjasondavid-eng/conc-kitchen-door' },
       doorAsk: async (o) => { asked.push({ title: o.title, lines: o.lines || [] }); return answer; },
       showToast() {}, updateSyncBar() {}, renderRegistry() {}, renderAnaphList() {}, updateDailyImportPrompt() {}, doorRefreshBaseSections() {},

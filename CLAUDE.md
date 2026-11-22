@@ -53,6 +53,40 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — Compliance Review C2 + C3: a worklist and one question (`v31-standard.137`)
+Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 (C2 and C3 shipped together; status §6). Mockups:
+https://claude.ai/artifact/QQce1KzNL7KBk4QQ4SfAGz. For Fiona: clean, simple, soft feedback.
+- **The worklist** (`renderComplianceView`, `CX_GROUPS`, `cxRowHtml`): the nine-column table, filter, sort, summary bar
+  and the amber "Saving…" banner are gone. Groups in order: **Anaphylactic · ask first**, **Allergies**, **Medical
+  diets**, **Usually a preference** (only No Pork / No Spicy), from `doorDocState`'s group. Each row: room, chips (red
+  anaphylactic, amber = needs a note, grey = fine, ✓ = documented), one main button ("Got the note…", "Answer…" for a
+  preference), and ⋯ (history, edit restrictions, remind me in a week, the H&W note). Six rows per group, then "Show N
+  more". A progress line ("11 of 52 documented"), an "Everything is documented" state, the Documented fold (newest
+  first, who and when), and the sharing tools (Email to H&W, Print, Spreadsheet) at the bottom, not in the header.
+- **The one question** (`openResolveModal`, `settleChoiceChanged`, `submitResolve`): "What did Health & Wellness say
+  about No Eggs?": **Confirmed — keep it** · **It's a preference** · **Not needed any more** (opens the resident record,
+  which asks) · **Still waiting** (remind me in 1 or 2 weeks, the resident's `complianceDeadline`). Several restrictions
+  can be answered one by one. "It's a preference" is never offered or recorded for an anaphylactic room (plan review
+  P2-5, lean followed). The name comes from the computer, shown on Save ("Save · by Fiona"); asked once when none is set.
+- **Soft feedback:** a toast says what happened and what is left ("Room 410 documented. 40 to go, 2 anaphylactic.") with
+  **Undo** for 10 s (`cxShowToast`, `cxUndoLast`: the change is saved and sent at once; Undo is a new change made on the
+  kitchen's newer list). Typing a note saves quietly: "Saved ✓" beside the row. Selecting rooms raises a bar (Got the
+  notes · It's a preference, hidden while an anaphylactic room is selected · Remind me in a week · Clear); the typed-date
+  `prompt()` is gone. The topbar says "52 need a note · 3 anaphylactic".
+- **Layout:** DOOR's main column shrinks to its content, so the worklist takes the window width (`.cx-page`, divided by
+  `--door-zoom` on a wide screen). A `[hidden]` rule keeps the flex parts hidden when they should be.
+- **Gates:** `tests/compliance_worklist_c2_gate.mjs` (7, red 7/7 on `main` `ed97d83`) and browser
+  `tests/browser/compliance_worklist.mjs` (52 at 1280 and 390 px, in CI; it replaced `compliance_docs_c1.mjs`, keeping
+  every check on the worklist). Re-pinned with dated notes: `resident_changes_reach` (Remind me, not a typed date; the
+  toast helpers in its sandbox), `compliance_docs_c1_gate` (its sandbox has the dialog helpers),
+  `tests/helpers/door_two_computers.mjs` (`querySelector` in the sandbox document).
+- **Independent review (FIX FIRST), folded (plan §9):** with two or more restrictions and none ticked, Save is grey and
+  nothing is recorded (it recorded every one, P2-1); focus moves into the question, Escape closes it and focus goes back;
+  the ⋯ menu closes on Escape, a click outside or a choice; one row's reminder leaves the selection alone; the H&W note
+  shows on its row; Undo puts back an ask the answer cleared; Print lists anaphylactic rooms first (the dead filter code
+  is gone); one wording ("Got the notes"). Found by `readable_themes_gate`: "Show N more" threw, because its handler was
+  not on `DOOR_INLINE_HANDLER_ALLOWLIST` (now it is; the browser gate covers a group of more than six). Gate 8 checks,
+  browser 60.
 ## Recent (2026-11-22) — "Load everyone" sets up the resident list again (`v31-standard.136`)
 The resident-list import's **Load everyone** button (`seedRegistryFromRoster`) read `tagLabels`, which it never defined,
 so pressing it threw a ReferenceError and set up nothing. Each entry's labels now come from its parsed tags through

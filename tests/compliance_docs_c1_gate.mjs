@@ -31,19 +31,20 @@ function box(reg = [], rooms = []) {
     between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('),
     fn('doorIsAnaphResident'), fnOpt('doorAnaphAnswerTransition'), fnOpt('doorRegistryQueueTransition'), fn('applyQueueToRegistry'),
     fn('commitIntakeQueue'), fn('getComplianceResidents'), fnOpt('doorComplianceToday'), fnOpt('doorComplianceStateOf'),
-    fn('submitResolve'), between('const _HISTORY_SNAPSHOT_KEYS', ';\n') + ';\n', fn('snapshotResident'), fn('pushResidentHistory'), fn('diffResidentStates'),
+    fn('submitResolve'), ...['cxShowToast', 'cxLeftText', 'cxShortDate', 'cxDayPlus', 'cxRoomId', 'settleOpenResidentRecord', 'doorText', 'escapeHtml', 'formatCompactDate'].map(fnOpt), between('const _HISTORY_SNAPSHOT_KEYS', ';\n') + ';\n', fn('snapshotResident'), fn('pushResidentHistory'), fn('diffResidentStates'),
     'this.__set = (reg, rooms) => { REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...reg); REGISTRY_MAP = {}; reg.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; }); anaphRooms = rooms; };',
+    'let _cxUndo = null; let _cxToastTimer = null;',
     'this.__state = () => REGISTRY_LIST;',
   ].join('\n');
   const els = {};
   const c = {
     console: { log() {}, warn() {}, error: console.error }, REGISTRY_LIST: [], REGISTRY_MAP: {}, anaphRooms: [], changesQueue: [], INTAKE_QUEUE: [], RECENT_LOG: [],
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-    document: { getElementById: (id) => (els[id] = els[id] || { value: '', style: {}, focus() {}, classList: { remove() {}, add() {} } }) },
+    document: { getElementById: (id) => (els[id] = els[id] || { value: '', style: {}, focus() {}, classList: { remove() {}, add() {} } }), querySelector: () => null, querySelectorAll: () => [] },
     doorAsk: async () => true, showToast() {}, renderAnaphList() {}, saveRegistryState() {}, publishAndSync() {}, renderComplianceView() {},
     saveIntakeQueue() {}, renderIntakeQueue() {}, renderRecentLog() {}, logQueueCommit() {}, clearResidentHistory() {}, closeResolveModal() {},
     dedupeServiceNote: (a, b) => b || a, filterServiceNote: (a, b) => b || a, getOperatorName: () => 'Fiona', setRegistryProvenance() {},
-    doorApplyPendingImportStamp() {}, doorTakeNewerKitchenList: async () => 'current',
+    doorApplyPendingImportStamp() {}, doorTakeNewerKitchenList: async () => 'current', setTimeout, clearTimeout, setOperatorName() {},
   };
   c.__els = els;
   vm.createContext(c);

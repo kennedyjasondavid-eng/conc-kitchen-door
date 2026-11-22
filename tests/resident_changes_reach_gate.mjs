@@ -22,9 +22,9 @@ const html = fs.readFileSync(process.env.RESIDENT_REACH_HTML || new URL('../inde
 const WRITERS = ['saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'reopenComplianceItem', 'submitResolve', 'debouncedComplianceSave', 'updateComplianceField', 'revertLastGenerate'];
 const { computer, kitchen, morning, fn } = twoComputers(html, {
   fns: WRITERS,
-  optFns: ['doorComplianceToday', 'doorComplianceStateOf'],   // compliance C1 (2026-11-22): the one reader the writers use
+  optFns: ['doorComplianceToday', 'doorComplianceStateOf', 'getComplianceResidents', 'cxShowToast', 'cxLeftText', 'cxShortDate', 'cxDayPlus', 'cxRoomId', 'formatCompactDate', 'escapeHtml'],   // compliance C1/C3 (2026-11-22): the reader and the toast the writers use
   // declared beside debouncedComplianceSave in index.html (the pending list only on this branch)
-  extraSrc: 'let _complianceSaveTimer = null; const _compliancePendingFields = [];',
+  extraSrc: 'let _complianceSaveTimer = null; const _compliancePendingFields = []; let _cxUndo = null; let _cxToastTimer = null;',
   ctx: (c) => ({
     _complianceSelected: new Set(), _resolveRoom: '', RECENT_LOG: [], ensureOperatorName: () => true,
     renderComplianceView() {}, updateComplianceBadge() {}, closeResolveModal() {}, saveRecentLog() {}, updateRevertButton() {},
@@ -56,7 +56,8 @@ test('1. a service note survives the other computer\'s Generate', async () => {
 test('2. Confirm, Set Deadline and Resolve on a batch survive the other computer\'s Generate', async () => {
   for (const [name, check] of [
     ['batchConfirmCompliance', (r) => r.confirm === 'Confirmed' && r.docs && r.docs['No Peanuts'] && r.docs['No Peanuts'].how === 'note'],
-    ['batchSetDeadline', (r) => r.complianceDeadline === '2026-11-01'],
+    // Re-pinned 2026-11-22 (compliance C3): Remind me in a week, not a typed date
+    ['batchSetDeadline', (r) => r.complianceDeadline === '2026-10-25'],   // a week after the harness clock (Oct 18), exactly
   ]) {
     const { a, b } = await morning(LIST(), ['213']);
     a._complianceSelected = new Set(['500']);
