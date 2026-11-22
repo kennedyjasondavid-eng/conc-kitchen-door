@@ -953,7 +953,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.136';
+const DOOR_APP_VERSION = 'v31-standard.137';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -8915,19 +8915,20 @@ function doorMigrateRegistryDocs() {
 function seedRegistryFromRoster(entries) {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const newResidents = entries.map(e => {
+    const tagLabels = importTagLabels(e.parsed.tags);   // 2026-11-22: was never defined here (ReferenceError on Load everyone)
     const isRegular = tagLabels.length === 0 || (tagLabels.length === 1 && tagLabels[0] === 'Regular');
-    return {
+    const r = {
       room: e.room,
       section: isRegular ? 'Regular' : importSectionForTags(e.parsed.tags),
       tags: isRegular ? ['Regular'] : tagLabels,
-      confirm: isRegular ? 'N/A' : (requiresDocumentation(tagLabels) ? 'Provisional' : 'Confirmed'),
-      confirmBy: isRegular ? '—' : (requiresDocumentation(tagLabels) ? '—' : 'Auto'),
       isAnaph: false,
       rawRestriction: e.parsed.rawText || 'Regular',
       isModerate: false, moderateNote: '',
       complianceDeadline: '', pendingReversion: false,
       lastImported: new Date().toISOString().slice(0, 10)
     };
+    doorApplyDocTags(r, r.tags, { newPerson: true });   // compliance C1: a new person, no answers yet
+    return r;
   });
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...newResidents);
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);

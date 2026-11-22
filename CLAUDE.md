@@ -53,7 +53,7 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
-## Recent (2026-11-22) — Compliance Review C2 + C3: a worklist and one question (`v31-standard.136`)
+## Recent (2026-11-22) — Compliance Review C2 + C3: a worklist and one question (`v31-standard.137`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 (C2 and C3 shipped together; status §6). Mockups:
 https://claude.ai/artifact/QQce1KzNL7KBk4QQ4SfAGz. For Fiona: clean, simple, soft feedback.
 - **The worklist** (`renderComplianceView`, `CX_GROUPS`, `cxRowHtml`): the nine-column table, filter, sort, summary bar
@@ -87,6 +87,12 @@ https://claude.ai/artifact/QQce1KzNL7KBk4QQ4SfAGz. For Fiona: clean, simple, sof
   is gone); one wording ("Got the notes"). Found by `readable_themes_gate`: "Show N more" threw, because its handler was
   not on `DOOR_INLINE_HANDLER_ALLOWLIST` (now it is; the browser gate covers a group of more than six). Gate 8 checks,
   browser 60.
+## Recent (2026-11-22) — "Load everyone" sets up the resident list again (`v31-standard.136`)
+The resident-list import's **Load everyone** button (`seedRegistryFromRoster`) read `tagLabels`, which it never defined,
+so pressing it threw a ReferenceError and set up nothing. Each entry's labels now come from its parsed tags through
+`importTagLabels`, as `commitImportToQueue` does, and each record goes through the compliance C1 writer as a new person
+(`doorApplyDocTags(r, r.tags, { newPerson: true })`), so it starts with no answers. The site guard stays first. Gate
+`tests/seed_registry_labels_gate.mjs` (5, red 3/4 on `main` `13e0aa2`, red 4/5 on `main` `ed97d83`).
 
 ## Recent (2026-11-22) — Compliance Review C1: documentation is kept per restriction (`v31-standard.135`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` (status owner, §6); Jason, 2026-11-22: review, mockups, then "Put a

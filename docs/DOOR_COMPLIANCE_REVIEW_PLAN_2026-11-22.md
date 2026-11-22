@@ -108,7 +108,7 @@ note are kept and shown, unchanged).
 |---|---|---|---|
 | Plan | reviewed 2026-11-22: GO WITH CHANGES, folded (§7) | — | — |
 | C1 | merged, `v31-standard.135` | #282 | `tests/compliance_docs_c1_gate.mjs` 11 (red 11/11 on `13e0aa2`), browser `compliance_docs_c1` 22 |
-| C2 + C3 | built together, `v31-standard.136` (one PR: the worklist's main button is the new question) | (this PR) | `tests/compliance_worklist_c2_gate.mjs` 8 (red on `ed97d83`), browser `compliance_worklist` 60; reviewed (§9) |
+| C2 + C3 | built together, `v31-standard.137` (one PR: the worklist's main button is the new question) | (this PR) | `tests/compliance_worklist_c2_gate.mjs` 8 (red on `ed97d83`), browser `compliance_worklist` 60; reviewed (§9) |
 | C4 | — | — | — |
 
 ## 7. Plan review (independent, 2026-11-22): GO WITH CHANGES, folded into C1
