@@ -13,6 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { complianceDocsSource } from './helpers/door_two_computers.mjs';
 import { ANAPH_FLAGS, anaphContained, anaphSetOff, isAnaph } from './helpers/routing_oracle.mjs';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -29,7 +30,8 @@ const KEY_OF = Object.fromEntries(Object.entries(LABEL_OF).map(([k, v]) => [v, k
 const out = (v) => JSON.parse(JSON.stringify(v));
 
 const SRC = [
-  TAG_LABELS, between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('),
+  TAG_LABELS, complianceDocsSource(html), /* Re-pinned 2026-11-22 (compliance C1): resident writers work out the documentation status through the compliance-docs core. */
+  between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('),
   between('const ROUTING_RULES = [', '// ============================================================') + between('function computeSections(', 'let mcWeek ='),
   between('/* DOOR_TESTABLE_CORE_START compliance-conflicts */', '/* DOOR_TESTABLE_CORE_END compliance-conflicts */'),
   fn('getRoomBase'), fn('findRoommates'), fn('doorIsAnaphResident'), fnOpt('doorAskTakeOffAnaphList'), fn('getAnaphConflictRooms'),
@@ -170,12 +172,13 @@ test('an anaphylactic resident with no restriction recorded still gets a red lab
 });
 
 test('the load-time tidy: a Regular resident left Provisional reads N/A; an anaphylactic one stays Provisional (Jason: "Tidy to N/A")', () => {
-  const body = between('(function autoPromoteAutoTier() {', '\n})();') + '\n})();';
+  // Re-pinned 2026-11-22 (compliance C1): the tidy is now the normaliser (doorNormaliseDocsOnLoad, doorMigrateRegistryDocs),
+  // which works the status out from the answers on file; the same four expectations hold, with the real COMPLIANCE_TIERS.
+  const body = between('(function doorNormaliseDocsOnLoad() {', '\n})();') + '\n})();';
   const run = (reg, rooms) => {
-    const c = { REGISTRY_LIST: reg, anaphRooms: rooms, saveRegistryState() {}, console: { log() {} },
-      requiresDocumentation: (tags) => tags.some((t) => ['No Peanuts', 'GF'].includes(t)) };
+    const c = { REGISTRY_LIST: reg, anaphRooms: rooms, saveRegistryState() {}, console: { log() {} } };
     vm.createContext(c);
-    vm.runInContext(fn('doorIsAnaphResident') + body, c);
+    vm.runInContext(fn('doorIsAnaphResident') + complianceDocsSource(html) + body, c);
     return reg.map((r) => r.room + ':' + r.confirm);
   };
   assert.deepEqual(run([

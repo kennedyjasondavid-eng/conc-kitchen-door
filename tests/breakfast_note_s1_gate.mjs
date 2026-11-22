@@ -19,7 +19,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { twoComputers, out, R, intake } from './helpers/door_two_computers.mjs';
+import { twoComputers, out, R, intake, complianceDocsSource } from './helpers/door_two_computers.mjs';
 
 const html = fs.readFileSync(process.env.BREAKFAST_NOTE_HTML || new URL('../index.html', import.meta.url), 'utf8').replace(/\r\n?/g, '\n');
 function between(a, b) { const s = html.indexOf(a); assert.ok(s >= 0, 'missing ' + a); const e = html.indexOf(b, s); assert.ok(e > s, 'missing ' + b); return html.slice(s, e); }
@@ -167,7 +167,7 @@ function registry(list) {
     requiresDocumentation: () => false, doorApplyPendingImportStamp() {}, saveRegistryState() {}, setRegistryProvenance() {} };
   vm.createContext(c);
   vm.runInContext([html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0], between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('),
-    CORE(), fn('doorIsAnaphResident'), html.includes('function doorRegistryQueueTransition(') ? fn('doorRegistryQueueTransition') : '',
+    CORE(), complianceDocsSource(html), fn('doorIsAnaphResident'), html.includes('function doorRegistryQueueTransition(') ? fn('doorRegistryQueueTransition') : '',
     html.includes('function doorAnaphAnswerTransition(') ? fn('doorAnaphAnswerTransition') : '', fn('applyQueueToRegistry'),
     between('const _HISTORY_SNAPSHOT_KEYS', ';\n') + ';\n', fn('snapshotResident'), fn('diffResidentStates')].join('\n'), c);
   return c;

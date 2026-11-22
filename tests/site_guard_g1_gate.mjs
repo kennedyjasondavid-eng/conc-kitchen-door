@@ -94,7 +94,7 @@ const GUARDED = ['saveMenuEdit', '_finishMenuSave', 'doorRepairMealTicks', 'door
   'saveSpecialMeal', 'removeSpecialMeal', 'enterSlotSwapMode', 'executeSlotSwap', 'publishMenuFromConfig', 'doorUsePublishedMenuDays', 'revertLastChange',
   'triggerRexWeekUpload', 'doorSaveRexWeek', 'triggerMenuUpload', 'addChange', 'saveChangeEdit', 'removeFromQueue', 'clearQueue', 'generateFiles',
   'revertLastGenerate', 'commitImportToQueue', 'addToIntakeQueue', 'commitIntakeQueue', 'saveDirectFromForm', 'addAnaphRoom', 'removeAnaphRoom',
-  'saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'batchResolveCompliance', 'submitResolve', 'reopenComplianceItem',
+  'saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', /* batchResolveCompliance retired 2026-11-22, compliance C1 */ 'submitResolve', 'reopenComplianceItem',
   'updateComplianceField', 'revertResident', 'confirmRevertResidentFromEditor', 'seedRegistryFromRoster', 'nrAddPending', 'nrAddAmbiguous',
   'nrRemovePending', 'nrDoneReview', 'nrUndoReview', 'doorRulesAddWord', 'doorRulesTakeBackWord', 'doorRulesAddLead', 'doorRulesRemoveLead',
   'doorRulesUndo', 'doorPlatesAddRule', 'doorPlatesTakeBackRule', 'openUploadDialog', 'handleImportFile'];

@@ -70,7 +70,7 @@ try {
       commitImportToQueue: () => commitImportToQueue(), addToIntakeQueue: () => addToIntakeQueue(), commitIntakeQueue: () => commitIntakeQueue(),
       saveDirectFromForm: () => saveDirectFromForm(), addAnaphRoom: () => { const i = document.getElementById('anaph-input'); if (i) i.value = '9101'; return addAnaphRoom(); },
       removeAnaphRoom: () => removeAnaphRoom('9101'), saveInlineNote: () => saveInlineNote('9101'), batchConfirmCompliance: () => batchConfirmCompliance(),
-      batchSetDeadline: () => batchSetDeadline(), batchResolveCompliance: () => batchResolveCompliance(), submitResolve: () => submitResolve(),
+      batchSetDeadline: () => batchSetDeadline(), /* batchResolveCompliance retired 2026-11-22, compliance C1 */ submitResolve: () => submitResolve(),
       reopenComplianceItem: () => reopenComplianceItem('9101'), updateComplianceField: () => updateComplianceField('9101', 'moderateNote', 'x'),
       revertResident: () => revertResident('9101', 0), confirmRevertResidentFromEditor: () => confirmRevertResidentFromEditor('9101', 0),
       seedRegistryFromRoster: () => seedRegistryFromRoster([{ room: '9103', name: 'Test C', rawRestriction: 'Regular' }]),
