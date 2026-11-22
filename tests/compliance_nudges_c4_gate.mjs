@@ -5,6 +5,8 @@
 //   2. the badge counts every anaphylactic room still needing a note and any room past its reminder; nothing else
 //   3. Mark as asked records who asked and when, and a reminder a week out (never earlier than one set); Undo puts it back
 //   4. the email is in the page (no popup window), grouped by what to ask, rooms only, anaphylactic marked
+//   6. C4 review: due on the reminder day; a reminder never asked says so; a moderate allergy alone is not emailed;
+//      a room with no allergen recorded is never called kept off its allergens
 //   5. the row says when H&W was asked and when a new person moved into a room; the handlers are allow-listed
 // Authored to fail on main.
 import test from 'node:test';
@@ -19,13 +21,13 @@ const out = (v) => JSON.parse(JSON.stringify(v));
 
 function box(reg, rooms = []) {
   const NAMES = ['doorIsAnaphResident', 'getComplianceResidents', 'doorComplianceToday', 'doorComplianceStateOf', 'cxMarkAsked', 'cxUndoLast',
-    'cxShowToast', 'cxDayPlus', 'cxAskText', 'cxCloseAsk', 'doorText', 'escapeHtml', 'formatCompactDate'];
-  const SRC = [complianceDocsSource(html), ...NAMES.map(fnOpt), 'let _cxUndo = null; let _cxToastTimer = null; var _cxAskRooms = [];',
+    'cxShowToast', 'cxDayPlus', 'cxAskText', 'cxCloseAsk', 'cxOpenAsk', 'doorText', 'escapeHtml', 'formatCompactDate'];
+  const SRC = [complianceDocsSource(html), ...NAMES.map(fnOpt), 'let _cxUndo = null; let _cxToastTimer = null; var _cxAskRooms = []; var _cxAskReturnFocus = null;',
     'this.__setAsk = (r) => { _cxAskRooms = r; };', 'this.__state = () => REGISTRY_LIST;'].join('\n');
   const els = {};
   const c = {
     console: { log() {}, warn() {} }, REGISTRY_LIST: reg, anaphRooms: rooms, setTimeout, clearTimeout,
-    document: { getElementById: (id) => (els[id] = els[id] || { value: '', style: {}, classList: { remove() {}, add() {} } }) },
+    document: { getElementById: (id) => (els[id] = els[id] || { value: '', style: {}, classList: { remove() {}, add() {}, contains: () => false } }), contains: () => true, activeElement: null },
     showToast() {}, ensureOperatorName: () => true, getOperatorName: () => 'Fiona', renderComplianceView() {},
     saveRegistryState() {}, setRegistryProvenance() {}, publishAndSync() {}, doorTakeNewerKitchenList: async () => 'current',
   };
@@ -95,4 +97,23 @@ test('5. the row says when H&W was asked and when a new person moved in; the nud
   // the nudge buttons act on the rooms the nudge keeps (an inline handler carries no list)
   assert.match(fn('cxRenderNudge'), /_cxNudgeRooms = n\.rooms\.slice\(\)[\s\S]*onclick="cxNudgeAsk\(\)"[\s\S]*onclick="cxNudgeWeek\(\)"/);
   assert.match(html, /function cxNudgeWeek\(\) \{ return batchSetDeadline\(7, _cxNudgeRooms\.slice\(\)\); \}/);
+});
+
+test('6. C4 review: the reminder day is due; never-asked wording; moderate-only not emailed; no allergen recorded', () => {
+  const c = box([R('300', ['Regular'], { isModerate: true, rawRestriction: 'Regular' }), R('101', ['GF']), R('813', ['Regular'], { isAnaph: true })], ['813']);
+  const it = (room, tags, extra, anaph) => ({ room, st: c.doorDocState(R(room, tags, extra), T, !!anaph) });
+  const due = c.doorDocNudge([it('101', ['GF'], { complianceDeadline: T, docAsk: { at: '2026-11-15' } })], T);
+  assert.deepEqual([due.level, due.kind, due.asked], ['amber', 'late', true], 'on the reminder day itself');
+  assert.equal(c.doorDocNudge([it('101', ['GF'], { complianceDeadline: '2026-11-20' })], T).asked, false, 'a reminder with no ask');
+  assert.deepEqual(out(c.doorDocBadge([it('101', ['GF'], { complianceDeadline: T })], T)), { count: 1, level: 'amber' });
+  const na = c.doorDocNudge([it('813', ['Regular'], { confirm: 'Provisional' }, true)], T);
+  assert.deepEqual([na.group, na.noAllergen], ['anaph', ['813']]);
+  const nudge = fn('cxRenderNudge');
+  assert.match(nudge, /no allergen recorded: ask which allergen/);
+  assert.match(nudge, /n\.asked \? 'Health &amp; Wellness hasn’t answered yet'/);
+  // moderate only: not asked about
+  c.cxOpenAsk(['300', '101', '813']);
+  const t = c.cxAskText(['101', '813']);
+  assert.match(t.body, /Room 813 — anaphylactic, allergen not recorded: which allergen\?/);
+  assert.match(fn('cxOpenAsk'), /st\.needs\.length > 0 \|\| st\.anaphNoAllergen/);
 });

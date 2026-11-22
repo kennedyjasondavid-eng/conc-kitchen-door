@@ -72,8 +72,13 @@ Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 C4 (status §6). The l
 - **A new person:** a row whose newest history entry is an Intake overwrite within 14 days says "New resident since …".
 - The nudge buttons act on the rooms the nudge keeps (`_cxNudgeRooms`, `cxNudgeAsk`, `cxNudgeWeek`): DOOR's handler
   escaper turns a list into one string, so no list goes through an inline handler.
-- **Gates:** `tests/compliance_nudges_c4_gate.mjs` (5, red 5/5 on the C2/C3 build `1896ea0` and on `main`) and the
+- **Gates:** `tests/compliance_nudges_c4_gate.mjs` (6, red on the C2/C3 build `1896ea0` and on `main`) and the
   browser `compliance_worklist` (70: the nudge, the badge, the email, Mark as asked, red past a reminder).
+- **Independent review (FIX FIRST), folded (plan §10):** a room listed only for a moderate allergy is not put in the email
+  or marked asked (P2); the anaphylactic nudge never says a room with no allergen recorded is kept off its allergens, and
+  asks which allergen (P2); a reminder is due on its day, as the row says; a reminder never asked says "Ask H&W", not
+  "hasn't answered"; "Next: 3 rooms with allergies"; the email dialog takes focus and gives it back; the subject is the
+  message's first line, and the copy fallback speaks to a phone.
 
 ## Recent (2026-11-22) — Compliance Review C2 + C3: a worklist and one question (`v31-standard.137`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 (C2 and C3 shipped together; status §6). Mockups:

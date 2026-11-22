@@ -10143,24 +10143,30 @@ function cxRenderNudge(items, today) {
   const ask = (label) => '<button type="button" class="btn btn-mint btn-sm" onclick="cxNudgeAsk()">' + escapeHtml(label) + '</button>';
   if (n.kind === 'late') {
     head = (n.rooms.length === 1 ? 'Room ' + n.rooms[0] + ' is' : n.rooms.length + ' rooms are') + ' past ' + (n.rooms.length === 1 ? 'its' : 'their') + ' reminder.';
-    body = (n.anaph ? 'Anaphylactic. ' : '') + 'Health &amp; Wellness hasn’t answered yet' + (n.rooms.length > 1 ? ' (' + escapeHtml(roomsTxt(n.rooms)) + ')' : '') + '.';
-    acts = ask('Email H&W again') + '<button type="button" class="btn btn-ghost btn-sm" onclick="cxNudgeWeek()">Give it a week</button>';
+    const which = n.rooms.length > 1 ? ' (' + escapeHtml(roomsTxt(n.rooms)) + ')' : '';
+    // C4 review: a room can be past a reminder without ever having been asked
+    body = (n.anaph ? 'Anaphylactic. ' : '') + (n.asked ? 'Health &amp; Wellness hasn’t answered yet' + which + '.' : 'Ask Health &amp; Wellness for the note' + which + '.');
+    acts = ask(n.asked ? 'Email H&W again' : 'Ask H&W') + '<button type="button" class="btn btn-ghost btn-sm" onclick="cxNudgeWeek()">Give it a week</button>';
   } else if (n.kind === 'group') {
     const words = DOOR_DOC_GROUP_WORDS[n.group];
     if (n.group === 'anaph') {
       head = 'Start with the ' + n.rooms.length + ' anaphylactic room' + (n.rooms.length !== 1 ? 's' : '') + '.';
-      body = 'They are already kept off their allergens; the note makes it official.';
+      // C4 review: true only for rooms whose allergen is recorded
+      body = n.noAllergen && n.noAllergen.length
+        ? escapeHtml((n.noAllergen.length === 1 ? 'Room ' + n.noAllergen[0] + ' has' : 'Rooms ' + roomsTxt(n.noAllergen) + ' have') + ' no allergen recorded: ask which allergen, then add it in the resident’s record.')
+          + (n.noAllergen.length < n.rooms.length ? ' The others are already kept off their allergens; the note makes it official.' : '')
+        : 'They are already kept off their allergens; the note makes it official.';
     } else if (n.group === 'preference') {
       head = n.rooms.length + ' room' + (n.rooms.length !== 1 ? 's are' : ' is') + ' only No Pork or No Spicy.';
       body = 'These are usually preferences. Check with the residents, then select them and choose It’s a preference.';
     } else {
-      head = 'Next: the ' + n.rooms.length + ' ' + (n.rooms.length === 1 ? words.replace(/ies$/, 'y').replace(/s$/, '') : words) + '.';
+      head = 'Next: ' + n.rooms.length + (n.group === 'allergy' ? (n.rooms.length === 1 ? ' room with an allergy' : ' rooms with allergies') : (n.rooms.length === 1 ? ' room with a medical diet' : ' rooms with medical diets')) + '.';
       body = n.asked ? n.asked + ' already asked and waiting.' : 'Ask Health &amp; Wellness for the notes in one email.';
     }
     acts = n.group === 'preference' ? '' : ask(n.rooms.length === 1 ? 'Ask H&W about this room' : 'Ask H&W about these ' + n.rooms.length);
   } else {
     head = 'Waiting on Health & Wellness.';
-    body = 'Every room still needing a note has been asked. Each one comes back here on its reminder date.';
+    body = 'Every room still needing a note has been asked. This rises again on the first reminder date.';
   }
   el.className = 'cx-nudge cx-nudge-' + n.level;
   el.innerHTML = '<div class="cx-nudge-mark" aria-hidden="true">' + (n.level === 'calm' ? '→' : '!') + '</div><div><b>' + escapeHtml(head) + '</b> ' + body + (acts ? '<div class="cx-nudge-acts">' + acts + '</div>' : '') + '</div>';
@@ -10181,33 +10187,42 @@ function cxAskText(rooms) {
     const inG = states.filter(x => (x.st.group || 'medical') === key);
     if (!inG.length) return;
     lines.push(title + ':');
-    inG.forEach(({ r, st }) => lines.push('  Room ' + r.room + ' — ' + (st.needs.length ? st.needs.join(', ') : 'allergen not recorded') + (st.anaph ? ' (anaphylactic)' : '')));
+    inG.forEach(({ r, st }) => lines.push('  Room ' + r.room + ' — ' + (st.needs.length ? st.needs.join(', ') : 'anaphylactic, allergen not recorded: which allergen?') + (st.anaph && st.needs.length ? ' (anaphylactic)' : '')));
     lines.push('');
   });
   const n = rs.length;
   const subject = 'Dietary notes needed for ' + n + ' resident' + (n !== 1 ? 's' : '') + ' (Rexdale)';
-  const body = 'Hi,\n\nCould you send documentation for these restrictions? Meals already follow them; we need the note on file.\n\n'
+  const body = 'Subject: ' + subject + '\n\nHi,\n\nCould you send documentation for these restrictions? Meals already follow every restriction recorded; we need the note on file.\n\n'
     + lines.join('\n') + '\nThank you,\n' + (getOperatorName() || 'Food Services');
   return { subject, body, n };
 }
 function cxOpenAsk(rooms) {
   const list = (rooms && rooms.length) ? rooms : getComplianceResidents(false).map(r => r.room);
-  _cxAskRooms = list.filter(room => REGISTRY_LIST.some(x => x.room === room));
+  // C4 review P2: only rooms with a restriction needing a note (or an anaphylactic room with no allergen recorded);
+  // a room listed only for a moderate allergy is not asked about here.
+  _cxAskRooms = list.filter(room => { const r = REGISTRY_LIST.find(x => x.room === room); if (!r) return false; const st = doorComplianceStateOf(r); return st.needs.length > 0 || st.anaphNoAllergen; });
   if (!_cxAskRooms.length) { showToast('Nothing needs a note right now.'); return; }
   const t = cxAskText(_cxAskRooms);
   document.getElementById('cx-ask-subject').value = t.subject;
   document.getElementById('cx-ask-body').value = t.body;
   document.getElementById('cx-ask-count').textContent = t.n + ' room' + (t.n !== 1 ? 's' : '');
   document.getElementById('cx-ask-copied').textContent = '';
+  _cxAskReturnFocus = document.activeElement;
   document.getElementById('cx-ask-modal').classList.add('open');
+  const copy = document.getElementById('cx-ask-copy');
+  if (copy && copy.focus) copy.focus();
 }
+let _cxAskReturnFocus = null;
 function cxCloseAsk() {
-  document.getElementById('cx-ask-modal').classList.remove('open');
+  const m = document.getElementById('cx-ask-modal');
+  const wasOpen = m.classList.contains('open');
+  m.classList.remove('open');
+  if (wasOpen && _cxAskReturnFocus && _cxAskReturnFocus.focus && document.contains(_cxAskReturnFocus)) _cxAskReturnFocus.focus();
 }
 function cxAskCopy() {
-  const text = 'Subject: ' + document.getElementById('cx-ask-subject').value + '\n\n' + document.getElementById('cx-ask-body').value;
+  const text = document.getElementById('cx-ask-body').value;   // the subject is the message first line
   const said = document.getElementById('cx-ask-copied');
-  const fallback = () => { const b = document.getElementById('cx-ask-body'); b.focus(); b.select(); said.textContent = 'Selected: press Ctrl+C to copy.'; };
+  const fallback = () => { const b = document.getElementById('cx-ask-body'); b.focus(); b.select(); said.textContent = 'Selected: copy it with your device’s Copy.'; };
   try {
     navigator.clipboard.writeText(text).then(() => { said.textContent = 'Copied ✓'; }, fallback);
   } catch (e) { fallback(); }
@@ -17176,15 +17191,18 @@ const DOOR_DOC_GROUP_WORDS = { anaph: 'anaphylactic rooms', allergy: 'allergies'
 function doorDocNudge(items, todayIso) {
   const list = (items || []).filter(x => x && x.st && (x.st.needs.length || x.st.anaphNoAllergen));
   if (!list.length) return null;
-  const late = list.filter(x => x.st.remindOn && x.st.remindOn < todayIso);
+  // Due on the reminder day itself (C4 review: the row already reads "Reminder today" in amber then).
+  const late = list.filter(x => x.st.remindOn && x.st.remindOn <= todayIso);
   const lateAnaph = late.filter(x => x.st.anaph);
-  if (lateAnaph.length) return { level: 'red', kind: 'late', rooms: lateAnaph.map(x => x.room), anaph: true };
-  if (late.length) return { level: 'amber', kind: 'late', rooms: late.map(x => x.room), anaph: false };
-  const waiting = (x) => !!x.st.askedOn && !!x.st.remindOn && x.st.remindOn >= todayIso;
+  const lateOf = (xs, anaph) => ({ level: anaph ? 'red' : 'amber', kind: 'late', rooms: xs.map(x => x.room), anaph, asked: xs.every(x => !!x.st.askedOn) });
+  if (lateAnaph.length) return lateOf(lateAnaph, true);
+  if (late.length) return lateOf(late, false);
+  const waiting = (x) => !!x.st.askedOn && !!x.st.remindOn && x.st.remindOn > todayIso;
   for (const g of ['anaph', 'allergy', 'medical', 'preference']) {
     const inGroup = list.filter(x => x.st.group === g);
     const toAsk = inGroup.filter(x => !waiting(x));
-    if (toAsk.length) return { level: 'calm', kind: 'group', group: g, rooms: toAsk.map(x => x.room), asked: inGroup.length - toAsk.length };
+    if (toAsk.length) return { level: 'calm', kind: 'group', group: g, rooms: toAsk.map(x => x.room), asked: inGroup.length - toAsk.length,
+      noAllergen: toAsk.filter(x => x.st.anaphNoAllergen).map(x => x.room) };
   }
   return { level: 'calm', kind: 'waiting', rooms: list.map(x => x.room) };
 }
@@ -17192,7 +17210,7 @@ function doorDocBadge(items, todayIso) {
   let count = 0, anaph = 0;
   (items || []).forEach(x => {
     if (!x || !x.st || !(x.st.needs.length || x.st.anaphNoAllergen)) return;
-    const late = !!(x.st.remindOn && x.st.remindOn < todayIso);
+    const late = !!(x.st.remindOn && x.st.remindOn <= todayIso);
     if (x.st.anaph) { count++; anaph++; } else if (late) count++;
   });
   return { count, level: anaph ? 'red' : (count ? 'amber' : '') };
@@ -29084,7 +29102,7 @@ window.addEventListener('load', runAltFlagSweepOnce);
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--border);margin-top:8px;flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="cxCloseAsk()">Go back</button>
-      <button class="btn btn-ghost" onclick="cxAskCopy()">Copy</button>
+      <button class="btn btn-ghost" id="cx-ask-copy" onclick="cxAskCopy()">Copy</button>
       <button class="btn btn-mint" id="cx-ask-mark" onclick="cxMarkAsked()">Mark as asked</button>
     </div>
   </div>
