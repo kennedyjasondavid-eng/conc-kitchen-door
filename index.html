@@ -8841,7 +8841,7 @@ function doorMigrateRegistryDocs() {
   const d = new Date();
   const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   let changed = 0;
-  REGISTRY_LIST.forEach(r => { try { if (doorMigrateDocs(r, today)) changed++; } catch (e) {} });
+  REGISTRY_LIST.forEach(r => { try { if (doorMigrateDocs(r, today)) changed++; } catch (e) { console.warn('[DOOR] compliance: could not read the answers for room ' + (r && r.room), e); } });
   if (changed) console.log('[DOOR] compliance: ' + changed + ' resident record(s) read with per-restriction answers');
   return changed;
 }
@@ -8860,7 +8860,6 @@ function seedRegistryFromRoster(entries) {
       rawRestriction: e.parsed.rawText || 'Regular',
       isModerate: false, moderateNote: '',
       complianceDeadline: '', pendingReversion: false,
-      docs: {},   // compliance C1: a seeded list is new people, with no answers yet
       lastImported: new Date().toISOString().slice(0, 10)
     };
   });
@@ -10246,7 +10245,9 @@ function openResolveModal(room) {
   } else {
     what.innerHTML = st.anaphNoAllergen
       ? 'This room is on the anaphylactic list but its restriction names no allergen. Open the resident’s record and add the allergen.'
-      : 'Nothing here needs a note.';
+      : r.isModerate
+        ? 'A moderate allergy is flagged. Once Health &amp; Wellness confirms it, open the resident’s record and untick Moderate allergy.'
+        : 'Nothing here needs a note.';
     if (submit) submit.disabled = true;
   }
   document.getElementById('settle-resolved-by').value = getOperatorName();
@@ -16799,8 +16800,9 @@ function doorDerivedConfirm(r, tagsIn) {
     const hasRestriction = tags.some(t => t && t !== 'Regular');
     if (hasRestriction) return { confirm: 'Confirmed', confirmBy: 'Auto' };
     // A resident with no restriction reads N/A; an anaphylactic one keeps Provisional (autoPromoteAutoTier, 2026-10-18).
+    // (review P3-2: from the anaphylactic flag itself, so a new anaphylactic intake with no allergen recorded is listed)
     const anaph = !!(r && (r.isAnaph || (typeof doorIsAnaphResident === 'function' && doorIsAnaphResident(r))));
-    if (r && r.confirm === 'Provisional' && anaph) return { confirm: 'Provisional', confirmBy: r.confirmBy || '—' };
+    if (anaph) return { confirm: 'Provisional', confirmBy: (r && r.confirmBy) || '—' };
     return { confirm: 'N/A', confirmBy: 'Auto' };
   }
   const docs = doorDocRecords(r);
@@ -16809,14 +16811,14 @@ function doorDerivedConfirm(r, tagsIn) {
     const last = recs.slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))[0];
     return { confirm: 'Confirmed', confirmBy: (last && last.by) || '—' };
   }
-  return { confirm: 'Provisional', confirmBy: '—' };
+  return { confirm: 'Provisional', confirmBy: (r && r.confirm === 'Provisional' && r.confirmBy) || '—' };
 }
 // The one writer from tags. Keeps the answers for restrictions still needing a note; a new person starts with none.
 function doorApplyDocTags(r, tagLabels, opts) {
   if (!r) return r;
   const o = opts || {};
   if (o.newPerson) {
-    r.docs = {};
+    delete r.docs;
     delete r.docAsk;
     r.complianceDeadline = '';
     r.complianceResolved = '';
@@ -16829,7 +16831,8 @@ function doorApplyDocTags(r, tagLabels, opts) {
   const kept = {};
   const docs = doorDocRecords(r);
   Object.keys(docs).forEach(t => { if (needed.has(t) && doorDocIsRecord(docs[t])) kept[t] = docs[t]; });
-  r.docs = kept;
+  // No answers means no field: a record nobody has answered for stays as it was (every list read runs this).
+  if (Object.keys(kept).length) r.docs = kept; else delete r.docs;
   const d = doorDerivedConfirm(r, tagLabels || r.tags);
   r.confirm = d.confirm;
   r.confirmBy = d.confirmBy;
@@ -16860,7 +16863,7 @@ function doorClearDocs(r, tags) {
   if (!r) return r;
   const docs = Object.assign({}, doorDocRecords(r));
   (tags || Object.keys(docs)).forEach(t => { delete docs[t]; });
-  r.docs = docs;
+  if (Object.keys(docs).length) r.docs = docs; else delete r.docs;
   const d = doorDerivedConfirm(r);
   r.confirm = d.confirm;
   r.confirmBy = d.confirmBy;
@@ -16881,7 +16884,7 @@ function doorDocState(r, todayIso, isAnaph) {
   const anaph = !!isAnaph;
   // An anaphylactic resident whose restriction names no allergen (plan review P2-4): listed with the anaphylactic rooms,
   // fixed in the resident record, never cleared from here.
-  const anaphNoAllergen = anaph && !needed.length && !!r && r.confirm === 'Provisional';
+  const anaphNoAllergen = anaph && !(r && r.tags || []).some(t => t && t !== 'Regular');
   let group = anaphNoAllergen ? 'anaph' : '';
   if (needs.length) {
     if (anaph) group = 'anaph';
@@ -16921,8 +16924,11 @@ function doorMigrateDocs(r, todayIso, nowIso) {
   if (intakeTs) Object.keys(docs).forEach(t => { const d = docs[t]; if (!d || typeof d.ts !== 'string' || d.ts <= intakeTs) delete docs[t]; });
   let missing = needed.filter(t => !doorDocIsRecord(docs[t]));
   const named = (by) => by && by !== '—' && by !== 'Auto' ? by : '';
-  if (missing.length && r.confirm === 'Confirmed') {
-    const by = named(r.complianceResolvedBy) || named(r.confirmBy) || 'earlier';
+  // Only when someone confirmed (review P2-1): an older build left an Auto Confirmed in place when Needs Review added a
+  // restriction, which must read Provisional, not documented.
+  const confirmer = named(r.complianceResolvedBy) || named(r.confirmBy);
+  if (missing.length && r.confirm === 'Confirmed' && confirmer) {
+    const by = confirmer;
     missing.forEach(t => { docs[t] = { how: 'note', by, at: todayIso || '', ts: now, migrated: true, line: 'Confirmed before answers were kept per restriction' }; });
     missing = [];
   }
@@ -16934,7 +16940,7 @@ function doorMigrateDocs(r, todayIso, nowIso) {
     missing.forEach(t => { if (listed.includes(t.toLowerCase())) docs[t] = { how: 'note', by, at: todayIso || '', ts: now, migrated: true, line }; });
     r._docsResolvedSig = sig;
   }
-  r.docs = docs;
+  if (Object.keys(docs).length) r.docs = docs; else delete r.docs;
   doorApplyDocTags(r, r.tags, {});
   return JSON.stringify([r.docs, r.confirm, r.confirmBy, r._docsResolvedSig]) !== before;
 }

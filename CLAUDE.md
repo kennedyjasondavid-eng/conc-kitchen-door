@@ -82,7 +82,12 @@ plan of action together and submit for review, then begin implementation". Fiona
   `tests/browser/compliance_docs_c1.mjs` (22, in CI). Re-pinned with dated notes (the writers' sandboxes load the core
   through `complianceDocsSource` in `tests/helpers/door_two_computers.mjs`): `anaph_matrix` (the load-time tidy is the
   normaliser), `anaph_output_readiness`, `breakfast_note_s1`, `registry_stamp_at_apply`, `daily_entry_ask`,
-  `resident_changes_reach` (answers are records; one batch action), `site_guard_g1` and browser `site_guard_g1`.
+  `resident_changes_reach` (answers are records; one batch action), `site_guard_g1` and browser `site_guard_g1`; browser
+  `anaph_recipe_binding`, `plain_plate_options` and `library_recipe_lookup_boundary` put room 801 back first (the one
+  record the normaliser changes on today's list).
+- **Independent review (FIX FIRST), folded (plan §8):** an Auto Confirmed is never read as documented (P2-1); a new
+  anaphylactic intake with no allergen is listed (P3-2); the dialog says what clears a moderate allergy; a record with no
+  answers keeps no `docs` field, so lists are not re-sent for nothing.
 
 ## Recent (2026-11-22) — the sidebar keeps the resident count (`v31-standard.134`)
 Jason, 2026-11-22: the Review page showed 169 residents while the sidebar read "no resident list yet" and "—". The list

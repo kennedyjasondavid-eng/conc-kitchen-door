@@ -107,7 +107,7 @@ note are kept and shown, unchanged).
 | Slice | State | PR | Gate |
 |---|---|---|---|
 | Plan | reviewed 2026-11-22: GO WITH CHANGES, folded (§7) | — | — |
-| C1 | built, `v31-standard.135` | (this PR) | `tests/compliance_docs_c1_gate.mjs` 11 (red 11/11 on `13e0aa2`), browser `compliance_docs_c1` 22 |
+| C1 | built and reviewed (§8), `v31-standard.135` | #282 | `tests/compliance_docs_c1_gate.mjs` 11 (red 11/11 on `13e0aa2`), browser `compliance_docs_c1` 22 |
 | C2 | — | — | — |
 | C3 | — | — | — |
 | C4 | — | — | — |
@@ -139,3 +139,20 @@ Writers of tags and status, corrected (§2 named some wrongly): resident editor 
 `doorRegistryQueueTransition` (intake, update, reassign); Intake Portal `commitIntakeQueue`; direct save
 `saveDirectFromForm`; Needs Review `nrDoneReview`; `revertResident`; seeding `seedRegistryFromRoster` (has a separate,
 older ReferenceError, raised as its own task); the compliance actions.
+
+## 8. C1 independent review (2026-11-22): FIX FIRST, folded
+
+- **P2-1** an older build left an Auto "Confirmed" in place when Needs Review added a restriction needing a note; the
+  normaliser read it as documented. Now only a Confirmed with a named confirmer becomes answers; an Auto one reads
+  Provisional. Gated (test 7).
+- **P3-2** an anaphylactic room with no allergen recorded is Provisional and listed from the anaphylactic flag itself, so a
+  new intake is listed too. Gated (test 8). Still open for C2: an anaphylactic resident whose only restrictions are
+  auto-tier (No Fish, No Beef) reads Confirmed, as on `main`.
+- **P3-3** a moderate allergy with nothing else to document: the dialog says to untick Moderate in the resident record.
+- **P3-4** the normaliser names a room it cannot read on the console instead of failing silently.
+- Found while folding: the first build added `docs: {}` to every record and moved five Provisional residents' "confirmed
+  by" from Auto to "—", so every computer would re-send its whole list. Now a record with no answers keeps no field and a
+  Provisional resident keeps its label; on today's list only 801 changes. Three browser contracts that compare today's
+  list byte for byte (`anaph_recipe_binding`, `plain_plate_options`, `library_recipe_lookup_boundary`) put 801 back first,
+  dated.
+- **P3-1** (accepted risk, rollout window) and **P3-5** (Re-open takes back every answer; it says so) recorded, not changed.

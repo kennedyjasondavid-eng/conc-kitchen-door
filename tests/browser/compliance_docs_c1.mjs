@@ -63,7 +63,7 @@ try {
     // Re-open
     await page.evaluate(() => reopenComplianceItem('SYN-4'));
     await page.waitForFunction(() => REGISTRY_MAP['syn-4'].confirm === 'Provisional');
-    check(width + ' Re-open takes the answers back', await page.evaluate(() => Object.keys(REGISTRY_MAP['syn-4'].docs).length === 0));
+    check(width + ' Re-open takes the answers back', await page.evaluate(() => Object.keys(REGISTRY_MAP['syn-4'].docs || {}).length === 0));
 
     // A new intake over a documented room
     await page.evaluate(() => { changesQueue = [{ room: 'SYN-2', type: 'intake', tags: { halal: true, noEggs: true }, route: 'Halal', notes: '' }]; applyQueueToRegistry([]); changesQueue = []; renderComplianceView(); });

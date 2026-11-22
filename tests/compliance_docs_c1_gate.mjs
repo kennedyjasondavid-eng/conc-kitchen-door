@@ -9,6 +9,7 @@
 //   6. P1-2: an older build that overwrote the room in place: the last person's answers are dropped on the next read
 //   7. P2-3: an older build's Confirmed with no answers becomes answers (migrated), and the normaliser is idempotent
 //   8. P2-4: an anaphylactic room with no allergen recorded stays Provisional and is listed with the anaphylactic rooms
+//      (C1 review: also a new one; an Auto Confirmed is never read as documented, test 7)
 //   9. one writer: no resident writer works confirm out from requiresDocumentation by itself any more
 //  10. history, revert's keys and the diff carry the answers; the digest's Copy writes real new lines
 //  11. today's list (door_state.json): the screen count stays 52; the resolved 801 is documented for No Spicy only
@@ -66,7 +67,8 @@ test('1. the core: kept per restriction on an update, re-opened by a new one, no
   assert.deepEqual([r.confirm, Object.keys(r.docs)], ['Confirmed', ['GF']], 'answers for restrictions that went are dropped');
   Object.assign(r, { complianceResolved: 'updated', complianceResolvedBy: 'JK', complianceDeadline: '2026-12-01' });
   c.doorApplyDocTags(r, ['GF'], { newPerson: true });
-  assert.deepEqual([r.confirm, out(r.docs), r.complianceResolved, r.complianceDeadline], ['Provisional', {}, '', ''], 'a new person starts fresh');
+  assert.deepEqual([r.confirm, out(r.docs || {}), r.complianceResolved, r.complianceDeadline], ['Provisional', {}, '', ''], 'a new person starts fresh');
+  assert.ok(!('docs' in c.doorApplyDocTags(R('q', ['Halal']), ['Halal'], {})), 'no answers, no field: a record nobody answered for stays as it was');
   const st = c.doorDocState(R('x', ['No Molluscs']), '2026-11-22', false);
   assert.deepEqual([st.needs, st.group], [['No Molluscs'], 'allergy'], 'a tag not in COMPLIANCE_TIERS needs a note, filed as an allergy');
   assert.equal(c.doorDocState(R('y', ['No Pork', 'No Spicy', 'Halal']), '2026-11-22', false).group, 'preference');
@@ -87,7 +89,7 @@ test('2. S1: a new intake over a documented room reads Provisional and is on the
   c.INTAKE_QUEUE.push({ id: 'q1', type: 'intake', room: '312', tags: ['GF', 'Low Sodium'], route: 'Regular', isOverwrite: true });
   await c.commitIntakeQueue();
   r = c.__state()[0];
-  assert.deepEqual([r.confirm, out(r.docs), r.complianceResolved, r.complianceDeadline], ['Provisional', {}, '', ''], 'Intake Portal: ' + JSON.stringify(out(r)));
+  assert.deepEqual([r.confirm, out(r.docs || {}), r.complianceResolved, r.complianceDeadline], ['Provisional', {}, '', ''], 'Intake Portal: ' + JSON.stringify(out(r)));
   assert.deepEqual(onScreen(c), ['312']);
   assert.match(fn('saveDirectFromForm'), /doorApplyDocTags\(r, r\.tags, \{ newPerson: type === 'intake' \}\)/, 'the direct save does the same');
 });
@@ -137,7 +139,7 @@ test('6. P1-2: an older build that overwrote the room in place: the last person\
     _history: [{ ts: '2026-11-21T09:00:00.000Z', desc: 'Intake overwrite — GF, No Shellfish → Regular', snapshot: {} }],
   });
   c.doorMigrateDocs(r, '2026-11-22', '2026-11-22T12:00:00.000Z');
-  assert.deepEqual([r.confirm, out(r.docs)], ['Provisional', {}]);
+  assert.deepEqual([r.confirm, out(r.docs || {})], ['Provisional', {}]);
   // an answer given after the new person moved in stays
   const r2 = R('613b', ['GF'], { docs: { GF: note('Fiona', '2026-11-21T11:00:00.000Z') }, _history: [{ ts: '2026-11-21T09:00:00.000Z', desc: 'Intake overwrite — GF → Regular' }] });
   c.doorMigrateDocs(r2, '2026-11-22');
@@ -152,6 +154,11 @@ test('7. P2-3: an older build\'s Confirmed becomes answers; the normaliser runs 
   const once = JSON.stringify(r);
   assert.equal(c.doorMigrateDocs(r, '2026-11-23', '2026-11-23T12:00:00.000Z'), false);
   assert.equal(JSON.stringify(r), once, 'idempotent');
+  // review P2-1: an Auto Confirmed that an older build left in place when a restriction needing a note was added is not
+  // documented by anyone, so it reads Provisional
+  const r3 = R('709', ['Halal', 'No Peanuts'], { confirm: 'Confirmed', confirmBy: 'Auto' });
+  c.doorMigrateDocs(r3, '2026-11-22');
+  assert.deepEqual([r3.confirm, out(r3.docs || {})], ['Provisional', {}]);
   // an older build resetting Confirmed to Provisional on an unrelated update is put right
   const r2 = R('708', ['GF', 'Halal'], { confirm: 'Provisional', docs: { GF: note() } });
   c.doorMigrateDocs(r2, '2026-11-22');
@@ -165,6 +172,10 @@ test('8. P2-4: an anaphylactic room with no allergen recorded stays Provisional 
   assert.deepEqual([a.confirm, b.confirm], ['Provisional', 'N/A']);
   const st = c.doorComplianceStateOf(a);
   assert.deepEqual([st.anaphNoAllergen, st.group, onScreen(c)], [true, 'anaph', ['813']]);
+  // review P3-2: a new anaphylactic intake with no allergen recorded is listed too (from the flag, not the stored status)
+  const n = R('905', ['Regular'], { isAnaph: true, confirm: 'N/A', confirmBy: 'Auto' });
+  c.doorApplyDocTags(n, ['Regular'], { newPerson: true });
+  assert.deepEqual([n.confirm, c.doorComplianceStateOf(n).anaphNoAllergen], ['Provisional', true]);
 });
 
 test('9. one writer: no resident writer works confirm out from requiresDocumentation by itself', () => {

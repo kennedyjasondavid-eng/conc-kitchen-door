@@ -73,7 +73,9 @@ try {
  for(const binding of bindings) {
   check(binding.decision+' canonical recipe reaches final menu and overlay',candidate['menu_current.json'].menu[binding.week][binding.day].dinner_anaphAlt===binding.recipeName&&candidate['menu_overlay.json'][binding.week][binding.day].dinner_anaphAlt===binding.recipeName);
  }
- check('all current residents and anaphylactic authority preserved',JSON.stringify(candidate['door_state.json'].residents)===JSON.stringify(files['door_state.json'].residents)&&JSON.stringify(candidate['door_state.json'].anaphRooms)===JSON.stringify(files['door_state.json'].anaphRooms));
+ // 2026-11-22 (compliance C1): the normaliser documents room 801 for No Spicy from its May 3 resolution (its one intended change on today's list, owned by tests/compliance_docs_c1_gate.mjs 11); that record is put back first.
+ const c1PutBack=(list)=>list.map(r=>{if(!r._docsResolvedSig)return r;const x=clone(r);delete x.docs;delete x._docsResolvedSig;x.confirm='Provisional';x.confirmBy='Auto';return x;});
+ check('all current residents and anaphylactic authority preserved',JSON.stringify(c1PutBack(candidate['door_state.json'].residents))===JSON.stringify(files['door_state.json'].residents)&&JSON.stringify(candidate['door_state.json'].anaphRooms)===JSON.stringify(files['door_state.json'].anaphRooms));
  check('last daily import provenance is retained',['lastImportDate','lastImportFile','lastImportCount'].every(k=>candidate['door_state.json'][k]===files['door_state.json'][k]));
  check('routing counts and portions are unchanged by naming the separate plates',isDeepStrictEqual(candidate['routing_by_meal.json'].routing,captured?files['routing_by_meal.json'].routing:routingBefore));
  check('registry data timestamp is not advanced by a menu edit',candidate['door_state.json']._meta.registryModifiedAt===files['door_state.json']._meta.registryModifiedAt);
