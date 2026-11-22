@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — "Load everyone" sets up the resident list again (`v31-standard.136`)
+The resident-list import's **Load everyone** button (`seedRegistryFromRoster`) read `tagLabels`, which it never defined,
+so pressing it threw a ReferenceError and set up nothing. Each entry's labels now come from its parsed tags through
+`importTagLabels`, as `commitImportToQueue` does, and each record goes through the compliance C1 writer as a new person
+(`doorApplyDocTags(r, r.tags, { newPerson: true })`), so it starts with no answers. The site guard stays first. Gate
+`tests/seed_registry_labels_gate.mjs` (5, red 3/4 on `main` `13e0aa2`, red 4/5 on `main` `ed97d83`).
+
 ## Recent (2026-11-22) — Compliance Review C1: documentation is kept per restriction (`v31-standard.135`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` (status owner, §6); Jason, 2026-11-22: review, mockups, then "Put a
 plan of action together and submit for review, then begin implementation". Fiona (the manager) uses the screen.
