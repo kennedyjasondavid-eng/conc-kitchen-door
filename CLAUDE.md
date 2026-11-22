@@ -62,8 +62,10 @@ Nightshades are) read Confirmed and never reached Compliance Review. Now, for a 
 tags when set, else every restriction that names a meal flag (`doorDocAnaphAllergens`, as `getAnaphDisplayAllergens`).
 `COMPLIANCE_TIERS` is unchanged, and for everyone else nothing moves. Off the list, the note is no longer needed and
 goes. An older build's Auto Confirmed is not read as documented (C1 review P2-1). On today's list no resident moves (the
-three anaphylactic rooms already need their notes). Gate `tests/compliance_anaph_allergen_gate.mjs` (6, red 4/6 on `main`
-`6e662bc`; 2 and 4 lock what must not change).
+three anaphylactic rooms already need their notes). Gate `tests/compliance_anaph_allergen_gate.mjs` (7, red on `main`
+`6e662bc`; 2 and 4 lock what must not change). Independent review SHIP, folded: the writers (editor, direct save, Intake
+Portal, revert) and the list's Add and Remove work the status out after the anaphylactic list changes (P2); a room whose
+picked anaphylactic allergen is none of its restrictions is listed as "no allergen recorded" (`doorDocAnaphNoAllergen`).
 
 ## Recent (2026-11-22) — Compliance Review C4: nudges that rise to meet Fiona (`v31-standard.138`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 C4 (status §6). The last slice of the line.

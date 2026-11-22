@@ -7,6 +7,8 @@
 //   4. anaphylactic tags picked: only those (anaphylactic to peanuts: No Fish stays self-declared)
 //   5. a note documents it; an older build's Auto Confirmed is never read as documented; off the list, the note goes
 //   6. the badge and the nudge count it; today's list moves no anaphylactic room
+//   7. review fold: a picked allergen missing from the restrictions is listed as no allergen recorded; the writers work
+//      the status out after the anaphylactic list changes
 // Authored to fail on main 6e662bc.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -95,4 +97,18 @@ test('6. the badge and the nudge count it; today\'s list moves no anaphylactic r
   c4.REGISTRY_LIST.forEach((x) => c4.doorMigrateDocs(x, T, T + 'T12:00:00.000Z'));
   const after = c4.REGISTRY_LIST.filter((x) => (state.anaphRooms || []).includes(x.room)).map((x) => x.room + ':' + x.confirm);
   assert.deepEqual(after, before, 'today the anaphylactic rooms already need their notes');
+});
+
+test('7. review fold: a picked allergen not among the restrictions; the status follows the list changes', () => {
+  const r = R('410', ['Halal'], { isAnaph: true, anaphTags: ['noFish'] });
+  const c = box([r], ['410']);
+  c.doorApplyDocTags(r, r.tags, {});
+  const st = c.doorComplianceStateOf(r);
+  assert.deepEqual([r.confirm, st.anaphNoAllergen, st.group, listed(c)], ['Provisional', true, 'anaph', ['410']]);
+  for (const name of ['saveDirectFromForm', 'commitIntakeQueue', 'saveRegistryEdit', 'revertResident']) {
+    const body = fn(name);
+    const iList = Math.max(body.lastIndexOf('anaphRooms.push('), body.lastIndexOf('anaphRooms.splice('));
+    assert.ok(iList > 0 && body.lastIndexOf('doorApplyDocTags(') > iList, name + ' works the status out after the list');
+  }
+  for (const name of ['addAnaphRoom', 'removeAnaphRoom']) assert.match(fn(name), /doorApplyDocTags\(r, r\.tags, \{\}\)/, name);
 });
