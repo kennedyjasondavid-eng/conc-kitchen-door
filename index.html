@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.134';
+const DOOR_APP_VERSION = 'v31-standard.135';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1588,9 +1588,8 @@ function updateCODEXBadge() {
         <option value="all">All restrictions</option>
       </select>
       <div style="flex:1"></div>
-      <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);white-space:nowrap;" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Confirm Selected</button>
+      <button class="btn btn-sm" style="font-size:11px;background:var(--forest-mid);color:#fff;border-color:var(--forest-mid);white-space:nowrap;" onclick="batchConfirmCompliance()" id="compliance-batch-confirm" disabled>Mark documented</button>
       <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchSetDeadline()" id="compliance-batch-deadline" disabled>Set Deadline…</button>
-      <button class="btn btn-ghost btn-sm" style="font-size:11px;white-space:nowrap;" onclick="batchResolveCompliance()" id="compliance-batch-resolve" disabled>Resolve Selected…</button>
     </div>
     <div id="compliance-pending-banner" style="display:none;background:var(--warn-faint, #fef3c7);border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
       <strong style="color:var(--warn-ink, #92400e);">Saving…</strong>
@@ -1606,7 +1605,7 @@ function updateCODEXBadge() {
     <!-- Resolved section -->
     <div id="compliance-resolved-section" style="display:none;margin-top:20px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;" onclick="toggleResolvedSection()">
-        <span style="font-size:13px;font-weight:600;color:var(--muted);">Resolved</span>
+        <span style="font-size:13px;font-weight:600;color:var(--muted);">Documented</span>
         <span id="compliance-resolved-count" style="font-size:11px;background:var(--border);color:var(--ink-mid);border-radius:10px;padding:1px 8px;font-weight:600;"></span>
         <span id="compliance-resolved-chevron" style="font-size:11px;color:var(--muted);margin-left:2px;"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m6 9 6 6 6-6"/></svg> Show</span>
       </div>
@@ -1614,7 +1613,7 @@ function updateCODEXBadge() {
         <div class="card">
           <div class="registry-scroll">
             <table class="reg-table">
-              <thead><tr><th>Room</th><th>Restrictions</th><th>Action Taken</th><th>Resolved By</th><th>Date</th><th>Note</th><th></th></tr></thead>
+              <thead><tr><th>Room</th><th>Documented</th><th>How</th><th>By</th><th>Date</th><th>Note</th><th></th></tr></thead>
               <tbody id="compliance-resolved-body"></tbody>
             </table>
           </div>
@@ -5579,7 +5578,7 @@ function doorTrustedColor(value, fallback) {
 const _HISTORY_SNAPSHOT_KEYS = ['room','section','tags','restrictions','allergenFlags',
   'accommodations','preferences','avoidances','confirm','confirmBy','isAnaph','anaphTags',
   'rawRestriction','isModerate','moderateNote','complianceDeadline','pendingReversion',
-  'serviceNote','breakfastNote','_tierMigrated'];
+  'serviceNote','breakfastNote','_tierMigrated','docs','docAsk'];
 
 function snapshotResident(r) {
   const snap = {};
@@ -5626,6 +5625,10 @@ async function revertResident(room, historyIndex) {
   });
   // U3 S1: a breakfast note added since that state goes too (a snapshot keeps only the fields that were set).
   if (target.breakfastNote === undefined) delete r.breakfastNote;
+  // compliance C1: the answers follow the restrictions put back (a snapshot from before C1 keeps the current answers for
+  // restrictions still present), and the status is worked out again rather than taken from the snapshot.
+  if (target.docs !== undefined && target.docAsk === undefined) delete r.docAsk;
+  doorApplyDocTags(r, r.tags, {});
   // Sync anaph rooms. A revert only ever adds (2026-10-18): a snapshot's isAnaph can be false for a room on the
   // anaphylactic list (one room: an import reset the flag), and taking the room off silently ended its lockout.
   // Taking a room off stays a deliberate act: the resident editor's checkbox or the anaphylactic list's Remove.
@@ -5660,6 +5663,8 @@ function diffResidentStates(before, after) {
   if (before.isAnaph !== after.isAnaph) changes.push({ field: 'Anaphylactic', from: before.isAnaph ? 'Yes' : 'No', to: after.isAnaph ? 'Yes' : 'No' });
   if (JSON.stringify(before.anaphTags||[]) !== JSON.stringify(after.anaphTags||[])) changes.push({ field: 'Anaph Tags', from: (before.anaphTags||[]).join(', ')||'—', to: (after.anaphTags||[]).join(', ')||'—' });
   if (before.confirm !== after.confirm) changes.push({ field: 'Status', from: before.confirm || '—', to: after.confirm || '—' });
+  const docsLine = x => Object.keys((x && x.docs) || {}).sort().map(t => t + ' (' + ((x.docs[t] && x.docs[t].how) === 'preference' ? 'preference' : 'note') + ')').join(', ');
+  if (docsLine(before) !== docsLine(after)) changes.push({ field: 'Documented', from: docsLine(before) || '—', to: docsLine(after) || '—' });   // compliance C1
   const bNote = before.serviceNote || '';
   const aNote = after.serviceNote || '';
   if (bNote !== aNote) changes.push({ field: 'Service Note', from: bNote || '—', to: aNote || '—' });
@@ -6583,7 +6588,7 @@ async function saveRegistryEdit() {
   r.serviceNote = notes;
   typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, { breakfastNote }, false);   // U3 S1
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
-  r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
+  doorApplyDocTags(r, r.tags, {});   // compliance C1: keeps the answers for the restrictions it keeps
 
   // Anaph rooms list
   if (isAnaph && !anaphRooms.includes(room)) anaphRooms.push(room);
@@ -7353,7 +7358,10 @@ function nrDoneReview(room) {
     if (!r) return;
     if (d.action === 'map' && d.value) {
       const label = TAG_LABELS_MAP[d.value];
-      if (label && !(r.tags||[]).includes(label)) (r.tags = r.tags||[]).push(label);
+      if (label && !(r.tags||[]).includes(label)) {
+        (r.tags = r.tags||[]).push(label);
+        doorApplyDocTags(r, r.tags, {});   // compliance C1: a restriction added here that needs a note shows for review
+      }
     }
     if (d.action === 'note' && d.value) {
       // P6: a specific answer ("No White Rice" / "Prefers White Rice") IS the note — never
@@ -7979,8 +7987,6 @@ function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, an
         accommodations: accommodations,
         preferences: accommodations,
         avoidances: avoidances,
-        confirm: requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A'),
-        confirmBy: requiresDocumentation(tagLabels) ? '—' : 'Auto',
         isAnaph: c.isAnaph || false,
         rawRestriction: tagLabels.join(', ') || 'Regular',
         isModerate: c.isModerate || false,
@@ -7991,6 +7997,7 @@ function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, an
         _tierMigrated: true
       };
       typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(newResident, c, true);   // U3 S1: a new person; the change may carry their note
+      doorApplyDocTags(newResident, newResident.tags, { newPerson: true });   // compliance C1: a new person, no answers yet
       if (existing !== -1) {
         // v30: Snapshot before overwrite
         pushResidentHistory(REGISTRY_LIST[existing], 'Intake overwrite', getOperatorName());
@@ -8022,8 +8029,7 @@ function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, an
         r.isModerate = c.isModerate || false;
         r.moderateNote = c.moderateNote || '';
         r.rawRestriction = tagLabels.join(', ') || 'Regular';
-        r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
-        r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
+        doorApplyDocTags(r, r.tags, {});   // compliance C1: an update keeps the answers for the restrictions it keeps
         const newNote = filterServiceNote(c.serviceNote, c.notes);
         if (newNote) r.serviceNote = dedupeServiceNote(r.serviceNote, newNote);
         typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, c, false);   // U3 S1: kept unless the change carries one
@@ -8060,8 +8066,7 @@ function doorRegistryQueueTransition(REGISTRY_LIST, anaphRooms, changesQueue, an
           r.avoidances = [...r.allergenFlags, ...r.accommodations];
           r.section = c.route || r.section;
           r.rawRestriction = tagLabels.join(', ') || 'Regular';
-          r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
-          r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
+          doorApplyDocTags(r, r.tags, {});   // compliance C1: the same person moved, so the answers move with them
         }
         // Carry over anaphRooms entry if the room was flagged there under the old key.
         if (Array.isArray(anaphRooms)) {
@@ -8777,6 +8782,7 @@ function loadRegistryState() {
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
     if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
     dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
+    doorMigrateRegistryDocs();   // compliance C1
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
     doorRefreshBaseSections();
@@ -8826,6 +8832,18 @@ function dedupeRegistryList() {
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...out);
     console.log('[DOOR v31] dedupeRegistryList removed ' + removed + ' duplicate room record(s)');
   }
+}
+
+// compliance C1: every list this computer loads or takes from the kitchen reads its documentation answers the C1 way
+// (doorMigrateDocs). Returns how many records changed; the change is saved with the list, never sent by itself.
+function doorMigrateRegistryDocs() {
+  if (typeof doorMigrateDocs !== 'function') return 0;
+  const d = new Date();
+  const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  let changed = 0;
+  REGISTRY_LIST.forEach(r => { try { if (doorMigrateDocs(r, today)) changed++; } catch (e) { console.warn('[DOOR] compliance: could not read the answers for room ' + (r && r.room), e); } });
+  if (changed) console.log('[DOOR] compliance: ' + changed + ' resident record(s) read with per-restriction answers');
+  return changed;
 }
 
 function seedRegistryFromRoster(entries) {
@@ -9005,6 +9023,7 @@ async function revertLastGenerate() {
   if (!(await doorAsk({ title: 'Undo the last Generate', lines: ['Undo the last Generate (from ' + ts + ')?', 'This puts the resident list back to how it was before — ' + snap.residents.length + ' residents.'].concat(newerLine ? [newerLine] : []), goLabel: 'Undo Generate', cancelLabel: 'Go back' }))) return;
   REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...snap.residents);
   if (snap.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...snap.anaphRooms);
+  doorMigrateRegistryDocs();   // compliance C1
   Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
   REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
   setRegistryProvenance();
@@ -9259,6 +9278,7 @@ async function pullStateFromGitHub(manual) {
     REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
     if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
     dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
+    doorMigrateRegistryDocs();   // compliance C1
     Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
     REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
     doorRefreshBaseSections();
@@ -9596,29 +9616,38 @@ function filterRegistry() {
 // ============================================================
 
 // --- Shared compliance filter (fixes #3 — render + export use same logic) ---
+// compliance C1 (2026-11-22): one reader, doorDocState. A resident is outstanding while any restriction that needs a
+// note has no answer (or a moderate allergy is flagged); a "resolved" mark no longer hides anyone. 'resolved-only' lists
+// the residents with at least one answer on file.
+function doorComplianceToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function doorComplianceStateOf(r) {
+  return doorDocState(r, doorComplianceToday(), typeof doorIsAnaphResident === 'function' ? doorIsAnaphResident(r) : !!r.isAnaph);
+}
 function getComplianceResidents(includeResolved) {
   return REGISTRY_LIST.filter(r => {
-    if (!includeResolved && r.complianceResolved) return false;
-    if (includeResolved === 'resolved-only' && !r.complianceResolved) return false;
-    return r.complianceDeadline ||
-           r.isModerate ||
-           (r.confirm === 'Provisional' && r.tags && requiresDocumentation(r.tags));
+    const st = doorComplianceStateOf(r);
+    if (includeResolved === 'resolved-only') return st.done.length > 0;
+    if (includeResolved) return st.needs.length > 0 || st.anaphNoAllergen || !!r.isModerate || st.done.length > 0;
+    return st.needs.length > 0 || st.anaphNoAllergen || !!r.isModerate;
   });
 }
 
 // --- Compliance reason helper (#9 — explain why each resident appears) ---
 function getComplianceReason(r) {
   const reasons = [];
-  if (r.complianceDeadline) {
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    const today = new Date(); today.setHours(0,0,0,0);
-    if (dl < today) reasons.push('Overdue deadline');
-    else if ((dl - today) <= 7 * 86400000) reasons.push('Deadline this week');
+  const st = doorComplianceStateOf(r);
+  if (st.anaph) reasons.push('Anaphylactic');
+  if (st.needs.length) reasons.push('Needs a note: ' + st.needs.join(', '));
+  if (st.remindOn) {
+    const today = doorComplianceToday();
+    if (st.remindOn < today) reasons.push('Overdue deadline');
+    else if (st.due) reasons.push('Due today');
     else reasons.push('Deadline set');
   }
   if (r.isModerate) reasons.push('Moderate allergy — confirm with H&W');
-  if (r.confirm === 'Provisional' && r.tags && requiresDocumentation(r.tags))
-    reasons.push('Provisional — documentation pending');
   return reasons.join('; ') || '—';
 }
 
@@ -9648,35 +9677,39 @@ function updateComplianceBatchBar() {
   const n = _complianceSelected.size;
   const countEl = document.getElementById('compliance-selected-count');
   if (countEl) countEl.textContent = n + ' selected';
-  ['compliance-batch-confirm', 'compliance-batch-deadline', 'compliance-batch-resolve'].forEach(id => {
+  ['compliance-batch-confirm', 'compliance-batch-deadline'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = (n === 0);
   });
 }
 
+// compliance C1: one batch action (Confirm Selected and Resolve Selected wrote the same fields). It records a note for
+// each restriction still needing one, under the name on this computer (asked once when none is set).
 async function batchConfirmCompliance() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  if (!(await doorAsk({ title: 'Confirm documentation', lines: [`Mark ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as documentation verified?`], goLabel: 'Confirm', cancelLabel: 'Go back' }))) return;
-  // The kitchen's newer list first; the confirmations are then marked as this computer's change (2026-10-18).
+  if (!(await doorAsk({ title: 'Mark documented', lines: [`Record a note from Health & Wellness for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}? Each restriction that still needs one is marked documented. Their restrictions and meals don’t change.`], goLabel: 'Mark documented', cancelLabel: 'Go back' }))) return;
+  if (!ensureOperatorName()) { showToast('Nothing recorded: add your name first, so the record says who.'); return; }
+  // The kitchen's newer list first; the answers are then marked as this computer's change (2026-10-18).
   await doorTakeNewerKitchenList();
   const by = getOperatorName();
+  const at = doorComplianceToday();
   const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
+  let n = 0;
   rooms.forEach(room => {
     const r = REGISTRY_LIST.find(x => x.room === room);
     if (!r) return;
-    pushResidentHistory(r, 'Compliance confirmed (batch)', by); // v30
-    r.confirm = 'Confirmed';
-    r.complianceResolved = 'updated';
-    r.complianceResolvedBy = by;
-    r.complianceResolvedAt = dateStr;
-    r.complianceResolutionNote = 'Batch confirmed';
-    r.complianceResolvedRestrictions = r.rawRestriction || r.tags.join(', ');
-    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Compliance confirmed (batch) by ${by}`, color: '#2563eb', by });
+    const st = doorComplianceStateOf(r);
+    if (!st.needs.length) return;
+    pushResidentHistory(r, 'Documented: ' + st.needs.join(', '), by); // v30
+    doorRecordDocs(r, st.needs, 'note', by, at, 'Marked with others');
+    n++;
+    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Documented ${st.needs.join(', ')} by ${by}`, color: '#2563eb', by });
   });
   _complianceSelected.clear();
   setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance confirm');
+  showToast(n + ' resident' + (n !== 1 ? 's' : '') + ' documented.');
 }
 
 async function batchSetDeadline() {
@@ -9684,7 +9717,8 @@ async function batchSetDeadline() {
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
   const deadline = prompt(`Set compliance deadline for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} (YYYY-MM-DD):`);
-  if (!deadline || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return;
+  if (!deadline) return;
+  if (!doorDocParseDay(deadline.trim())) { showToast('Not set: “' + deadline + '” is not a date like 2026-12-01.'); return; }
   await doorTakeNewerKitchenList();   // then marked as this computer's change (2026-10-18)
   rooms.forEach(room => {
     const r = REGISTRY_LIST.find(x => x.room === room);
@@ -9693,30 +9727,6 @@ async function batchSetDeadline() {
   setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch deadline set');
 }
 
-async function batchResolveCompliance() {
-  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
-  const rooms = [..._complianceSelected];
-  if (!rooms.length) return;
-  const revert = await doorAsk({ title: 'Resolve compliance', lines: [`Resolve ${rooms.length} resident${rooms.length !== 1 ? 's' : ''} as confirmed? Their restrictions are kept.`], goLabel: 'Resolve as confirmed', cancelLabel: 'Go back' });
-  if (!revert) return;
-  await doorTakeNewerKitchenList();   // then marked as this computer's change (2026-10-18)
-  const by = getOperatorName();
-  const dateStr = (() => { const d = new Date(); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate(); })();
-  rooms.forEach(room => {
-    const r = REGISTRY_LIST.find(x => x.room === room);
-    if (!r) return;
-    pushResidentHistory(r, 'Compliance resolved (batch)', by); // v30
-    r.confirm = 'Confirmed';
-    r.complianceResolved = 'updated';
-    r.complianceResolvedBy = by;
-    r.complianceResolvedAt = dateStr;
-    r.complianceResolutionNote = 'Batch resolved';
-    r.complianceResolvedRestrictions = r.rawRestriction || r.tags.join(', ');
-    RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Compliance resolved (batch) by ${by}`, color: '#2563eb', by });
-  });
-  _complianceSelected.clear();
-  setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch compliance resolve');
-}
 
 // v29: Edit resident from compliance view — opens registry direct edit modal
 function openEditResident(room) {
@@ -9908,7 +9918,7 @@ function draftComplianceDigest() {
   // Add copy handler after document is written (avoids script-close issue in template literal)
   w.document.querySelector('.btn-primary').onclick = function() {
     const text = w.document.getElementById('digest-body').textContent;
-    navigator.clipboard.writeText('Subject: ' + subject + '\\n\\n' + text).then(() => {
+    navigator.clipboard.writeText('Subject: ' + subject + '\n\n' + text).then(() => {
       const msg = w.document.getElementById('copied-msg');
       msg.style.display = 'inline';
       setTimeout(() => msg.style.display = 'none', 2000);
@@ -10005,7 +10015,11 @@ function renderComplianceView() {
 
   // --- Sorting (#8) ---
   const dir = _complianceSortAsc ? 1 : -1;
+  const _anaphOf = (x) => doorComplianceStateOf(x).anaph ? 0 : 1;
   relevant.sort((a,b) => {
+    // compliance C1: anaphylactic rooms always first, whatever the sort
+    const ap = _anaphOf(a) - _anaphOf(b);
+    if (ap) return ap;
     switch (_complianceSortCol) {
       case 'room': return dir * a.room.localeCompare(b.room, undefined, {numeric: true});
       case 'status': return dir * (a.confirm || '').localeCompare(b.confirm || '');
@@ -10089,14 +10103,21 @@ function renderComplianceView() {
       const rowBg = overdue ? 'background:var(--danger-faint, #fef2f2);' : soon ? 'background:var(--warn-faint, #fffbeb);' : '';
       const rowBorder = overdue ? 'border-left:3px solid #dc2626;' : soon ? 'border-left:3px solid #d97706;' : 'border-left:3px solid transparent;';
       const moderateBadge = r.isModerate ? ('<span class="tag tag-moderate" style="font-size:11px;">' + doorIcon('warning') + ' Moderate</span>') : '';
+      // compliance C1: anaphylactic rooms marked red; the restrictions that need a note in amber, the rest plain
+      const st = doorComplianceStateOf(r);
+      const anaphBadge = st.anaph ? '<span class="tag" style="font-size:11px;background:var(--red-pale);color:var(--red-text);font-weight:700;margin-right:4px;">Anaphylactic' + (st.anaphNoAllergen ? ': no allergen recorded' : '') + '</span>' : '';
+      const restrictionChips = (r.tags || []).filter(t => t !== 'Regular').map(t => st.needs.includes(t)
+        ? '<span class="tag" style="font-size:11px;background:var(--amber-pale);color:var(--amber-text);font-weight:600;margin:1px 3px 1px 0;" title="Needs a note">' + escapeHtml(t) + '</span>'
+        : '<span style="font-size:11px;color:var(--muted);margin-right:4px;">' + escapeHtml(t) + (st.done.includes(t) ? ' ✓' : '') + '</span>').join('');
+      const rowBorderAnaph = st.anaph ? 'border-left:3px solid var(--red-text);' : '';
       const reason = getComplianceReason(r);
       const reasonColor = reason.includes('Overdue') ? '#dc2626' : reason.includes('this week') ? '#d97706' : 'var(--muted)';
       const isChecked = _complianceSelected.has(r.room) ? 'checked' : '';
       const importedDate = r.lastImported ? formatCompactDate(r.lastImported) : '—';
-      return `<tr style="${rowBg}${rowBorder}">
+      return `<tr style="${rowBg}${rowBorderAnaph || rowBorder}">
         <td style="width:32px;text-align:center;"><input type="checkbox" ${isChecked} onchange="${_escAttr('toggleComplianceSelect(' + _jsStringLiteral(r.room) + ',this.checked)')}"></td>
         <td><span class="room-num">${escapeHtml(r.room)}</span></td>
-        <td style="font-size:12px;">${escapeHtml(r.rawRestriction || r.tags.join(', '))} ${moderateBadge}</td>
+        <td style="font-size:12px;">${anaphBadge}${restrictionChips} ${moderateBadge}</td>
         <td><span style="font-size:12px;font-weight:600;color:${r.confirm==='Provisional'?'var(--amber-text)':r.confirm==='N/A'?'var(--muted)':'var(--forest-mid-text)'}">${escapeHtml(r.confirm)}</span></td>
         <td><input type="date" value="${_escAttr(r.complianceDeadline || '')}" style="font-size:12px;color:${dlColor};border:1px solid var(--border);border-radius:6px;padding:3px 6px;" onchange="${_escAttr('updateComplianceField(' + _jsStringLiteral(r.room) + ',' + _jsStringLiteral('complianceDeadline') + ',this.value)')}"></td>
         <td style="font-size:12px;color:${reasonColor};">${escapeHtml(reason)}</td>
@@ -10105,29 +10126,41 @@ function renderComplianceView() {
         <td style="text-align:right;white-space:nowrap;">
           <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openResidentHistory', [r.room])}" title="View change history">${doorIcon("clock")}</button>
           <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openEditResident', [r.room])}" title="Edit restrictions">Edit</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openResolveModal', [r.room])}">Resolve…</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('openResolveModal', [r.room])}">${st.needs.length ? 'Got the note…' : 'Open…'}</button>
         </td>
       </tr>`;
     }).join('');
   }
 
-  // --- Resolved section with Re-open (#6) ---
-  const resolved = REGISTRY_LIST.filter(r => r.complianceResolved);
+  // --- Documented section with Re-open (compliance C1: the answers on file, newest first) ---
+  const resolved = getComplianceResidents('resolved-only').map(r => {
+    const docs = doorDocRecords(r);
+    const st = doorComplianceStateOf(r);
+    const recs = st.done.map(t => ({ t, d: docs[t] }));
+    const newest = recs.slice().sort((x, y) => String(y.d.ts || y.d.at || '').localeCompare(String(x.d.ts || x.d.at || '')))[0];
+    return { r, recs, newest };
+  }).sort((x, y) => String((y.newest && (y.newest.d.ts || y.newest.d.at)) || '').localeCompare(String((x.newest && (x.newest.d.ts || x.newest.d.at)) || '')));
   const resolvedSection = document.getElementById('compliance-resolved-section');
   const resolvedBody = document.getElementById('compliance-resolved-body');
   const resolvedCount = document.getElementById('compliance-resolved-count');
   if (resolved.length) {
     resolvedSection.style.display = 'block';
     resolvedCount.textContent = resolved.length;
-    resolvedBody.innerHTML = resolved.map(r => `<tr>
+    resolvedBody.innerHTML = resolved.map(({ r, recs, newest }) => {
+      const hows = [...new Set(recs.map(x => x.d.how === 'preference' ? 'Preference' : 'Note from H&W'))].join(', ');
+      const bys = [...new Set(recs.map(x => x.d.by).filter(Boolean))].join(', ');
+      const at = newest && newest.d.at ? formatCompactDate(newest.d.at) : '—';
+      const line = [...new Set(recs.map(x => x.d.line).filter(Boolean))].join('; ');
+      return `<tr>
       <td><span class="room-num">${escapeHtml(r.room)}</span></td>
-      <td style="font-size:12px;">${escapeHtml(r.complianceResolvedRestrictions || r.rawRestriction || r.tags.join(', '))}</td>
-      <td style="font-size:12px;">${r.complianceResolved === 'reverted' ? '<span style="color:var(--forest-mid-text);font-weight:600;">Reverted to Regular</span>' : '<span style="color:var(--info-ink, #1d4ed8);font-weight:600;">Status updated</span>'}</td>
-      <td style="font-size:12px;">${escapeHtml(r.complianceResolvedBy || '—')}</td>
-      <td style="font-size:12px;">${escapeHtml(r.complianceResolvedAt || '—')}</td>
-      <td style="font-size:12px;color:var(--muted);">${escapeHtml(r.complianceResolutionNote || '')}</td>
+      <td style="font-size:12px;">${escapeHtml(recs.map(x => x.t).join(', '))}</td>
+      <td style="font-size:12px;">${escapeHtml(hows)}</td>
+      <td style="font-size:12px;">${escapeHtml(bys || '—')}</td>
+      <td style="font-size:12px;">${escapeHtml(at)}</td>
+      <td style="font-size:12px;color:var(--muted);">${escapeHtml(line)}</td>
       <td style="text-align:right;"><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="${_escJsAttrCall('reopenComplianceItem', [r.room])}">Re-open</button></td>
-    </tr>`).join('');
+    </tr>`;
+    }).join('');
   } else {
     resolvedSection.style.display = 'none';
   }
@@ -10145,13 +10178,15 @@ async function reopenComplianceItem(room) {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   let r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) return;
-  if (!(await doorAsk({ title: 'Re-open review', lines: [`Re-open compliance review for Room ${room}? They move back to the active list.`], goLabel: 'Re-open', cancelLabel: 'Go back' }))) return;
+  if (!(await doorAsk({ title: 'Re-open review', lines: [`Re-open Room ${room}? The answers on file are taken back and the room moves back to the list. Meals don’t change.`], goLabel: 'Re-open', cancelLabel: 'Go back' }))) return;
   // The kitchen's newer list first; the re-open lands on its record and is marked as this computer's change (2026-10-18).
   await doorTakeNewerKitchenList();
   r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) { showToast('Room ' + room + ' is no longer on the kitchen’s list.'); renderComplianceView(); return; }
-  const prevAction = r.complianceResolved;
-  const prevBy = r.complianceResolvedBy || '';
+  const prevAction = r.complianceResolved || 'documented';
+  const prevBy = r.complianceResolvedBy || Object.values(doorDocRecords(r)).map(d => d && d.by).filter(Boolean).join(', ');
+  pushResidentHistory(r, 'Documentation re-opened', getOperatorName());
+  doorClearDocs(r);   // compliance C1: every answer on file goes; the resident is outstanding again
   r.complianceResolved = '';
   r.complianceResolvedBy = '';
   r.complianceResolvedAt = '';
@@ -10190,22 +10225,31 @@ function openResolveModal(room) {
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) return;
   _resolveRoom = room;
+  const st = doorComplianceStateOf(r);
   document.getElementById('settle-room-label').textContent = room;
-  // Current restrictions display
   const restrictionEl = document.getElementById('settle-current-restrictions');
   const tags = (r.tags || []).filter(t => t !== 'Regular');
-  if (tags.length) {
-    restrictionEl.innerHTML = tags.map(t => `<span class="tag" style="font-size:12px;margin-right:4px;">${escapeHtml(t)}</span>`).join('') +
-      `<div style="margin-top:6px;font-size:12px;color:var(--muted);">Confirm status: <strong>${escapeHtml(r.confirm)}</strong></div>`;
+  const chip = (t) => {
+    const need = st.needs.includes(t);
+    const done = st.done.includes(t);
+    const style = need ? 'background:var(--amber-pale);color:var(--amber-text);font-weight:600;' : '';
+    return `<span class="tag" style="font-size:12px;margin-right:4px;${style}">${escapeHtml(t)}${done ? ' ✓' : ''}</span>`;
+  };
+  restrictionEl.innerHTML = (st.anaph ? '<span class="tag" style="font-size:12px;margin-right:4px;background:var(--red-pale);color:var(--red-text);font-weight:700;">Anaphylactic</span>' : '') +
+    (tags.length ? tags.map(chip).join('') : '<span style="color:var(--muted);font-size:13px;">Regular — no restriction recorded</span>');
+  const what = document.getElementById('settle-what');
+  const submit = document.getElementById('settle-submit');
+  if (st.needs.length) {
+    what.innerHTML = 'Mark documented records a note from Health &amp; Wellness for <strong>' + escapeHtml(st.needs.join(', ')) + '</strong>. Meals don’t change.';
+    if (submit) submit.disabled = false;
   } else {
-    restrictionEl.innerHTML = '<span style="color:var(--muted);font-size:13px;">Regular — no active restrictions</span>' +
-      `<div style="margin-top:6px;font-size:12px;color:var(--muted);">Confirm status: <strong>${escapeHtml(r.confirm)}</strong></div>`;
+    what.innerHTML = st.anaphNoAllergen
+      ? 'This room is on the anaphylactic list but its restriction names no allergen. Open the resident’s record and add the allergen.'
+      : r.isModerate
+        ? 'A moderate allergy is flagged. Once Health &amp; Wellness confirms it, open the resident’s record and untick Moderate allergy.'
+        : 'Nothing here needs a note.';
+    if (submit) submit.disabled = true;
   }
-  // Pre-fill status
-  document.getElementById('settle-status-select').value = r.confirm || 'N/A';
-  // Reset form
-  document.getElementById('settle-revert-check').checked = false;
-  document.getElementById('settle-revert-warning').style.display = 'none';
   document.getElementById('settle-resolved-by').value = getOperatorName();
   document.getElementById('settle-resolution-note').value = '';
   document.getElementById('settle-compliance-modal').classList.add('open');
@@ -10216,9 +10260,12 @@ function closeResolveModal() {
   _resolveRoom = null;
 }
 
-function toggleRevertWarning() {
-  const checked = document.getElementById('settle-revert-check').checked;
-  document.getElementById('settle-revert-warning').style.display = checked ? 'block' : 'none';
+// compliance C1: a restriction comes off only in the resident record, whose Save asks about allergens and the
+// anaphylactic list (it replaced the Revert to Regular box, which cleared every restriction without a question).
+function settleOpenResidentRecord() {
+  const room = _resolveRoom;
+  closeResolveModal();
+  if (room) openEditResident(room);
 }
 
 async function submitResolve() {
@@ -10233,51 +10280,27 @@ async function submitResolve() {
     return;
   }
   document.getElementById('settle-resolved-by').style.borderColor = '';
-
-  const newStatus = document.getElementById('settle-status-select').value;
-  const doRevert = document.getElementById('settle-revert-check').checked;
   const note = document.getElementById('settle-resolution-note').value.trim();
   const today = new Date();
   const dateStr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()] + ' ' + today.getDate();
   // What the form says is read first and the form closes (so a second click can't resolve twice); then the kitchen's
-  // newer list, and the resolution lands on its record and is marked as this computer's change (2026-10-18).
+  // newer list, and the answer lands on its record and is marked as this computer's change (2026-10-18).
   closeResolveModal();
   await doorTakeNewerKitchenList();
   const r = REGISTRY_LIST.find(x => x.room === room);
   if (!r) { showToast('Room ' + room + ' is no longer on the kitchen’s list — nothing saved.'); renderComplianceView(); return; }
-
-  // Snapshot restrictions before any change
-  const prevRestrictions = r.rawRestriction || r.tags.join(', ');
-
-  // v30: Snapshot before compliance status change
-  pushResidentHistory(r, 'Compliance: ' + newStatus + (doRevert ? ' (reverted)' : ''), resolvedBy);
-
-  // Apply status change
-  r.confirm = newStatus;
-
-  // Apply reversion if checked
-  if (doRevert) {
-    r.tags = ['Regular'];
-    r.rawRestriction = 'Regular';
-    r.isModerate = false;
-    r.pendingReversion = false;
-    r.complianceDeadline = '';
-  }
-
-  // Mark resolved
-  r.complianceResolved = doRevert ? 'reverted' : 'updated';
-  r.complianceResolvedBy = resolvedBy;
-  r.complianceResolvedAt = dateStr;
-  r.complianceResolutionNote = note;
-  r.complianceResolvedRestrictions = prevRestrictions;
-
-  // Log to RECENT_LOG
+  // compliance C1: a note for each restriction that still needs one; the status follows from the answers, so the
+  // resident can never read resolved while still Provisional. Restrictions, routing and the anaphylactic list are untouched.
+  const st = doorComplianceStateOf(r);
+  if (!st.needs.length) { showToast('Room ' + room + ': nothing here needs a note now.'); renderComplianceView(); return; }
+  pushResidentHistory(r, 'Documented: ' + st.needs.join(', '), resolvedBy);
+  doorRecordDocs(r, st.needs, 'note', resolvedBy, doorComplianceToday(), note);
   RECENT_LOG.unshift({
     ts:new Date().toISOString(),
     date: dateStr,
     room: r.room,
     type: 'update',
-    desc: doRevert ? `Compliance resolved — reverted to Regular by ${resolvedBy}` : `Compliance resolved — status updated to ${newStatus} by ${resolvedBy}`,
+    desc: 'Documented ' + st.needs.join(', ') + ' by ' + resolvedBy + (note ? ' — ' + note : ''),
     color: '#2563eb',
     by: resolvedBy
   });
@@ -10287,6 +10310,7 @@ async function submitResolve() {
   renderComplianceView();
   // v25: Sync compliance changes to GitHub for multi-device access
   publishAndSync('compliance update');
+  showToast('Room ' + room + ' documented.');
 }
 
 function updateComplianceField(room, field, value) {
@@ -10335,15 +10359,22 @@ function exportComplianceXlsx() {
   });
 
   // --- Resolved items sheet (#10) ---
-  const resolvedResidents = REGISTRY_LIST.filter(r => r.complianceResolved);
-  const resolvedRows = resolvedResidents.map(r => ({
-    'Room': r.room,
-    'Restrictions (at time)': r.complianceResolvedRestrictions || r.rawRestriction || r.tags.join(', '),
-    'Action': r.complianceResolved === 'reverted' ? 'Reverted to Regular' : 'Status updated',
-    'Resolved By': r.complianceResolvedBy || '',
-    'Date': r.complianceResolvedAt || '',
-    'Note': r.complianceResolutionNote || ''
-  }));
+  // compliance C1: one row per answer on file (restriction, note or preference, who, when)
+  const resolvedRows = [];
+  getComplianceResidents('resolved-only').forEach(r => {
+    const docs = doorDocRecords(r);
+    doorComplianceStateOf(r).done.forEach(t => {
+      const d = docs[t];
+      resolvedRows.push({
+        'Room': r.room,
+        'Restrictions (at time)': t,
+        'Action': d.how === 'preference' ? 'Preference' : 'Note from H&W',
+        'Resolved By': d.by || '',
+        'Date': d.at || '',
+        'Note': d.line || ''
+      });
+    });
+  });
 
   if (!rows.length && !resolvedRows.length) { alert('No compliance records to export.'); return; }
 
@@ -16735,6 +16766,185 @@ function requiresDocumentation(tagLabels) {
     return !tier || tier === 'doc'; // unknown tags default to doc-tier
   });
 }
+
+/* DOOR_TESTABLE_CORE_START compliance-docs */
+// Documentation is per restriction (compliance plan C1, 2026-11-22). r.docs holds one record per restriction that needs a
+// note and has an answer: { how: 'note' | 'preference', by, at (YYYY-MM-DD), line }. r.confirm is derived from it, so a
+// record can never read resolved while the resident still reads Provisional, an update keeps the answers for the
+// restrictions it keeps, and a new person in the room starts with none. One writer from tags (doorApplyDocTags), one
+// reader (doorDocState). Paperwork only: nothing here changes a plate or a warning.
+const DOOR_DOC_ALLERGY_TAGS = new Set(['GF', 'No Dairy', 'No Eggs', 'No Fish', 'No Shellfish', 'No Molluscs', 'No Peanuts',
+  'No Tree Nuts', 'No Soy', 'No Sesame', 'No Mustard', 'No Sulphites', 'No Coconut', 'No Corn', 'No Oats']);
+// Jason, 2026-11-22: a preference can clear an item, and No Spicy usually has no note. A resident whose only
+// restrictions needing a note are these sits in the "usually a preference" group.
+const DOOR_DOC_PREFERENCE_TAGS = new Set(['No Pork', 'No Spicy']);
+function doorDocNeededTags(tags) {
+  const seen = new Set();
+  return (tags || []).filter(t => {
+    if (!t || t === 'Regular' || seen.has(t)) return false;
+    seen.add(t);
+    const tier = COMPLIANCE_TIERS[t];
+    return !tier || tier === 'doc';
+  });
+}
+function doorDocRecords(r) {
+  return (r && r.docs && typeof r.docs === 'object' && !Array.isArray(r.docs)) ? r.docs : {};
+}
+function doorDocIsRecord(d) {
+  return !!(d && typeof d === 'object' && (d.how === 'note' || d.how === 'preference'));
+}
+function doorDerivedConfirm(r, tagsIn) {
+  const tags = tagsIn || (r && r.tags) || [];
+  const needed = doorDocNeededTags(tags);
+  if (!needed.length) {
+    const hasRestriction = tags.some(t => t && t !== 'Regular');
+    if (hasRestriction) return { confirm: 'Confirmed', confirmBy: 'Auto' };
+    // A resident with no restriction reads N/A; an anaphylactic one keeps Provisional (autoPromoteAutoTier, 2026-10-18).
+    // (review P3-2: from the anaphylactic flag itself, so a new anaphylactic intake with no allergen recorded is listed)
+    const anaph = !!(r && (r.isAnaph || (typeof doorIsAnaphResident === 'function' && doorIsAnaphResident(r))));
+    if (anaph) return { confirm: 'Provisional', confirmBy: (r && r.confirmBy) || '—' };
+    return { confirm: 'N/A', confirmBy: 'Auto' };
+  }
+  const docs = doorDocRecords(r);
+  const recs = needed.map(t => docs[t]);
+  if (recs.every(doorDocIsRecord)) {
+    const last = recs.slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))[0];
+    return { confirm: 'Confirmed', confirmBy: (last && last.by) || '—' };
+  }
+  return { confirm: 'Provisional', confirmBy: (r && r.confirm === 'Provisional' && r.confirmBy) || '—' };
+}
+// The one writer from tags. Keeps the answers for restrictions still needing a note; a new person starts with none.
+function doorApplyDocTags(r, tagLabels, opts) {
+  if (!r) return r;
+  const o = opts || {};
+  if (o.newPerson) {
+    delete r.docs;
+    delete r.docAsk;
+    r.complianceDeadline = '';
+    r.complianceResolved = '';
+    r.complianceResolvedBy = '';
+    r.complianceResolvedAt = '';
+    r.complianceResolutionNote = '';
+    r.complianceResolvedRestrictions = '';
+  }
+  const needed = new Set(doorDocNeededTags(tagLabels || r.tags || []));
+  const kept = {};
+  const docs = doorDocRecords(r);
+  Object.keys(docs).forEach(t => { if (needed.has(t) && doorDocIsRecord(docs[t])) kept[t] = docs[t]; });
+  // No answers means no field: a record nobody has answered for stays as it was (every list read runs this).
+  if (Object.keys(kept).length) r.docs = kept; else delete r.docs;
+  const d = doorDerivedConfirm(r, tagLabels || r.tags);
+  r.confirm = d.confirm;
+  r.confirmBy = d.confirmBy;
+  return r;
+}
+// Records an answer for each tag given (only tags that need a note); returns the tags recorded.
+function doorRecordDocs(r, tags, how, by, atIso, line, tsIso) {
+  if (!r || (how !== 'note' && how !== 'preference')) return [];
+  const needed = new Set(doorDocNeededTags(r.tags));
+  const docs = Object.assign({}, doorDocRecords(r));
+  const done = [];
+  (tags || []).forEach(t => {
+    if (!needed.has(t)) return;
+    const rec = { how, by: by || '', at: atIso || '', ts: tsIso || new Date().toISOString() };
+    if (line) rec.line = String(line);
+    docs[t] = rec;
+    done.push(t);
+  });
+  r.docs = docs;
+  if (done.length) delete r.docAsk;
+  const d = doorDerivedConfirm(r);
+  r.confirm = d.confirm;
+  r.confirmBy = d.confirmBy;
+  return done;
+}
+// Takes back the answers for the tags given (Undo, Re-open).
+function doorClearDocs(r, tags) {
+  if (!r) return r;
+  const docs = Object.assign({}, doorDocRecords(r));
+  (tags || Object.keys(docs)).forEach(t => { delete docs[t]; });
+  if (Object.keys(docs).length) r.docs = docs; else delete r.docs;
+  const d = doorDerivedConfirm(r);
+  r.confirm = d.confirm;
+  r.confirmBy = d.confirmBy;
+  return r;
+}
+function doorDocParseDay(iso) {
+  if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d, 12, 0, 0, 0);
+  return (dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d) ? dt : null;
+}
+// The one reader. todayIso is YYYY-MM-DD (local).
+function doorDocState(r, todayIso, isAnaph) {
+  const needed = doorDocNeededTags(r && r.tags);
+  const docs = doorDocRecords(r);
+  const needs = needed.filter(t => !doorDocIsRecord(docs[t]));
+  const done = needed.filter(t => doorDocIsRecord(docs[t]));
+  const anaph = !!isAnaph;
+  // An anaphylactic resident whose restriction names no allergen (plan review P2-4): listed with the anaphylactic rooms,
+  // fixed in the resident record, never cleared from here.
+  const anaphNoAllergen = anaph && !(r && r.tags || []).some(t => t && t !== 'Regular');
+  let group = anaphNoAllergen ? 'anaph' : '';
+  if (needs.length) {
+    if (anaph) group = 'anaph';
+    else if (needs.some(t => DOOR_DOC_ALLERGY_TAGS.has(t))) group = 'allergy';
+    else if (needs.every(t => DOOR_DOC_PREFERENCE_TAGS.has(t))) group = 'preference';
+    else group = 'medical';
+  }
+  const ask = (r && r.docAsk && typeof r.docAsk === 'object') ? r.docAsk : null;
+  const remindOn = (ask && doorDocParseDay(ask.remindOn)) ? ask.remindOn
+    : (doorDocParseDay(r && r.complianceDeadline) ? r.complianceDeadline : '');
+  const due = !!(needs.length && remindOn && todayIso && remindOn <= todayIso);
+  return { needed, needs, done, anaph, anaphNoAllergen, group, askedOn: (ask && ask.at) || '', remindOn, due };
+}
+// The newest time an older build overwrote this room with a new person (its history entry "Intake overwrite"). An older
+// build changes the record in place, so answers given for the last person stay on it (plan review P1-2).
+function doorDocIntakeTs(r) {
+  let t = '';
+  ((r && r._history) || []).forEach(h => {
+    if (h && typeof h.desc === 'string' && /^Intake overwrite/.test(h.desc) && typeof h.ts === 'string' && h.ts > t) t = h.ts;
+  });
+  return t;
+}
+// The normaliser: run on every list this computer loads or takes from the kitchen, so it is safe to run again.
+// 1. An answer given before the room took a new person is dropped (a record with no time counts as before).
+// 2. A record an older build marked Confirmed, with a restriction that needs a note and has no answer, gets a note
+//    answer for each such restriction (that build confirmed the whole resident). Marked migrated.
+// 3. A resolved mark from before C1 (only its date and restrictions, no year) gives a note answer for each restriction
+//    it named, once per mark, and never after a new person moved in. The one today: a doctor note for No Spicy.
+// 4. The status is worked out from the answers, which also undoes an older build resetting Confirmed to Provisional.
+function doorMigrateDocs(r, todayIso, nowIso) {
+  if (!r || typeof r !== 'object') return false;
+  const before = JSON.stringify([r.docs, r.confirm, r.confirmBy, r._docsResolvedSig]);
+  const now = nowIso || new Date().toISOString();
+  const needed = doorDocNeededTags(r.tags);
+  const docs = Object.assign({}, doorDocRecords(r));
+  const intakeTs = doorDocIntakeTs(r);
+  if (intakeTs) Object.keys(docs).forEach(t => { const d = docs[t]; if (!d || typeof d.ts !== 'string' || d.ts <= intakeTs) delete docs[t]; });
+  let missing = needed.filter(t => !doorDocIsRecord(docs[t]));
+  const named = (by) => by && by !== '—' && by !== 'Auto' ? by : '';
+  // Only when someone confirmed (review P2-1): an older build left an Auto Confirmed in place when Needs Review added a
+  // restriction, which must read Provisional, not documented.
+  const confirmer = named(r.complianceResolvedBy) || named(r.confirmBy);
+  if (missing.length && r.confirm === 'Confirmed' && confirmer) {
+    const by = confirmer;
+    missing.forEach(t => { docs[t] = { how: 'note', by, at: todayIso || '', ts: now, migrated: true, line: 'Confirmed before answers were kept per restriction' }; });
+    missing = [];
+  }
+  const sig = r.complianceResolved && r.complianceResolvedRestrictions ? String(r.complianceResolvedAt || '') + '|' + String(r.complianceResolvedRestrictions) : '';
+  if (missing.length && sig && !intakeTs && r._docsResolvedSig !== sig) {
+    const listed = String(r.complianceResolvedRestrictions).toLowerCase().split(/[,/;]+/).map(x => x.trim()).filter(Boolean);
+    const by = named(r.complianceResolvedBy) || 'earlier';
+    const line = ('Resolved ' + (r.complianceResolvedAt || '') + (r.complianceResolutionNote ? ': ' + r.complianceResolutionNote : '')).trim();
+    missing.forEach(t => { if (listed.includes(t.toLowerCase())) docs[t] = { how: 'note', by, at: todayIso || '', ts: now, migrated: true, line }; });
+    r._docsResolvedSig = sig;
+  }
+  if (Object.keys(docs).length) r.docs = docs; else delete r.docs;
+  doorApplyDocTags(r, r.tags, {});
+  return JSON.stringify([r.docs, r.confirm, r.confirmBy, r._docsResolvedSig]) !== before;
+}
+/* DOOR_TESTABLE_CORE_END compliance-docs */
 
 // Safe localStorage helper for site key
 function getSelectedSite() {
@@ -26322,6 +26532,7 @@ initDynamic();
           REGISTRY_LIST.splice(0, REGISTRY_LIST.length, ...state.residents);
           if (state.anaphRooms) anaphRooms.splice(0, anaphRooms.length, ...state.anaphRooms);
           dedupeRegistryList(); // v31: collapse any duplicate-room records from the snapshot
+          doorMigrateRegistryDocs();   // compliance C1
           Object.keys(REGISTRY_MAP).forEach(k => delete REGISTRY_MAP[k]);
           REGISTRY_LIST.forEach(r => { REGISTRY_MAP[r.room.toLowerCase()] = r; });
           saveRegistryState();
@@ -26356,29 +26567,11 @@ initDynamic();
   try { localStorage.setItem('concRegistryPatch_20260427', '1'); } catch (e) {}
 })();
 
-// Auto-promote Provisional residents who only have auto-tier tags to Confirmed.
-// Runs on every load — handles seed data from before COMPLIANCE_TIERS existed
-// and registry pulls from devices that haven't applied the fix yet.
-(function autoPromoteAutoTier() {
-  let promoted = 0;
-  REGISTRY_LIST.forEach(r => {
-    if (r.confirm !== 'Provisional') return;
-    // A resident with no restriction needs no documentation: N/A, as a Regular intake is (2026-10-18, Jason: "Tidy to
-    // N/A"; 56 stayed Provisional for nothing). An anaphylactic one stays Provisional: the list is a medical fact.
-    if (!r.tags || r.tags.every(t => t === 'Regular')) {
-      if (!doorIsAnaphResident(r)) { r.confirm = 'N/A'; r.confirmBy = 'Auto'; promoted++; }
-      return;
-    }
-    if (!requiresDocumentation(r.tags)) {
-      r.confirm = 'Confirmed';
-      r.confirmBy = 'Auto';
-      promoted++;
-    }
-  });
-  if (promoted > 0) {
-    saveRegistryState();
-    console.log('[DOOR] Auto-promoted', promoted, 'residents from Provisional (auto-tier tags only → Confirmed; no restriction → N/A)');
-  }
+// Statuses worked out from the answers on every load (compliance C1, 2026-11-22; this replaced autoPromoteAutoTier):
+// auto-tier tags only read Confirmed, no restriction reads N/A (an anaphylactic one stays Provisional), and a restriction
+// that needs a note reads Provisional until it has an answer.
+(function doorNormaliseDocsOnLoad() {
+  if (doorMigrateRegistryDocs() > 0) saveRegistryState();
 })();
 
 // v29: Backfill lastImported for residents that don't have it yet.
@@ -26563,11 +26756,11 @@ async function commitIntakeQueue() {
       if (q.notes) r.serviceNote = dedupeServiceNote(r.serviceNote, q.notes);
       typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, q, q.type === 'intake');   // U3 S1
       r.rawRestriction = q.tags.join(', ') || 'Regular';
-      r.confirm = requiresDocumentation(q.tags) ? 'Provisional' : (q.tags.length && !q.tags.every(t => t === 'Regular') ? 'Confirmed' : 'N/A');
-      r.confirmBy = requiresDocumentation(q.tags) ? (r.confirmBy || '\u2014') : 'Auto';
       r.isModerate = r.isModerate || false;
       r.moderateNote = r.moderateNote || '';
       r.complianceDeadline = r.complianceDeadline || '';
+      // compliance C1: a new intake is a new person (the last one's answers and resolved mark go); an update keeps them.
+      doorApplyDocTags(r, q.tags, { newPerson: q.type === 'intake' });
       if (r.isAnaph && !anaphRooms.includes(q.room)) anaphRooms.push(q.room);
       if (!r.isAnaph) { const ai = anaphRooms.indexOf(q.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
       if (!existing) { REGISTRY_LIST.push(r); REGISTRY_MAP[q.room.toLowerCase()] = r; }
@@ -26720,11 +26913,11 @@ async function saveDirectFromForm() {
   if (notes) r.serviceNote = dedupeServiceNote(r.serviceNote, notes);
   typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, { breakfastNote: formBreakfastNote }, type === 'intake');   // U3 S1
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
-  r.confirm = requiresDocumentation(tagLabels) ? 'Provisional' : (tagLabels.length && !tagLabels.every(t=>t==='Regular') ? 'Confirmed' : 'N/A');
-  r.confirmBy = requiresDocumentation(tagLabels) ? (r.confirmBy || '—') : 'Auto';
   r.isModerate = r.isModerate || false;
   r.moderateNote = r.moderateNote || '';
   r.complianceDeadline = r.complianceDeadline || '';
+  // compliance C1: a new intake is a new person (the last one's answers and resolved mark go); an update keeps them.
+  doorApplyDocTags(r, r.tags, { newPerson: type === 'intake' });
 
   if (isAnaph && !anaphRooms.includes(room)) anaphRooms.push(room);
   if (!isAnaph) { const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1); }
@@ -28599,29 +28792,17 @@ window.addEventListener('load', runAltFlagSweepOnce);
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Current Restrictions</div>
         <div id="settle-current-restrictions" style="font-size:13px;line-height:1.6;"></div>
       </div>
-      <!-- Status -->
-      <div class="form-group" style="margin:0;">
-        <label>Confirmation Status</label>
-        <select id="settle-status-select" style="font-size:13px;">
-          <option value="Provisional">Provisional</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="N/A">N/A</option>
-        </select>
-        <div class="form-hint">Updates the resident's confirm status in the registry.</div>
-      </div>
-      <!-- Revert to regular -->
-      <div style="background:var(--ok-faint, #f0fdf4);border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;">
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin:0;">
-          <input type="checkbox" id="settle-revert-check" style="margin-top:2px;flex-shrink:0;" onchange="toggleRevertWarning()">
-          <span style="font-size:13px;line-height:1.5;"><strong>Revert to Regular meals</strong> — removes all dietary restrictions from this resident's record and resets routing to Regular.</span>
-        </label>
-        <div id="settle-revert-warning" style="display:none;margin-top:10px;font-size:12px;color:var(--ok-ink, #15803d);padding-left:22px;">Restrictions will be cleared. This takes effect immediately and will be reflected on the next plating sheet run.</div>
+      <!-- compliance C1 (2026-11-22): no status to pick and no revert box. Resolve records a note from H&W for each
+           restriction that needs one; taking a restriction off goes through the resident record and its questions. -->
+      <div id="settle-what" style="font-size:13px;line-height:1.5;"></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;">Restrictions changed or no longer needed?
+        <button type="button" class="btn btn-ghost btn-sm" style="font-size:12px;" onclick="settleOpenResidentRecord()">Open the resident’s record</button>
       </div>
       <!-- Resolved by -->
       <div class="form-group" style="margin:0;">
         <label>Resolved by</label>
         <input type="text" id="settle-resolved-by" placeholder="Your name" style="font-size:13px;">
-        <div class="form-hint">Recorded for audit trail. Authentication will enforce this in Phase 5.</div>
+        <div class="form-hint">Saved with the answer, so the record says who.</div>
       </div>
       <!-- Resolution note -->
       <div class="form-group" style="margin:0;">
@@ -28631,7 +28812,7 @@ window.addEventListener('load', runAltFlagSweepOnce);
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--border);margin-top:8px;">
       <button class="btn btn-ghost" onclick="closeResolveModal()">Cancel</button>
-      <button class="btn btn-mint" onclick="submitResolve()">Resolve</button>
+      <button class="btn btn-mint" id="settle-submit" onclick="submitResolve()">Mark documented</button>
     </div>
   </div>
 </div>

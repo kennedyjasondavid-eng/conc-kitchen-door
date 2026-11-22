@@ -48,6 +48,8 @@ try {
   // switched off first, so the yoghurt comparison and the baseline comparison still read every other byte.
   // 2026-11-20 (publication 47, Jason: "Follow lean"): the halal section notes read the halal dish box
  // (_halalDishFlags), which the baseline build does not; tests/halal_dish_box_gate.mjs owns that note, switched off here.
+ // 2026-11-22 (compliance C1): the normaliser documents room 801 for No Spicy from its May 3 resolution (its one intended change on today's list, owned by tests/compliance_docs_c1_gate.mjs 11); that record is put back first.
+ await b.b.page.evaluate(()=>{REGISTRY_LIST.forEach(r=>{if(r._docsResolvedSig){delete r.docs;delete r._docsResolvedSig;r.confirm='Provisional';r.confirmBy='Auto';}});});
  await b.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});const pf=window.doorPlateFacts;window.doorPlateFacts=(...a)=>{const f=pf(...a);if(f&&f.mealFlags)delete f.mealFlags._halalDishFlags;return f;};});
   const withSwap=await snapshot(b.b);
   await b.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});

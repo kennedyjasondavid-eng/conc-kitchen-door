@@ -53,6 +53,42 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — Compliance Review C1: documentation is kept per restriction (`v31-standard.135`)
+Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` (status owner, §6); Jason, 2026-11-22: review, mockups, then "Put a
+plan of action together and submit for review, then begin implementation". Fiona (the manager) uses the screen.
+- **The model** (`DOOR_TESTABLE_CORE compliance-docs`): `r.docs = { tag: { how: 'note'|'preference', by, at, ts, line } }`,
+  one answer per restriction that needs a note. `r.confirm` is worked out from it (`doorDerivedConfirm`), so nobody can
+  read resolved while still Provisional. One writer from tags, `doorApplyDocTags(r, tags, { newPerson })`, replaces the
+  copies in the editor save, the Daily Entry queue (intake, update, reassign), the Intake Portal, the direct save and
+  Needs Review; one reader, `doorDocState` (needs, done, group: anaph / allergy / medical / preference, reminder).
+- **Fixed (the review's safety findings):** a new intake into a documented room kept the last person's "resolved" mark and
+  was hidden for good (S1); any update reset a confirmed resident to Provisional, and a resolved one who gained a
+  restriction never came back (S2); Resolve with the status left at Provisional hid a resident still Provisional (S3); the
+  Resolve dialog's green "Revert to Regular" box cleared every restriction, anaphylactic included, with no question (S4:
+  gone; "Open the resident's record" instead, whose Save asks); anaphylactic rooms are marked red and listed first (S5).
+- **The screen (interim; C2 redesigns it):** amber chips for the restrictions that need a note, "Got the note…"; one batch
+  action, "Mark documented" (Confirm and Resolve Selected wrote the same fields; `batchResolveCompliance` retired), which
+  asks for a name once; Set Deadline says when a date is not one; the Documented list (was Resolved) reads the answers;
+  Re-open takes them back; the digest's Copy writes real new lines.
+- **The normaliser** (`doorMigrateDocs` via `doorMigrateRegistryDocs`, replaced `autoPromoteAutoTier`): runs on every list
+  loaded or taken from the kitchen (load, pull, first boot, Undo Generate); idempotent. An older build's Confirmed with no
+  answers becomes answers (migrated); a resolved mark from before gives answers for the restrictions it named (801: No
+  Spicy, from the May 3 doctor note); answers older than an older build's "Intake overwrite" are dropped (plan review
+  P1-2); an anaphylactic room with no allergen recorded stays Provisional and is listed (P2-4, lean followed).
+- **History:** `_HISTORY_SNAPSHOT_KEYS` gains `docs`, `docAsk`; revert works the status out again; the diff has a
+  Documented row. Nothing published changes shape: the answers travel with the resident list in `door_state.json` (a
+  kitchen file); `registry_summary.json` and the F4 inputs don't read them.
+- **Gates:** `tests/compliance_docs_c1_gate.mjs` (11, red 11/11 on `main` `13e0aa2`) and browser
+  `tests/browser/compliance_docs_c1.mjs` (22, in CI). Re-pinned with dated notes (the writers' sandboxes load the core
+  through `complianceDocsSource` in `tests/helpers/door_two_computers.mjs`): `anaph_matrix` (the load-time tidy is the
+  normaliser), `anaph_output_readiness`, `breakfast_note_s1`, `registry_stamp_at_apply`, `daily_entry_ask`,
+  `resident_changes_reach` (answers are records; one batch action), `site_guard_g1` and browser `site_guard_g1`; browser
+  `anaph_recipe_binding`, `plain_plate_options` and `library_recipe_lookup_boundary` put room 801 back first (the one
+  record the normaliser changes on today's list).
+- **Independent review (FIX FIRST), folded (plan §8):** an Auto Confirmed is never read as documented (P2-1); a new
+  anaphylactic intake with no allergen is listed (P3-2); the dialog says what clears a moderate allergy; a record with no
+  answers keeps no `docs` field, so lists are not re-sent for nothing.
+
 ## Recent (2026-11-22) — the sidebar keeps the resident count (`v31-standard.134`)
 Jason, 2026-11-22: the Review page showed 169 residents while the sidebar read "no resident list yet" and "—". The list
 is drawn before the site is set at start-up, and `updateResidentCountDisplays` dropped the count at its site check;
