@@ -962,7 +962,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.138';
+const DOOR_APP_VERSION = 'v31-standard.139';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -17026,6 +17026,36 @@ function doorDocNeededTags(tags) {
     return !tier || tier === 'doc';
   });
 }
+// Jason, 2026-11-22 ("Fix the anaphylactic auto-tier gap too"): for a resident on the anaphylactic list, each allergen
+// they are anaphylactic to needs a note from Health & Wellness whatever its tier, so No Fish or No Beef (self-declared for
+// anyone else) is never read as documented for an anaphylactic room. The allergens are the ones containment reads: the
+// room's anaphylactic tags when set, else every restriction that names a meal flag (as getAnaphDisplayAllergens).
+function doorDocIsAnaph(r) {
+  return !!(r && (r.isAnaph || (typeof doorIsAnaphResident === 'function' && doorIsAnaphResident(r))));
+}
+function doorDocAnaphAllergens(r, tagsIn) {
+  const tags = tagsIn || (r && r.tags) || [];
+  if (r && Array.isArray(r.anaphTags) && r.anaphTags.length) {
+    const map = (typeof TAG_LABELS_MAP === 'object' && TAG_LABELS_MAP) ? TAG_LABELS_MAP : {};
+    const labels = new Set(r.anaphTags.map(k => map[k] || k));
+    return tags.filter(t => labels.has(t));
+  }
+  const isAllergen = (t) => (typeof anaphTagMealFlags === 'function')
+    ? anaphTagMealFlags(t).length > 0
+    : (DOOR_DOC_ALLERGY_TAGS.has(t) || t === 'No Beef' || t === 'No Nightshades');
+  return tags.filter(t => t && t !== 'Regular' && isAllergen(t));
+}
+// What needs a note for this resident: the doc-tier restrictions, and for an anaphylactic resident their anaphylactic
+// allergens too. anaph: true/false overrides the record (the caller already knows), undefined reads it.
+function doorDocNeededFor(r, tagsIn, anaph) {
+  const tags = tagsIn || (r && r.tags) || [];
+  const base = doorDocNeededTags(tags);
+  const isAnaph = (anaph === undefined) ? doorDocIsAnaph(r) : !!anaph;
+  if (!isAnaph) return base;
+  const want = new Set([...base, ...doorDocAnaphAllergens(r, tags)]);
+  const seen = new Set();
+  return tags.filter(t => want.has(t) && !seen.has(t) && seen.add(t));
+}
 function doorDocRecords(r) {
   return (r && r.docs && typeof r.docs === 'object' && !Array.isArray(r.docs)) ? r.docs : {};
 }
@@ -17034,7 +17064,7 @@ function doorDocIsRecord(d) {
 }
 function doorDerivedConfirm(r, tagsIn) {
   const tags = tagsIn || (r && r.tags) || [];
-  const needed = doorDocNeededTags(tags);
+  const needed = doorDocNeededFor(r, tags);
   if (!needed.length) {
     const hasRestriction = tags.some(t => t && t !== 'Regular');
     if (hasRestriction) return { confirm: 'Confirmed', confirmBy: 'Auto' };
@@ -17066,7 +17096,7 @@ function doorApplyDocTags(r, tagLabels, opts) {
     r.complianceResolutionNote = '';
     r.complianceResolvedRestrictions = '';
   }
-  const needed = new Set(doorDocNeededTags(tagLabels || r.tags || []));
+  const needed = new Set(doorDocNeededFor(r, tagLabels || r.tags || []));
   const kept = {};
   const docs = doorDocRecords(r);
   Object.keys(docs).forEach(t => { if (needed.has(t) && doorDocIsRecord(docs[t])) kept[t] = docs[t]; });
@@ -17080,7 +17110,7 @@ function doorApplyDocTags(r, tagLabels, opts) {
 // Records an answer for each tag given (only tags that need a note); returns the tags recorded.
 function doorRecordDocs(r, tags, how, by, atIso, line, tsIso) {
   if (!r || (how !== 'note' && how !== 'preference')) return [];
-  const needed = new Set(doorDocNeededTags(r.tags));
+  const needed = new Set(doorDocNeededFor(r, r.tags));
   const docs = Object.assign({}, doorDocRecords(r));
   const done = [];
   (tags || []).forEach(t => {
@@ -17116,7 +17146,7 @@ function doorDocParseDay(iso) {
 }
 // The one reader. todayIso is YYYY-MM-DD (local).
 function doorDocState(r, todayIso, isAnaph) {
-  const needed = doorDocNeededTags(r && r.tags);
+  const needed = doorDocNeededFor(r, r && r.tags, isAnaph === undefined ? undefined : !!isAnaph);
   const docs = doorDocRecords(r);
   const needs = needed.filter(t => !doorDocIsRecord(docs[t]));
   const done = needed.filter(t => doorDocIsRecord(docs[t]));
@@ -17157,7 +17187,7 @@ function doorMigrateDocs(r, todayIso, nowIso) {
   if (!r || typeof r !== 'object') return false;
   const before = JSON.stringify([r.docs, r.confirm, r.confirmBy, r._docsResolvedSig]);
   const now = nowIso || new Date().toISOString();
-  const needed = doorDocNeededTags(r.tags);
+  const needed = doorDocNeededFor(r, r.tags);
   const docs = Object.assign({}, doorDocRecords(r));
   const intakeTs = doorDocIntakeTs(r);
   if (intakeTs) Object.keys(docs).forEach(t => { const d = docs[t]; if (!d || typeof d.ts !== 'string' || d.ts <= intakeTs) delete docs[t]; });

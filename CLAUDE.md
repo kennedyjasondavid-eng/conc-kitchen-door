@@ -53,6 +53,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — an anaphylactic allergen always needs a note (`v31-standard.139`)
+Jason, 2026-11-22: "Fix the anaphylactic auto-tier gap too" (left open by the Compliance Review line, plan §11). A resident
+anaphylactic to fish whose only restriction was No Fish (self-declared in `COMPLIANCE_TIERS`, as No Beef and No
+Nightshades are) read Confirmed and never reached Compliance Review. Now, for a resident on the anaphylactic list
+(`doorDocIsAnaph`: the flag or the list), each allergen they are anaphylactic to needs a note whatever its tier
+(`doorDocNeededFor`, read by the status, the writer, the answers, the reader and the normaliser): the room's anaphylactic
+tags when set, else every restriction that names a meal flag (`doorDocAnaphAllergens`, as `getAnaphDisplayAllergens`).
+`COMPLIANCE_TIERS` is unchanged, and for everyone else nothing moves. Off the list, the note is no longer needed and
+goes. An older build's Auto Confirmed is not read as documented (C1 review P2-1). On today's list no resident moves (the
+three anaphylactic rooms already need their notes). Gate `tests/compliance_anaph_allergen_gate.mjs` (6, red 4/6 on `main`
+`6e662bc`; 2 and 4 lock what must not change).
+
 ## Recent (2026-11-22) — Compliance Review C4: nudges that rise to meet Fiona (`v31-standard.138`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 C4 (status §6). The last slice of the line.
 - **The nudge** (`doorDocNudge` in the compliance-docs core, drawn by `cxRenderNudge` above the worklist): grey by
