@@ -49,7 +49,7 @@ Screenshots are beside this file: the room lookup at both widths, the plating sh
 | ✓ | 390px labels: 213 is marked anaphylactic |  |
 | ✗ | 390px labels: 813 has a label, marked anaphylactic |  |
 | ✓ | 390px no page errors |  |
-| ✓ | review: today's sections count the saved resident list (168) | {"total":168,"list":168} |
+| ✓ | review: today's sections count the saved resident list (169) | {"total":169,"list":169} |
 | ✓ | review: the toggle filled for 607a is off again for a new room | {"on607":true,"after":false,"anaphActive":false} |
 | ✓ | review: editing a queued item keeps its anaphylactic toggle and its tags | {"toggle":true,"anaphActive":true,"tags":["noPeanuts","vegetarian"]} |
 | ✓ | review: the queue editor asks before taking 607a off, and the applied change takes it off | {"asked":1,"cleared":true,"isAnaph":false,"after":false} |
