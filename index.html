@@ -7493,17 +7493,23 @@ function doorReviewMealsSummaryHTML(conflicts, anaphAlerts) {
     (x.residents || []).forEach(r => { rooms.add(r.room); if (!grouped[k].rooms.includes(r.room)) grouped[k].rooms.push(r.room); });
   });
   const byRoom = {};
+  const roommates = {};   // the review fold: a roommate also gets the separate meal, so it is named too
   anaph.forEach(a => {
     if (!byRoom[a.anaphRoom]) byRoom[a.anaphRoom] = new Set();
-    String(a.mealsAffected || '').split(/\s*(?:,|&|and)\s*/i).filter(Boolean).forEach(m => byRoom[a.anaphRoom].add(m.toLowerCase()));
+    String(a.mealsAffected || '').split(/\s*(?:,|&|\band\b)\s*/i).filter(Boolean).forEach(m => byRoom[a.anaphRoom].add(m.toLowerCase()));
+    (a.roommateRooms || []).forEach(m => { roommates[a.anaphRoom] = roommates[a.anaphRoom] || new Set(); roommates[a.anaphRoom].add(String(m)); });
   });
   const n = rooms.size;
   const lines = [];
   if (n) lines.push('<div>Today’s meals change the plate for <strong>' + n + ' resident' + (n === 1 ? '' : 's') + '</strong>. The plating sheets say what each one gets.</div>');
   const anaphRooms = Object.keys(byRoom).sort();
   if (anaphRooms.length) {
-    lines.push('<div style="color:var(--red-text);margin-top:4px;">' + doorIcon('warning') + ' Anaphylactic: ' +
-      anaphRooms.map(r => 'room ' + escapeHtml(r) + ' gets the separate meal at ' + escapeHtml([...byRoom[r]].join(' and ') || 'today’s meal')).join('; ') + '.</div>');
+    const byMeal = {};
+    anaphRooms.forEach(r => { const m = [...byRoom[r]].join(' and ') || 'today’s meal'; (byMeal[m] = byMeal[m] || []).push(r); });
+    const sentence = Object.entries(byMeal).map(([m, rs]) => (rs.length === 1 ? 'room ' + escapeHtml(rs[0]) + ' gets' :
+      'rooms ' + rs.slice(0, -1).map(escapeHtml).join(', ') + ' and ' + escapeHtml(rs[rs.length - 1]) + ' get') + ' the separate meal at ' + escapeHtml(m)).join('; ');
+    const mates = anaphRooms.filter(r => roommates[r] && roommates[r].size).map(r => 'room ' + escapeHtml(r) + '’s roommate ' + [...roommates[r]].map(escapeHtml).join(' and ') + ' does too');
+    lines.push('<div style="color:var(--red-text);margin-top:4px;">' + doorIcon('warning') + ' Anaphylactic: ' + sentence + (mates.length ? '; ' + mates.join('; ') : '') + '.</div>');
   }
   const detail = Object.values(grouped).length
     ? '<details style="margin-top:8px;font-size:12px;color:var(--muted);"><summary style="cursor:pointer;">Show by allergen</summary><ul style="margin:6px 0 0;padding-left:18px;">' +
@@ -7718,9 +7724,15 @@ function buildReview() {
     : '';
   const mealsEl = document.getElementById('review-meals-summary');
   // The kitchen fixes a plate not named in Menu Config; here it is one folded line, never a wall.
-  const readyHtml = doorPlatingReadinessHTML(doorPlatingReadiness(doorRotationServices(), doorProjectRegistryQueue(changesQueue)));
-  const readyFold = readyHtml ? '<details id="review-ready-fold" style="margin-top:16px;"><summary style="cursor:pointer;color:var(--red-text);font-weight:600;font-size:13px;">' +
-    doorIcon('warning') + ' Some kitchen plates are not named yet, so the plating sheets can’t print. The kitchen sets them in Menu Config. Your changes still save. Show which</summary>' + readyHtml + '</details>' : '';
+  const readiness = doorPlatingReadiness(doorRotationServices(), doorProjectRegistryQueue(changesQueue));
+  const readyHtml = doorPlatingReadinessHTML(readiness);
+  // The review fold: a separate anaphylactic meal not named stays open, and its line says so.
+  const anaphMissing = (readiness.issues || []).some(i => i.kind === 'anaph-missing');
+  const readyFold = readyHtml ? '<details id="review-ready-fold"' + (anaphMissing ? ' open' : '') + ' style="margin-top:16px;"><summary style="cursor:pointer;color:var(--red-text);font-weight:600;font-size:13px;">' +
+    doorIcon('warning') + (anaphMissing ? ' A separate anaphylactic meal is not named yet. Tell the supervisor; the kitchen sets it in Menu Config. Your changes still save.' : ' Some kitchen plates are not named yet, so the plating sheets can’t print. The kitchen sets them in Menu Config. Your changes still save. Show which') + '</summary>' + (anaphMissing
+      ? '<ul style="margin:6px 0 8px;padding-left:18px;color:var(--red-text);font-size:13px;">' + readiness.issues.filter(i => i.kind === 'anaph-missing').map(i => '<li>' + escapeHtml(i.label) + (i.rooms && i.rooms.length ? ': rooms ' + escapeHtml(i.rooms.join(', ')) : '') + '</li>').join('') + '</ul>' +
+        '<details style="font-size:12px;color:var(--muted);"><summary style="cursor:pointer;">Everything the kitchen still has to set</summary>' + readyHtml + '</details>'
+      : readyHtml) + '</details>' : '';
   if (mealsEl) mealsEl.innerHTML = mealsSummaryHtml + readyFold;
 
   // Changes table

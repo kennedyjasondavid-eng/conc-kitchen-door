@@ -26,7 +26,8 @@ test('RP-2 the meal warnings are not drawn as a card each, and contained rooms d
   assert.doesNotMatch(b, /Anaphylactic routing active/, 'no per-room red boxes');
   assert.match(b, /const totalFlags = flags \+ anaphNamingNone\.length;/);
   assert.match(b, /doorReviewMealsSummaryHTML\(todayConflicts, anaphAlerts\)/);
-  assert.match(b, /<details id="review-ready-fold"[\s\S]{0,400}\+ readyHtml \+ '<\/details>'/, 'plates not named: one folded line');
+  assert.match(b, /anaphMissing \? ' open' : ''/, 'a missing anaphylactic meal is never folded away');
+  assert.match(b, /<details id="review-ready-fold"[\s\S]{0,1600}Everything the kitchen still has to set[\s\S]{0,300}: readyHtml\) \+ '<\/details>'/, 'plates not named: one folded line');
 });
 
 test('RP-3 the meals card: one count, the anaphylactic rooms by name, the detail folded, escaped', () => {
@@ -43,7 +44,12 @@ test('RP-3 the meals card: one count, the anaphylactic rooms by name, the detail
   const out = c.doorReviewMealsSummaryHTML(conflicts, anaph);
   assert.match(out, /change the plate for <strong>3 residents<\/strong>/, 'counted once per resident');
   assert.match(out, /Anaphylactic: room 201 gets the separate meal at dinner\./, 'one line per room, not per allergen');
+  const two = c.doorReviewMealsSummaryHTML([], [...anaph, { anaphRoom: '305', allergen: 'No Peanuts', mealsAffected: 'Dinner', roommateRooms: [] }]);
+  assert.match(two, /Anaphylactic: rooms 201 and 305 get the separate meal at dinner\./, 'rooms sharing a meal in one sentence');
   assert.match(out, /<details[\s\S]*Show by allergen/, 'the detail is folded');
   assert.doesNotMatch(out, /<b>9/, 'escaped');
   assert.match(out, /Open plating sheets/);
+  // The review fold: a roommate is named, and Lunch & Dinner reads as both meals.
+  const rm = c.doorReviewMealsSummaryHTML([], [{ anaphRoom: '401', allergen: 'No Peanuts', mealsAffected: 'Lunch & Dinner', roommateRooms: ['402'] }]);
+  assert.match(rm, /room 401 gets the separate meal at lunch and dinner; room 401’s roommate 402 does too\./);
 });
