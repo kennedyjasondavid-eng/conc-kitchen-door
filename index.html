@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.132';
+const DOOR_APP_VERSION = 'v31-standard.133';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1341,7 +1341,7 @@ function updateCODEXBadge() {
               <div class="form-row">
                 <div class="form-group">
                   <label for="change-breakfast-note">Breakfast note — a confirmed standing instruction, printed beside them at breakfast</label>
-                  <input type="text" id="change-breakfast-note" maxlength="200" placeholder="e.g. oat milk only">
+                  <input type="text" id="change-breakfast-note" name="door-breakfast-note" autocomplete="off" data-lpignore="true" data-1p-ignore spellcheck="true" maxlength="200" placeholder="e.g. oat milk only">
                 </div>
               </div>
               <div class="anaph-section">
@@ -2023,7 +2023,7 @@ function updateCODEXBadge() {
               <div style="display:none;">
                 <div class="form-group mb-12">
                   <label>Connection key</label>
-                  <input type="password" id="gh-token" placeholder="Paste connection key" autocomplete="off">
+                  <input type="password" id="gh-token" placeholder="Paste connection key" autocomplete="new-password">
                   <div class="form-hint">Issued for this computer by the kitchen lead. <a href="https://github.com/settings/personal-access-tokens/new?name=KitchenDOOR%20Publish%20Token&description=Publishes%20KitchenDOOR%20JSON%20snapshots&expires_in=90&contents=write" target="_blank" style="color:var(--forest-mid-text);">Create or replace key (kitchen lead)</a></div>
                 </div>
                 <div class="form-group mb-12">
@@ -8396,7 +8396,7 @@ function _doorConnectCardHTML() {
     '<div style="font-weight:700;">Connect this computer to the kitchen</div>' +
     '<div style="margin-top:4px;color:var(--text-2, #4b5563);">Paste the key for this computer: a connection key, or a viewing key that shows the kitchen&rsquo;s lists without sending changes. It is issued once per computer &mdash; ask Jason (kitchen lead) if you don&rsquo;t have one.</div>' +
     '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">' +
-      '<input type="password" id="door-connect-key" autocomplete="off" spellcheck="false" placeholder="connection key" style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-family:monospace;font-size:13px;" onkeydown="if(event.key===\'Enter\'){doorConnectCardSubmit();}">' +
+      '<input type="password" id="door-connect-key" autocomplete="new-password" spellcheck="false" placeholder="connection key" style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-family:monospace;font-size:13px;" onkeydown="if(event.key===\'Enter\'){doorConnectCardSubmit();}">' +
       '<button class="btn btn-sm" style="background:var(--forest);color:#fff;font-size:12px;padding:6px 12px;" onclick="doorConnectCardSubmit()">Test &amp; connect</button>' +
       '<button class="btn btn-ghost btn-sm" style="font-size:12px;padding:6px 10px;" onclick="doorConnectCardClose()">Cancel</button>' +
     '</div>' +
@@ -8580,7 +8580,7 @@ function _doorFirstRunCardHTML() {
     '<div style="margin-top:4px;color:var(--info-ink, #3730a3);">Once per computer. Your name is stamped on every change you make. A connection key lets this computer see the kitchen&rsquo;s resident list and send changes; a viewing key lets it see the list only.</div>' +
     '<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:flex-end;">' +
       '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:180px;">Your name<input id="door-firstrun-name" type="text" autocomplete="off" value="' + _escAttr(escapeHtml(name)) + '" placeholder="e.g. Joan" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-size:13px;"></label>' +
-      '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:220px;">Connection key (optional &mdash; ask Jason, kitchen lead)<input id="door-firstrun-key" type="password" autocomplete="off" spellcheck="false" placeholder="connection key" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-family:monospace;font-size:13px;"></label>' +
+      '<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;flex:1;min-width:220px;">Connection key (optional &mdash; ask Jason, kitchen lead)<input id="door-firstrun-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="connection key" style="padding:7px 10px;border:1px solid #c7d2fe;border-radius:6px;font-family:monospace;font-size:13px;"></label>' +
       '<div style="font-size:12px;color:var(--info-ink, #3730a3);padding-bottom:8px;">Site: <strong>' + escapeHtml(site) + '</strong></div>' +
     '</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">' +
@@ -28529,7 +28529,7 @@ window.addEventListener('load', runAltFlagSweepOnce);
       <!-- U3 S1: breakfast note -->
       <div style="margin-bottom:12px;">
         <label for="ce-breakfast-note" style="font-size:11px;font-weight:600;color:var(--muted);">Breakfast note (printed beside them at breakfast)</label>
-        <input type="text" id="ce-breakfast-note" maxlength="200" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="e.g., oat milk only">
+        <input type="text" id="ce-breakfast-note" name="door-breakfast-note-edit" autocomplete="off" data-lpignore="true" data-1p-ignore spellcheck="true" maxlength="200" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" placeholder="e.g., oat milk only">
       </div>
       <!-- Live routing preview -->
       <div style="padding:10px 14px;background:var(--ok-faint, #f0fdf4);border:1px solid #bbf7d0;border-radius:8px;font-size:12px;line-height:1.8;">
