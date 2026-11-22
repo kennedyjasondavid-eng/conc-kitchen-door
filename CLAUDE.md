@@ -53,6 +53,19 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — the Review & Generate page shows what changes and what looks wrong (`v31-standard.132`)
+Jason, 2026-11-22: the page opened on a wall of meal warnings (one card per allergen per meal, three red anaphylactic
+boxes) before today's changes; the person updating the list (a novice) needs what changes now and what looks wrong, and
+the plating sheets carry the meal detail. On the anaphylactic rooms: "It can be shown, but as a small summary at the
+bottom". Order now: the numbers, Today's changes, **Needs a look** (only when something does: the meal list not matching,
+rooms gone without a discharge, restrictions DOOR couldn't read, a new anaphylactic resident, a listed room naming none of
+its allergens), the routing and files previews, then **Today's meals, in brief** (`doorReviewMealsSummaryHTML`): one
+count of residents whose plate changes, one red line per anaphylactic room that gets the separate meal, the per-allergen
+list folded, and Open plating sheets. "Plates not named yet" (plating readiness) is one folded red line under it. Rooms
+already contained no longer count in Needs Review. Plain words: the subtitle and the button ("Save changes and make the
+kitchen sheets"). Display only; Generate, routing and files are unchanged. Gate `tests/review_page_calm_gate.mjs` (3, red
+3/3 on `main`); re-pinned with dated notes: `anaph_names_no_allergen_gate` 6 (the count), `door-smoke` (the escaped rooms).
+
 ## Recent (2026-11-20) — switching the theme redraws the menu (`v31-standard.131`)
 Jason, 2026-11-20: the Menu Config badges looked harsh in dark mode; a refresh showed the soft dark badges. The meal
 cards draw their badge colours for the theme they were drawn in (`doorColourChip`), so switching to dark left the light

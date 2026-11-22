@@ -114,7 +114,7 @@ test('5. a room kept on the list at its discharge is asked about when a resident
 
 test('6. the Review screen names the room; the anaphylactic picker reads the same allergen rule', () => {
   const review = fn('buildReview');
-  assert.match(review, /const anaphNamingNone = doorAnaphRoomsNamingNoAllergen\(REGISTRY_LIST, anaphRooms, changesQueue\);\s*const totalFlags = flags \+ anaphAlerts\.length \+ anaphNamingNone\.length;/, 'counted with the flags');
+  assert.match(review, /const anaphNamingNone = doorAnaphRoomsNamingNoAllergen\(REGISTRY_LIST, anaphRooms, changesQueue\);\s*[\s\S]{0,400}const totalFlags = flags \+ anaphNamingNone\.length;/, 'counted with the flags');   // 2026-11-22: contained rooms are not counted as needing review (the review page redesign)
   assert.match(review, /anaphNamingNone\.map\([\s\S]{0,400}is on the anaphylactic list, but its restriction names[\s\S]{0,300}Generate asks whether to take it off the list/, 'and listed');
   const picker = fn('populateAnaphTags');
   assert.equal((picker.match(/doorIsAnaphAllergenTag\(label\)/g) || []).length, 2, 'the picker uses the one rule');

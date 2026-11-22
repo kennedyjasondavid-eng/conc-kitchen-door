@@ -766,7 +766,8 @@ test('reviewed stored-text report sinks are escaped in source', () => {
   }
 
   const requiredSafeMarkers = [
-    "escapeHtml(g.rooms.sort().join(', '))",
+    // 2026-11-22: the review page's meal rooms moved into doorReviewMealsSummaryHTML (still escaped).
+    "escapeHtml(g.rooms.slice().sort().join(', '))",
     'Rm ${escapeHtml(room)}',
     'escapeHtml(md.breakfast.slice(0,35))',
     "escapeHtml((md.lunch.name || '').slice(0,40))",

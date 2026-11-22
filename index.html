@@ -876,7 +876,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.131';
+const DOOR_APP_VERSION = 'v31-standard.132';
 const DOOR_BUILD_DATE = '2026-11-20';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -1414,10 +1414,10 @@ function updateCODEXBadge() {
 <!-- ===== REVIEW & GENERATE ===== -->
 <div class="screen" id="screen-review">
   <div class="topbar">
-    <div><div class="topbar-title">Review & Generate</div><div class="topbar-sub">Confirm routing, resolve flags, generate all files</div></div>
+    <div><div class="topbar-title">Review & Generate</div><div class="topbar-sub">Check today’s changes, then save them and make the kitchen sheets</div></div>
     <div class="topbar-right">
       <button class="btn btn-ghost" onclick="showScreen('enter',document.querySelector('[data-screen=enter]'))">← Back</button>
-      <button class="btn btn-mint" id="generate-btn" onclick="generateFiles()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m13 2-9 12h7l-1 8 10-13h-8l1-7Z"/></svg> Commit Changes and Generate Files</button>
+      <button class="btn btn-mint" id="generate-btn" onclick="generateFiles()"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="m13 2-9 12h7l-1 8 10-13h-8l1-7Z"/></svg> Save changes and make the kitchen sheets</button>
     </div>
   </div>
   <div class="content">
@@ -1427,11 +1427,11 @@ function updateCODEXBadge() {
       <div class="stat-card" style="border-color:#fca5a5"><div class="stat-num" style="color:var(--red-text)" id="stat-discharges">0</div><div class="stat-label">Discharges</div></div>
       <div class="stat-card" style="border-color:#fde68a"><div class="stat-num" style="color:var(--warn-ink, #b45309)" id="stat-flags">0</div><div class="stat-label">Needs Review</div></div>
     </div>
-    <div id="review-flags-area"></div>
     <div class="card mb-16">
       <div class="card-header"><span style="font-size:16px"><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M8 6h13M8 12h13M8 18h13M3 6h1m-1 6h1m-1 6h1"/></svg></span><h2>Today's Changes</h2></div>
       <div id="review-changes-body"><div class="empty">No changes entered.</div></div>
     </div>
+    <div id="review-flags-area"></div>
     <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
       <div class="routing-preview" id="routing-preview">
         <div class="preview-header">
@@ -1450,6 +1450,7 @@ function updateCODEXBadge() {
         </div>
       </div>
     </div>
+    <div id="review-meals-summary"></div>
     <div id="recent-generated" class="card" style="margin-top:16px;display:none;">
       <div class="card-header"><span><svg class="door-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="width:1em;height:1em;vertical-align:-.15em;flex-shrink:0"><path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8m-8 4h8"/></svg></span><h2>Files for Download</h2><span id="recent-gen-time" style="font-size:11px;color:var(--muted);margin-left:auto;"></span></div>
       <div id="recent-gen-body" style="padding:8px 16px;"></div>
@@ -7477,6 +7478,48 @@ function updateGenerateBtn() {
   // (no checkbox — user must resolve via Enter Changes)
 }
 
+// 2026-11-22 (Jason: the meal warnings were a wall of noise on the review page; the person updating the list needs a
+// short line, and the plating sheets carry the detail). One small card: how many residents get a changed plate today,
+// the anaphylactic rooms that get the separate meal, and a link to the plating sheets. The full list folds away.
+function doorReviewMealsSummaryHTML(conflicts, anaphAlerts) {
+  const list = Array.isArray(conflicts) ? conflicts : [];
+  const anaph = Array.isArray(anaphAlerts) ? anaphAlerts : [];
+  if (!list.length && !anaph.length) return '';
+  const rooms = new Set();
+  const grouped = {};
+  list.forEach(x => {
+    const k = x.period + '-' + x.mealFlag;
+    if (!grouped[k]) grouped[k] = { period: x.period, label: x.label, rooms: [] };
+    (x.residents || []).forEach(r => { rooms.add(r.room); if (!grouped[k].rooms.includes(r.room)) grouped[k].rooms.push(r.room); });
+  });
+  const byRoom = {};
+  const roommates = {};   // the review fold: a roommate also gets the separate meal, so it is named too
+  anaph.forEach(a => {
+    if (!byRoom[a.anaphRoom]) byRoom[a.anaphRoom] = new Set();
+    String(a.mealsAffected || '').split(/\s*(?:,|&|\band\b)\s*/i).filter(Boolean).forEach(m => byRoom[a.anaphRoom].add(m.toLowerCase()));
+    (a.roommateRooms || []).forEach(m => { roommates[a.anaphRoom] = roommates[a.anaphRoom] || new Set(); roommates[a.anaphRoom].add(String(m)); });
+  });
+  const n = rooms.size;
+  const lines = [];
+  if (n) lines.push('<div>Today’s meals change the plate for <strong>' + n + ' resident' + (n === 1 ? '' : 's') + '</strong>. The plating sheets say what each one gets.</div>');
+  const anaphRooms = Object.keys(byRoom).sort();
+  if (anaphRooms.length) {
+    const byMeal = {};
+    anaphRooms.forEach(r => { const m = [...byRoom[r]].join(' and ') || 'today’s meal'; (byMeal[m] = byMeal[m] || []).push(r); });
+    const sentence = Object.entries(byMeal).map(([m, rs]) => (rs.length === 1 ? 'room ' + escapeHtml(rs[0]) + ' gets' :
+      'rooms ' + rs.slice(0, -1).map(escapeHtml).join(', ') + ' and ' + escapeHtml(rs[rs.length - 1]) + ' get') + ' the separate meal at ' + escapeHtml(m)).join('; ');
+    const mates = anaphRooms.filter(r => roommates[r] && roommates[r].size).map(r => 'room ' + escapeHtml(r) + '’s roommate ' + [...roommates[r]].map(escapeHtml).join(' and ') + ' does too');
+    lines.push('<div style="color:var(--red-text);margin-top:4px;">' + doorIcon('warning') + ' Anaphylactic: ' + sentence + (mates.length ? '; ' + mates.join('; ') : '') + '.</div>');
+  }
+  const detail = Object.values(grouped).length
+    ? '<details style="margin-top:8px;font-size:12px;color:var(--muted);"><summary style="cursor:pointer;">Show by allergen</summary><ul style="margin:6px 0 0;padding-left:18px;">' +
+      Object.values(grouped).map(g => '<li>' + escapeHtml(g.period) + ', ' + escapeHtml(g.label) + ': rooms ' + escapeHtml(g.rooms.slice().sort().join(', ')) + '</li>').join('') + '</ul></details>'
+    : '';
+  return '<div class="card" id="review-meals-card" style="margin-top:16px;"><div class="card-header"><h2>Today’s meals, in brief</h2>' +
+    '<button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="showScreen(\'plating\',document.querySelector(\'[data-screen=plating]\'))">Open plating sheets</button></div>' +
+    '<div style="padding:12px 16px;font-size:13px;line-height:1.6;">' + lines.join('') + detail + '</div></div>';
+}
+
 function buildReview() {
   const intakes = changesQueue.filter(c => c.type === 'intake').length;
   const discharges = changesQueue.filter(c => c.type === 'discharge').length;
@@ -7512,7 +7555,9 @@ function buildReview() {
   const anaphAlerts = getAnaphAlertInfo(MEAL_DATA.lunch, MEAL_DATA.dinner);
   // Rooms the list keeps naming none of their allergens (2026-10-18): Generate asks about each.
   const anaphNamingNone = doorAnaphRoomsNamingNoAllergen(REGISTRY_LIST, anaphRooms, changesQueue);
-  const totalFlags = flags + anaphAlerts.length + anaphNamingNone.length;
+  // 2026-11-22 (Jason: the review page shows what changes now and what looks wrong; the kitchen details live on the
+  // plating sheets): rooms already contained for a meal are not something to review, so they are not counted here.
+  const totalFlags = flags + anaphNamingNone.length;
 
   document.getElementById('stat-total').textContent = net;
   document.getElementById('stat-intakes').textContent = intakes;
@@ -7530,10 +7575,6 @@ function buildReview() {
     <div class="alert alert-warn"><span class="alert-icon">${doorIcon("warning")}</span><div class="alert-body"><strong>Room ${escapeHtml(x.room)} is on the anaphylactic list, but its restriction names ${x.anaphFor.length ? 'none of its allergens (' + escapeHtml(x.anaphFor.join(', ')) + ')' : 'no allergen'}.</strong> Now: ${escapeHtml(x.restriction)}. Generate asks whether to take it off the list.</div></div>
   `).join('');
 
-  flagsHtml += anaphAlerts.map(a => `
-    <div class="alert alert-danger"><span class="alert-icon">${doorIcon("warning")}</span><div class="alert-body"><strong>Anaphylactic routing active — ${escapeHtml(a.allergen)}</strong><br>
-    Room ${escapeHtml(a.anaphRoom)} (${escapeHtml(a.allergen)}) and ${escapeHtml(a.roommateRooms.length ? 'roommate ' + a.roommateRooms.join(', ') : 'no roommate')} routed to Anaphylactic Alternative for today\u2019s ${escapeHtml(a.mealsAffected)}. Required exclusion: ${escapeHtml(a.allergen)}. See plating readiness for the named separate meal.</div></div>
-  `).join('');
 
   // Unresolved Needs Review — mandatory acknowledgment before Generate
   const nrRaw = localStorage.getItem('concUnresolvedNR');
@@ -7658,25 +7699,7 @@ function buildReview() {
     ...getIngredientConflicts(MEAL_DATA.dinner, REGISTRY_LIST).map(x => ({...x, period:'Dinner'})),
   ].filter(x => x.residents.length);
   // Deduplicate by mealFlag+period
-  let conflictHtml = '';
-  if (todayConflicts.length) {
-    const grouped = {};
-    todayConflicts.forEach(x => {
-      const k = x.period + '-' + x.mealFlag;
-      if (!grouped[k]) grouped[k] = { ...x, rooms: [] };
-      x.residents.forEach(r => { if (!grouped[k].rooms.includes(r.room)) grouped[k].rooms.push(r.room); });
-    });
-    conflictHtml = Object.values(grouped).map(g =>
-      `<div class="alert ${g.severity==='red' ? 'alert-danger' : 'alert-warn'}" style="margin-bottom:8px;">
-        <span class="alert-icon">${g.severity==='red'?(doorIcon('warning')):(doorIcon('warning'))}</span>
-        <div class="alert-body">
-          <strong>${escapeHtml(g.period)}: ${escapeHtml(g.label)} — ${g.rooms.length} resident${g.rooms.length!==1?'s':''} affected.</strong>
-          Rooms: ${escapeHtml(g.rooms.sort().join(', '))}
-          <span style="font-size:11px;color:var(--muted);margin-left:8px;">Plating note: ${escapeHtml(g.note)}</span>
-        </div>
-      </div>`
-    ).join('');
-  }
+  const mealsSummaryHtml = doorReviewMealsSummaryHTML(todayConflicts, anaphAlerts);
   // v28: Auto-detected discharges — informational, collapsed by default
   let autoDischargeHtml = '';
   if (autoDischarges.length) {
@@ -7694,7 +7717,23 @@ function buildReview() {
       </details>
     </div>`;
   }
-  document.getElementById('review-flags-area').innerHTML = doorPlatingReadinessHTML(doorPlatingReadiness(doorRotationServices(), doorProjectRegistryQueue(changesQueue))) + reconcileHtml + autoDischargeHtml + nrHtml + conflictHtml + flagsHtml;
+  // 2026-11-22: the order is the numbers, today's changes, what needs a look, the previews, then the meals in brief.
+  const attentionHtml = reconcileHtml + autoDischargeHtml + nrHtml + flagsHtml;
+  document.getElementById('review-flags-area').innerHTML = attentionHtml
+    ? '<div class="card mb-16"><div class="card-header"><span>' + doorIcon('warning') + '</span><h2>Needs a look</h2></div><div style="padding:12px 16px;">' + attentionHtml + '</div></div>'
+    : '';
+  const mealsEl = document.getElementById('review-meals-summary');
+  // The kitchen fixes a plate not named in Menu Config; here it is one folded line, never a wall.
+  const readiness = doorPlatingReadiness(doorRotationServices(), doorProjectRegistryQueue(changesQueue));
+  const readyHtml = doorPlatingReadinessHTML(readiness);
+  // The review fold: a separate anaphylactic meal not named stays open, and its line says so.
+  const anaphMissing = (readiness.issues || []).some(i => i.kind === 'anaph-missing');
+  const readyFold = readyHtml ? '<details id="review-ready-fold"' + (anaphMissing ? ' open' : '') + ' style="margin-top:16px;"><summary style="cursor:pointer;color:var(--red-text);font-weight:600;font-size:13px;">' +
+    doorIcon('warning') + (anaphMissing ? ' A separate anaphylactic meal is not named yet. Tell the supervisor; the kitchen sets it in Menu Config. Your changes still save.' : ' Some kitchen plates are not named yet, so the plating sheets can’t print. The kitchen sets them in Menu Config. Your changes still save. Show which') + '</summary>' + (anaphMissing
+      ? '<ul style="margin:6px 0 8px;padding-left:18px;color:var(--red-text);font-size:13px;">' + readiness.issues.filter(i => i.kind === 'anaph-missing').map(i => '<li>' + escapeHtml(i.label) + (i.rooms && i.rooms.length ? ': rooms ' + escapeHtml(i.rooms.join(', ')) : '') + '</li>').join('') + '</ul>' +
+        '<details style="font-size:12px;color:var(--muted);"><summary style="cursor:pointer;">Everything the kitchen still has to set</summary>' + readyHtml + '</details>'
+      : readyHtml) + '</details>' : '';
+  if (mealsEl) mealsEl.innerHTML = mealsSummaryHtml + readyFold;
 
   // Changes table
   const body = document.getElementById('review-changes-body');
@@ -8833,7 +8872,7 @@ function seedRegistryFromRoster(entries) {
     reviewBody.innerHTML = '<div style="padding:20px 24px;background:var(--ok-faint, #f0fdf4);border:1px solid #86efac;border-radius:8px;display:flex;align-items:center;gap:14px;">' +
       ('<span style="font-size:24px;">' + doorIcon('check') + '</span>') +
       '<div><div style="font-weight:700;font-size:14px;color:var(--ok-ink, #15803d);">Resident list set up — ' + newResidents.length + ' residents loaded</div>' +
-      '<div style="font-size:13px;color:var(--ok-ink, #166534);margin-top:3px;">No individual changes to review. Click Commit Changes and Generate Files to make today’s plating sheets.</div></div>' +
+      '<div style="font-size:13px;color:var(--ok-ink, #166534);margin-top:3px;">No individual changes to review. Click Save changes and make the kitchen sheets to make today’s plating sheets.</div></div>' +
       '</div>';
   }
   showToast('Resident list set up — ' + newResidents.length + ' residents. Ready to generate.');
