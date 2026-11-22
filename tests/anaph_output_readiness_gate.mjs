@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { complianceDocsSource } from './helpers/door_two_computers.mjs';
 const html = fs.readFileSync(process.env.ANAPH_OUTPUT_HTML || new URL('../index.html', import.meta.url), 'utf8');
 function fn(name) {
   const m = new RegExp('\\n(?:async )?function ' + name + '\\(').exec(html);
@@ -27,7 +28,8 @@ function box(names = []) {
   vm.createContext(ctx);
   vm.runInContext(['doorAssessAnaphAlternative','doorAnaphAlternativeLine','doorBreakfastDefinitionGap','doorRotationServices','doorPlatingReadiness',
     'doorPlatingReadinessText','doorRequirePlatingReady','doorReportPlatingError',...names]
-    .filter(n=>n!=='doorBreakfastDefinitionGap'||html.includes('function doorBreakfastDefinitionGap(')).map(fn).join('\n'),ctx);
+    .filter(n=>n!=='doorBreakfastDefinitionGap'||html.includes('function doorBreakfastDefinitionGap(')).map(fn).join('\n')
+    + '\n' + complianceDocsSource(html),ctx);   // Re-pinned 2026-11-22 (compliance C1): resident writers work out the documentation status through the compliance-docs core.
   return ctx;
 }
 test('missing/whitespace names remain unresolved with exact affected rooms; standard dish never substituted',()=>{

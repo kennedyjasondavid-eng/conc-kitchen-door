@@ -1,7 +1,8 @@
-// Seed registry labels (2026-11-22, v31-standard.135). The resident-list import "Load everyone" button runs
+// Seed registry labels (2026-11-22, v31-standard.136). The resident-list import "Load everyone" button runs
 // seedRegistryFromRoster(IMPORT_STATE.entries), which read tagLabels without ever defining it (a local of other
 // functions), so pressing it threw a ReferenceError and set up nothing. The labels now come from each entry parsed
-// tags through importTagLabels, the way commitImportToQueue does. Red on main 13e0aa2 (SR-1, SR-2, SR-3).
+// tags through importTagLabels, the way commitImportToQueue does, and each record goes through the compliance-docs
+// writer as a new person (doorApplyDocTags, C1). Red on main 13e0aa2 (SR-1, SR-2, SR-3) and ed97d83 (SR-1, SR-2, SR-3, SR-5).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,6 +14,12 @@ function fnSrc(name) {
   assert.ok(i >= 0, name);
   const j = html.indexOf('\n}\n', i);
   return html.slice(i, j + 2);
+}
+function coreSrc(name) {
+  const a = html.indexOf('/* DOOR_TESTABLE_CORE_START ' + name + ' */');
+  const b = html.indexOf('/* DOOR_TESTABLE_CORE_END ' + name + ' */');
+  assert.ok(a >= 0 && b > a, name);
+  return html.slice(a, b);
 }
 function constSrc(name) {
   const i = html.indexOf('const ' + name + ' = {');
@@ -37,7 +44,7 @@ function sandbox(guardOk = true) {
     'function doorSiteGuard(){ return ' + guardOk + '; }',
     stubs,
     constSrc('TAG_LABELS_MAP'), constSrc('COMPLIANCE_TIERS'),
-    fnSrc('importTagLabels'), fnSrc('importSectionForTags'), fnSrc('requiresDocumentation'),
+    fnSrc('importTagLabels'), fnSrc('importSectionForTags'), coreSrc('compliance-docs'),
     fnSrc('seedRegistryFromRoster'),
   ].join('\n'), c);
   return { c, store };
@@ -91,4 +98,16 @@ test('SR-4 the site guard stays first and another site sets up nothing', () => {
   c.entries = entries;
   assert.equal(vm.runInContext('seedRegistryFromRoster(entries)', c), false);
   assert.equal(c.REGISTRY_LIST.length, 0);
+});
+
+test('SR-5 each seeded record goes through the compliance-docs writer as a new person', () => {
+  const src = fnSrc('seedRegistryFromRoster');
+  assert.match(src, /doorApplyDocTags\(r, r\.tags, \{ newPerson: true \}\)/);
+  const { c } = sandbox();
+  c.entries = entries;
+  vm.runInContext('seedRegistryFromRoster(entries)', c);
+  for (const r of c.REGISTRY_LIST) {
+    assert.equal(r.docs, undefined, r.room + ' starts with no answers');
+    assert.equal(r.complianceResolved, '', r.room + ' carries no resolved mark');
+  }
 });

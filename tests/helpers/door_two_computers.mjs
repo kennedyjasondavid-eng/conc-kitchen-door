@@ -19,6 +19,19 @@ export function doorSource(html) {
   return { between, fn, has, fnOpt };
 }
 
+// Compliance C1 (2026-11-22): every resident writer works out the documentation status through the compliance-docs core
+// (doorApplyDocTags) and every list read runs the normaliser (doorMigrateRegistryDocs), so a sandbox that runs a writer
+// or a list read loads them, with the real COMPLIANCE_TIERS. Empty on an index.html from before C1.
+export function complianceDocsSource(html) {
+  const a = html.indexOf('/* DOOR_TESTABLE_CORE_START compliance-docs */');
+  if (a < 0) return '';
+  const b = html.indexOf('/* DOOR_TESTABLE_CORE_END compliance-docs */');
+  const tiers = html.match(/const COMPLIANCE_TIERS = \{[\s\S]*?\n\};/)[0];
+  const m = html.indexOf('\nfunction doorMigrateRegistryDocs(');
+  const mig = m >= 0 ? html.slice(m + 1, html.indexOf('\n}\n', m + 1)) + '\n}\n' : '';
+  return tiers + '\n' + html.slice(a, b) + '\n' + mig;
+}
+
 export const out = (v) => JSON.parse(JSON.stringify(v));
 export const R = (room, tags, extra) => Object.assign({ room, tags, section: 'Regular' }, extra || {});
 export const discharge = (room) => ({ room, type: 'discharge', tags: {}, tagLabels: [], route: 'REMOVE', notes: 'Not on daily list', isAnaph: false, isModerate: false, moderateNote: '', hadSection: 'Regular' });
@@ -34,7 +47,7 @@ export function twoComputers(html, { fns = [], optFns = [], extraSrc = '', ctx =
   // ctx() can give a computer a key (tests/kitchen_reader_gate.mjs (g)).
   const READER = html.includes('const DOOR_PUBLIC_FEEDS = ') ? between('const DOOR_PUBLIC_FEEDS = ', '// Settings: the rehearsal switch') : '';
   const SRC = [
-    html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0], between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('), READER,
+    html.match(/const TAG_LABELS_MAP = \{[\s\S]*?\n\};/)[0], complianceDocsSource(html), between('const ROUTING_TAGS = new Set([', 'function migrateResidentTiers('), READER,
     fn('getRegistryProvenanceTs'), fn('setRegistryProvenance'), fn('doorRegistryDataTs'), fn('doorRegistrySyncShouldSkip'),
     fn('doorFetchRemoteRegistryMeta'), fn('doorRegistryPublishGate'), fnOpt('doorTakeNewerKitchenList'), fn('doorRegistryPublishPreflight'),
     fn('pullStateFromGitHub'), fn('saveRegistryState'), fn('dedupeRegistryList'), fn('buildStateJSON'),

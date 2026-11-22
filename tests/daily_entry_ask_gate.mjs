@@ -40,7 +40,7 @@ const ASKS = {
   clearAndReseed: 1,
   revertLastGenerate: 1,
   batchConfirmCompliance: 1,
-  batchResolveCompliance: 1,
+  // batchResolveCompliance retired 2026-11-22 (compliance C1): it wrote what batchConfirmCompliance writes; one batch action.
   reopenComplianceItem: 1,
   goHome: 1,   // re-pinned 2026-11-19 (S6c): the Leave Edit Menu question went with Edit mode
   revertLastChange: 1,
@@ -108,6 +108,8 @@ function runRevertGenerate(answer) {
     // Re-pinned 2026-10-18: Undo marks the list as this computer's change and reads the kitchen's list first
     // (tests/resident_changes_reach_gate.mjs runs both for real); here the kitchen has nothing newer.
     'function setRegistryProvenance() {} async function doorFetchRemoteRegistryMeta() { return null; }' +
+    // Re-pinned 2026-11-22 (compliance C1): the restored list is read through the documentation normaliser.
+    'function doorMigrateRegistryDocs() { return 0; }' +
     fnBlock('revertLastGenerate') +
     ';globalThis.list = () => REGISTRY_LIST; globalThis.run = revertLastGenerate;', ctx);
   return ctx;

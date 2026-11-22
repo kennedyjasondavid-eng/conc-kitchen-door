@@ -17,13 +17,16 @@ import fs from 'node:fs';
 import { twoComputers, out, R, intake } from './helpers/door_two_computers.mjs';
 
 const html = fs.readFileSync(process.env.RESIDENT_REACH_HTML || new URL('../index.html', import.meta.url), 'utf8');
-const WRITERS = ['saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'batchResolveCompliance', 'reopenComplianceItem', 'submitResolve', 'debouncedComplianceSave', 'updateComplianceField', 'revertLastGenerate'];
+// Re-pinned 2026-11-22 (compliance C1): batchResolveCompliance is retired (it wrote what batchConfirmCompliance writes), and
+// an answer is a record per restriction (r.docs), from which confirm is worked out.
+const WRITERS = ['saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'reopenComplianceItem', 'submitResolve', 'debouncedComplianceSave', 'updateComplianceField', 'revertLastGenerate'];
 const { computer, kitchen, morning, fn } = twoComputers(html, {
   fns: WRITERS,
+  optFns: ['doorComplianceToday', 'doorComplianceStateOf'],   // compliance C1 (2026-11-22): the one reader the writers use
   // declared beside debouncedComplianceSave in index.html (the pending list only on this branch)
   extraSrc: 'let _complianceSaveTimer = null; const _compliancePendingFields = [];',
   ctx: (c) => ({
-    _complianceSelected: new Set(), _resolveRoom: '', RECENT_LOG: [],
+    _complianceSelected: new Set(), _resolveRoom: '', RECENT_LOG: [], ensureOperatorName: () => true,
     renderComplianceView() {}, updateComplianceBadge() {}, closeResolveModal() {}, saveRecentLog() {}, updateRevertButton() {},
     prompt: () => c.__prompt,
     // the compliance save waits 1.5 s; here it waits for the test to fire it
@@ -52,9 +55,8 @@ test('1. a service note survives the other computer\'s Generate', async () => {
 
 test('2. Confirm, Set Deadline and Resolve on a batch survive the other computer\'s Generate', async () => {
   for (const [name, check] of [
-    ['batchConfirmCompliance', (r) => r.confirm === 'Confirmed' && r.complianceResolutionNote === 'Batch confirmed'],
+    ['batchConfirmCompliance', (r) => r.confirm === 'Confirmed' && r.docs && r.docs['No Peanuts'] && r.docs['No Peanuts'].how === 'note'],
     ['batchSetDeadline', (r) => r.complianceDeadline === '2026-11-01'],
-    ['batchResolveCompliance', (r) => r.confirm === 'Confirmed' && r.complianceResolutionNote === 'Batch resolved'],
   ]) {
     const { a, b } = await morning(LIST(), ['213']);
     a._complianceSelected = new Set(['500']);
@@ -88,13 +90,13 @@ test('4. Re-open and the Resolve form survive the other computer\'s Generate', a
   ({ a, b } = await morning(LIST(), ['213']));
   a._resolveRoom = '500';
   Object.assign(a.__els, {
-    'settle-resolved-by': { value: 'JK', focus() {}, style: {} }, 'settle-status-select': { value: 'Confirmed' },
-    'settle-revert-check': { checked: false }, 'settle-resolution-note': { value: 'H&W letter on file' },
+    'settle-resolved-by': { value: 'JK', focus() {}, style: {} }, 'settle-resolution-note': { value: 'H&W letter on file' },
   });
   await a.submitResolve(); await a.__pending;
   await bGenerates(b);
   const r = rec(kitchen.state, '500');
-  assert.deepEqual([r.confirm, r.complianceResolutionNote, r.complianceResolvedBy], ['Confirmed', 'H&W letter on file', 'JK'], 'still resolved');
+  const d = (r.docs || {})['No Peanuts'] || {};
+  assert.deepEqual([r.confirm, d.how, d.line, d.by], ['Confirmed', 'note', 'H&W letter on file', 'JK'], 'still documented');
 });
 
 // A Generate on A, with the snapshot generateFiles takes first (for Undo).
@@ -135,7 +137,7 @@ test('6. Undo Generate says when the kitchen\'s list has changed since, and by w
 });
 
 test('7. every one of these writers takes the kitchen\'s newer list first and marks itself newest', () => {
-  for (const name of ['saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'batchResolveCompliance', 'reopenComplianceItem', 'submitResolve']) {
+  for (const name of ['saveInlineNote', 'batchConfirmCompliance', 'batchSetDeadline', 'reopenComplianceItem', 'submitResolve']) {
     const body = fn(name);
     const iTake = body.indexOf('await doorTakeNewerKitchenList()'), iMark = body.lastIndexOf('setRegistryProvenance()'), iSave = body.lastIndexOf('saveRegistryState()');
     assert.ok(/^async function /.test(body) && iTake > 0 && iMark > iTake && iSave > iMark, name + ': ' + [iTake, iMark, iSave]);
