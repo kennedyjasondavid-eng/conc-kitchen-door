@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — the breakfast note box no longer fills in a saved login (`v31-standard.133`)
+Jason, 2026-11-22: the breakfast note box filled in his saved login name. The browser's password manager paired the
+free-text box with DOOR's connection-key field. Both note boxes (`#change-breakfast-note`, `#ce-breakfast-note`) now have
+their own `name` and `autocomplete="off"`; the three connection-key fields say `autocomplete="new-password"`, so the
+browser offers no saved login there and pairs none with a box near them (Edge may offer to suggest a strong password on
+the key box; DOOR keeps the key itself). Gate `tests/breakfast_note_autofill_gate.mjs` (2, red 2/2 on `main`).
+
 ## Recent (2026-11-22) — the Review & Generate page shows what changes and what looks wrong (`v31-standard.132`)
 Jason, 2026-11-22: the page opened on a wall of meal warnings (one card per allergen per meal, three red anaphylactic
 boxes) before today's changes; the person updating the list (a novice) needs what changes now and what looks wrong, and
