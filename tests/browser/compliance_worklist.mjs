@@ -124,6 +124,21 @@ try {
     await page.evaluate(() => { changesQueue = [{ room: 'SYN-1', type: 'intake', tags: { glutenFree: true, noPork: true }, route: 'Gluten Free', notes: '' }]; applyQueueToRegistry([]); changesQueue = []; renderComplianceView(); });
     v = await view();
     check(width + ' C1 a new person in SYN-1 is back on the list', v.flatMap(g => g.rows).some(r => r.room === 'SYN-1'), v);
+    // C4: the nudge, the badge, the email in the page
+    const nudge = await page.evaluate(() => { const n = document.getElementById('cx-nudge'); return { shown: !n.hidden, cls: n.className, text: n.innerText }; });
+    check(width + ' C4 the nudge says to start with the anaphylactic room', nudge.shown && /cx-nudge-calm/.test(nudge.cls) && /Start with the 1 anaphylactic room/.test(nudge.text), nudge);
+    const badge = await page.evaluate(() => { const b = document.getElementById('compliance-nav-badge'); return { shown: b.style.display !== 'none', n: b.textContent }; });
+    check(width + ' C4 the badge counts only the anaphylactic room (nothing else is due)', badge.shown && badge.n === '1', badge);
+    await page.click('#cx-nudge .btn-mint');
+    const ask = await page.evaluate(() => ({ open: document.getElementById('cx-ask-modal').classList.contains('open'), body: document.getElementById('cx-ask-body').value, popups: 0 }));
+    check(width + ' C4 the email opens in the page for that room', ask.open && /Room SYN-3 — Soft Meals, No Tree Nuts \(anaphylactic\)/.test(ask.body), ask);
+    await page.click('#cx-ask-mark');
+    await page.waitForFunction(() => !!REGISTRY_MAP['syn-3'].docAsk);
+    const asked = await page.evaluate(() => ({ sub: document.querySelector('#cx-row-SYN-3 .cx-subline').innerText, d: REGISTRY_MAP['syn-3'].complianceDeadline, want: cxDayPlus(7), c: REGISTRY_MAP['syn-3'].confirm }));
+    check(width + ' C4 Mark as asked: the row says so, a reminder in a week, nothing documented', /Asked/.test(asked.sub) && asked.d === asked.want && asked.c === 'Provisional', asked);
+    await page.evaluate(() => { REGISTRY_MAP['syn-3'].complianceDeadline = '2020-01-01'; renderComplianceView(); });
+    const late = await page.evaluate(() => ({ cls: document.getElementById('cx-nudge').className, text: document.getElementById('cx-nudge').innerText, badge: document.getElementById('compliance-nav-badge').style.background }));
+    check(width + ' C4 past its reminder, an anaphylactic room rises to red', /cx-nudge-red/.test(late.cls) && /past its reminder/.test(late.text), late);
     // C2 review fold: a group of more than six shows six and "Show N more" (its handler is allow-listed)
     await page.evaluate(() => { for (let i = 0; i < 8; i++) { const r = { room: 'SYN-M' + i, tags: ['Diabetic'], rawRestriction: 'Diabetic', section: 'Diabetic', confirm: 'Provisional', confirmBy: '—' }; REGISTRY_LIST.push(r); REGISTRY_MAP[r.room.toLowerCase()] = r; } renderComplianceView(); });
     const moreBtn = page.locator('.cx-group:has(h3:text("Medical diets")) .cx-more-rows');

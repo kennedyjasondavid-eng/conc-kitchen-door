@@ -938,6 +938,15 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
   .cx-opt small { display:block; color:var(--muted); font-size:12px; line-height:1.45; }
   .cx-opt select { font-size:12px; padding:1px 4px; width:auto; display:inline-block; margin-left:4px; }
   .cx-what { font-size:13px; line-height:1.5; color:var(--ink-mid); }
+  .cx-nudge { display:flex; gap:12px; align-items:flex-start; background:var(--paper); border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:13.5px; color:var(--ink-mid); line-height:1.5; }
+  .cx-nudge b { color:var(--ink); }
+  .cx-nudge-mark { flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:var(--mint-pale); color:var(--forest-mid-text); font-weight:900; }
+  .cx-nudge-amber { border-color:var(--amber-text); }
+  .cx-nudge-amber .cx-nudge-mark { background:var(--amber-pale); color:var(--amber-text); }
+  .cx-nudge-red { border-color:var(--red-text); }
+  .cx-nudge-red .cx-nudge-mark { background:var(--red-pale); color:var(--red-text); }
+  .cx-nudge-acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .cx-new { color:var(--blue-text); font-weight:600; }
   .cx-what:empty { display:none; }
   @media (max-width: 600px) {
     .cx-item { grid-template-columns:24px 52px minmax(0,1fr); }
@@ -953,7 +962,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.137';
+const DOOR_APP_VERSION = 'v31-standard.138';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -9922,107 +9931,12 @@ function printComplianceList() {
 }
 
 // v29: Draft compliance digest email for H&W team
+// compliance C4: the email to Health & Wellness is drafted in the page (it was a popup window), for every room still
+// needing a note, grouped by what to ask.
 function draftComplianceDigest() {
-  const today = new Date(); today.setHours(0,0,0,0);
   const relevant = getComplianceResidents(false);
   if (!relevant.length) { showToast('No outstanding compliance items.'); return; }
-
-  // Group by restriction
-  const groups = {};
-  relevant.forEach(r => {
-    const key = r.rawRestriction || r.tags.join(', ');
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(r);
-  });
-
-  // Separate overdue/deadline/no-deadline
-  const overdue = relevant.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl < today;
-  });
-  const withDeadline = relevant.filter(r => {
-    if (!r.complianceDeadline) return false;
-    const dl = new Date(r.complianceDeadline); dl.setHours(0,0,0,0);
-    return dl >= today;
-  });
-  const noDeadline = relevant.filter(r => !r.complianceDeadline);
-
-  const dateStr = new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  // Build email body
-  let body = `Hi,\n\nPlease find below the current dietary compliance review for Rexdale Shelter as of ${dateStr}.\n\n`;
-  body += `${relevant.length} resident${relevant.length !== 1 ? 's' : ''} have outstanding dietary restrictions requiring Health & Wellness documentation.\n\n`;
-
-  if (overdue.length) {
-    body += `--- OVERDUE (${overdue.length}) ---\n`;
-    overdue.forEach(r => {
-      body += `  Room ${r.room} — ${r.rawRestriction || r.tags.join(', ')} — deadline was ${formatCompactDate(r.complianceDeadline)}\n`;
-    });
-    body += '\n';
-  }
-
-  if (withDeadline.length) {
-    body += `--- UPCOMING DEADLINES (${withDeadline.length}) ---\n`;
-    withDeadline.forEach(r => {
-      body += `  Room ${r.room} — ${r.rawRestriction || r.tags.join(', ')} — due ${formatCompactDate(r.complianceDeadline)}\n`;
-    });
-    body += '\n';
-  }
-
-  if (noDeadline.length) {
-    body += `--- NO DEADLINE SET (${noDeadline.length}) ---\n`;
-    // Group these by restriction for readability
-    const ndGroups = {};
-    noDeadline.forEach(r => {
-      const key = r.rawRestriction || r.tags.join(', ');
-      if (!ndGroups[key]) ndGroups[key] = [];
-      ndGroups[key].push(r.room);
-    });
-    Object.entries(ndGroups).sort((a,b) => b[1].length - a[1].length).forEach(([restriction, rooms]) => {
-      body += `  ${restriction}: Rooms ${rooms.sort((a,b) => a.localeCompare(b, undefined, {numeric:true})).join(', ')}\n`;
-    });
-    body += '\n';
-  }
-
-  body += `Could you please provide documentation for these residents so we can update their records?\n\nThank you,\n${getOperatorName() || 'Food Services'}`;
-
-  const subject = `Dietary Compliance Review — ${relevant.length} residents need H&W documentation (${dateStr})`;
-
-  // Open in a preview window with Copy and Open in Mail buttons
-  const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Compliance Digest</title>
-  <style>
-    body { font-family: Arial, sans-serif; font-size: 14px; margin: 20px; max-width: 700px; }
-    .toolbar { display: flex; gap: 8px; margin-bottom: 16px; padding: 10px; background: var(--ok-faint, #f0fdf4); border: 1px solid #bbf7d0; border-radius: 8px; }
-    .toolbar button { padding: 8px 16px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; font-size: 13px; font-weight: 600; }
-    .btn-primary { background: #1b4332; color: #fff; border-color: #1b4332; }
-    .btn-secondary { background: var(--surface-alt, #fff); }
-    .subject { font-weight: 700; font-size: 13px; color: var(--text-1, #333); margin-bottom: 8px; }
-    pre { white-space: pre-wrap; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; background: var(--surface-alt, #fafafa); padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .copied { color: var(--ok-ink, #15803d); font-size: 12px; font-weight: 600; display: none; }
-  </style></head><body>
-  <h2 style="margin-bottom:4px;">Compliance Digest</h2>
-  <p style="font-size:12px;color:var(--text-2, #666);margin-bottom:12px;">Review the email below. Copy it or open it in your mail app.</p>
-  <div class="toolbar">
-    <button class="btn-primary">${doorIcon("list")} Copy to Clipboard</button>
-    <a href="mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="text-decoration:none;"><button class="btn-secondary">› Open in Mail</button></a>
-    <span class="copied" id="copied-msg">${doorIcon("check")} Copied!</span>
-  </div>
-  <div class="subject">Subject: ${escapeHtml(subject)}</div>
-  <pre id="digest-body">${escapeHtml(body)}</pre>
-  </body></html>`);
-  // Add copy handler after document is written (avoids script-close issue in template literal)
-  w.document.querySelector('.btn-primary').onclick = function() {
-    const text = w.document.getElementById('digest-body').textContent;
-    navigator.clipboard.writeText('Subject: ' + subject + '\n\n' + text).then(() => {
-      const msg = w.document.getElementById('copied-msg');
-      msg.style.display = 'inline';
-      setTimeout(() => msg.style.display = 'none', 2000);
-    });
-  };
-  w.document.close();
-  w.focus();
+  cxOpenAsk(relevant.map(r => r.room));
 }
 
 // compliance C2/C3 helpers: dates, the left count, the toast with Undo.
@@ -10071,6 +9985,13 @@ async function cxUndoLast() {
     });
   } else if (u.kind === 'deadline') {
     u.prev.forEach(({ room, deadline }) => { const r = REGISTRY_LIST.find(x => x.room === room); if (r) r.complianceDeadline = deadline; });
+  } else if (u.kind === 'asked') {
+    u.prev.forEach(({ room, deadline, ask }) => {
+      const r = REGISTRY_LIST.find(x => x.room === room);
+      if (!r) return;
+      r.complianceDeadline = deadline;
+      if (ask) r.docAsk = ask; else delete r.docAsk;
+    });
   }
   setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('compliance undo');
   showToast('Undone.');
@@ -10084,13 +10005,16 @@ function updateComplianceBadge() {
   const overdue = states.filter(st => st.remindOn && st.remindOn < today).length;
   const anaph = states.filter(st => st.anaph).length;
 
-  // Sidebar nav badge
+  // Sidebar nav badge (compliance C4): only what needs the person now, every anaphylactic room still needing a note and
+  // any room past its reminder; hidden otherwise, so it means something when it shows (K3).
   const badge = document.getElementById('compliance-nav-badge');
   if (badge) {
-    if (active.length) {
-      badge.textContent = active.length;
+    const bd = doorDocBadge(active.map(r => ({ room: r.room, st: doorComplianceStateOf(r) })), today);
+    if (bd.count) {
+      badge.textContent = bd.count;
       badge.style.display = '';
-      badge.style.background = overdue > 0 ? '#b91c1c' : '#b45309';
+      badge.style.background = bd.level === 'red' ? '#b91c1c' : '#b45309';
+      badge.title = bd.count + ' need you now: anaphylactic rooms still needing a note, and rooms past their reminder';
     } else {
       badge.style.display = 'none';
     }
@@ -10179,7 +10103,12 @@ function cxRowHtml(r, st, today) {
       ? '<button type="button" class="btn btn-ghost btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Answer…</button>'
       : '<button type="button" class="btn btn-mint btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Got the note…</button>')
     : '<button type="button" class="btn btn-ghost btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Open…</button>';
-  const sub = [cxReminderLine(r, st, today), st.done.length ? '<span class="cx-sub">Documented: ' + escapeHtml(st.done.join(', ')) + '</span>' : '',
+  // compliance C4: when H&W was asked, and a new person in a room that had answers before
+  const asked = st.askedOn ? '<span class="cx-sub">Asked ' + escapeHtml(formatCompactDate(st.askedOn)) + (r.docAsk && r.docAsk.by ? ' by ' + escapeHtml(r.docAsk.by) : '') + '</span>' : '';
+  const h0 = (r._history || [])[0];
+  const fresh = h0 && /^Intake overwrite/.test(h0.desc || '') && typeof h0.ts === 'string' && (Date.parse(today) - Date.parse(h0.ts.slice(0, 10))) <= 14 * 86400000
+    ? '<span class="cx-sub cx-new">New resident since ' + escapeHtml(formatCompactDate(h0.ts.slice(0, 10))) + '</span>' : '';
+  const sub = [fresh, asked, cxReminderLine(r, st, today), st.done.length ? '<span class="cx-sub">Documented: ' + escapeHtml(st.done.join(', ')) + '</span>' : '',
     r.moderateNote ? '<span class="cx-sub">Note: ' + escapeHtml(r.moderateNote) + '</span>' : ''].filter(Boolean).join(' · ');
   return `<div class="cx-item${st.anaph ? ' cx-item-anaph' : ''}" id="cx-row-${id}">
     <input type="checkbox" class="cx-pick" aria-label="Select room ${escapeHtml(r.room)}"${checked} onchange="${_escAttr('toggleComplianceSelect(' + _jsStringLiteral(r.room) + ',this.checked)')}">
@@ -10201,6 +10130,124 @@ function cxRowHtml(r, st, today) {
 async function cxRemindRoom(room, days) {
   return batchSetDeadline(days, [room]);
 }
+// compliance C4: the nudge at the top of the worklist (doorDocNudge decides it; this draws it).
+function cxRenderNudge(items, today) {
+  const el = document.getElementById('cx-nudge');
+  if (!el) return;
+  const n = doorDocNudge(items, today);
+  if (!n) { el.hidden = true; el.innerHTML = ''; return; }
+  const roomsTxt = (rooms) => rooms.length <= 4 ? rooms.join(', ') : rooms.slice(0, 3).join(', ') + ' and ' + (rooms.length - 3) + ' more';
+  let head = '', body = '', acts = '';
+  // The buttons act on the rooms this nudge names, kept here (an inline handler carries no list).
+  _cxNudgeRooms = n.rooms.slice();
+  const ask = (label) => '<button type="button" class="btn btn-mint btn-sm" onclick="cxNudgeAsk()">' + escapeHtml(label) + '</button>';
+  if (n.kind === 'late') {
+    head = (n.rooms.length === 1 ? 'Room ' + n.rooms[0] + ' is' : n.rooms.length + ' rooms are') + ' past ' + (n.rooms.length === 1 ? 'its' : 'their') + ' reminder.';
+    const which = n.rooms.length > 1 ? ' (' + escapeHtml(roomsTxt(n.rooms)) + ')' : '';
+    // C4 review: a room can be past a reminder without ever having been asked
+    body = (n.anaph ? 'Anaphylactic. ' : '') + (n.asked ? 'Health &amp; Wellness hasn’t answered yet' + which + '.' : 'Ask Health &amp; Wellness for the note' + which + '.');
+    acts = ask(n.asked ? 'Email H&W again' : 'Ask H&W') + '<button type="button" class="btn btn-ghost btn-sm" onclick="cxNudgeWeek()">Give it a week</button>';
+  } else if (n.kind === 'group') {
+    const words = DOOR_DOC_GROUP_WORDS[n.group];
+    if (n.group === 'anaph') {
+      head = 'Start with the ' + n.rooms.length + ' anaphylactic room' + (n.rooms.length !== 1 ? 's' : '') + '.';
+      // C4 review: true only for rooms whose allergen is recorded
+      body = n.noAllergen && n.noAllergen.length
+        ? escapeHtml((n.noAllergen.length === 1 ? 'Room ' + n.noAllergen[0] + ' has' : 'Rooms ' + roomsTxt(n.noAllergen) + ' have') + ' no allergen recorded: ask which allergen, then add it in the resident’s record.')
+          + (n.noAllergen.length < n.rooms.length ? ' The others are already kept off their allergens; the note makes it official.' : '')
+        : 'They are already kept off their allergens; the note makes it official.';
+    } else if (n.group === 'preference') {
+      head = n.rooms.length + ' room' + (n.rooms.length !== 1 ? 's are' : ' is') + ' only No Pork or No Spicy.';
+      body = 'These are usually preferences. Check with the residents, then select them and choose It’s a preference.';
+    } else {
+      head = 'Next: ' + n.rooms.length + (n.group === 'allergy' ? (n.rooms.length === 1 ? ' room with an allergy' : ' rooms with allergies') : (n.rooms.length === 1 ? ' room with a medical diet' : ' rooms with medical diets')) + '.';
+      body = n.asked ? n.asked + ' already asked and waiting.' : 'Ask Health &amp; Wellness for the notes in one email.';
+    }
+    acts = n.group === 'preference' ? '' : ask(n.rooms.length === 1 ? 'Ask H&W about this room' : 'Ask H&W about these ' + n.rooms.length);
+  } else {
+    head = 'Waiting on Health & Wellness.';
+    body = 'Every room still needing a note has been asked. This rises again on the first reminder date.';
+  }
+  el.className = 'cx-nudge cx-nudge-' + n.level;
+  el.innerHTML = '<div class="cx-nudge-mark" aria-hidden="true">' + (n.level === 'calm' ? '→' : '!') + '</div><div><b>' + escapeHtml(head) + '</b> ' + body + (acts ? '<div class="cx-nudge-acts">' + acts + '</div>' : '') + '</div>';
+  el.hidden = false;
+}
+let _cxNudgeRooms = [];
+function cxNudgeAsk() { cxOpenAsk(_cxNudgeRooms); }
+async function cxNudgeWeek() { return batchSetDeadline(7, _cxNudgeRooms.slice()); }
+// The email to Health & Wellness, in the page (it replaced the popup window): grouped by what to ask, with Copy and
+// "Mark as asked", which records the ask and sets a reminder a week out.
+let _cxAskRooms = [];
+function cxAskText(rooms) {
+  const rs = rooms.map(room => REGISTRY_LIST.find(x => x.room === room)).filter(Boolean);
+  const states = rs.map(r => ({ r, st: doorComplianceStateOf(r) }));
+  const lines = [];
+  const groups = [['anaph', 'Anaphylactic'], ['allergy', 'Allergies'], ['medical', 'Medical diets'], ['preference', 'Possible preferences (please say if a note exists)']];
+  groups.forEach(([key, title]) => {
+    const inG = states.filter(x => (x.st.group || 'medical') === key);
+    if (!inG.length) return;
+    lines.push(title + ':');
+    inG.forEach(({ r, st }) => lines.push('  Room ' + r.room + ' — ' + (st.needs.length ? st.needs.join(', ') : 'anaphylactic, allergen not recorded: which allergen?') + (st.anaph && st.needs.length ? ' (anaphylactic)' : '')));
+    lines.push('');
+  });
+  const n = rs.length;
+  const subject = 'Dietary notes needed for ' + n + ' resident' + (n !== 1 ? 's' : '') + ' (Rexdale)';
+  const body = 'Subject: ' + subject + '\n\nHi,\n\nCould you send documentation for these restrictions? Meals already follow every restriction recorded; we need the note on file.\n\n'
+    + lines.join('\n') + '\nThank you,\n' + (getOperatorName() || 'Food Services');
+  return { subject, body, n };
+}
+function cxOpenAsk(rooms) {
+  const list = (rooms && rooms.length) ? rooms : getComplianceResidents(false).map(r => r.room);
+  // C4 review P2: only rooms with a restriction needing a note (or an anaphylactic room with no allergen recorded);
+  // a room listed only for a moderate allergy is not asked about here.
+  _cxAskRooms = list.filter(room => { const r = REGISTRY_LIST.find(x => x.room === room); if (!r) return false; const st = doorComplianceStateOf(r); return st.needs.length > 0 || st.anaphNoAllergen; });
+  if (!_cxAskRooms.length) { showToast('Nothing needs a note right now.'); return; }
+  const t = cxAskText(_cxAskRooms);
+  document.getElementById('cx-ask-subject').value = t.subject;
+  document.getElementById('cx-ask-body').value = t.body;
+  document.getElementById('cx-ask-count').textContent = t.n + ' room' + (t.n !== 1 ? 's' : '');
+  document.getElementById('cx-ask-copied').textContent = '';
+  _cxAskReturnFocus = document.activeElement;
+  document.getElementById('cx-ask-modal').classList.add('open');
+  const copy = document.getElementById('cx-ask-copy');
+  if (copy && copy.focus) copy.focus();
+}
+let _cxAskReturnFocus = null;
+function cxCloseAsk() {
+  const m = document.getElementById('cx-ask-modal');
+  const wasOpen = m.classList.contains('open');
+  m.classList.remove('open');
+  if (wasOpen && _cxAskReturnFocus && _cxAskReturnFocus.focus && document.contains(_cxAskReturnFocus)) _cxAskReturnFocus.focus();
+}
+function cxAskCopy() {
+  const text = document.getElementById('cx-ask-body').value;   // the subject is the message first line
+  const said = document.getElementById('cx-ask-copied');
+  const fallback = () => { const b = document.getElementById('cx-ask-body'); b.focus(); b.select(); said.textContent = 'Selected: copy it with your device’s Copy.'; };
+  try {
+    navigator.clipboard.writeText(text).then(() => { said.textContent = 'Copied ✓'; }, fallback);
+  } catch (e) { fallback(); }
+}
+async function cxMarkAsked() {
+  if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
+  const rooms = _cxAskRooms.slice();
+  if (!rooms.length) return;
+  if (!ensureOperatorName()) { showToast('Nothing recorded: add your name first, so the record says who.'); return; }
+  cxCloseAsk();
+  await doorTakeNewerKitchenList();
+  const by = getOperatorName();
+  const at = doorComplianceToday();
+  const remind = cxDayPlus(7);
+  const prev = [];
+  rooms.forEach(room => {
+    const r = REGISTRY_LIST.find(x => x.room === room);
+    if (!r) return;
+    prev.push({ room, deadline: r.complianceDeadline || '', ask: r.docAsk ? JSON.parse(JSON.stringify(r.docAsk)) : null });
+    r.docAsk = { at, by };
+    if (!r.complianceDeadline || r.complianceDeadline < remind) r.complianceDeadline = remind;
+  });
+  setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('compliance asked');
+  cxShowToast('Marked ' + prev.length + ' room' + (prev.length !== 1 ? 's' : '') + ' as asked. Reminder ' + formatCompactDate(remind) + '.', { kind: 'asked', prev });
+}
 function renderComplianceView() {
   const wrap = document.getElementById('cx-groups');
   if (!wrap) return;
@@ -10220,6 +10267,7 @@ function renderComplianceView() {
   };
   // The selection holds only rooms still listed.
   [..._complianceSelected].forEach(room => { if (!outstanding.some(r => r.room === room)) _complianceSelected.delete(room); });
+  cxRenderNudge(outstanding.map(r => ({ room: r.room, st: doorComplianceStateOf(r) })), today);   // compliance C4
 
   if (!outstanding.length) {
     wrap.innerHTML = '<div class="cx-empty"><div class="cx-empty-mark">✓</div><b>Everything is documented.</b><span>A new restriction that needs a note will show up here.</span></div>';
@@ -17134,6 +17182,38 @@ function doorMigrateDocs(r, todayIso, nowIso) {
   if (Object.keys(docs).length) r.docs = docs; else delete r.docs;
   doorApplyDocTags(r, r.tags, {});
   return JSON.stringify([r.docs, r.confirm, r.confirmBy, r._docsResolvedSig]) !== before;
+}
+// compliance C4 (2026-11-22): the nudge that rises to meet the person, and the sidebar badge. Pure: items are
+// [{ room, st }] from doorDocState, todayIso is YYYY-MM-DD. Grey by default; amber when a reminder has passed; red when an
+// anaphylactic room is past its reminder. The badge counts only what needs the person now: every anaphylactic room with
+// a restriction still needing a note (plan review P3-10), and any room past its reminder.
+const DOOR_DOC_GROUP_WORDS = { anaph: 'anaphylactic rooms', allergy: 'allergies', medical: 'medical diets', preference: 'rooms that are usually preferences' };
+function doorDocNudge(items, todayIso) {
+  const list = (items || []).filter(x => x && x.st && (x.st.needs.length || x.st.anaphNoAllergen));
+  if (!list.length) return null;
+  // Due on the reminder day itself (C4 review: the row already reads "Reminder today" in amber then).
+  const late = list.filter(x => x.st.remindOn && x.st.remindOn <= todayIso);
+  const lateAnaph = late.filter(x => x.st.anaph);
+  const lateOf = (xs, anaph) => ({ level: anaph ? 'red' : 'amber', kind: 'late', rooms: xs.map(x => x.room), anaph, asked: xs.every(x => !!x.st.askedOn) });
+  if (lateAnaph.length) return lateOf(lateAnaph, true);
+  if (late.length) return lateOf(late, false);
+  const waiting = (x) => !!x.st.askedOn && !!x.st.remindOn && x.st.remindOn > todayIso;
+  for (const g of ['anaph', 'allergy', 'medical', 'preference']) {
+    const inGroup = list.filter(x => x.st.group === g);
+    const toAsk = inGroup.filter(x => !waiting(x));
+    if (toAsk.length) return { level: 'calm', kind: 'group', group: g, rooms: toAsk.map(x => x.room), asked: inGroup.length - toAsk.length,
+      noAllergen: toAsk.filter(x => x.st.anaphNoAllergen).map(x => x.room) };
+  }
+  return { level: 'calm', kind: 'waiting', rooms: list.map(x => x.room) };
+}
+function doorDocBadge(items, todayIso) {
+  let count = 0, anaph = 0;
+  (items || []).forEach(x => {
+    if (!x || !x.st || !(x.st.needs.length || x.st.anaphNoAllergen)) return;
+    const late = !!(x.st.remindOn && x.st.remindOn <= todayIso);
+    if (x.st.anaph) { count++; anaph++; } else if (late) count++;
+  });
+  return { count, level: anaph ? 'red' : (count ? 'amber' : '') };
 }
 /* DOOR_TESTABLE_CORE_END compliance-docs */
 
@@ -29003,6 +29083,27 @@ window.addEventListener('load', runAltFlagSweepOnce);
     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--border);margin-top:8px;flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="closeResolveModal()">Go back</button>
       <button class="btn btn-mint" id="settle-submit" onclick="submitResolve()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ASK H&W (compliance C4, 2026-11-22: the email in the page) ===== -->
+<div class="modal-overlay" id="cx-ask-modal" onclick="if(event.target===this)cxCloseAsk()">
+  <div class="modal-box cx-sheet" style="max-width:600px;" role="dialog" aria-modal="true" aria-labelledby="cx-ask-title">
+    <div class="modal-header">
+      <h2 id="cx-ask-title">Ask Health &amp; Wellness · <span id="cx-ask-count"></span></h2>
+      <button class="btn btn-ghost btn-sm" onclick="cxCloseAsk()" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;padding-top:4px;">
+      <p class="cx-what">Copy this into an email to Health &amp; Wellness. When it’s sent, choose <b>Mark as asked</b>: each room shows when it was asked and comes back here in a week if there’s no answer.</p>
+      <div class="form-group" style="margin:0;"><label for="cx-ask-subject">Subject</label><input type="text" id="cx-ask-subject" readonly style="font-size:13px;"></div>
+      <div class="form-group" style="margin:0;"><label for="cx-ask-body">Message</label><textarea id="cx-ask-body" readonly style="font-size:13px;min-height:220px;font-family:inherit;line-height:1.5;"></textarea></div>
+      <span id="cx-ask-copied" class="cx-saved" aria-live="polite"></span>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--border);margin-top:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="cxCloseAsk()">Go back</button>
+      <button class="btn btn-ghost" id="cx-ask-copy" onclick="cxAskCopy()">Copy</button>
+      <button class="btn btn-mint" id="cx-ask-mark" onclick="cxMarkAsked()">Mark as asked</button>
     </div>
   </div>
 </div>

@@ -91,7 +91,7 @@ replaces the banner (K1). Mobile: one column, no sideways scroll at 390 px. Brow
 Confirmed · It's a preference · Not needed any more (opens the editor) · Still waiting (remind 1 / 2 weeks). A batch
 version for selected rows. Undo toast for 10 s before the send. `prompt()` gone (F4). Browser gate.
 
-**C4 — nudges** (`.138`). Top suggestion (anaphylactic first, then the group with the oldest wait), reminder states
+**C4 — nudges** (`.137`; C2 and C3 shipped as one, `.136`). Top suggestion (anaphylactic first, then the group with the oldest wait), reminder states
 (grey → amber on `remindOn` → red for anaphylactic past due), sidebar badge shows only what is due (hidden otherwise;
 K3), the in-page H&W email per group with Copy and "Mark as asked" (sets `docAsk`), the "all documented" state, a
 nudge when a new person moves into a room. Browser gate.
@@ -108,8 +108,8 @@ note are kept and shown, unchanged).
 |---|---|---|---|
 | Plan | reviewed 2026-11-22: GO WITH CHANGES, folded (§7) | — | — |
 | C1 | merged, `v31-standard.135` | #282 | `tests/compliance_docs_c1_gate.mjs` 11 (red 11/11 on `13e0aa2`), browser `compliance_docs_c1` 22 |
-| C2 + C3 | built together, `v31-standard.137` (one PR: the worklist's main button is the new question) | (this PR) | `tests/compliance_worklist_c2_gate.mjs` 8 (red on `ed97d83`), browser `compliance_worklist` 60; reviewed (§9) |
-| C4 | — | — | — |
+| C2 + C3 | merged, `v31-standard.137` (one PR: the worklist's main button is the new question) | #284 | `tests/compliance_worklist_c2_gate.mjs` 8 (red on `ed97d83`), browser `compliance_worklist` 60; reviewed (§9) |
+| C4 | built and reviewed (§10), `v31-standard.138` | (its PR) | `tests/compliance_nudges_c4_gate.mjs` 6 (red on `1896ea0` and `main`), browser `compliance_worklist` 70 |
 
 ## 7. Plan review (independent, 2026-11-22): GO WITH CHANGES, folded into C1
 
@@ -166,3 +166,14 @@ older ReferenceError, raised as its own task); the compliance actions.
   the dead filter, anaphylactic first (P3-9); the reminder re-pin is exact (P3-10).
 - Found by the full browser run: "Show N more" threw (`DOOR_INLINE_HANDLER_ALLOWLIST`); fixed and gated.
 - Still open for C4: an anaphylactic resident whose only restrictions are auto-tier reads Confirmed (as on `main`).
+
+## 10. C4 independent review (2026-11-22): FIX FIRST, folded
+
+- **P2** a room listed only for a moderate allergy went into the email ("allergen not recorded") and was marked asked: the
+  email takes only rooms with a restriction needing a note, or an anaphylactic room with no allergen recorded. Gated.
+- **P2** the anaphylactic nudge said "already kept off their allergens" for a room with no allergen recorded: it now names
+  that room and says to ask which allergen and add it in the resident record. Gated.
+- **P3** folded: due on the reminder day (as the row says); a reminder never asked reads "Ask H&W"; the heading counts
+  rooms ("Next: 3 rooms with allergies"); the email dialog takes focus and gives it back; the subject leads the message
+  and the copy fallback speaks to a phone. Noted, not changed: "New resident since" compares a UTC date to today (a
+  14-day window; harmless).

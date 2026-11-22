@@ -53,6 +53,33 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — Compliance Review C4: nudges that rise to meet Fiona (`v31-standard.138`)
+Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 C4 (status §6). The last slice of the line.
+- **The nudge** (`doorDocNudge` in the compliance-docs core, drawn by `cxRenderNudge` above the worklist): grey by
+  default with one suggestion in the order to ask ("Start with the 3 anaphylactic rooms.", then allergies, medical diets,
+  and "N rooms are only No Pork or No Spicy … select them and choose It's a preference"); rooms already asked and still
+  inside their reminder are not suggested again ("Waiting on Health & Wellness" when that is all that is left). It rises
+  to **amber** when a reminder has passed ("Room 312 is past its reminder … Email H&W again · Give it a week") and to
+  **red** when that room is anaphylactic.
+- **The badge** (`doorDocBadge`): counts only what needs Fiona now, every anaphylactic room still needing a note (plan
+  review P3-10) and any room past its reminder; hidden otherwise, red when an anaphylactic room is in it. It was a
+  permanent amber 52 (K3).
+- **Ask H&W in the page** (`cxOpenAsk`, `cxAskText`, `cxAskCopy`, `cxMarkAsked`; `draftComplianceDigest` opens it): the
+  popup window is gone. The email lists rooms only (no names), grouped (Anaphylactic, Allergies, Medical diets, Possible
+  preferences), naming only the restrictions that need a note. **Mark as asked** records `r.docAsk = { at, by }` and a
+  reminder a week out (a later one is kept); the row then says "Asked Nov 22 by Fiona · Reminder Nov 29". Undo puts it
+  back. Asking documents nothing.
+- **A new person:** a row whose newest history entry is an Intake overwrite within 14 days says "New resident since …".
+- The nudge buttons act on the rooms the nudge keeps (`_cxNudgeRooms`, `cxNudgeAsk`, `cxNudgeWeek`): DOOR's handler
+  escaper turns a list into one string, so no list goes through an inline handler.
+- **Gates:** `tests/compliance_nudges_c4_gate.mjs` (6, red on the C2/C3 build `1896ea0` and on `main`) and the
+  browser `compliance_worklist` (70: the nudge, the badge, the email, Mark as asked, red past a reminder).
+- **Independent review (FIX FIRST), folded (plan §10):** a room listed only for a moderate allergy is not put in the email
+  or marked asked (P2); the anaphylactic nudge never says a room with no allergen recorded is kept off its allergens, and
+  asks which allergen (P2); a reminder is due on its day, as the row says; a reminder never asked says "Ask H&W", not
+  "hasn't answered"; "Next: 3 rooms with allergies"; the email dialog takes focus and gives it back; the subject is the
+  message's first line, and the copy fallback speaks to a phone.
+
 ## Recent (2026-11-22) — Compliance Review C2 + C3: a worklist and one question (`v31-standard.137`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` §5 (C2 and C3 shipped together; status §6). Mockups:
 https://claude.ai/artifact/QQce1KzNL7KBk4QQ4SfAGz. For Fiona: clean, simple, soft feedback.
