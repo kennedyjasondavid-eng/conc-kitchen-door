@@ -77,6 +77,14 @@ try {
     await page.waitForFunction(() => REGISTRY_MAP['syn-2'].confirm === 'Provisional');
     check(width + ' C3 Undo takes the answer back', await page.evaluate(() => !REGISTRY_MAP['syn-2'].docs));
 
+    // C2 review: nothing ticked greys Save; focus starts in the question; Escape closes and focus goes back
+    await page.focus('#cx-row-SYN-1 .cx-go');
+    await page.click('#cx-row-SYN-1 .cx-go');
+    check(width + ' C2 review: focus moves into the question', await page.evaluate(() => document.activeElement && document.activeElement.name === 'settle-how'));
+    await page.uncheck('.settle-tag[value="GF"]'); await page.uncheck('.settle-tag[value="No Pork"]');
+    check(width + ' C2 review: nothing ticked, Save is grey', await page.locator('#settle-submit').isDisabled());
+    await page.keyboard.press('Escape');
+    check(width + ' C2 review: Escape closes the question, focus back on the row', await page.evaluate(() => !document.getElementById('settle-compliance-modal').classList.contains('open') && document.activeElement && document.activeElement.closest && !!document.activeElement.closest('#cx-row-SYN-1')));
     // C3 It's a preference, and Still waiting
     await page.evaluate(() => openResolveModal('SYN-6'));
     check(width + ' C3 a preference room opens on "It\'s a preference"', await page.evaluate(() => document.querySelector('input[name=settle-how]:checked').value === 'preference'));
@@ -116,6 +124,14 @@ try {
     await page.evaluate(() => { changesQueue = [{ room: 'SYN-1', type: 'intake', tags: { glutenFree: true, noPork: true }, route: 'Gluten Free', notes: '' }]; applyQueueToRegistry([]); changesQueue = []; renderComplianceView(); });
     v = await view();
     check(width + ' C1 a new person in SYN-1 is back on the list', v.flatMap(g => g.rows).some(r => r.room === 'SYN-1'), v);
+    // C2 review fold: a group of more than six shows six and "Show N more" (its handler is allow-listed)
+    await page.evaluate(() => { for (let i = 0; i < 8; i++) { const r = { room: 'SYN-M' + i, tags: ['Diabetic'], rawRestriction: 'Diabetic', section: 'Diabetic', confirm: 'Provisional', confirmBy: '—' }; REGISTRY_LIST.push(r); REGISTRY_MAP[r.room.toLowerCase()] = r; } renderComplianceView(); });
+    const moreBtn = page.locator('.cx-group:has(h3:text("Medical diets")) .cx-more-rows');
+    const before = await page.locator('.cx-group:has(h3:text("Medical diets")) .cx-item').count();
+    const label = (await moreBtn.innerText()).trim();
+    await moreBtn.click();
+    const after = await page.locator('.cx-group:has(h3:text("Medical diets")) .cx-item').count();
+    check(width + ' C2 a long group shows six, then all on "Show N more"', before === 6 && /^Show \d+ more$/.test(label) && after === 6 + Number(label.match(/\d+/)[0]), { before, label, after });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     check(width + ' no sideways page scroll', overflow <= 1, overflow);
     check(width + ' C3 no browser prompt or confirm was opened', dialogs === 0, dialogs);

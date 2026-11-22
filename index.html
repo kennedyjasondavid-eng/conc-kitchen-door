@@ -1661,7 +1661,7 @@ function updateCODEXBadge() {
     </div>
     <!-- Documented: the answers on file, newest first -->
     <div id="compliance-resolved-section" class="cx-done" style="display:none;">
-      <button type="button" class="cx-done-head" onclick="toggleResolvedSection()" aria-controls="compliance-resolved-body-wrap">
+      <button type="button" class="cx-done-head" onclick="toggleResolvedSection()" aria-controls="compliance-resolved-body-wrap" aria-expanded="false">
         <span>Documented</span>
         <span id="compliance-resolved-count" class="cx-count"></span>
         <span id="compliance-resolved-last" class="cx-done-last"></span>
@@ -5586,7 +5586,8 @@ const DOOR_INLINE_HANDLER_ALLOWLIST = {
   slotDropHeld: true,   // S1 review fold: put a refused box back
   smSlotSelect: true,
   slotSaveManual: true,
-  smSlotSaveManual: true
+  smSlotSaveManual: true,
+  cxToggleGroup: true   // compliance C2: Show N more / Show fewer
 };
 
 function _escJsAttrCall(functionName, args) {
@@ -9755,7 +9756,7 @@ async function batchConfirmCompliance() {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
   const rooms = [..._complianceSelected];
   if (!rooms.length) return;
-  if (!(await doorAsk({ title: 'Mark documented', lines: [`Record a note from Health & Wellness for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}? Each restriction that still needs one is marked documented. Their restrictions and meals don’t change.`], goLabel: 'Got the notes', cancelLabel: 'Go back' }))) return;
+  if (!(await doorAsk({ title: 'Got the notes', lines: [`Record a note from Health & Wellness for ${rooms.length} resident${rooms.length !== 1 ? 's' : ''}? Each restriction that still needs one is marked documented. Their restrictions and meals don’t change.`], goLabel: 'Got the notes', cancelLabel: 'Go back' }))) return;
   if (!ensureOperatorName()) { showToast('Nothing recorded: add your name first, so the record says who.'); return; }
   // The kitchen's newer list first; the answers are then marked as this computer's change (2026-10-18).
   await doorTakeNewerKitchenList();
@@ -9768,9 +9769,9 @@ async function batchConfirmCompliance() {
     if (!r) return;
     const st = doorComplianceStateOf(r);
     if (!st.needs.length) return;
+    done.push({ room, tags: st.needs.slice(), ask: r.docAsk ? JSON.parse(JSON.stringify(r.docAsk)) : null });
     pushResidentHistory(r, 'Documented: ' + st.needs.join(', '), by); // v30
     doorRecordDocs(r, st.needs, 'note', by, at, 'Marked with others');
-    done.push({ room, tags: st.needs.slice() });
     RECENT_LOG.unshift({ ts:new Date().toISOString(), date: dateStr, room, type: 'update', desc: `Documented ${st.needs.join(', ')} by ${by}`, color: '#2563eb', by });
   });
   _complianceSelected.clear();
@@ -9779,9 +9780,10 @@ async function batchConfirmCompliance() {
 }
 
 // compliance C3: "Remind me" in place of the typed-date prompt (F4). The reminder is the resident's complianceDeadline.
-async function batchSetDeadline(days) {
+async function batchSetDeadline(days, onlyRooms) {
   if (typeof doorSiteGuard === 'function' && !doorSiteGuard()) return false;   // G1: another site picked
-  const rooms = [..._complianceSelected];
+  // onlyRooms: one row's reminder (the row menu), which leaves the selection alone (C2 review P3-3).
+  const rooms = Array.isArray(onlyRooms) ? onlyRooms.slice() : [..._complianceSelected];
   if (!rooms.length) return;
   const n = Number(days) > 0 ? Number(days) : 7;
   await doorTakeNewerKitchenList();   // then marked as this computer's change (2026-10-18)
@@ -9791,7 +9793,7 @@ async function batchSetDeadline(days) {
     const r = REGISTRY_LIST.find(x => x.room === room);
     if (r) { prev.push({ room, deadline: r.complianceDeadline || '' }); r.complianceDeadline = on; }
   });
-  _complianceSelected.clear();
+  if (!Array.isArray(onlyRooms)) _complianceSelected.clear();
   setRegistryProvenance(); saveRegistryState(); renderComplianceView(); publishAndSync('batch deadline set');
   cxShowToast('Reminder set for ' + prev.length + ' room' + (prev.length !== 1 ? 's' : '') + ': ' + formatCompactDate(on) + '.', { kind: 'deadline', prev });
 }
@@ -9812,9 +9814,9 @@ async function batchPreferenceCompliance() {
     if (!r) return;
     const st = doorComplianceStateOf(r);
     if (!st.needs.length || st.anaph) return;
+    done.push({ room, tags: st.needs.slice(), ask: r.docAsk ? JSON.parse(JSON.stringify(r.docAsk)) : null });
     pushResidentHistory(r, 'Preference: ' + st.needs.join(', '), by);
     doorRecordDocs(r, st.needs, 'preference', by, at, 'Marked with others');
-    done.push({ room, tags: st.needs.slice() });
     RECENT_LOG.unshift({ ts: new Date().toISOString(), date: cxShortDate(), room, type: 'update', desc: `Preference: ${st.needs.join(', ')} by ${by}`, color: '#2563eb', by });
   });
   _complianceSelected.clear();
@@ -9873,10 +9875,9 @@ function openResidentHistory(room) {
 // v29: Print compliance list
 function printComplianceList() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const relevant = getComplianceResidents(false);
-  const filterEl = document.getElementById('compliance-filter');
-  const activeFilter = filterEl ? filterEl.value : 'all';
-  const filtered = activeFilter === 'all' ? relevant : relevant.filter(r => (r.tags || []).includes(activeFilter));
+  // C2 review P3-9: every outstanding room (the filter went with the table), anaphylactic rooms first
+  const filtered = getComplianceResidents(false).slice().sort((a, b) => (doorComplianceStateOf(a).anaph ? 0 : 1) - (doorComplianceStateOf(b).anaph ? 0 : 1) || a.room.localeCompare(b.room, undefined, { numeric: true }));
+  const activeFilter = 'all';
 
   const rows = filtered.map(r => {
     const reason = getComplianceReason(r);
@@ -10060,11 +10061,12 @@ async function cxUndoLast() {
   await doorTakeNewerKitchenList();
   const by = getOperatorName();
   if (u.kind === 'docs') {
-    u.done.forEach(({ room, tags }) => {
+    u.done.forEach(({ room, tags, ask }) => {
       const r = REGISTRY_LIST.find(x => x.room === room);
       if (!r) return;
       pushResidentHistory(r, 'Undone: ' + tags.join(', '), by);
       doorClearDocs(r, tags);
+      if (ask && !r.docAsk) r.docAsk = ask;   // C2 review P3-8: the answer had cleared it
     });
   } else if (u.kind === 'deadline') {
     u.prev.forEach(({ room, deadline }) => { const r = REGISTRY_LIST.find(x => x.room === room); if (r) r.complianceDeadline = deadline; });
@@ -10176,7 +10178,8 @@ function cxRowHtml(r, st, today) {
       ? '<button type="button" class="btn btn-ghost btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Answer…</button>'
       : '<button type="button" class="btn btn-mint btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Got the note…</button>')
     : '<button type="button" class="btn btn-ghost btn-sm cx-go" onclick="' + _escJsAttrCall('openResolveModal', [r.room]) + '">Open…</button>';
-  const sub = [cxReminderLine(r, st, today), st.done.length ? '<span class="cx-sub">Documented: ' + escapeHtml(st.done.join(', ')) + '</span>' : ''].filter(Boolean).join(' · ');
+  const sub = [cxReminderLine(r, st, today), st.done.length ? '<span class="cx-sub">Documented: ' + escapeHtml(st.done.join(', ')) + '</span>' : '',
+    r.moderateNote ? '<span class="cx-sub">Note: ' + escapeHtml(r.moderateNote) + '</span>' : ''].filter(Boolean).join(' · ');
   return `<div class="cx-item${st.anaph ? ' cx-item-anaph' : ''}" id="cx-row-${id}">
     <input type="checkbox" class="cx-pick" aria-label="Select room ${escapeHtml(r.room)}"${checked} onchange="${_escAttr('toggleComplianceSelect(' + _jsStringLiteral(r.room) + ',this.checked)')}">
     <span class="cx-room">${escapeHtml(r.room)}</span>
@@ -10195,9 +10198,7 @@ function cxRowHtml(r, st, today) {
   </div>`;
 }
 async function cxRemindRoom(room, days) {
-  _complianceSelected.clear();
-  _complianceSelected.add(room);
-  return batchSetDeadline(days);
+  return batchSetDeadline(days, [room]);
 }
 function renderComplianceView() {
   const wrap = document.getElementById('cx-groups');
@@ -10329,6 +10330,8 @@ function toggleResolvedSection() {
   const open = wrap.style.display === 'none';
   wrap.style.display = open ? 'block' : 'none';
   if (chevron) chevron.textContent = open ? 'Hide' : 'Show';
+  const head = document.querySelector('#compliance-resolved-section .cx-done-head');
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 let _resolveRoom = null;
@@ -10354,7 +10357,7 @@ function openResolveModal(room) {
     ask.hidden = false;
     q.textContent = 'What did Health & Wellness say about ' + (st.needs.length === 1 ? st.needs[0] : 'these') + '?';
     // More than one restriction: each can be answered on its own (all ticked by default).
-    tagBox.innerHTML = st.needs.length > 1 ? st.needs.map(t => `<label class="cx-tag"><input type="checkbox" class="settle-tag" value="${_escAttr(t)}" checked> ${escapeHtml(t)}</label>`).join('') : '';
+    tagBox.innerHTML = st.needs.length > 1 ? st.needs.map(t => `<label class="cx-tag"><input type="checkbox" class="settle-tag" value="${_escAttr(t)}" checked onchange="settleChoiceChanged()"> ${escapeHtml(t)}</label>`).join('') : '';
     tagBox.hidden = st.needs.length < 2;
     // Plan review P2-5: an anaphylactic room is never filed as a preference.
     const prefOpt = document.getElementById('settle-opt-preference');
@@ -10372,9 +10375,30 @@ function openResolveModal(room) {
         : 'Nothing here needs a note.';
   }
   document.getElementById('settle-resolved-by').value = getOperatorName();
+  document.getElementById('settle-resolved-by').style.borderColor = '';
   document.getElementById('settle-resolution-note').value = '';
   settleChoiceChanged();
+  _settleReturnFocus = document.activeElement;
   document.getElementById('settle-compliance-modal').classList.add('open');
+  // C2 review P3-1: focus moves into the question (the checked answer, else Save)
+  const first = document.querySelector('#settle-ask:not([hidden]) input[name=settle-how]:checked') || document.getElementById('settle-submit');
+  if (first && first.focus) first.focus();
+}
+let _settleReturnFocus = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const m = document.getElementById('settle-compliance-modal');
+    if (m && m.classList.contains('open')) { closeResolveModal(); return; }
+    const a = document.getElementById('cx-ask-modal');
+    if (a && a.classList.contains('open') && typeof cxCloseAsk === 'function') { cxCloseAsk(); return; }
+    // C2 review P3-2: the row menu closes on Escape (focus back on its button)
+    document.querySelectorAll('details.cx-more[open]').forEach(d => { d.removeAttribute('open'); const sm = d.querySelector('summary'); if (sm) sm.focus(); });
+  });
+  // the row menu closes on a click outside it or after a choice
+  document.addEventListener('click', e => {
+    document.querySelectorAll('details.cx-more[open]').forEach(d => { if (!d.contains(e.target) || (e.target.closest && e.target.closest('.cx-menu button'))) d.removeAttribute('open'); });
+  });
 }
 
 function settleChoiceChanged() {
@@ -10389,6 +10413,9 @@ function settleChoiceChanged() {
     else if (how === 'notneeded') { submit.textContent = 'Open the resident’s record'; submit.disabled = false; }
     else if (how === 'waiting') { submit.textContent = 'Set the reminder'; submit.disabled = false; }
     else { submit.textContent = 'Save' + (name ? ' · by ' + name : ''); submit.disabled = false; }
+    // C2 review P2-1: with the picker showing, nothing ticked means nothing to record (or to remind about).
+    const tagBox = document.getElementById('settle-tags');
+    if (asking && how !== 'notneeded' && tagBox && !tagBox.hidden && !document.querySelectorAll('.settle-tag:checked').length) submit.disabled = true;
   }
   const byWrap = document.getElementById('settle-by-wrap');
   const noteWrap = document.getElementById('settle-note-wrap');
@@ -10398,8 +10425,11 @@ function settleChoiceChanged() {
 }
 
 function closeResolveModal() {
-  document.getElementById('settle-compliance-modal').classList.remove('open');
+  const m = document.getElementById('settle-compliance-modal');
+  const wasOpen = m.classList.contains('open');
+  m.classList.remove('open');
   _resolveRoom = null;
+  if (wasOpen && typeof _settleReturnFocus !== 'undefined' && _settleReturnFocus && _settleReturnFocus.focus && document.contains(_settleReturnFocus)) _settleReturnFocus.focus();
 }
 
 // compliance C1: a restriction comes off only in the resident record, whose Save asks about allergens and the
@@ -10434,7 +10464,10 @@ async function submitResolve() {
   byEl.style.borderColor = '';
   if (resolvedBy && !getOperatorName()) setOperatorName(resolvedBy);
   const note = document.getElementById('settle-resolution-note').value.trim();
+  const pickerShown = !!document.querySelectorAll('.settle-tag').length;
   const picked = [...document.querySelectorAll('.settle-tag')].filter(i => i.checked).map(i => i.value);
+  // C2 review P2-1: the picker showing with nothing ticked records nothing (it used to record every restriction).
+  if (pickerShown && !picked.length && how !== 'waiting') { showToast('Pick at least one restriction.'); return; }
   const waitDays = Number((document.getElementById('settle-wait-days') || {}).value) || 7;
   // What the form says is read first and the form closes (so a second click can't resolve twice); then the kitchen's
   // newer list, and the answer lands on its record and is marked as this computer's change (2026-10-18).
@@ -10454,7 +10487,7 @@ async function submitResolve() {
   // the resident can never read resolved while still Provisional. Restrictions, routing and the anaphylactic list are
   // untouched. A preference is never recorded for an anaphylactic room (plan review P2-5).
   if (how === 'preference' && st.anaph) { showToast('Room ' + room + ' is anaphylactic: record a note from Health & Wellness instead.'); renderComplianceView(); return; }
-  const tags = (picked.length ? picked : st.needs).filter(t => st.needs.includes(t));
+  const tags = (pickerShown ? picked : st.needs).filter(t => st.needs.includes(t));
   if (!tags.length) { showToast('Room ' + room + ': nothing here needs a note now.'); renderComplianceView(); return; }
   pushResidentHistory(r, (how === 'preference' ? 'Preference: ' : 'Documented: ') + tags.join(', '), resolvedBy);
   doorRecordDocs(r, tags, how, resolvedBy, doorComplianceToday(), note);

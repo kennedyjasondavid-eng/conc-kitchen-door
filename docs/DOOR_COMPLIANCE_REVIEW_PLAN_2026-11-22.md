@@ -108,7 +108,7 @@ note are kept and shown, unchanged).
 |---|---|---|---|
 | Plan | reviewed 2026-11-22: GO WITH CHANGES, folded (§7) | — | — |
 | C1 | merged, `v31-standard.135` | #282 | `tests/compliance_docs_c1_gate.mjs` 11 (red 11/11 on `13e0aa2`), browser `compliance_docs_c1` 22 |
-| C2 + C3 | built together, `v31-standard.136` (one PR: the worklist's main button is the new question) | (this PR) | `tests/compliance_worklist_c2_gate.mjs` 7 (red 7/7 on `ed97d83`), browser `compliance_worklist` 52 |
+| C2 + C3 | built together, `v31-standard.136` (one PR: the worklist's main button is the new question) | (this PR) | `tests/compliance_worklist_c2_gate.mjs` 8 (red on `ed97d83`), browser `compliance_worklist` 60; reviewed (§9) |
 | C4 | — | — | — |
 
 ## 7. Plan review (independent, 2026-11-22): GO WITH CHANGES, folded into C1
@@ -155,3 +155,14 @@ older ReferenceError, raised as its own task); the compliance actions.
   list byte for byte (`anaph_recipe_binding`, `plain_plate_options`, `library_recipe_lookup_boundary`) put 801 back first,
   dated.
 - **P3-1** (accepted risk, rollout window) and **P3-5** (Re-open takes back every answer; it says so) recorded, not changed.
+
+## 9. C2 + C3 independent review (2026-11-22): FIX FIRST, folded
+
+- **P2-1** with the restriction picker showing and nothing ticked, Save recorded every restriction: now Save is grey and
+  nothing is recorded. Gated (node 8, browser).
+- **P3** folded: focus into the question and back, Escape closes (P3-1); the ⋯ menu closes on Escape, outside click or a
+  choice (P3-2); one row's reminder keeps the selection (P3-3); the H&W note on the row (P3-4); the name field's red border
+  resets (P3-5); one wording (P3-6); `aria-expanded` on Documented (P3-7); Undo keeps an earlier ask (P3-8); Print without
+  the dead filter, anaphylactic first (P3-9); the reminder re-pin is exact (P3-10).
+- Found by the full browser run: "Show N more" threw (`DOOR_INLINE_HANDLER_ALLOWLIST`); fixed and gated.
+- Still open for C4: an anaphylactic resident whose only restrictions are auto-tier reads Confirmed (as on `main`).

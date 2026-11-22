@@ -57,7 +57,7 @@ test('2. Confirm, Set Deadline and Resolve on a batch survive the other computer
   for (const [name, check] of [
     ['batchConfirmCompliance', (r) => r.confirm === 'Confirmed' && r.docs && r.docs['No Peanuts'] && r.docs['No Peanuts'].how === 'note'],
     // Re-pinned 2026-11-22 (compliance C3): Remind me in a week, not a typed date
-    ['batchSetDeadline', (r) => /^\d{4}-\d{2}-\d{2}$/.test(r.complianceDeadline || '') && r.complianceDeadline > '2026-10-18'],
+    ['batchSetDeadline', (r) => r.complianceDeadline === '2026-10-25'],   // a week after the harness clock (Oct 18), exactly
   ]) {
     const { a, b } = await morning(LIST(), ['213']);
     a._complianceSelected = new Set(['500']);

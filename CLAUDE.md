@@ -80,6 +80,13 @@ https://claude.ai/artifact/QQce1KzNL7KBk4QQ4SfAGz. For Fiona: clean, simple, sof
   every check on the worklist). Re-pinned with dated notes: `resident_changes_reach` (Remind me, not a typed date; the
   toast helpers in its sandbox), `compliance_docs_c1_gate` (its sandbox has the dialog helpers),
   `tests/helpers/door_two_computers.mjs` (`querySelector` in the sandbox document).
+- **Independent review (FIX FIRST), folded (plan §9):** with two or more restrictions and none ticked, Save is grey and
+  nothing is recorded (it recorded every one, P2-1); focus moves into the question, Escape closes it and focus goes back;
+  the ⋯ menu closes on Escape, a click outside or a choice; one row's reminder leaves the selection alone; the H&W note
+  shows on its row; Undo puts back an ask the answer cleared; Print lists anaphylactic rooms first (the dead filter code
+  is gone); one wording ("Got the notes"). Found by `readable_themes_gate`: "Show N more" threw, because its handler was
+  not on `DOOR_INLINE_HANDLER_ALLOWLIST` (now it is; the browser gate covers a group of more than six). Gate 8 checks,
+  browser 60.
 
 ## Recent (2026-11-22) — Compliance Review C1: documentation is kept per restriction (`v31-standard.135`)
 Plan `docs/DOOR_COMPLIANCE_REVIEW_PLAN_2026-11-22.md` (status owner, §6); Jason, 2026-11-22: review, mockups, then "Put a

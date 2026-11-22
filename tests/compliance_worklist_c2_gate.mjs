@@ -8,6 +8,7 @@
 //   5. the batch: Got the notes, It's a preference (skips an anaphylactic room), Remind me (no prompt)
 //   6. Undo takes the answers back on the kitchen newer list
 //   7. quiet saving: no page banner; a "Saved" beside the row
+//   8. C2 review: a picker with nothing ticked records nothing; one row's reminder keeps the selection; Undo keeps an ask
 // Authored to fail on main ed97d83.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -126,4 +127,30 @@ test('7. quiet saving: no page banner; a "Saved" beside the row', () => {
   assert.doesNotMatch(fn('updateComplianceField'), /compliance-pending-banner/);
   assert.doesNotMatch(fn('debouncedComplianceSave'), /compliance-pending-banner/);
   assert.match(fn('debouncedComplianceSave'), /'cx-saved-' \+ cxRoomId\(room\)[\s\S]*Saved ✓/);
+});
+
+test('8. C2 review: nothing ticked records nothing; a row reminder keeps the selection; Undo keeps an earlier ask', async () => {
+  // P2-1: two restrictions, the picker showing, both unticked
+  let c = box([R('300', ['GF', 'Diabetic'])], [], 'note', by);
+  const boxes = [{ value: 'GF', checked: false }, { value: 'Diabetic', checked: false }];
+  c.document.querySelectorAll = (sel) => (sel === '.settle-tag' || sel === '.settle-tag:checked' ? boxes.filter((b) => sel === '.settle-tag' || b.checked) : []);
+  c._resolveRoom = '300';
+  await c.submitResolve();
+  assert.deepEqual([c.__state()[0].docs, c.__sent || 0], [undefined, 0], 'nothing recorded, nothing sent');
+  boxes[1].checked = true;
+  c._resolveRoom = '300';
+  await c.submitResolve();
+  assert.deepEqual(Object.keys(c.__state()[0].docs), ['Diabetic'], 'only the ticked one');
+  // P3-3: one row's reminder leaves the selection alone
+  c = box([R('101', ['GF']), R('102', ['GF'])]);
+  c._complianceSelected.add('102');
+  await c.batchSetDeadline(7, ['101']);
+  assert.deepEqual([c.__state()[0].complianceDeadline, c.__state()[1].complianceDeadline || '', [...c._complianceSelected]], [c.cxDayPlus(7), '', ['102']]);
+  // P3-8: Undo of a batch answer puts back the ask the answer cleared
+  c = box([R('208', ['No Eggs'], { docAsk: { at: '2026-11-20', by: 'Fiona' } })]);
+  c._complianceSelected.add('208');
+  await c.batchConfirmCompliance();
+  assert.equal(c.__state()[0].docAsk, undefined, 'an answer clears the ask');
+  await c.cxUndoLast();
+  assert.deepEqual(out(c.__state()[0].docAsk), { at: '2026-11-20', by: 'Fiona' });
 });
