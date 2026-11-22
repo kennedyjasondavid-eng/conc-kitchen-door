@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — "Load everyone" sets up the resident list again (`v31-standard.135`)
+The resident-list import's **Load everyone** button (`seedRegistryFromRoster`) read `tagLabels`, which it never defined,
+so pressing it threw a ReferenceError and set up nothing. Each entry's labels now come from its parsed tags through
+`importTagLabels`, as `commitImportToQueue` does; the site guard stays first and the confirm logic is unchanged (the
+compliance C1 writer `doorApplyDocTags` is not on `main` yet; when it lands, this path should go through it too). Gate
+`tests/seed_registry_labels_gate.mjs` (4, red 3/4 on `main` `13e0aa2`).
+
 ## Recent (2026-11-22) — the sidebar keeps the resident count (`v31-standard.134`)
 Jason, 2026-11-22: the Review page showed 169 residents while the sidebar read "no resident list yet" and "—". The list
 is drawn before the site is set at start-up, and `updateResidentCountDisplays` dropped the count at its site check;
