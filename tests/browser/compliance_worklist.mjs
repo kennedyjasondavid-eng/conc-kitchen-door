@@ -87,11 +87,19 @@ try {
     await page.keyboard.press('Escape');
     check(width + ' C2 review: Escape closes the question, focus back on the row', await page.evaluate(() => !document.getElementById('settle-compliance-modal').classList.contains('open') && document.activeElement && document.activeElement.closest && !!document.activeElement.closest('#cx-row-SYN-1')));
     // C3 It's a preference, and Still waiting
+    // 2026-11-22 (v31-standard.141, Jason: "All choices should be clear about outcomes"): a preference changes no plate.
+    const plates = () => page.evaluate(() => { const out = []; for (const w of [1, 2]) for (const d of ['MONDAY', 'TUESDAY', 'WEDNESDAY']) for (const p of ['breakfast', 'lunch', 'dinner']) {
+      const pd = computePlatingData(p, w, d); out.push(buildPlatingHtml(pd, false), JSON.stringify(pd.sections.map(x => [x.rule.key, x.residents.map(r => r.room)]))); } return out.join('\n'); });
+    const platesBefore = await plates();
     await page.evaluate(() => openResolveModal('SYN-6'));
+    check(width + ' C3 each choice says what it does to meals', await page.evaluate(() => /Meals already follow every restriction/.test(document.querySelector('.cx-meals-line').textContent)
+      && /Meals don’t change/.test(document.getElementById('settle-opt-preference').textContent)
+      && /Changes meals/.test(document.querySelector('input[name=settle-how][value=notneeded]').closest('label').textContent)));
     check(width + ' C3 a preference room opens on "It\'s a preference"', await page.evaluate(() => document.querySelector('input[name=settle-how]:checked').value === 'preference'));
     await page.click('#settle-submit');
     await page.waitForFunction(() => REGISTRY_MAP['syn-6'].confirm === 'Confirmed');
     check(width + ' C3 recorded as a preference', await page.evaluate(() => REGISTRY_MAP['syn-6'].docs['No Spicy'].how === 'preference'));
+    check(width + ' C3 the plating sheets are the same after a preference', (await plates()) === platesBefore);
     await page.evaluate(() => openResolveModal('SYN-7'));
     await page.check('input[name=settle-how][value=waiting]');
     await page.selectOption('#settle-wait-days', '14');
