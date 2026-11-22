@@ -56,13 +56,14 @@ const R = (room, tags, extra) => Object.assign({ room, tags, section: 'Regular',
 const note = (by = 'Fiona', ts = '2026-11-20T15:00:00.000Z') => ({ how: 'note', by, at: ts.slice(0, 10), ts });
 const onScreen = (c) => out(c.getComplianceResidents(false)).map((r) => r.room).sort();
 
+// Re-pinned 2026-11-22 (v31-standard.140): No Pork is self-declared (Jason: "we don't usually request docs for no pork"), so No Spicy is the preference example.
 test('1. the core: kept per restriction on an update, re-opened by a new one, nothing carried to a new person', () => {
   assert.ok(hasCore, 'the compliance-docs core is in index.html');
   const c = box();
-  const r = R('410', ['GF', 'No Pork'], { docs: { GF: note(), 'No Pork': { how: 'preference', by: 'Fiona', at: '2026-11-20', ts: '2026-11-20T15:00:00.000Z' } } });
-  c.doorApplyDocTags(r, ['GF', 'No Pork', 'Halal'], {});
-  assert.deepEqual([r.confirm, Object.keys(r.docs).sort()], ['Confirmed', ['GF', 'No Pork']], 'an auto-tier tag needs no answer');
-  c.doorApplyDocTags(r, ['GF', 'No Pork', 'No Eggs'], {});
+  const r = R('410', ['GF', 'No Spicy'], { docs: { GF: note(), 'No Spicy': { how: 'preference', by: 'Fiona', at: '2026-11-20', ts: '2026-11-20T15:00:00.000Z' } } });
+  c.doorApplyDocTags(r, ['GF', 'No Spicy', 'Halal', 'No Pork'], {});
+  assert.deepEqual([r.confirm, Object.keys(r.docs).sort()], ['Confirmed', ['GF', 'No Spicy']], 'an auto-tier tag (Halal, No Pork) needs no answer');
+  c.doorApplyDocTags(r, ['GF', 'No Spicy', 'No Eggs'], {});
   assert.equal(r.confirm, 'Provisional', 'No Eggs needs a note');
   c.doorApplyDocTags(r, ['GF'], {});
   assert.deepEqual([r.confirm, Object.keys(r.docs)], ['Confirmed', ['GF']], 'answers for restrictions that went are dropped');
@@ -75,6 +76,7 @@ test('1. the core: kept per restriction on an update, re-opened by a new one, no
   assert.equal(c.doorDocState(R('y', ['No Pork', 'No Spicy', 'Halal']), '2026-11-22', false).group, 'preference');
   assert.equal(c.doorDocState(R('z', ['Diabetic', 'No Pork']), '2026-11-22', false).group, 'medical');
   assert.equal(c.doorDocState(R('w', ['No Pork']), '2026-11-22', true).group, 'anaph');
+  assert.deepEqual(c.doorDocState(R('v', ['No Pork']), '2026-11-22', false).needs, [], 'No Pork is self-declared (2026-11-22)');
 });
 
 test('2. S1: a new intake over a documented room reads Provisional and is on the screen', async () => {
@@ -147,11 +149,12 @@ test('6. P1-2: an older build that overwrote the room in place: the last person\
   assert.equal(r2.confirm, 'Confirmed');
 });
 
+// Re-pinned 2026-11-22 (v31-standard.140): No Pork is self-declared (Jason: "we don't usually request docs for no pork"), so No Spicy is the preference example.
 test('7. P2-3: an older build\'s Confirmed becomes answers; the normaliser runs again without changing anything', () => {
   const c = box();
-  const r = R('707', ['Diabetic', 'No Pork'], { confirm: 'Confirmed', docs: { Diabetic: note() }, complianceResolvedBy: 'JK' });
+  const r = R('707', ['Diabetic', 'No Spicy'], { confirm: 'Confirmed', docs: { Diabetic: note() }, complianceResolvedBy: 'JK' });
   assert.equal(c.doorMigrateDocs(r, '2026-11-22', '2026-11-22T12:00:00.000Z'), true);
-  assert.deepEqual([r.confirm, r.docs['No Pork'].migrated, r.docs['No Pork'].by], ['Confirmed', true, 'JK']);
+  assert.deepEqual([r.confirm, r.docs['No Spicy'].migrated, r.docs['No Spicy'].by], ['Confirmed', true, 'JK']);
   const once = JSON.stringify(r);
   assert.equal(c.doorMigrateDocs(r, '2026-11-23', '2026-11-23T12:00:00.000Z'), false);
   assert.equal(JSON.stringify(r), once, 'idempotent');
@@ -203,7 +206,8 @@ test('10. history and revert carry the answers; the diff names them; the digest 
   assert.ok(!fn('draftComplianceDigest').includes("'\\\\n\\\\n'"), 'no literal backslash-n in the copied text');
 });
 
-test('11. today\'s list: the screen still shows 52, and 801 (resolved May 3) is documented for No Spicy only', () => {
+// Re-pinned 2026-11-22 (v31-standard.140): the rooms whose only restriction needing a note was No Pork now read Confirmed and leave the screen.
+test('11. today\'s list: the screen shows the rest, and 801 (resolved May 3) is documented for No Spicy only', () => {
   const state = JSON.parse(fs.readFileSync(new URL('../door_state.json', import.meta.url), 'utf8'));
   const c = box(state.residents, state.anaphRooms || []);
   const before = out(c.__state()).map((r) => r.room + ':' + r.confirm).join('|');
@@ -213,8 +217,13 @@ test('11. today\'s list: the screen still shows 52, and 801 (resolved May 3) is 
     assert.deepEqual(Object.keys(r801.docs), ['No Spicy'].filter((t) => (r801.tags || []).includes(t)), 'only what the resolution named');
   }
   const changed = out(c.__state()).map((r) => r.room + ':' + r.confirm).join('|');
+  const AUTO = new Set(['Regular', 'Halal', 'Vegan', 'Vegetarian', 'No Beef', 'No Fish', 'No Turkey', 'No Mushroom', 'No Nightshades', 'No Brassicas', 'No Beans', 'Lactose Intolerant', 'No Pork']);
+  const anaph = new Set(state.anaphRooms || []);
+  const porkOnly = new Set(state.residents.filter((r) => !anaph.has(r.room) && !r.isAnaph && (r.tags || []).includes('No Pork') && (r.tags || []).every((t) => AUTO.has(t))).map((r) => r.room));
   const moved = before.split('|').filter((x, i) => x !== changed.split('|')[i]);
-  assert.ok(moved.length <= 1, 'at most 801 changes status: ' + moved);
+  const unexpected = moved.filter((x) => !porkOnly.has(x.split(':')[0]));
+  assert.ok(unexpected.length <= 1, 'besides the No Pork rooms, at most 801 changes status: ' + unexpected);
+  out(c.__state()).filter((r) => porkOnly.has(r.room)).forEach((r) => assert.equal(r.confirm, 'Confirmed', 'No Pork only: ' + r.room));
   const n = onScreen(c).length;
-  assert.ok(n >= 40 && n <= 60, 'about 52 on the screen: ' + n);
+  assert.ok(n >= 25 && n <= 45, 'about 36 on the screen: ' + n);
 });

@@ -70,12 +70,13 @@ test('2. the one question: four answers, Confirmed first; no preference for an a
   assert.match(fn('openResolveModal'), /prefOpt\.hidden = st\.anaph/, 'the preference answer hides for an anaphylactic room');
 });
 
+// Re-pinned 2026-11-22 (v31-standard.140): No Pork is self-declared (Jason: "we don't usually request docs for no pork"), so No Spicy is the preference example.
 test('3. It\'s a preference records a preference; Still waiting sets a reminder and records nothing', async () => {
-  let c = box([R('115', ['No Pork', 'Halal'])], [], 'preference', by);
+  let c = box([R('115', ['No Spicy', 'Halal'])], [], 'preference', by);
   c._resolveRoom = '115';
   await c.submitResolve();
   let r = c.__state()[0];
-  assert.deepEqual([r.confirm, r.docs['No Pork'].how, r.docs['No Pork'].by], ['Confirmed', 'preference', 'Fiona']);
+  assert.deepEqual([r.confirm, r.docs['No Spicy'].how, r.docs['No Spicy'].by], ['Confirmed', 'preference', 'Fiona']);
   // never for an anaphylactic room, even when asked
   c = box([R('213', ['No Tree Nuts'], { isAnaph: true })], ['213'], 'preference', by);
   c._resolveRoom = '213';
@@ -96,8 +97,9 @@ test('4. Not needed any more opens the resident record and writes nothing here',
   assert.deepEqual([c.__opened, c.__state()[0].docs, c.__sent || 0], [['512'], undefined, 0]);
 });
 
+// Re-pinned 2026-11-22 (v31-standard.140): No Pork is self-declared (Jason: "we don't usually request docs for no pork"), so No Spicy is the preference example.
 test('5. the batch: notes, preferences (never an anaphylactic room), a reminder with no prompt', async () => {
-  let c = box([R('101', ['GF']), R('102', ['No Pork']), R('213', ['No Tree Nuts'], { isAnaph: true })], ['213']);
+  let c = box([R('101', ['GF']), R('102', ['No Spicy']), R('213', ['No Tree Nuts'], { isAnaph: true })], ['213']);
   ['101', '102', '213'].forEach((x) => c._complianceSelected.add(x));
   await c.batchPreferenceCompliance();
   const st = out(c.__state());

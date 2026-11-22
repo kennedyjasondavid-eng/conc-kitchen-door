@@ -184,3 +184,12 @@ Jason, 2026-11-22: "Fix the anaphylactic auto-tier gap too". For a resident on t
 are anaphylactic to needs a note whatever its tier: the room's anaphylactic tags when set, else every restriction that
 names a meal flag (as containment reads it). `COMPLIANCE_TIERS` is unchanged; nobody else moves; today's list moves no
 one. Gate `tests/compliance_anaph_allergen_gate.mjs`.
+
+## 12. No Pork is self-declared (2026-11-22, `v31-standard.140`)
+
+Jason, 2026-11-22: "we don't usually request docs for no pork". `COMPLIANCE_TIERS` moves No Pork from doc to auto (as
+Halal); the "Usually a preference" group is now No Spicy only. On today's list the 16 rooms whose only restriction
+needing a note was No Pork read Confirmed and leave the worklist. Found while doing it: an anaphylactic room whose
+restrictions name no allergen (only Halal or No Pork, say) read nothing to do; it now reads "no allergen recorded" and is
+listed with the anaphylactic rooms, whether or not anaphylactic tags were picked (`doorDocAnaphNoAllergen`). No
+anaphylactic room on today's list moves. Gate `tests/compliance_anaph_allergen_gate.mjs` 8 (red on `main` `be3fe33`).
