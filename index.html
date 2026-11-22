@@ -962,7 +962,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.138';
+const DOOR_APP_VERSION = 'v31-standard.139';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -5703,11 +5703,11 @@ async function revertResident(room, historyIndex) {
   // compliance C1: the answers follow the restrictions put back (a snapshot from before C1 keeps the current answers for
   // restrictions still present), and the status is worked out again rather than taken from the snapshot.
   if (target.docs !== undefined && target.docAsk === undefined) delete r.docAsk;
-  doorApplyDocTags(r, r.tags, {});
   // Sync anaph rooms. A revert only ever adds (2026-10-18): a snapshot's isAnaph can be false for a room on the
   // anaphylactic list (one room: an import reset the flag), and taking the room off silently ended its lockout.
   // Taking a room off stays a deliberate act: the resident editor's checkbox or the anaphylactic list's Remove.
   if (r.isAnaph && !anaphRooms.includes(r.room)) anaphRooms.push(r.room);
+  doorApplyDocTags(r, r.tags, {});   // after the list (2026-11-22 review P2)
   // Log
   const _d = new Date();
   const _dl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()] + ' ' + _d.getDate();
@@ -6663,11 +6663,11 @@ async function saveRegistryEdit() {
   r.serviceNote = notes;
   typeof doorApplyBreakfastNote === 'function' && doorApplyBreakfastNote(r, { breakfastNote }, false);   // U3 S1
   r.rawRestriction = tagLabels.join(', ') || 'Regular';
-  doorApplyDocTags(r, r.tags, {});   // compliance C1: keeps the answers for the restrictions it keeps
 
   // Anaph rooms list
   if (isAnaph && !anaphRooms.includes(room)) anaphRooms.push(room);
   if (!isAnaph) { const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+  doorApplyDocTags(r, r.tags, {});   // compliance C1, after the list (2026-11-22 review P2): keeps the answers it can
 
   // Persist + publish
   setRegistryProvenance();
@@ -11246,6 +11246,8 @@ async function addAnaphRoom() {
   // The kitchen's newer list first, then the room is marked as this computer's change (2026-10-18).
   await doorTakeNewerKitchenList();
   if (!anaphRooms.includes(room)) anaphRooms.push(room);
+  // its anaphylactic allergens now need a note (2026-11-22 review P2)
+  REGISTRY_LIST.filter(r => r.room === room).forEach(r => doorApplyDocTags(r, r.tags, {}));
   renderAnaphList();
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
   setRegistryProvenance();
@@ -11260,7 +11262,7 @@ async function removeAnaphRoom(room) {
   if (!(await doorAskTakeOffAnaphList(room))) return;
   await doorTakeNewerKitchenList();
   anaphRooms = anaphRooms.filter(r => r !== room);
-  REGISTRY_LIST.filter(r => r.room === room).forEach(r => { r.isAnaph = false; r.anaphTags = []; });
+  REGISTRY_LIST.filter(r => r.room === room).forEach(r => { r.isAnaph = false; r.anaphTags = []; doorApplyDocTags(r, r.tags, {}); });
   renderAnaphList();
   try { localStorage.setItem('conc-door-anaph', JSON.stringify(anaphRooms)); } catch(e) {}
   setRegistryProvenance();
@@ -17026,6 +17028,45 @@ function doorDocNeededTags(tags) {
     return !tier || tier === 'doc';
   });
 }
+// Jason, 2026-11-22 ("Fix the anaphylactic auto-tier gap too"): for a resident on the anaphylactic list, each allergen
+// they are anaphylactic to needs a note from Health & Wellness whatever its tier, so No Fish or No Beef (self-declared for
+// anyone else) is never read as documented for an anaphylactic room. The allergens are the ones containment reads: the
+// room's anaphylactic tags when set, else every restriction that names a meal flag (as getAnaphDisplayAllergens).
+function doorDocIsAnaph(r) {
+  return !!(r && (r.isAnaph || (typeof doorIsAnaphResident === 'function' && doorIsAnaphResident(r))));
+}
+function doorDocAnaphAllergens(r, tagsIn) {
+  const tags = tagsIn || (r && r.tags) || [];
+  if (r && Array.isArray(r.anaphTags) && r.anaphTags.length) {
+    const map = (typeof TAG_LABELS_MAP === 'object' && TAG_LABELS_MAP) ? TAG_LABELS_MAP : {};
+    const labels = new Set(r.anaphTags.map(k => map[k] || k));
+    return tags.filter(t => labels.has(t));
+  }
+  const isAllergen = (t) => (typeof anaphTagMealFlags === 'function')
+    ? anaphTagMealFlags(t).length > 0
+    : (DOOR_DOC_ALLERGY_TAGS.has(t) || t === 'No Beef' || t === 'No Nightshades');
+  return tags.filter(t => t && t !== 'Regular' && isAllergen(t));
+}
+// What needs a note for this resident: the doc-tier restrictions, and for an anaphylactic resident their anaphylactic
+// allergens too. anaph: true/false overrides the record (the caller already knows), undefined reads it.
+// An anaphylactic room with no allergen recorded: no restriction at all, or picked anaphylactic tags none of which is
+// among its restrictions (containment still acts on the picked tag; the record must name it). 2026-11-22 review P3-1.
+function doorDocAnaphNoAllergen(r, tagsIn, anaph) {
+  const isAnaph = (anaph === undefined) ? doorDocIsAnaph(r) : !!anaph;
+  if (!isAnaph) return false;
+  const tags = tagsIn || (r && r.tags) || [];
+  if (!tags.some(t => t && t !== 'Regular')) return true;
+  return !!(r && Array.isArray(r.anaphTags) && r.anaphTags.length && !doorDocAnaphAllergens(r, tags).length);
+}
+function doorDocNeededFor(r, tagsIn, anaph) {
+  const tags = tagsIn || (r && r.tags) || [];
+  const base = doorDocNeededTags(tags);
+  const isAnaph = (anaph === undefined) ? doorDocIsAnaph(r) : !!anaph;
+  if (!isAnaph) return base;
+  const want = new Set([...base, ...doorDocAnaphAllergens(r, tags)]);
+  const seen = new Set();
+  return tags.filter(t => want.has(t) && !seen.has(t) && seen.add(t));
+}
 function doorDocRecords(r) {
   return (r && r.docs && typeof r.docs === 'object' && !Array.isArray(r.docs)) ? r.docs : {};
 }
@@ -17034,9 +17075,10 @@ function doorDocIsRecord(d) {
 }
 function doorDerivedConfirm(r, tagsIn) {
   const tags = tagsIn || (r && r.tags) || [];
-  const needed = doorDocNeededTags(tags);
+  const needed = doorDocNeededFor(r, tags);
   if (!needed.length) {
     const hasRestriction = tags.some(t => t && t !== 'Regular');
+    if (hasRestriction && doorDocAnaphNoAllergen(r, tags)) return { confirm: 'Provisional', confirmBy: (r && r.confirm === 'Provisional' && r.confirmBy) || '—' };
     if (hasRestriction) return { confirm: 'Confirmed', confirmBy: 'Auto' };
     // A resident with no restriction reads N/A; an anaphylactic one keeps Provisional (autoPromoteAutoTier, 2026-10-18).
     // (review P3-2: from the anaphylactic flag itself, so a new anaphylactic intake with no allergen recorded is listed)
@@ -17066,7 +17108,7 @@ function doorApplyDocTags(r, tagLabels, opts) {
     r.complianceResolutionNote = '';
     r.complianceResolvedRestrictions = '';
   }
-  const needed = new Set(doorDocNeededTags(tagLabels || r.tags || []));
+  const needed = new Set(doorDocNeededFor(r, tagLabels || r.tags || []));
   const kept = {};
   const docs = doorDocRecords(r);
   Object.keys(docs).forEach(t => { if (needed.has(t) && doorDocIsRecord(docs[t])) kept[t] = docs[t]; });
@@ -17080,7 +17122,7 @@ function doorApplyDocTags(r, tagLabels, opts) {
 // Records an answer for each tag given (only tags that need a note); returns the tags recorded.
 function doorRecordDocs(r, tags, how, by, atIso, line, tsIso) {
   if (!r || (how !== 'note' && how !== 'preference')) return [];
-  const needed = new Set(doorDocNeededTags(r.tags));
+  const needed = new Set(doorDocNeededFor(r, r.tags));
   const docs = Object.assign({}, doorDocRecords(r));
   const done = [];
   (tags || []).forEach(t => {
@@ -17116,14 +17158,14 @@ function doorDocParseDay(iso) {
 }
 // The one reader. todayIso is YYYY-MM-DD (local).
 function doorDocState(r, todayIso, isAnaph) {
-  const needed = doorDocNeededTags(r && r.tags);
+  const needed = doorDocNeededFor(r, r && r.tags, isAnaph === undefined ? undefined : !!isAnaph);
   const docs = doorDocRecords(r);
   const needs = needed.filter(t => !doorDocIsRecord(docs[t]));
   const done = needed.filter(t => doorDocIsRecord(docs[t]));
   const anaph = !!isAnaph;
   // An anaphylactic resident whose restriction names no allergen (plan review P2-4): listed with the anaphylactic rooms,
   // fixed in the resident record, never cleared from here.
-  const anaphNoAllergen = anaph && !(r && r.tags || []).some(t => t && t !== 'Regular');
+  const anaphNoAllergen = !needed.length && doorDocAnaphNoAllergen(r, r && r.tags, anaph);
   let group = anaphNoAllergen ? 'anaph' : '';
   if (needs.length) {
     if (anaph) group = 'anaph';
@@ -17157,7 +17199,7 @@ function doorMigrateDocs(r, todayIso, nowIso) {
   if (!r || typeof r !== 'object') return false;
   const before = JSON.stringify([r.docs, r.confirm, r.confirmBy, r._docsResolvedSig]);
   const now = nowIso || new Date().toISOString();
-  const needed = doorDocNeededTags(r.tags);
+  const needed = doorDocNeededFor(r, r.tags);
   const docs = Object.assign({}, doorDocRecords(r));
   const intakeTs = doorDocIntakeTs(r);
   if (intakeTs) Object.keys(docs).forEach(t => { const d = docs[t]; if (!d || typeof d.ts !== 'string' || d.ts <= intakeTs) delete docs[t]; });
@@ -27031,9 +27073,10 @@ async function commitIntakeQueue() {
       r.moderateNote = r.moderateNote || '';
       r.complianceDeadline = r.complianceDeadline || '';
       // compliance C1: a new intake is a new person (the last one's answers and resolved mark go); an update keeps them.
-      doorApplyDocTags(r, q.tags, { newPerson: q.type === 'intake' });
       if (r.isAnaph && !anaphRooms.includes(q.room)) anaphRooms.push(q.room);
       if (!r.isAnaph) { const ai = anaphRooms.indexOf(q.room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+      // after the anaphylactic list is updated, which decides what needs a note (2026-11-22 review P2)
+      doorApplyDocTags(r, q.tags, { newPerson: q.type === 'intake' });
       if (!existing) { REGISTRY_LIST.push(r); REGISTRY_MAP[q.room.toLowerCase()] = r; }
       const logDesc = existing ? 'Updated \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route : 'New intake \u2014 ' + (q.tags.join(', ') || 'Regular') + ' \u2192 ' + q.route;
       logQueueCommit(q, logDesc, existing ? '#2563eb' : '#16a34a');
@@ -27188,10 +27231,10 @@ async function saveDirectFromForm() {
   r.moderateNote = r.moderateNote || '';
   r.complianceDeadline = r.complianceDeadline || '';
   // compliance C1: a new intake is a new person (the last one's answers and resolved mark go); an update keeps them.
-  doorApplyDocTags(r, r.tags, { newPerson: type === 'intake' });
-
   if (isAnaph && !anaphRooms.includes(room)) anaphRooms.push(room);
   if (!isAnaph) { const ai = anaphRooms.indexOf(room); if (ai !== -1) anaphRooms.splice(ai, 1); }
+  // after the anaphylactic list is updated, which decides what needs a note (2026-11-22 review P2)
+  doorApplyDocTags(r, r.tags, { newPerson: type === 'intake' });
 
   if (!existing) {
     REGISTRY_LIST.push(r);

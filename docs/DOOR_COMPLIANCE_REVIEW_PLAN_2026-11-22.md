@@ -177,3 +177,10 @@ older ReferenceError, raised as its own task); the compliance actions.
   rooms ("Next: 3 rooms with allergies"); the email dialog takes focus and gives it back; the subject leads the message
   and the copy fallback speaks to a phone. Noted, not changed: "New resident since" compares a UTC date to today (a
   14-day window; harmless).
+
+## 11. Follow-up: an anaphylactic allergen always needs a note (2026-11-22, `v31-standard.139`)
+
+Jason, 2026-11-22: "Fix the anaphylactic auto-tier gap too". For a resident on the anaphylactic list, each allergen they
+are anaphylactic to needs a note whatever its tier: the room's anaphylactic tags when set, else every restriction that
+names a meal flag (as containment reads it). `COMPLIANCE_TIERS` is unchanged; nobody else moves; today's list moves no
+one. Gate `tests/compliance_anaph_allergen_gate.mjs`.
