@@ -53,6 +53,13 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — the sidebar keeps the resident count (`v31-standard.134`)
+Jason, 2026-11-22: the Review page showed 169 residents while the sidebar read "no resident list yet" and "—". The list
+is drawn before the site is set at start-up, and `updateResidentCountDisplays` dropped the count at its site check;
+`selectSite` then wrote the dash over it. The count is kept before the check, and `selectSite` passes it on
+(`_doorSiteShownCount`). An empty list reads as no list ("—"), as `.53` meant. Display only. Gate
+`tests/sidebar_count_kept_gate.mjs` (3, red 3/3 on `main` `4a95bcb`).
+
 ## Recent (2026-11-22) — the breakfast note box no longer fills in a saved login (`v31-standard.133`)
 Jason, 2026-11-22: the breakfast note box filled in his saved login name. The browser's password manager paired the
 free-text box with DOOR's connection-key field. Both note boxes (`#change-breakfast-note`, `#ce-breakfast-note`) now have

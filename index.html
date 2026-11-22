@@ -876,8 +876,8 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.133';
-const DOOR_BUILD_DATE = '2026-11-20';
+const DOOR_APP_VERSION = 'v31-standard.134';
+const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
   menu_reno: 2,
@@ -2502,10 +2502,11 @@ function doorRefreshSites() {
 }
 
 function updateResidentCountDisplays(liveCount) {
-  if (!currentSite) return;
+  // 2026-11-22: the count is kept before the site check, so a list drawn before the site is set is not lost.
   _doorSiteShownCount = liveCount;
+  if (!currentSite) return;
   const isRexdale = currentSite.key === 'rexdale';
-  const hasLiveCount = isRexdale && Number.isInteger(liveCount) && liveCount >= 0;
+  const hasLiveCount = isRexdale && Number.isInteger(liveCount) && liveCount > 0;   // an empty list reads as no list
   // 2026-11-07: no resident list yet shows "—", never the site's planning number (Rexdale read "181" on a computer with no list).
   const count = hasLiveCount ? liveCount : '—';
 
@@ -2571,9 +2572,8 @@ function selectSite(siteKey) {
   // The sidebar picker is built from the registry each time (a paused site stays while it is selected)
   doorRenderSitePicker();
 
-  // Use the configured count until the live registry has loaded. renderRegistry()
-  // replaces Rexdale's placeholder with the real local registry count.
-  updateResidentCountDisplays();
+  // 2026-11-22: keep the count of the list already drawn (a dash only while there is no list).
+  updateResidentCountDisplays(_doorSiteShownCount);
 
   // Update DEFAULT_SETTINGS SharePoint paths
   DEFAULT_SETTINGS['sp-plating'] = currentSite.spPlating;
