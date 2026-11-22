@@ -53,6 +53,18 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-22) — No Pork needs no note (`v31-standard.140`)
+Jason, 2026-11-22: "we don't usually request docs for no pork". `COMPLIANCE_TIERS` files No Pork as self-declared (auto,
+as Halal); the worklist's "Usually a preference" group is No Spicy only. On today's list 16 rooms whose only restriction
+needing a note was No Pork read Confirmed and leave Compliance Review. An anaphylactic room whose restrictions name no
+allergen (only Halal or No Pork, say) now reads "no allergen recorded" and stays listed, with or without picked
+anaphylactic tags (`doorDocAnaphNoAllergen`); no anaphylactic room on today's list moves. Gate
+`tests/compliance_anaph_allergen_gate.mjs` 8 (red on `main` `be3fe33`). Re-pinned with dated notes (No Spicy is the
+preference example): `compliance_docs_c1_gate` 1, 7, 11; `compliance_nudges_c4_gate` 1, 4; `compliance_worklist_c2_gate`
+3, 5; browser `compliance_worklist` (70); `tag_table_consistency_gate` census and rules doc §4 (No Pork auto); browser
+`library_recipe_lookup_boundary`, `anaph_recipe_binding` and `plain_plate_options` put the No Pork rooms' stored status
+back before comparing with their baseline build (as they do for 801).
+
 ## Recent (2026-11-22) — an anaphylactic allergen always needs a note (`v31-standard.139`)
 Jason, 2026-11-22: "Fix the anaphylactic auto-tier gap too" (left open by the Compliance Review line, plan §11). A resident
 anaphylactic to fish whose only restriction was No Fish (self-declared in `COMPLIANCE_TIERS`, as No Beef and No

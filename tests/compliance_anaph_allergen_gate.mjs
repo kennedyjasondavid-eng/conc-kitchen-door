@@ -7,6 +7,7 @@
 //   4. anaphylactic tags picked: only those (anaphylactic to peanuts: No Fish stays self-declared)
 //   5. a note documents it; an older build's Auto Confirmed is never read as documented; off the list, the note goes
 //   6. the badge and the nudge count it; today's list moves no anaphylactic room
+//   8. No Pork is self-declared (2026-11-22, .140); an anaphylactic room naming no allergen still listed
 //   7. review fold: a picked allergen missing from the restrictions is listed as no allergen recorded; the writers work
 //      the status out after the anaphylactic list changes
 // Authored to fail on main 6e662bc.
@@ -111,4 +112,16 @@ test('7. review fold: a picked allergen not among the restrictions; the status f
     assert.ok(iList > 0 && body.lastIndexOf('doorApplyDocTags(') > iList, name + ' works the status out after the list');
   }
   for (const name of ['addAnaphRoom', 'removeAnaphRoom']) assert.match(fn(name), /doorApplyDocTags\(r, r\.tags, \{\}\)/, name);
+});
+
+test('8. No Pork is self-declared (v31-standard.140); an anaphylactic room with only No Pork reads no allergen recorded', () => {
+  const r = R('411', ['No Pork']);
+  const c = box([r], []);
+  c.doorApplyDocTags(r, r.tags, {});
+  assert.deepEqual([r.confirm, listed(c)], ['Confirmed', []], 'Jason, 2026-11-22: "we don\'t usually request docs for no pork"');
+  const a = R('412', ['No Pork', 'Halal'], { isAnaph: true });
+  const c2 = box([a], ['412']);
+  c2.doorApplyDocTags(a, a.tags, {});
+  const st = c2.doorComplianceStateOf(a);
+  assert.deepEqual([a.confirm, st.anaphNoAllergen, st.group, listed(c2)], ['Provisional', true, 'anaph', ['412']]);
 });

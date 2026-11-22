@@ -12,14 +12,15 @@ let pw; try { pw = createRequire(import.meta.url)('playwright'); } catch { pw = 
 const { chromium } = pw;
 const source = path.resolve(process.env.COMPLIANCE_HTML || 'index.html');
 const shots = process.env.COMPLIANCE_SHOTS || '';
+// Re-pinned 2026-11-22 (v31-standard.140): No Pork is self-declared, so SYN-1 and SYN-6 carry No Spicy as the preference.
 const residents = [
-  { room: 'SYN-1', tags: ['GF', 'No Pork'], rawRestriction: 'GF, No Pork', section: 'Gluten Free', confirm: 'Provisional', confirmBy: '—' },
+  { room: 'SYN-1', tags: ['GF', 'No Spicy'], rawRestriction: 'GF, No Spicy', section: 'Gluten Free', confirm: 'Provisional', confirmBy: '—' },
   { room: 'SYN-2', tags: ['Halal', 'No Eggs'], rawRestriction: 'Halal, No Eggs', section: 'Halal', confirm: 'Provisional', confirmBy: '—' },
   { room: 'SYN-3', tags: ['Soft Meals', 'No Tree Nuts'], rawRestriction: 'Soft Meals, No Tree Nuts', section: 'Soft Meals', isAnaph: true, anaphTags: ['noTreeNuts'], confirm: 'Provisional', confirmBy: '—' },
   { room: 'SYN-4', tags: ['Diabetic'], rawRestriction: 'Diabetic', section: 'Diabetic', confirm: 'Confirmed', confirmBy: 'Fiona',
     docs: { Diabetic: { how: 'note', by: 'Fiona', at: '2026-11-20', ts: '2026-11-20T15:00:00.000Z' } } },
   { room: 'SYN-5', tags: ['Regular'], rawRestriction: 'Regular', section: 'Regular', confirm: 'N/A', confirmBy: 'Auto' },
-  { room: 'SYN-6', tags: ['No Pork', 'Halal'], rawRestriction: 'No Pork, Halal', section: 'Halal', confirm: 'Provisional', confirmBy: '—' },
+  { room: 'SYN-6', tags: ['No Spicy', 'Halal'], rawRestriction: 'No Spicy, Halal', section: 'Halal', confirm: 'Provisional', confirmBy: '—' },
   { room: 'SYN-7', tags: ['Low Sodium'], rawRestriction: 'Low Sodium', section: 'Regular', confirm: 'Provisional', confirmBy: '—' },
 ];
 const results = []; const check = (name, pass, detail) => { results.push(!!pass); console.log((pass ? 'PASS ' : 'FAIL ') + name + (!pass ? ' ' + JSON.stringify(detail) : '')); };
@@ -48,7 +49,7 @@ try {
     check(width + ' C2 groups in order: anaphylactic, allergies, medical diets, usually a preference', JSON.stringify(v.map(g => g.title)) === JSON.stringify(['Anaphylactic · ask first', 'Allergies', 'Medical diets', 'Usually a preference']), v.map(g => g.title));
     check(width + ' C1 the anaphylactic room first and marked', v[0].rows.length === 1 && v[0].rows[0].room === 'SYN-3' && v[0].rows[0].anaph, v[0]);
     const flat = v.flatMap(g => g.rows);
-    check(width + ' C1 only the restrictions needing a note are amber (No Eggs, not Halal)', JSON.stringify(flat.flatMap(r => r.need).sort()) === JSON.stringify(['GF', 'Low Sodium', 'No Eggs', 'No Pork', 'No Pork', 'No Tree Nuts', 'Soft Meals'].sort()), flat);
+    check(width + ' C1 only the restrictions needing a note are amber (No Eggs, not Halal)', JSON.stringify(flat.flatMap(r => r.need).sort()) === JSON.stringify(['GF', 'Low Sodium', 'No Eggs', 'No Spicy', 'No Spicy', 'No Tree Nuts', 'Soft Meals'].sort()), flat);
     check(width + ' C1 documented SYN-4 is not listed', !flat.some(r => r.room === 'SYN-4'));
     check(width + ' C2 one main action per row ("Got the note…", "Answer…" for a preference)', flat.every(r => r.go === (r.room === 'SYN-6' ? 'Answer…' : 'Got the note…')), flat.map(r => r.go));
     const prog = await page.locator('#cx-progress').innerText();
@@ -81,7 +82,7 @@ try {
     await page.focus('#cx-row-SYN-1 .cx-go');
     await page.click('#cx-row-SYN-1 .cx-go');
     check(width + ' C2 review: focus moves into the question', await page.evaluate(() => document.activeElement && document.activeElement.name === 'settle-how'));
-    await page.uncheck('.settle-tag[value="GF"]'); await page.uncheck('.settle-tag[value="No Pork"]');
+    await page.uncheck('.settle-tag[value="GF"]'); await page.uncheck('.settle-tag[value="No Spicy"]');
     check(width + ' C2 review: nothing ticked, Save is grey', await page.locator('#settle-submit').isDisabled());
     await page.keyboard.press('Escape');
     check(width + ' C2 review: Escape closes the question, focus back on the row', await page.evaluate(() => !document.getElementById('settle-compliance-modal').classList.contains('open') && document.activeElement && document.activeElement.closest && !!document.activeElement.closest('#cx-row-SYN-1')));
@@ -90,7 +91,7 @@ try {
     check(width + ' C3 a preference room opens on "It\'s a preference"', await page.evaluate(() => document.querySelector('input[name=settle-how]:checked').value === 'preference'));
     await page.click('#settle-submit');
     await page.waitForFunction(() => REGISTRY_MAP['syn-6'].confirm === 'Confirmed');
-    check(width + ' C3 recorded as a preference', await page.evaluate(() => REGISTRY_MAP['syn-6'].docs['No Pork'].how === 'preference'));
+    check(width + ' C3 recorded as a preference', await page.evaluate(() => REGISTRY_MAP['syn-6'].docs['No Spicy'].how === 'preference'));
     await page.evaluate(() => openResolveModal('SYN-7'));
     await page.check('input[name=settle-how][value=waiting]');
     await page.selectOption('#settle-wait-days', '14');

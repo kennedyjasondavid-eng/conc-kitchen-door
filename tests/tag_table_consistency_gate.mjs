@@ -102,7 +102,7 @@ test('the compliance tiers name GF, the tag, and keep it documented (Jason, 2026
 // The census: docs/DOOR_ROUTING_RULES_2026-10-18.md §4, one row per tag. [set, section key (opens on), conflict flag,
 // noted flags, lockout flags, tier ('doc*' = not listed)]. Re-pin it with the rules table when a ruling changes a tag.
 const CENSUS = {
-  'Halal': ['routing', 'halal', '', '', '', 'auto'], 'No Pork': ['routing', 'halal', 'hasPork', '', '', 'doc'],
+  'Halal': ['routing', 'halal', '', '', '', 'auto'], 'No Pork': ['routing', 'halal', 'hasPork', '', '', 'auto'], // 2026-11-22 (.140): self-declared
   'Diabetic': ['routing', 'diabetic', '', '', '', 'doc'], 'Vegetarian': ['routing', 'vegan', '', '', '', 'auto'],
   'Vegan': ['routing', 'vegan', '', '', '', 'auto'], 'Low Sodium': ['accommodation', '', '', '', '', 'doc'],
   'GF': ['routing', 'gf', 'hasGluten', 'hasGluten', 'hasGluten', 'doc'],

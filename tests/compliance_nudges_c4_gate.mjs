@@ -38,11 +38,12 @@ function box(reg, rooms = []) {
 const R = (room, tags, extra) => Object.assign({ room, tags, section: 'Regular', rawRestriction: tags.join(', '), confirm: 'Provisional', confirmBy: '—' }, extra || {});
 const T = '2026-11-22';
 
+// Re-pinned 2026-11-22 (v31-standard.140): No Pork is self-declared (Jason: "we don't usually request docs for no pork"), so No Spicy is the preference example.
 test('1. the nudge rises: red, amber, else calm in the order to ask', () => {
   const c = box([]);
   const it = (room, tags, extra, anaph) => ({ room, st: c.doorDocState(R(room, tags, extra), T, !!anaph) });
   assert.equal(c.doorDocNudge([], T), null, 'nothing outstanding, no nudge');
-  const calm = c.doorDocNudge([it('101', ['Diabetic']), it('213', ['No Tree Nuts'], {}, true), it('102', ['No Pork'])], T);
+  const calm = c.doorDocNudge([it('101', ['Diabetic']), it('213', ['No Tree Nuts'], {}, true), it('102', ['No Spicy'])], T);
   assert.deepEqual([calm.level, calm.group, calm.rooms], ['calm', 'anaph', ['213']], 'anaphylactic first');
   const asked = c.doorDocNudge([it('213', ['No Tree Nuts'], { docAsk: { at: '2026-11-21' }, complianceDeadline: '2026-11-28' }, true), it('101', ['GF'])], T);
   assert.deepEqual([asked.group, asked.rooms, asked.asked], ['allergy', ['101'], 0], 'asked and waiting is not asked again');
@@ -51,7 +52,7 @@ test('1. the nudge rises: red, amber, else calm in the order to ask', () => {
   const red = c.doorDocNudge([it('101', ['GF'], { complianceDeadline: '2026-11-20' }), it('213', ['No Tree Nuts'], { complianceDeadline: '2026-11-21' }, true)], T);
   assert.deepEqual([red.level, red.rooms], ['red', ['213']], 'an anaphylactic room past its reminder rises to red');
   const pref = c.doorDocNudge([it('102', ['No Pork']), it('103', ['No Spicy', 'Halal'])], T);
-  assert.deepEqual([pref.group, pref.rooms.length], ['preference', 2]);
+  assert.deepEqual([pref.group, pref.rooms], ['preference', ['103']], 'No Pork alone needs no note');
   const waiting = c.doorDocNudge([it('101', ['GF'], { docAsk: { at: '2026-11-21' }, complianceDeadline: '2026-11-29' })], T);
   assert.equal(waiting.kind, 'waiting');
 });
@@ -81,11 +82,11 @@ test('3. Mark as asked: who and when, a reminder a week out, Undo puts it back',
 test('4. the email is in the page, grouped by what to ask, rooms only', () => {
   assert.doesNotMatch(fn('draftComplianceDigest'), /window\.open/, 'no popup window');
   assert.ok(html.includes('id="cx-ask-modal"') && html.includes('onclick="cxMarkAsked()"'));
-  const c = box([R('213', ['No Tree Nuts'], { isAnaph: true, name: 'Should Not Appear' }), R('101', ['GF', 'Halal']), R('115', ['No Pork'])], ['213']);
+  const c = box([R('213', ['No Tree Nuts'], { isAnaph: true, name: 'Should Not Appear' }), R('101', ['GF', 'Halal']), R('115', ['No Spicy', 'No Pork'])], ['213']);
   const t = c.cxAskText(['213', '101', '115']);
   assert.match(t.body, /Anaphylactic:\n  Room 213 — No Tree Nuts \(anaphylactic\)/);
   assert.match(t.body, /Allergies:\n  Room 101 — GF\n/);
-  assert.match(t.body, /Possible preferences[^\n]*:\n  Room 115 — No Pork/);
+  assert.match(t.body, /Possible preferences[^\n]*:\n  Room 115 — No Spicy\n/);
   assert.doesNotMatch(t.body, /Halal|Should Not Appear/, 'only what needs a note; no names');
   assert.equal(t.subject, 'Dietary notes needed for 3 residents (Rexdale)');
 });

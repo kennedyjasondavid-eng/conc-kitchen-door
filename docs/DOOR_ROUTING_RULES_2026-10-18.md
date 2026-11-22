@@ -83,7 +83,7 @@ Column meanings:
 | Tag | Residents | Set | Section (opens on) | Conflict | Line note | Lockout | Compliance | Gap |
 |---|---|---|---|---|---|---|---|---|
 | Halal | 37 | routing | halal (pork; non-halal meat) | – | – | not offered | auto | |
-| No Pork | 18 | routing | halal (pork only, 2026-10-19) | hasPork | – | not offered | doc | |
+| No Pork | 18 | routing | halal (pork only, 2026-10-19) | hasPork | – | not offered | auto (2026-11-22) | |
 | Diabetic | 16 | routing | diabetic (diabeticAlt; was isCarb) | – | "extra veg less starch" on every row; on the Regular notes, on a starchy meal | not offered | doc | |
 | Vegetarian | 7 | routing | vegan (always) | – | – | not offered | auto | |
 | Low Sodium | 6 | accom | – | – | – | not offered | doc | F6 |

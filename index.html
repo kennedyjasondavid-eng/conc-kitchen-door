@@ -962,7 +962,7 @@ try { if (localStorage.getItem('kdo-dark')) document.documentElement.setAttribut
 <script>
 // ===== DOOR APP VERSION / CONTRACT STAMPS =====
 // Staff-visible app stamp. Published JSON files remain their own contract authority.
-const DOOR_APP_VERSION = 'v31-standard.139';
+const DOOR_APP_VERSION = 'v31-standard.140';
 const DOOR_BUILD_DATE = '2026-11-22';
 const DOOR_SCHEMA_VERSIONS = Object.freeze({
   menu_current: 32,
@@ -10073,7 +10073,7 @@ const CX_GROUPS = [
   { key: 'anaph', title: 'Anaphylactic · ask first', why: 'Already kept off their allergens at every meal' },
   { key: 'allergy', title: 'Allergies', why: '' },
   { key: 'medical', title: 'Medical diets', why: '' },
-  { key: 'preference', title: 'Usually a preference', why: 'Only No Pork or No Spicy; no note expected' },
+  { key: 'preference', title: 'Usually a preference', why: 'Only No Spicy; no note expected' },
 ];
 const CX_GROUP_ROWS = 6;
 const _cxOpenGroups = new Set();
@@ -10157,7 +10157,7 @@ function cxRenderNudge(items, today) {
           + (n.noAllergen.length < n.rooms.length ? ' The others are already kept off their allergens; the note makes it official.' : '')
         : 'They are already kept off their allergens; the note makes it official.';
     } else if (n.group === 'preference') {
-      head = n.rooms.length + ' room' + (n.rooms.length !== 1 ? 's are' : ' is') + ' only No Pork or No Spicy.';
+      head = n.rooms.length + ' room' + (n.rooms.length !== 1 ? 's are' : ' is') + ' only No Spicy.';
       body = 'These are usually preferences. Check with the residents, then select them and choose It’s a preference.';
     } else {
       head = 'Next: ' + n.rooms.length + (n.group === 'allergy' ? (n.rooms.length === 1 ? ' room with an allergy' : ' rooms with allergies') : (n.rooms.length === 1 ? ' room with a medical diet' : ' rooms with medical diets')) + '.';
@@ -16967,12 +16967,12 @@ const COMPLIANCE_TIERS = {
   'No Nightshades':     'auto',  // Dietary preference
   'No Brassicas':       'auto',  // Dietary preference
   'No Beans':           'auto',  // Preference
+  'No Pork':            'auto',  // Religious / lifestyle. Jason, 2026-11-22: "we don't usually request docs for no pork" (was doc)
 
   // Documentation required — stay Provisional
   // GF is the resident tag; this table listed "Gluten Free" (the section's name), which no resident has, so GF was doc-tier
   // by default. Jason, 2026-10-18 (the routing audit): keep GF doc-tier. Named here so the table says what it does.
   'GF':                 'doc',
-  'No Pork':            'doc',   // Could be Halal (self-declared, auto) but may also be a non-religious dietary restriction requiring confirmation; flag for review
   'No Shellfish':       'doc',   // Potential anaphylactic allergen
   'No Peanuts':         'doc',   // Potential anaphylactic allergen
   'No Eggs':            'doc',   // Allergen
@@ -17018,7 +17018,7 @@ const DOOR_DOC_ALLERGY_TAGS = new Set(['GF', 'No Dairy', 'No Eggs', 'No Fish', '
   'No Tree Nuts', 'No Soy', 'No Sesame', 'No Mustard', 'No Sulphites', 'No Coconut', 'No Corn', 'No Oats']);
 // Jason, 2026-11-22: a preference can clear an item, and No Spicy usually has no note. A resident whose only
 // restrictions needing a note are these sits in the "usually a preference" group.
-const DOOR_DOC_PREFERENCE_TAGS = new Set(['No Pork', 'No Spicy']);
+const DOOR_DOC_PREFERENCE_TAGS = new Set(['No Spicy']);   // No Pork is self-declared since v31-standard.140
 function doorDocNeededTags(tags) {
   const seen = new Set();
   return (tags || []).filter(t => {
@@ -17056,7 +17056,9 @@ function doorDocAnaphNoAllergen(r, tagsIn, anaph) {
   if (!isAnaph) return false;
   const tags = tagsIn || (r && r.tags) || [];
   if (!tags.some(t => t && t !== 'Regular')) return true;
-  return !!(r && Array.isArray(r.anaphTags) && r.anaphTags.length && !doorDocAnaphAllergens(r, tags).length);
+  // v31-standard.140: any restriction set naming none of the allergens (Halal, No Pork) is no allergen recorded, with or
+  // without picked anaphylactic tags. Before, only an empty list was, which No Pork being doc-tier hid.
+  return !doorDocAnaphAllergens(r, tags).length;
 }
 function doorDocNeededFor(r, tagsIn, anaph) {
   const tags = tagsIn || (r && r.tags) || [];
