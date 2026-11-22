@@ -55,6 +55,9 @@ test('U1-6 routing: the section counts of the four meals are what plating gave b
   const sections = (w, d, p) => Object.fromEntries(Object.entries(r[w][d][p]).filter(([k]) => k !== '_components'));
   const total = (o) => Object.values(o).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
   for (const [w, d, p] of [['1', 'FRIDAY', 'dinner'], ['4', 'SUNDAY', 'lunch'], ['4', 'MONDAY', 'lunch'], ['4', 'SATURDAY', 'lunch']]) assert.ok(total(sections(w, d, p)) > 0, 'every resident still has a plate');
-  assert.equal(r['4'].SUNDAY.lunch._components.Tzatziki, 150, 'the vegan plate no longer gets the tzatziki');
+  // 2026-11-22 (re-pinned: it held the live count, 150, so every resident change on a publish turned it red):
+  // the vegan plate no longer gets the tzatziki, so the tzatziki goes to everyone the naan goes to, less the vegan plate.
+  const m = r['4'].SUNDAY.lunch;
+  assert.equal(m._components.Tzatziki, m._components.Naan - m['Vegan / Vegetarian'], 'the vegan plate no longer gets the tzatziki');
 });
 
