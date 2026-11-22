@@ -61,7 +61,9 @@ allergen (only Halal or No Pork, say) now reads "no allergen recorded" and stays
 anaphylactic tags (`doorDocAnaphNoAllergen`); no anaphylactic room on today's list moves. Gate
 `tests/compliance_anaph_allergen_gate.mjs` 8 (red on `main` `be3fe33`). Re-pinned with dated notes (No Spicy is the
 preference example): `compliance_docs_c1_gate` 1, 7, 11; `compliance_nudges_c4_gate` 1, 4; `compliance_worklist_c2_gate`
-3, 5; browser `compliance_worklist` (70); `tag_table_consistency_gate` census and rules doc §4 (No Pork auto).
+3, 5; browser `compliance_worklist` (70); `tag_table_consistency_gate` census and rules doc §4 (No Pork auto); browser
+`library_recipe_lookup_boundary`, `anaph_recipe_binding` and `plain_plate_options` put the No Pork rooms' stored status
+back before comparing with their baseline build (as they do for 801).
 
 ## Recent (2026-11-22) — an anaphylactic allergen always needs a note (`v31-standard.139`)
 Jason, 2026-11-22: "Fix the anaphylactic auto-tier gap too" (left open by the Compliance Review line, plan §11). A resident

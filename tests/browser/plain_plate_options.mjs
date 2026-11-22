@@ -69,6 +69,8 @@ try {
  // (_halalDishFlags), which the baseline build does not; tests/halal_dish_box_gate.mjs owns that note, switched off here.
  // 2026-11-22 (compliance C1): the normaliser documents room 801 for No Spicy from its May 3 resolution (its one intended change on today's list, owned by tests/compliance_docs_c1_gate.mjs 11); that record is put back first.
  await current.b.page.evaluate(()=>{REGISTRY_LIST.forEach(r=>{if(r._docsResolvedSig){delete r.docs;delete r._docsResolvedSig;r.confirm='Provisional';r.confirmBy='Auto';}});});
+ // 2026-11-22 (v31-standard.140, No Pork is self-declared): No Pork rooms that now read Confirmed get their stored status back.
+ await current.b.page.evaluate(orig=>{const by=Object.fromEntries(orig.map(o=>[o.room,o]));REGISTRY_LIST.forEach(r=>{const o=by[r.room];if(o&&(r.tags||[]).includes('No Pork')&&r.confirm!==o.confirm){r.confirm=o.confirm;r.confirmBy=o.confirmBy;}});},files['door_state.json'].residents);
  await current.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});const pf=window.doorPlateFacts;window.doorPlateFacts=(...a)=>{const f=pf(...a);if(f&&f.mealFlags)delete f.mealFlags._halalDishFlags;return f;};});
  const withSwap=await snapshot(current.b);
  await current.b.page.evaluate(()=>{window.doorYoghurtSwapFor=()=>false;});
