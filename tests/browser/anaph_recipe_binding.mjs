@@ -75,8 +75,10 @@ try {
  }
  // 2026-11-22 (compliance C1): the normaliser documents room 801 for No Spicy from its May 3 resolution (its one intended change on today's list, owned by tests/compliance_docs_c1_gate.mjs 11); that record is put back first.
  // 2026-11-22 (v31-standard.140): No Pork is self-declared, so No Pork rooms may read Confirmed; their stored status is put back too.
+ // 2026-11-24: the Nov 23 publish stored 801's documented answer, so the put-back now restores each such record's
+ // documentation fields to exactly what door_state.json holds (it used to assume the undocumented May record).
  const _orig=Object.fromEntries(files['door_state.json'].residents.map(o=>[o.room,o]));
- const c1PutBack=(list)=>list.map(r=>{let x=r;if(x._docsResolvedSig){x=clone(x);delete x.docs;delete x._docsResolvedSig;x.confirm='Provisional';x.confirmBy='Auto';}
+ const c1PutBack=(list)=>list.map(r=>{let x=r;if(x._docsResolvedSig){x=clone(x);const o=_orig[x.room]||{};for(const k of ['docs','_docsResolvedSig','confirm','confirmBy']){if(k in o)x[k]=clone(o[k]);else delete x[k];}}
   const o=_orig[x.room];if(o&&(x.tags||[]).includes('No Pork')&&x.confirm!==o.confirm){x=clone(x);x.confirm=o.confirm;x.confirmBy=o.confirmBy;}return x;});
  check('all current residents and anaphylactic authority preserved',JSON.stringify(c1PutBack(candidate['door_state.json'].residents))===JSON.stringify(files['door_state.json'].residents)&&JSON.stringify(candidate['door_state.json'].anaphRooms)===JSON.stringify(files['door_state.json'].anaphRooms));
  check('last daily import provenance is retained',['lastImportDate','lastImportFile','lastImportCount'].every(k=>candidate['door_state.json'][k]===files['door_state.json'][k]));

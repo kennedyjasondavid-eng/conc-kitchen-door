@@ -68,7 +68,9 @@ try {
  // 2026-11-20 (publication 47, Jason: "Follow lean"): the halal section notes read the halal dish box
  // (_halalDishFlags), which the baseline build does not; tests/halal_dish_box_gate.mjs owns that note, switched off here.
  // 2026-11-22 (compliance C1): the normaliser documents room 801 for No Spicy from its May 3 resolution (its one intended change on today's list, owned by tests/compliance_docs_c1_gate.mjs 11); that record is put back first.
- await current.b.page.evaluate(()=>{REGISTRY_LIST.forEach(r=>{if(r._docsResolvedSig){delete r.docs;delete r._docsResolvedSig;r.confirm='Provisional';r.confirmBy='Auto';}});});
+ // 2026-11-24: the Nov 23 publish stored 801's documented answer, so the put-back now restores each such record's
+ // documentation fields to exactly what door_state.json holds (it used to assume the undocumented May record).
+ await current.b.page.evaluate(orig=>{const by=Object.fromEntries(orig.map(o=>[o.room,o]));REGISTRY_LIST.forEach(r=>{if(!r._docsResolvedSig)return;const o=by[r.room]||{};for(const k of ['docs','_docsResolvedSig','confirm','confirmBy']){if(k in o)r[k]=JSON.parse(JSON.stringify(o[k]));else delete r[k];}});},files['door_state.json'].residents);
  // 2026-11-22 (v31-standard.140, No Pork is self-declared): No Pork rooms that now read Confirmed get their stored status back.
  await current.b.page.evaluate(orig=>{const by=Object.fromEntries(orig.map(o=>[o.room,o]));REGISTRY_LIST.forEach(r=>{const o=by[r.room];if(o&&(r.tags||[]).includes('No Pork')&&r.confirm!==o.confirm){r.confirm=o.confirm;r.confirmBy=o.confirmBy;}});},files['door_state.json'].residents);
  await current.b.page.evaluate(()=>{window.doorBreakfastNoteText=()=>'';window.doorPlatingBreakfastNotes=()=>({});const pf=window.doorPlateFacts;window.doorPlateFacts=(...a)=>{const f=pf(...a);if(f&&f.mealFlags)delete f.mealFlags._halalDishFlags;return f;};});
