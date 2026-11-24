@@ -53,6 +53,16 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-24) — the Pages deploy builds and deploys in two jobs, and tries the deploy twice (workflow only)
+Jason, 2026-11-24: Rex's Week 1 sheet changed Wk1 FRI lunch from Potato Salad to Potato Hash, and EXPO showed no change.
+DOOR's publish reached `main` (13:45), but every Pages run since went red: `upload-pages-artifact` finished and
+`deploy-pages`, a second later, found no `github-pages` artifact. Pages kept serving the Nov 23 menu, and EXPO reads
+DOOR's menu through Pages (6 of DOOR's last 10 runs, and about half of EXPO's one-job runs, failed this way; HUB's
+two-job deploy never did). `.github/workflows/pages.yml` now has a `build` job and a `deploy` job (`needs: build`, as
+HUB's `deploy.yml`), and a failed deploy waits 45 s and tries once more; a second failure keeps the run red. Served files
+unchanged. Gate `tests/pages_deploy_retry_gate.mjs` (4, red 4/4 on `main` `95a69bb`); re-pinned with a dated note:
+`c2b_ci_selection_gate` (`needs: build` is the one `needs:` allowed; delivery still depends on no test).
+
 ## Recent (2026-11-22) — every Compliance Review choice says what it does to meals (`v31-standard.141`)
 Jason, 2026-11-22: "All choices should be clear about outcomes. If clicking just a preference means the plating sheet
 won't take it seriously then that needs to be clear." It doesn't: an answer is paperwork (`r.docs`); no plate, label or

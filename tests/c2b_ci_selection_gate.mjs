@@ -64,6 +64,9 @@ test('C2b one existing required job retains complete Node suite and independent 
   const advisory=steps.find(s=>s.startsWith('Review architect-set menu decisions'));
   assert.match(advisory,/if: \$\{\{ !cancelled\(\) \}\}/);assert.match(advisory,/continue-on-error: true/);
   const pages=fs.readFileSync(new URL('../.github/workflows/pages.yml',import.meta.url),'utf8');
-  assert.ok(!/^\s+needs:/m.test(pages),'Pages remains independent');
+  // Re-pinned 2026-11-24 (Pages deploy race, tests/pages_deploy_retry_gate.mjs): the deploy job now needs its own build
+  // job, as HUB's deploy.yml does. That is the only `needs:` allowed; delivery still depends on no test.
+  const needs=pages.match(/^\s+needs:.*$/gm)||[];
+  assert.deepEqual(needs.map(x=>x.trim()),['needs: build'],'Pages remains independent');
   assert.ok(!pages.includes('ci_door_scope'),'browser scope cannot gate delivery');
 });

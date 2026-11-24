@@ -48,12 +48,13 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Two jobs, as HUB's deploy.yml (2026-11-24). With upload and deploy in one job, deploy-pages often looked for the
+# artifact before GitHub listed it ("No artifacts named github-pages were found"): DOOR failed 6 of its last 10 runs
+# that way and EXPO's one-job pages.yml about half of its runs; HUB's two-job deploy did not fail once. `needs: build`
+# is the only `needs:` here: delivery still depends on no test (tests/c2b_ci_selection_gate.mjs).
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -79,8 +80,30 @@ jobs:
         with:
           path: _site
 
-      # Build, upload and deploy share one runner allocation. Test results in the
-      # separate safety workflow are never a dependency of public delivery.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
+    steps:
+      # Test results in the separate safety workflow are never a dependency of public delivery.
+      #
+      # Deploy retries once (2026-11-24), a backstop to the two jobs. On Nov 22 and Nov 24 the upload succeeded and
+      # deploy-pages, a second later, said "No artifacts named github-pages were found". The run went red, Pages kept
+      # serving the Nov 23 menu, and EXPO (which reads DOOR through Pages) never saw Rex's Week 1 import (Wk1 FRI lunch
+      # stayed Potato Salad, not Potato Hash). A second try after a wait deploys the same artifact; if it also fails,
+      # the run stays red. Gate: tests/pages_deploy_retry_gate.mjs.
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Wait before trying the deploy again
+        if: ${{ steps.deployment.outcome == 'failure' }}
+        run: sleep 45
+
+      - name: Deploy to GitHub Pages (second try)
+        id: deployment_retry
+        if: ${{ steps.deployment.outcome == 'failure' }}
         uses: actions/deploy-pages@v4

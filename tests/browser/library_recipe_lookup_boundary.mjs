@@ -49,7 +49,9 @@ try {
   // 2026-11-20 (publication 47, Jason: "Follow lean"): the halal section notes read the halal dish box
  // (_halalDishFlags), which the baseline build does not; tests/halal_dish_box_gate.mjs owns that note, switched off here.
  // 2026-11-22 (compliance C1): the normaliser documents room 801 for No Spicy from its May 3 resolution (its one intended change on today's list, owned by tests/compliance_docs_c1_gate.mjs 11); that record is put back first.
- await b.b.page.evaluate(()=>{REGISTRY_LIST.forEach(r=>{if(r._docsResolvedSig){delete r.docs;delete r._docsResolvedSig;r.confirm='Provisional';r.confirmBy='Auto';}});});
+ // 2026-11-24: the Nov 23 publish stored 801's documented answer, so the put-back now restores each such record's
+ // documentation fields to exactly what door_state.json holds (it used to assume the undocumented May record).
+ await b.b.page.evaluate(orig=>{const by=Object.fromEntries(orig.map(o=>[o.room,o]));REGISTRY_LIST.forEach(r=>{if(!r._docsResolvedSig)return;const o=by[r.room]||{};for(const k of ['docs','_docsResolvedSig','confirm','confirmBy']){if(k in o)r[k]=JSON.parse(JSON.stringify(o[k]));else delete r[k];}});},files['door_state.json'].residents);
  // 2026-11-22 (v31-standard.140, Jason: "we don't usually request docs for no pork"): No Pork is self-declared, so the
  // rooms whose only restriction needing a note was No Pork now read Confirmed (owned by tests/compliance_anaph_allergen_gate.mjs 8 and compliance_docs_c1_gate 11); their stored status is put back here.
  await b.b.page.evaluate(orig=>{const by=Object.fromEntries(orig.map(o=>[o.room,o]));REGISTRY_LIST.forEach(r=>{const o=by[r.room];if(o&&(r.tags||[]).includes('No Pork')&&r.confirm!==o.confirm){r.confirm=o.confirm;r.confirmBy=o.confirmBy;}});},files['door_state.json'].residents);
