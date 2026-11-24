@@ -1,5 +1,111 @@
 [
   {
+    "id": 1795527905050,
+    "timestamp": "2026-11-24T13:45:05.050Z",
+    "site": "rexdale",
+    "by": "JK",
+    "type": "permanent_edit",
+    "week": "1",
+    "day": "FRIDAY",
+    "period": "breakfast",
+    "oldName": "Turkey & Cheese and Eggs, Yogurt",
+    "newName": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
+    "flags": {
+      "hasGluten": true,
+      "hasDairy": true,
+      "hasEgg": true,
+      "hasFish": false,
+      "hasPeanuts": false,
+      "hasSoy": false,
+      "hasTreeNuts": false,
+      "hasSesame": false,
+      "hasMustard": false,
+      "hasShellfish": false,
+      "hasSulphites": false,
+      "hasPork": false,
+      "hasBeef": false,
+      "hasChicken": false,
+      "hasTurkey": true,
+      "isSpicy": false,
+      "isCarb": true,
+      "halalCertifiedMeat": true,
+      "hasProcessedMeat": false,
+      "hasCoconut": false,
+      "hasMushroom": false,
+      "hasBrassicas": false,
+      "hasCorn": false,
+      "hasNightshades": false,
+      "hasBeans": false
+    },
+    "before": {
+      "": "Turkey & Cheese and Eggs, Yogurt",
+      "_veg": "Oatmeal, Yogurt",
+      "_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": true,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": true,
+        "isSpicy": false,
+        "isCarb": false,
+        "halalCertifiedMeat": true,
+        "hasProcessedMeat": false,
+        "hasBeans": false,
+        "hasMushroom": false,
+        "hasCoconut": false,
+        "hasNightshades": false,
+        "hasBrassicas": false,
+        "hasCorn": false
+      },
+      "_mainItem": "Turkey & Cheese and Eggs",
+      "_mainAlt": "",
+      "_sides": "Yogurt",
+      "_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
+      "_noPorkAlt": "",
+      "_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt",
+      "_altMeals": [
+        {
+          "text": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
+          "type": "plain",
+          "flags": {}
+        }
+      ],
+      "_altMealsNone": false,
+      "_slots": {
+        "main": {
+          "manual": "Turkey & Cheese and Eggs",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasTurkey": true
+          }
+        },
+        "veganalt": {
+          "manual": "Oatmeal",
+          "flags": {}
+        },
+        "xtra": {
+          "manual": "Yogurt",
+          "flags": {}
+        }
+      }
+    },
+    "afterSig": "{\"\":\"Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, roll\",\"_altMeals\":[{\"flags\":{},\"text\":\"Soft Scrambled Eggs, DF Yoghurt & Fruit\",\"type\":\"plain\"}],\"_flags\":[\"halalCertifiedMeat\",\"hasDairy\",\"hasEgg\",\"hasGluten\",\"hasTurkey\",\"isCarb\"],\"_gfAlt\":\"Gluten-free oatmeal, jam, lactose-free yoghurt\",\"_mainItem\":\"Turkey\",\"_sides\":\"Cheese and Eggs yoghurt, fruit & yoghurt, roll\",\"_slots\":{\"main\":{\"flags\":{\"hasDairy\":true,\"hasEgg\":true,\"hasGluten\":true,\"hasTurkey\":true},\"manual\":\"Turkey & Cheese and Eggs\"},\"veganalt\":{\"flags\":{},\"manual\":\"Oatmeal\"},\"xtra\":{\"flags\":{},\"manual\":\"Yogurt\"}},\"_softAlt\":\"Soft Scrambled Eggs, DF Yoghurt & Fruit\",\"_veg\":\"Oatmeal, fruit & yoghurt, roll\"}",
+    "first": true,
+    "via": "rex-week"
+  },
+  {
     "id": 1795527905041,
     "timestamp": "2026-11-24T13:45:05.041Z",
     "site": "rexdale",
@@ -1067,40 +1173,6 @@
       "hasCorn": false,
       "hasNightshades": false,
       "hasBeans": false
-    },
-    "before": {
-      "": "Cereal and milk, fruit",
-      "_veg": "Cereal and milk, fruit",
-      "_flags": {
-        "hasGluten": true,
-        "hasDairy": true,
-        "hasEgg": false,
-        "hasFish": false,
-        "hasPeanuts": false,
-        "hasSoy": false,
-        "hasTreeNuts": false,
-        "hasSesame": false,
-        "hasMustard": false,
-        "hasShellfish": false,
-        "hasSulphites": false,
-        "hasPork": false,
-        "hasBeef": false,
-        "hasChicken": false,
-        "hasTurkey": false,
-        "isSpicy": false,
-        "isCarb": false,
-        "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
-        "hasCoconut": false,
-        "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
-        "hasNightshades": false,
-        "hasBeans": false
-      },
-      "_mainItem": "Cereal and milk",
-      "_sides": "fruit",
-      "_gfAlt": "Chex cereal with milk (soy milk where noted), whole fruit"
     },
     "afterSig": "{\"\":\"Cereal and milk, fruit\",\"_flags\":[\"hasDairy\",\"hasGluten\"],\"_gfAlt\":\"Chex cereal with milk (soy milk where noted), whole fruit\",\"_mainItem\":\"Cereal and milk\",\"_sides\":\"fruit\",\"_veg\":\"Cereal and oat milk, fruit\"}",
     "first": true
