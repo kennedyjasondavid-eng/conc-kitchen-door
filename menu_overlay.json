@@ -1416,12 +1416,12 @@
         "isCarb": false,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": true,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": false,
-        "hasBrassicas": false,
-        "hasCorn": false,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": false,
+        "hasCorn": false
       },
       "lunch_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
       "lunch_altMeals": [
@@ -1434,13 +1434,13 @@
       "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Chili Cheese Hot Dog",
-      "lunch_mainAlt": "",
+      "lunch_mainAlt": "Halal Beef Hot Dog",
       "lunch_sides": "Seasonal Side",
       "lunch_slots": {
         "main": {
           "manual": "Chili Cheese Hot Dog",
           "flags": {
-            "hasGluten": false,
+            "hasGluten": true,
             "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
@@ -1451,8 +1451,8 @@
             "hasMustard": false,
             "hasShellfish": false,
             "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
+            "hasPork": true,
+            "hasBeef": true,
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
@@ -1462,7 +1462,17 @@
             "hasBrassicas": false,
             "hasCorn": false,
             "hasNightshades": true,
-            "hasBeans": false
+            "hasBeans": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false
+          },
+          "declared": true
+        },
+        "mainalt": {
+          "manual": "Halal Beef Hot Dog",
+          "flags": {
+            "hasBeef": true,
+            "hasProcessedMeat": true
           },
           "declared": true
         },
@@ -1859,7 +1869,7 @@
         "by": "JK",
         "how": "Rex’s week sheet"
       },
-      "lunch_halal": "",
+      "lunch_halal": "Halal Beef Hot Dog",
       "lunch_gfAlt": "",
       "lunch_diabeticAlt": "",
       "lunch_noDairyAlt": "",
@@ -11802,7 +11812,7 @@
       "4|MONDAY": 1795119762216,
       "1|MONDAY": 1795081678597,
       "3|TUESDAY": 1795175498511,
-      "1|THURSDAY": 1795527905067,
+      "1|THURSDAY": 1795537108106,
       "2|SUNDAY": 1795191209417
     },
     "site": "rexdale",
@@ -11817,14 +11827,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:bddfe41ab219be7531560a6cbadf5244396c45abe132c3fee672ebd193943123",
+        "menu": "sha256:61d2231ea95e7104ca855f4a0b9ef96babba95b8247570e653d117e7a1500954",
         "recipe": "sha256:246b6e6daad4fad9e532fc895a568864982ccd3d9db879913d16ff11483bf987",
         "registry": "sha256:991f1deb7014fa25849dc08c6f28a44e9f69f7d20777b7f4b7e14bb48f229360"
       },
-      "inputRevision": "sha256:1d8a1d1caa6751743183559e8917907e6bb2fab9a86f896290838f577af55c2c",
+      "inputRevision": "sha256:c263835a50da465f3b0d350684b20336fc0b10b4a06ab8d3d76a7172bf2e14fd",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 57
+        "sequence": 58
       },
       "schema": 1
     }
