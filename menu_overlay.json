@@ -2018,10 +2018,10 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "lunch": "Roasted Chicken Thighs, Mushroom Gravy, Cauliflower& Pea &Carrot, Mashed Potato",
-      "lunch_veg": "Vegan Tender, Mushroom Gravy, Cauliflower&Carrots&Pea, Roasted Potato",
+      "lunch": "Roasted Chicken Thighs, Mushroom Gravy, Cauliflower, Pea & Carrot, Mashed Potato",
+      "lunch_veg": "Vegan Tender, Mushroom Gravy, Cauliflower, Pea & Carrot, Roasted Potato",
       "lunch_mainItem": "Roasted Chicken Thighs",
-      "lunch_sides": "Mushroom Gravy, Cauliflower& Pea &Carrot, Mashed Potato",
+      "lunch_sides": "Mushroom Gravy, Cauliflower, Pea & Carrot, Mashed Potato",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -2042,12 +2042,12 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasCoconut": false,
+        "hasBeans": false,
         "hasMushroom": true,
-        "hasBrassicas": true,
-        "hasCorn": true,
+        "hasCoconut": false,
         "hasNightshades": true,
-        "hasBeans": false
+        "hasBrassicas": true,
+        "hasCorn": true
       },
       "dinner": "Gomen Besiga with Vegetable, Rice",
       "dinner_veg": "Vegetarian Collard Stew, Rice",
@@ -2087,12 +2087,12 @@
         "main": {
           "manual": "Roasted Chicken Thighs",
           "flags": {
-            "hasGluten": false,
+            "hasGluten": true,
             "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
-            "hasSoy": false,
+            "hasSoy": true,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
@@ -2107,9 +2107,9 @@
             "halalCertifiedMeat": true,
             "hasProcessedMeat": false,
             "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
+            "hasMushroom": true,
+            "hasBrassicas": true,
+            "hasCorn": true,
             "hasNightshades": true,
             "hasBeans": false
           }
@@ -2140,94 +2140,6 @@
             "hasCorn": false,
             "hasNightshades": false,
             "hasBeans": false
-          }
-        },
-        "xtra": {
-          "manual": "Mushroom Gravy",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": true,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "hasProcessedMeat": false,
-            "hasCoconut": false,
-            "hasMushroom": true,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false
-          },
-          "declared": true
-        },
-        "vegside": {
-          "manual": "Cauliflower& Pea &Carrot",
-          "flags": {
-            "hasGluten": false,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": false,
-            "hasBeef": false,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "hasProcessedMeat": false,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": true,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false
-          },
-          "lines": {
-            "vegan": {
-              "mode": "swap",
-              "manual": "Cauliflower&Carrots&Pea",
-              "flags": {
-                "hasGluten": false,
-                "hasDairy": false,
-                "hasEgg": false,
-                "hasFish": false,
-                "hasPeanuts": false,
-                "hasSoy": false,
-                "hasTreeNuts": false,
-                "hasSesame": false,
-                "hasMustard": false,
-                "hasShellfish": false,
-                "hasSulphites": false,
-                "hasPork": false,
-                "hasBeef": false,
-                "hasChicken": false,
-                "hasTurkey": false,
-                "isSpicy": false,
-                "hasProcessedMeat": false,
-                "hasCoconut": false,
-                "hasMushroom": false,
-                "hasBrassicas": true,
-                "hasCorn": false,
-                "hasNightshades": false,
-                "hasBeans": false
-              }
-            }
           }
         },
         "starch": {
@@ -2292,6 +2204,64 @@
               "displayText": "Roasted Potato"
             }
           }
+        },
+        "vegside": {
+          "manual": "Cauliflower, Pea & Carrot",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": true,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "declared": true
+        },
+        "xtra": {
+          "manual": "Mushroom Gravy",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": true,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": true,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "declared": true
         }
       },
       "dinner_slots": {
@@ -2505,7 +2475,8 @@
         "how": "Edit Menu"
       },
       "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit",
-      "lunch_halal": ""
+      "lunch_halal": "",
+      "lunch_noProcessedAlt": ""
     },
     "FRIDAY": {
       "breakfast": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
@@ -11849,7 +11820,7 @@
       "4|TUESDAY": 1795175498534,
       "4|THURSDAY": 1795017603184,
       "4|SATURDAY": 1795179429788,
-      "1|SATURDAY": 1795527905067,
+      "1|SATURDAY": 1795527944925,
       "1|FRIDAY": 1795527905067,
       "2|WEDNESDAY": 1795017748161,
       "2|MONDAY": 1795145377246,
@@ -11879,14 +11850,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:cc0125e82c53cfc50283d50e607ce49db9009eaf0e701ac900484c9dd96e9b51",
+        "menu": "sha256:5a41ea0cd4c65c367c07c3f7a3a555b7dd5325b0ad8e84fc73df181dbaf1ea52",
         "recipe": "sha256:246b6e6daad4fad9e532fc895a568864982ccd3d9db879913d16ff11483bf987",
         "registry": "sha256:7ea83f6b176a07b2cbbdab223a96f09a8f04f07ccef6f3dbed9d10c4766d01af"
       },
-      "inputRevision": "sha256:a7511853a0711638e2c3bc2f66a48229c72222f6ad848db7b793785fa2d34efe",
+      "inputRevision": "sha256:d26d874bf0a7686387c8f8663290c3738196a456d6d23acb7be1df3fc9c2aa15",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 52
+        "sequence": 53
       },
       "schema": 1
     }
