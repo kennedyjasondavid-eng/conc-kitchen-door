@@ -2,11 +2,11 @@
   "_meta": {
     "source": "KitchenDOOR",
     "site": "rexdale",
-    "exported": "2026-11-23T14:19:08.135Z",
+    "exported": "2026-11-24T13:45:41.083Z",
     "version": 31,
     "builtFromMenu": {
-      "exported": "2026-11-23T14:19:08.057Z",
-      "hash": "1b5wnfh"
+      "exported": "2026-11-24T13:45:41.002Z",
+      "hash": "lzlee0"
     },
     "flow": {
       "calendar": {
@@ -19,14 +19,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:3bb54bef463b306e3c9c44bba48da0e60fd3025831deb449960113a6989514a8",
-        "recipe": "sha256:9d92035ac076341c28ac8301a74e0f91477016644286062640ff17f7d8fb41d7",
+        "menu": "sha256:cc0125e82c53cfc50283d50e607ce49db9009eaf0e701ac900484c9dd96e9b51",
+        "recipe": "sha256:246b6e6daad4fad9e532fc895a568864982ccd3d9db879913d16ff11483bf987",
         "registry": "sha256:7ea83f6b176a07b2cbbdab223a96f09a8f04f07ccef6f3dbed9d10c4766d01af"
       },
-      "inputRevision": "sha256:98bb64e01c4b4bd7dff575f0448f64b7f1b15d28c1580e8b6963a6191109eebc",
+      "inputRevision": "sha256:a7511853a0711638e2c3bc2f66a48229c72222f6ad848db7b793785fa2d34efe",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 51
+        "sequence": 52
       },
       "schema": 1
     }
@@ -59,7 +59,7 @@
           "Regular": 151,
           "_components": {
             "Roasted Vegetable Sandwich": 10,
-            "Seasonal Soup": 161,
+            "Seasonal Side": 161,
             "Non-processed alternative — plain protein": 1,
             "rice & veg": 1,
             "Gluten Free Bread": 4,
@@ -70,7 +70,7 @@
             "Vegan Cheese": 3,
             "Lettuce": 3,
             "Tomato and Broccoli Salad": 3,
-            "Chicken Deli & Cheese Sandwich": 151
+            "Chicken Deli & Cheese": 151
           }
         },
         "dinner": {
@@ -80,7 +80,7 @@
           "Regular": 147,
           "_components": {
             "Mushroom Stroganoff": 14,
-            "Pasta": 161,
+            "Noodles": 161,
             "Plain Roasted Chicken": 4,
             "Plain Rice & Stir-fried Veg": 4,
             "Roast Chicken Leg": 4,
@@ -161,9 +161,9 @@
           "Vegan / Vegetarian": 18,
           "Regular": 151,
           "_components": {
-            "Blackened Tofu": 18,
+            "Roasted Tofu": 18,
             "Sweet potatoes": 169,
-            "Parsnip and Carrot": 169,
+            "Parsnip": 169,
             "Blackened Fish": 151
           }
         },
@@ -183,18 +183,19 @@
       "WEDNESDAY": {
         "breakfast": {
           "Vegan / Vegetarian": 13,
-          "Gluten Free": 4,
-          "Soft Meals": 4,
-          "No Egg / Mustard": 1,
-          "Regular": 147,
+          "Halal": 59,
+          "Gluten Free": 3,
+          "Regular": 94,
           "_components": {
-            "Vegetarian Frittata": 161,
-            "fruit & yoghurt": 161,
-            "roll": 161,
-            "Vegetable frittata": 4,
-            "GF bread": 4,
-            "yoghurt": 4,
-            "fresh fruit": 4
+            "Scrambled eggs & veg sausage": 13,
+            "fruit & yoghurt": 166,
+            "roll": 166,
+            "Halal Scrambled eggs & sausage": 59,
+            "Vegetable frittata": 3,
+            "GF bread": 3,
+            "yoghurt": 3,
+            "fresh fruit": 3,
+            "Scrambled eggs & sausage": 94
           }
         },
         "lunch": {
@@ -229,39 +230,38 @@
       "THURSDAY": {
         "breakfast": {
           "Vegan / Vegetarian": 13,
-          "Halal": 59,
-          "Gluten Free": 3,
-          "Regular": 94,
+          "Gluten Free": 4,
+          "Soft Meals": 4,
+          "No Egg / Mustard": 1,
+          "Regular": 147,
           "_components": {
-            "Scrambled eggs & veg sausage": 13,
-            "fruit & yoghurt": 166,
-            "roll": 166,
-            "Halal Scrambled eggs & sausage": 59,
-            "GF roll": 3,
-            "scrambled eggs": 3,
-            "pork sausage": 3,
-            "fresh fruit": 3,
-            "yoghurt": 3,
-            "Scrambled eggs & sausage": 94
+            "Vegetarian Frittata": 161,
+            "fruit & yoghurt": 161,
+            "roll": 161,
+            "GF roll": 4,
+            "scrambled eggs": 4,
+            "pork sausage": 4,
+            "fresh fruit": 4,
+            "yoghurt": 4
           }
         },
         "lunch": {
-          "Vegan / Vegetarian": 10,
+          "Vegan / Vegetarian": 13,
           "Halal": 57,
           "Gluten Free": 3,
           "Soft Meals": 2,
-          "Regular": 97,
+          "Regular": 94,
           "_components": {
-            "Fully Loaded Vegan Sausages": 10,
-            "Side Salad": 164,
-            "Halal Fully Loaded Sausage": 57,
+            "Vegan Chili Cheese Hotdog": 13,
+            "Seasonal Side": 164,
+            "Halal Chili Cheese Hot Dog": 57,
             "Plain Roasted Chicken": 3,
             "Plain Rice & Stir-fried Veg": 3,
             "Roasted plain chicken leg": 2,
             "Steamed Rice": 2,
             "Peas": 2,
             "carrots and onions": 2,
-            "Fully Loaded Sausage": 97
+            "Chili Cheese Hot Dog": 94
           }
         },
         "dinner": {
@@ -287,13 +287,15 @@
           "Regular": 147,
           "_components": {
             "Oatmeal": 13,
-            "Yogurt": 161,
+            "fruit & yoghurt": 161,
+            "roll": 161,
             "Gluten-free oatmeal": 4,
             "jam": 4,
             "lactose-free yoghurt": 4,
             "Soft Scrambled Eggs": 4,
             "DF Yoghurt & Fruit": 4,
-            "Turkey & Cheese and Eggs": 148
+            "Turkey": 148,
+            "Cheese and Eggs yoghurt": 148
           }
         },
         "lunch": {
@@ -303,7 +305,7 @@
           "Regular": 153,
           "_components": {
             "Vegan Drumsticks": 10,
-            "Potato Salad": 165,
+            "Potato Hash": 165,
             "Plain Roasted Chicken": 4,
             "Plain Rice & Stir-fried Veg": 4,
             "Honey BBQ Halal Chicken Drumsticks": 155
@@ -345,12 +347,15 @@
           "Soft Meals": 4,
           "Regular": 151,
           "_components": {
-            "Roasted Seasoned Tofu": 10,
-            "Mashed Potatoes with Onion Gravy": 161,
-            "Seasonal Veg": 161,
+            "Vegan Tender": 10,
+            "Mushroom Gravy": 161,
+            "Cauliflower&Carrots&Pea": 10,
+            "Roasted Potato": 10,
             "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans)": 8,
             "Rice": 8,
-            "Roasted Chicken Thighs": 151
+            "Roasted Chicken Thighs": 151,
+            "Cauliflower& Pea &Carrot": 151,
+            "Mashed Potato": 151
           }
         },
         "dinner": {
@@ -1380,7 +1385,7 @@
   },
   "flow": {
     "schema": 1,
-    "inputRevision": "sha256:98bb64e01c4b4bd7dff575f0448f64b7f1b15d28c1580e8b6963a6191109eebc",
+    "inputRevision": "sha256:a7511853a0711638e2c3bc2f66a48229c72222f6ad848db7b793785fa2d34efe",
     "recipes": {
       "adobo-pork-chicken-tofu-adobo-marinade-and-sauce": {
         "canonicalName": "Adobo Pork/Chicken/Tofu (Adobo Marinade & Sauce)",
@@ -11080,7 +11085,7 @@
               "Regular": 151,
               "_components": {
                 "Roasted Vegetable Sandwich": 10,
-                "Seasonal Soup": 161,
+                "Seasonal Side": 161,
                 "Non-processed alternative — plain protein": 1,
                 "rice & veg": 1,
                 "Gluten Free Bread": 4,
@@ -11091,7 +11096,7 @@
                 "Vegan Cheese": 3,
                 "Lettuce": 3,
                 "Tomato and Broccoli Salad": 3,
-                "Chicken Deli & Cheese Sandwich": 151
+                "Chicken Deli & Cheese": 151
               }
             }
           },
@@ -11104,7 +11109,7 @@
               "Regular": 147,
               "_components": {
                 "Mushroom Stroganoff": 14,
-                "Pasta": 161,
+                "Noodles": 161,
                 "Plain Roasted Chicken": 4,
                 "Plain Rice & Stir-fried Veg": 4,
                 "Roast Chicken Leg": 4,
@@ -11200,9 +11205,9 @@
               "Vegan / Vegetarian": 18,
               "Regular": 151,
               "_components": {
-                "Blackened Tofu": 18,
+                "Roasted Tofu": 18,
                 "Sweet potatoes": 169,
-                "Parsnip and Carrot": 169,
+                "Parsnip": 169,
                 "Blackened Fish": 151
               }
             }
@@ -11228,18 +11233,19 @@
             "status": "valid",
             "counts": {
               "Vegan / Vegetarian": 13,
-              "Gluten Free": 4,
-              "Soft Meals": 4,
-              "No Egg / Mustard": 1,
-              "Regular": 147,
+              "Halal": 59,
+              "Gluten Free": 3,
+              "Regular": 94,
               "_components": {
-                "Vegetarian Frittata": 161,
-                "fruit & yoghurt": 161,
-                "roll": 161,
-                "Vegetable frittata": 4,
-                "GF bread": 4,
-                "yoghurt": 4,
-                "fresh fruit": 4
+                "Scrambled eggs & veg sausage": 13,
+                "fruit & yoghurt": 166,
+                "roll": 166,
+                "Halal Scrambled eggs & sausage": 59,
+                "Vegetable frittata": 3,
+                "GF bread": 3,
+                "yoghurt": 3,
+                "fresh fruit": 3,
+                "Scrambled eggs & sausage": 94
               }
             }
           },
@@ -11283,42 +11289,41 @@
             "status": "valid",
             "counts": {
               "Vegan / Vegetarian": 13,
-              "Halal": 59,
-              "Gluten Free": 3,
-              "Regular": 94,
+              "Gluten Free": 4,
+              "Soft Meals": 4,
+              "No Egg / Mustard": 1,
+              "Regular": 147,
               "_components": {
-                "Scrambled eggs & veg sausage": 13,
-                "fruit & yoghurt": 166,
-                "roll": 166,
-                "Halal Scrambled eggs & sausage": 59,
-                "GF roll": 3,
-                "scrambled eggs": 3,
-                "pork sausage": 3,
-                "fresh fruit": 3,
-                "yoghurt": 3,
-                "Scrambled eggs & sausage": 94
+                "Vegetarian Frittata": 161,
+                "fruit & yoghurt": 161,
+                "roll": 161,
+                "GF roll": 4,
+                "scrambled eggs": 4,
+                "pork sausage": 4,
+                "fresh fruit": 4,
+                "yoghurt": 4
               }
             }
           },
           "lunch": {
             "status": "valid",
             "counts": {
-              "Vegan / Vegetarian": 10,
+              "Vegan / Vegetarian": 13,
               "Halal": 57,
               "Gluten Free": 3,
               "Soft Meals": 2,
-              "Regular": 97,
+              "Regular": 94,
               "_components": {
-                "Fully Loaded Vegan Sausages": 10,
-                "Side Salad": 164,
-                "Halal Fully Loaded Sausage": 57,
+                "Vegan Chili Cheese Hotdog": 13,
+                "Seasonal Side": 164,
+                "Halal Chili Cheese Hot Dog": 57,
                 "Plain Roasted Chicken": 3,
                 "Plain Rice & Stir-fried Veg": 3,
                 "Roasted plain chicken leg": 2,
                 "Steamed Rice": 2,
                 "Peas": 2,
                 "carrots and onions": 2,
-                "Fully Loaded Sausage": 97
+                "Chili Cheese Hot Dog": 94
               }
             }
           },
@@ -11350,13 +11355,15 @@
               "Regular": 147,
               "_components": {
                 "Oatmeal": 13,
-                "Yogurt": 161,
+                "fruit & yoghurt": 161,
+                "roll": 161,
                 "Gluten-free oatmeal": 4,
                 "jam": 4,
                 "lactose-free yoghurt": 4,
                 "Soft Scrambled Eggs": 4,
                 "DF Yoghurt & Fruit": 4,
-                "Turkey & Cheese and Eggs": 148
+                "Turkey": 148,
+                "Cheese and Eggs yoghurt": 148
               }
             }
           },
@@ -11369,7 +11376,7 @@
               "Regular": 153,
               "_components": {
                 "Vegan Drumsticks": 10,
-                "Potato Salad": 165,
+                "Potato Hash": 165,
                 "Plain Roasted Chicken": 4,
                 "Plain Rice & Stir-fried Veg": 4,
                 "Honey BBQ Halal Chicken Drumsticks": 155
@@ -11420,12 +11427,15 @@
               "Soft Meals": 4,
               "Regular": 151,
               "_components": {
-                "Roasted Seasoned Tofu": 10,
-                "Mashed Potatoes with Onion Gravy": 161,
-                "Seasonal Veg": 161,
+                "Vegan Tender": 10,
+                "Mushroom Gravy": 161,
+                "Cauliflower&Carrots&Pea": 10,
+                "Roasted Potato": 10,
                 "Roasted Chicken and Vegetable strify (No Corn, No Sauce or Beans)": 8,
                 "Rice": 8,
-                "Roasted Chicken Thighs": 151
+                "Roasted Chicken Thighs": 151,
+                "Cauliflower& Pea &Carrot": 151,
+                "Mashed Potato": 151
               }
             }
           },

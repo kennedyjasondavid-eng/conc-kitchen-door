@@ -1,9 +1,9 @@
 {
   "1": {
     "WEDNESDAY": {
-      "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
-      "breakfast_veg": "Vegetarian Frittata, fruit & yoghurt, roll",
-      "breakfast_mainItem": "Vegetarian Frittata",
+      "breakfast": "Scrambled eggs & sausage, fruit & yoghurt, roll",
+      "breakfast_veg": "Scrambled eggs & veg sausage, fruit & yoghurt, roll",
+      "breakfast_mainItem": "Scrambled eggs & sausage",
       "breakfast_sides": "fruit & yoghurt, roll",
       "breakfast_flags": {
         "hasGluten": true,
@@ -17,14 +17,14 @@
         "hasMustard": false,
         "hasShellfish": false,
         "hasSulphites": false,
-        "hasPork": false,
+        "hasPork": true,
         "hasBeef": false,
         "hasChicken": false,
         "hasTurkey": false,
         "isSpicy": false,
-        "isCarb": false,
+        "isCarb": true,
         "halalCertifiedMeat": false,
-        "hasProcessedMeat": false,
+        "hasProcessedMeat": true,
         "hasCoconut": false,
         "hasMushroom": false,
         "hasBrassicas": false,
@@ -141,7 +141,7 @@
           "flags": {}
         }
       },
-      "allergens_breakfast": "gluten, dairy, egg",
+      "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_dinner": "gluten, tree nuts",
       "lunch": "Egg Salad Wrap, Bean Salad",
       "lunch_veg": "Chickpea Drumstick Wrap, 12\" Tortilla, Bean Salad",
@@ -251,11 +251,50 @@
       "lunch_gfAlt": "Egg Salad Wrap (lettuce, mayo, gluten free bread), Bean Salad",
       "lunch_diabeticAlt": "Egg Salad Wrap (lettuce, mayo, 12\" WW tortilla), Bean Salad",
       "dinner_anaphAlt": "Plain Chicken Leg with Rice and Vegetables",
-      "breakfast_gfAlt": "Vegetable frittata, GF bread, yoghurt, fresh fruit"
+      "breakfast_gfAlt": "Vegetable frittata, GF bread, yoghurt, fresh fruit",
+      "breakfast_original": {
+        "meal": {
+          "": "Vegetarian Frittata, fruit & yoghurt, roll",
+          "_veg": "Vegetarian Frittata, fruit & yoghurt, roll",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "Vegetarian Frittata",
+          "_sides": "fruit & yoghurt, roll",
+          "_gfAlt": "Vegetable frittata, GF bread, yoghurt, fresh fruit"
+        },
+        "at": "2026-11-24T13:45:05.028Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "TUESDAY": {
-      "lunch": "Blackened Fish, Sweet potatoes, Parsnip and Carrot",
-      "lunch_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
+      "lunch": "Blackened Fish, Sweet potatoes, Parsnip",
+      "lunch_veg": "Roasted Tofu, Sweet potatoes, Parsnip",
       "lunch_flags": {
         "hasGluten": false,
         "hasDairy": false,
@@ -276,12 +315,12 @@
         "isCarb": true,
         "halalCertifiedMeat": false,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": true,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "lunch_softAlt": "",
       "lunch_altMeals": [],
@@ -289,7 +328,7 @@
       "lunch_noPorkAlt": "",
       "lunch_mainItem": "Blackened Fish",
       "lunch_mainAlt": "",
-      "lunch_sides": "Sweet potatoes, Parsnip and Carrot",
+      "lunch_sides": "Sweet potatoes, Parsnip",
       "lunch_slots": {
         "main": {
           "recipeName": "Blackened Fish",
@@ -323,7 +362,7 @@
           "recipeId": "blackened-fish"
         },
         "veganalt": {
-          "recipeName": "Blackened Tofu",
+          "recipeName": "Roast Tofu",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
@@ -340,26 +379,51 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": true,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
+            "isSpicy": false,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": true,
+            "hasMushroom": false,
             "hasBrassicas": false,
-            "hasCorn": false
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           },
-          "recipeId": "blackened-tofu"
+          "recipeId": "roast-tofu",
+          "displayText": "Roasted Tofu"
         },
         "starch": {
           "manual": "Sweet potatoes",
           "flags": {}
         },
         "vegside": {
-          "manual": "Parsnip and Carrot",
-          "flags": {}
+          "recipeName": "Plain Parsnips",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "recipeId": "plain-parsnips",
+          "displayText": "Parsnip"
         }
       },
       "allergens_lunch": "fish",
@@ -542,6 +606,122 @@
         "at": "2026-11-20T11:51:38.447Z",
         "by": "Jason (Tuesday vegan breakfast oat milk)",
         "how": "Edit Menu"
+      },
+      "lunch_halal": "",
+      "lunch_original": {
+        "meal": {
+          "": "Blackened Fish, Sweet potatoes, Parsnip and Carrot",
+          "_veg": "Blackened Tofu, Sweet potatoes, Parsnip and Carrot",
+          "_flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": true,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": true,
+            "isCarb": true,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Blackened Fish",
+          "_mainAlt": "",
+          "_sides": "Sweet potatoes, Parsnip and Carrot",
+          "_softAlt": "",
+          "_noPorkAlt": "",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "recipeName": "Blackened Fish",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": true,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": true,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "blackened-fish"
+            },
+            "veganalt": {
+              "recipeName": "Blackened Tofu",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": true,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "blackened-tofu"
+            },
+            "starch": {
+              "manual": "Sweet potatoes",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Parsnip and Carrot",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-24T13:45:05.019Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
       }
     },
     "SUNDAY": {
@@ -576,10 +756,10 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "lunch": "Chicken Deli & Cheese Sandwich, Seasonal Soup",
-      "lunch_veg": "Roasted Vegetable Sandwich, Seasonal Soup",
-      "lunch_mainItem": "Chicken Deli & Cheese Sandwich",
-      "lunch_sides": "Seasonal Soup",
+      "lunch": "Chicken Deli & Cheese, Seasonal Side",
+      "lunch_veg": "Roasted Vegetable Sandwich, Seasonal Side",
+      "lunch_mainItem": "Chicken Deli & Cheese",
+      "lunch_sides": "Seasonal Side",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -600,19 +780,19 @@
         "isCarb": false,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": true,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasMushroom": false,
         "hasBrassicas": true,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": false,
+        "hasBeans": false
       },
       "allergens_breakfast": "gluten, dairy, egg, pork",
       "allergens_lunch": "gluten, dairy, turkey",
-      "dinner": "Beef Stroganoff, Pasta",
-      "dinner_veg": "Mushroom Stroganoff, Pasta",
+      "dinner": "Beef Stroganoff, Noodles",
+      "dinner_veg": "Mushroom Stroganoff, Noodles",
       "dinner_mainItem": "Beef Stroganoff",
-      "dinner_sides": "Pasta",
+      "dinner_sides": "Noodles",
       "dinner_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -633,12 +813,12 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": true,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "allergens_dinner": "gluten, dairy, beef",
       "dinner_softAlt": "Roast Chicken Leg, Rice and vegetable stirfry",
@@ -716,8 +896,32 @@
           "recipeId": "mushroom-stroganoff"
         },
         "starch": {
-          "manual": "Pasta",
-          "flags": {}
+          "manual": "Noodles",
+          "flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
         }
       },
       "lunch_gfAlt": "Gluten Free Bread, Dairy Free Cheese, Halal Chicken Deli, Tomato, Lettuce and Broccoli Salad",
@@ -733,9 +937,9 @@
       "lunch_mainAlt": "",
       "lunch_slots": {
         "main": {
-          "manual": "Chicken Deli & Cheese Sandwich",
+          "manual": "Chicken Deli & Cheese",
           "flags": {
-            "hasGluten": true,
+            "hasGluten": false,
             "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
@@ -749,18 +953,17 @@
             "hasPork": false,
             "hasBeef": false,
             "hasChicken": true,
-            "hasTurkey": true,
+            "hasTurkey": false,
             "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": true,
             "hasProcessedMeat": true,
             "hasCoconut": false,
             "hasMushroom": false,
-            "hasBrassicas": true,
+            "hasBrassicas": false,
             "hasCorn": false,
             "hasNightshades": false,
             "hasBeans": false
-          }
+          },
+          "declared": true
         },
         "veganalt": {
           "manual": "Roasted Vegetable Sandwich",
@@ -768,9 +971,33 @@
             "hasNightshades": true
           }
         },
-        "vegside": {
-          "manual": "Seasonal Soup",
-          "flags": {}
+        "xtra": {
+          "manual": "Seasonal Side",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
         }
       },
       "lunch_original": {
@@ -816,7 +1043,127 @@
         "by": "JK",
         "how": "Edit Menu"
       },
-      "breakfast_gfAlt": "GF bun, pork patty, egg, cheese, yoghurt & fruit"
+      "breakfast_gfAlt": "GF bun, pork patty, egg, cheese, yoghurt & fruit",
+      "lunch_halal": "",
+      "lunch_noProcessedAlt": "",
+      "dinner_halal": "",
+      "dinner_original": {
+        "meal": {
+          "": "Beef Stroganoff, Pasta",
+          "_veg": "Mushroom Stroganoff, Pasta",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": true,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Beef Stroganoff",
+          "_mainAlt": "",
+          "_sides": "Pasta",
+          "_softAlt": "Roast Chicken Leg, Rice and vegetable stirfry",
+          "_noPorkAlt": "",
+          "_altMeals": [
+            {
+              "text": "Roast Chicken Leg, Rice and vegetable stirfry",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "recipeName": "Beef Stroganoff",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "beef-stroganoff"
+            },
+            "veganalt": {
+              "recipeName": "Mushroom Stroganoff",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": true,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "mushroom-stroganoff"
+            },
+            "starch": {
+              "manual": "Pasta",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-24T13:45:05.012Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "MONDAY": {
       "lunch": "Breaded Chicken Burgers, Home Fry Potatoes",
@@ -1047,11 +1394,11 @@
       "breakfast_gfAlt": "Gluten-free pancakes, turkey bacon, fresh fruit, yoghurt"
     },
     "THURSDAY": {
-      "lunch": "Fully Loaded Sausage, Side Salad",
-      "lunch_veg": "Fully Loaded Vegan Sausages, Side Salad",
+      "lunch": "Chili Cheese Hot Dog, Seasonal Side",
+      "lunch_veg": "Vegan Chili Cheese Hotdog, Seasonal Side",
       "lunch_flags": {
         "hasGluten": true,
-        "hasDairy": false,
+        "hasDairy": true,
         "hasEgg": false,
         "hasFish": false,
         "hasPeanuts": false,
@@ -1067,14 +1414,14 @@
         "hasTurkey": false,
         "isSpicy": false,
         "isCarb": false,
-        "halalCertifiedMeat": true,
+        "halalCertifiedMeat": false,
         "hasProcessedMeat": true,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": true,
+        "hasBeans": false
       },
       "lunch_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
       "lunch_altMeals": [
@@ -1086,49 +1433,19 @@
       ],
       "lunch_altMealsNone": false,
       "lunch_noPorkAlt": "",
-      "lunch_mainItem": "Fully Loaded Sausage",
+      "lunch_mainItem": "Chili Cheese Hot Dog",
       "lunch_mainAlt": "",
-      "lunch_sides": "Side Salad",
+      "lunch_sides": "Seasonal Side",
       "lunch_slots": {
         "main": {
-          "manual": "Fully Loaded Sausage",
+          "manual": "Chili Cheese Hot Dog",
           "flags": {
-            "hasGluten": true,
-            "hasDairy": false,
+            "hasGluten": false,
+            "hasDairy": true,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
             "hasSoy": false,
-            "hasTreeNuts": false,
-            "hasSesame": false,
-            "hasMustard": false,
-            "hasShellfish": false,
-            "hasSulphites": false,
-            "hasPork": true,
-            "hasBeef": true,
-            "hasChicken": false,
-            "hasTurkey": false,
-            "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": true,
-            "hasProcessedMeat": true,
-            "hasCoconut": false,
-            "hasMushroom": false,
-            "hasBrassicas": false,
-            "hasCorn": false,
-            "hasNightshades": false,
-            "hasBeans": false
-          }
-        },
-        "veganalt": {
-          "recipeName": "Vegan Sausage",
-          "flags": {
-            "hasGluten": true,
-            "hasDairy": false,
-            "hasEgg": false,
-            "hasFish": false,
-            "hasPeanuts": false,
-            "hasSoy": true,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
@@ -1139,22 +1456,72 @@
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
-            "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
+            "hasProcessedMeat": true,
             "hasCoconut": false,
-            "hasNightshades": true,
+            "hasMushroom": false,
             "hasBrassicas": false,
-            "hasCorn": false
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
           },
-          "recipeId": "vegan-sausage",
-          "displayText": "Fully Loaded Vegan Sausages"
+          "declared": true
         },
-        "vegside": {
-          "manual": "Side Salad",
-          "flags": {}
+        "veganalt": {
+          "manual": "Vegan Chili Cheese Hotdog",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": true,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "declared": true
+        },
+        "xtra": {
+          "manual": "Seasonal Side",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          }
         }
       },
       "dinner_slots": {
@@ -1420,7 +1787,204 @@
         "by": "JK",
         "how": "Edit Menu"
       },
-      "breakfast_gfAlt": "GF roll, scrambled eggs, pork sausage, fresh fruit, yoghurt"
+      "breakfast_gfAlt": "GF roll, scrambled eggs, pork sausage, fresh fruit, yoghurt",
+      "breakfast": "Vegetarian Frittata, fruit & yoghurt, roll",
+      "breakfast_veg": "Vegetarian Frittata, fruit & yoghurt, roll",
+      "breakfast_mainItem": "Vegetarian Frittata",
+      "breakfast_sides": "fruit & yoghurt, roll",
+      "breakfast_flags": {
+        "hasGluten": true,
+        "hasDairy": true,
+        "hasEgg": true,
+        "hasFish": false,
+        "hasPeanuts": false,
+        "hasSoy": false,
+        "hasTreeNuts": false,
+        "hasSesame": false,
+        "hasMustard": false,
+        "hasShellfish": false,
+        "hasSulphites": false,
+        "hasPork": false,
+        "hasBeef": false,
+        "hasChicken": false,
+        "hasTurkey": false,
+        "isSpicy": false,
+        "isCarb": true,
+        "halalCertifiedMeat": false,
+        "hasProcessedMeat": false,
+        "hasCoconut": false,
+        "hasMushroom": false,
+        "hasBrassicas": false,
+        "hasCorn": false,
+        "hasNightshades": false,
+        "hasBeans": false
+      },
+      "allergens_breakfast": "gluten, dairy, egg",
+      "breakfast_original": {
+        "meal": {
+          "": "Scrambled eggs & sausage, fruit & yoghurt, roll",
+          "_veg": "Scrambled eggs & veg sausage, fruit & yoghurt, roll",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": true,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": false,
+            "hasProcessedMeat": true,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "_mainItem": "Scrambled eggs & sausage",
+          "_sides": "fruit & yoghurt, roll",
+          "_gfAlt": "GF roll, scrambled eggs, pork sausage, fresh fruit, yoghurt"
+        },
+        "at": "2026-11-24T13:45:05.036Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      },
+      "lunch_halal": "",
+      "lunch_gfAlt": "",
+      "lunch_diabeticAlt": "",
+      "lunch_noDairyAlt": "",
+      "lunch_blandAlt": "",
+      "lunch_noEggAlt": "",
+      "lunch_anaphAlt": "",
+      "lunch_noProcessedAlt": "",
+      "allergens_lunch": "gluten, dairy, pork, beef",
+      "lunch_original": {
+        "meal": {
+          "": "Fully Loaded Sausage, Side Salad",
+          "_veg": "Fully Loaded Vegan Sausages, Side Salad",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": true,
+            "hasBeef": true,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": true,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Fully Loaded Sausage",
+          "_mainAlt": "",
+          "_sides": "Side Salad",
+          "_softAlt": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+          "_noPorkAlt": "",
+          "_altMeals": [
+            {
+              "text": "Roasted plain chicken leg, Steamed Rice, Peas, carrots and onions",
+              "type": "soft",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Fully Loaded Sausage",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": true,
+                "hasBeef": true,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": true,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": false,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan Sausage",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": true,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": false,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": true,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-sausage",
+              "displayText": "Fully Loaded Vegan Sausages"
+            },
+            "vegside": {
+              "manual": "Side Salad",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-24T13:45:05.040Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      }
     },
     "SATURDAY": {
       "breakfast": "Bagel, Cream cheese and Granola., fruit & yoghurt",
@@ -1454,10 +2018,10 @@
         "hasNightshades": false,
         "hasBeans": false
       },
-      "lunch": "Roasted Chicken Thighs, Mashed Potatoes with Onion Gravy, Seasonal Veg",
-      "lunch_veg": "Roasted Seasoned Tofu, Mashed Potatoes with Onion Gravy, Seasonal Veg",
+      "lunch": "Roasted Chicken Thighs, Mushroom Gravy, Cauliflower& Pea &Carrot, Mashed Potato",
+      "lunch_veg": "Vegan Tender, Mushroom Gravy, Cauliflower&Carrots&Pea, Roasted Potato",
       "lunch_mainItem": "Roasted Chicken Thighs",
-      "lunch_sides": "Mashed Potatoes with Onion Gravy, Seasonal Veg",
+      "lunch_sides": "Mushroom Gravy, Cauliflower& Pea &Carrot, Mashed Potato",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -1478,12 +2042,12 @@
         "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
+        "hasMushroom": true,
+        "hasBrassicas": true,
+        "hasCorn": true,
         "hasNightshades": true,
-        "hasBrassicas": false,
-        "hasCorn": true
+        "hasBeans": false
       },
       "dinner": "Gomen Besiga with Vegetable, Rice",
       "dinner_veg": "Vegetarian Collard Stew, Rice",
@@ -1551,14 +2115,14 @@
           }
         },
         "veganalt": {
-          "manual": "Roasted Seasoned Tofu",
+          "manual": "Vegan Tender",
           "flags": {
             "hasGluten": false,
             "hasDairy": false,
             "hasEgg": false,
             "hasFish": false,
             "hasPeanuts": false,
-            "hasSoy": true,
+            "hasSoy": false,
             "hasTreeNuts": false,
             "hasSesame": false,
             "hasMustard": false,
@@ -1568,20 +2132,18 @@
             "hasBeef": false,
             "hasChicken": false,
             "hasTurkey": false,
-            "isSpicy": true,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
+            "isSpicy": false,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": true,
+            "hasMushroom": false,
             "hasBrassicas": false,
-            "hasCorn": false
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           }
         },
-        "starch": {
-          "recipeName": "Olive Oil Mashed Potato (Vegan)",
+        "xtra": {
+          "manual": "Mushroom Gravy",
           "flags": {
             "hasGluten": true,
             "hasDairy": false,
@@ -1599,22 +2161,137 @@
             "hasChicken": false,
             "hasTurkey": false,
             "isSpicy": false,
-            "isCarb": false,
-            "halalCertifiedMeat": false,
             "hasProcessedMeat": false,
-            "hasBeans": false,
-            "hasMushroom": false,
             "hasCoconut": false,
-            "hasNightshades": true,
+            "hasMushroom": true,
             "hasBrassicas": false,
-            "hasCorn": false
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
           },
-          "recipeId": "olive-oil-mashed-potato-vegan",
-          "displayText": "Mashed Potatoes with Onion Gravy"
+          "declared": true
         },
         "vegside": {
-          "manual": "Seasonal Veg",
-          "flags": {}
+          "manual": "Cauliflower& Pea &Carrot",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": true,
+            "hasCorn": false,
+            "hasNightshades": false,
+            "hasBeans": false
+          },
+          "lines": {
+            "vegan": {
+              "mode": "swap",
+              "manual": "Cauliflower&Carrots&Pea",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": true,
+                "hasCorn": false,
+                "hasNightshades": false,
+                "hasBeans": false
+              }
+            }
+          }
+        },
+        "starch": {
+          "recipeName": "Olive Oil Mashed Potato (Vegan)",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "recipeId": "olive-oil-mashed-potato-vegan",
+          "displayText": "Mashed Potato",
+          "lines": {
+            "vegan": {
+              "mode": "swap",
+              "recipeName": "Roasted Potatoes",
+              "flags": {
+                "hasGluten": false,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              },
+              "recipeId": "roasted-potatoes",
+              "displayText": "Roasted Potato"
+            }
+          }
         }
       },
       "dinner_slots": {
@@ -1827,13 +2504,14 @@
         "by": "JK",
         "how": "Edit Menu"
       },
-      "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit"
+      "breakfast_gfAlt": "Gluten-free bread, cream cheese, yoghurt, fruit",
+      "lunch_halal": ""
     },
     "FRIDAY": {
-      "breakfast": "Turkey & Cheese and Eggs, Yogurt",
-      "breakfast_veg": "Oatmeal, Yogurt",
-      "breakfast_mainItem": "Turkey & Cheese and Eggs",
-      "breakfast_sides": "Yogurt",
+      "breakfast": "Turkey, Cheese and Eggs yoghurt, fruit & yoghurt, roll",
+      "breakfast_veg": "Oatmeal, fruit & yoghurt, roll",
+      "breakfast_mainItem": "Turkey",
+      "breakfast_sides": "Cheese and Eggs yoghurt, fruit & yoghurt, roll",
       "breakfast_flags": {
         "hasGluten": true,
         "hasDairy": true,
@@ -1851,20 +2529,20 @@
         "hasChicken": false,
         "hasTurkey": true,
         "isSpicy": false,
-        "isCarb": false,
+        "isCarb": true,
         "halalCertifiedMeat": true,
         "hasProcessedMeat": false,
-        "hasBeans": false,
-        "hasMushroom": false,
         "hasCoconut": false,
-        "hasNightshades": false,
+        "hasMushroom": false,
         "hasBrassicas": false,
-        "hasCorn": false
+        "hasCorn": false,
+        "hasNightshades": false,
+        "hasBeans": false
       },
-      "lunch": "Honey BBQ Halal Chicken Drumsticks, Potato Salad",
-      "lunch_veg": "Vegan Drumsticks, Potato Salad",
+      "lunch": "Honey BBQ Halal Chicken Drumsticks, Potato Hash",
+      "lunch_veg": "Vegan Drumsticks, Potato Hash",
       "lunch_mainItem": "Honey BBQ Halal Chicken Drumsticks",
-      "lunch_sides": "Potato Salad",
+      "lunch_sides": "Potato Hash",
       "lunch_flags": {
         "hasGluten": true,
         "hasDairy": false,
@@ -2021,12 +2699,34 @@
           "displayText": "Vegan Drumsticks"
         },
         "starch": {
-          "manual": "Potato Salad",
-          "flags": {}
-        },
-        "vegside": {
-          "manual": "Potato Salad",
-          "flags": {}
+          "recipeName": "Home Fry Potatoes",
+          "flags": {
+            "hasGluten": false,
+            "hasDairy": false,
+            "hasEgg": false,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "recipeId": "home-fry-potatoes",
+          "displayText": "Potato Hash"
         }
       },
       "dinner_slots": {
@@ -2251,6 +2951,190 @@
         "at": "2026-11-19T18:46:57.160Z",
         "by": "Edit Menu redesign U1 (combined boxes split)",
         "how": "Edit Menu"
+      },
+      "breakfast_original": {
+        "meal": {
+          "": "Turkey & Cheese and Eggs, Yogurt",
+          "_veg": "Oatmeal, Yogurt",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": true,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": false,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": false,
+            "hasTurkey": true,
+            "isSpicy": false,
+            "isCarb": false,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasBeans": false,
+            "hasMushroom": false,
+            "hasCoconut": false,
+            "hasNightshades": false,
+            "hasBrassicas": false,
+            "hasCorn": false
+          },
+          "_mainItem": "Turkey & Cheese and Eggs",
+          "_mainAlt": "",
+          "_sides": "Yogurt",
+          "_softAlt": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
+          "_noPorkAlt": "",
+          "_gfAlt": "Gluten-free oatmeal, jam, lactose-free yoghurt",
+          "_altMeals": [
+            {
+              "text": "Soft Scrambled Eggs, DF Yoghurt & Fruit",
+              "type": "plain",
+              "flags": {}
+            }
+          ],
+          "_altMealsNone": false,
+          "_slots": {
+            "main": {
+              "manual": "Turkey & Cheese and Eggs",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": true,
+                "hasEgg": true,
+                "hasTurkey": true
+              }
+            },
+            "veganalt": {
+              "manual": "Oatmeal",
+              "flags": {}
+            },
+            "xtra": {
+              "manual": "Yogurt",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-24T13:45:05.049Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
+      },
+      "lunch_halal": "",
+      "lunch_mainAlt": "",
+      "lunch_original": {
+        "meal": {
+          "": "Honey BBQ Halal Chicken Drumsticks, Potato Salad",
+          "_veg": "Vegan Drumsticks, Potato Salad",
+          "_flags": {
+            "hasGluten": true,
+            "hasDairy": false,
+            "hasEgg": true,
+            "hasFish": false,
+            "hasPeanuts": false,
+            "hasSoy": false,
+            "hasTreeNuts": false,
+            "hasSesame": false,
+            "hasMustard": false,
+            "hasShellfish": false,
+            "hasSulphites": true,
+            "hasPork": false,
+            "hasBeef": false,
+            "hasChicken": true,
+            "hasTurkey": false,
+            "isSpicy": false,
+            "isCarb": true,
+            "halalCertifiedMeat": true,
+            "hasProcessedMeat": false,
+            "hasCoconut": false,
+            "hasMushroom": false,
+            "hasBrassicas": false,
+            "hasCorn": false,
+            "hasNightshades": true,
+            "hasBeans": false
+          },
+          "_mainItem": "Honey BBQ Halal Chicken Drumsticks",
+          "_sides": "Potato Salad",
+          "_softAlt": "",
+          "_altMeals": [],
+          "_altMealsNone": true,
+          "_slots": {
+            "main": {
+              "manual": "Honey BBQ Halal Chicken Drumsticks",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": true,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": true,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": true,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": true,
+                "halalCertifiedMeat": true,
+                "hasProcessedMeat": false,
+                "hasCoconut": false,
+                "hasMushroom": false,
+                "hasBrassicas": false,
+                "hasCorn": false,
+                "hasNightshades": true,
+                "hasBeans": false
+              }
+            },
+            "veganalt": {
+              "recipeName": "Vegan Drumstick",
+              "flags": {
+                "hasGluten": true,
+                "hasDairy": false,
+                "hasEgg": false,
+                "hasFish": false,
+                "hasPeanuts": false,
+                "hasSoy": false,
+                "hasTreeNuts": false,
+                "hasSesame": false,
+                "hasMustard": false,
+                "hasShellfish": false,
+                "hasSulphites": false,
+                "hasPork": false,
+                "hasBeef": false,
+                "hasChicken": false,
+                "hasTurkey": false,
+                "isSpicy": false,
+                "isCarb": false,
+                "halalCertifiedMeat": false,
+                "hasProcessedMeat": false,
+                "hasBeans": true,
+                "hasMushroom": false,
+                "hasCoconut": false,
+                "hasNightshades": false,
+                "hasBrassicas": false,
+                "hasCorn": false
+              },
+              "recipeId": "vegan-drumstick",
+              "displayText": "Vegan Drumsticks"
+            },
+            "starch": {
+              "manual": "Potato Salad",
+              "flags": {}
+            },
+            "vegside": {
+              "manual": "Potato Salad",
+              "flags": {}
+            }
+          }
+        },
+        "at": "2026-11-24T13:45:05.054Z",
+        "by": "JK",
+        "how": "Rex’s week sheet"
       }
     }
   },
@@ -10954,19 +11838,19 @@
     "plainVegStirfryComponents": "Carrot, Onion, Peppers, Zucchini, Green Beans",
     "standardCutover": 1783971058450,
     "dayEditedAt": {
-      "1|TUESDAY": 1795175498448,
+      "1|TUESDAY": 1795527905067,
       "2|SATURDAY": 1795081678597,
       "3|WEDNESDAY": 1795081678597,
-      "1|WEDNESDAY": 1795081678597,
-      "1|SUNDAY": 1795081678597,
+      "1|WEDNESDAY": 1795527905067,
+      "1|SUNDAY": 1795527905067,
       "2|THURSDAY": 1795081678597,
       "3|FRIDAY": 1795017603184,
       "3|SUNDAY": 1795017603184,
       "4|TUESDAY": 1795175498534,
       "4|THURSDAY": 1795017603184,
       "4|SATURDAY": 1795179429788,
-      "1|SATURDAY": 1795081678597,
-      "1|FRIDAY": 1795145377246,
+      "1|SATURDAY": 1795527905067,
+      "1|FRIDAY": 1795527905067,
       "2|WEDNESDAY": 1795017748161,
       "2|MONDAY": 1795145377246,
       "2|TUESDAY": 1795175498478,
@@ -10980,7 +11864,7 @@
       "4|MONDAY": 1795119762216,
       "1|MONDAY": 1795081678597,
       "3|TUESDAY": 1795175498511,
-      "1|THURSDAY": 1795017603184,
+      "1|THURSDAY": 1795527905067,
       "2|SUNDAY": 1795191209417
     },
     "site": "rexdale",
@@ -10995,14 +11879,14 @@
       "components": {
         "calendar": "sha256:3486f1d6cc49bff663c8008445fd8fbecf96ad5d6bd1eedac12e235e03f7b94a",
         "dated": "sha256:f7face0a19c18eb3a01a4482bc5143af4d499dc15f9c5f0246197bafc0291063",
-        "menu": "sha256:3bb54bef463b306e3c9c44bba48da0e60fd3025831deb449960113a6989514a8",
-        "recipe": "sha256:9d92035ac076341c28ac8301a74e0f91477016644286062640ff17f7d8fb41d7",
+        "menu": "sha256:cc0125e82c53cfc50283d50e607ce49db9009eaf0e701ac900484c9dd96e9b51",
+        "recipe": "sha256:246b6e6daad4fad9e532fc895a568864982ccd3d9db879913d16ff11483bf987",
         "registry": "sha256:7ea83f6b176a07b2cbbdab223a96f09a8f04f07ccef6f3dbed9d10c4766d01af"
       },
-      "inputRevision": "sha256:98bb64e01c4b4bd7dff575f0448f64b7f1b15d28c1580e8b6963a6191109eebc",
+      "inputRevision": "sha256:a7511853a0711638e2c3bc2f66a48229c72222f6ad848db7b793785fa2d34efe",
       "publication": {
         "epoch": "rexdale-f4-2026-11-09",
-        "sequence": 51
+        "sequence": 52
       },
       "schema": 1
     }
