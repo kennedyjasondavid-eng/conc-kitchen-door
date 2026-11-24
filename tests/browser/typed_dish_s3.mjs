@@ -31,14 +31,26 @@ try {
   for (const width of [1280, 390]) {
     const p = await boot(width);
     // 1. A typed dish the meal opened with reads quietly; opening changes nothing.
+    // Re-pinned 2026-11-24: this opened Wk1 SUN dinner and expected its typed "Pasta". Rex's Week 1 sheet (publish
+    // 2026-11-24 13:45) made it "Noodles" with a Gluten tick, and a tick answers a typed dish, so that meal has nothing
+    // left to ask. The check now opens the first published lunch or dinner with a typed side (not the main box, which
+    // carries the meal's ticks) still not answered, found by DOOR's own list, and expects that dish's name.
     const opened = await p.evaluate(() => {
-      openMenuEdit(1, 'SUNDAY', 'dinner');
-      const note = document.querySelector('.slot-typed-note');
-      return { cls: note ? note.className : '', text: note ? note.innerText : '', dirty: doorMenuDraftIsDirty(),
+      const pick = doorMealsTypedUnanswered().filter(x => x.period !== 'breakfast').map(x => {
+        const slots = getMenuData()[x.week][x.day][x.period + '_slots'] || {};
+        const id = DOOR_TYPED_DISH_IDS.find(k => k !== 'main' && doorTypedDishUnanswered(slots[k], k));
+        return id ? { ...x, dish: String(slots[id].manual).trim() } : null;
+      }).find(Boolean);
+      if (!pick) return { pick: null };
+      openMenuEdit(Number(pick.week), pick.day, pick.period);
+      const note = [...document.querySelectorAll('.slot-typed-note')].find(n => n.innerText.includes(pick.dish));
+      return { pick, cls: note ? note.className : '', text: note ? note.innerText : '', dirty: doorMenuDraftIsDirty(),
         summary: (document.querySelector('#mc-slot-name-preview .door-plate-summary') || {}).innerText || '' };
     });
-    check(width + ' a typed dish saved before reads quietly ("not answered yet")', /slot-typed-old/.test(opened.cls) && /Pasta/.test(opened.text), opened);
-    check(width + ' the summary lists it quietly, and opening leaves the draft unchanged', /Allergens not answered yet: Pasta/.test(opened.summary) && !opened.dirty, opened);
+    // Back to Wk1 SUN dinner for the steps below (they type on it and save it).
+    await p.evaluate(() => { try { closeMenuEdit(); } catch (e) {} openMenuEdit(1, 'SUNDAY', 'dinner'); });
+    check(width + ' a typed dish saved before reads quietly ("not answered yet")', opened.pick && /slot-typed-old/.test(opened.cls) && opened.text.includes(opened.pick.dish), opened);
+    check(width + ' the summary lists it quietly, and opening leaves the draft unchanged', opened.pick && opened.summary.includes('Allergens not answered yet: ') && opened.summary.includes(opened.pick.dish) && !opened.dirty, opened);
     // 2. A dish typed now asks in amber.
     const typed = await p.evaluate(() => {
       slotSaveManual('xtra', 'Audit Peanut Noodles');
