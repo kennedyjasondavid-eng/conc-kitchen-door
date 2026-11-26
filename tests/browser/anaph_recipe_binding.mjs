@@ -136,7 +136,10 @@ try {
    localStorage.setItem('concMenuBase',JSON.stringify(doorNormalizeMenuOverlay(doorStampOverlayEdits(current,trial,Date.now()))));
    for(const [day,rooms]of [['TUESDAY',['301a','1207']],['SUNDAY',['304','412']]]) {
     const pd=computePlatingData('breakfast',1,day);
+    // 2026-11-26: these sample rooms are real residents, so one can leave (412 left in publication 59's import, Nov 25);
+    // a room no longer in the registry is recorded as gone in the staged capture instead of crashing the gate.
     for(const room of rooms){const section=pd.sections.find(s=>s.residents.some(r=>r.room===room));
+     if(!section){cases.push({week:1,day,room,notInRegistry:true});continue;}
      cases.push({week:1,day,room,key:section.rule.key,plate:getAltMeal(section.rule.altType,pd.ctx),tags:section.residents.find(r=>r.room===room).tags});}
    }
   }finally{localStorage.setItem('concMenuBase',JSON.stringify(current));}
