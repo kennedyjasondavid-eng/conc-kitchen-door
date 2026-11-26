@@ -53,6 +53,16 @@ The publish path is hardened end-to-end. `PublishAuth` centralizes credentials; 
 - **`computeDoorComplianceDiagnostics`** is built + tested but **intentionally unwired** — the engine for a future consolidated compliance gate (the live anaphylactic net runs via `getAnaphConflictRooms`/routing lockout/plating ALERT).
 - **No-build smoke harness:** `tests/door-smoke.mjs` (`node --test tests/*.mjs`) + a GitHub Actions check, 88 tests. `.gitattributes` forces `*.html`/`*.mjs` to LF (Windows edits CRLF-flipped `index.html` and broke the harness's marker extraction).
 
+## Recent (2026-11-25) — Wk2 FRI lunch's Vegetarian Chili carries Mushroom (menu data, publication 60)
+Jason, 2026-11-25: "Yes, tick Mushroom". Vegetarian Chili is the Beef Chili pot's vegan batch, made with the house Vegan
+Meat Replacement. CODEX's new Beef Chili record (conc-recipe-hub #418) lists Mushroom for the replacement's button
+mushrooms, as every other CODEX dish made with it does. The typed vegan box had the card's six ticks but not Mushroom.
+Written through `doorNoteMealChange` / `saveMenuBaseOverlay` / `appendChangeLog`, one publish (W6 method; a control run
+rebuilt publication 59 exactly first). Only the vegan box's tick moves; routing counts, the meal ticks, the Beef Chili
+box and the words are unchanged; no resident on the vegan plate has a mushroom restriction today. Gate
+`tests/veg_chili_mushroom_gate.mjs` (3, red 2/3 on `main` `dfcfdcd`). Receipt
+`docs/receipts/door_veg_chili_mushroom_2026-11-25.md`.
+
 ## Recent (2026-11-24) — the Pages deploy builds and deploys in two jobs, and tries the deploy twice (workflow only)
 Jason, 2026-11-24: Rex's Week 1 sheet changed Wk1 FRI lunch from Potato Salad to Potato Hash, and EXPO showed no change.
 DOOR's publish reached `main` (13:45), but every Pages run since went red: `upload-pages-artifact` finished and
